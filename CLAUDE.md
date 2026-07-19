@@ -16,6 +16,7 @@ A mobile-first Euro 2028 football predictor web app. Users predict every group m
 ## Stack
 
 - React + TypeScript + Vite
+- React Router (`react-router-dom`) for app routing
 - Custom design system with CSS modules (no Tailwind)
 - Supabase (Postgres, Auth, RLS) — dev project live; client in `src/services/supabase/client.ts` (only this folder may import it); v0.1 schema/RLS in `supabase/migrations/`, seed in `supabase/seed.sql`
 - Vitest (+ React Testing Library) for tests; Playwright later
@@ -66,7 +67,9 @@ Tier 2 UI — **design-system basics done**. Presentational primitives live in `
 
 Dev auto-login shim shipped (`docs/auth-plan.md` §1): `src/services/supabase/autoLoginPolicy.ts` (pure policy + fail-closed error, unit-tested) and `devAutoLogin.ts` (`initDevAuth()`, called from `src/main.tsx`). Env-gated on `import.meta.env.DEV` **and** `VITE_DEV_AUTOLOGIN=true`; fail-closed at both runtime and build time (`vite.config.ts`) so a production build with the flag on refuses to start. Dev user seeded via `supabase/dev-user.sql`; env vars in `.env.example`. These two files are the only code that may reference the dev user (rule 8).
 
-**Next up:** Tier 2 UI — Phase 1 app skeleton (4-tab nav, Predict hub). Real auth screens come later (auth-plan Phase 1 exit). See `docs/build-todo.md`.
+v0.1 app skeleton assembled (design-system §6): React Router routes inside `PageShell` with the 4-tab nav (`src/app/` — `Providers`, `AppShell`; providers for theme/auth/tournament-data/predictions). Screens in `src/features/` — Home, Predict hub (live per-stage status), group predictor A–F (match cards + debounced Supabase autosave + live table via `resolveGroupTies`), League empty state, More (persisted theme toggle, how-scoring-works from `scoringConfig`, dev sign-out). All DB access stays behind `src/services/supabase/` query wrappers. Third-place is computed; bracket/jokers/review screens are placeholders pending their own Phase 1 steps. Verified end-to-end against the dev Supabase (autosave persists).
+
+**Next up:** Tier 2 / Phase 1 — third-place tie-resolution UI, knockout bracket screens, review & submit, server-enforced lock. Real auth screens per auth-plan Phase 1 exit. See `docs/build-todo.md`.
 
 ## Things NOT to do
 

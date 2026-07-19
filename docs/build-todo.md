@@ -46,7 +46,7 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 
 ## NOW — Phase 1: finish the v0.1 spine (was Tier 2)
 - [x] Dev auto-login per docs/auth-plan.md (seeded dev user, env-gated, fail-closed in production builds) — shim in `src/services/supabase/{autoLoginPolicy,devAutoLogin}.ts`, runtime + build-time fail-closed guards, policy unit-tested, dev user seeded via `supabase/dev-user.sql`
-- [ ] App skeleton: 4-tab nav, Predict hub, group predictor screens wired to autosave (assembly prompt)
+- [x] App skeleton: 4-tab nav, Predict hub, group predictor screens wired to autosave (assembly prompt) — React Router in `PageShell`; Predict hub with live per-stage status; group predictor (A–F) with match cards + debounced Supabase autosave + live table; Home / League / More (persisted theme, how-scoring-works, dev sign-out). Third-place computed; bracket/review are placeholders pending their own steps.
 - [ ] Third-place screen (incl. tie-resolution prompt)
 - [ ] Bracket screens per spec (cascade confirm, auto-advance, vs divider, venue flags)
 - [ ] Jokers overview screen + placement on cards
