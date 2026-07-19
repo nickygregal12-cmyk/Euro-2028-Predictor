@@ -1,0 +1,177 @@
+/* Overall leaderboard. Tokens only. */
+
+/* Standings summary card ---------------------------------------------------- */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.globe {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--cyn);
+}
+
+.cardBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.cardTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+
+.cardSub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.cardRank {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--acc);
+  flex-shrink: 0;
+}
+
+/* Table --------------------------------------------------------------------- */
+.table {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.headRow,
+.row {
+  display: grid;
+  grid-template-columns: 28px 20px 28px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.headRow {
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+.headPts {
+  text-align: right;
+}
+
+.row {
+  border-bottom: 1px solid var(--line);
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+/* Current user's row: chip background, accent avatar, YOU chip. */
+.rowYou {
+  background: var(--chip);
+}
+
+.rank {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--tx);
+  text-align: center;
+}
+
+.movement {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moveUp {
+  color: var(--acc);
+}
+
+.moveDown {
+  color: var(--red);
+}
+
+.moveNone {
+  color: var(--tx3);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--mut);
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--tx);
+}
+
+.avatarYou {
+  background: var(--acc);
+  color: var(--bg);
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--tx);
+}
+
+.youChip {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--acc) 18%, transparent);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--acc);
+}
+
+.points {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+  text-align: right;
+}
