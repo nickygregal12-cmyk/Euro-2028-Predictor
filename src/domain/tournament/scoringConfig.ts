@@ -17,6 +17,12 @@ export const GROUP_MATCH_POINTS = {
 // enforcement concerns handled server-side, not in scoring.
 export const JOKER_MULTIPLIER = 2
 
+// Each entry has exactly five jokers (scoring-rules §1). This is the allowance,
+// not scoring — but it's a rule value, so it lives here rather than as a literal
+// in logic. The max-5 limit and the kickoff-commitment lock are enforced
+// server-side; jokerPolicy.ts mirrors them for the UI (never the sole guard).
+export const JOKER_ALLOWANCE = 5
+
 // --- Section 2: predicted group position points ---
 export const GROUP_POSITION_POINTS = {
   perCorrectTeam: 2, // per team in the correct position
