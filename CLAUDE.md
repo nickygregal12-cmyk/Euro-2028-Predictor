@@ -10,6 +10,8 @@ A mobile-first Euro 2028 football predictor web app. Users predict every group m
 - `docs/scoring-rules.md` — the complete scoring and tie-break specification. All scoring logic implements exactly this. Never invent or change a rule without updating this doc first.
 - `docs/tournament-structure.md` — tournament facts, fixture skeleton, third-place ranking rules, and the round-of-16 allocation table. Bracket/structure logic implements exactly this. Never invent or change a rule (especially the R16 allocation table) without updating this doc first.
 - `docs/build-todo.md` — the tiered build plan. Work top-to-bottom within the current tier. Tick items off when done. New ideas go in the parking lot, not the current tier.
+- `docs/competition-structure.md` — how the Original Predictor and bonus games relate (the separation law), navigation, private-league scope, bonus-game specs, and build order. Never blur competition boundaries without updating this doc first.
+- `docs/auth-plan.md` — how development proceeds without auth screens (dev auto-login) and exactly what auth work lands when. Never change the dev-user or auth approach without updating this doc first.
 
 ## Stack
 
@@ -27,6 +29,8 @@ A mobile-first Euro 2028 football predictor web app. Users predict every group m
 4. **The server is the authority on deadlines and locks.** Browser countdowns are cosmetic. Lock enforcement happens in Postgres functions / RLS, never client-side alone.
 5. **Scoring must be deterministic and recalculable.** Given the same predictions and results, scoring always produces the same output, and the system can fully recalculate all points from source data. Corrections must never double-count.
 6. **One source of truth for rules.** If code and `docs/scoring-rules.md` disagree, the doc wins — fix the code, or consciously update the doc first.
+7. **Competitions are separate.** Original Predictor and bonus games are fully separate competitions — entries, predictions, and score events always carry their competition type; leagues belong to the Original Predictor only (`docs/competition-structure.md`).
+8. **Dev user is invisible to the app.** No code outside the dev auto-login shim may special-case the dev user (`docs/auth-plan.md`).
 
 ## Folder structure
 

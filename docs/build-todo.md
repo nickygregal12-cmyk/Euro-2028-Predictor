@@ -44,84 +44,47 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 
 ---
 
-## TIER 2 — v0.1: "I can actually use this for the tournament"
+## NOW — Phase 1: finish the v0.1 spine (was Tier 2)
+- [ ] Dev auto-login per docs/auth-plan.md (seeded dev user, env-gated, fail-closed in production builds)
+- [ ] App skeleton: 4-tab nav, Predict hub, group predictor screens wired to autosave (assembly prompt)
+- [ ] Third-place screen (incl. tie-resolution prompt)
+- [ ] Bracket screens per spec (cascade confirm, auto-advance, vs divider, venue flags)
+- [ ] Jokers overview screen + placement on cards
+- [ ] Awards / bonus predictions screen (golden boot, total goals)
+- [ ] Review & submit (validity gating)
+- [ ] Server-enforced lock at tournament kickoff
+- [ ] Flat overall leaderboard (basic)
+- [ ] Auth screens per auth-plan Phase 1 exit requirements
+- [ ] Netlify deploy + real-phone test with 3–4 friends through a full entry
 
-- [x] Design system basics: button, score input, match card, table, page layout — shipped a full set of presentational primitives in `src/design-system/` (CSS Modules, tokens only, dark + light, all states), previewable at `/dev/components`:
-  - Tournament: `TeamFlag`, `ScoreInput`, `JokerButton`, `JokerCounter`, `MatchCard` (editable/locked/scored), `GroupTable`, `ThirdPlaceTable`
-  - Core UI: `Button` (primary/secondary/destructive + loading), `TextInput` (label/error/password), `PageShell` + `BottomNav` (5 tabs, coming-soon routing), `Toast`, `Alert`, `Skeleton`, `EmptyState`, `Modal` + `ConfirmModal`, `ProgressBar`, `StatusBadge` (locked/live/submitted)
-- [ ] Auth: sign up / log in (Supabase Auth, magic link or email+password)
-- [ ] Group prediction screens (one per group, score inputs, autosave)
-- [ ] Wire autosave to Supabase (predictions table)
-- [ ] Group tables render live from predictions (using Tier 1 function)
-- [ ] Best third-place ranking screen (using Tier 1 function)
-- [ ] Round-of-16 screen, auto-generated from group results
-- [ ] Knockout bracket — winner-only selection, mobile = one round at a time
-- [ ] Review screen — blocks submission if anything's incomplete
-- [ ] Server-side lock check at tournament kickoff (timestamp comparison, not trust-the-browser)
-- [ ] One flat leaderboard — everyone in a single pool
-- [ ] Manual result entry via Supabase Studio directly (no admin UI yet)
-- [ ] Scoring calculation wired up as a Postgres function calling into the logic from Tier 1
-- [ ] Mobile responsive pass — test on an actual phone, not just DevTools
-- [ ] Deploy to Netlify, confirm it works end-to-end on a real device
+## NEXT — Phase 2 prep: component pack + Home dashboard
+- [ ] LeaderboardRow component (rank, movement, player, latest pts, total, you-highlight)
+- [ ] PointsBreakdown component (renders score_events + total)
+- [ ] PlayerChip component (avatar initials + name)
+- [ ] StatCard component (big number + label)
+- [ ] Home dashboard design session (phase-aware: pre / during / post tournament)
 
-**Milestone check:** you and a few friends can create an account, complete a full prediction, and see a working leaderboard once you manually enter results.
+## Phase 2 — Original Predictor leagues (was v0.5)
+- [ ] League create / invite link + code / join / leave
+- [ ] League table page (incl. exact-score count, correct-result count, predicted champion, max remaining points)
+- [ ] Max-remaining-points calculation in domain layer
+- [ ] Reveal-after-lock RLS policy (designed once, reused by all later competitions)
+- [ ] Player profiles (StatCards + PointsBreakdown + revealed predictions)
+- [ ] H2H links from league rows
+- [ ] Minimal admin result-entry page + correction flow
+- [ ] Turnstile + rate limiting + CI running tests
 
----
+## Phase 3 — Core tournament experience (was Tier 4)
+- [ ] Match Centre; Matches joins nav as 5th tab
+- [ ] Full profiles, H2H pages, rank history, bracket comparisons
+- [ ] Live tables with Predicted/Live switcher + "You" column (designed)
+- [ ] Phase-aware Home states (during/after)
+- [ ] E2E tests, staging env, audit logs, accessibility pass, full rehearsal
 
-## TIER 3 — v0.5: "Ready to share more widely"
+## Phase 4 — Bonus Games platform (hub at More → Games; see docs/competition-structure.md)
+## Phase 5 — KO Predictor
+## Phase 6 — Last Man Standing
+## Phase 7 — Fan Duels (staged per competition-structure doc)
 
-- [ ] Private leagues: create league, generate invite code
-- [ ] Join league via code
-- [ ] League-scoped leaderboard
-- [ ] Leave league
-- [ ] Minimal admin page: protected route, result entry with a scoring-impact preview before confirming
-- [ ] Result correction flow — test that re-entering a corrected result doesn't double-count points
-- [ ] Score explanations — store individual score events, show a simple breakdown to the user
-- [ ] Basic player profile: total points, accuracy %, rank
-- [ ] Add Cloudflare Turnstile to sign up / log in
-- [ ] Basic rate limiting on prediction save and league join
-- [ ] Tie-resolution prompt for genuinely ambiguous group ties (replace the silent default from Tier 2)
-- [ ] Set up GitHub Actions to run unit tests on every push
-
-**Milestone check:** multiple friend groups can run their own private leagues, and a wrong result can be corrected safely.
-
----
-
-## TIER 4 — v1.0: full original spec
-
-- [ ] Match centre pages — before/during/after states for every fixture
-- [ ] Bonus predictions (golden boot, total goals band, etc.)
-- [ ] Tournament-phase-aware home screen (before / during / after tournament views)
-- [ ] Full design system component inventory (modal, drawer, toast, tooltip, skeleton, empty states, locked states)
-- [ ] Integration tests: signup, save, resume, submit, lock enforcement, league join
-- [ ] Playwright E2E: new user full entry, returning user resume, league join, deadline passing, result entry, corrected result
-- [ ] Separate staging environment (own Supabase project, own Netlify site)
-- [ ] Admin audit log
-- [ ] Maintenance mode
-- [ ] Accessibility pass: keyboard nav, focus states, contrast, screen reader labels
-- [ ] Full simulated tournament rehearsal — run one complete tournament start to finish with test data
-- [ ] Independent-app disclaimer added to footer
-- [ ] Privacy notice / terms page
-
-**Milestone check:** matches the original full spec's "minimum viable launch" definition.
-
----
-
-## Not doing yet (parking lot — revisit only after Tier 4)
-
-- Live knockout predictor mode (separate from original bracket)
-- Native mobile apps
-- Push notifications
-- Real-time chat / social feed
-- Avatar uploads
-- Automated live-score API integration
-- Additional scoring modes
-- Public user-created (non-private) competitions
-
----
-
-## Keeping this list alive
-
-- Tick items off as you go — don't batch it up, do it the moment something's done.
-- If you find yourself skipping an item because it's boring (admin UI, tests), move it to a visible "skipped for now" note rather than deleting it — you'll want the reminder.
-- If a new idea comes up mid-build, put it straight in the parking lot rather than the current tier, unless it blocks something you're actively doing.
+## Parking lot (unchanged)
+- Native apps, push notifications, chat/social feeds, avatar uploads, live-score API automation, additional scoring modes
