@@ -1,3 +1,4 @@
+import { initialsOf, TeamFlag, type MatchTeam } from '../../design-system'
 import { ChevronUpIcon, ChevronDownIcon } from '../../design-system/icons'
 import s from './leaderboard.module.css'
 
@@ -10,21 +11,30 @@ export type LeaderboardRowProps = {
   // Movement vs the previous matchday. A placeholder in v0.1 (no history yet):
   // 'none' renders a muted dash.
   movement?: 'up' | 'down' | 'none'
-}
-
-function initials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+  // The player's champion pick, shown as a small flag after the name (league
+  // rows). Hidden pre-lock by the caller per the reveal rules (design-system §6);
+  // pass `championEliminated` to dim it when the team is knocked out.
+  championPick?: MatchTeam
+  championEliminated?: boolean
 }
 
 /**
- * One overall-standings row: rank · movement · avatar+name (+ YOU) · total.
- * Presentational only. The current user's row is chip-backed with an accent
- * avatar and a YOU chip (design-system §6). Rank shows a dash pre-results.
+ * One standings row: rank · movement · avatar+name (+ YOU, + optional champion
+ * flag) · total. Presentational only. The current user's row is chip-backed with
+ * an accent avatar and a YOU chip (design-system §6); rank shows a dash
+ * pre-results. Shared by the overall leaderboard (no champion pick) and league
+ * rows (with one). The champion flag sits inside the flexible name cell, so the
+ * outer column grid is unchanged whether or not it's present.
  */
-export function LeaderboardRow({ rank, name, points, isYou, movement = 'none' }: LeaderboardRowProps) {
+export function LeaderboardRow({
+  rank,
+  name,
+  points,
+  isYou,
+  movement = 'none',
+  championPick,
+  championEliminated = false,
+}: LeaderboardRowProps) {
   return (
     <div
       className={`${s.row} ${isYou ? s.rowYou : ''}`}
@@ -41,11 +51,20 @@ export function LeaderboardRow({ rank, name, points, isYou, movement = 'none' }:
         )}
       </span>
       <span className={`${s.avatar} ${isYou ? s.avatarYou : ''}`} aria-hidden="true">
-        {initials(name)}
+        {initialsOf(name)}
       </span>
       <span className={s.nameCell}>
         <span className={s.name}>{name}</span>
         {isYou && <span className={s.youChip}>YOU</span>}
+        {championPick && (
+          <span className={`${s.champion} ${championEliminated ? s.championOut : ''}`}>
+            <TeamFlag
+              countryCode={championPick.countryCode}
+              label={`Champion pick: ${championPick.name}${championEliminated ? ' (eliminated)' : ''}`}
+              size="venue"
+            />
+          </span>
+        )}
       </span>
       <span className={s.points}>{points}</span>
     </div>

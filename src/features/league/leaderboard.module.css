@@ -168,6 +168,15 @@
   color: var(--acc);
 }
 
+/* Champion-pick flag (league rows): sits after the name, dims when eliminated. */
+.champion {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.championOut {
+  opacity: 0.45;
+}
+
 .points {
   font-family: var(--font-display);
   font-weight: 500;
