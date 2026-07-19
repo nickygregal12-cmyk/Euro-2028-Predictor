@@ -1,0 +1,165 @@
+/* Awards card sub-blocks (golden boot + derived group goals). Tokens only. */
+
+.award {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.awardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.awardTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+
+/* Points value labelled in gold beside the award (gold = jokers/awards accents
+   are gold text on tint only per the gold rule; here it's a small tint pill). */
+.points {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--gold);
+  background: var(--gold-tint);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--gold);
+}
+
+/* Selected-player chip (removable). */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  padding: 6px 6px 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--chip);
+}
+
+.chipName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--tx);
+}
+
+.chipTeam {
+  color: var(--tx3);
+}
+
+.chipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tx2);
+  cursor: pointer;
+}
+
+.chipRemove:hover {
+  background: color-mix(in srgb, var(--tx3) 16%, transparent);
+  color: var(--tx);
+}
+
+.chipRemove:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  overflow: hidden;
+}
+
+.result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--tx);
+  text-align: left;
+  cursor: pointer;
+}
+
+.results li:last-child .result {
+  border-bottom: none;
+}
+
+.result:hover {
+  background: color-mix(in srgb, var(--tx3) 8%, transparent);
+}
+
+.result:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+
+.resultTeam {
+  color: var(--tx3);
+  font-size: 12px;
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--tx3);
+}
+
+/* Derived group-goals block. */
+.goals {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.goalsTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.goalsNum {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--tx);
+}
+
+.goalsCaption {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+}
