@@ -25,6 +25,13 @@ import {
   type TieResolverTeam,
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
+import {
+  RoundSwitcher,
+  TieCard,
+  ChampionCard,
+  type RoundKey,
+  type TieSide,
+} from '../features/bracket'
 
 // Sample data — real flag-icons codes so the outline is visible on white-heavy
 // flags (England). This is a dev harness only; no domain logic here.
@@ -225,6 +232,48 @@ function TieResolverDemo() {
       resolved={resolved}
       saveStatus={resolved ? 'saved' : 'idle'}
       onResolve={() => setResolved(true)}
+    />
+  )
+}
+
+// Bracket tie sides. Real teams pre-draw have no flag (empty countryCode), same
+// as the live app, so these use the placeholder-flag look throughout.
+const sideEng: TieSide = { kind: 'team', teamId: 'eng', name: 'England', countryCode: 'gb-eng' }
+const sideEsp: TieSide = { kind: 'team', teamId: 'esp', name: 'Spain', countryCode: 'es' }
+const placeholderSide: TieSide = {
+  kind: 'placeholder',
+  feederRef: 'R16-3',
+  label: 'Winner R16 · Newcastle tie',
+}
+
+function RoundSwitcherDemo() {
+  const [active, setActive] = useState<RoundKey>('R16')
+  return (
+    <RoundSwitcher
+      active={active}
+      onSelect={setActive}
+      rounds={[
+        { key: 'R16', label: 'R16', picked: 8, total: 8 },
+        { key: 'QF', label: 'QF', picked: 3, total: 4 },
+        { key: 'SF', label: 'SF', picked: 0, total: 2 },
+        { key: 'FINAL', label: 'Final', picked: 0, total: 1 },
+      ]}
+    />
+  )
+}
+
+function TieCardPickDemo() {
+  const [picked, setPicked] = useState<string | null>(null)
+  return (
+    <TieCard
+      provenance="R16 · Winner A v Runner-up C"
+      date="24 Jun"
+      venue="Cardiff"
+      venueCountryCode="gb-wls"
+      home={sideEng}
+      away={sideEsp}
+      pickedTeamId={picked}
+      onPick={setPicked}
     />
   )
 }
@@ -591,6 +640,63 @@ function Gallery() {
           saveStatus="error"
           onResolve={() => {}}
         />
+      </Section>
+
+      <Section title="Knockout bracket">
+        <Label>round switcher (interactive)</Label>
+        <RoundSwitcherDemo />
+
+        <Label>tie — pick a winner (interactive)</Label>
+        <TieCardPickDemo />
+
+        <Label>tie — unpicked</Label>
+        <TieCard
+          provenance="R16 · Winner B v 3rd Group D"
+          date="25 Jun"
+          venue="Newcastle"
+          venueCountryCode="gb-eng"
+          home={sideEng}
+          away={sideEsp}
+          pickedTeamId={null}
+          onPick={() => {}}
+        />
+
+        <Label>tie — picked (winner + loser)</Label>
+        <TieCard
+          provenance="R16 · Winner A v Runner-up C"
+          date="24 Jun"
+          venue="Cardiff"
+          venueCountryCode="gb-wls"
+          home={sideEng}
+          away={sideEsp}
+          pickedTeamId="eng"
+          onPick={() => {}}
+        />
+
+        <Label>tie — one feeder undecided (placeholder)</Label>
+        <TieCard
+          provenance="QF · Winner R16-3 v Winner R16-1"
+          date="30 Jun"
+          venue="Wembley"
+          venueCountryCode="gb-eng"
+          home={placeholderSide}
+          away={sideEsp}
+          pickedTeamId={null}
+        />
+
+        <Label>tie — both feeders undecided (placeholders)</Label>
+        <TieCard
+          provenance="SF · Winner QF-1 v Winner QF-2"
+          date="4 Jul"
+          venue="Wembley"
+          venueCountryCode="gb-eng"
+          home={{ kind: 'placeholder', feederRef: 'QF-1', label: 'Winner QF · Wembley tie' }}
+          away={{ kind: 'placeholder', feederRef: 'QF-2', label: 'Winner QF · Dublin tie' }}
+          pickedTeamId={null}
+        />
+
+        <Label>champion card (Final, picked)</Label>
+        <ChampionCard name="England" countryCode="gb-eng" />
       </Section>
     </div>
   )
