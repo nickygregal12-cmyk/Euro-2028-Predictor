@@ -58,10 +58,11 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 - [ ] Netlify deploy + real-phone test with 3–4 friends through a full entry
 
 ## NEXT — Phase 2 prep: component pack + Home dashboard
-- [ ] LeaderboardRow component (rank, movement, player, latest pts, total, you-highlight)
-- [ ] PointsBreakdown component (renders score_events + total)
-- [ ] PlayerChip component (avatar initials + name)
-- [ ] StatCard component (big number + label)
+- [x] LeaderboardRow component (rank, movement, player, latest pts, total, you-highlight) — shipped at v0.1; extended to reuse the shared `initialsOf` and take an optional champion-pick flag (dims when eliminated) for league rows. The full expandable league-detail row (latest-MD column, stat triple, Profile/H2H buttons, no-entry state) lands with the **League detail page** build, where its header grid + reveal rules are decided together.
+- [x] PointsBreakdown component (renders score_events + total) — `src/features/scoring/PointsBreakdown.tsx`: collapsible category rows + subtotals, expandable events (flag + explanation + points), gold joker pills, "0 · pending" for unscored categories, pinned total that always equals the sum. Driven by the domain `score_events` shape (`src/domain/tournament/scoreEvents.ts` — type + pure `groupScoreEvents`/`scoreEventsFromBreakdown`, unit-tested); no `score_events` table yet (scoring tier). States in `/dev/components`.
+- [x] PlayerChip component (avatar initials + name) — `src/design-system/PlayerChip.tsx`: astral-safe initials + truncating name, sm/md/lg, you state; exports the shared `initialsOf`. States in `/dev/components`.
+- [x] StatCard component (big number + label) — `src/design-system/StatCard.tsx`: profile stat-grid tile, accent/movement/tappable variants. States in `/dev/components`.
+- [x] Dev seed — fake mid-tournament (hostile-data rule) — `scripts/seed-dev/`: repeatable, **dev-only**, fail-closed (`seedPolicy.ts`, unit-tested, mirrors the auto-login guard) and idempotent seed of ~20 hostile-named test users with complete submitted entries (36 group scores, orders, full progression, ≤5 jokers) and ~12 results; scores computed through the real `calculateScore` pipeline. Dry-run by default (writes nothing); `--commit` writes to the dev DB. Run via `npx tsx scripts/seed-dev/index.ts` (no repo dependency added). See `scripts/seed-dev/README.md`.
 - [ ] Home dashboard design session (phase-aware: pre / during / post tournament)
 
 ## Phase 2 — Original Predictor leagues (was v0.5)
