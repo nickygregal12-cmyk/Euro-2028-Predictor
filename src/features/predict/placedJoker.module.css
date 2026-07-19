@@ -1,0 +1,135 @@
+/* Placed-joker overview card. Tokens only. A joker card always carries the
+   1.5px gold border (design-system §5 — the card border goes gold while a joker
+   is on, and stays gold once committed). */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--card);
+  border: 1.5px solid var(--gold);
+  border-radius: var(--radius-card);
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+/* Team row — same grid as the match card. */
+.teamRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.team {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.teamHome {
+  justify-content: flex-start;
+}
+
+.teamAway {
+  justify-content: flex-end;
+}
+
+.teamName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--tx);
+}
+
+.score {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scoreNum {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--tx);
+}
+
+.sep {
+  color: var(--tx3);
+}
+
+/* Footer: status pill left, actions right. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--gold);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--gold);
+  background: var(--gold-tint);
+}
+
+/* Both states are gold tint pills (status, never a solid CTA). Committed reads
+   the same colour but is paired with a lock + permanence copy. */
+.pillOn,
+.pillCommitted {
+  color: var(--gold);
+  background: var(--gold-tint);
+  border-color: var(--gold);
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.moveLink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--tx2);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.moveLink:hover {
+  color: var(--tx);
+}
+
+.moveLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
