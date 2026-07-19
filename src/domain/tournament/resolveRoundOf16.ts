@@ -1,7 +1,7 @@
 // Pure domain function: maps group winners, runners-up and the four qualifying
 // thirds into the eight Round of 16 fixtures by slot reference (R16-1 to
 // R16-8). No UI, no database access — data in, data out. Implements sections 4
-// and 7 of euro2028-tournament-structure.md.
+// and 7 of docs/tournament-structure.md.
 //
 // Third-place placement is a pure lookup into the section-7 allocation table
 // (in roundOf16Allocation.ts), keyed by the SET of qualifying group letters.

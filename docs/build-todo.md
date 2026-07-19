@@ -8,7 +8,7 @@ No dates, no deadlines. Just tick things off in order. Each tier is fully usable
 
 ## TIER 0 — Foundations (do this before any UI)
 
-- [x] Confirm final scoring rules (write them down in plain English, one page, no code) — see `euro2028-scoring-rules.md`
+- [x] Confirm final scoring rules (write them down in plain English, one page, no code) — see `scoring-rules.md`
 - [x] Confirm tie-break rules for leagues
 - [x] Confirm tie-break rules for group tables
 - [x] Set up GitHub repo

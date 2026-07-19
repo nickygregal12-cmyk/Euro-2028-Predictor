@@ -1,6 +1,6 @@
 // Pure domain function: takes the teams and match scores of a single group
 // and returns the fully tie-broken standings. No UI, no database access —
-// data in, data out. Implements section 6 of euro2028-scoring-rules.md.
+// data in, data out. Implements section 6 of docs/scoring-rules.md.
 //
 // Steps 1-6 of the rules are pure calculation and resolve silently here.
 // Step 7 (the manual prompt) is NOT done by this function: when the app

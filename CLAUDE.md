@@ -7,9 +7,9 @@ Project conventions for Claude Code sessions. Read this before making changes.
 A mobile-first Euro 2028 football predictor web app. Users predict every group match, build a knockout bracket, pick a champion, and compete in private leagues. Free-tier hosting (Netlify + Supabase).
 
 **Source-of-truth documents (in repo root):**
-- `euro2028-scoring-rules.md` — the complete scoring and tie-break specification. All scoring logic implements exactly this. Never invent or change a rule without updating this doc first.
-- `euro2028-tournament-structure.md` — tournament facts, fixture skeleton, third-place ranking rules, and the round-of-16 allocation table. Bracket/structure logic implements exactly this. Never invent or change a rule (especially the R16 allocation table) without updating this doc first.
-- `euro2028-build-todo.md` — the tiered build plan. Work top-to-bottom within the current tier. Tick items off when done. New ideas go in the parking lot, not the current tier.
+- `docs/scoring-rules.md` — the complete scoring and tie-break specification. All scoring logic implements exactly this. Never invent or change a rule without updating this doc first.
+- `docs/tournament-structure.md` — tournament facts, fixture skeleton, third-place ranking rules, and the round-of-16 allocation table. Bracket/structure logic implements exactly this. Never invent or change a rule (especially the R16 allocation table) without updating this doc first.
+- `docs/build-todo.md` — the tiered build plan. Work top-to-bottom within the current tier. Tick items off when done. New ideas go in the parking lot, not the current tier.
 
 ## Stack
 
@@ -26,7 +26,7 @@ A mobile-first Euro 2028 football predictor web app. Users predict every group m
 3. **Every domain function ships with unit tests in the same commit.** A domain function without tests is not done. Tests live in `tests/domain/`.
 4. **The server is the authority on deadlines and locks.** Browser countdowns are cosmetic. Lock enforcement happens in Postgres functions / RLS, never client-side alone.
 5. **Scoring must be deterministic and recalculable.** Given the same predictions and results, scoring always produces the same output, and the system can fully recalculate all points from source data. Corrections must never double-count.
-6. **One source of truth for rules.** If code and `euro2028-scoring-rules.md` disagree, the doc wins — fix the code, or consciously update the doc first.
+6. **One source of truth for rules.** If code and `docs/scoring-rules.md` disagree, the doc wins — fix the code, or consciously update the doc first.
 
 ## Folder structure
 
@@ -58,7 +58,7 @@ Tier 1 domain logic **complete** — all functions done and tested: `calculateGr
 
 Tier 2 (v0.1) started: Supabase client wired (fail-closed on missing env). The initial migration (`supabase/migrations/20260719120000_init_v0_1.sql`) has been **applied** to the dev DB. Migrations are append-only — do not edit an applied migration; add a new timestamped file (e.g. the joker column lives in `20260719130000_add_match_prediction_joker.sql`). Still to run via the dashboard SQL editor: the joker follow-up migration, and `supabase/seed.sql` (the fixture skeleton) if not already seeded. Schema covers only the v0.1 tables (profiles, tournament reference data, entries, predictions) with RLS on every table; leagues/score_events/admin tables are deliberately deferred to later tiers.
 
-**Next up:** Tier 2 UI — design-system basics, then auth. See `euro2028-build-todo.md`.
+**Next up:** Tier 2 UI — design-system basics, then auth. See `docs/build-todo.md`.
 
 ## Things NOT to do
 

@@ -2,7 +2,7 @@
 // the fixtures that are now playable but not yet decided. No UI, no database
 // access — data in, data out. Operates purely on slot references
 // (R16-1 … R16-8 → QF-1 … QF-4 → SF-1, SF-2 → Final) per sections 4-5 of
-// euro2028-tournament-structure.md; the feed-through lives in knockoutBracket.ts.
+// docs/tournament-structure.md; the feed-through lives in knockoutBracket.ts.
 //
 // Winner-only mode: a "winner" is just the teamId that advances. R16 fixtures
 // come from resolveRoundOf16; this function carries winners forward from there.

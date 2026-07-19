@@ -1,5 +1,5 @@
 // Tournament-structure config (NOT logic). The post-R16 knockout tree,
-// transcribed verbatim from euro2028-tournament-structure.md sections 4-5.
+// transcribed verbatim from docs/tournament-structure.md sections 4-5.
 // advanceBracket() reads this; it does not derive the feed-through any other
 // way. R16 fixtures themselves come from resolveRoundOf16 — this table only
 // covers how winners feed forward (R16 → QF → SF → Final).

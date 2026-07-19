@@ -1,5 +1,5 @@
 // Tournament-structure config (NOT logic). Transcribed verbatim from
-// euro2028-tournament-structure.md sections 4 and 7. resolveRoundOf16() reads
+// docs/tournament-structure.md sections 4 and 7. resolveRoundOf16() reads
 // these tables; it does not compute placements any other way. If UEFA's final
 // Euro 2028 regulations differ, update this file and the doc together.
 

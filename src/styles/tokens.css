@@ -1,5 +1,5 @@
 /* Euro 2028 Predictor — design tokens
-   Source of truth: design-system.md. Do not add colours outside this file.
+   Source of truth: docs/design-system.md. Do not add colours outside this file.
    Dark ("Night broadcast") is the default theme; light is opt-in via
    [data-theme="light"] on <html>. */
 

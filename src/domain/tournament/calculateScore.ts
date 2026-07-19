@@ -1,7 +1,7 @@
 // Pure domain function: takes a user's predictions and the actual results and
 // returns the total points plus a full explanation breakdown. No UI, no
 // database access — data in, data out. Implements sections 1-4 of
-// euro2028-scoring-rules.md; all point values come from scoringConfig.ts.
+// docs/scoring-rules.md; all point values come from scoringConfig.ts.
 //
 // Jokers (section 1) double a single group match's points and nothing else;
 // their placement/lock rules are enforced server-side, so scoring simply

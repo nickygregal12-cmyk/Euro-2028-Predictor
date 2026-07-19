@@ -1,6 +1,6 @@
 -- Euro 2028 Predictor — seed data (v0.1)
 --
--- The full fixture skeleton from euro2028-tournament-structure.md §§3–5:
+-- The full fixture skeleton from docs/tournament-structure.md §§3–5:
 -- one tournament, six groups, 24 placeholder teams in their A1–F4 slots, and
 -- all 51 matches (36 group + 8 R16 + 4 QF + 2 SF + 1 final) with real dates,
 -- venues, and slot-reference source fields.

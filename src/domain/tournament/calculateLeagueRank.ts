@@ -1,5 +1,5 @@
 // Pure domain function: ranks league entries by total points, breaking ties
-// with the section-5 criteria of euro2028-scoring-rules.md. No UI, no database
+// with the section-5 criteria of docs/scoring-rules.md. No UI, no database
 // access — data in, data out. Deterministic: same entries, same ranking.
 //
 // Section 5 tie-breakers, applied in order until the tie is broken:

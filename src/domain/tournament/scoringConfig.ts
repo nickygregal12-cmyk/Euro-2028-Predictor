@@ -1,5 +1,5 @@
 // Scoring config (NOT logic). Every point value and threshold is transcribed
-// verbatim from euro2028-scoring-rules.md sections 1-4. calculateScore() reads
+// verbatim from docs/scoring-rules.md sections 1-4. calculateScore() reads
 // these; no scoring number is ever a literal inside the logic. If the doc
 // changes, change it here (and only here).
 

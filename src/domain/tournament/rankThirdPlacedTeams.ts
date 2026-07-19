@@ -1,6 +1,6 @@
 // Pure domain function: ranks the six third-placed teams and picks the four
 // that advance to the Round of 16. No UI, no database access — data in, data
-// out. Implements section 6 of euro2028-tournament-structure.md.
+// out. Implements section 6 of docs/tournament-structure.md.
 //
 // Criteria 1-4 (points, goal difference, goals scored, wins) are pure
 // calculation and resolve silently here. If teams are still level after
