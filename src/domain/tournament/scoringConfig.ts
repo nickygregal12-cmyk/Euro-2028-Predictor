@@ -1,0 +1,57 @@
+// Scoring config (NOT logic). Every point value and threshold is transcribed
+// verbatim from euro2028-scoring-rules.md sections 1-4. calculateScore() reads
+// these; no scoring number is ever a literal inside the logic. If the doc
+// changes, change it here (and only here).
+
+// --- Section 1: group match points ---
+export const GROUP_MATCH_POINTS = {
+  exactScore: 5, // exact score (total — does not stack with correctResult)
+  correctResult: 3, // right win/draw/loss outcome, wrong score
+  wrong: 0,
+}
+
+// --- Section 2: predicted group position points ---
+export const GROUP_POSITION_POINTS = {
+  perCorrectTeam: 2, // per team in the correct position
+  fullOrderBonus: 5, // all four teams in the right order
+}
+
+// --- Section 3: knockout progression points (stack per team) ---
+export type KnockoutStage = 'R16' | 'QF' | 'SF' | 'FINAL' | 'CHAMPION'
+
+// Ordered least-to-furthest; reaching a stage implies reaching every earlier one.
+export const KNOCKOUT_STAGE_ORDER: KnockoutStage[] = [
+  'R16',
+  'QF',
+  'SF',
+  'FINAL',
+  'CHAMPION',
+]
+
+export const KNOCKOUT_STAGE_POINTS: Record<KnockoutStage, number> = {
+  R16: 10,
+  QF: 15,
+  SF: 20,
+  FINAL: 25,
+  CHAMPION: 40,
+}
+
+// --- Section 4: bonus predictions ---
+export const GOLDEN_BOOT_POINTS = 25
+
+export type TotalGoalsBand = 'exact' | 'within5' | 'within10' | 'outside' | 'none'
+
+// Tiered, NOT stacked: a prediction lands in exactly the first band whose
+// maxDiff it satisfies (bands ordered best-first). Anything past the last band
+// scores 0 ('outside').
+export const TOTAL_GOALS_BANDS: {
+  band: Exclude<TotalGoalsBand, 'outside' | 'none'>
+  maxDiff: number
+  points: number
+}[] = [
+  { band: 'exact', maxDiff: 0, points: 40 },
+  { band: 'within5', maxDiff: 5, points: 30 },
+  { band: 'within10', maxDiff: 10, points: 20 },
+]
+
+export const TOTAL_GOALS_OUTSIDE_POINTS = 0
