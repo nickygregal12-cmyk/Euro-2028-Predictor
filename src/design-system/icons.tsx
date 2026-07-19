@@ -98,6 +98,18 @@ export function PredictIcon(props: IconProps) {
   )
 }
 
+// Soccer ball — the Predict glyph (design-system §6: football icon for Predict).
+export function BallIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.4l3.4 2.5-1.3 4h-4.2l-1.3-4z" />
+      <path d="M12 7.4V4.4M15.4 9.9l2.7-1M13.8 13.9l1.9 2.3M10.2 13.9l-1.9 2.3M8.6 9.9l-2.7-1" />
+    </svg>
+  )
+}
+
 export function CalendarIcon(props: IconProps) {
   return (
     <svg {...svgProps(props)}>

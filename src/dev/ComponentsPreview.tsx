@@ -57,8 +57,7 @@ function ScoreInputDemo() {
 // "coming soon" EmptyState (per the design-system brief).
 const COMING_SOON: Record<Exclude<NavKey, 'home'>, string> = {
   predict: 'Predict',
-  matches: 'Matches',
-  leagues: 'Leagues',
+  league: 'League',
   more: 'More',
 }
 
