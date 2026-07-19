@@ -99,4 +99,42 @@ describe('resolveGroupTies', () => {
     expect(result.unresolvedGroups).toEqual([])
     expect(result.standings.every((s) => !s.tiedUnresolved)).toBe(true)
   })
+
+  it('applies a manual step-7 resolution to an otherwise-tied group', () => {
+    // The same all-draws group as above, but the user has ordered it.
+    const matches: MatchScore[] = [
+      { homeTeamId: 't1', awayTeamId: 't2', homeScore: 1, awayScore: 1 },
+      { homeTeamId: 't1', awayTeamId: 't3', homeScore: 1, awayScore: 1 },
+      { homeTeamId: 't1', awayTeamId: 't4', homeScore: 1, awayScore: 1 },
+      { homeTeamId: 't2', awayTeamId: 't3', homeScore: 1, awayScore: 1 },
+      { homeTeamId: 't2', awayTeamId: 't4', homeScore: 1, awayScore: 1 },
+      { homeTeamId: 't3', awayTeamId: 't4', homeScore: 1, awayScore: 1 },
+    ]
+    const result = resolveGroupTies(teamIds, matches, [
+      { teamIds: ['t1', 't2', 't3', 't4'], order: ['t3', 't1', 't4', 't2'] },
+    ])
+
+    // The block is now ordered exactly as chosen, with distinct ranks, and no
+    // longer reported as unresolved.
+    expect(order(result)).toEqual(['t3', 't1', 't4', 't2'])
+    expect(result.standings.map((s) => s.rank)).toEqual([1, 2, 3, 4])
+    expect(result.standings.every((s) => !s.tiedUnresolved)).toBe(true)
+    expect(result.unresolvedGroups).toEqual([])
+  })
+
+  it('ignores a resolution for a set that is not actually tied', () => {
+    // t1 clearly wins, t3 clearly loses — no tie, so a resolution naming these
+    // teams must not reorder the settled standings.
+    const matches: MatchScore[] = [
+      { homeTeamId: 't1', awayTeamId: 't2', homeScore: 2, awayScore: 0 },
+      { homeTeamId: 't3', awayTeamId: 't4', homeScore: 1, awayScore: 0 },
+    ]
+    const result = resolveGroupTies(teamIds, matches, [
+      { teamIds: ['t1', 't2', 't3', 't4'], order: ['t4', 't3', 't2', 't1'] },
+    ])
+    // Same clean ordering as with no resolution — the stray resolution is inert.
+    expect(result.unresolvedGroups).toEqual([])
+    expect(result.standings.every((s) => !s.tiedUnresolved)).toBe(true)
+    expect(order(result)).toEqual(order(resolveGroupTies(teamIds, matches)))
+  })
 })

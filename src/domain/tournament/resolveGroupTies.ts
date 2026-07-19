@@ -13,6 +13,7 @@ import {
   type MatchScore,
   type TeamStanding,
 } from './calculateGroupTable'
+import { resolvedOrderFor, type TieResolution } from './tieResolutions'
 
 export type ResolvedStanding = TeamStanding & {
   // 1-based finishing position in the group. Members of a block the app
@@ -134,14 +135,18 @@ function resolveCluster(
  * Fully orders a group's standings, applying the section-6 tie-break rules
  * (steps 1-6). Teams that cannot be separated automatically are returned
  * adjacent, flagged `tiedUnresolved`, and listed in `unresolvedGroups` for
- * the manual step-7 prompt.
+ * the manual step-7 prompt — UNLESS the user has already supplied a manual
+ * resolution for that exact block, in which case step 7 is applied here: the
+ * block is ordered as the user chose and no longer reported as unresolved.
  *
  * `teamIds` should include every team in the group; `matches` are the group's
- * match scores (partial groups are fine).
+ * match scores (partial groups are fine). `resolutions` are the user's manual
+ * orderings (step 7) — pure input, never read from storage by this function.
  */
 export function resolveGroupTies(
   teamIds: string[],
-  matches: MatchScore[]
+  matches: MatchScore[],
+  resolutions: TieResolution[] = []
 ): ResolveGroupTiesResult {
   const fullTable = calculateGroupTable(teamIds, matches)
   const fullStandings = new Map(fullTable.map((s) => [s.teamId, s]))
@@ -158,10 +163,25 @@ export function resolveGroupTies(
     ordered.push(...resolveCluster(bucket, matches, fullStandings))
   }
 
+  // Step 7: apply any manual resolution the user has supplied. A resolved block
+  // is expanded into single-team blocks in the chosen order, so each team takes
+  // its own distinct rank rather than sharing the block's position.
+  const resolved: Block[] = []
+  for (const block of ordered) {
+    if (!block.resolved && block.teamIds.length > 1) {
+      const order = resolvedOrderFor(resolutions, block.teamIds)
+      if (order) {
+        for (const id of order) resolved.push({ teamIds: [id], resolved: true })
+        continue
+      }
+    }
+    resolved.push(block)
+  }
+
   const standings: ResolvedStanding[] = []
   const unresolvedGroups: string[][] = []
   let position = 1
-  for (const block of ordered) {
+  for (const block of resolved) {
     const unresolved = !block.resolved && block.teamIds.length > 1
     if (unresolved) unresolvedGroups.push([...block.teamIds])
 

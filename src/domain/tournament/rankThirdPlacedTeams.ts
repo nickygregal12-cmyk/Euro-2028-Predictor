@@ -10,6 +10,7 @@
 // resolveGroupTies — this function never does anything UI-related.
 
 import type { TeamStanding } from './calculateGroupTable'
+import { resolvedOrderFor, type TieResolution } from './tieResolutions'
 
 // A third-placed team carries its group letter so the R16 allocation can key
 // on the SET of qualifying groups (see resolveRoundOf16).
@@ -59,9 +60,14 @@ function rankingScore(t: ThirdPlacedTeam): number[] {
 /**
  * Ranks all six third-placed teams and identifies the four that advance.
  * `teams` should contain exactly the six third-placed teams (one per group).
+ * `resolutions` are the user's manual orderings for blocks criteria 1-4 could
+ * not separate — pure input, never read from storage. A block the user has
+ * resolved is ordered as they chose and no longer reported as unresolved, which
+ * is also what lets a boundary-straddling tie yield a definite qualifying set.
  */
 export function rankThirdPlacedTeams(
-  teams: ThirdPlacedTeam[]
+  teams: ThirdPlacedTeam[],
+  resolutions: TieResolution[] = []
 ): RankThirdPlacedResult {
   // Stable sort best-first, so teams that are fully level keep their input
   // order and the whole function stays deterministic.
@@ -70,30 +76,44 @@ export function rankThirdPlacedTeams(
   )
 
   // Group teams that are level on all four criteria into adjacent blocks.
-  const blocks: ThirdPlacedTeam[][] = []
+  const rawBlocks: ThirdPlacedTeam[][] = []
   for (const t of sorted) {
-    const last = blocks[blocks.length - 1]
+    const last = rawBlocks[rawBlocks.length - 1]
     if (last && compareScores(rankingScore(last[0]), rankingScore(t)) === 0) {
       last.push(t)
     } else {
-      blocks.push([t])
+      rawBlocks.push([t])
     }
+  }
+
+  // Apply any manual resolution: a resolved block is expanded into single-team
+  // blocks in the user's chosen order, so each takes its own distinct rank.
+  const blocks: { teams: ThirdPlacedTeam[]; unresolved: boolean }[] = []
+  for (const block of rawBlocks) {
+    if (block.length > 1) {
+      const order = resolvedOrderFor(resolutions, block.map((t) => t.teamId))
+      if (order) {
+        const byId = new Map(block.map((t) => [t.teamId, t]))
+        for (const id of order) blocks.push({ teams: [byId.get(id)!], unresolved: false })
+        continue
+      }
+    }
+    blocks.push({ teams: block, unresolved: block.length > 1 })
   }
 
   const ranking: RankedThird[] = []
   const unresolvedGroups: UnresolvedThirdTie[] = []
   let position = 1
   for (const block of blocks) {
-    const unresolved = block.length > 1
     const topPosition = position
     const positions: number[] = []
-    for (const t of block) {
-      ranking.push({ ...t, rank: topPosition, tiedUnresolved: unresolved })
+    for (const t of block.teams) {
+      ranking.push({ ...t, rank: topPosition, tiedUnresolved: block.unresolved })
       positions.push(position)
       position += 1
     }
-    if (unresolved) {
-      unresolvedGroups.push({ teamIds: block.map((t) => t.teamId), positions })
+    if (block.unresolved) {
+      unresolvedGroups.push({ teamIds: block.teams.map((t) => t.teamId), positions })
     }
   }
 
