@@ -6,6 +6,8 @@ import {
   EmptyState,
   PageShell,
   type NavKey,
+  Alert,
+  Toast,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -77,6 +79,21 @@ function PageShellDemo() {
           />
         )}
       </PageShell>
+    </div>
+  )
+}
+
+function ToastDemo() {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className={styles.stack}>
+      {open ? (
+        <Toast variant="success" message="Prediction saved." onDismiss={() => setOpen(false)} />
+      ) : (
+        <Button variant="secondary" onClick={() => setOpen(true)}>
+          Show toast
+        </Button>
+      )}
     </div>
   )
 }
@@ -195,6 +212,23 @@ function Gallery() {
 
       <Section title="PageShell + BottomNav">
         <PageShellDemo />
+      </Section>
+
+      <Section title="Alert">
+        <Alert variant="info">Deadlines are shown in your local time.</Alert>
+        <Alert variant="success" title="Predictions submitted">
+          Your group-stage picks are locked in.
+        </Alert>
+        <Alert variant="warning">Entry closes in 2 hours — unsaved picks won't count.</Alert>
+        <Alert variant="error" title="Couldn't save" onDismiss={() => {}}>
+          Check your connection and try again.
+        </Alert>
+      </Section>
+
+      <Section title="Toast">
+        <ToastDemo />
+        <Toast variant="error" message="Save failed — retry." onDismiss={() => {}} />
+        <Toast variant="info" message="You're back online." />
       </Section>
 
       <Section title="EmptyState">

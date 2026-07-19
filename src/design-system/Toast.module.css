@@ -1,0 +1,61 @@
+/* Floating transient notification. Opaque surface + semantic left bar so it
+   stays legible over any content. Flat system — elevation via border, not
+   shadow. `--tone` is set per variant. */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  width: 100%;
+  max-width: 360px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--tone);
+  border-radius: var(--radius-input);
+  background: var(--card);
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--tone);
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx);
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--tx3);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dismiss:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+
+.info {
+  --tone: var(--tx3);
+}
+.success {
+  --tone: var(--acc);
+}
+.warning {
+  --tone: var(--amb);
+}
+.error {
+  --tone: var(--red);
+}

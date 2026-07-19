@@ -1,0 +1,70 @@
+/* Inline message block. Tints are mixed from semantic tokens (no raw hex);
+   `--tone` is set per variant and drives the icon, border and background. */
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--line));
+  border-radius: var(--radius-input);
+  background: color-mix(in srgb, var(--tone) 10%, var(--card));
+}
+
+.icon {
+  display: inline-flex;
+  flex: none;
+  margin-top: 1px;
+  color: var(--tone);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 2px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--tx);
+}
+
+.message {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  color: var(--tx3);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.dismiss:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+}
+
+/* Per-variant tone. Info is neutral (--tx3), never cyan. */
+.info {
+  --tone: var(--tx3);
+}
+.success {
+  --tone: var(--acc);
+}
+.warning {
+  --tone: var(--amb);
+}
+.error {
+  --tone: var(--red);
+}
