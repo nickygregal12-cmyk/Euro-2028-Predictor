@@ -32,6 +32,7 @@ import {
   type RoundKey,
   type TieSide,
 } from '../features/bracket'
+import { PlacedJokerCard } from '../features/predict/PlacedJokerCard'
 
 // Sample data — real flag-icons codes so the outline is visible on white-heavy
 // flags (England). This is a dev harness only; no domain logic here.
@@ -697,6 +698,34 @@ function Gallery() {
 
         <Label>champion card (Final, picked)</Label>
         <ChampionCard name="England" countryCode="gb-eng" />
+      </Section>
+
+      <Section title="Placed joker (Jokers overview)">
+        <Label>movable — before kickoff (remove / move)</Label>
+        <PlacedJokerCard
+          group="A"
+          matchday={1}
+          date="9 Jun"
+          home={ENG}
+          away={ESP}
+          homeScore={2}
+          awayScore={1}
+          committed={false}
+          onRemove={() => {}}
+          onMove={() => {}}
+        />
+
+        <Label>committed — after kickoff (gold, permanent)</Label>
+        <PlacedJokerCard
+          group="C"
+          matchday={2}
+          date="14 Jun"
+          home={GER}
+          away={ITA}
+          homeScore={0}
+          awayScore={0}
+          committed
+        />
       </Section>
     </div>
   )
