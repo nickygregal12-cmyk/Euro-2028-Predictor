@@ -56,12 +56,16 @@ Note: v0.1/v0.5 knockout mode is **winner-only selection** (no score prediction)
 | Bonus | Points |
 |---|---|
 | Golden boot winner (correct) | 25 |
-| Tournament total goals — exact number | 40 |
-| Tournament total goals — within 5 | 30 |
-| Tournament total goals — within 10 | 20 |
-| Tournament total goals — outside 10 | 0 |
+| Group-stage total goals — exact number | 40 |
+| Group-stage total goals — within 5 | 30 |
+| Group-stage total goals — within 10 | 20 |
+| Group-stage total goals — outside 10 | 0 |
 
 Total-goals scoring is **tiered, not stacked** — a prediction lands in exactly one band (the best one it qualifies for) and scores that band's points only.
+
+**The group-stage goals prediction is not entered separately — it is automatically derived as the sum of all goals across the user's 36 predicted group-match scores.** It updates live as predictions change and freezes with the entry at lock. This guarantees the prediction and the goals number can never contradict each other. (League tie-breaker §5.5 "closest total-goals" uses this same derived number.)
+
+The golden boot selection is stored as a player reference; the player list populates once squads are confirmed, searchable by player name or team.
 
 No other bonus categories in v1 (no highest-scoring team, no best-host-nation bonus).
 

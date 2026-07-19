@@ -163,6 +163,29 @@ Row icon chips: 34×34, `--chip` bg; icon colour = state (accent tick done, ambe
 
 **Explicitly parked:** dedicated activity tab/feed (activity is delivered ambiently via movement arrows, latest-points column, and a possible one-line "since last matchday" summary later).
 
+### Review & submit page
+- Header: title + lock deadline with time remaining
+- **Checklist card**: compact mirror of the hub stages (tick / amber warning per row); incomplete rows get a "Fix ›" action deep-linking to the problem screen
+- **Your tournament card**: champion hero (larger flag, "Your champion" eyebrow, accent trophy) + predicted final as one flag-v-flag line + "Full bracket ›" link
+- **Awards card**: Top scorer — search picker ("Search by player or team…"), selected player as removable chip (flag + name); points value (25 pts) labelled beside the award in gold. Selection stored as a player reference; search populates when squads are confirmed — UI unchanged before/after. Group-stage goals — **derived, not entered**: shows the live sum of the user's 36 predicted scores with the caption "Calculated from your 36 predicted scores" and the up-to-40pts label; no input.
+- **Submit button**: when blocked, disabled state names the blocker ("Fix 1 item to submit", lock icon); when clean, full-width accent "Submit entry" → confirm Modal → submitted state
+- **Submitted state**: accent-bordered banner — "Entry submitted · You're in. Editable until [deadline]" + Share button (stub until the shareable summary exists). **Submission does not freeze the entry**: edits remain allowed until the real lock, autosaving as normal, entry stays submitted. Caption under the submit button states this before submitting too.
+
+### Home dashboard (phase-aware)
+Principle: Home is a hub — it summarises and links, never replicates other screens (no tables, no bracket, no hub checklist duplicate). Everything is one tap from here. Layout is layered, top to bottom:
+
+**During tournament:**
+1. **Stat strip** — four segments in one card: total Points | Points Today (accent) | overall rank + movement arrow | best-league position. Each segment taps through to its source screen.
+2. **Today card** — cyan border while any match is live (live matches appear *inside* this card; Home has no separate live strip). One row per fixture today: live rows get pulsing dot (reduced-motion: static) + score + minute; upcoming rows show kickoff time; every row shows the user's prediction ("You said 2–1") and chevrons into the match centre.
+3. **Catch-up line** — shown only when the user hasn't visited since meaningful change (last-visit timestamp): "Since you were last here: +N pts, up N places" plus the single most notable fact (a live jokered match earns a gold sparkle icon and priority). Hidden for recent visitors.
+4. **League snapshot** — best/favourite league: name (truncating), position of members, gap to top, tap into detail.
+
+**Pre-tournament, entry incomplete:** completion % progress bar + deadline countdown + "Continue predicting" primary button (Phase 1 build).
+
+**Pre-tournament, entry complete + submitted:** submitted banner with lock countdown; champion mini-summary (flag + name) with Share button (stub until shareable summary exists); primary CTA becomes "Invite friends to your league" (accent).
+
+**Post-tournament:** final rank, total score, league finishing positions, accuracy summary — designed at Phase 3 alongside full profiles; slot reserved.
+
 ## 7. States (every component, no exceptions)
 
 Every screen/component ships with: empty, loading (skeleton, not spinner, for content areas), error (with retry), locked, and saved/save-failed states designed and implemented together with the happy path — never retrofitted.
