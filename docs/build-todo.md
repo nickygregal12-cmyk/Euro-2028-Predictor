@@ -73,6 +73,7 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 - [ ] H2H links from league rows
 - [ ] Minimal admin result-entry page + correction flow
 - [ ] Turnstile + rate limiting + CI running tests
+- [ ] Confirmation-aware sign-up + server-side profile creation — **confirmed live 2026-07-20**: enabling email confirmation on the dev Supabase project broke sign-up exactly as feared (auth user half-created, then the client `createMyProfile` insert fails RLS because there's no session yet). Move profile creation server-side: a Postgres trigger on `auth.users` insert that creates the `profiles` row (display name passed via sign-up metadata), so profiles never depend on a client insert racing a session — this also fixes the half-created-user failure mode permanently. Then handle the confirmation-required sign-up UX (no session on return → "check your email", not an error). Once done, `signUpWithPassword`/`createMyProfile` in `services/supabase/auth.ts`+`profile.ts` no longer do the client-side insert. (Confirmation is disabled again on the dev project for now.)
 
 ## Phase 3 — Core tournament experience (was Tier 4)
 - [ ] Match Centre; Matches joins nav as 5th tab
