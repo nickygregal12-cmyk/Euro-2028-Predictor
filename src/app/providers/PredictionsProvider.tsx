@@ -11,8 +11,10 @@ import type { SaveStatus } from '../../design-system'
 import {
   fetchMatchPredictions,
   getOrCreateEntry,
+  submitEntry,
   upsertMatchPrediction,
 } from '../../services/supabase/predictions'
+import { fetchGoldenBoot, upsertGoldenBoot } from '../../services/supabase/bonus'
 import {
   fetchTieResolutions,
   upsertTieResolution,
@@ -67,6 +69,14 @@ type PredictionsContextValue = {
   bracketSaveStatus: SaveStatus
   setBracketProgression: (next: Record<string, ProgressionStage>) => void
   retryBracketSave: () => void
+  // Bonus: golden-boot player reference (nullable). The group-goals bonus is
+  // derived, never stored (domain/groupGoals.ts).
+  goldenBootPlayerId: string | null
+  setGoldenBoot: (playerId: string | null) => void
+  // Submission. `submit` calls the server-side validator; it does not freeze the
+  // entry — predictions stay editable and the entry stays submitted.
+  submitting: boolean
+  submit: () => Promise<{ ok: boolean; message?: string }>
 }
 
 const PredictionsContext = createContext<PredictionsContextValue | null>(null)
@@ -86,6 +96,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const [tieSaveStatus, setTieSaveStatus] = useState<Record<string, SaveStatus>>({})
   const [progression, setProgression] = useState<Record<string, ProgressionStage>>({})
   const [bracketSaveStatus, setBracketSaveStatus] = useState<SaveStatus>('idle')
+  const [goldenBootPlayerId, setGoldenBootPlayerId] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [ready, setReady] = useState(false)
 
   // Latest predictions + entryId for the debounced saver to read without going
@@ -150,6 +162,15 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
             setProgression({})
             progressionPersistedRef.current = {}
             progressionDesiredRef.current = {}
+          })
+        // Golden-boot selection loads best-effort too (the bonus tables may not
+        // be applied to this DB yet; a failure leaves it unset, which is safe).
+        fetchGoldenBoot(entry.id)
+          .then((id) => {
+            if (active) setGoldenBootPlayerId(id)
+          })
+          .catch(() => {
+            if (active) setGoldenBootPlayerId(null)
           })
       })
       .catch(() => {
@@ -263,6 +284,31 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     progressionTimer.current = setTimeout(flushProgression, SAVE_DEBOUNCE_MS)
   }
 
+  function setGoldenBoot(playerId: string | null) {
+    const id = entryIdRef.current
+    setGoldenBootPlayerId(playerId) // optimistic
+    if (!id) return
+    upsertGoldenBoot(id, playerId).catch(() => {
+      // Best-effort; leave the optimistic value. The server stays authoritative
+      // and the picker is unusable until squads exist anyway.
+    })
+  }
+
+  async function submit(): Promise<{ ok: boolean; message?: string }> {
+    const id = entryIdRef.current
+    if (!id) return { ok: false, message: 'Your entry is still loading.' }
+    setSubmitting(true)
+    try {
+      const when = await submitEntry(id)
+      setSubmittedAt(when)
+      return { ok: true }
+    } catch (e) {
+      return { ok: false, message: e instanceof Error ? e.message : 'Submission failed.' }
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   const jokerCount = useMemo(
     () => Object.values(predictions).filter((p) => p.joker).length,
     [predictions],
@@ -284,6 +330,10 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     bracketSaveStatus,
     setBracketProgression,
     retryBracketSave: flushProgression,
+    goldenBootPlayerId,
+    setGoldenBoot,
+    submitting,
+    submit,
   }
 
   return <PredictionsContext.Provider value={value}>{children}</PredictionsContext.Provider>

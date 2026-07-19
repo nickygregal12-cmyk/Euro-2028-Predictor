@@ -39,6 +39,19 @@ export async function getOrCreateEntry(userId: string, tournamentId: string): Pr
   return { id: created.data.id, submittedAt: created.data.submitted_at }
 }
 
+/**
+ * Submit the entry via the server-side `submit_entry` function, which validates
+ * completeness (all group matches predicted, a full 15-winner bracket) before
+ * stamping submitted_at — the client is never trusted to gate submission.
+ * Returns the (server) submission timestamp. Submission does not freeze the
+ * entry; predictions stay editable until the real lock.
+ */
+export async function submitEntry(entryId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('submit_entry', { p_entry_id: entryId })
+  if (error) throw error
+  return data as string
+}
+
 export async function fetchMatchPredictions(entryId: string): Promise<MatchPrediction[]> {
   const { data, error } = await supabase
     .from('match_predictions')
