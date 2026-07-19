@@ -54,12 +54,11 @@ tests/
 ## Current status
 
 Tier 0 nearly complete (scaffold, Vitest, seed data done; Supabase/Netlify accounts pending).
-Tier 1 in progress. Done and tested: `calculateGroupTable()`, `resolveGroupTies()`, `rankThirdPlacedTeams()`, `resolveRoundOf16()` (R16 allocation table lives in `roundOf16Allocation.ts`).
+Tier 1 in progress. Done and tested: `calculateGroupTable()`, `resolveGroupTies()`, `rankThirdPlacedTeams()`, `resolveRoundOf16()` (R16 allocation table lives in `roundOf16Allocation.ts`), `advanceBracket()` (post-R16 feed-through lives in `knockoutBracket.ts`).
 
 **Next up, in order:**
-1. `advanceBracket()` — operates purely on slot references (R16-1 … R16-8 → QF-1 … QF-4 → SF-1, SF-2 → Final) per sections 4–5 of the tournament structure doc
-2. `calculateScore()` — per sections 1–4 of the scoring rules doc
-3. `calculateLeagueRank()` — per section 5
+1. `calculateScore()` — per sections 1–4 of the scoring rules doc
+2. `calculateLeagueRank()` — per section 5
 
 ## Things NOT to do
 

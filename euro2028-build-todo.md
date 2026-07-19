@@ -33,8 +33,8 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 - [x] Unit tests: every valid third-place qualifying combination (this is the classic bug source — don't skip)
 - [x] `resolveRoundOf16()` — maps group winners/runners-up/best-thirds into fixtures
 - [x] Unit tests: at least one full valid tournament scenario end-to-end through this function
-- [ ] `advanceBracket()` — takes winner selections, produces next round
-- [ ] Unit tests: full run from R16 to champion
+- [x] `advanceBracket()` — takes winner selections, produces next round
+- [x] Unit tests: full run from R16 to champion
 - [ ] `calculateScore()` — pure function, takes prediction + result, returns points + explanation
 - [ ] Unit tests: every scoring rule (correct result, exact score, wrong result, group position points, knockout progression points)
 - [ ] `calculateLeagueRank()` — sorts entries by total points + tie-break order
