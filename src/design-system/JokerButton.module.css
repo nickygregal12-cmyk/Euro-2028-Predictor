@@ -1,0 +1,36 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* Available: solid gold CTA with gold-contrast text. */
+.available {
+  background: var(--gold);
+  color: var(--gold-contrast);
+  border-color: var(--gold);
+}
+
+/* On: tint pill — deliberately quieter status (gold-tint bg, gold border+text). */
+.on {
+  background: var(--gold-tint);
+  color: var(--gold);
+  border-color: var(--gold);
+}

@@ -1,0 +1,26 @@
+/* Overrides flag-icons defaults: fixed 3:2 box, fill (cover), 2px corners and a
+   1px --line hairline outline. Sizes come after `.fi` in the cascade so these
+   win; the doubled `.flag.flag` keeps specificity above `.fi`. */
+.flag.flag {
+  display: inline-block;
+  flex: none;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background-size: cover;
+  background-position: center;
+}
+
+.card.card {
+  width: 30px;
+  height: 20px;
+}
+
+.table.table {
+  width: 26px;
+  height: 17px;
+}
+
+.venue.venue {
+  width: 18px;
+  height: 12px;
+}

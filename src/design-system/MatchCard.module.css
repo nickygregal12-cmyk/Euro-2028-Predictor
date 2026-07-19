@@ -1,0 +1,201 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+/* Joker active/committed: 1.5px gold border. */
+.jokerActive {
+  border-width: 1.5px;
+  border-color: var(--gold);
+}
+
+.withChevron {
+  padding-right: 30px;
+}
+
+/* Eyebrow ------------------------------------------------------------------ */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+.eyebrowRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Team row ----------------------------------------------------------------- */
+.teamRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.team {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.teamHome {
+  justify-content: flex-start;
+}
+
+.teamAway {
+  justify-content: flex-end;
+}
+
+.teamName {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--tx);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scores {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sep {
+  font-family: var(--font-display);
+  color: var(--tx3);
+}
+
+.heroScore {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  color: var(--tx);
+}
+
+/* Footer ------------------------------------------------------------------- */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+}
+
+.footerRight {
+  display: inline-flex;
+  align-items: center;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+
+.statusSaved {
+  color: var(--acc);
+}
+
+.statusError {
+  color: var(--red);
+}
+
+.retry {
+  padding: 0 0 0 4px;
+  background: none;
+  border: none;
+  color: var(--red);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--tx2);
+}
+
+.predicted {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+}
+
+/* Points pill (scored) ----------------------------------------------------- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  border: 1px solid transparent;
+}
+
+.pillAccent {
+  color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 14%, transparent);
+}
+
+.pillMuted {
+  color: var(--tx2);
+  background: color-mix(in srgb, var(--tx3) 16%, transparent);
+}
+
+/* Joker committed: gold tint pill with gold border+text (gold rule). */
+.pillGold {
+  color: var(--gold);
+  background: var(--gold-tint);
+  border-color: var(--gold);
+}
+
+/* Chevron (Tier 4, feature-flagged) ---------------------------------------- */
+.chevron {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  padding: 6px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: var(--tx3);
+  cursor: pointer;
+}
+
+.chevron:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}

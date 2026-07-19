@@ -1,0 +1,38 @@
+/* Editable: 44×44, centred, 19px Space Grotesk 500, 1.5px accent border in
+   BOTH themes (equal prominence — primary action). */
+.input {
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 19px;
+  color: var(--tx);
+  background: var(--input-bg);
+  border: 1.5px solid var(--acc);
+  border-radius: var(--radius-input);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* Locked: static chip — --chip bg, --line border, --tx2 text, not focusable. */
+.locked {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 19px;
+  color: var(--tx2);
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+}

@@ -1,0 +1,35 @@
+.counter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.dotUsed,
+.dotFree {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dotUsed {
+  background: var(--gold);
+}
+
+.dotFree {
+  border: 1.5px solid var(--gold);
+}
+
+.label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
