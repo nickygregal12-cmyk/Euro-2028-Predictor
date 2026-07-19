@@ -8,6 +8,7 @@ A mobile-first Euro 2028 football predictor web app. Users predict every group m
 
 **Source-of-truth documents (in repo root):**
 - `euro2028-scoring-rules.md` — the complete scoring and tie-break specification. All scoring logic implements exactly this. Never invent or change a rule without updating this doc first.
+- `euro2028-tournament-structure.md` — tournament facts, fixture skeleton, third-place ranking rules, and the round-of-16 allocation table. Bracket/structure logic implements exactly this. Never invent or change a rule (especially the R16 allocation table) without updating this doc first.
 - `euro2028-build-todo.md` — the tiered build plan. Work top-to-bottom within the current tier. Tick items off when done. New ideas go in the parking lot, not the current tier.
 
 ## Stack
@@ -53,15 +54,12 @@ tests/
 ## Current status
 
 Tier 0 nearly complete (scaffold, Vitest, seed data done; Supabase/Netlify accounts pending).
-Tier 1 in progress: `calculateGroupTable()` done and tested.
+Tier 1 in progress. Done and tested: `calculateGroupTable()`, `resolveGroupTies()`, `rankThirdPlacedTeams()`, `resolveRoundOf16()` (R16 allocation table lives in `roundOf16Allocation.ts`).
 
 **Next up, in order:**
-1. `resolveGroupTies()` — per section 6 of the scoring rules doc (UEFA head-to-head order, steps 1–6 pure calculation, step 7 returns an "unresolved" marker for the UI to prompt on — the function itself never does UI)
-2. `rankThirdPlacedTeams()`
-3. `resolveRoundOf16()`
-4. `advanceBracket()`
-5. `calculateScore()` — per sections 1–4 of the scoring rules doc
-6. `calculateLeagueRank()` — per section 5
+1. `advanceBracket()` — operates purely on slot references (R16-1 … R16-8 → QF-1 … QF-4 → SF-1, SF-2 → Final) per sections 4–5 of the tournament structure doc
+2. `calculateScore()` — per sections 1–4 of the scoring rules doc
+3. `calculateLeagueRank()` — per section 5
 
 ## Things NOT to do
 
