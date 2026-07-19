@@ -6,6 +6,12 @@ export type { ButtonProps, ButtonVariant } from './Button'
 export { TextInput } from './TextInput'
 export type { TextInputProps } from './TextInput'
 
+export { PlayerChip, initialsOf } from './PlayerChip'
+export type { PlayerChipProps, PlayerChipSize } from './PlayerChip'
+
+export { StatCard } from './StatCard'
+export type { StatCardProps } from './StatCard'
+
 export { EmptyState } from './EmptyState'
 export type { EmptyStateProps } from './EmptyState'
 
