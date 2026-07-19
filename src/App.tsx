@@ -7,7 +7,7 @@ import { HomePage } from './features/home/HomePage'
 import { PredictHubPage } from './features/predict/PredictHubPage'
 import { GroupPredictorPage } from './features/predict/GroupPredictorPage'
 import { ThirdPlacePage } from './features/predict/ThirdPlacePage'
-import { BracketPage } from './features/predict/BracketPage'
+import { BracketRound } from './features/bracket'
 import { JokersPage } from './features/predict/JokersPage'
 import { ReviewPage } from './features/predict/ReviewPage'
 import { LeaguePage } from './features/league/LeaguePage'
@@ -29,7 +29,7 @@ export default function App() {
               <Route path="/predict" element={<PredictHubPage />} />
               <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
               <Route path="/predict/third-place" element={<ThirdPlacePage />} />
-              <Route path="/predict/bracket" element={<BracketPage />} />
+              <Route path="/predict/bracket" element={<BracketRound />} />
               <Route path="/predict/jokers" element={<JokersPage />} />
               <Route path="/predict/review" element={<ReviewPage />} />
               <Route path="/league" element={<LeaguePage />} />

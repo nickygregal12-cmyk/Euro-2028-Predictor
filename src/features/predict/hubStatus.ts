@@ -6,7 +6,9 @@
 // architecture rule 2).
 
 import { buildThirdPlacePipeline } from './thirdPlacePipeline'
+import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import type { TieResolution } from '../../domain/tournament/tieResolutions'
+import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import type { TournamentData } from '../../services/supabase/tournamentData'
 import type { Prediction } from '../../app/providers/PredictionsProvider'
 
@@ -28,6 +30,7 @@ export function computeHubStatus(
   getPrediction: (matchId: string) => Prediction,
   jokerCount: number,
   resolutions: TieResolution[] = [],
+  progression: Record<string, ProgressionStage> = {},
 ): HubStatus {
   const groupMatches = data.matches.filter((m) => m.round === 'group')
   const total = groupMatches.length
@@ -49,9 +52,14 @@ export function computeHubStatus(
       ? 'ties'
       : 'settled'
 
-  // Bracket winner-picks live in predicted_progression, which the v0.1 skeleton
-  // doesn't wire yet — so this reads 0 and keeps Review honestly locked.
-  const bracketPicked: number = 0
+  // Bracket winner-picks come from the same pipeline the bracket screen uses, so
+  // the hub's "N of 15" and the screen always agree.
+  const bracketPicked = buildBracketPipeline(
+    data,
+    getPrediction,
+    resolutions,
+    progression,
+  ).pickedCount
   const reviewUnlocked = groupsComplete && state === 'settled' && bracketPicked === BRACKET_TOTAL
 
   return {

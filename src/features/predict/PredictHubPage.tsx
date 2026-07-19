@@ -97,6 +97,7 @@ export function PredictHubPage() {
     preds.getPrediction,
     preds.jokerCount,
     preds.tieResolutions,
+    preds.bracketProgression,
   )
   const startsOn = data.data.tournament.startsOn
   const days = startsOn ? daysUntil(startsOn) : null
