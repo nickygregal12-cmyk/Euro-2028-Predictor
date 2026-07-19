@@ -64,7 +64,9 @@ Tier 2 (v0.1) started: Supabase client wired (fail-closed on missing env). The i
 
 Tier 2 UI — **design-system basics done**. Presentational primitives live in `src/design-system/` (CSS Modules, tokens only, dark + light, all states; public API via `index.ts`), previewable at `/dev/components` (`src/dev/ComponentsPreview.tsx`, path-routed in `App.tsx`). Shipped: tournament components (`TeamFlag`, `ScoreInput`, `JokerButton`, `JokerCounter`, `MatchCard`, `GroupTable`, `ThirdPlaceTable`) and core UI (`Button`, `TextInput`, `PageShell`+`BottomNav`, `Toast`, `Alert`, `Skeleton`, `EmptyState`, `Modal`+`ConfirmModal`, `ProgressBar`, `StatusBadge`). Semantic tints use `color-mix()` on tokens; a `--scrim` token backs modals. See `docs/design-system.md` §5.
 
-**Next up:** Tier 2 UI — auth (sign up / log in). See `docs/build-todo.md`.
+Dev auto-login shim shipped (`docs/auth-plan.md` §1): `src/services/supabase/autoLoginPolicy.ts` (pure policy + fail-closed error, unit-tested) and `devAutoLogin.ts` (`initDevAuth()`, called from `src/main.tsx`). Env-gated on `import.meta.env.DEV` **and** `VITE_DEV_AUTOLOGIN=true`; fail-closed at both runtime and build time (`vite.config.ts`) so a production build with the flag on refuses to start. Dev user seeded via `supabase/dev-user.sql`; env vars in `.env.example`. These two files are the only code that may reference the dev user (rule 8).
+
+**Next up:** Tier 2 UI — Phase 1 app skeleton (4-tab nav, Predict hub). Real auth screens come later (auth-plan Phase 1 exit). See `docs/build-todo.md`.
 
 ## Things NOT to do
 

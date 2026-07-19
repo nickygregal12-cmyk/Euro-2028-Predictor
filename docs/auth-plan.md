@@ -15,6 +15,14 @@ Auth screens are deliberately deferred. This doc defines how development proceed
 - Everything downstream — sessions, `auth.uid()`, RLS policies, autosave, entries — works exactly as production will. **No code outside the auto-login shim may ever special-case the dev user.**
 - Additional test users (for leaderboard/league testing) are created the same way and switched via the env vars.
 
+**Implementation (shipped):**
+- Policy: `src/services/supabase/autoLoginPolicy.ts` — dependency-free pure function `evaluateAutoLoginPolicy(env)` returning `skip` / `login`, and throwing `AutoLoginProductionError` (fail-closed) or `AutoLoginConfigError`. Unit-tested in `tests/services/autoLoginPolicy.test.ts`.
+- Effect: `src/services/supabase/devAutoLogin.ts` — `initDevAuth()` reads `import.meta.env`, reuses an existing session, else `signInWithPassword`; dev sign-in failures are logged, not fatal.
+- Startup: `src/main.tsx` awaits `initDevAuth()` before the first render and refuses to render if it throws.
+- Fail-closed twice over: the runtime policy throws, and `vite.config.ts` refuses a production **build** when `VITE_DEV_AUTOLOGIN=true`.
+- Dev user: create via the dashboard, then run `supabase/dev-user.sql` for the `profiles` row. Env vars documented in `.env.example`.
+- These two files are the only code that knows the dev user exists (CLAUDE.md rule 8).
+
 ## 2. Why this approach
 
 Hardcoding a fake user ID through the app would make every query and policy assume "no auth", turning later auth into a full retrofit touching everything. Auto-login keeps the entire auth pipeline live from day one, so building auth later is **only screen-building** — no plumbing changes, no RLS rework, no query changes.

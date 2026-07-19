@@ -45,7 +45,7 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 ---
 
 ## NOW — Phase 1: finish the v0.1 spine (was Tier 2)
-- [ ] Dev auto-login per docs/auth-plan.md (seeded dev user, env-gated, fail-closed in production builds)
+- [x] Dev auto-login per docs/auth-plan.md (seeded dev user, env-gated, fail-closed in production builds) — shim in `src/services/supabase/{autoLoginPolicy,devAutoLogin}.ts`, runtime + build-time fail-closed guards, policy unit-tested, dev user seeded via `supabase/dev-user.sql`
 - [ ] App skeleton: 4-tab nav, Predict hub, group predictor screens wired to autosave (assembly prompt)
 - [ ] Third-place screen (incl. tie-resolution prompt)
 - [ ] Bracket screens per spec (cascade confirm, auto-advance, vs divider, venue flags)
