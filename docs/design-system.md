@@ -123,11 +123,33 @@ Anatomy: eyebrow row (group + matchday | date + venue-flag + venue), team row (f
 - Live dot uses CSS animation — must respect `prefers-reduced-motion: reduce` (static dot, no pulse)
 - Cyan = real data, only ever real data
 
-## 6. States (every component, no exceptions)
+## 6. Navigation & page structure (v0.1)
+
+**Bottom nav — 4 tabs:** Home / Predict / League / More. Active tab in `--acc` (icon + label), inactive `--tx3`, 44px min targets, Space Grotesk labels, football icon for Predict, trophy for League. Tabs are config: Leagues functionality expands the League tab at v0.5; match centre integrates at Phase 3 — no nav rebuild.
+
+**Page map:**
+- **Home** — entry status, completion %, deadline countdown, continue button.
+- **Predict** — the hub (below).
+- **League** — overall leaderboard at v0.1; private leagues join here at Phase 2.
+- **More** — profile, settings, theme toggle, how scoring works, sign out.
+
+**Predict hub pattern:** the Predict tab opens a checklist hub, not a direct screen. Header: title, overall progress bar (accent fill) with %, lock deadline line. Stage rows (card rows, chevron right, whole row tappable):
+
+1. **Groups A–F** — status count ("36 of 36 matches predicted"), green tick icon when complete.
+2. **Best third-placed teams** — amber warning icon + "N tie(s) need your call" when tie-resolution is pending; tick when settled.
+3. **Knockout bracket** — "N of 15 winners picked".
+4. **Jokers** — "N of 5 placed" (dedicated overview screen; jokers also placeable directly on match cards).
+5. **Review and submit** — dimmed with lock icon until stages 1–4 complete; "Complete the steps above first".
+
+Row icon chips: 34×34, `--chip` bg; icon colour = state (accent tick done, amber attention, muted otherwise).
+
+**Group predictor screen:** one group per screen, prev/next navigation between A–F, the six match cards stacked with the live predicted group table directly beneath them. Third-place and bracket are their own screens per their component specs.
+
+## 7. States (every component, no exceptions)
 
 Every screen/component ships with: empty, loading (skeleton, not spinner, for content areas), error (with retry), locked, and saved/save-failed states designed and implemented together with the happy path — never retrofitted.
 
-## 7. Accessibility
+## 8. Accessibility
 
 - WCAG AA contrast in both themes (the per-theme accent/gold values exist precisely for this)
 - Never colour-only signalling (bars + numbers, icons + text)
@@ -137,7 +159,7 @@ Every screen/component ships with: empty, loading (skeleton, not spinner, for co
 - prefers-reduced-motion respected for all animation
 - Score inputs labelled per team ("Scotland score")
 
-## 8. CSS architecture
+## 9. CSS architecture
 
 - CSS Modules per component; tokens imported globally
 - No Tailwind, no CSS-in-JS libraries
