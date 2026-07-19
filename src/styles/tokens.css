@@ -3,7 +3,8 @@
    Dark ("Night broadcast") is the default theme; light is opt-in via
    [data-theme="light"] on <html>. */
 
-:root {
+:root,
+[data-theme="dark"] {
   /* surfaces */
   --bg: #0A1128;
   --card: #101E3E;
