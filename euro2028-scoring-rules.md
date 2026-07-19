@@ -6,11 +6,21 @@ This is the single source of truth for scoring. The `calculateScore()` domain fu
 
 ## 1. Group match points
 
-| Outcome | Points |
-|---|---|
-| Correct result (win/draw/loss, not exact score) | 3 |
-| Exact score | 5 (total — does not stack with the 3) |
-| Wrong result | 0 |
+| Outcome | Points | With joker |
+|---|---|---|
+| Correct result (win/draw/loss, not exact score) | 3 | 6 |
+| Exact score | 5 (total — does not stack with the 3) | 10 |
+| Wrong result | 0 | 0 |
+
+### Jokers (group stage only)
+
+Each entry has **5 jokers** to place across the 36 group matches (max one joker per match).
+
+- A joker **doubles all match points** for that match: exact score 5 → 10, correct result 3 → 6, wrong result 0 → 0.
+- Jokers apply to group **match** points only — they do not affect group position points, knockout points, or bonus points.
+- **Joker lock rule (differs from score lock):** score predictions lock at the opening match kickoff, but jokers remain placeable and movable at any time. A joker **commits at the kickoff of the match it is placed on** — at that moment it is consumed and cannot be moved. A joker can never be placed on a match that has already kicked off.
+- Uncommitted jokers can be freely moved between not-yet-kicked-off matches, including during the tournament.
+- Unused jokers at the end of the group stage are simply lost — no compensation.
 
 ---
 

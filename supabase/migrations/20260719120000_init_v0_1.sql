@@ -142,7 +142,17 @@ create index entries_user_idx on entries (user_id);
 create index entries_tournament_idx on entries (tournament_id);
 
 -- ---------------------------------------------------------------------------
--- match_predictions: predicted score for a (group) match
+-- match_predictions: predicted score for a (group) match.
+--
+-- `joker` doubles this match's points (scoring rules §1). One prediction row
+-- per (entry, match) means at most one joker per match is already enforced
+-- here. The other two joker rules are NOT expressible as simple column
+-- constraints and MUST be enforced in a server-side function (Postgres
+-- function / RLS), never trusted to the client:
+--   * max 5 jokers per entry (a cross-row aggregate: count(joker) per entry ≤ 5);
+--   * the kickoff-commitment lock — a joker may only be set/moved while its
+--     match has not kicked off, and is frozen at that match's kickoff (this is
+--     time-based and distinct from the opening-match score lock).
 -- ---------------------------------------------------------------------------
 create table match_predictions (
   id         uuid primary key default gen_random_uuid(),
@@ -150,6 +160,7 @@ create table match_predictions (
   match_id   uuid not null references matches (id) on delete cascade,
   home_score smallint not null check (home_score >= 0),
   away_score smallint not null check (away_score >= 0),
+  joker      boolean not null default false,
   updated_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   unique (entry_id, match_id)

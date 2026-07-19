@@ -15,13 +15,13 @@ describe('calculateScore — section 1: group match points', () => {
 
   it('awards 5 for an exact score', () => {
     const r = calculateScore(predict(2, 1), actual(2, 1))
-    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'exact', points: 5 })
+    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'exact', joker: false, points: 5 })
     expect(r.total).toBe(5)
   })
 
   it('awards 3 for the correct result but wrong score (does not stack with 5)', () => {
     const r = calculateScore(predict(2, 1), actual(3, 0))
-    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'correct', points: 3 })
+    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'correct', joker: false, points: 3 })
     expect(r.total).toBe(3)
   })
 
@@ -33,7 +33,7 @@ describe('calculateScore — section 1: group match points', () => {
 
   it('awards 0 for the wrong result', () => {
     const r = calculateScore(predict(2, 1), actual(0, 1))
-    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'wrong', points: 0 })
+    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'wrong', joker: false, points: 0 })
     expect(r.total).toBe(0)
   })
 
@@ -41,6 +41,65 @@ describe('calculateScore — section 1: group match points', () => {
     const r = calculateScore(predict(2, 1), { groupMatches: [] })
     expect(r.groupMatches.items).toEqual([])
     expect(r.total).toBe(0)
+  })
+})
+
+describe('calculateScore — section 1: jokers (group match doubling)', () => {
+  const withJoker = (homeScore: number, awayScore: number): ScorePrediction => ({
+    groupMatches: [{ matchId: 'm1', homeScore, awayScore, joker: true }],
+  })
+  const actual = (homeScore: number, awayScore: number): ScoreActuals => ({
+    groupMatches: [{ matchId: 'm1', homeScore, awayScore }],
+  })
+
+  it('doubles an exact score (5 → 10)', () => {
+    const r = calculateScore(withJoker(2, 1), actual(2, 1))
+    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'exact', joker: true, points: 10 })
+    expect(r.total).toBe(10)
+  })
+
+  it('doubles a correct result (3 → 6)', () => {
+    const r = calculateScore(withJoker(2, 1), actual(3, 0))
+    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'correct', joker: true, points: 6 })
+    expect(r.total).toBe(6)
+  })
+
+  it('leaves a wrong result at 0 (0 → 0)', () => {
+    const r = calculateScore(withJoker(2, 1), actual(0, 1))
+    expect(r.groupMatches.items[0]).toEqual({ matchId: 'm1', kind: 'wrong', joker: true, points: 0 })
+    expect(r.total).toBe(0)
+  })
+
+  it('never affects group position, knockout, or bonus points', () => {
+    const prediction: ScorePrediction = {
+      groupMatches: [{ matchId: 'm1', homeScore: 2, awayScore: 1, joker: true }], // exact → doubled to 10
+      groupOrders: [{ groupId: 'gA', order: ['a', 'b', 'c', 'd'] }], // full → 13
+      knockout: [{ teamId: 'x', stage: 'CHAMPION' }], // 110
+      bonus: { goldenBootPlayerId: 'p9', totalGoals: 140 }, // 25 + 40
+    }
+    const actuals: ScoreActuals = {
+      groupMatches: [{ matchId: 'm1', homeScore: 2, awayScore: 1 }],
+      groupOrders: [{ groupId: 'gA', order: ['a', 'b', 'c', 'd'] }],
+      knockout: [{ teamId: 'x', stage: 'CHAMPION' }],
+      bonus: { goldenBootPlayerId: 'p9', totalGoals: 140 },
+    }
+
+    const withJokerResult = calculateScore(prediction, actuals)
+    // Only the group match doubled; every other section is untouched.
+    expect(withJokerResult.groupMatches.total).toBe(10)
+    expect(withJokerResult.groupOrders.total).toBe(13)
+    expect(withJokerResult.knockout.total).toBe(110)
+    expect(withJokerResult.bonus.total).toBe(65)
+
+    // Re-score with the joker removed: only the group-match section changes.
+    const noJoker = calculateScore(
+      { ...prediction, groupMatches: [{ matchId: 'm1', homeScore: 2, awayScore: 1 }] },
+      actuals
+    )
+    expect(noJoker.groupMatches.total).toBe(5) // not doubled
+    expect(noJoker.groupOrders.total).toBe(withJokerResult.groupOrders.total)
+    expect(noJoker.knockout.total).toBe(withJokerResult.knockout.total)
+    expect(noJoker.bonus.total).toBe(withJokerResult.bonus.total)
   })
 })
 

@@ -10,6 +10,13 @@ export const GROUP_MATCH_POINTS = {
   wrong: 0,
 }
 
+// A joker doubles ALL match points for the match it is placed on (group stage
+// only): exact 5→10, correct 3→6, wrong 0→0. Jokers affect group match points
+// only — never group position, knockout, or bonus points. The placement limits
+// (max 5 jokers per entry, one per match) and the kickoff-commitment lock are
+// enforcement concerns handled server-side, not in scoring.
+export const JOKER_MULTIPLIER = 2
+
 // --- Section 2: predicted group position points ---
 export const GROUP_POSITION_POINTS = {
   perCorrectTeam: 2, // per team in the correct position

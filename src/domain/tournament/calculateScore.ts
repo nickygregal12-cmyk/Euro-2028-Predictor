@@ -3,6 +3,10 @@
 // database access — data in, data out. Implements sections 1-4 of
 // euro2028-scoring-rules.md; all point values come from scoringConfig.ts.
 //
+// Jokers (section 1) double a single group match's points and nothing else;
+// their placement/lock rules are enforced server-side, so scoring simply
+// honours the per-match joker flag it is handed.
+//
 // Deterministic and recalculable: the same predictions and results always
 // produce the same output, and the whole score is derived from source data in
 // one pass, so recalculation can never double-count.
@@ -12,6 +16,7 @@
 
 import {
   GROUP_MATCH_POINTS,
+  JOKER_MULTIPLIER,
   GROUP_POSITION_POINTS,
   KNOCKOUT_STAGE_ORDER,
   KNOCKOUT_STAGE_POINTS,
@@ -28,8 +33,16 @@ export type MatchScorePrediction = {
   matchId: string
   homeScore: number
   awayScore: number
+  // A joker doubles this match's points (group stage only). Optional; absent =
+  // no joker. Whether the joker is validly placed/committed is enforced
+  // server-side — scoring just honours the flag it is given.
+  joker?: boolean
 }
-export type MatchScoreResult = MatchScorePrediction
+export type MatchScoreResult = {
+  matchId: string
+  homeScore: number
+  awayScore: number
+}
 
 export type GroupOrderPrediction = {
   groupId: string
@@ -70,6 +83,7 @@ export type ScoreActuals = {
 export type GroupMatchScore = {
   matchId: string
   kind: 'exact' | 'correct' | 'wrong'
+  joker: boolean // whether a joker doubled this match's points
   points: number
 }
 export type GroupOrderScore = {
@@ -115,19 +129,29 @@ function scoreGroupMatch(
   prediction: MatchScorePrediction,
   result: MatchScoreResult
 ): GroupMatchScore {
+  let kind: GroupMatchScore['kind']
+  let base: number
   if (
     prediction.homeScore === result.homeScore &&
     prediction.awayScore === result.awayScore
   ) {
-    return { matchId: prediction.matchId, kind: 'exact', points: GROUP_MATCH_POINTS.exactScore }
-  }
-  if (
+    kind = 'exact'
+    base = GROUP_MATCH_POINTS.exactScore
+  } else if (
     outcome(prediction.homeScore, prediction.awayScore) ===
     outcome(result.homeScore, result.awayScore)
   ) {
-    return { matchId: prediction.matchId, kind: 'correct', points: GROUP_MATCH_POINTS.correctResult }
+    kind = 'correct'
+    base = GROUP_MATCH_POINTS.correctResult
+  } else {
+    kind = 'wrong'
+    base = GROUP_MATCH_POINTS.wrong
   }
-  return { matchId: prediction.matchId, kind: 'wrong', points: GROUP_MATCH_POINTS.wrong }
+
+  // A joker doubles the match points (and only the match points).
+  const joker = prediction.joker === true
+  const points = joker ? base * JOKER_MULTIPLIER : base
+  return { matchId: prediction.matchId, kind, joker, points }
 }
 
 // --- Section 2: group order ---
