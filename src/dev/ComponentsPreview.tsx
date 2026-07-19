@@ -35,6 +35,8 @@ import {
 import { PlacedJokerCard } from '../features/predict/PlacedJokerCard'
 import { GoldenBootPicker } from '../features/predict/GoldenBootPicker'
 import { LeaderboardRow } from '../features/league/LeaderboardRow'
+import { LoginForm } from '../features/auth/LoginForm'
+import { SignUpForm } from '../features/auth/SignUpForm'
 
 // Sample data — real flag-icons codes so the outline is visible on white-heavy
 // flags (England). This is a dev harness only; no domain logic here.
@@ -786,6 +788,34 @@ function Gallery() {
           <LeaderboardRow rank={2} name="Jordan Blake" points={115} isYou movement="none" />
           <LeaderboardRow rank={4} name="Sam Okafor" points={98} movement="up" />
         </div>
+      </Section>
+
+      <Section title="Auth — log in (docs/auth-plan.md §3)">
+        <Label>default</Label>
+        <LoginForm onSubmit={() => {}} />
+
+        <Label>submitting</Label>
+        <LoginForm onSubmit={() => {}} submitting />
+
+        <Label>error (wrong password)</Label>
+        <LoginForm
+          onSubmit={() => {}}
+          error="That email or password isn't right. Please try again."
+        />
+      </Section>
+
+      <Section title="Auth — sign up">
+        <Label>default</Label>
+        <SignUpForm onSubmit={() => {}} />
+
+        <Label>submitting</Label>
+        <SignUpForm onSubmit={() => {}} submitting />
+
+        <Label>error (existing account)</Label>
+        <SignUpForm
+          onSubmit={() => {}}
+          error="An account with this email already exists. Try logging in instead."
+        />
       </Section>
     </div>
   )
