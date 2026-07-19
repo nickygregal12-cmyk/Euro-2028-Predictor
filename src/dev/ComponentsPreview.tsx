@@ -34,6 +34,7 @@ import {
 } from '../features/bracket'
 import { PlacedJokerCard } from '../features/predict/PlacedJokerCard'
 import { GoldenBootPicker } from '../features/predict/GoldenBootPicker'
+import { LeaderboardRow } from '../features/league/LeaderboardRow'
 
 // Sample data — real flag-icons codes so the outline is visible on white-heavy
 // flags (England). This is a dev harness only; no domain logic here.
@@ -768,6 +769,23 @@ function Gallery() {
           onClear={() => {}}
           emptyNote=""
         />
+      </Section>
+
+      <Section title="Leaderboard row (League)">
+        <Label>pre-results (rank dash, all level)</Label>
+        <div>
+          <LeaderboardRow rank={null} name="Alex Turner" points={0} />
+          <LeaderboardRow rank={null} name="Jordan Blake" points={0} isYou />
+          <LeaderboardRow rank={null} name="Priya Shah" points={0} />
+        </div>
+
+        <Label>ranked (shared rank on ties, current user + movement)</Label>
+        <div>
+          <LeaderboardRow rank={1} name="Priya Shah" points={128} movement="up" />
+          <LeaderboardRow rank={2} name="Alex Turner" points={115} movement="down" />
+          <LeaderboardRow rank={2} name="Jordan Blake" points={115} isYou movement="none" />
+          <LeaderboardRow rank={4} name="Sam Okafor" points={98} movement="up" />
+        </div>
       </Section>
     </div>
   )
