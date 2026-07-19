@@ -18,6 +18,12 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react()],
+    // Honour a PORT assigned by the environment (e.g. the preview harness) so
+    // the dev server binds where callers expect it; falls back to Vite's default
+    // for a plain `npm run dev`.
+    server: process.env.PORT
+      ? { port: Number(process.env.PORT), strictPort: true }
+      : undefined,
     test: {
       globals: true,
       environment: 'jsdom',
