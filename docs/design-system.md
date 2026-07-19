@@ -40,9 +40,6 @@ Defined in `src/styles/tokens.css` as CSS custom properties on `:root` (dark def
 | `--mut` | Muted bars, disabled | `#2A3757` | `#D8D4C8` |
 | `--chip` | Chip/static-input background | `#1A2B52` | `#EFEDE4` |
 | `--input-bg` | Score input background | `#12203F` | `#FFFFFF` |
-| `--scrim` | Overlay behind modals | `rgba(0,0,0,.6)` | `rgba(20,18,12,.45)` |
-
-**Semantic tints:** components that need a soft tinted surface (Alert, Toast, StatusBadge) mix the semantic colour into the surface with `color-mix()` (e.g. `color-mix(in srgb, var(--tone) 12%, var(--card))`) rather than introducing new hex tokens. Raw colour values only ever live in `tokens.css`; component CSS uses tokens and `color-mix` on tokens.
 
 **Gold rule:** gold text never sits directly on card backgrounds for interactive elements. Gold ships as solid-fill-with-`--gold-contrast`-text (calls to action) or tint-with-border pill (status). This is a hard rule; it exists because outline-only gold failed visibility review.
 
@@ -65,22 +62,6 @@ Loaded via Google Fonts (self-host later if needed for performance).
 - Tap targets minimum 44x44px (score inputs are exactly 44x44)
 
 ## 5. Components
-
-All components live in `src/design-system/` as presentational CSS-Module components (tokens only, both themes, every state). The live inventory — every component in every state, dark and light side by side — is the dev-only gallery at **`/dev/components`** (`src/dev/ComponentsPreview.tsx`). Public API is the `src/design-system/index.ts` barrel.
-
-### Core primitives (generic UI)
-
-These are app-agnostic building blocks used across every feature:
-
-- **Button** — `primary` (accent CTA), `secondary` (outline), `destructive` (red); `loading` (spinner, holds width, `aria-busy`), `disabled`, `fullWidth`. Solid fills take `--bg` as text colour so contrast holds in both themes. Real `<button>`, min 44px.
-- **TextInput** — always labelled; `error` state (red border + `aria-invalid` + `role=alert` message), optional `hint`, and `password` variant with a show/hide toggle.
-- **PageShell + BottomNav** — the app frame: header + scrolling content + fixed five-tab bottom nav (Home, Predict, Matches, Leagues, More). Active tab is accent + `aria-current` (never colour alone); 44px targets. Sections not yet built route to a coming-soon `EmptyState`. Presentational: parent owns the active key.
-- **Toast** (floating, transient) and **Alert** (inline, in-flow) — semantic variants `info`/`success`/`warning`/`error` (info stays neutral — cyan is reserved for live data). Both dismissible; errors/warnings announce assertively.
-- **Skeleton** — content-area loading placeholder (shimmer; static under `prefers-reduced-motion`); optional multi-line paragraph mode.
-- **EmptyState** — icon + title + description + optional action; also used for coming-soon sections.
-- **Modal** + **ConfirmModal** — accessible dialog (`role=dialog`/`aria-modal`, Escape + backdrop close, focus moved in/trapped/restored, scroll lock, `--scrim` overlay). Rendered inline (no portal) so it inherits the surrounding theme scope. ConfirmModal adds the confirm/cancel action row (destructive when irreversible).
-- **ProgressBar** — determinate accent track, `role=progressbar` with aria values.
-- **StatusBadge** — `locked` (neutral + lock icon), `live` (cyan pulsing dot, reduced-motion safe), `submitted` (accent + tick). Icon + text always back up the colour.
 
 ### Score input
 - 44x44px, centred, 19px Space Grotesk 500
@@ -123,27 +104,64 @@ Anatomy: eyebrow row (group + matchday | date + venue-flag + venue), team row (f
 - Live dot uses CSS animation — must respect `prefers-reduced-motion: reduce` (static dot, no pulse)
 - Cyan = real data, only ever real data
 
+### Knockout bracket (mobile: one round at a time)
+- **Round switcher:** segmented control (R16 / QF / SF / Final) with per-round progress counts ("6 of 8"); active round's label in `--acc`. All rounds always tappable — later rounds show whatever is resolvable.
+- **Tie card:** header eyebrow = slot provenance ("R16 · Winner A v Runner-up C") + date + **host-nation venue flag (18×12) + venue name** (same treatment as match cards); two team rows beneath, separated by a **"v" divider** — hairline rules either side of a small muted "v" (11px, Space Grotesk) — so every tie reads as a fixture, not a list. The divider replaces the plain row border between the two teams and appears in all tie states (unpicked, picked, placeholder).
+- **Team row = the button** (whole row tappable, min 44px). Unpicked: neutral rows with empty selection circles. Picked: winner gets `--acc` tint background + 3px accent left bar + check + "Through"; loser dims to 55% opacity but stays tappable to change the pick.
+- **Unresolved slots** (feeding tie not yet picked): dashed empty flag placeholder + muted slot reference ("Winner R16 · Cardiff tie"). Never guessable, never blank.
+- **Slot filling is visible:** when a tie is picked, the winner appears in its next-round slot immediately.
+- **Cascade rule:** changing a pick with downstream dependents shows a confirm dialog stating exactly what clears ("Changing this clears 2 later picks (QF, SF). Continue?"). Cleared slots revert to placeholders. **No dialog when nothing depends on the change** — just switch. Never silently cascade; never block.
+- **Auto-advance:** after a pick, smooth-scroll to the next unpicked tie in the round; after the round's last pick, advance to the next round tab. Uses jump-cut (no scroll animation) under `prefers-reduced-motion`. Auto-advance never bypasses a pending confirm dialog.
+- **Champion card (Final, picked):** accent-bordered card, larger flag (38×25), 18px team name, "Your champion" eyebrow in `--acc`, trophy icon in `--acc`. **Champion is accent green — never gold** (gold is jokers only; this is the rule's proof case).
+- Desktop/tablet full-wallchart view is a later-tier addition; the mobile round view is the v0.1 implementation and remains available at all sizes.
+
 ## 6. Navigation & page structure (v0.1)
 
-**Bottom nav — 4 tabs:** Home / Predict / League / More. Active tab in `--acc` (icon + label), inactive `--tx3`, 44px min targets, Space Grotesk labels, football icon for Predict, trophy for League. Tabs are config: Leagues functionality expands the League tab at v0.5; match centre integrates at Phase 3 — no nav rebuild.
+**Bottom nav — 4 tabs:** Home / Predict / League / More. Active tab in `--acc` (icon + label), inactive `--tx3`, 44px min targets, Space Grotesk labels, football icon for Predict, trophy for League. Tabs are config: Leagues functionality expands the League tab at v0.5; match centre integrates at Tier 4 — no nav rebuild.
 
 **Page map:**
-- **Home** — entry status, completion %, deadline countdown, continue button.
-- **Predict** — the hub (below).
-- **League** — overall leaderboard at v0.1; private leagues join here at Phase 2.
-- **More** — profile, settings, theme toggle, how scoring works, sign out.
+- **Home** — entry status, completion %, deadline countdown, continue button (tournament-phase-aware layouts come later per original spec)
+- **Predict** — the hub (below)
+- **League** — overall leaderboard at v0.1; private leagues join here at v0.5
+- **More** — profile, settings, theme toggle, how scoring works, sign out
 
 **Predict hub pattern:** the Predict tab opens a checklist hub, not a direct screen. Header: title, overall progress bar (accent fill) with %, lock deadline line. Stage rows (card rows, chevron right, whole row tappable):
+1. Groups A–F — status count ("36 of 36 matches predicted"), green tick icon when complete
+2. Best third-placed teams — amber warning icon + "N tie(s) need your call" when tie-resolution is pending; tick when settled
+3. Knockout bracket — "N of 15 winners picked"
+4. Jokers — "N of 5 placed" (dedicated overview screen; jokers also placeable directly on match cards)
+5. Review and submit — dimmed with lock icon until stages 1–4 complete; "Complete the steps above first"
 
-1. **Groups A–F** — status count ("36 of 36 matches predicted"), green tick icon when complete.
-2. **Best third-placed teams** — amber warning icon + "N tie(s) need your call" when tie-resolution is pending; tick when settled.
-3. **Knockout bracket** — "N of 15 winners picked".
-4. **Jokers** — "N of 5 placed" (dedicated overview screen; jokers also placeable directly on match cards).
-5. **Review and submit** — dimmed with lock icon until stages 1–4 complete; "Complete the steps above first".
-
-Row icon chips: 34×34, `--chip` bg; icon colour = state (accent tick done, amber attention, muted otherwise).
+Row icon chips: 34×34, `--chip` bg; icon colour = state (accent tick done, amber attention, muted otherwise). Same semantic colour language as the rest of the app — no new rules.
 
 **Group predictor screen:** one group per screen, prev/next navigation between A–F, the six match cards stacked with the live predicted group table directly beneath them. Third-place and bracket are their own screens per their component specs.
+
+### League area (Phase 2 build; live strip Phase 3)
+
+**League tab (hub):**
+- Top slot: **live match strip** when a match is in play (see below); absent otherwise
+- **Overall standings card** pinned first: globe icon, "All players, everywhere," user's global rank + movement, chevron into the full table (this card is the whole tab at v0.1)
+- **My leagues list**: one card per league — name (truncating), member count, "you own this" where true, user's rank in that league (accent when 1st) + movement arrow, chevron into detail
+- **Create league** (primary, accent) + **Join league** (secondary) buttons beneath
+
+**League detail page:**
+- Header card: league name (truncating), member count, owner, invite code as tap-to-copy chip; share button opens native share sheet with the invite link; overflow menu (⋯) holds Leave league (confirm Modal; owners must transfer ownership or delete instead — leagues are never orphaned)
+- Table header row: # | (movement) | Player | latest-matchday points (labelled e.g. "MD3") | Pts — aligned to the same grid as body rows
+- **Member row (collapsed):** rank | movement arrow (accent up / red down / muted dash) | avatar initials + name (truncating, min-width: 0) | champion-pick flag (18×12) | latest points | total points. Current user's row: chip background, accent avatar, YOU chip, auto-scrolled into view on long lists
+- **Member row (expanded, tap-in-place):** stat triple — Exact / Correct / Max left (accent) — plus Profile and Head to head buttons
+- **No-entry members**: dimmed, "No entry", dash for latest, 0 total; before the entry deadline this state shows entry progress instead ("12/36 predicted")
+- **Ranking display rule:** standard competition ranking — tied totals share the rank (1, 1, 3), rows within a tie ordered alphabetically. League tie-breakers (scoring rules §5) are applied **only for final standings** at tournament end, where the tie-break explanation is shown explicitly. Movement arrows compare shared ranks.
+- **Champion-pick flag rules:** hidden before entries lock (reveal policy); dims when the picked team is eliminated
+
+**Join flow:** invite links are primary (deep link → join screen with league preview: name, member count, owner + Join/Decline); code entry is the fallback on the join sheet. Links wrap codes — one system. Deep links survive the logged-out case: sign-up completes and returns to the pending join.
+
+**Create flow:** name (required, length-limited) → created → immediately lands on share sheet with invite link (the post-create moment is the invite moment).
+
+**Live match strip (Phase 3, designed now):** cyan-tinted bar, pulsing dot (reduced-motion: static), flags + live score + minute, one league-context line ("14 of 20 predicted this right"), "League view" chevron. Appears only while a match is live; simultaneous matches stack strips. Tap carries league context into the match centre (league-scoped member predictions); from the hub, lands with a league filter defaulting to the most recently viewed league. Requirement inherited by the Match Centre spec: league-scoped views reachable by deep link.
+
+**Hostile-data design rule (applies to every page, starting here):** pages are designed and reviewed against worst-case realistic data — 20+ members, longest plausible names, tied scores, the user mid-table, non-submitters — at 360px, in both themes. Dev database is seeded with a fake mid-tournament so built pages are always reviewed populated, never empty.
+
+**Explicitly parked:** dedicated activity tab/feed (activity is delivered ambiently via movement arrows, latest-points column, and a possible one-line "since last matchday" summary later).
 
 ## 7. States (every component, no exceptions)
 
