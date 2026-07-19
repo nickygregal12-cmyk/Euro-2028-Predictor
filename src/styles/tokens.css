@@ -1,0 +1,84 @@
+/* Euro 2028 Predictor — design tokens
+   Source of truth: design-system.md. Do not add colours outside this file.
+   Dark ("Night broadcast") is the default theme; light is opt-in via
+   [data-theme="light"] on <html>. */
+
+:root {
+  /* surfaces */
+  --bg: #0A1128;
+  --card: #101E3E;
+  --line: #26355C;
+  --chip: #1A2B52;
+  --input-bg: #12203F;
+  --mut: #2A3757;
+
+  /* text */
+  --tx: #F2F5FB;
+  --tx2: #9AA6C2;
+  --tx3: #7E8BA8;
+
+  /* semantic colour — meanings are app-wide and fixed:
+     acc = user actions/predictions/qualify
+     amb = third place / caution
+     cyn = live real data
+     red = errors / elimination
+     gold = jokers ONLY */
+  --acc: #22E06C;
+  --amb: #F0B429;
+  --cyn: #38C8E8;
+  --red: #F06A5E;
+  --gold: #E8C34A;
+  --gold-contrast: #2B2410;
+  --gold-tint: #2B2410;
+
+  /* typography */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  /* shape */
+  --radius-card: 14px;
+  --radius-input: 9px;
+  --radius-pill: 20px;
+
+  /* spacing scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+
+  /* component constants */
+  --tap-min: 44px;
+  --bar-w: 4px;
+  --bar-h: 24px;
+}
+
+[data-theme="light"] {
+  --bg: #F7F5F0;
+  --card: #FDFCFA;
+  --line: #E5E2DA;
+  --chip: #EFEDE4;
+  --input-bg: #FFFFFF;
+  --mut: #D8D4C8;
+
+  --tx: #1C1B16;
+  --tx2: #6B6759;
+  --tx3: #8A8677;
+
+  --acc: #0F6E56;
+  --amb: #BA7517;
+  --cyn: #0E7C9C;
+  --red: #B3382C;
+  --gold: #C99A1F;
+  --gold-contrast: #2B2410;
+  --gold-tint: #F7EDD0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
