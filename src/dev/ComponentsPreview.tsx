@@ -9,6 +9,8 @@ import {
   Alert,
   Toast,
   Skeleton,
+  Modal,
+  ConfirmModal,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -80,6 +82,45 @@ function PageShellDemo() {
           />
         )}
       </PageShell>
+    </div>
+  )
+}
+
+function ModalDemo() {
+  const [plainOpen, setPlainOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  return (
+    <div className={styles.row}>
+      <Button variant="secondary" onClick={() => setPlainOpen(true)}>
+        Open modal
+      </Button>
+      <Button variant="destructive" onClick={() => setConfirmOpen(true)}>
+        Leave league…
+      </Button>
+      <Modal
+        open={plainOpen}
+        onClose={() => setPlainOpen(false)}
+        title="How scoring works"
+        footer={
+          <Button variant="primary" onClick={() => setPlainOpen(false)}>
+            Got it
+          </Button>
+        }
+      >
+        Exact score earns 5 points, correct result earns 3. Jokers double a
+        match's points.
+      </Modal>
+      <ConfirmModal
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={() => setConfirmOpen(false)}
+        title="Leave this league?"
+        confirmLabel="Leave league"
+        destructive
+      >
+        You'll lose your place on the table and can only rejoin with a new
+        invite.
+      </ConfirmModal>
     </div>
   )
 }
@@ -213,6 +254,10 @@ function Gallery() {
 
       <Section title="PageShell + BottomNav">
         <PageShellDemo />
+      </Section>
+
+      <Section title="Modal">
+        <ModalDemo />
       </Section>
 
       <Section title="Alert">

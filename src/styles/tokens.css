@@ -32,6 +32,9 @@
   --gold-contrast: #2B2410;
   --gold-tint: #2B2410;
 
+  /* scrim behind modals/overlays */
+  --scrim: rgba(0, 0, 0, 0.6);
+
   /* typography */
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
@@ -74,6 +77,7 @@
   --gold: #C99A1F;
   --gold-contrast: #2B2410;
   --gold-tint: #F7EDD0;
+  --scrim: rgba(20, 18, 12, 0.45);
 }
 
 @media (prefers-reduced-motion: reduce) {

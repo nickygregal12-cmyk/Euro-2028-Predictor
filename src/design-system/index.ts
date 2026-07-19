@@ -21,6 +21,9 @@ export type { AlertProps, AlertVariant } from './Alert'
 export { Toast } from './Toast'
 export type { ToastProps, ToastVariant } from './Toast'
 
+export { Modal, ConfirmModal } from './Modal'
+export type { ModalProps, ConfirmModalProps } from './Modal'
+
 export { BottomNav } from './BottomNav'
 export type { BottomNavProps, NavKey } from './BottomNav'
 

@@ -1,0 +1,49 @@
+/* Modal dialog. Scrim + centred card; colours from tokens only. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  background: var(--scrim);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 400px;
+  max-height: calc(100dvh - 2 * var(--sp-4));
+  overflow-y: auto;
+  padding: var(--sp-4);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.dialog:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--tx);
+}
+
+.body {
+  margin-top: var(--sp-3);
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx2);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
