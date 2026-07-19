@@ -11,6 +11,8 @@ import {
   Skeleton,
   Modal,
   ConfirmModal,
+  ProgressBar,
+  StatusBadge,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -254,6 +256,20 @@ function Gallery() {
 
       <Section title="PageShell + BottomNav">
         <PageShellDemo />
+      </Section>
+
+      <Section title="ProgressBar">
+        <ProgressBar value={18} max={36} label="Predictions" showValue />
+        <ProgressBar value={100} max={100} label="Group A" showValue />
+        <ProgressBar value={0} max={36} />
+      </Section>
+
+      <Section title="StatusBadge">
+        <div className={styles.row}>
+          <StatusBadge variant="locked" />
+          <StatusBadge variant="live" />
+          <StatusBadge variant="submitted" />
+        </div>
       </Section>
 
       <Section title="Modal">

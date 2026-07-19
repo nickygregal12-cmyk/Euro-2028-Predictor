@@ -1,0 +1,66 @@
+/* Status pill. Tint/border/text mixed from a per-variant `--tone` token; no
+   raw hex. Icon + text back up the colour (design-system §7). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px var(--sp-2);
+  border: 1px solid color-mix(in srgb, var(--tone) 45%, var(--line));
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--tone) 12%, var(--card));
+  color: var(--tone);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+}
+
+.locked {
+  --tone: var(--tx3);
+}
+.live {
+  --tone: var(--cyn);
+}
+.submitted {
+  --tone: var(--acc);
+}
+
+/* Live: a pulsing cyan dot. Pulse stops under reduced-motion (design-system
+   §7 / Live table spec). */
+.dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyn);
+}
+
+.dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--cyn);
+  animation: badge-pulse 1.6s ease-out infinite;
+}
+
+@keyframes badge-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot::after {
+    animation: none;
+    display: none;
+  }
+}
