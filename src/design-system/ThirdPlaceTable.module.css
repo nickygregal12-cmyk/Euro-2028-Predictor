@@ -6,73 +6,77 @@
 }
 
 .table {
-  width: 100%;
-  border-collapse: collapse;
   font-family: var(--font-display);
 }
 
-.table th {
+/* Same single-grid-per-row model as GroupTable, with an extra 26px group-chip
+   column (position | side bar | group chip | flag | team | Pl | GD | Pts).
+   Every cell is a direct grid child; minmax(0, …) lets long names truncate. */
+.headRow,
+.row {
+  display: grid;
+  grid-template-columns: 22px 4px 26px 30px minmax(0, 1fr) 28px 32px 34px;
+  align-items: center;
+}
+
+.row {
+  border-top: 1px solid var(--line);
+  padding: 8px 0;
+}
+
+/* Header ------------------------------------------------------------------- */
+.headRow {
+  padding: 6px 0;
+}
+
+.posHead,
+.grpHead,
+.teamHead,
+.numHead {
   font-weight: 500;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);
-  padding: 6px 4px;
-}
-
-.posHead,
-.grpHead,
-.teamHead {
-  text-align: left;
 }
 
 .posHead {
-  width: 44px;
+  grid-column: 1 / 3; /* over position + side bar */
+  text-align: left;
 }
 
 .grpHead {
-  width: 30px;
+  grid-column: 3 / 4; /* over the group chip */
+  text-align: left;
 }
 
-.num {
-  text-align: right;
-  width: 34px;
-  font-size: 13px;
-  color: var(--tx2);
-  padding: 8px 4px;
+.teamHead {
+  grid-column: 4 / 6; /* over flag + team name */
+  text-align: left;
 }
 
-.pts {
+.numHead {
+  text-align: right; /* auto-placed into the Pl / GD / Pts columns */
+}
+
+.pos {
+  text-align: center;
   font-weight: 500;
-  color: var(--tx);
-}
-
-.table tbody tr:not(.eliminationRow) {
-  border-top: 1px solid var(--line);
-}
-
-.posCell {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 4px;
+  font-size: 14px;
 }
 
 .bar {
   width: var(--bar-w);
   height: var(--bar-h);
   border-radius: 2px;
-  flex: none;
-}
-
-.pos {
-  font-weight: 500;
-  font-size: 14px;
+  justify-self: center;
 }
 
 /* Group-letter chip — 22×22, first-class info (drives R16 allocation). */
 .grpCell {
-  padding: 8px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .chip {
@@ -89,19 +93,31 @@
   font-size: 12px;
 }
 
-.teamCell {
+.flagCell {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 4px;
+  justify-content: center;
 }
 
 .teamName {
+  min-width: 0;
+  padding-left: 8px;
   font-size: 14px;
   color: var(--tx);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.num {
+  text-align: right;
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.pts {
+  font-weight: 500;
+  color: var(--tx);
 }
 
 /* Positions 1..qualifyCount = accent; 5–6 dimmed with muted bars. */
@@ -124,22 +140,19 @@
   color: var(--tx3);
 }
 
-.dimmed .teamCell :global(.fi) {
+.dimmed .flagCell :global(.fi) {
   opacity: 0.55;
 }
 
-/* Elimination line between qualifying and eliminated thirds. */
-.eliminationRow td {
-  padding: 2px 4px;
-}
-
-.eliminationLine {
+/* Elimination line between qualifying and eliminated thirds — full-row rule. */
+.eliminationRow {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 2px 0;
 }
 
-.eliminationLine::after {
+.eliminationRow::after {
   content: '';
   flex: 1;
   height: 1px;

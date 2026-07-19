@@ -30,52 +30,66 @@ function formatGD(gd: number): string {
 /**
  * Predicted group standings. Presentational: the parent computes ordering via
  * the domain layer (calculateGroupTable / resolveGroupTies) and passes rows in.
+ *
+ * Layout: each row is a single CSS grid on a shared template (see
+ * GroupTable.module.css and docs/design-system.md §5). Position, side bar,
+ * flag, team name, Pl, GD and Pts are each a direct grid child — no nested flex
+ * grouping of flag+name — so cells always sit inline in their columns. Uses ARIA
+ * table roles because the visual grid replaces native table layout.
  */
 export function GroupTable({ caption, rows }: GroupTableProps) {
   return (
     <div className={styles.wrap}>
-      <table className={styles.table}>
-        <caption className="sr-only">{caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col" className={styles.posHead}>
-              <span className="sr-only">Position</span>#
-            </th>
-            <th scope="col" className={styles.teamHead}>
-              Team
-            </th>
-            <th scope="col" className={styles.num}>
-              Pl
-            </th>
-            <th scope="col" className={styles.num}>
-              GD
-            </th>
-            <th scope="col" className={styles.num}>
-              Pts
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const zone = zoneFor(r.position)
-            return (
-              <tr key={r.position} className={r.position === 4 ? styles.dimmed : undefined}>
-                <td className={styles.posCell}>
-                  <span className={`${styles.bar} ${styles[zone]}`} aria-hidden="true" />
-                  <span className={`${styles.pos} ${styles[`${zone}Text`]}`}>{r.position}</span>
-                </td>
-                <td className={styles.teamCell}>
-                  <TeamFlag countryCode={r.team.countryCode} label={r.team.name} size="table" />
-                  <span className={styles.teamName}>{r.team.name}</span>
-                </td>
-                <td className={styles.num}>{r.played}</td>
-                <td className={styles.num}>{formatGD(r.goalDifference)}</td>
-                <td className={`${styles.num} ${styles.pts}`}>{r.points}</td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </table>
+      <div className={styles.table} role="table" aria-label={caption}>
+        <div className={styles.headRow} role="row">
+          <span className={styles.posHead} role="columnheader">
+            <span className="sr-only">Position</span>#
+          </span>
+          <span className={styles.teamHead} role="columnheader">
+            Team
+          </span>
+          <span className={styles.numHead} role="columnheader">
+            Pl
+          </span>
+          <span className={styles.numHead} role="columnheader">
+            GD
+          </span>
+          <span className={styles.numHead} role="columnheader">
+            Pts
+          </span>
+        </div>
+
+        {rows.map((r) => {
+          const zone = zoneFor(r.position)
+          return (
+            <div
+              key={r.position}
+              className={`${styles.row} ${r.position === 4 ? styles.dimmed : ''}`}
+              role="row"
+            >
+              <span className={`${styles.pos} ${styles[`${zone}Text`]}`} role="cell">
+                {r.position}
+              </span>
+              <span className={`${styles.bar} ${styles[zone]}`} aria-hidden="true" />
+              <span className={styles.flagCell} role="cell">
+                <TeamFlag countryCode={r.team.countryCode} label={r.team.name} size="table" />
+              </span>
+              <span className={styles.teamName} role="cell">
+                {r.team.name}
+              </span>
+              <span className={styles.num} role="cell">
+                {r.played}
+              </span>
+              <span className={styles.num} role="cell">
+                {formatGD(r.goalDifference)}
+              </span>
+              <span className={`${styles.num} ${styles.pts}`} role="cell">
+                {r.points}
+              </span>
+            </div>
+          )
+        })}
+      </div>
 
       <div className={styles.legend}>
         <span className={styles.legendItem}>

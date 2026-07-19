@@ -28,74 +28,81 @@ function formatGD(gd: number): string {
  * Best third-placed ranking across all six groups. Presentational: the parent
  * ranks via rankThirdPlacedTeams() and passes rows in; when that returns an
  * unresolved tie, the parent renders the prompt into `tieResolutionSlot`.
+ *
+ * Layout mirrors GroupTable — each row is a single CSS grid on a shared
+ * template (see the module CSS and docs/design-system.md §5) — with an extra
+ * group-letter chip column. Every cell is a direct grid child.
  */
 export function ThirdPlaceTable({ rows, qualifyCount = 4, tieResolutionSlot }: ThirdPlaceTableProps) {
   return (
     <div className={styles.wrap}>
-      <table className={styles.table}>
-        <caption className="sr-only">Best third-placed teams</caption>
-        <thead>
-          <tr>
-            <th scope="col" className={styles.posHead}>
-              <span className="sr-only">Position</span>#
-            </th>
-            <th scope="col" className={styles.grpHead}>
-              Grp
-            </th>
-            <th scope="col" className={styles.teamHead}>
-              Team
-            </th>
-            <th scope="col" className={styles.num}>
-              Pl
-            </th>
-            <th scope="col" className={styles.num}>
-              GD
-            </th>
-            <th scope="col" className={styles.num}>
-              Pts
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const qualifies = r.position <= qualifyCount
-            return (
-              <Fragment key={r.position}>
-                <tr className={qualifies ? undefined : styles.dimmed}>
-                  <td className={styles.posCell}>
-                    <span
-                      className={`${styles.bar} ${qualifies ? styles.qualify : styles.out}`}
-                      aria-hidden="true"
-                    />
-                    <span className={`${styles.pos} ${qualifies ? styles.qualifyText : styles.outText}`}>
-                      {r.position}
-                    </span>
-                  </td>
-                  <td className={styles.grpCell}>
-                    <span className={styles.chip}>{r.groupLetter}</span>
-                  </td>
-                  <td className={styles.teamCell}>
-                    <TeamFlag countryCode={r.team.countryCode} label={r.team.name} size="table" />
-                    <span className={styles.teamName}>{r.team.name}</span>
-                  </td>
-                  <td className={styles.num}>{r.played}</td>
-                  <td className={styles.num}>{formatGD(r.goalDifference)}</td>
-                  <td className={`${styles.num} ${styles.pts}`}>{r.points}</td>
-                </tr>
-                {r.position === qualifyCount && (
-                  <tr className={styles.eliminationRow}>
-                    <td colSpan={6}>
-                      <span className={styles.eliminationLine}>
-                        <span className={styles.eliminationLabel}>Elimination line</span>
-                      </span>
-                    </td>
-                  </tr>
-                )}
-              </Fragment>
-            )
-          })}
-        </tbody>
-      </table>
+      <div className={styles.table} role="table" aria-label="Best third-placed teams">
+        <div className={styles.headRow} role="row">
+          <span className={styles.posHead} role="columnheader">
+            <span className="sr-only">Position</span>#
+          </span>
+          <span className={styles.grpHead} role="columnheader">
+            Grp
+          </span>
+          <span className={styles.teamHead} role="columnheader">
+            Team
+          </span>
+          <span className={styles.numHead} role="columnheader">
+            Pl
+          </span>
+          <span className={styles.numHead} role="columnheader">
+            GD
+          </span>
+          <span className={styles.numHead} role="columnheader">
+            Pts
+          </span>
+        </div>
+
+        {rows.map((r) => {
+          const qualifies = r.position <= qualifyCount
+          return (
+            <Fragment key={r.position}>
+              <div className={`${styles.row} ${qualifies ? '' : styles.dimmed}`} role="row">
+                <span
+                  className={`${styles.pos} ${qualifies ? styles.qualifyText : styles.outText}`}
+                  role="cell"
+                >
+                  {r.position}
+                </span>
+                <span
+                  className={`${styles.bar} ${qualifies ? styles.qualify : styles.out}`}
+                  aria-hidden="true"
+                />
+                <span className={styles.grpCell} role="cell">
+                  <span className={styles.chip}>{r.groupLetter}</span>
+                </span>
+                <span className={styles.flagCell} role="cell">
+                  <TeamFlag countryCode={r.team.countryCode} label={r.team.name} size="table" />
+                </span>
+                <span className={styles.teamName} role="cell">
+                  {r.team.name}
+                </span>
+                <span className={styles.num} role="cell">
+                  {r.played}
+                </span>
+                <span className={styles.num} role="cell">
+                  {formatGD(r.goalDifference)}
+                </span>
+                <span className={`${styles.num} ${styles.pts}`} role="cell">
+                  {r.points}
+                </span>
+              </div>
+              {r.position === qualifyCount && (
+                <div className={styles.eliminationRow} role="separator" aria-label="Elimination line">
+                  <span className={styles.eliminationLabel} aria-hidden="true">
+                    Elimination line
+                  </span>
+                </div>
+              )}
+            </Fragment>
+          )
+        })}
+      </div>
 
       <div className={styles.footer}>
         <span className={styles.footerNote}>
