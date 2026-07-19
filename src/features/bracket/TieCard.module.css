@@ -1,0 +1,158 @@
+/* Knockout tie card (design-system §5). Tokens only. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+/* Eyebrow ------------------------------------------------------------------ */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+.provenance {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eyebrowRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Team row ----------------------------------------------------------------- */
+.row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: none;
+  border-left: 3px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  color: var(--tx);
+  cursor: pointer;
+}
+
+button.row:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+
+button.row:hover {
+  background: color-mix(in srgb, var(--tx3) 8%, transparent);
+}
+
+/* Winner: accent tint + 3px accent left bar + check + "Through". */
+.winnerRow,
+button.winnerRow:hover {
+  background: color-mix(in srgb, var(--acc) 14%, transparent);
+  border-left-color: var(--acc);
+}
+
+/* Loser: dimmed but still tappable to change the pick. */
+.loserRow {
+  opacity: 0.55;
+}
+
+.flag {
+  display: inline-flex;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+
+/* Empty selection circle (unpicked). */
+.circle {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--mut);
+  border-radius: 50%;
+}
+
+/* "Through" pill on the winner. */
+.through {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--acc);
+}
+
+/* "v" divider between the two rows (design-system §5). */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 8px;
+}
+
+.dividerRule {
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.v {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--tx3);
+}
+
+/* Placeholder row (feeding tie not yet picked). */
+.placeholderRow {
+  cursor: default;
+}
+
+.placeholderFlag {
+  width: 26px;
+  height: 17px;
+  border: 1px dashed var(--mut);
+  border-radius: 3px;
+}
+
+.placeholderLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx3);
+}
+
+.placeholderIcon {
+  color: var(--tx3);
+}

@@ -1,0 +1,43 @@
+/* Bracket screen layout. Tokens only. */
+
+.ties {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.saveLine {
+  display: flex;
+  align-items: center;
+  min-height: 18px;
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+.saveMuted {
+  color: var(--tx3);
+}
+
+.saveOk {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--acc);
+}
+
+.saveErr {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--red);
+}
+
+.retry {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--red);
+  text-decoration: underline;
+  cursor: pointer;
+}
