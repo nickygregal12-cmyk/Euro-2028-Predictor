@@ -21,10 +21,14 @@ import {
   GroupTable,
   ThirdPlaceTable,
   TieResolver,
+  PlayerChip,
+  StatCard,
   type JokerButtonState,
   type TieResolverTeam,
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
+import { PointsBreakdown } from '../features/scoring'
+import type { ScoreEvent } from '../domain/tournament/scoreEvents'
 import {
   RoundSwitcher,
   TieCard,
@@ -48,6 +52,54 @@ const FRA = { name: 'France', countryCode: 'fr' }
 const GER = { name: 'Germany', countryCode: 'de' }
 const ITA = { name: 'Italy', countryCode: 'it' }
 const POR = { name: 'Portugal', countryCode: 'pt' }
+
+// Sample scored events for the Points breakdown — a plausible mid-tournament
+// slice: exact scores, a jokered match (gold pill), a group order, knockout
+// progression. Awards stays empty so the "0 · pending" category shows.
+const SAMPLE_SCORE_EVENTS: ScoreEvent[] = [
+  {
+    id: 'gm1',
+    category: 'group_matches',
+    explanation: 'Sco 2–1 Eng · exact score',
+    flag: SCO,
+    points: 5,
+  },
+  {
+    id: 'gm2',
+    category: 'group_matches',
+    explanation: 'Esp 3–1 Ita · correct result',
+    flag: ESP,
+    points: 3,
+  },
+  {
+    id: 'gm3',
+    category: 'group_matches',
+    explanation: 'Fra 2–0 Ger · exact score',
+    flag: FRA,
+    points: 10,
+    joker: true,
+  },
+  {
+    id: 'gm4',
+    category: 'group_matches',
+    explanation: 'Por 0–2 Wal · wrong',
+    flag: POR,
+    points: 0,
+  },
+  {
+    id: 'gp1',
+    category: 'group_positions',
+    explanation: 'Group A · full order correct',
+    points: 13,
+  },
+  {
+    id: 'ko1',
+    category: 'knockout',
+    explanation: 'Spain · reached the semi-finals',
+    flag: ESP,
+    points: 45,
+  },
+]
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -788,6 +840,65 @@ function Gallery() {
           <LeaderboardRow rank={2} name="Jordan Blake" points={115} isYou movement="none" />
           <LeaderboardRow rank={4} name="Sam Okafor" points={98} movement="up" />
         </div>
+
+        <Label>league rows (champion-pick flag; hostile-long name truncates)</Label>
+        <div>
+          <LeaderboardRow rank={1} name="Priya Shah" points={128} movement="up" championPick={ESP} />
+          <LeaderboardRow
+            rank={2}
+            name="Maximilian von Habsburg-Lothringen"
+            points={115}
+            movement="down"
+            championPick={FRA}
+          />
+          <LeaderboardRow
+            rank={3}
+            name="Jordan Blake"
+            points={98}
+            isYou
+            championPick={GER}
+            championEliminated
+          />
+        </div>
+      </Section>
+
+      <Section title="PlayerChip">
+        <Label>sizes (sm / md / lg)</Label>
+        <div className={styles.row}>
+          <PlayerChip name="Alex Turner" size="sm" />
+          <PlayerChip name="Alex Turner" size="md" />
+          <PlayerChip name="Alex Turner" size="lg" />
+        </div>
+        <Label>current user, single-word, and hostile-long (truncates)</Label>
+        <div className={styles.stack} style={{ maxWidth: 260 }}>
+          <PlayerChip name="Jordan Blake" you />
+          <PlayerChip name="Cristiano" />
+          <PlayerChip name="Maximilian von Habsburg-Lothringen III" />
+          <PlayerChip name="🦁 Leo" />
+        </div>
+      </Section>
+
+      <Section title="StatCard (profile stat grid)">
+        <div className={styles.statGrid}>
+          <StatCard label="Points" value={128} />
+          <StatCard label="Overall rank" value="#3" accent movement="up" />
+          <StatCard label="Exact scores" value={7} />
+          <StatCard label="Accuracy" value="61%" />
+        </div>
+        <Label>empty / pre-results (dashes) + tappable</Label>
+        <div className={styles.statGrid}>
+          <StatCard label="Points" value="—" />
+          <StatCard label="Overall rank" value="—" />
+          <StatCard label="Points today" value={12} accent onClick={() => {}} />
+          <StatCard label="Best league" value="2nd" movement="down" />
+        </div>
+      </Section>
+
+      <Section title="Points breakdown (Profile / own points)">
+        <Label>mid-tournament (categories, joker pill, pending Awards)</Label>
+        <PointsBreakdown events={SAMPLE_SCORE_EVENTS} defaultExpanded />
+        <Label>no results yet (every category pending, total 0)</Label>
+        <PointsBreakdown events={[]} />
       </Section>
 
       <Section title="Auth — log in (docs/auth-plan.md §3)">

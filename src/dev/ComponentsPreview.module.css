@@ -87,6 +87,13 @@
   gap: 10px;
 }
 
+/* Four-up stat grid, matching the profile page layout (design-system §6). */
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
 .label {
   font-family: var(--font-body);
   font-size: 11px;
