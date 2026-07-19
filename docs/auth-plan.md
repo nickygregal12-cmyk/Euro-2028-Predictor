@@ -30,12 +30,27 @@ Hardcoding a fake user ID through the app would make every query and policy assu
 ## 3. What gets built later (the actual auth work)
 
 **Phase 1 exit requirement (before any real user touches the deployed app):**
-- Sign up (email + password, display name required + length-limited, creates profiles row)
-- Log in / log out
-- Session restore on refresh without logged-out flash
-- Friendly error states (wrong password, existing account, network) — never raw Supabase errors
-- Auth screens use the design system (Button, TextInput, Alert)
-- Remove/disable the dev auto-login path in the deployed environment (verify the fail-closed check)
+- [x] Sign up (email + password, display name required + length-limited, creates profiles row)
+- [x] Log in / log out
+- [x] Session restore on refresh without logged-out flash
+- [x] Friendly error states (wrong password, existing account, network) — never raw Supabase errors
+- [x] Auth screens use the design system (Button, TextInput, Alert)
+- [x] Remove/disable the dev auto-login path in the deployed environment (verify the fail-closed check)
+
+**Shipped (Phase 1):** `src/features/auth/` holds the screens — presentational
+`AuthScreen` shell + `LoginForm`/`SignUpForm` (own field state, error via
+`Alert`, no Supabase logic → previewed in `/dev/components`), wired by
+`LoginPage`/`SignUpPage` to the service and navigation. `signUpWithPassword`
+(in `services/supabase/auth.ts`) creates the auth user and the matching
+`profiles` row (`createMyProfile`). `friendlyAuthError()` maps failures to human
+copy (never raw messages); `validateSignUp()` mirrors the server constraints
+(display name 1–40, valid email, min password length) — both pure + unit-tested.
+Routing gates in `src/app/Providers.tsx` (`AuthLayout` → `RequireAuth` /
+`RedirectIfAuthed`) split signed-in vs signed-out and show a neutral splash
+during session restore (no logged-out flash). `AuthProvider.signOut` is a real
+sign-out; the dev auto-login shim stays a **startup-only** path (a dev reload
+re-signs-in), and the fail-closed production check still holds (runtime policy +
+`vite.config.ts` refuse a production build with `VITE_DEV_AUTOLOGIN=true`).
 
 **Phase 2 additions:**
 - Cloudflare Turnstile on sign up / log in
