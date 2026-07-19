@@ -186,6 +186,19 @@ Principle: Home is a hub — it summarises and links, never replicates other scr
 
 **Post-tournament:** final rank, total score, league finishing positions, accuracy summary — designed at Phase 3 alongside full profiles; slot reserved.
 
+### Profile page (Phase 2)
+- **Identity header card**: avatar initials (46px circle), display name (truncating), champion pick as flag + name — **tombstone treatment when eliminated**: flag dimmed to ~45% opacity, name struck through — leagues count, and an H2H button in the header (primary action on another player's profile). Own profile (via More tab): same layout, no H2H button, edit actions instead.
+- **Stat grid**: four StatCards in a row — total Points, Overall rank, Exact scores, Accuracy %.
+- **Points breakdown card** (see component below).
+- **View full entry row**: post-lock only — opens the player's complete entry read-only, rendered with existing components (their match cards, bracket, jokers).
+- **Pre-lock state (reveal rules made visible)**: other players' profiles show only name, leagues, and entry status before entries lock; stats, breakdown, and entry are replaced by a lock-icon card explaining "Predictions and stats are hidden until entries lock on [date]."
+
+### Points breakdown component (Phase 2; reused by profile, match centre, own points views)
+- Grouped by scoring category, matching the scoring doc exactly: Group matches / Group positions / Knockout / Awards — one collapsible row per category with its subtotal (Space Grotesk, 500).
+- Expanding a category lists individual score events: team flag + plain-language explanation ("Sco 2–1 Eng · exact score") + points value in accent. **Joker-doubled events** show a gold tint pill ("2× · +10") per the gold rules.
+- Unscored categories show "0 · pending" in muted — never hidden.
+- Total row pinned beneath, separated by a rule; the total must always equal the sum of rendered events (both derive from score_events — one source of truth).
+
 ## 7. States (every component, no exceptions)
 
 Every screen/component ships with: empty, loading (skeleton, not spinner, for content areas), error (with retry), locked, and saved/save-failed states designed and implemented together with the happy path — never retrofitted.
