@@ -1,0 +1,46 @@
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rowLabel {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx);
+}
+
+.rowValue {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.linkRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 14px 16px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx);
+  cursor: pointer;
+}
+
+.chev {
+  color: var(--tx3);
+  justify-self: end;
+}
+
+.note {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+}

@@ -14,6 +14,11 @@ html[data-theme='light'] {
   color-scheme: light;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -23,6 +28,11 @@ body {
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* The app shell (PageShell) fills the viewport; its content region scrolls. */
+#root {
+  height: 100dvh;
 }
 
 /* Baseline visible focus for keyboard users (design-system §7). Individual

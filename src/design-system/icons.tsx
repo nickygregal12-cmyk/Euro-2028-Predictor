@@ -34,6 +34,15 @@ export function ChevronRightIcon(props: IconProps) {
   )
 }
 
+export function ChevronLeftIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M15 6l-6 6 6 6" />
+    </svg>
+  )
+}
+
 export function LockIcon(props: IconProps) {
   return (
     <svg {...svgProps(props)}>

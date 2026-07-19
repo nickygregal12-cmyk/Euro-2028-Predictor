@@ -1,0 +1,87 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 18px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 12px 14px;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.row:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.chip {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--chip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconDone {
+  color: var(--acc);
+}
+.iconAttention {
+  color: var(--amb);
+}
+.iconMuted {
+  color: var(--tx3);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+
+.rowSub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowSubAttention {
+  color: var(--amb);
+}
+
+.chevron {
+  color: var(--tx3);
+  justify-self: end;
+}
+
+.lockLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+}
