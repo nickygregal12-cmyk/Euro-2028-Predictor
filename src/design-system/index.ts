@@ -6,6 +6,9 @@ export type { ButtonProps, ButtonVariant } from './Button'
 export { TextInput } from './TextInput'
 export type { TextInputProps } from './TextInput'
 
+export { EmptyState } from './EmptyState'
+export type { EmptyStateProps } from './EmptyState'
+
 export { ScoreInput } from './ScoreInput'
 export type { ScoreInputProps } from './ScoreInput'
 

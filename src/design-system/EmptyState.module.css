@@ -1,0 +1,42 @@
+/* Centred empty / coming-soon state. Colours from tokens only. */
+.root {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6) var(--sp-4);
+}
+
+/* Muted circle holding a decorative glyph. */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: var(--tx3);
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--tx);
+}
+
+.description {
+  margin: 0;
+  max-width: 30ch;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx2);
+}
+
+.action {
+  margin-top: var(--sp-2);
+}

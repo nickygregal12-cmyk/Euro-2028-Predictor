@@ -3,6 +3,7 @@ import styles from './ComponentsPreview.module.css'
 import {
   Button,
   TextInput,
+  EmptyState,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -12,6 +13,7 @@ import {
   ThirdPlaceTable,
   type JokerButtonState,
 } from '../design-system'
+import { InfoIcon } from '../design-system/icons'
 
 // Sample data — real flag-icons codes so the outline is visible on white-heavy
 // flags (England). This is a dev harness only; no domain logic here.
@@ -152,6 +154,16 @@ function Gallery() {
 
       <Section title="TextInput">
         <TextInputDemo />
+      </Section>
+
+      <Section title="EmptyState">
+        <EmptyState
+          icon={<InfoIcon size={22} />}
+          title="No predictions yet"
+          description="Your group-stage picks will show up here once you start."
+          action={<Button variant="primary">Start predicting</Button>}
+        />
+        <EmptyState title="Leagues — coming soon" description="Private leagues arrive in a later update." />
       </Section>
 
       <Section title="TeamFlag">
