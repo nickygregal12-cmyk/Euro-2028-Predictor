@@ -1,0 +1,82 @@
+/* Standard action button. Colours from tokens only; min 44px tap target. */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-4);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.btn:disabled {
+  cursor: default;
+}
+
+/* Disabled that ISN'T loading reads as unavailable (muted). Loading keeps the
+   variant colour so the spinner stays legible. */
+.btn:disabled:not(.loading) {
+  background: var(--mut);
+  border-color: var(--mut);
+  color: var(--tx3);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Primary: solid accent CTA, --bg text (legible in both themes — see .tsx). */
+.primary {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: var(--bg);
+}
+
+/* Secondary: quieter outline action. */
+.secondary {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--tx);
+}
+
+/* Destructive: solid red for irreversible actions. */
+.destructive {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--bg);
+}
+
+/* Loading: hide the label but keep it in the DOM so width is preserved; the
+   spinner is centred over the top. */
+.loading .label {
+  visibility: hidden;
+}
+
+.spinner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.6s linear infinite;
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import styles from './ComponentsPreview.module.css'
 import {
+  Button,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -76,6 +77,42 @@ function EditableCardDemo() {
 function Gallery() {
   return (
     <div className={styles.gallery}>
+      <Section title="Button">
+        <div className={styles.row}>
+          <Label>primary</Label>
+          <Button variant="primary">Save prediction</Button>
+          <Button variant="primary" loading>
+            Save prediction
+          </Button>
+          <Button variant="primary" disabled>
+            Save prediction
+          </Button>
+        </div>
+        <div className={styles.row}>
+          <Label>secondary</Label>
+          <Button variant="secondary">Cancel</Button>
+          <Button variant="secondary" loading>
+            Cancel
+          </Button>
+          <Button variant="secondary" disabled>
+            Cancel
+          </Button>
+        </div>
+        <div className={styles.row}>
+          <Label>destructive</Label>
+          <Button variant="destructive">Leave league</Button>
+          <Button variant="destructive" loading>
+            Leave league
+          </Button>
+        </div>
+        <div className={styles.row}>
+          <Label>full width</Label>
+          <Button variant="primary" fullWidth>
+            Continue
+          </Button>
+        </div>
+      </Section>
+
       <Section title="TeamFlag">
         <div className={styles.row}>
           <Label>card 30×20</Label>

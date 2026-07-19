@@ -1,5 +1,8 @@
 // Design-system public API. Presentational components only.
 
+export { Button } from './Button'
+export type { ButtonProps, ButtonVariant } from './Button'
+
 export { ScoreInput } from './ScoreInput'
 export type { ScoreInputProps } from './ScoreInput'
 
