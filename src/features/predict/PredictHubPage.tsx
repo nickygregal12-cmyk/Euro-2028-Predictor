@@ -167,8 +167,16 @@ export function PredictHubPage() {
         />
         <HubRow
           title="Review and submit"
-          subtitle={status.reviewUnlocked ? 'Ready to review' : 'Complete the steps above first'}
-          state={status.reviewUnlocked ? 'todo' : 'locked'}
+          subtitle={
+            preds.submittedAt !== null
+              ? 'Entry submitted · still editable until kickoff'
+              : status.reviewUnlocked
+                ? 'Ready to review'
+                : 'Complete the steps above first'
+          }
+          state={
+            preds.submittedAt !== null ? 'done' : status.reviewUnlocked ? 'todo' : 'locked'
+          }
           Base={CheckIcon}
           onOpen={() => navigate('/predict/review')}
         />

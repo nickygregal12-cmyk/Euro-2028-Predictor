@@ -33,6 +33,7 @@ import {
   type TieSide,
 } from '../features/bracket'
 import { PlacedJokerCard } from '../features/predict/PlacedJokerCard'
+import { GoldenBootPicker } from '../features/predict/GoldenBootPicker'
 
 // Sample data — real flag-icons codes so the outline is visible on white-heavy
 // flags (England). This is a dev harness only; no domain logic here.
@@ -725,6 +726,47 @@ function Gallery() {
           homeScore={0}
           awayScore={0}
           committed
+        />
+      </Section>
+
+      <Section title="Golden boot picker (Review · Awards)">
+        <Label>empty — squads not confirmed yet</Label>
+        <GoldenBootPicker
+          points={25}
+          query=""
+          onQueryChange={() => {}}
+          results={[]}
+          selected={null}
+          onSelect={() => {}}
+          onClear={() => {}}
+          emptyNote="Player search available once squads are confirmed — closer to the tournament."
+        />
+
+        <Label>with results (squads confirmed — future data)</Label>
+        <GoldenBootPicker
+          points={25}
+          query="kane"
+          onQueryChange={() => {}}
+          results={[
+            { id: '1', name: 'Harry Kane', teamName: 'England' },
+            { id: '2', name: 'Harvey Barnes', teamName: 'England' },
+          ]}
+          selected={null}
+          onSelect={() => {}}
+          onClear={() => {}}
+          emptyNote="No players match."
+        />
+
+        <Label>selected (removable chip)</Label>
+        <GoldenBootPicker
+          points={25}
+          query=""
+          onQueryChange={() => {}}
+          results={[]}
+          selected={{ id: '1', name: 'Harry Kane', teamName: 'England' }}
+          onSelect={() => {}}
+          onClear={() => {}}
+          emptyNote=""
         />
       </Section>
     </div>
