@@ -18,7 +18,13 @@ import {
   upsertTieResolution,
   type TieResolutionScope,
 } from '../../services/supabase/tieResolutions'
+import {
+  fetchProgression,
+  upsertProgression,
+  deleteProgression,
+} from '../../services/supabase/progression'
 import { tieKey, type TieResolution } from '../../domain/tournament/tieResolutions'
+import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { useTournamentData } from './TournamentDataProvider'
 
@@ -51,6 +57,13 @@ type PredictionsContextValue = {
   tieResolutions: TieResolution[]
   getTieSaveStatus: (tiedTeamIds: string[]) => SaveStatus
   setTieResolution: (scope: TieResolutionScope, orderedTeamIds: string[]) => void
+  // Knockout bracket picks, stored as predicted_progression (per team → furthest
+  // stage). The screen computes the full desired map from the winners map and
+  // hands it here; persistence diffs it against what's stored and syncs.
+  bracketProgression: Record<string, ProgressionStage>
+  bracketSaveStatus: SaveStatus
+  setBracketProgression: (next: Record<string, ProgressionStage>) => void
+  retryBracketSave: () => void
 }
 
 const PredictionsContext = createContext<PredictionsContextValue | null>(null)
@@ -68,6 +81,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({})
   const [tieResolutions, setTieResolutions] = useState<TieResolution[]>([])
   const [tieSaveStatus, setTieSaveStatus] = useState<Record<string, SaveStatus>>({})
+  const [progression, setProgression] = useState<Record<string, ProgressionStage>>({})
+  const [bracketSaveStatus, setBracketSaveStatus] = useState<SaveStatus>('idle')
   const [ready, setReady] = useState(false)
 
   // Latest predictions + entryId for the debounced saver to read without going
@@ -77,6 +92,13 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const entryIdRef = useRef<string | null>(null)
   entryIdRef.current = entryId
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  // Bracket persistence baselines: `persisted` is what's currently in the DB,
+  // `desired` is the latest map the user has picked. The debounced flush syncs
+  // one to the other (upserting changed teams, deleting removed ones).
+  const progressionPersistedRef = useRef<Record<string, ProgressionStage>>({})
+  const progressionDesiredRef = useRef<Record<string, ProgressionStage>>({})
+  const progressionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {
     if (!userId || !tournamentId) {
@@ -108,6 +130,23 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
           })
           .catch(() => {
             if (active) setTieResolutions([])
+          })
+        // Knockout progression loads best-effort too (same fail-soft reasoning:
+        // no picks is the safe default that keeps Review honestly locked).
+        fetchProgression(entry.id)
+          .then((rows) => {
+            if (!active) return
+            const map: Record<string, ProgressionStage> = {}
+            for (const r of rows) map[r.teamId] = r.stage
+            setProgression(map)
+            progressionPersistedRef.current = map
+            progressionDesiredRef.current = map
+          })
+          .catch(() => {
+            if (!active) return
+            setProgression({})
+            progressionPersistedRef.current = {}
+            progressionDesiredRef.current = {}
           })
       })
       .catch(() => {
@@ -179,6 +218,41 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       .catch(() => setTieSaveStatus((s) => ({ ...s, [key]: 'error' })))
   }
 
+  // Reconcile stored progression to the desired map: upsert changed teams,
+  // delete removed ones. On full success the persisted baseline advances.
+  function flushProgression() {
+    const id = entryIdRef.current
+    if (!id) return
+    const desired = progressionDesiredRef.current
+    const persisted = progressionPersistedRef.current
+    const ops: Promise<void>[] = []
+    for (const [teamId, stage] of Object.entries(desired)) {
+      if (persisted[teamId] !== stage) ops.push(upsertProgression(id, teamId, stage))
+    }
+    for (const teamId of Object.keys(persisted)) {
+      if (desired[teamId] === undefined) ops.push(deleteProgression(id, teamId))
+    }
+    if (ops.length === 0) {
+      setBracketSaveStatus('saved')
+      return
+    }
+    setBracketSaveStatus('saving')
+    Promise.all(ops)
+      .then(() => {
+        // Advance the baseline only to the snapshot we just wrote.
+        progressionPersistedRef.current = desired
+        setBracketSaveStatus('saved')
+      })
+      .catch(() => setBracketSaveStatus('error'))
+  }
+
+  function setBracketProgression(next: Record<string, ProgressionStage>) {
+    setProgression(next)
+    progressionDesiredRef.current = next
+    clearTimeout(progressionTimer.current)
+    progressionTimer.current = setTimeout(flushProgression, SAVE_DEBOUNCE_MS)
+  }
+
   const jokerCount = useMemo(
     () => Object.values(predictions).filter((p) => p.joker).length,
     [predictions],
@@ -196,6 +270,10 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     tieResolutions,
     getTieSaveStatus: (tiedTeamIds) => tieSaveStatus[tieKey(tiedTeamIds)] ?? 'idle',
     setTieResolution,
+    bracketProgression: progression,
+    bracketSaveStatus,
+    setBracketProgression,
+    retryBracketSave: flushProgression,
   }
 
   return <PredictionsContext.Provider value={value}>{children}</PredictionsContext.Provider>
