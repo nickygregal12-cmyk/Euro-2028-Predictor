@@ -37,8 +37,8 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 - [x] Unit tests: full run from R16 to champion
 - [x] `calculateScore()` — pure function, takes prediction + result, returns points + explanation
 - [x] Unit tests: every scoring rule (correct result, exact score, wrong result, group position points, knockout progression points)
-- [ ] `calculateLeagueRank()` — sorts entries by total points + tie-break order
-- [ ] Unit tests: tied totals resolved correctly
+- [x] `calculateLeagueRank()` — sorts entries by total points + tie-break order
+- [x] Unit tests: tied totals resolved correctly
 
 **Milestone check:** all domain functions pass tests using only hand-written fake data — no database, no UI involved yet.
 

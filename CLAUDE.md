@@ -54,10 +54,9 @@ tests/
 ## Current status
 
 Tier 0 nearly complete (scaffold, Vitest, seed data done; Supabase/Netlify accounts pending).
-Tier 1 in progress. Done and tested: `calculateGroupTable()`, `resolveGroupTies()`, `rankThirdPlacedTeams()`, `resolveRoundOf16()` (R16 allocation table lives in `roundOf16Allocation.ts`), `advanceBracket()` (post-R16 feed-through lives in `knockoutBracket.ts`), `calculateScore()` (point values live in `scoringConfig.ts`).
+Tier 1 domain logic **complete** — all functions done and tested: `calculateGroupTable()`, `resolveGroupTies()`, `rankThirdPlacedTeams()`, `resolveRoundOf16()` (R16 allocation table in `roundOf16Allocation.ts`), `advanceBracket()` (post-R16 feed-through in `knockoutBracket.ts`), `calculateScore()` and `calculateLeagueRank()` (point values in `scoringConfig.ts`). Full suite green (`npx vitest run`).
 
-**Next up, in order:**
-1. `calculateLeagueRank()` — per section 5 of the scoring rules doc
+**Next up:** Tier 2 (v0.1) — design system basics and the first UI/Supabase wiring. See `euro2028-build-todo.md`; nothing in the domain tier remains.
 
 ## Things NOT to do
 
