@@ -75,6 +75,77 @@ export function AlertIcon(props: IconProps) {
   )
 }
 
+export function HomeIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M4 11.5 12 5l8 6.5" />
+      <path d="M6 10.5V20h12v-9.5" />
+    </svg>
+  )
+}
+
+// Checklist — the predictions glyph.
+export function PredictIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M4 7h9" />
+      <path d="M4 12h9" />
+      <path d="M4 17h5" />
+      <path d="M14.5 15.8l1.8 1.8 3.2-3.6" />
+    </svg>
+  )
+}
+
+export function CalendarIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <rect x="4" y="5" width="16" height="16" rx="2" />
+      <path d="M4 9h16" />
+      <path d="M8 3v4" />
+      <path d="M16 3v4" />
+    </svg>
+  )
+}
+
+export function TrophyIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M8 4h8v4a4 4 0 0 1-8 0z" />
+      <path d="M8 5H6a2 2 0 0 0 0 4h2" />
+      <path d="M16 5h2a2 2 0 0 1 0 4h-2" />
+      <path d="M12 12v4" />
+      <path d="M9 20h6" />
+      <path d="M10 20a2 2 0 0 1 4 0" />
+    </svg>
+  )
+}
+
+// Three dots — the "more" glyph. Filled so they read as dots, not rings.
+export function MoreIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M6 6l12 12" />
+      <path d="M18 6 6 18" />
+    </svg>
+  )
+}
+
 export function EyeIcon(props: IconProps) {
   return (
     <svg {...svgProps(props)}>

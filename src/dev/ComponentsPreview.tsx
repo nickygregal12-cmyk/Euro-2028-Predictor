@@ -4,6 +4,8 @@ import {
   Button,
   TextInput,
   EmptyState,
+  PageShell,
+  type NavKey,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -42,6 +44,41 @@ function Label({ children }: { children: ReactNode }) {
 function ScoreInputDemo() {
   const [v, setV] = useState<number | null>(2)
   return <ScoreInput value={v} ariaLabel="Home score" onChange={setV} />
+}
+
+// Home exists as a stub; every other section is not built yet and routes to a
+// "coming soon" EmptyState (per the design-system brief).
+const COMING_SOON: Record<Exclude<NavKey, 'home'>, string> = {
+  predict: 'Predict',
+  matches: 'Matches',
+  leagues: 'Leagues',
+  more: 'More',
+}
+
+function PageShellDemo() {
+  const [active, setActive] = useState<NavKey>('home')
+  return (
+    <div className={styles.shellFrame}>
+      <PageShell
+        title={active === 'home' ? 'Home' : COMING_SOON[active]}
+        active={active}
+        onNavigate={setActive}
+      >
+        {active === 'home' ? (
+          <EmptyState
+            icon={<InfoIcon size={22} />}
+            title="Welcome to the predictor"
+            description="Pick a tab below. Sections that aren't built yet show a coming-soon state."
+          />
+        ) : (
+          <EmptyState
+            title={`${COMING_SOON[active]} — coming soon`}
+            description="This section arrives in a later tier of the build plan."
+          />
+        )}
+      </PageShell>
+    </div>
+  )
 }
 
 function TextInputDemo() {
@@ -154,6 +191,10 @@ function Gallery() {
 
       <Section title="TextInput">
         <TextInputDemo />
+      </Section>
+
+      <Section title="PageShell + BottomNav">
+        <PageShellDemo />
       </Section>
 
       <Section title="EmptyState">

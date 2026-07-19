@@ -99,3 +99,12 @@
   font-size: 12px;
   color: var(--amb);
 }
+
+/* Bounded frame so PageShell's internal scroll + fixed bottom nav are visible
+   in the gallery (in the real app the shell fills 100dvh). */
+.shellFrame {
+  height: 460px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}

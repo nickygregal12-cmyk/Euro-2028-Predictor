@@ -9,6 +9,12 @@ export type { TextInputProps } from './TextInput'
 export { EmptyState } from './EmptyState'
 export type { EmptyStateProps } from './EmptyState'
 
+export { PageShell } from './PageShell'
+export type { PageShellProps } from './PageShell'
+
+export { BottomNav } from './BottomNav'
+export type { BottomNavProps, NavKey } from './BottomNav'
+
 export { ScoreInput } from './ScoreInput'
 export type { ScoreInputProps } from './ScoreInput'
 
