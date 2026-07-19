@@ -16,9 +16,9 @@ export function MorePage() {
   async function handleSignOut() {
     setSigningOut(true)
     try {
-      // In development this signs out and the auto-login shim immediately signs
-      // back in as the dev tester (docs/auth-plan.md §1), so the UI returns to a
-      // signed-in state. In production it is a real sign-out.
+      // A real sign-out: clears the session and the route gate returns to the
+      // log-in screen. (In a dev build with auto-login on, a full page reload
+      // will sign back in as the dev tester — see docs/auth-plan.md §1.)
       await signOut()
     } finally {
       setSigningOut(false)
@@ -58,9 +58,6 @@ export function MorePage() {
         <Button variant="destructive" fullWidth loading={signingOut} onClick={handleSignOut}>
           Sign out
         </Button>
-        <span className={m.note}>
-          In development, signing out immediately signs you back in as the dev tester.
-        </span>
       </div>
     </div>
   )
