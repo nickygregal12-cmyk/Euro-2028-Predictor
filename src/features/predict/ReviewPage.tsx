@@ -16,6 +16,7 @@ import { computeHubStatus } from './hubStatus'
 import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { ChampionCard } from '../bracket'
 import { sumGroupGoals } from '../../domain/tournament/groupGoals'
+import { isEntryLocked } from '../../domain/tournament/entryLock'
 import {
   GOLDEN_BOOT_POINTS,
   TOTAL_GOALS_BANDS,
@@ -167,6 +168,7 @@ export function ReviewPage() {
   ]
   const blockers = rows.filter((row) => row.blocker).length
   const submitted = preds.submittedAt !== null
+  const locked = isEntryLocked(data.data.tournament.lockAt)
 
   const finalTie = bracket.rounds.find((round) => round.key === 'FINAL')?.ties[0]
 
@@ -198,9 +200,11 @@ export function ReviewPage() {
       <div className={r.blocked}>
         <LockIcon size={13} className={r.iconMuted} />
         <span className={s.sub}>
-          {days !== null && days > 0
-            ? `Locks at kickoff — in ${days} day${days === 1 ? '' : 's'} (${deadlineText})`
-            : `Locks at kickoff (${deadlineText})`}
+          {locked
+            ? 'Predictions are locked — the tournament has started'
+            : days !== null && days > 0
+              ? `Locks at kickoff — in ${days} day${days === 1 ? '' : 's'} (${deadlineText})`
+              : `Locks at kickoff (${deadlineText})`}
         </span>
       </div>
 
@@ -294,13 +298,18 @@ export function ReviewPage() {
             <CheckIcon size={18} className={r.bannerIcon} /> Entry submitted
           </span>
           <p className={r.bannerSub}>
-            You&apos;re in. Editable until {deadlineText} — change anything up to kickoff and it saves
-            automatically; your entry stays submitted.
+            {locked
+              ? "You're in — predictions are now locked. Good luck!"
+              : `You're in. Editable until ${deadlineText} — change anything up to kickoff and it saves automatically; your entry stays submitted.`}
           </p>
           <Button variant="secondary" onClick={() => {}} disabled>
             Share (coming soon)
           </Button>
         </div>
+      ) : locked ? (
+        <Alert variant="info" title="Predictions are locked">
+          The tournament has started, so entries can no longer be changed or submitted.
+        </Alert>
       ) : blockers > 0 ? (
         <div>
           <Button variant="primary" fullWidth disabled>

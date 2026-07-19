@@ -13,7 +13,8 @@ import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildGroupTableRows } from './groupTable'
 import { venueCountryCode } from './venues'
-import { formatShortDate } from '../../app/time'
+import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { formatShortDate, countdownToDate } from '../../app/time'
 import s from '../shared.module.css'
 import g from './group.module.css'
 
@@ -69,6 +70,7 @@ export function GroupPredictorPage() {
     .sort((a, b) => (a.matchday ?? 0) - (b.matchday ?? 0) || a.matchRef.localeCompare(b.matchRef))
 
   const rows = buildGroupTableRows(groupTeams, groupMatches, preds.getPrediction)
+  const locked = isEntryLocked(data.data.tournament.lockAt)
 
   const index = LETTERS.indexOf(letter)
   const prev = index > 0 ? LETTERS[index - 1] : null
@@ -111,7 +113,7 @@ export function GroupPredictorPage() {
           return (
             <MatchCard
               key={m.id}
-              state="editable"
+              state={locked ? 'locked' : 'editable'}
               group={letter}
               matchday={m.matchday ?? 1}
               date={formatShortDate(m.matchDate)}
@@ -125,6 +127,10 @@ export function GroupPredictorPage() {
               onAwayScoreChange={(v) => preds.setScore(m.id, 'away', v)}
               saveStatus={preds.getSaveStatus(m.id)}
               onRetrySave={() => preds.retrySave(m.id)}
+              countdown={countdownToDate(m.matchDate)}
+              // Jokers stay actionable on locked cards until each match's own
+              // kickoff (design-system §5 / scoring §1) — the entry lock freezes
+              // scores, not joker moves.
               jokerState={pred.joker ? 'on' : 'available'}
               onToggleJoker={() => preds.toggleJoker(m.id)}
             />

@@ -14,6 +14,7 @@ import {
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { computeHubStatus } from './hubStatus'
+import { isEntryLocked } from '../../domain/tournament/entryLock'
 import { daysUntil, formatLongDate } from '../../app/time'
 import s from '../shared.module.css'
 import hub from './hub.module.css'
@@ -101,6 +102,7 @@ export function PredictHubPage() {
   )
   const startsOn = data.data.tournament.startsOn
   const days = startsOn ? daysUntil(startsOn) : null
+  const locked = isEntryLocked(data.data.tournament.lockAt)
 
   const thirdSub =
     status.thirdPlace.state === 'blocked'
@@ -130,9 +132,11 @@ export function PredictHubPage() {
         />
         <div className={hub.lockLine}>
           <LockIcon size={13} />
-          {days !== null && startsOn
-            ? `Locks at kickoff${days > 0 ? ` — in ${days} day${days === 1 ? '' : 's'}` : ''} (${formatLongDate(startsOn)})`
-            : 'Locks at tournament kickoff'}
+          {locked
+            ? 'Predictions are locked — the tournament has started'
+            : days !== null && startsOn
+              ? `Locks at kickoff${days > 0 ? ` — in ${days} day${days === 1 ? '' : 's'}` : ''} (${formatLongDate(startsOn)})`
+              : 'Locks at tournament kickoff'}
         </div>
       </div>
 

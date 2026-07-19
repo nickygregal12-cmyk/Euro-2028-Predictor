@@ -9,6 +9,9 @@ export type Tournament = {
   year: number
   startsOn: string | null // ISO date
   endsOn: string | null
+  // The entry-lock instant (opening kickoff). Server-authoritative; the UI only
+  // reflects it. Null until set. Dev overrides this row to exercise locked UI.
+  lockAt: string | null // ISO timestamp
 }
 
 export type Group = {
@@ -82,6 +85,17 @@ export async function fetchTournamentData(): Promise<TournamentData> {
   if (groupTeamsRes.error) throw groupTeamsRes.error
   if (matchesRes.error) throw matchesRes.error
 
+  // lock_at is fetched best-effort in its own query: it's a follow-up-migration
+  // column, so a DB without that migration applied still loads the app (the
+  // entry simply reads as never-locked until the migration lands).
+  let lockAt: string | null = null
+  try {
+    const lockRes = await supabase.from('tournaments').select('lock_at').eq('id', t.id).single()
+    if (!lockRes.error) lockAt = (lockRes.data as { lock_at: string | null }).lock_at ?? null
+  } catch {
+    lockAt = null
+  }
+
   const teams: Team[] = (groupTeamsRes.data ?? []).flatMap((gt) => {
     // The embedded `team` relation comes back as an object (or array on some
     // PostgREST versions); normalise to a single record.
@@ -97,6 +111,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       year: t.year,
       startsOn: t.starts_on,
       endsOn: t.ends_on,
+      lockAt,
     },
     groups: (groupsRes.data ?? []).map((g) => ({ id: g.id, letter: g.letter })),
     teams,
