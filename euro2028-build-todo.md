@@ -27,8 +27,8 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 
 - [x] `calculateGroupTable()` — played/won/drawn/lost/GF/GA/GD/points from a list of match scores
 - [x] Unit tests: home win, away win, draw, exact score, goal difference sorting
-- [ ] `resolveGroupTies()` — deterministic tie-break order
-- [ ] Unit tests: 2-way tie, 3-way tie, fully tied group
+- [x] `resolveGroupTies()` — deterministic tie-break order
+- [x] Unit tests: 2-way tie, 3-way tie, fully tied group
 - [ ] `rankThirdPlacedTeams()` — ranks all 6 third-place teams, picks top 4
 - [ ] Unit tests: every valid third-place qualifying combination (this is the classic bug source — don't skip)
 - [ ] `resolveRoundOf16()` — maps group winners/runners-up/best-thirds into fixtures
