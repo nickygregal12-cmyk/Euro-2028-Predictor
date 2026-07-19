@@ -25,6 +25,8 @@ import {
 } from '../../services/supabase/progression'
 import { tieKey, type TieResolution } from '../../domain/tournament/tieResolutions'
 import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
+import { canToggleJoker } from '../../domain/tournament/jokerPolicy'
+import { JOKER_ALLOWANCE } from '../../domain/tournament/scoringConfig'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { useTournamentData } from './TournamentDataProvider'
 
@@ -33,7 +35,8 @@ import { useTournamentData } from './TournamentDataProvider'
 // debounced per match; the server stays the authority on locks, so save
 // failures surface on the card rather than being swallowed.
 
-export const MAX_JOKERS = 5
+// Re-exported from the rule config so screens share one source of truth.
+export const MAX_JOKERS = JOKER_ALLOWANCE
 const SAVE_DEBOUNCE_MS = 600
 
 export type Prediction = {
@@ -192,10 +195,17 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     setPredictions((prev) => {
       const cur = prev[matchId] ?? EMPTY
       const turningOn = !cur.joker
-      const count = Object.values(prev).filter((p) => p.joker).length
-      // Client-side guard only; the max-5 rule and kickoff lock are enforced
-      // server-side (docs/scoring-rules.md / migration note).
-      if (turningOn && count >= MAX_JOKERS) return prev
+      const otherJokerCount = Object.entries(prev).filter(
+        ([id, p]) => p.joker && id !== matchId,
+      ).length
+      const kickoffAt =
+        (data.status === 'ready'
+          ? data.data.matches.find((m) => m.id === matchId)?.kickoffAt
+          : null) ?? null
+      // Client-side reflection of the server rules (max-5 + kickoff-commitment).
+      // The database is the authority (jokerPolicy.ts / joker-enforcement
+      // migration); this just avoids an obviously-doomed round trip.
+      if (!canToggleJoker({ turningOn, otherJokerCount, kickoffAt }).allowed) return prev
       const next = { ...cur, joker: turningOn }
       const updated = { ...prev, [matchId]: next }
       predictionsRef.current = updated
