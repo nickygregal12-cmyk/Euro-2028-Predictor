@@ -1,0 +1,95 @@
+/* Labelled text field. Colours from tokens only. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: 100%;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+/* The control wraps input + optional toggle so the border/focus ring spans
+   both and the eye button sits inside the field. */
+.control {
+  display: flex;
+  align-items: center;
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+}
+
+.control:focus-within {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-color: var(--acc);
+}
+
+.controlError {
+  border-color: var(--red);
+}
+
+.controlError:focus-within {
+  outline-color: var(--red);
+  border-color: var(--red);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-3);
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--tx);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-input);
+}
+
+.input::placeholder {
+  color: var(--tx3);
+}
+
+/* The border/focus lives on .control, so the raw input never shows its own. */
+.input:focus {
+  outline: none;
+}
+
+/* Show/hide toggle — a real button, 44px tap target. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  flex: none;
+  color: var(--tx3);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+  border-radius: var(--radius-input);
+}
+
+.error {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--red);
+}
+
+.hint {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx3);
+}

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import styles from './ComponentsPreview.module.css'
 import {
   Button,
+  TextInput,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -39,6 +40,42 @@ function Label({ children }: { children: ReactNode }) {
 function ScoreInputDemo() {
   const [v, setV] = useState<number | null>(2)
   return <ScoreInput value={v} ariaLabel="Home score" onChange={setV} />
+}
+
+function TextInputDemo() {
+  const [email, setEmail] = useState('')
+  const [pw, setPw] = useState('')
+  return (
+    <div className={styles.stack}>
+      <TextInput
+        label="Email"
+        type="email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <TextInput
+        label="Display name"
+        hint="Shown on league tables."
+        value=""
+        onChange={() => {}}
+      />
+      <TextInput
+        label="Password"
+        type="password"
+        placeholder="••••••••"
+        value={pw}
+        onChange={(e) => setPw(e.target.value)}
+      />
+      <TextInput
+        label="Email"
+        type="email"
+        value="not-an-email"
+        onChange={() => {}}
+        error="Enter a valid email address."
+      />
+    </div>
+  )
 }
 
 function JokerToggleDemo() {
@@ -111,6 +148,10 @@ function Gallery() {
             Continue
           </Button>
         </div>
+      </Section>
+
+      <Section title="TextInput">
+        <TextInputDemo />
       </Section>
 
       <Section title="TeamFlag">

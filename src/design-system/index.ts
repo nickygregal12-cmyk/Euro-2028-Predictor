@@ -3,6 +3,9 @@
 export { Button } from './Button'
 export type { ButtonProps, ButtonVariant } from './Button'
 
+export { TextInput } from './TextInput'
+export type { TextInputProps } from './TextInput'
+
 export { ScoreInput } from './ScoreInput'
 export type { ScoreInputProps } from './ScoreInput'
 
