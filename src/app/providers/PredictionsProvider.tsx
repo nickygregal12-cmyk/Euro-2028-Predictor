@@ -13,6 +13,12 @@ import {
   getOrCreateEntry,
   upsertMatchPrediction,
 } from '../../services/supabase/predictions'
+import {
+  fetchTieResolutions,
+  upsertTieResolution,
+  type TieResolutionScope,
+} from '../../services/supabase/tieResolutions'
+import { tieKey, type TieResolution } from '../../domain/tournament/tieResolutions'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { useTournamentData } from './TournamentDataProvider'
 
@@ -39,6 +45,12 @@ type PredictionsContextValue = {
   setScore: (matchId: string, side: 'home' | 'away', value: number | null) => void
   toggleJoker: (matchId: string) => void
   retrySave: (matchId: string) => void
+  // Manual tie-resolutions (scoring-rules §6 step 7): the user's chosen order
+  // for team blocks the automatic criteria couldn't separate. Consumed by the
+  // domain pipeline; keyed for save status by the tied set (tieKey).
+  tieResolutions: TieResolution[]
+  getTieSaveStatus: (tiedTeamIds: string[]) => SaveStatus
+  setTieResolution: (scope: TieResolutionScope, orderedTeamIds: string[]) => void
 }
 
 const PredictionsContext = createContext<PredictionsContextValue | null>(null)
@@ -54,6 +66,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const [submittedAt, setSubmittedAt] = useState<string | null>(null)
   const [predictions, setPredictions] = useState<Record<string, Prediction>>({})
   const [saveStatus, setSaveStatus] = useState<Record<string, SaveStatus>>({})
+  const [tieResolutions, setTieResolutions] = useState<TieResolution[]>([])
+  const [tieSaveStatus, setTieSaveStatus] = useState<Record<string, SaveStatus>>({})
   const [ready, setReady] = useState(false)
 
   // Latest predictions + entryId for the debounced saver to read without going
@@ -76,13 +90,17 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
         if (!active) return
         setEntryId(entry.id)
         setSubmittedAt(entry.submittedAt)
-        const rows = await fetchMatchPredictions(entry.id)
+        const [rows, ties] = await Promise.all([
+          fetchMatchPredictions(entry.id),
+          fetchTieResolutions(entry.id),
+        ])
         if (!active) return
         const map: Record<string, Prediction> = {}
         for (const r of rows) {
           map[r.matchId] = { homeScore: r.homeScore, awayScore: r.awayScore, joker: r.joker }
         }
         setPredictions(map)
+        setTieResolutions(ties.map((t) => ({ teamIds: t.teamIds, order: t.order })))
         setReady(true)
       })
       .catch(() => {
@@ -140,6 +158,20 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  function setTieResolution(scope: TieResolutionScope, orderedTeamIds: string[]) {
+    const id = entryIdRef.current
+    if (!id) return
+    const key = tieKey(orderedTeamIds)
+    setTieResolutions((prev) => {
+      const others = prev.filter((r) => tieKey(r.teamIds) !== key)
+      return [...others, { teamIds: orderedTeamIds, order: orderedTeamIds }]
+    })
+    setTieSaveStatus((s) => ({ ...s, [key]: 'saving' }))
+    upsertTieResolution(id, scope, orderedTeamIds)
+      .then(() => setTieSaveStatus((s) => ({ ...s, [key]: 'saved' })))
+      .catch(() => setTieSaveStatus((s) => ({ ...s, [key]: 'error' })))
+  }
+
   const jokerCount = useMemo(
     () => Object.values(predictions).filter((p) => p.joker).length,
     [predictions],
@@ -154,6 +186,9 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     setScore,
     toggleJoker,
     retrySave: (matchId) => save(matchId),
+    tieResolutions,
+    getTieSaveStatus: (tiedTeamIds) => tieSaveStatus[tieKey(tiedTeamIds)] ?? 'idle',
+    setTieResolution,
   }
 
   return <PredictionsContext.Provider value={value}>{children}</PredictionsContext.Provider>
