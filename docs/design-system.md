@@ -40,6 +40,9 @@ Defined in `src/styles/tokens.css` as CSS custom properties on `:root` (dark def
 | `--mut` | Muted bars, disabled | `#2A3757` | `#D8D4C8` |
 | `--chip` | Chip/static-input background | `#1A2B52` | `#EFEDE4` |
 | `--input-bg` | Score input background | `#12203F` | `#FFFFFF` |
+| `--scrim` | Overlay behind modals | `rgba(0,0,0,.6)` | `rgba(20,18,12,.45)` |
+
+**Semantic tints:** components that need a soft tinted surface (Alert, Toast, StatusBadge) mix the semantic colour into the surface with `color-mix()` (e.g. `color-mix(in srgb, var(--tone) 12%, var(--card))`) rather than introducing new hex tokens. Raw colour values only ever live in `tokens.css`; component CSS uses tokens and `color-mix` on tokens.
 
 **Gold rule:** gold text never sits directly on card backgrounds for interactive elements. Gold ships as solid-fill-with-`--gold-contrast`-text (calls to action) or tint-with-border pill (status). This is a hard rule; it exists because outline-only gold failed visibility review.
 
@@ -62,6 +65,22 @@ Loaded via Google Fonts (self-host later if needed for performance).
 - Tap targets minimum 44x44px (score inputs are exactly 44x44)
 
 ## 5. Components
+
+All components live in `src/design-system/` as presentational CSS-Module components (tokens only, both themes, every state). The live inventory — every component in every state, dark and light side by side — is the dev-only gallery at **`/dev/components`** (`src/dev/ComponentsPreview.tsx`). Public API is the `src/design-system/index.ts` barrel.
+
+### Core primitives (generic UI)
+
+These are app-agnostic building blocks used across every feature:
+
+- **Button** — `primary` (accent CTA), `secondary` (outline), `destructive` (red); `loading` (spinner, holds width, `aria-busy`), `disabled`, `fullWidth`. Solid fills take `--bg` as text colour so contrast holds in both themes. Real `<button>`, min 44px.
+- **TextInput** — always labelled; `error` state (red border + `aria-invalid` + `role=alert` message), optional `hint`, and `password` variant with a show/hide toggle.
+- **PageShell + BottomNav** — the app frame: header + scrolling content + fixed five-tab bottom nav (Home, Predict, Matches, Leagues, More). Active tab is accent + `aria-current` (never colour alone); 44px targets. Sections not yet built route to a coming-soon `EmptyState`. Presentational: parent owns the active key.
+- **Toast** (floating, transient) and **Alert** (inline, in-flow) — semantic variants `info`/`success`/`warning`/`error` (info stays neutral — cyan is reserved for live data). Both dismissible; errors/warnings announce assertively.
+- **Skeleton** — content-area loading placeholder (shimmer; static under `prefers-reduced-motion`); optional multi-line paragraph mode.
+- **EmptyState** — icon + title + description + optional action; also used for coming-soon sections.
+- **Modal** + **ConfirmModal** — accessible dialog (`role=dialog`/`aria-modal`, Escape + backdrop close, focus moved in/trapped/restored, scroll lock, `--scrim` overlay). Rendered inline (no portal) so it inherits the surrounding theme scope. ConfirmModal adds the confirm/cancel action row (destructive when irreversible).
+- **ProgressBar** — determinate accent track, `role=progressbar` with aria values.
+- **StatusBadge** — `locked` (neutral + lock icon), `live` (cyan pulsing dot, reduced-motion safe), `submitted` (accent + tick). Icon + text always back up the colour.
 
 ### Score input
 - 44x44px, centred, 19px Space Grotesk 500

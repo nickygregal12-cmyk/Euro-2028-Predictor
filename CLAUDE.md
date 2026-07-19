@@ -58,7 +58,9 @@ Tier 1 domain logic **complete** — all functions done and tested: `calculateGr
 
 Tier 2 (v0.1) started: Supabase client wired (fail-closed on missing env). The initial migration (`supabase/migrations/20260719120000_init_v0_1.sql`) has been **applied** to the dev DB. Migrations are append-only — do not edit an applied migration; add a new timestamped file (e.g. the joker column lives in `20260719130000_add_match_prediction_joker.sql`). Still to run via the dashboard SQL editor: the joker follow-up migration, and `supabase/seed.sql` (the fixture skeleton) if not already seeded. Schema covers only the v0.1 tables (profiles, tournament reference data, entries, predictions) with RLS on every table; leagues/score_events/admin tables are deliberately deferred to later tiers.
 
-**Next up:** Tier 2 UI — design-system basics, then auth. See `docs/build-todo.md`.
+Tier 2 UI — **design-system basics done**. Presentational primitives live in `src/design-system/` (CSS Modules, tokens only, dark + light, all states; public API via `index.ts`), previewable at `/dev/components` (`src/dev/ComponentsPreview.tsx`, path-routed in `App.tsx`). Shipped: tournament components (`TeamFlag`, `ScoreInput`, `JokerButton`, `JokerCounter`, `MatchCard`, `GroupTable`, `ThirdPlaceTable`) and core UI (`Button`, `TextInput`, `PageShell`+`BottomNav`, `Toast`, `Alert`, `Skeleton`, `EmptyState`, `Modal`+`ConfirmModal`, `ProgressBar`, `StatusBadge`). Semantic tints use `color-mix()` on tokens; a `--scrim` token backs modals. See `docs/design-system.md` §5.
+
+**Next up:** Tier 2 UI — auth (sign up / log in). See `docs/build-todo.md`.
 
 ## Things NOT to do
 

@@ -46,7 +46,9 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 
 ## TIER 2 — v0.1: "I can actually use this for the tournament"
 
-- [ ] Design system basics: button, score input, match card, table, page layout (5–6 components, nothing fancy)
+- [x] Design system basics: button, score input, match card, table, page layout — shipped a full set of presentational primitives in `src/design-system/` (CSS Modules, tokens only, dark + light, all states), previewable at `/dev/components`:
+  - Tournament: `TeamFlag`, `ScoreInput`, `JokerButton`, `JokerCounter`, `MatchCard` (editable/locked/scored), `GroupTable`, `ThirdPlaceTable`
+  - Core UI: `Button` (primary/secondary/destructive + loading), `TextInput` (label/error/password), `PageShell` + `BottomNav` (5 tabs, coming-soon routing), `Toast`, `Alert`, `Skeleton`, `EmptyState`, `Modal` + `ConfirmModal`, `ProgressBar`, `StatusBadge` (locked/live/submitted)
 - [ ] Auth: sign up / log in (Supabase Auth, magic link or email+password)
 - [ ] Group prediction screens (one per group, score inputs, autosave)
 - [ ] Wire autosave to Supabase (predictions table)
