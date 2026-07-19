@@ -20,7 +20,9 @@ import {
   MatchCard,
   GroupTable,
   ThirdPlaceTable,
+  TieResolver,
   type JokerButtonState,
+  type TieResolverTeam,
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
 
@@ -205,6 +207,24 @@ function EditableCardDemo() {
       saveStatus="saved"
       jokerState={joker}
       onToggleJoker={() => setJoker((j) => (j === 'available' ? 'on' : 'available'))}
+    />
+  )
+}
+
+function TieResolverDemo() {
+  const teams: TieResolverTeam[] = [
+    { id: 'ger', name: 'Germany', countryCode: 'de' },
+    { id: 'ita', name: 'Italy', countryCode: 'it' },
+  ]
+  const [resolved, setResolved] = useState(false)
+  return (
+    <TieResolver
+      title="Group A"
+      reason="These teams can't be split by predicted results — in the real tournament this would come down to things like disciplinary records that can't be predicted. Choose the order you expect."
+      teams={teams}
+      resolved={resolved}
+      saveStatus={resolved ? 'saved' : 'idle'}
+      onResolve={() => setResolved(true)}
     />
   )
 }
@@ -540,6 +560,36 @@ function Gallery() {
               Germany and Italy are tied on every criterion — resolve their order to continue.
             </span>
           }
+        />
+      </Section>
+
+      <Section title="TieResolver">
+        <Label>pending (interactive)</Label>
+        <TieResolverDemo />
+        <Label>resolved</Label>
+        <TieResolver
+          title="Best thirds · positions 4 & 5"
+          reason="These third-placed teams are level on every criterion we can predict. Choose which you expect to advance."
+          teams={[
+            { id: 'ned', name: 'Netherlands', countryCode: 'nl' },
+            { id: 'cro', name: 'Croatia', countryCode: 'hr' },
+          ]}
+          resolved
+          saveStatus="saved"
+          onResolve={() => {}}
+        />
+        <Label>save failed</Label>
+        <TieResolver
+          title="Group D"
+          reason="These teams can't be split by predicted results. Choose the order you expect."
+          teams={[
+            { id: 'a', name: 'Team 1', countryCode: '' },
+            { id: 'b', name: 'Team 2', countryCode: '' },
+            { id: 'c', name: 'Team 3', countryCode: '' },
+          ]}
+          resolved={false}
+          saveStatus="error"
+          onResolve={() => {}}
         />
       </Section>
     </div>

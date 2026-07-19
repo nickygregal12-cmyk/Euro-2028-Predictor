@@ -60,5 +60,8 @@ export type { GroupTableProps, GroupTableRow } from './GroupTable'
 export { ThirdPlaceTable } from './ThirdPlaceTable'
 export type { ThirdPlaceTableProps, ThirdPlaceRow } from './ThirdPlaceTable'
 
+export { TieResolver } from './TieResolver'
+export type { TieResolverProps, TieResolverTeam } from './TieResolver'
+
 export type { MatchTeam } from './types'
 export { FEATURES } from './featureFlags'
