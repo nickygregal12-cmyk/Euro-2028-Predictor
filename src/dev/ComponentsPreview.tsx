@@ -8,6 +8,7 @@ import {
   type NavKey,
   Alert,
   Toast,
+  Skeleton,
   ScoreInput,
   TeamFlag,
   JokerButton,
@@ -229,6 +230,15 @@ function Gallery() {
         <ToastDemo />
         <Toast variant="error" message="Save failed — retry." onDismiss={() => {}} />
         <Toast variant="info" message="You're back online." />
+      </Section>
+
+      <Section title="Skeleton">
+        <div className={styles.row}>
+          <Skeleton width={30} height={20} radius="input" />
+          <Skeleton width={120} height={16} />
+          <Skeleton width={44} height={44} radius="circle" />
+        </div>
+        <Skeleton lines={3} />
       </Section>
 
       <Section title="EmptyState">

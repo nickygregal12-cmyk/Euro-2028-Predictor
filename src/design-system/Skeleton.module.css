@@ -1,0 +1,37 @@
+/* Loading placeholder. Base fill + a shimmer sweep, both from tokens (no raw
+   hex). Under prefers-reduced-motion the sweep stops and the static base fill
+   shows — still a legible placeholder. */
+.bar {
+  background-color: var(--mut);
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--tx3) 22%, var(--mut)),
+    transparent
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-shimmer 1.3s ease-in-out infinite;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+@keyframes skeleton-shimmer {
+  from {
+    background-position: 180% 0;
+  }
+  to {
+    background-position: -80% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+    background-image: none;
+  }
+}
