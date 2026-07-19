@@ -15,7 +15,7 @@ A mobile-first Euro 2028 football predictor web app. Users predict every group m
 
 - React + TypeScript + Vite
 - Custom design system with CSS modules (no Tailwind)
-- Supabase (Postgres, Auth, RLS) — not wired up yet
+- Supabase (Postgres, Auth, RLS) — dev project live; client in `src/services/supabase/client.ts` (only this folder may import it); v0.1 schema/RLS in `supabase/migrations/`, seed in `supabase/seed.sql`
 - Vitest (+ React Testing Library) for tests; Playwright later
 - Netlify hosting — not wired up yet
 
@@ -53,10 +53,12 @@ tests/
 
 ## Current status
 
-Tier 0 nearly complete (scaffold, Vitest, seed data done; Supabase/Netlify accounts pending).
+Tier 0 done bar Netlify (scaffold, Vitest, seed data, GitHub repo, Supabase dev project all set up).
 Tier 1 domain logic **complete** — all functions done and tested: `calculateGroupTable()`, `resolveGroupTies()`, `rankThirdPlacedTeams()`, `resolveRoundOf16()` (R16 allocation table in `roundOf16Allocation.ts`), `advanceBracket()` (post-R16 feed-through in `knockoutBracket.ts`), `calculateScore()` and `calculateLeagueRank()` (point values in `scoringConfig.ts`). Full suite green (`npx vitest run`).
 
-**Next up:** Tier 2 (v0.1) — design system basics and the first UI/Supabase wiring. See `euro2028-build-todo.md`; nothing in the domain tier remains.
+Tier 2 (v0.1) started: Supabase client wired (fail-closed on missing env), and the initial migration (`supabase/migrations/20260719120000_init_v0_1.sql`) + seed (`supabase/seed.sql`) are **written but not yet applied** — they must be run once via the Supabase dashboard SQL editor (migration first, then seed). Migration covers only the v0.1 tables (profiles, tournament reference data, entries, predictions) with RLS on every table; leagues/score_events/admin tables are deliberately deferred to later tiers.
+
+**Next up:** Tier 2 UI — design-system basics, then auth. See `euro2028-build-todo.md`.
 
 ## Things NOT to do
 

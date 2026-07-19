@@ -11,8 +11,8 @@ No dates, no deadlines. Just tick things off in order. Each tier is fully usable
 - [x] Confirm final scoring rules (write them down in plain English, one page, no code) — see `euro2028-scoring-rules.md`
 - [x] Confirm tie-break rules for leagues
 - [x] Confirm tie-break rules for group tables
-- [ ] Set up GitHub repo
-- [ ] Set up Supabase project (dev)
+- [x] Set up GitHub repo
+- [x] Set up Supabase project (dev) — client wired in `src/services/supabase/client.ts`; v0.1 schema + RLS in `supabase/migrations/`, fixture skeleton in `supabase/seed.sql` (run via dashboard SQL editor)
 - [ ] Set up Netlify site linked to repo
 - [x] Scaffold Vite + React + TypeScript project
 - [x] Set up folder structure (`app/`, `features/`, `domain/`, `services/`, `styles/`, `tests/`)
