@@ -90,18 +90,25 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
         if (!active) return
         setEntryId(entry.id)
         setSubmittedAt(entry.submittedAt)
-        const [rows, ties] = await Promise.all([
-          fetchMatchPredictions(entry.id),
-          fetchTieResolutions(entry.id),
-        ])
+        const rows = await fetchMatchPredictions(entry.id)
         if (!active) return
         const map: Record<string, Prediction> = {}
         for (const r of rows) {
           map[r.matchId] = { homeScore: r.homeScore, awayScore: r.awayScore, joker: r.joker }
         }
         setPredictions(map)
-        setTieResolutions(ties.map((t) => ({ teamIds: t.teamIds, order: t.order })))
         setReady(true)
+        // Tie-resolutions load best-effort: they default to empty, so a failure
+        // (e.g. the follow-up migration not yet applied to this DB) leaves ties
+        // showing as unresolved rather than blocking the whole entry from
+        // loading. Unresolved is the safe direction — it keeps Review locked.
+        fetchTieResolutions(entry.id)
+          .then((ties) => {
+            if (active) setTieResolutions(ties.map((t) => ({ teamIds: t.teamIds, order: t.order })))
+          })
+          .catch(() => {
+            if (active) setTieResolutions([])
+          })
       })
       .catch(() => {
         if (active) setReady(false)

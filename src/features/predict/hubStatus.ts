@@ -1,9 +1,12 @@
 // Derives the Predict-hub stage statuses from the tournament data + the user's
-// predictions, via the domain layer. Presentational components render these;
-// they don't compute them (CLAUDE.md architecture rule 2).
+// predictions + their manual tie-resolutions, via the domain layer. The
+// third-place stage (and its tie count) comes from the shared third-place
+// pipeline, so the hub, Home and Review all agree on how many ties are pending.
+// Presentational components render these; they don't compute them (CLAUDE.md
+// architecture rule 2).
 
-import { resolveGroupTies } from '../../domain/tournament/resolveGroupTies'
-import type { MatchScore } from '../../domain/tournament/calculateGroupTable'
+import { buildThirdPlacePipeline } from './thirdPlacePipeline'
+import type { TieResolution } from '../../domain/tournament/tieResolutions'
 import type { TournamentData } from '../../services/supabase/tournamentData'
 import type { Prediction } from '../../app/providers/PredictionsProvider'
 
@@ -24,6 +27,7 @@ export function computeHubStatus(
   data: TournamentData,
   getPrediction: (matchId: string) => Prediction,
   jokerCount: number,
+  resolutions: TieResolution[] = [],
 ): HubStatus {
   const groupMatches = data.matches.filter((m) => m.round === 'group')
   const total = groupMatches.length
@@ -34,29 +38,16 @@ export function computeHubStatus(
   }
   const groupsComplete = total > 0 && predicted === total
 
-  let tieCount = 0
-  let state: HubStatus['thirdPlace']['state'] = 'blocked'
-  if (groupsComplete) {
-    for (const g of data.groups) {
-      const teamIds = data.teams
-        .filter((t) => t.groupId === g.id)
-        .sort((a, b) => a.slot - b.slot)
-        .map((t) => t.id)
-      const scores: MatchScore[] = groupMatches
-        .filter((m) => m.groupId === g.id && m.homeTeamId && m.awayTeamId)
-        .map((m) => {
-          const p = getPrediction(m.id)
-          return {
-            homeTeamId: m.homeTeamId as string,
-            awayTeamId: m.awayTeamId as string,
-            homeScore: p.homeScore as number,
-            awayScore: p.awayScore as number,
-          }
-        })
-      tieCount += resolveGroupTies(teamIds, scores).unresolvedGroups.length
-    }
-    state = tieCount > 0 ? 'ties' : 'settled'
-  }
+  // Ties come from the whole third-place pipeline (in-group blocks + the
+  // cross-group third ranking), so the hub reflects unresolved ties anywhere in
+  // the pipeline — not just the third ranking.
+  const pipeline = buildThirdPlacePipeline(data, getPrediction, resolutions)
+  const tieCount = pipeline.pendingCount
+  const state: HubStatus['thirdPlace']['state'] = !groupsComplete
+    ? 'blocked'
+    : tieCount > 0
+      ? 'ties'
+      : 'settled'
 
   // Bracket winner-picks live in predicted_progression, which the v0.1 skeleton
   // doesn't wire yet — so this reads 0 and keeps Review honestly locked.

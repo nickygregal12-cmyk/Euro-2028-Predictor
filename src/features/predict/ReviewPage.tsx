@@ -22,7 +22,12 @@ export function ReviewPage() {
     )
   }
 
-  const status = computeHubStatus(data.data, preds.getPrediction, preds.jokerCount)
+  const status = computeHubStatus(
+    data.data,
+    preds.getPrediction,
+    preds.jokerCount,
+    preds.tieResolutions,
+  )
   const outstanding: string[] = []
   if (!status.groups.complete) {
     outstanding.push(

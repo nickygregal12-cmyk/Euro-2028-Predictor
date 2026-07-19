@@ -92,7 +92,12 @@ export function PredictHubPage() {
     )
   }
 
-  const status = computeHubStatus(data.data, preds.getPrediction, preds.jokerCount)
+  const status = computeHubStatus(
+    data.data,
+    preds.getPrediction,
+    preds.jokerCount,
+    preds.tieResolutions,
+  )
   const startsOn = data.data.tournament.startsOn
   const days = startsOn ? daysUntil(startsOn) : null
 

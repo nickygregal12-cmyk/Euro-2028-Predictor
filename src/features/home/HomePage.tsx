@@ -40,7 +40,7 @@ export function HomePage() {
 
   const { tournament } = data.data
   const status = preds.ready
-    ? computeHubStatus(data.data, preds.getPrediction, preds.jokerCount)
+    ? computeHubStatus(data.data, preds.getPrediction, preds.jokerCount, preds.tieResolutions)
     : null
   const days = tournament.startsOn ? daysUntil(tournament.startsOn) : null
 
