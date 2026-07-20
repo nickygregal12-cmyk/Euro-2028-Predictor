@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Button, TextInput } from '../../design-system'
+import { TurnstileWidget } from './TurnstileWidget'
+import { TURNSTILE_SITE_KEY, turnstileEnabled } from './turnstileConfig'
 import s from './auth.module.css'
 
 export type LoginFormProps = {
-  // Fired with trimmed email + raw password once the basic client checks pass.
-  onSubmit: (email: string, password: string) => void
+  // Fired with trimmed email, raw password, and the Turnstile token (undefined
+  // when Turnstile is off), once the basic client checks pass.
+  onSubmit: (email: string, password: string, captchaToken?: string) => void
   // In-flight flag: disables inputs and spins the button.
   submitting?: boolean
   // A friendly, already-mapped error (never a raw Supabase message).
@@ -21,11 +24,23 @@ export type LoginFormProps = {
 export function LoginForm({ onSubmit, submitting = false, error, onSwitch }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // Bumping this remounts the widget to fetch a fresh, single-use token.
+  const [captchaKey, setCaptchaKey] = useState(0)
+
+  // A Turnstile token is single-use; after a failed submit, reset the widget.
+  useEffect(() => {
+    if (error && turnstileEnabled) {
+      setCaptchaToken(null)
+      setCaptchaKey((k) => k + 1)
+    }
+  }, [error])
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (submitting) return
-    onSubmit(email.trim(), password)
+    if (turnstileEnabled && !captchaToken) return
+    onSubmit(email.trim(), password, captchaToken ?? undefined)
   }
 
   return (
@@ -54,12 +69,15 @@ export function LoginForm({ onSubmit, submitting = false, error, onSwitch }: Log
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {turnstileEnabled && TURNSTILE_SITE_KEY && (
+          <TurnstileWidget key={captchaKey} siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} />
+        )}
         <Button
           type="submit"
           variant="primary"
           fullWidth
           loading={submitting}
-          disabled={!email.trim() || !password}
+          disabled={!email.trim() || !password || (turnstileEnabled && !captchaToken)}
         >
           Log in
         </Button>

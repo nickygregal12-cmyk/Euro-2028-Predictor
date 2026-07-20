@@ -1,5 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Button, TextInput } from '../../design-system'
+import { TurnstileWidget } from './TurnstileWidget'
+import { TURNSTILE_SITE_KEY, turnstileEnabled } from './turnstileConfig'
 import {
   DISPLAY_NAME_MAX,
   hasErrors,
@@ -9,9 +11,14 @@ import {
 import s from './auth.module.css'
 
 export type SignUpFormProps = {
-  // Fired with trimmed display name + email and the raw password, only once the
-  // client-side field checks pass.
-  onSubmit: (values: { displayName: string; email: string; password: string }) => void
+  // Fired with trimmed display name + email, the raw password, and the Turnstile
+  // token (undefined when off), once the client-side field checks pass.
+  onSubmit: (values: {
+    displayName: string
+    email: string
+    password: string
+    captchaToken?: string
+  }) => void
   submitting?: boolean
   // A friendly, already-mapped server error (e.g. email already in use).
   error?: string | null
@@ -28,6 +35,16 @@ export function SignUpForm({ onSubmit, submitting = false, error, onSwitch }: Si
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<SignUpFieldErrors>({})
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [captchaKey, setCaptchaKey] = useState(0)
+
+  // A Turnstile token is single-use; after a failed submit, reset the widget.
+  useEffect(() => {
+    if (error && turnstileEnabled) {
+      setCaptchaToken(null)
+      setCaptchaKey((k) => k + 1)
+    }
+  }, [error])
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -36,7 +53,8 @@ export function SignUpForm({ onSubmit, submitting = false, error, onSwitch }: Si
     const errors = validateSignUp(values)
     setFieldErrors(errors)
     if (hasErrors(errors)) return
-    onSubmit(values)
+    if (turnstileEnabled && !captchaToken) return
+    onSubmit({ ...values, captchaToken: captchaToken ?? undefined })
   }
 
   return (
@@ -79,7 +97,16 @@ export function SignUpForm({ onSubmit, submitting = false, error, onSwitch }: Si
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        <Button type="submit" variant="primary" fullWidth loading={submitting}>
+        {turnstileEnabled && TURNSTILE_SITE_KEY && (
+          <TurnstileWidget key={captchaKey} siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} />
+        )}
+        <Button
+          type="submit"
+          variant="primary"
+          fullWidth
+          loading={submitting}
+          disabled={turnstileEnabled && !captchaToken}
+        >
           Create account
         </Button>
       </form>

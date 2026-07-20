@@ -7,17 +7,25 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 // This test would have caught the incident: the OLD signUpWithPassword calls
 // createMyProfile (→ supabase.from('profiles')) in exactly this scenario.
 
-const { signUpMock, fromMock } = vi.hoisted(() => ({ signUpMock: vi.fn(), fromMock: vi.fn() }))
-
-vi.mock('../../src/services/supabase/client', () => ({
-  supabase: { auth: { signUp: signUpMock }, from: fromMock },
+const { signUpMock, signInMock, fromMock } = vi.hoisted(() => ({
+  signUpMock: vi.fn(),
+  signInMock: vi.fn(),
+  fromMock: vi.fn(),
 }))
 
-import { signUpWithPassword } from '../../src/services/supabase/auth'
+vi.mock('../../src/services/supabase/client', () => ({
+  supabase: {
+    auth: { signUp: signUpMock, signInWithPassword: signInMock },
+    from: fromMock,
+  },
+}))
+
+import { signUpWithPassword, signInWithPassword } from '../../src/services/supabase/auth'
 
 describe('signUpWithPassword — incident fix', () => {
   beforeEach(() => {
     signUpMock.mockReset()
+    signInMock.mockReset()
     fromMock.mockReset()
   })
 
@@ -51,5 +59,33 @@ describe('signUpWithPassword — incident fix', () => {
     await expect(
       signUpWithPassword({ email: 'a@b.co', password: 'secret1', displayName: 'Al' }),
     ).rejects.toBeTruthy()
+  })
+
+  it('threads the Turnstile captchaToken into signUp only when provided', async () => {
+    signUpMock.mockResolvedValue({ data: { user: { id: 'u1' }, session: {} }, error: null })
+    await signUpWithPassword({ email: 'a@b.co', password: 'secret1', displayName: 'Al', captchaToken: 'tok' })
+    expect(signUpMock).toHaveBeenCalledWith(
+      expect.objectContaining({ options: { data: { display_name: 'Al' }, captchaToken: 'tok' } }),
+    )
+  })
+})
+
+describe('signInWithPassword — captcha threading', () => {
+  beforeEach(() => signInMock.mockReset())
+
+  it('omits options when there is no captcha token', async () => {
+    signInMock.mockResolvedValue({ error: null })
+    await signInWithPassword('a@b.co', 'secret1')
+    expect(signInMock).toHaveBeenCalledWith({ email: 'a@b.co', password: 'secret1' })
+  })
+
+  it('passes captchaToken in options when provided', async () => {
+    signInMock.mockResolvedValue({ error: null })
+    await signInWithPassword('a@b.co', 'secret1', 'tok')
+    expect(signInMock).toHaveBeenCalledWith({
+      email: 'a@b.co',
+      password: 'secret1',
+      options: { captchaToken: 'tok' },
+    })
   })
 })

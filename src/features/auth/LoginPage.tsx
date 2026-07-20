@@ -15,11 +15,11 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  async function handleSubmit(email: string, password: string) {
+  async function handleSubmit(email: string, password: string, captchaToken?: string) {
     setSubmitting(true)
     setError(null)
     try {
-      await signInWithPassword(email, password)
+      await signInWithPassword(email, password, captchaToken)
       // Success: the auth listener flips the session and the route gate
       // redirects to Home. Keep the button spinning until that unmount.
     } catch (err) {
