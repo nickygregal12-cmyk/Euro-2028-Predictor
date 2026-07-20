@@ -41,8 +41,12 @@ Hardcoding a fake user ID through the app would make every query and policy assu
 `AuthScreen` shell + `LoginForm`/`SignUpForm` (own field state, error via
 `Alert`, no Supabase logic → previewed in `/dev/components`), wired by
 `LoginPage`/`SignUpPage` to the service and navigation. `signUpWithPassword`
-(in `services/supabase/auth.ts`) creates the auth user and the matching
-`profiles` row (`createMyProfile`). `friendlyAuthError()` maps failures to human
+(in `services/supabase/auth.ts`) creates the auth user; the matching `profiles`
+row is created **server-side** by the `on_auth_user_created` trigger
+(`20260720190000_profile_on_signup.sql`) from the sign-up display-name metadata —
+the client `createMyProfile` was removed after the 2026-07-20 confirmation
+incident (a client insert needed a session and failed under RLS when confirmation
+left sign-up session-less). `friendlyAuthError()` maps failures to human
 copy (never raw messages); `validateSignUp()` mirrors the server constraints
 (display name 1–40, valid email, min password length) — both pure + unit-tested.
 Routing gates in `src/app/Providers.tsx` (`AuthLayout` → `RequireAuth` /
@@ -53,10 +57,12 @@ re-signs-in), and the fail-closed production check still holds (runtime policy +
 `vite.config.ts` refuse a production build with `VITE_DEV_AUTOLOGIN=true`).
 
 **Phase 2 additions:**
-- Cloudflare Turnstile on sign up / log in
-- Password reset flow
-- Rate limiting on auth endpoints
-- Display-name moderation rules
+- [x] Server-side profile creation on sign-up (auth.users trigger) — the incident fix (`20260720190000`)
+- [x] Display-name moderation rules — data-driven client policy (`displayNamePolicy.ts`) + server trigger (`20260720200000`)
+- [x] Rate limiting — app-level for prediction save + league join (`20260720210000`); Supabase covers its own auth endpoints
+- [ ] Cloudflare Turnstile on sign up / log in — needs Turnstile keys (external)
+- [ ] Password reset flow — soft-blocked on custom SMTP
+- [ ] Custom SMTP for auth emails — needs a provider account + verified domain (external)
 
 **Explicitly not planned unless demanded later:** social logins, magic links, MFA.
 
