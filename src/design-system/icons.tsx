@@ -232,6 +232,18 @@ export function UsersIcon(props: IconProps) {
   )
 }
 
+// Arrows split — one path diverging into two (the "where you split" glyph).
+export function ArrowsSplitIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M12 21V9" />
+      <path d="M12 9 7 4M12 9l5-5" />
+      <path d="M4 4h4M16 4h4" />
+    </svg>
+  )
+}
+
 // Share — three nodes joined (the native-share glyph).
 export function ShareIcon(props: IconProps) {
   return (
