@@ -14,6 +14,8 @@ export type LoginFormProps = {
   error?: string | null
   // Navigate to the sign-up screen.
   onSwitch?: () => void
+  // Navigate to the password-reset request screen.
+  onForgotPassword?: () => void
 }
 
 /**
@@ -21,7 +23,13 @@ export type LoginFormProps = {
  * the parent owns the actual sign-in call and navigation. No session or Supabase
  * logic here, so it's previewable in /dev/components.
  */
-export function LoginForm({ onSubmit, submitting = false, error, onSwitch }: LoginFormProps) {
+export function LoginForm({
+  onSubmit,
+  submitting = false,
+  error,
+  onSwitch,
+  onForgotPassword,
+}: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
@@ -69,6 +77,13 @@ export function LoginForm({ onSubmit, submitting = false, error, onSwitch }: Log
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {onForgotPassword ? (
+          <div className={s.forgotRow}>
+            <button type="button" className={s.switchLink} onClick={onForgotPassword}>
+              Forgot password?
+            </button>
+          </div>
+        ) : null}
         {turnstileEnabled && TURNSTILE_SITE_KEY && (
           <TurnstileWidget
             key={captchaKey}

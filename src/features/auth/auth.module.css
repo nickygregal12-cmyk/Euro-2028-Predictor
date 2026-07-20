@@ -73,6 +73,13 @@
   justify-content: center;
 }
 
+/* "Forgot password?" — a quiet link under the log-in fields, right-aligned. */
+.forgotRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(-1 * var(--sp-1));
+}
+
 /* The row that switches between log in and sign up. */
 .switch {
   margin: 0;
