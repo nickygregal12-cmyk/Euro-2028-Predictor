@@ -1,55 +1,81 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
-import { GlobeIcon, TrophyIcon } from '../../design-system/icons'
+import { GlobeIcon, ChevronRightIcon, PlusIcon, UsersIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
-import {
-  rankLeaderboard,
-  type RankedEntry,
-} from '../../domain/tournament/rankLeaderboard'
+import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
 import { fetchLeaderboard } from '../../services/supabase/leaderboard'
-import { LeaderboardRow } from './LeaderboardRow'
+import { fetchMyLeagues, type LeagueSummary } from '../../services/supabase/leagues'
+import { MyLeagueCard } from '../leagues/MyLeagueCard'
+import { CreateLeagueModal } from '../leagues/CreateLeagueModal'
+import { JoinLeagueModal } from '../leagues/JoinLeagueModal'
+import { ordinal } from './ordinal'
 import s from '../shared.module.css'
-import l from './leaderboard.module.css'
+import h from '../leagues/hub.module.css'
 
-// League = Original Predictor only (docs/competition-structure.md §2). v0.1 is
-// the flat overall leaderboard; private leagues expand this tab at Phase 2.
+// The League tab hub (Original Predictor only — competition-structure §1):
+// overall standings summary pinned first, then the user's private leagues, then
+// create/join actions (design-system §6).
+type OverallSummary = { entryCount: number; yourRank: number | null; preResults: boolean }
+
 type State =
   | { status: 'loading' }
   | { status: 'error'; message: string }
-  | { status: 'ready'; rows: RankedEntry[] }
+  | { status: 'ready'; overall: OverallSummary }
 
 export function LeaguePage() {
+  const navigate = useNavigate()
   const data = useTournamentData()
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
+
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [leagues, setLeagues] = useState<LeagueSummary[]>([])
   const [reloadKey, setReloadKey] = useState(0)
-  const youRow = useRef<HTMLDivElement>(null)
+  const [creating, setCreating] = useState(false)
+  const [joining, setJoining] = useState(false)
 
   useEffect(() => {
     if (!tournamentId) return
     let active = true
     setState({ status: 'loading' })
+
+    // Overall summary is required; the leagues list fails soft (so the tab still
+    // works before the leagues migration is applied).
     fetchLeaderboard(tournamentId)
       .then((rows) => {
-        if (active) setState({ status: 'ready', rows: rankLeaderboard(rows) })
+        if (!active) return
+        const ranked = rankLeaderboard(rows)
+        const preResults = ranked.every((r) => r.rank === null)
+        const you = ranked.find((r) => r.isYou)
+        setState({
+          status: 'ready',
+          overall: {
+            entryCount: ranked.length,
+            yourRank: preResults ? null : (you?.rank ?? null),
+            preResults,
+          },
+        })
       })
       .catch((e) => {
-        if (active) {
+        if (active)
           setState({
             status: 'error',
             message: e instanceof Error ? e.message : 'Failed to load standings.',
           })
-        }
       })
+
+    fetchMyLeagues(tournamentId)
+      .then((rows) => {
+        if (active) setLeagues(rows)
+      })
+      .catch(() => {
+        if (active) setLeagues([]) // migration not applied yet — no leagues to show
+      })
+
     return () => {
       active = false
     }
   }, [tournamentId, reloadKey])
-
-  // Scroll the current user's row into view once the table is populated.
-  useEffect(() => {
-    if (state.status === 'ready') youRow.current?.scrollIntoView({ block: 'center' })
-  }, [state.status])
 
   const header = (
     <div className={s.header}>
@@ -76,7 +102,7 @@ export function LeaguePage() {
           <Skeleton lines={2} />
         </div>
         <div className={s.card}>
-          <Skeleton lines={5} />
+          <Skeleton lines={4} />
         </div>
       </div>
     )
@@ -98,83 +124,85 @@ export function LeaguePage() {
     )
   }
 
-  const { rows } = state
-  if (rows.length === 0) {
-    return (
-      <div className={s.page}>
-        {header}
-        <EmptyState
-          icon={<TrophyIcon size={22} />}
-          title="No entries yet"
-          description="The overall standings fill up as players submit their predictions. Check back once entries are in."
-        />
-      </div>
-    )
-  }
-
-  const you = rows.find((r) => r.isYou)
-  // Pre-results: everyone is level (ranks are null), so lead with the entry
-  // count rather than a wall of tied 1sts.
-  const preResults = rows.every((r) => r.rank === null)
-  const yourRank = preResults ? null : (you?.rank ?? null)
+  const { overall } = state
 
   return (
     <div className={s.page}>
       {header}
 
-      {/* Overall standings card (the whole tab at v0.1). */}
-      <div className={l.card}>
-        <span className={l.globe}>
+      {/* Overall standings summary — pinned first, taps into the full table. */}
+      <button type="button" className={h.overallCard} onClick={() => navigate('/league/overall')}>
+        <span className={h.globe}>
           <GlobeIcon size={22} />
         </span>
-        <span className={l.cardBody}>
-          <span className={l.cardTitle}>All players, everywhere</span>
-          <span className={l.cardSub}>
-            {preResults
-              ? `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} submitted · standings once results come in`
-              : you
-                ? `You're ${ordinal(you.rank as number)} of ${rows.length}`
-                : `${rows.length} ${rows.length === 1 ? 'entry' : 'entries'}`}
+        <span className={h.overallBody}>
+          <span className={h.overallTitle}>All players, everywhere</span>
+          <span className={h.overallSub}>
+            {overall.preResults
+              ? `${overall.entryCount} ${overall.entryCount === 1 ? 'entry' : 'entries'} · standings once results come in`
+              : overall.yourRank !== null
+                ? `You're ${ordinal(overall.yourRank)} of ${overall.entryCount}`
+                : `${overall.entryCount} ${overall.entryCount === 1 ? 'entry' : 'entries'}`}
           </span>
         </span>
-        {yourRank !== null && <span className={l.cardRank}>{ordinal(yourRank)}</span>}
+        {overall.yourRank !== null && <span className={h.overallRank}>{ordinal(overall.yourRank)}</span>}
+        <ChevronRightIcon size={18} className={h.chev} />
+      </button>
+
+      {/* My leagues. */}
+      <p className={h.sectionLabel}>Your leagues</p>
+      {leagues.length === 0 ? (
+        <EmptyState
+          icon={<UsersIcon size={22} />}
+          title="No leagues yet"
+          description="Create a private league to play your mates, or join one with an invite code."
+        />
+      ) : (
+        <div className={h.leagueList}>
+          {leagues.map((lg) => (
+            <MyLeagueCard
+              key={lg.id}
+              name={lg.name}
+              memberCount={lg.memberCount}
+              isOwner={lg.isOwner}
+              rank={null}
+              onOpen={() => navigate(`/league/${lg.id}`)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Create / join. */}
+      <div className={h.actions}>
+        <Button fullWidth onClick={() => setCreating(true)}>
+          <span className={h.actionBtnInner}>
+            <PlusIcon size={16} /> Create league
+          </span>
+        </Button>
+        <Button variant="secondary" fullWidth onClick={() => setJoining(true)}>
+          Join league
+        </Button>
       </div>
 
-      {/* Full ranked table. */}
-      <div className={l.table}>
-        <div className={l.headRow}>
-          <span>#</span>
-          <span />
-          <span />
-          <span>Player</span>
-          <span className={l.headPts}>Pts</span>
-        </div>
-        {rows.map((entry, i) => (
-          <div key={`${entry.displayName}-${i}`} ref={entry.isYou ? youRow : undefined}>
-            <LeaderboardRow
-              rank={entry.rank}
-              name={entry.displayName}
-              points={entry.totalPoints}
-              isYou={entry.isYou}
-            />
-          </div>
-        ))}
-      </div>
+      {tournamentId && (
+        <CreateLeagueModal
+          open={creating}
+          onClose={() => setCreating(false)}
+          tournamentId={tournamentId}
+          onView={(id) => {
+            setCreating(false)
+            navigate(`/league/${id}`)
+          }}
+        />
+      )}
+      <JoinLeagueModal
+        open={joining}
+        onClose={() => setJoining(false)}
+        onJoined={(id) => {
+          setJoining(false)
+          navigate(`/league/${id}`)
+        }}
+      />
     </div>
   )
-}
-
-function ordinal(n: number): string {
-  const rem100 = n % 100
-  if (rem100 >= 11 && rem100 <= 13) return `${n}th`
-  switch (n % 10) {
-    case 1:
-      return `${n}st`
-    case 2:
-      return `${n}nd`
-    case 3:
-      return `${n}rd`
-    default:
-      return `${n}th`
-  }
 }

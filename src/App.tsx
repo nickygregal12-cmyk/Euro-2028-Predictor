@@ -13,6 +13,9 @@ import { BracketRound } from './features/bracket'
 import { JokersPage } from './features/predict/JokersPage'
 import { ReviewPage } from './features/predict/ReviewPage'
 import { LeaguePage } from './features/league/LeaguePage'
+import { OverallStandingsPage } from './features/league/OverallStandingsPage'
+import { LeagueDetailPage } from './features/leagues/LeagueDetailPage'
+import { JoinLandingPage } from './features/leagues/JoinLandingPage'
 import { MorePage } from './features/more/MorePage'
 import { ScoringRulesPage } from './features/more/ScoringRulesPage'
 
@@ -33,6 +36,10 @@ export default function App() {
               <Route path="/auth/signup" element={<SignUpPage />} />
             </Route>
 
+            {/* Invite deep link — handles both signed-in and signed-out itself,
+                so it sits outside the gates (survives the logged-out case). */}
+            <Route path="/join/:code" element={<JoinLandingPage />} />
+
             {/* Signed-in only: tournament data + predictions → shell → screens. */}
             <Route element={<RequireAuth />}>
               <Route element={<AppShell />}>
@@ -44,6 +51,8 @@ export default function App() {
                 <Route path="/predict/jokers" element={<JokersPage />} />
                 <Route path="/predict/review" element={<ReviewPage />} />
                 <Route path="/league" element={<LeaguePage />} />
+                <Route path="/league/overall" element={<OverallStandingsPage />} />
+                <Route path="/league/:id" element={<LeagueDetailPage />} />
                 <Route path="/more" element={<MorePage />} />
                 <Route path="/more/scoring" element={<ScoringRulesPage />} />
               </Route>

@@ -1,0 +1,185 @@
+/* League hub (tab) + My-leagues list. Tokens only. */
+
+/* Overall standings summary card (pinned first; taps into the full table). */
+.overallCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: left;
+  cursor: pointer;
+}
+.overallCard:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.globe {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--cyn);
+}
+
+.overallBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.overallTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+
+.overallSub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.overallRank {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--acc);
+  flex-shrink: 0;
+}
+
+.chev {
+  color: var(--tx3);
+  flex-shrink: 0;
+}
+
+/* Section label ------------------------------------------------------------- */
+.sectionLabel {
+  margin: 4px 0 -4px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+/* My-leagues list ----------------------------------------------------------- */
+.leagueList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leagueCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: left;
+  cursor: pointer;
+}
+.leagueCard:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.leagueBody {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.leagueTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.leagueName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--tx);
+}
+
+.ownerTag {
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  font-family: var(--font-display);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--tx2);
+}
+
+.leagueMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.leagueRank {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.rankNum {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--tx);
+}
+.rankFirst {
+  color: var(--acc);
+}
+
+.rankMove {
+  display: inline-flex;
+  align-items: center;
+}
+.moveUp {
+  color: var(--acc);
+}
+.moveDown {
+  color: var(--red);
+}
+
+/* Action buttons ------------------------------------------------------------ */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.actionBtnInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
