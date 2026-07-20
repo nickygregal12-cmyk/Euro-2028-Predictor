@@ -34,15 +34,15 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Auto-submit at lock** (decided): at the lock instant the server auto-submits any VALID never-submitted entry (scoring-rules §7); incomplete entries stay out of standings; auto-submitted entries marked internally. Implement in the lock migration/function; UI still encourages manual submit.
 - [ ] **Destructive-action polish** (design-system §7): sign-out confirm modal ("You'll need your password to get back in") and joker-removal undo-toast (kickoff-aware copy when the match starts soon)
 - [x] **Admin bootstrapping documented** — `docs/ops-admin-bootstrap.md`: the one-time SQL that grants the first admin role, written into an ops note in the repo — never be locked out of your own tournament. (Self-flags that the role column/value must be verified against the live schema before first use.)
-- [~] **Auth hardening** (one combined build) — pure-code portion done this session; external-setup items deferred:
+- [~] **Auth hardening** (one combined build) — pure-code items + SMTP done; password reset ready to build, Turnstile + the email-verification decision remain:
   - [x] Confirmation-aware sign-up + server-side profile creation via auth.users trigger (`20260720190000`), client createMyProfile removed — *the 2026-07-20 incident fix* (no client insert to fail under no-session RLS)
   - [x] friendlyAuthError: distinguishes the no-session/RLS case from email-in-use (accurate copy, not a guess)
   - [x] Display-name moderation rules — data-driven client policy + server trigger (`20260720200000`)
   - [x] Rate limiting — app-level for prediction save (60/min) + league join (5/min) (`20260720210000`); Supabase already covers its auth endpoints
-  - [ ] Password reset flow (Supabase resetPasswordForEmail + two screens; "if an account exists" copy) — code-buildable but **soft-blocked on SMTP** (reset emails won't deliver reliably on the default sender)
-  - [ ] Custom SMTP for auth emails (Resend/Brevo free tier) — **needs Nicky: provider account + verified sending domain (SPF/DKIM), then Supabase Auth → SMTP**
+  - [x] Custom SMTP for auth emails — **done**: Resend account, domain `euro28predictor.com` purchased + verified via Cloudflare DNS, SMTP configured in Supabase Auth settings, verified live by a real password-recovery email send from the dashboard
+  - [ ] Password reset flow (Supabase resetPasswordForEmail + two screens; "if an account exists" copy) — **now unblocked (SMTP is live), ready to build**
   - [ ] Cloudflare Turnstile on sign up / log in — **needs Nicky: Turnstile site/secret keys, then Supabase Auth → CAPTCHA**
-  - [ ] Decide: require email verification or not — the trigger above makes it safe to enable; needs the decision (+ SMTP for reliable confirmation mail)
+  - [ ] Decide: require email verification or not — **now unblocked** (the auth.users trigger removed the original failure mode); still Nicky's decision, not yet made
 - [ ] **CI**: GitHub Actions running the test suite on every push
 - [ ] **Bracket UX gap**: no way to un-pick a winner, only change — add a clear/unpick action (parked from review build)
 - [ ] **Tie-breaks at final standings**: display the tie-break explanation prominently when final league standings are computed
