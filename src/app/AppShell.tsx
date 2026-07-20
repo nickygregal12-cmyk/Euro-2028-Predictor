@@ -1,5 +1,7 @@
+import { Suspense } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { PageShell, type NavKey } from '../design-system'
+import { RouteFallback } from './RouteFallback'
 
 // Maps the current path to the active bottom-nav tab and back. The four tabs are
 // the v0.1 set (design-system §6); each renders its route's screen in the shell.
@@ -23,7 +25,11 @@ export function AppShell() {
   const navigate = useNavigate()
   return (
     <PageShell active={activeTab(location.pathname)} onNavigate={(key) => navigate(TAB_PATH[key])}>
-      <Outlet />
+      {/* Lazily-loaded route chunks resolve here; the nav stays put while the
+          content area shows the fallback. */}
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
     </PageShell>
   )
 }
