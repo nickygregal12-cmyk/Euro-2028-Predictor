@@ -18,10 +18,10 @@ import { LeagueDetailPage } from './features/leagues/LeagueDetailPage'
 import { JoinLandingPage } from './features/leagues/JoinLandingPage'
 import { MorePage } from './features/more/MorePage'
 import { ScoringRulesPage } from './features/more/ScoringRulesPage'
-import { MyPointsPage } from './features/scoring'
 import { MatchCentreStub } from './features/matches/MatchCentreStub'
 import { WelcomePage } from './features/welcome/WelcomePage'
 import { ProfilePage } from './features/profile/ProfilePage'
+import { H2HPage } from './features/h2h/H2HPage'
 
 export default function App() {
   return (
@@ -63,10 +63,13 @@ export default function App() {
                   <Route path="/league" element={<LeaguePage />} />
                   <Route path="/league/overall" element={<OverallStandingsPage />} />
                   <Route path="/league/:id" element={<LeagueDetailPage />} />
+                  <Route path="/h2h/:rivalId" element={<H2HPage />} />
                   <Route path="/match/:matchRef" element={<MatchCentreStub />} />
                   <Route path="/more" element={<MorePage />} />
                   <Route path="/profile" element={<ProfilePage />} />
-                  <Route path="/more/points" element={<MyPointsPage />} />
+                  {/* /more/points consolidated into Profile (which embeds the same
+                      PointsBreakdown). Kept as a redirect so old links resolve. */}
+                  <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                   <Route path="/more/scoring" element={<ScoringRulesPage />} />
                 </Route>
               </Route>

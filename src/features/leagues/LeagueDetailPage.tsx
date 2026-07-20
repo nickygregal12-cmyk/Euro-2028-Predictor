@@ -289,7 +289,9 @@ export function LeagueDetailPage() {
                   ? () => navigate('/profile')
                   : () => setToast('Player profiles are coming soon.')
               }
-              onHeadToHead={() => setToast('Head-to-head is coming soon.')}
+              // Post-lock only: the button lives behind `revealed` (isEntryLocked),
+              // and the endpoint itself refuses pre-lock (defense in depth).
+              onHeadToHead={() => navigate(`/h2h/${m.userId}`)}
             />
           </div>
         ))}
