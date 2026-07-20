@@ -221,6 +221,24 @@ async function commit(): Promise<void> {
     if (error) throw new Error(`result update failed for ${r.matchRef}: ${describeError(error)}`)
   }
 
+  // Belt-and-braces: the result trigger recomputes on each write, but invoke the
+  // recompute once more explicitly so the run ALWAYS ends with populated
+  // score_events and zero manual steps (acceptance: entry_totals matches the
+  // leaderboard test right after seeding). Needs execute granted to service_role
+  // (20260720140000_fix_recompute_trigger.sql); fail-soft if that migration or
+  // the scoring migration isn't applied yet.
+  const { error: recomputeErr } = await admin.rpc('recompute_tournament_scores', {
+    p_tournament_id: tournamentId,
+  })
+  if (recomputeErr) {
+    console.warn(
+      'Explicit score recompute skipped — apply 20260720130000_add_scoring.sql + ' +
+        `20260720140000_fix_recompute_trigger.sql to enable it: ${describeError(recomputeErr)}`,
+    )
+  } else {
+    console.log('Recomputed scores (score_events + entry_totals now reflect the results).')
+  }
+
   console.log(
     `Seeded ${data.entries.length} users with submitted entries and ${data.results.length} results.`,
   )
