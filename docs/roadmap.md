@@ -10,25 +10,24 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 
 - [x] **Component pack + seed script** — DONE. PlayerChip, StatCard, PointsBreakdown (with the `score_events` shape defined in `src/domain/tournament/scoreEvents.ts`), LeaderboardRow extended (shared `initialsOf` + champion-pick flag). Dev seed in `scripts/seed-dev/`: ~20 hostile-data test users, submitted entries, jokers, ~12 results scored through the real `calculateScore` pipeline; fail-closed + idempotent + dry-run by default.
   - *The wrinkle resolved cleanly:* scoring already existed as a pure domain pipeline, so the seed runs it directly (`scoreEntries.ts`); no results/scoring plumbing needed pulling forward.
-- [ ] **Phase 1 completion note** in CLAUDE.md status (ask for it at the end of the current session)
+- [x] **Phase 1 completion note** in CLAUDE.md status — "Phase 1 is closed" recorded (v0.1 spine deployed behind real auth; the production-project split is the Phase 2 exit gate).
 
 ---
 
 ## PHASE 2 — Original Predictor leagues + social layer
 
-**Design already done:** league hub, league detail (expandable rows, shared ranks 1-1-3, alphabetical within ties, tie-breaks only at final standings), join/create/leave flows, profile page (tombstone champion treatment), points breakdown component, reveal rules.
-**Design still needed:** H2H page (quick — profile pieces side by side + common-picks strip).
+**Design complete for Phase 2:** league hub, league detail (expandable rows, shared ranks 1-1-3, alphabetical within ties, tie-breaks only at final standings), join/create/leave flows, profile page (tombstone champion treatment), points breakdown component, reveal rules, H2H page (face-off header, stat-vs-stat, where-you-split). Nothing left on the design shelf — see the Design Ledger.
 
 ### Build items
-- [ ] **Home dashboard build** — pre-tournament states exist; build the full layered layout (stat strip, Today card, catch-up line, league snapshot) per spec; during-tournament layers activate as data exists
-- [ ] **Private leagues**: create (name → immediate share sheet), invite link primary + code fallback, join flow with league preview + decline, leave (overflow menu, confirm modal; owners must transfer or delete — no orphaned leagues)
-- [ ] **Invite deep links survive logged-out**: tap link → sign up → land back in pending join
-- [ ] **League detail page** per spec: header (tap-to-copy code, share sheet), member rows (collapsed/expanded), max-remaining-points calc in domain layer, entry-progress display pre-deadline, no-entry state
+- [x] **Home dashboard build** — phase-aware layout shipped (stat strip, Today card, catch-up line, league snapshot); during layers activate once results exist (`src/features/home/`; detail in build-todo)
+- [x] **Private leagues**: create (name → immediate share sheet), invite link primary + code fallback, join flow with league preview + decline, leave (overflow menu, confirm modal; owners must transfer or delete — no orphaned leagues) — shipped (`src/features/leagues/`; migration `20260719180000_add_leagues.sql`)
+- [x] **Invite deep links survive logged-out**: tap link → sign up → land back in pending join — shipped (`/join/:code`, pending-join stash)
+- [x] **League detail page** per spec: header (tap-to-copy code, share sheet), member rows (collapsed/expanded), max-remaining-points calc in domain layer, entry-progress display pre-deadline, no-entry state — shipped (`LeagueDetailPage` + `LeagueMemberRow`; `maxRemainingPoints` in domain)
 - [ ] **Reveal-after-lock RLS policy** — designed once, reused by all later competitions; champion flags hidden pre-lock; "view full entry" post-lock only
 - [ ] **Profile pages** per spec (identity header, stat grid, points breakdown, view-full-entry, pre-lock hidden state; own profile via More tab)
 - [ ] **H2H build, pass 1** (designed): face-off header, stat-vs-stat, where-you-split strip; post-lock only
 - [ ] **rank_history schema** — per-user per-matchday rank snapshots; capture MUST start from the first scored result (Phase 2/3 boundary item, not retrofittable) — feeds the H2H graph and profile rank history
-- [ ] **Points breakdown live** — driven by real score_events
+- [x] **Points breakdown live** — driven by real score_events; shipped as the "My points" view under More (`/more/points`), plus scored match cards in the group predictor
 - [x] **Result entry documented for Phase 2** — `docs/ops-result-entry.md`: how to enter / correct / clear a result via SQL, the automatic recompute (the `recompute_scores_on_result` trigger → `recompute_tournament_scores`), the manual backfill (`recompute_all_scores`), and verification queries — written from the live schema. The interim mechanism until the admin page; correction is already safe (delete-and-rederive recompute, no double-count). *(The admin result-entry **page** is deferred to Phase 3 — see there.)*
 - [ ] **/welcome page** — post-first-signin orientation (distinct from the Phase 3 landing page): how the game works in 3 steps, first action ("Start with Group A"), don't-show-again; quick design session then build. Must exist before the single-tester test.
 - [ ] **Deadline reminder emails** — "entries lock in 48h / 24h, you're N% done" to incomplete entries; requires custom SMTP, which is therefore PULLED FORWARD into this phase rather than waiting for full auth hardening. Basic implementation: scheduled function checking incomplete entries against lock time.
@@ -65,6 +64,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 **Design needed first:** Match Centre (dedicated session, hostile-tested against seeded data) — the biggest undesigned surface.
 
 - [ ] **Match Centre**: per-fixture pages, pre/during/post states, points explanation via PointsBreakdown, effect on table/bracket
+  - Enable the MatchCard chevron/navigation feature flag (`FEATURES.matchCardNavigation`) when this ships — the card is already built for it (chevron + `onOpen`, feature-flagged off in v0.1)
 - [ ] **League-scoped match centre views** reachable by deep link (the live-strip requirement)
 - [ ] **Live match strip** on League tab + league detail (designed; cyan, pulsing dot, league-context line)
 - [ ] **Matches joins nav as 5th tab** (tabs are config — no rebuild)
@@ -78,6 +78,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Landing page** — the public front door (explain in 3 steps, Start Predicting, demo before account); needed before any public sharing
 - [ ] **Independent-app disclaimer + privacy notice/terms** in footer
 - [ ] **Error monitoring** (Sentry free tier or similar) — know the app broke before the group chat does; wired before the dress rehearsal
+- [ ] **Analytics** — Plausible (free tier) at Phase 3; privacy-friendly, no cookie banner required
 - [ ] **Account deletion + data export** — legal right to erasure; policy for what deletion means for league memberships, leaderboard rows, and (later) duel history; button in More, alongside the privacy notice
 - [ ] **E2E tests (Playwright)** for critical journeys; staging environment; audit logs; accessibility pass
 - [ ] **Full dress rehearsal (testing tier 2)** — simulate the entire competition start to finish with friends playing along: entries in, results entered over days, ties, a result correction, leagues and match centre live. The real "people try it" moment; launch-blocking.
@@ -120,7 +121,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Free-tier ceilings check** before real users: know the Supabase/Netlify limits and the user count where £0 stops
 - [ ] **Custom domain** (optional annual cost — the one budgeted expense)
 - [ ] **Backup/export process** before the tournament
-- [ ] **Timezone display rule** (design principle, apply from next build onward): all times shown in the USER'S local timezone (stored UTC); venue-local time secondary where relevant; lock countdowns always local. Goes into design-system.md at next sync.
+- [x] **Timezone display rule** — now a design-system §1 principle: all times in the user's local timezone (stored UTC); venue-local secondary where relevant; lock countdowns always local.
 
 ---
 
@@ -135,8 +136,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 ---
 
 ## DESIGN LEDGER (what's designed vs not)
-**Done:** all components + tables, live table, bracket, jokers, nav + Predict hub, league hub/detail/join/create, live strip, review & submit, Home (all phases sketched, pre/during specced), profile, points breakdown.
-**To do:** Match Centre (Phase 3, big), shareable summary (small, anytime), post-tournament Home (Phase 3), landing page (Phase 3). — /welcome and H2H now designed; Phase 2 design shelf is COMPLETE.
+**ALL surfaces designed — ledger zero.** Every screen in the app now has a spec in `design-system.md`. The final additions that cleared the shelf: **Match Centre** (§6), **Matches tab** (§6), **Shareable cards** (§6), **Landing page** (§6), **Post-tournament Home** (§6) — with /welcome and H2H designed earlier. Design is no longer a blocker on any build: every remaining item in this roadmap is implementation, not design.
 
 ## PROCESS RULES (hard-won, keep them)
 1. One Claude Code session per repo at a time; prompts queue, never parallelise

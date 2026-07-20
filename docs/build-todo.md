@@ -99,7 +99,7 @@ Detail for every item lives in `roadmap.md` § Phase 2.
 ## Phase 3 — Core tournament experience (was Tier 4)
 Detail in `roadmap.md` § Phase 3.
 - [ ] Admin result-entry page (moved from Phase 2; **must exist before the dress rehearsal**) — protected route, scoring-impact preview before confirm, correction flow. Deferred to build once against the final feature set (incl. what bonus games need from results); correction is already safe via delete-and-rederive, and Phase 2 uses `docs/ops-result-entry.md` (SQL entry) meanwhile.
-- [ ] Match Centre (design session first — biggest undesigned surface); Matches joins nav as 5th tab; league-scoped views by deep link
+- [ ] Match Centre — **designed** (design-system §6, per-fixture page); Matches joins nav as 5th tab (Matches tab also specced, §6); league-scoped views by deep link. Enable the MatchCard chevron/navigation flag (`FEATURES.matchCardNavigation`) when this ships.
 - [ ] Live match strip (League tab + league detail; cyan, pulsing dot, league-context line)
 - [ ] Live tables with Predicted/Live switcher + "You" column (designed)
 - [ ] H2H pass 2 — rank-over-time graph + bracket-health-vs-real + compare-full-brackets side by side
@@ -110,6 +110,7 @@ Detail in `roadmap.md` § Phase 3.
 - [ ] Landing page — public front door (3-step explainer, demo before account); before any public sharing
 - [ ] Independent-app disclaimer + privacy notice / terms in footer
 - [ ] Error monitoring (Sentry free tier) — wired before the dress rehearsal
+- [ ] Analytics — Plausible (free tier) at Phase 3; privacy-friendly, no cookie banner required
 - [ ] Account deletion + data export (right to erasure; policy for league memberships + leaderboard rows). **FK semantics already set** (`20260720120000_league_fk_semantics.sql`): `league_members.user_id` CASCADE (memberships vanish), but `leagues.owner_id` RESTRICT — so the deletion flow MUST first transfer each owned league to a remaining member (or delete it if they're the last one) before the account can be removed; the DB blocks a silent cascade that would orphan/destroy other members' leagues.
 - [ ] E2E tests (Playwright), staging env, audit logs, accessibility pass
 - [ ] Full dress rehearsal — simulate the whole competition with friends playing along; launch-blocking
