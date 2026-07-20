@@ -69,8 +69,8 @@ function DuringLayout({ m, navigate }: { m: HomeModel; navigate: Nav }) {
         entryCount={m.entryCount}
         bestLeagueRank={m.bestLeague?.rank ?? null}
         hasLeague={m.hasAnyLeague}
-        onPoints={() => navigate('/more/points')}
-        onToday={() => navigate('/more/points')}
+        onPoints={() => navigate('/profile')}
+        onToday={() => navigate('/profile')}
         onRank={() => navigate('/league/overall')}
         onLeague={() => (m.bestLeague ? navigate(`/league/${m.bestLeague.id}`) : navigate('/league'))}
       />

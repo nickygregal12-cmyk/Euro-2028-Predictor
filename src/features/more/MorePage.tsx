@@ -54,11 +54,6 @@ export function MorePage() {
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
 
-      <button type="button" className={m.linkRow} onClick={() => navigate('/more/points')}>
-        My points
-        <ChevronRightIcon size={18} className={m.chev} />
-      </button>
-
       <button type="button" className={m.linkRow} onClick={() => navigate('/more/scoring')}>
         How scoring works
         <ChevronRightIcon size={18} className={m.chev} />
