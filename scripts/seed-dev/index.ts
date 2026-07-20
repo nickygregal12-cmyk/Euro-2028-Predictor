@@ -56,6 +56,10 @@ function printDryRun(): void {
   }
   if (sample.events.length > 8) console.log(`  … ${sample.events.length - 8} more`)
 
+  console.log(
+    '\nCommitting also creates "The Seed Test League" (code SEEDLG) owned by the ' +
+      'first seed user with ~8 members, so the League detail page renders populated.',
+  )
   console.log('\nRe-run with --commit (and the dev env vars) to write this to the database.\n')
 }
 
@@ -119,8 +123,10 @@ async function commit(): Promise<void> {
     CHAMPION: 'champion',
   }
 
+  const seededUsers: { userId: string; displayName: string }[] = []
   for (const entry of data.entries) {
     const userId = await createUser(admin, entry)
+    seededUsers.push({ userId, displayName: entry.displayName })
     await insertOrThrow(admin, 'profiles', { id: userId, display_name: entry.displayName })
 
     const { data: entryRow, error: eErr } = await admin
@@ -180,6 +186,57 @@ async function commit(): Promise<void> {
 
   console.log(
     `Seeded ${data.entries.length} users with submitted entries and ${data.results.length} results.`,
+  )
+
+  // --- a populated test league (so the League detail page has real members) --
+  await seedTestLeague(admin, tournamentId, seededUsers)
+}
+
+// Creates one league owned by the first seed user with several seed members, so
+// the League detail page renders against real, hostile-named members. Best-
+// effort: if the leagues migration (20260719180000_add_leagues.sql) isn't
+// applied yet, it warns and skips rather than failing the whole seed. Idempotent
+// via the seed-user wipe — deleting the owner cascades the league away.
+async function seedTestLeague(
+  admin: Admin,
+  tournamentId: string,
+  users: { userId: string; displayName: string }[],
+): Promise<void> {
+  if (users.length < 2) return
+  const owner = users[0]
+  const members = users.slice(0, 8) // owner + up to 7 others
+  const INVITE_CODE = 'SEEDLG'
+
+  const { data: league, error: lErr } = await admin
+    .from('leagues')
+    .insert({
+      tournament_id: tournamentId,
+      owner_id: owner.userId,
+      name: 'The Seed Test League',
+      invite_code: INVITE_CODE,
+    })
+    .select('id')
+    .single()
+  if (lErr || !league) {
+    console.warn(
+      `Skipped the test league (apply 20260719180000_add_leagues.sql to enable it): ${lErr?.message ?? 'no row'}`,
+    )
+    return
+  }
+
+  const { error: mErr } = await admin.from('league_members').insert(
+    members.map((m) => ({
+      league_id: league.id,
+      user_id: m.userId,
+      role: m.userId === owner.userId ? 'owner' : 'member',
+    })),
+  )
+  if (mErr) {
+    console.warn(`Test league created but members failed: ${mErr.message}`)
+    return
+  }
+  console.log(
+    `Seeded "The Seed Test League" (code ${INVITE_CODE}) — owner ${owner.displayName}, ${members.length} members.`,
   )
 }
 

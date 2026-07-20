@@ -38,7 +38,12 @@ import {
 } from '../features/bracket'
 import { PlacedJokerCard } from '../features/predict/PlacedJokerCard'
 import { GoldenBootPicker } from '../features/predict/GoldenBootPicker'
+import { rankLeaderboard } from '../domain/tournament/rankLeaderboard'
 import { LeaderboardRow } from '../features/league/LeaderboardRow'
+import { LeagueMemberRow } from '../features/leagues/LeagueMemberRow'
+import { MyLeagueCard } from '../features/leagues/MyLeagueCard'
+import { LeaguePreviewCard } from '../features/leagues/LeaguePreviewCard'
+import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
 import { SignUpForm } from '../features/auth/SignUpForm'
 
@@ -333,6 +338,59 @@ function TieCardPickDemo() {
       onPick={setPicked}
     />
   )
+}
+
+// Hostile-data league members (design-system §6 hostile-data rule): 20+ members,
+// longest plausible names, ties, the user mid-table, non-submitters. Ranked with
+// the real domain (rankLeaderboard) so shared ranks + null-pre-results are honest.
+const LEAGUE_MEMBERS = [
+  { userId: 'u1', displayName: 'The Undisputed Champion Of All Groups', totalPoints: 148, latest: 22, isYou: false, hasEntry: true },
+  { userId: 'u2', displayName: 'Anne-Marie Ndlovu-Okonkwo', totalPoints: 142, latest: 18, isYou: false, hasEntry: true },
+  { userId: 'u3', displayName: 'Zoë Müller', totalPoints: 142, latest: 18, isYou: false, hasEntry: true },
+  { userId: 'u4', displayName: 'xX_Predictor_Xx', totalPoints: 131, latest: 12, isYou: true, hasEntry: true },
+  { userId: 'u5', displayName: 'Ng', totalPoints: 131, latest: 12, isYou: false, hasEntry: true },
+  { userId: 'u6', displayName: "O'Sullivan", totalPoints: 96, latest: 6, isYou: false, hasEntry: true },
+  { userId: 'u7', displayName: 'Al', totalPoints: 0, latest: null, isYou: false, hasEntry: false, predictedCount: 12 },
+  { userId: 'u8', displayName: 'María-José da Silva', totalPoints: 0, latest: null, isYou: false, hasEntry: false, predictedCount: 0 },
+]
+
+function LeagueMembersDemo({ revealed }: { revealed: boolean }) {
+  const [expanded, setExpanded] = useState<string | null>('u4')
+  const ranked = rankLeagueMembersDemo(LEAGUE_MEMBERS)
+  return (
+    <div className={styles.leagueTable}>
+      {ranked.map((m) => (
+        <LeagueMemberRow
+          key={m.userId}
+          rank={m.rank}
+          name={m.displayName}
+          totalPoints={m.totalPoints}
+          latestPoints={m.latest}
+          isYou={m.isYou}
+          movement={m.rank === 1 ? 'up' : m.userId === 'u5' ? 'down' : 'none'}
+          hasEntry={m.hasEntry}
+          progress={
+            !m.hasEntry && !revealed ? { predicted: m.predictedCount ?? 0, total: 36 } : null
+          }
+          championPick={revealed && m.hasEntry ? (m.userId === 'u1' ? ESP : ENG) : undefined}
+          championEliminated={revealed && m.userId === 'u2'}
+          expanded={expanded === m.userId}
+          onToggle={() => setExpanded((c) => (c === m.userId ? null : m.userId))}
+          revealed={revealed}
+          stats={{ exact: 9, correct: 14, maxLeft: 512 }}
+          onProfile={() => {}}
+          onHeadToHead={() => {}}
+        />
+      ))}
+    </div>
+  )
+}
+
+// Local copy of the ranking call so the demo carries the extra member fields.
+function rankLeagueMembersDemo<T extends { displayName: string; totalPoints: number; isYou: boolean }>(
+  rows: T[],
+) {
+  return rankLeaderboard(rows)
 }
 
 /** Every component in every state — rendered once per theme by ComponentsPreview. */
@@ -927,6 +985,41 @@ function Gallery() {
           onSubmit={() => {}}
           error="An account with this email already exists. Try logging in instead."
         />
+      </Section>
+
+      <Section title="My-league card (League hub)">
+        <MyLeagueCard name="The Office Sweepstake" memberCount={14} isOwner rank={1} movement="up" onOpen={() => {}} />
+        <MyLeagueCard name="The Undisputed Champions Of All Group Stages Ever" memberCount={22} isOwner={false} rank={null} onOpen={() => {}} />
+        <MyLeagueCard name="Fam" memberCount={1} isOwner rank={null} onOpen={() => {}} />
+      </Section>
+
+      <Section title="Invite panel (share moment / header chip)">
+        <Label>full — post-create share moment</Label>
+        <InvitePanel leagueName="The Office Sweepstake" code="ABC234" mode="full" />
+        <Label>chip — detail header</Label>
+        <InvitePanel leagueName="The Office Sweepstake" code="ABC234" mode="chip" />
+      </Section>
+
+      <Section title="League preview (join / deep link)">
+        <LeaguePreviewCard
+          preview={{ id: 'x', name: 'The Office Sweepstake', memberCount: 14, ownerName: 'Priya Shah', isMember: false }}
+          onJoin={() => {}}
+          onDecline={() => {}}
+        />
+        <Label>already a member</Label>
+        <LeaguePreviewCard
+          preview={{ id: 'x', name: 'The Office Sweepstake', memberCount: 14, ownerName: 'Priya Shah', isMember: true }}
+          onJoin={() => {}}
+          onDecline={() => {}}
+        />
+      </Section>
+
+      <Section title="League member rows — pre-lock (stats hidden, no champion flag)">
+        <LeagueMembersDemo revealed={false} />
+      </Section>
+
+      <Section title="League member rows — post-lock (champion flags, stats revealed)">
+        <LeagueMembersDemo revealed />
       </Section>
     </div>
   )

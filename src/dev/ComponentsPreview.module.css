@@ -87,6 +87,14 @@
   gap: 10px;
 }
 
+/* Bordered container for the league member rows (mirrors the detail table). */
+.leagueTable {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
 /* Four-up stat grid, matching the profile page layout (design-system §6). */
 .statGrid {
   display: grid;

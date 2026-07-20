@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { AuthSplash } from '../features/auth/AuthSplash'
+import { getPendingJoin } from '../features/leagues/pendingJoin'
 import { TournamentDataProvider } from './providers/TournamentDataProvider'
 import { PredictionsProvider } from './providers/PredictionsProvider'
 
@@ -36,6 +37,11 @@ export function RequireAuth() {
 export function RedirectIfAuthed() {
   const { userId, loading } = useAuth()
   if (loading) return <AuthSplash />
-  if (userId) return <Navigate to="/" replace />
+  if (userId) {
+    // Resume a pending invite join if the visitor arrived via a deep link while
+    // signed out (JoinLandingPage clears it once handled); otherwise Home.
+    const pending = getPendingJoin()
+    return <Navigate to={pending ? `/join/${pending}` : '/'} replace />
+  }
   return <Outlet />
 }

@@ -219,6 +219,55 @@ export function GlobeIcon(props: IconProps) {
   )
 }
 
+// People — the member-count / league glyph.
+export function UsersIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20a6 6 0 0 1 12 0" />
+      <path d="M16 5.5a3 3 0 0 1 0 5.5" />
+      <path d="M17 14.3A6 6 0 0 1 21 20" />
+    </svg>
+  )
+}
+
+// Share — three nodes joined (the native-share glyph).
+export function ShareIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <circle cx="6" cy="12" r="2.5" />
+      <circle cx="18" cy="6" r="2.5" />
+      <circle cx="18" cy="18" r="2.5" />
+      <path d="M8.2 10.8 15.8 7.2" />
+      <path d="M8.2 13.2 15.8 16.8" />
+    </svg>
+  )
+}
+
+// Copy — overlapping sheets (tap-to-copy glyph).
+export function CopyIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  )
+}
+
+// Plus — the create glyph.
+export function PlusIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M12 5v14" />
+      <path d="M5 12h14" />
+    </svg>
+  )
+}
+
 // Two stacked cards — the joker glyph.
 export function CardsIcon(props: IconProps) {
   return (
