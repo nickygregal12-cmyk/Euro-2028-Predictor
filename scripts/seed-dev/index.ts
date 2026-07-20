@@ -108,13 +108,20 @@ async function commit(): Promise<void> {
   // --- idempotent wipe: delete any prior seed users -------------------------
   const seedUserIds = await listSeedUserIds(admin)
   if (seedUserIds.length > 0) {
-    // Clear every league row that references a seed user BEFORE deleting the
-    // auth users. leagues.owner_id is ON DELETE RESTRICT (a user who still owns
-    // a league can't be deleted — see 20260720120000_league_fk_semantics.sql),
-    // and cascading membership deletes through GoTrue's admin delete is where
-    // the underlying Postgres error gets masked as an empty {}. Clearing the
-    // rows here means the user delete never has to touch a public table.
-    // Best-effort: the leagues tables may not exist on an older dev DB.
+    // Delete every APP row referencing the seed users FIRST, so the auth-API
+    // user delete below only removes a BARE auth.users row. Postgres cascades a
+    // full entry fine via direct SQL, but GoTrue's admin deleteUser 500s
+    // (AuthRetryableFetchError, masked as an empty {}) when it has to cascade a
+    // whole entry chain per user — it appears to time out on the cascade.
+    // Clearing the rows here via the service client sidesteps that entirely.
+    //
+    // Order matters. leagues.owner_id is ON DELETE RESTRICT (a user who still
+    // owns a league can't be deleted — 20260720120000_league_fk_semantics.sql),
+    // so seed-owned leagues go first (this cascades their memberships too); then
+    // any remaining memberships; then the entries chain (cascades
+    // match_predictions, predicted_*, bonus_predictions, score_events); then
+    // profiles. The league tables are best-effort (may not exist on an older DB);
+    // entries + profiles always exist.
     const { error: leaguesErr } = await admin.from('leagues').delete().in('owner_id', seedUserIds)
     if (leaguesErr && !isMissingRelation(leaguesErr)) {
       throw new Error(`Failed to clear prior seed-owned leagues: ${describeError(leaguesErr)}`)
@@ -126,9 +133,18 @@ async function commit(): Promise<void> {
     if (membersErr && !isMissingRelation(membersErr)) {
       throw new Error(`Failed to clear prior seed league memberships: ${describeError(membersErr)}`)
     }
+    const { error: entriesErr } = await admin.from('entries').delete().in('user_id', seedUserIds)
+    if (entriesErr) {
+      throw new Error(`Failed to clear prior seed entries: ${describeError(entriesErr)}`)
+    }
+    const { error: profilesErr } = await admin.from('profiles').delete().in('id', seedUserIds)
+    if (profilesErr) {
+      throw new Error(`Failed to clear prior seed profiles: ${describeError(profilesErr)}`)
+    }
 
     for (const id of seedUserIds) {
-      // Cascades to profiles/entries/predictions via ON DELETE CASCADE.
+      // The user is bare now (all app rows removed above), so this only removes
+      // the auth.users row — no heavy cascade for the auth API to choke on.
       const { error } = await admin.auth.admin.deleteUser(id)
       if (error) throw new Error(`Failed to delete prior seed user ${id}: ${describeError(error)}`)
     }
