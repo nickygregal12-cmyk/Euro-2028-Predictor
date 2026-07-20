@@ -25,11 +25,18 @@
 -- Additional test users (for leaderboard/league testing) are provisioned the
 -- same way and switched via the .env.local vars — never special-cased in code.
 
-insert into profiles (id, display_name)
-select u.id, 'Dev Tester'
+-- welcomed_at is pre-stamped so the dev auto-login user never sees the one-time
+-- /welcome screen in normal dev flows (the gate is generic — welcomed_at IS NULL
+-- — so no dev-user special-casing lives in app code; CLAUDE.md rule 8). Requires
+-- 20260720160000_add_profile_welcomed_at.sql applied first; re-run this file
+-- after applying it to stamp an already-existing dev profile.
+insert into profiles (id, display_name, welcomed_at)
+select u.id, 'Dev Tester', now()
 from auth.users u
 where u.email = 'dev@euro28.local'
-on conflict (id) do update set display_name = excluded.display_name;
+on conflict (id) do update
+  set display_name = excluded.display_name,
+      welcomed_at = coalesce(profiles.welcomed_at, excluded.welcomed_at);
 
 -- Verify:
 --   select p.display_name, u.email
