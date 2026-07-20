@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import 'flag-icons/css/flag-icons.min.css'
+import './styles/flags.css'
 import './styles/tokens.css'
 import './index.css'
 import App from './App.tsx'

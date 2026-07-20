@@ -1,0 +1,56 @@
+/* Flag subset — replaces the full flag-icons stylesheet (imported in main.tsx).
+ *
+ * The full `flag-icons/css/flag-icons.min.css` ships a ~493KB stylesheet and
+ * makes Vite emit ALL 142 flag SVGs, when the app only ever renders a couple of
+ * dozen. This file inlines the library's base `.fi` rules (copied verbatim from
+ * flag-icons v7 so rendering is pixel-identical) plus ONLY the country codes the
+ * app can use — the group fixtures (scripts/seed-dev/fixture.ts) and the host
+ * venue flags (src/features/predict/venues.ts). The app uses the 4x3 aspect
+ * (`fi fi-xx`) only — never the `.fis` (1x1) variant — so only 4x3 is included.
+ *
+ * WHEN REAL TEAMS ARE SEEDED (post-2026 qualifying draw): add each new team's
+ * ISO code here, or its flag will not render. This is the one place to update.
+ */
+
+/* Base .fi behaviour — verbatim from flag-icons v7. */
+.fi {
+  background-size: contain;
+  background-position: 50%;
+  background-repeat: no-repeat;
+  position: relative;
+  display: inline-block;
+  width: 1.333333em;
+  line-height: 1em;
+}
+.fi:before {
+  content: " ";
+}
+
+
+/* Only the flags the app can render. */
+.fi-al { background-image: url('../../node_modules/flag-icons/flags/4x3/al.svg'); }
+.fi-at { background-image: url('../../node_modules/flag-icons/flags/4x3/at.svg'); }
+.fi-be { background-image: url('../../node_modules/flag-icons/flags/4x3/be.svg'); }
+.fi-ch { background-image: url('../../node_modules/flag-icons/flags/4x3/ch.svg'); }
+.fi-cz { background-image: url('../../node_modules/flag-icons/flags/4x3/cz.svg'); }
+.fi-de { background-image: url('../../node_modules/flag-icons/flags/4x3/de.svg'); }
+.fi-dk { background-image: url('../../node_modules/flag-icons/flags/4x3/dk.svg'); }
+.fi-es { background-image: url('../../node_modules/flag-icons/flags/4x3/es.svg'); }
+.fi-fr { background-image: url('../../node_modules/flag-icons/flags/4x3/fr.svg'); }
+.fi-gb-eng { background-image: url('../../node_modules/flag-icons/flags/4x3/gb-eng.svg'); }
+.fi-gb-nir { background-image: url('../../node_modules/flag-icons/flags/4x3/gb-nir.svg'); }
+.fi-gb-sct { background-image: url('../../node_modules/flag-icons/flags/4x3/gb-sct.svg'); }
+.fi-gb-wls { background-image: url('../../node_modules/flag-icons/flags/4x3/gb-wls.svg'); }
+.fi-hr { background-image: url('../../node_modules/flag-icons/flags/4x3/hr.svg'); }
+.fi-hu { background-image: url('../../node_modules/flag-icons/flags/4x3/hu.svg'); }
+.fi-ie { background-image: url('../../node_modules/flag-icons/flags/4x3/ie.svg'); }
+.fi-it { background-image: url('../../node_modules/flag-icons/flags/4x3/it.svg'); }
+.fi-nl { background-image: url('../../node_modules/flag-icons/flags/4x3/nl.svg'); }
+.fi-pl { background-image: url('../../node_modules/flag-icons/flags/4x3/pl.svg'); }
+.fi-pt { background-image: url('../../node_modules/flag-icons/flags/4x3/pt.svg'); }
+.fi-ro { background-image: url('../../node_modules/flag-icons/flags/4x3/ro.svg'); }
+.fi-rs { background-image: url('../../node_modules/flag-icons/flags/4x3/rs.svg'); }
+.fi-se { background-image: url('../../node_modules/flag-icons/flags/4x3/se.svg'); }
+.fi-sk { background-image: url('../../node_modules/flag-icons/flags/4x3/sk.svg'); }
+.fi-tr { background-image: url('../../node_modules/flag-icons/flags/4x3/tr.svg'); }
+.fi-ua { background-image: url('../../node_modules/flag-icons/flags/4x3/ua.svg'); }
