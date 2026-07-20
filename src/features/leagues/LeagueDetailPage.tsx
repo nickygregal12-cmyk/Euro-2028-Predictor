@@ -281,7 +281,14 @@ export function LeagueDetailPage() {
               onToggle={() => setExpanded((cur) => (cur === m.userId ? null : m.userId))}
               revealed={revealed}
               stats={{ exact: null, correct: null, maxLeft: null }}
-              onProfile={() => setToast('Player profiles are coming soon.')}
+              // Your own row opens your profile (it exists now, via /profile);
+              // other players' profiles still await the reveal-after-lock RLS,
+              // which is the only secure path to their stats (roadmap Phase 2).
+              onProfile={
+                m.isYou
+                  ? () => navigate('/profile')
+                  : () => setToast('Player profiles are coming soon.')
+              }
               onHeadToHead={() => setToast('Head-to-head is coming soon.')}
             />
           </div>
