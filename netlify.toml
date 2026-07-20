@@ -2,3 +2,26 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Security headers, applied to every response.
+#
+# The CSP allow-list is deliberately tight but MUST permit everything the app
+# actually loads, or real functionality breaks:
+#   - Supabase (REST + Auth + Realtime): https + wss to *.supabase.co (connect-src)
+#   - Cloudflare Turnstile: the loader script + the widget iframe
+#     (challenges.cloudflare.com in script-src and frame-src)
+#   - Google Fonts: the stylesheet (fonts.googleapis.com in style-src) and the
+#     font files (fonts.gstatic.com in font-src)
+#   - Flag SVGs are bundled assets (img-src 'self'); React inline styles need
+#     'unsafe-inline' in style-src.
+# If you add an external resource, update this list or it will be blocked.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    X-XSS-Protection = "0"
