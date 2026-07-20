@@ -1,6 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ThemeProvider } from './app/providers/ThemeProvider'
-import { AuthLayout, RedirectIfAuthed, RequireAuth } from './app/Providers'
+import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
 import { AppShell } from './app/AppShell'
 import { LoginPage } from './features/auth/LoginPage'
 import { SignUpPage } from './features/auth/SignUpPage'
@@ -20,6 +20,7 @@ import { MorePage } from './features/more/MorePage'
 import { ScoringRulesPage } from './features/more/ScoringRulesPage'
 import { MyPointsPage } from './features/scoring'
 import { MatchCentreStub } from './features/matches/MatchCentreStub'
+import { WelcomePage } from './features/welcome/WelcomePage'
 
 export default function App() {
   return (
@@ -44,21 +45,28 @@ export default function App() {
 
             {/* Signed-in only: tournament data + predictions → shell → screens. */}
             <Route element={<RequireAuth />}>
-              <Route element={<AppShell />}>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/predict" element={<PredictHubPage />} />
-                <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
-                <Route path="/predict/third-place" element={<ThirdPlacePage />} />
-                <Route path="/predict/bracket" element={<BracketRound />} />
-                <Route path="/predict/jokers" element={<JokersPage />} />
-                <Route path="/predict/review" element={<ReviewPage />} />
-                <Route path="/league" element={<LeaguePage />} />
-                <Route path="/league/overall" element={<OverallStandingsPage />} />
-                <Route path="/league/:id" element={<LeagueDetailPage />} />
-                <Route path="/match/:matchRef" element={<MatchCentreStub />} />
-                <Route path="/more" element={<MorePage />} />
-                <Route path="/more/points" element={<MyPointsPage />} />
-                <Route path="/more/scoring" element={<ScoringRulesPage />} />
+              {/* /welcome sits above the welcome gate (no shell): a first-time
+                  user is routed here once, before Home. */}
+              <Route path="/welcome" element={<WelcomePage />} />
+
+              {/* Everything else is gated on having seen /welcome. */}
+              <Route element={<RequireWelcome />}>
+                <Route element={<AppShell />}>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/predict" element={<PredictHubPage />} />
+                  <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
+                  <Route path="/predict/third-place" element={<ThirdPlacePage />} />
+                  <Route path="/predict/bracket" element={<BracketRound />} />
+                  <Route path="/predict/jokers" element={<JokersPage />} />
+                  <Route path="/predict/review" element={<ReviewPage />} />
+                  <Route path="/league" element={<LeaguePage />} />
+                  <Route path="/league/overall" element={<OverallStandingsPage />} />
+                  <Route path="/league/:id" element={<LeagueDetailPage />} />
+                  <Route path="/match/:matchRef" element={<MatchCentreStub />} />
+                  <Route path="/more" element={<MorePage />} />
+                  <Route path="/more/points" element={<MyPointsPage />} />
+                  <Route path="/more/scoring" element={<ScoringRulesPage />} />
+                </Route>
               </Route>
             </Route>
           </Route>

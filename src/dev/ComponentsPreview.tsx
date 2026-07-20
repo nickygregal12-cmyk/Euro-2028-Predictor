@@ -46,6 +46,7 @@ import { LeaguePreviewCard } from '../features/leagues/LeaguePreviewCard'
 import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
 import { SignUpForm } from '../features/auth/SignUpForm'
+import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { StatStrip } from '../features/home/StatStrip'
 import { TodayCard } from '../features/home/TodayCard'
 import { CatchUpLine } from '../features/home/CatchUpLine'
@@ -1057,6 +1058,16 @@ function Gallery() {
 
       <Section title="League member rows — post-lock (champion flags, stats revealed)">
         <LeagueMembersDemo revealed />
+      </Section>
+
+      <Section title="/welcome screen">
+        <WelcomeScreen displayName="Alex" onStart={() => {}} onScoring={() => {}} />
+        <Label>hostile long display name (no overflow at 360px)</Label>
+        <WelcomeScreen
+          displayName="Maximilian von Habsburg-Lothringen III"
+          onStart={() => {}}
+          onScoring={() => {}}
+        />
       </Section>
 
       <Section title="Home — stat strip (during tournament)">

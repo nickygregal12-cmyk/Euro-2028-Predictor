@@ -4,7 +4,8 @@ import {
   onAuthChange,
   signOut as serviceSignOut,
 } from '../../services/supabase/auth'
-import { fetchMyProfile } from '../../services/supabase/profile'
+import { fetchMyProfile, fetchWelcomedAt, markWelcomedNow } from '../../services/supabase/profile'
+import { welcomeStatusFor, type WelcomeStatus } from '../welcome/welcomeGating'
 
 // Session state for the whole app. The session is established either by real
 // auth screens (log in / sign up) or, in a dev build, by the auto-login shim on
@@ -15,6 +16,10 @@ type AuthContextValue = {
   userId: string | null
   displayName: string | null
   loading: boolean
+  // /welcome gate: 'loading' while the profile resolves, 'needed' for a
+  // never-welcomed user, 'seen' otherwise. `markWelcomed` stamps it seen.
+  welcomeStatus: WelcomeStatus
+  markWelcomed: () => void
   signOut: () => Promise<void>
 }
 
@@ -24,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [welcomeStatus, setWelcomeStatus] = useState<WelcomeStatus>('loading')
 
   useEffect(() => {
     let active = true
@@ -42,20 +48,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setDisplayName(null)
+      setWelcomeStatus('loading')
       return
     }
     let active = true
-    fetchMyProfile(userId)
-      .then((profile) => {
-        if (active) setDisplayName(profile?.displayName ?? null)
+    setWelcomeStatus('loading')
+    // Fetch the display name and the welcome-seen state together, so the gate
+    // knows whether to route to /welcome before rendering the app.
+    Promise.all([fetchMyProfile(userId), fetchWelcomedAt(userId)])
+      .then(([profile, welcome]) => {
+        if (!active) return
+        setDisplayName(profile?.displayName ?? null)
+        setWelcomeStatus(welcomeStatusFor(welcome))
       })
       .catch(() => {
-        if (active) setDisplayName(null)
+        if (!active) return
+        setDisplayName(null)
+        // Fail open: don't trap anyone on the welcome gate if the read fails.
+        setWelcomeStatus('seen')
       })
     return () => {
       active = false
     }
   }, [userId])
+
+  function markWelcomed() {
+    // Optimistic: advance the gate immediately so navigation off /welcome is
+    // instant; persist best-effort (idempotent — keeps the first-seen time).
+    setWelcomeStatus('seen')
+    if (userId) void markWelcomedNow(userId)
+  }
 
   async function signOut() {
     // A real sign-out: clear the session and let the route gate show the auth
@@ -66,7 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ userId, displayName, loading, signOut }}>
+    <AuthContext.Provider
+      value={{ userId, displayName, loading, welcomeStatus, markWelcomed, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   )
