@@ -102,7 +102,8 @@ Detail in `roadmap.md` § Phase 3.
 - [ ] H2H pass 2 — rank-over-time graph + bracket-health-vs-real + compare-full-brackets side by side
 - [ ] Full profiles extensions — rank history (from `rank_history`), bracket comparisons
 - [ ] Phase-aware Home states (during/after) live
-- [ ] Shareable entry summary (feeds the Share stubs on Review + Home)
+- [ ] Shareable cards build (Phase 3-adjacent) — the self-contained image-generation capability specced in design-system §6 (Shareable cards): one 1080×1080 dark-navy renderer, three content states (quick tease / full bracket / during-tournament brag) + league-context variant; the Share stubs on Review + Home (and league contexts) route here. Supersedes the older "Shareable entry summary" line below.
+- [ ] Shareable entry summary (feeds the Share stubs on Review + Home) — now specced as **Shareable cards** (design-system §6); tracked by the item above
 - [ ] Landing page — public front door (3-step explainer, demo before account); before any public sharing
 - [ ] Independent-app disclaimer + privacy notice / terms in footer
 - [ ] Error monitoring (Sentry free tier) — wired before the dress rehearsal

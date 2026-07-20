@@ -215,6 +215,17 @@ Principle: Home is a hub — it summarises and links, never replicates other scr
 - **Where you split**: plain-language agreement/disagreement strip ("You both had Scotland winning Group A" / "He had England beating France in the semi — you went the other way"). Agreements use a users icon, splits an arrows-split icon. The screenshot-to-group-chat card.
 - Reveal rules apply: H2H against another player is post-lock only (pre-lock, the H2H button on profiles is hidden along with everything else).
 
+### Shareable cards (feeds the Share stubs on Review, Home, and league contexts)
+Client-generated images (canvas/SVG → PNG, fixed 1080×1080) pushed through the native share sheet. Always rendered in the dark-navy poster treatment regardless of the sharer's theme. Designed to survive chat-app compression: big shapes, flags over names, high contrast, minimal fine text. No emojis; proper flags.
+
+One renderer, three content states:
+1. **Quick tease** — champion hero (large flag, name, "My champion"), predicted final line (flags-v-flags, venue + date), one derived-stat line ("89 goals predicted · 5 jokers armed"), challenge chip ("Think you know better?" + app URL). Available once a champion is picked.
+2. **Full bracket** — wall-chart of the entry's knockout SURVIVORS converging from both sides (R16 winners small → QF → SF → champion huge with trophy and accent ring; flag size = predicted progression depth; flags only, champion is the only named team), plus an awards strip (Golden boot in gold treatment, Group goals derived number, URL chip). Available whenever the entry is COMPLETE — pre- or post-lock (sharing is voluntary self-disclosure; the reveal rules only protect non-consensual visibility, and copying a bracket can only tie, never beat, the copied). Header adapts: "«Name»'s entry" pre-lock; lock icon + "locked in" post-lock.
+3. **During-tournament brag** — champion (tombstone treatment if eliminated), points + overall rank ("112 pts · 89th of 2,140") replacing the final line; no challenge copy.
+- **League context**: shared from within a league, the header carries the league name and the URL chip becomes the league invite link — the card doubles as a recruitment poster.
+- **Share moment** offers the applicable variants ("Share your champion / Share your full bracket").
+- **Build**: Phase 3-adjacent (self-contained image-generation capability); the Share stubs route here.
+
 ## 7. Destructive actions (app-wide principle)
 
 Three tiers — the goal is that confirm dialogs stay rare enough to be respected:

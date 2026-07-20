@@ -73,7 +73,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Full profiles extensions**: rank history (from rank_history), bracket comparisons
 - [ ] **During-tournament + post-tournament Home states** live (post-tournament layout designed at this phase)
 - [ ] **Results UX** — whatever the admin flow needs beyond minimal (postponements, corrections at scale)
-- [ ] **Shareable entry summary** — design + build (feeds the Share stubs on Review and Home); could be pulled earlier, it's small
+- [ ] **Shareable cards build** (Phase 3-adjacent) — the self-contained image-generation capability now fully specced in **design-system §6 (Shareable cards)**: one 1080×1080 dark-navy renderer with three content states (quick tease / full bracket / during-tournament brag) plus a league-context recruitment-poster variant; designed to survive chat-app compression (big shapes, flags over names). The Share stubs on Review, Home, and league contexts route here. (Was "Shareable entry summary" — design is done, this is the build.)
 - [ ] **Landing page** — the public front door (explain in 3 steps, Start Predicting, demo before account); needed before any public sharing
 - [ ] **Independent-app disclaimer + privacy notice/terms** in footer
 - [ ] **Error monitoring** (Sentry free tier or similar) — know the app broke before the group chat does; wired before the dress rehearsal
