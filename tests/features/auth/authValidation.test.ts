@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest'
 import {
   DISPLAY_NAME_MAX,
   PASSWORD_MIN,
+  emailError,
   hasErrors,
+  hasNewPasswordErrors,
+  validateNewPassword,
   validateSignUp,
 } from '../../../src/features/auth/authValidation'
 
@@ -50,5 +53,42 @@ describe('validateSignUp', () => {
     expect(errors.displayName).toBeDefined()
     expect(errors.email).toBeDefined()
     expect(errors.password).toBeDefined()
+  })
+})
+
+describe('emailError (shared by sign-up + reset request)', () => {
+  it('accepts a valid email', () => {
+    expect(emailError('alex@example.com')).toBeUndefined()
+    expect(emailError('  alex@example.com  ')).toBeUndefined()
+  })
+
+  it('flags empty and malformed input distinctly', () => {
+    expect(emailError('')).toBe('Please enter your email.')
+    expect(emailError('   ')).toBe('Please enter your email.')
+    expect(emailError('not-an-email')).toBe('Please enter a valid email address.')
+  })
+})
+
+describe('validateNewPassword (reset flow)', () => {
+  it('passes a long-enough, matching pair', () => {
+    const errors = validateNewPassword('secret1', 'secret1')
+    expect(hasNewPasswordErrors(errors)).toBe(false)
+  })
+
+  it('enforces the minimum length', () => {
+    const short = 'x'.repeat(PASSWORD_MIN - 1)
+    expect(validateNewPassword(short, short).password).toBeDefined()
+  })
+
+  it('flags a mismatched confirmation', () => {
+    const errors = validateNewPassword('secret1', 'secret2')
+    expect(errors.confirmPassword).toBeDefined()
+    expect(errors.password).toBeUndefined()
+  })
+
+  it('reports both a too-short password and a mismatch at once', () => {
+    const errors = validateNewPassword('1', '2')
+    expect(errors.password).toBeDefined()
+    expect(errors.confirmPassword).toBeDefined()
   })
 })

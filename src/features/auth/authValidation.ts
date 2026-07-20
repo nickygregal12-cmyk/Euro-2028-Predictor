@@ -21,9 +21,18 @@ export type SignUpFieldErrors = {
   password?: string
 }
 
-// Deliberately permissive: real address validity is proven by sign-up
+// Deliberately permissive: real address validity is proven by the request
 // succeeding. This only catches obviously-empty or malformed input early.
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+// Shared email check — used by sign-up and the password-reset request so the
+// copy and rule stay in one place.
+export function emailError(email: string): string | undefined {
+  const trimmed = email.trim()
+  if (trimmed.length === 0) return 'Please enter your email.'
+  if (!EMAIL_RE.test(trimmed)) return 'Please enter a valid email address.'
+  return undefined
+}
 
 export function validateSignUp(values: SignUpValues): SignUpFieldErrors {
   const errors: SignUpFieldErrors = {}
@@ -33,12 +42,8 @@ export function validateSignUp(values: SignUpValues): SignUpFieldErrors {
   const nameError = checkDisplayName(values.displayName)
   if (nameError) errors.displayName = nameError
 
-  const email = values.email.trim()
-  if (email.length === 0) {
-    errors.email = 'Please enter your email.'
-  } else if (!EMAIL_RE.test(email)) {
-    errors.email = 'Please enter a valid email address.'
-  }
+  const emailErr = emailError(values.email)
+  if (emailErr) errors.email = emailErr
 
   if (values.password.length < PASSWORD_MIN) {
     errors.password = `Password must be at least ${PASSWORD_MIN} characters.`
@@ -48,5 +53,30 @@ export function validateSignUp(values: SignUpValues): SignUpFieldErrors {
 }
 
 export function hasErrors(errors: SignUpFieldErrors): boolean {
+  return Object.keys(errors).length > 0
+}
+
+export type NewPasswordErrors = {
+  password?: string
+  confirmPassword?: string
+}
+
+// Setting a new password on the reset flow: minimum length (mirrors Supabase's
+// server rule) plus a client-only confirm-match check to catch typos early.
+export function validateNewPassword(
+  password: string,
+  confirmPassword: string,
+): NewPasswordErrors {
+  const errors: NewPasswordErrors = {}
+  if (password.length < PASSWORD_MIN) {
+    errors.password = `Password must be at least ${PASSWORD_MIN} characters.`
+  }
+  if (confirmPassword !== password) {
+    errors.confirmPassword = "Those passwords don't match."
+  }
+  return errors
+}
+
+export function hasNewPasswordErrors(errors: NewPasswordErrors): boolean {
   return Object.keys(errors).length > 0
 }
