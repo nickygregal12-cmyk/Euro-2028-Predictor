@@ -21,6 +21,7 @@ import { ScoringRulesPage } from './features/more/ScoringRulesPage'
 import { MatchCentreStub } from './features/matches/MatchCentreStub'
 import { WelcomePage } from './features/welcome/WelcomePage'
 import { ProfilePage } from './features/profile/ProfilePage'
+import { H2HPage } from './features/h2h/H2HPage'
 
 export default function App() {
   return (
@@ -62,6 +63,7 @@ export default function App() {
                   <Route path="/league" element={<LeaguePage />} />
                   <Route path="/league/overall" element={<OverallStandingsPage />} />
                   <Route path="/league/:id" element={<LeagueDetailPage />} />
+                  <Route path="/h2h/:rivalId" element={<H2HPage />} />
                   <Route path="/match/:matchRef" element={<MatchCentreStub />} />
                   <Route path="/more" element={<MorePage />} />
                   <Route path="/profile" element={<ProfilePage />} />

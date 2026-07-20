@@ -48,6 +48,7 @@ import { LoginForm } from '../features/auth/LoginForm'
 import { SignUpForm } from '../features/auth/SignUpForm'
 import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
+import { H2HScreen } from '../features/h2h/H2HScreen'
 import { StatStrip } from '../features/home/StatStrip'
 import { TodayCard } from '../features/home/TodayCard'
 import { CatchUpLine } from '../features/home/CatchUpLine'
@@ -1059,6 +1060,45 @@ function Gallery() {
 
       <Section title="League member rows — post-lock (champion flags, stats revealed)">
         <LeagueMembersDemo revealed />
+      </Section>
+
+      <Section title="H2H pass 1 — champion split, different stats">
+        <H2HScreen
+          you={{ displayName: 'Alex Turner', champion: ESP, championEliminated: false, totalPoints: 112, exactScores: 9, koPicksAlive: 14, maxPossible: 340 }}
+          rival={{ displayName: 'José Peña', champion: GER, championEliminated: false, totalPoints: 96, exactScores: 6, koPicksAlive: 15, maxPossible: 352 }}
+          split={{
+            champion: { agree: false, mine: ESP, theirs: GER },
+            sharedFinalists: [FRA],
+            mineOnlyFinalists: [ESP],
+            theirsOnlyFinalists: [GER],
+          }}
+        />
+      </Section>
+
+      <Section title="H2H pass 1 — identical stats (tie, no accent), hostile long names">
+        <H2HScreen
+          you={{ displayName: 'Maximilian von Habsburg-Lothringen III', champion: ESP, championEliminated: false, totalPoints: 96, exactScores: 7, koPicksAlive: 12, maxPossible: 300 }}
+          rival={{ displayName: 'Anne-Marie Ndlovu-Okonkwo', champion: ESP, championEliminated: true, totalPoints: 96, exactScores: 7, koPicksAlive: 12, maxPossible: 300 }}
+          split={{
+            champion: { agree: true, mine: ESP, theirs: ESP },
+            sharedFinalists: [ESP, FRA],
+            mineOnlyFinalists: [],
+            theirsOnlyFinalists: [],
+          }}
+        />
+      </Section>
+
+      <Section title="H2H pass 1 — rival with zero predictions">
+        <H2HScreen
+          you={{ displayName: 'Ng', champion: SCO, championEliminated: false, totalPoints: 9, exactScores: 0, koPicksAlive: 8, maxPossible: 180 }}
+          rival={{ displayName: 'Bo', champion: null, championEliminated: false, totalPoints: 0, exactScores: 0, koPicksAlive: 0, maxPossible: 65 }}
+          split={{
+            champion: { agree: false, mine: SCO, theirs: null },
+            sharedFinalists: [],
+            mineOnlyFinalists: [SCO],
+            theirsOnlyFinalists: [],
+          }}
+        />
       </Section>
 
       <Section title="Profile — own, populated (full group stage of history)">

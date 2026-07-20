@@ -1,0 +1,191 @@
+/* H2H page. Tokens only (design-system §9). */
+
+/* Face-off header ---------------------------------------------------------- */
+.faceOff {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 8px;
+  padding: 16px 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--mut);
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+}
+.avatarYou {
+  background: var(--acc);
+  color: var(--bg);
+}
+
+.playerName {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--tx);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.championChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--tx2);
+}
+.championChip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.championOut {
+  opacity: 0.45;
+}
+.strike {
+  text-decoration: line-through;
+}
+.noChampion {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+}
+
+.scoreCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+}
+.totals {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  color: var(--tx);
+  white-space: nowrap;
+}
+.dash {
+  color: var(--tx3);
+}
+.totalsLabel {
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tx3);
+}
+
+/* Stat vs stat ------------------------------------------------------------- */
+.statCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.statRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.statRow:last-child {
+  border-bottom: none;
+}
+.statVal {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--tx2);
+}
+.statVal:first-child {
+  text-align: left;
+}
+.statVal:last-child {
+  text-align: right;
+}
+.statBetter {
+  color: var(--acc);
+}
+.statLabel {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Where you split ---------------------------------------------------------- */
+.splitCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.splitEyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+.splitLine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.splitIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--chip);
+}
+.splitAgree {
+  color: var(--acc);
+}
+.splitDiverge {
+  color: var(--amb);
+}
+.splitText {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--tx);
+  min-width: 0;
+}
