@@ -47,6 +47,7 @@ import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
 import { SignUpForm } from '../features/auth/SignUpForm'
 import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
+import { ProfileScreen } from '../features/profile/ProfileScreen'
 import { StatStrip } from '../features/home/StatStrip'
 import { TodayCard } from '../features/home/TodayCard'
 import { CatchUpLine } from '../features/home/CatchUpLine'
@@ -1058,6 +1059,55 @@ function Gallery() {
 
       <Section title="League member rows — post-lock (champion flags, stats revealed)">
         <LeagueMembersDemo revealed />
+      </Section>
+
+      <Section title="Profile — own, populated (full group stage of history)">
+        <ProfileScreen
+          kind="full"
+          header={{ displayName: 'Alex Turner', isOwn: true, champion: SCO, championEliminated: false, leaguesCount: 3 }}
+          stats={{ totalPoints: 148, rank: 4, exactScores: 9, correctResults: 14, scoredMatches: 30, accuracyPercent: 77 }}
+          events={SAMPLE_SCORE_EVENTS}
+          locked
+          onViewEntry={() => {}}
+        />
+      </Section>
+
+      <Section title="Profile — hostile name, champion eliminated (tombstone)">
+        <ProfileScreen
+          kind="full"
+          header={{
+            displayName: 'Maximilian von Habsburg-Lothringen III',
+            isOwn: false,
+            champion: SCO,
+            championEliminated: true,
+            leaguesCount: 1,
+          }}
+          stats={{ totalPoints: 96, rank: 96, exactScores: 3, correctResults: 8, scoredMatches: 24, accuracyPercent: 46 }}
+          events={SAMPLE_SCORE_EVENTS}
+          locked={false}
+          onH2H={() => {}}
+        />
+      </Section>
+
+      <Section title="Profile — new user (zero history, pre-results, tied)">
+        <ProfileScreen
+          kind="full"
+          header={{ displayName: 'Ng', isOwn: true, champion: null, championEliminated: false, leaguesCount: 0 }}
+          stats={{ totalPoints: 0, rank: null, exactScores: 0, correctResults: 0, scoredMatches: 0, accuracyPercent: null }}
+          events={[]}
+          locked={false}
+          onEdit={() => {}}
+        />
+      </Section>
+
+      <Section title="Profile — another player, pre-lock (reveal-gated hidden state)">
+        <ProfileScreen
+          kind="hidden"
+          displayName="José Peña"
+          leaguesCount={2}
+          hasEntry
+          lockDateLabel="9 June 2028"
+        />
       </Section>
 
       <Section title="/welcome screen">

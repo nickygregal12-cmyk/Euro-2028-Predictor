@@ -1,0 +1,149 @@
+/* Profile page. Tokens only (design-system §9). */
+
+/* Identity header ---------------------------------------------------------- */
+.headerCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--acc);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+}
+
+.headerBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 17px;
+  color: var(--tx);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.headerMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+/* Champion pick (tombstone treatment when eliminated) */
+.champion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.championLabel {
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tx3);
+}
+.championName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--tx);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.championOut {
+  opacity: 0.45;
+}
+.strike {
+  text-decoration: line-through;
+}
+
+.headerAction {
+  flex-shrink: 0;
+}
+
+/* Stat grid — four up (2×2 at 360px) --------------------------------------- */
+.statGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Points breakdown card ---------------------------------------------------- */
+.breakdownCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+/* View-full-entry row ------------------------------------------------------ */
+.entryRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--tx);
+}
+.entryRow:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.entryChev {
+  color: var(--tx3);
+}
+
+/* Pre-lock hidden state ---------------------------------------------------- */
+.lockCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.lockIcon {
+  color: var(--tx3);
+  flex-shrink: 0;
+}
+.lockText {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx2);
+}
