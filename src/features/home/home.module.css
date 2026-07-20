@@ -1,0 +1,336 @@
+/* Home dashboard. Tokens only (design-system §9). */
+
+.cardEyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+/* Stat strip -------------------------------------------------------------- */
+.stripCard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.stripSeg {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  padding: 14px 16px;
+  background: var(--card);
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.stripSeg:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+
+.stripValue {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--tx);
+}
+.stripAccent {
+  color: var(--acc);
+}
+
+.stripLabel {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+
+/* Today card -------------------------------------------------------------- */
+.todayCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+/* Cyan border while any match is live (design-system §6). */
+.todayLive {
+  border-color: var(--cyn);
+}
+
+.todayEmpty {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx2);
+}
+
+.fixtureList {
+  display: flex;
+  flex-direction: column;
+}
+
+.fixtureRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.fixtureRow:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+.fixtureRow:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: var(--radius-input);
+}
+
+.fixtureTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fixtureTeams {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.fixtureName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--tx);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 8ch;
+}
+
+.fixtureScore {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+.fixtureV {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: var(--tx3);
+}
+
+.fixtureChev {
+  color: var(--tx3);
+  flex-shrink: 0;
+}
+
+.fixtureMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fixtureKick {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--tx2);
+}
+.fixtureLive {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--cyn);
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--cyn);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .liveDot {
+    animation: none;
+  }
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.fixtureStake {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+}
+
+/* Catch-up line ----------------------------------------------------------- */
+.catchUp {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border-radius: var(--radius-input);
+  background: color-mix(in srgb, var(--acc) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--acc) 30%, transparent);
+}
+.catchUpEyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+.catchUpText {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--tx);
+}
+.catchUpPts {
+  font-family: var(--font-display);
+  font-weight: 500;
+  color: var(--acc);
+}
+
+/* League snapshot --------------------------------------------------------- */
+.snapshot,
+.snapshotEmpty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  cursor: pointer;
+  text-align: left;
+}
+.snapshot:focus-visible,
+.snapshotEmpty:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.snapshotIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--tx2);
+}
+.snapshotIconLead {
+  color: var(--acc);
+}
+
+.snapshotBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.snapshotTitle,
+.snapshotName {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.snapshotSub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+.snapshotChev {
+  color: var(--tx3);
+  flex-shrink: 0;
+}
+
+/* Pre-tournament: submitted banner + champion mini ------------------------ */
+.submittedBanner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--acc) 12%, transparent);
+  border: 1px solid var(--acc);
+}
+.submittedTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+.submittedIcon {
+  color: var(--acc);
+}
+.submittedSub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.championMini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.championMiniBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.championName {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--tx);
+}

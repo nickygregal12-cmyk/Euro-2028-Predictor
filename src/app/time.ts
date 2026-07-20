@@ -34,3 +34,20 @@ export function formatLongDate(isoDate: string): string {
     year: 'numeric',
   })
 }
+
+/** Today's local date as `yyyy-mm-dd`, to compare against a match's date. */
+export function todayISO(now: Date = new Date()): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
+/** Weekday + day + month, e.g. "Tue 14 Jun" — for the Today card's next-matchday label. */
+export function formatWeekdayDate(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  })
+}
