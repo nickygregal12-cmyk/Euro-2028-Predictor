@@ -250,6 +250,14 @@ One shared skeleton, three temporal states, two match-type variants. Skeleton to
 ### Matches tab (Phase 3 — 5th nav slot; the full fixture browser)
 The chronological answer to "check my predictions": every fixture, grouped by matchday ("Matchday 3 · Tue 14 Jun"), today auto-scrolled into view. Compact rows: flags, kickoff time (upcoming) or result (played), the user's prediction ("You said 2–1" / "You had Sco through"), points pill once scored (joker variants), joker marker where placed, chevron → match centre. Live matches get the inline cyan treatment (dot, score, minute). Filter row (All · By group · My jokers) — lightweight chips, not tabs. Division of labour: Home = today + catch-up (glanceable); Matches = browse everything; match centre = one fixture deep. No duplication of group screens — they remain the group-shaped view; this is the time-shaped view.
 
+### Post-tournament Home (Phase 3 — Home's final state, from the morning after the final)
+- **Final standing hero**: centred — "Euro 2028 · Final standings" eyebrow, overall finish huge ("214th"), percentile line in accent ("of 2,140 · top 10%") — most players don't win; the percentile gives every finish a story.
+- **League finishes card**: one row per league — final position (accent + trophy for 1st), league name truncating, and a story line per league: where a tie-break decided anything, it's explained right here ("Level on 96 with Davie — he had more exact scores" — this is the tie-break-display requirement's home); wins get celebratory copy.
+- **Champion reckoning card**: one card, two moods. Missed: dimmed flag, struck-through name, rueful copy ("You backed ~~Scotland~~. Spain won it. There's always 2032."). Called it: full-brightness flag, accent celebration.
+- **Final stat strip**: Exact / Accuracy % / Best matchday / joker return in gold ("+42 · 3/5 jokers").
+- **Share your tournament**: primary CTA → the brag card, final edition (peak share-propensity moment).
+- **Archive close**: "Your entry, every match, and all the standings stay right here to argue over" (the app becomes an archive, never a corpse — all browsing keeps working) + "Thanks for playing. See you at the next one." (platform door ajar for future tournaments).
+
 ### Landing page (Phase 3 — the logged-out root; signed-in users route straight to Home)
 Voice: "a mate built this," premium polish — personal, confident, honest. Single scroll, mobile-first, dark poster treatment.
 - **Hero**: eyebrow ("UK & Ireland · Summer 2028"), headline "Call the whole Euros. Before a ball is kicked.", two-sentence pitch (scale of the boast: every match, whole bracket, one locked entry, a summer of finding out), primary CTA **"Start predicting"** (solid accent — the only solid CTA on the page), under-line "Free. No ads. Built by a fan."
