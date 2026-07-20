@@ -46,6 +46,11 @@ import { LeaguePreviewCard } from '../features/leagues/LeaguePreviewCard'
 import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
 import { SignUpForm } from '../features/auth/SignUpForm'
+import { StatStrip } from '../features/home/StatStrip'
+import { TodayCard } from '../features/home/TodayCard'
+import { CatchUpLine } from '../features/home/CatchUpLine'
+import { LeagueSnapshot } from '../features/home/LeagueSnapshot'
+import type { TodaySection } from '../features/home/useHomeData'
 
 // Sample data — real flag-icons codes so the outline is visible on white-heavy
 // flags (England). This is a dev harness only; no domain logic here.
@@ -391,6 +396,38 @@ function rankLeagueMembersDemo<T extends { displayName: string; totalPoints: num
   rows: T[],
 ) {
   return rankLeaderboard(rows)
+}
+
+// Hostile-data Home fixtures for the Today card. Longest plausible team names,
+// live + upcoming + full-time rows, a missing prediction.
+const HOME_FIXTURE = (over: Partial<import('../features/home/useHomeData').TodayFixture> = {}) => ({
+  matchId: Math.random().toString(),
+  matchRef: 'GA-1',
+  group: 'A',
+  matchday: 1,
+  home: SCO,
+  away: ENG,
+  kickoffAt: '2028-06-14T19:00:00Z',
+  matchDate: '2028-06-14',
+  prediction: { home: 2, away: 1 },
+  result: null,
+  live: false,
+  ...over,
+})
+
+const TODAY_LIVE: TodaySection = {
+  kind: 'today',
+  anyLive: true,
+  fixtures: [
+    HOME_FIXTURE({ live: true, result: { home: 1, away: 0 }, home: SCO, away: ENG }),
+    HOME_FIXTURE({ kickoffAt: '2028-06-14T16:00:00Z', home: ESP, away: ITA, prediction: null }),
+    HOME_FIXTURE({ result: { home: 2, away: 2 }, home: FRA, away: GER, prediction: { home: 1, away: 2 } }),
+  ],
+}
+const TODAY_NEXT: TodaySection = {
+  kind: 'next',
+  dateISO: '2028-06-09',
+  fixtures: [HOME_FIXTURE({ home: WAL, away: POR, prediction: { home: 0, away: 3 } })],
 }
 
 /** Every component in every state — rendered once per theme by ComponentsPreview. */
@@ -1020,6 +1057,59 @@ function Gallery() {
 
       <Section title="League member rows — post-lock (champion flags, stats revealed)">
         <LeagueMembersDemo revealed />
+      </Section>
+
+      <Section title="Home — stat strip (during tournament)">
+        <StatStrip
+          totalPoints={148}
+          pointsToday={12}
+          rank={4}
+          entryCount={2140}
+          bestLeagueRank={1}
+          hasLeague
+          onPoints={() => {}}
+          onToday={() => {}}
+          onRank={() => {}}
+          onLeague={() => {}}
+        />
+        <Label>pre-results / no league</Label>
+        <StatStrip
+          totalPoints={0}
+          pointsToday={0}
+          rank={null}
+          entryCount={2140}
+          bestLeagueRank={null}
+          hasLeague={false}
+          onPoints={() => {}}
+          onToday={() => {}}
+          onRank={() => {}}
+          onLeague={() => {}}
+        />
+      </Section>
+
+      <Section title="Home — Today card">
+        <Label>live (cyan border) + upcoming + full-time rows</Label>
+        <TodayCard section={TODAY_LIVE} onOpenMatch={() => {}} />
+        <Label>no matches today → next matchday</Label>
+        <TodayCard section={TODAY_NEXT} onOpenMatch={() => {}} />
+        <Label>nothing scheduled</Label>
+        <TodayCard section={{ kind: 'none' }} onOpenMatch={() => {}} />
+      </Section>
+
+      <Section title="Home — catch-up line + league snapshot">
+        <CatchUpLine catchUp={{ pointsDelta: 18, rankDelta: null }} />
+        <LeagueSnapshot
+          league={{ id: 'x', name: 'The Undisputed Champions Of All Group Stages', memberCount: 22, rank: 1, gapToTop: 0, lastActivityMs: 0 }}
+          onOpen={() => {}}
+          onCreate={() => {}}
+        />
+        <LeagueSnapshot
+          league={{ id: 'y', name: 'Fam', memberCount: 6, rank: 4, gapToTop: 23, lastActivityMs: 0 }}
+          onOpen={() => {}}
+          onCreate={() => {}}
+        />
+        <Label>no leagues → create prompt</Label>
+        <LeagueSnapshot league={null} onOpen={() => {}} onCreate={() => {}} />
       </Section>
     </div>
   )

@@ -226,6 +226,27 @@ One renderer, three content states:
 - **Share moment** offers the applicable variants ("Share your champion / Share your full bracket").
 - **Build**: Phase 3-adjacent (self-contained image-generation capability); the Share stubs route here.
 
+### Match Centre (Phase 3 — the per-fixture page)
+One shared skeleton, three temporal states, two match-type variants. Skeleton top to bottom: header → score hero → your stake → what [scope] said → what it changed → points detail (PointsBreakdown for this match).
+
+**Header**: stage + state eyebrow ("Group A · Full time" / "Round of 16 · After pens"), venue with host-nation flag. **Scope switcher chip** (top-right) when the user belongs to leagues: "This league ▾" / other leagues / Overall. Arriving via a league deep link (live strip, league detail) pre-selects that league.
+
+**Match-type variants:**
+- *Group*: exact-score stake ("You predicted 2–1" + points pill incl. joker states); consequences in table language (group position changes, best-third race entry/exit).
+- *Knockout*: winner-only stake ("You had Scotland through" + progression points pill); score hero gains the AET/penalties line ("Scotland win 4–3 on penalties" — display only; the winner-call is what's scored); consequences in bracket language (your picks surviving/dying downstream; league casualties).
+
+**"What [scope] said" — the scope rule: league scope = names, overall scope = bars.**
+- *Overall*: anonymous aggregate — group matches show a scoreline distribution (bar per predicted score, counts, your row marked "N · you"); KO matches show a two-team split bar with flags.
+- *League*: named member picks — one row per member (avatar, name truncating, their pick, their points), grouped by outcome best-first (Exact accent / Right result / Wrong dimmed for groups; "Had X ✓" / "Had Y ✗" for KO). Joker pills per row: gold when paid, muted grey "+0" when burned. Current user's row highlighted. Collapsed to notable rows + "Show all N members".
+- Reveal-gating: named picks and distributions are post-lock only; pre-lock, this block shows entry-status counts only ("18 of 20 have predicted this match").
+
+**Temporal states:**
+- *Before*: header + countdown; your stake editable (pre-lock) or locked chips; said-block reveal-gated per above; no consequences section.
+- *During*: cyan live treatment (pulsing dot, minute — reduced-motion static); provisional points on stakes and league rows, marked as provisional; consequences as "as it stands" projections.
+- *After*: as mocked — confirmed points, full consequences ("What it changed"), the league schadenfreude line computed from progressions ("4 league rivals lose picks — incl. Jenna's finalist Netherlands").
+
+**Data requirements (Phase 3 schema):** per-match prediction aggregates (scoreline counts overall; winner splits for KO) and a league-scoped per-match member-picks query (co-membership gated, post-lock gated — extends the get_league_members pattern). Both flagged for the Phase 3 build.
+
 ## 7. Destructive actions (app-wide principle)
 
 Three tiers — the goal is that confirm dialogs stay rare enough to be respected:

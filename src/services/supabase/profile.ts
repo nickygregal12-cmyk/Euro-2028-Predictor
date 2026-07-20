@@ -34,3 +34,43 @@ export async function createMyProfile(userId: string, displayName: string): Prom
   if (error) throw error
   return { id: data.id, displayName: data.display_name }
 }
+
+export type LastSeen = { lastSeenAt: string | null; lastSeenPoints: number | null }
+
+/**
+ * The user's last-seen snapshot (for Home's catch-up line). Best-effort: the
+ * columns are a follow-up migration (20260720150000_add_last_seen.sql), so a DB
+ * without it just reads as "no snapshot" (catch-up stays hidden) rather than
+ * erroring — the same fail-soft pattern as tournaments.lock_at.
+ */
+export async function fetchLastSeen(userId: string): Promise<LastSeen> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('last_seen_at, last_seen_points')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error || !data) return { lastSeenAt: null, lastSeenPoints: null }
+    return {
+      lastSeenAt: (data as { last_seen_at: string | null }).last_seen_at ?? null,
+      lastSeenPoints: (data as { last_seen_points: number | null }).last_seen_points ?? null,
+    }
+  } catch {
+    return { lastSeenAt: null, lastSeenPoints: null }
+  }
+}
+
+/**
+ * Snapshot "seen now, at this total" (own-profile RLS). Best-effort — a missing
+ * column just means the catch-up line never fires; never blocks Home from loading.
+ */
+export async function updateLastSeen(userId: string, points: number): Promise<void> {
+  try {
+    await supabase
+      .from('profiles')
+      .update({ last_seen_at: new Date().toISOString(), last_seen_points: points })
+      .eq('id', userId)
+  } catch {
+    // ignore — the snapshot is a nicety, not load-bearing
+  }
+}

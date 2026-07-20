@@ -60,6 +60,24 @@ The service-role key bypasses RLS, which is why the guard is strict. It only
 writes freely because the tournament is in the future (nothing is locked yet);
 the mid-tournament is simulated purely by entering results.
 
+## Exercising Home's "Today" card during dev
+
+The seeded fixtures are dated to the real tournament window (June 2028), so on any
+ordinary dev day Home's Today card shows the **next matchday**, not today. To see
+the today/live rows, point one fixture's date at today in the SQL editor:
+
+```sql
+-- Make a group match "today" (kickoff in a couple of hours):
+update matches
+set match_date = current_date, kickoff_at = now() + interval '2 hours'
+where match_ref = 'GA-1'
+  and tournament_id = (select id from tournaments order by year limit 1);
+```
+
+(There's no live-score source yet, so a "today" row reads as upcoming, or
+full-time if that match already has a result. Live rows are wired through Home
+but unfed until Phase 3.)
+
 ## Files
 
 | file | purpose |

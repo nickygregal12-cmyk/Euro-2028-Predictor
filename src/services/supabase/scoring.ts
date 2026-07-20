@@ -26,3 +26,20 @@ export async function fetchMyScoreEvents(): Promise<ScoreEvent[]> {
     joker: (r.joker as boolean) || undefined,
   }))
 }
+
+export type ScoreEventPoints = { matchId: string | null; points: number }
+
+/**
+ * The caller's score-event points keyed by the match they scored (null for
+ * non-match categories). Feeds Home's "Points Today" (sum where the match is
+ * today) — the sum of all rows also equals the user's total. RLS scopes to the
+ * caller's own entry.
+ */
+export async function fetchMyScoreEventPoints(): Promise<ScoreEventPoints[]> {
+  const { data, error } = await supabase.from('score_events').select('match_id, points')
+  if (error) throw error
+  return (data ?? []).map((r) => ({
+    matchId: (r.match_id as string | null) ?? null,
+    points: r.points as number,
+  }))
+}
