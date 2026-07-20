@@ -54,6 +54,7 @@ tests/
 - One logical change per commit (e.g. "add resolveGroupTies + tests"), not batches of unrelated work
 - Run `npx vitest run` before committing; don't commit red tests
 - Push to GitHub after each completed piece of work
+- After a branch is merged to main, **delete the remote branch in the same session** — merged branches are history, not inventory (`git push origin --delete <branch>`)
 - Never commit `.env` files (already gitignored)
 
 ## Current status
