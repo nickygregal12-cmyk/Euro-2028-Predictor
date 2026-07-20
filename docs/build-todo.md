@@ -4,6 +4,8 @@ No dates, no deadlines. Just tick things off in order. Each tier is fully usable
 
 **How to use this:** work top to bottom within a tier. Don't skip ahead to a later tier's item just because it's more fun — the domain logic tier is the one thing every later tier depends on, so get it right first.
 
+**Companion doc:** `roadmap.md` is the full-horizon map (every decision + the far phases, with detail); this file is the near-term, tick-as-you-go checklist. When they disagree, reconcile — they're meant to stay in sync.
+
 ---
 
 ## TIER 0 — Foundations (do this before any UI)
@@ -65,23 +67,55 @@ This is the highest-risk part of the whole project. Get it fully correct and tes
 - [x] Dev seed — fake mid-tournament (hostile-data rule) — `scripts/seed-dev/`: repeatable, **dev-only**, fail-closed (`seedPolicy.ts`, unit-tested, mirrors the auto-login guard) and idempotent seed of ~20 hostile-named test users with complete submitted entries (36 group scores, orders, full progression, ≤5 jokers) and ~12 results; scores computed through the real `calculateScore` pipeline. Dry-run by default (writes nothing); `--commit` writes to the dev DB. Run via `npx tsx scripts/seed-dev/index.ts` (no repo dependency added). See `scripts/seed-dev/README.md`.
 - [ ] Home dashboard design session (phase-aware: pre / during / post tournament)
 
-## Phase 2 — Original Predictor leagues (was v0.5)
-- [ ] League create / invite link + code / join / leave
-- [ ] League table page (incl. exact-score count, correct-result count, predicted champion, max remaining points)
+## Phase 2 — Original Predictor leagues + social layer (was v0.5)
+Detail for every item lives in `roadmap.md` § Phase 2.
+- [ ] Home dashboard build — full layered layout (stat strip, Today card, catch-up line, league snapshot); during-tournament layers activate as data exists
+- [ ] League create / invite link + code / join / leave (create → immediate share sheet; leave via overflow menu + confirm; owners transfer or delete — no orphaned leagues)
+- [ ] Invite deep links survive logged-out — tap link → sign up → land back in the pending join
+- [ ] League detail page (incl. exact-score count, correct-result count, predicted champion, max remaining points; member rows collapsed/expanded; entry-progress display pre-deadline; no-entry state) — finishes the expandable `LeaderboardRow`
 - [ ] Max-remaining-points calculation in domain layer
-- [ ] Reveal-after-lock RLS policy (designed once, reused by all later competitions)
-- [ ] Player profiles (StatCards + PointsBreakdown + revealed predictions)
-- [ ] H2H links from league rows
-- [ ] Minimal admin result-entry page + correction flow
-- [ ] Turnstile + rate limiting + CI running tests
-- [ ] Confirmation-aware sign-up + server-side profile creation — **confirmed live 2026-07-20**: enabling email confirmation on the dev Supabase project broke sign-up exactly as feared (auth user half-created, then the client `createMyProfile` insert fails RLS because there's no session yet). Move profile creation server-side: a Postgres trigger on `auth.users` insert that creates the `profiles` row (display name passed via sign-up metadata), so profiles never depend on a client insert racing a session — this also fixes the half-created-user failure mode permanently. Then handle the confirmation-required sign-up UX (no session on return → "check your email", not an error). Once done, `signUpWithPassword`/`createMyProfile` in `services/supabase/auth.ts`+`profile.ts` no longer do the client-side insert. (Confirmation is disabled again on the dev project for now.)
+- [ ] Reveal-after-lock RLS policy (designed once, reused by all later competitions; champion flags hidden pre-lock; view-full-entry post-lock only)
+- [ ] Player profiles (StatCards + PointsBreakdown + revealed predictions; pre-lock hidden state; own profile via More tab)
+- [ ] H2H page build, pass 1 (designed) — face-off header, stat-vs-stat, where-you-split strip; post-lock only; H2H links from league rows
+- [ ] `rank_history` schema — per-user per-matchday rank snapshots; capture MUST start from the first scored result (Phase 2/3 boundary; not retrofittable)
+- [ ] Points breakdown live — driven by real `score_events`
+- [ ] Minimal admin result-entry page + correction flow (scoring-impact preview before confirm; no double-counting on re-entry)
+- [ ] /welcome page (design session + build) — post-first-signin orientation, 3 steps, "Start with Group A", seen-tracked (`welcomed_at` on profiles); must exist before the single-tester test (design-system §7)
+- [ ] Auto-submit at lock — server auto-submits any VALID never-submitted entry at the lock instant (scoring-rules §7); incomplete entries stay out of standings; auto-submitted marked internally
+- [ ] Deadline reminder emails — "entries lock in 48h/24h, you're N% done" to incomplete entries (needs custom SMTP, pulled forward)
+- [ ] Destructive-action polish (design-system §7) — sign-out confirm modal + joker-removal undo-toast (kickoff-aware copy)
+- [ ] Tie-breaks at final standings — show the tie-break explanation prominently when final league standings are computed
+- [ ] Bracket un-pick — add a clear/unpick action (only "change" exists today; parked from the review build)
+- [ ] Admin bootstrapping documented — the one-time SQL granting the first admin role, written into a repo ops note
+- [ ] Auth hardening (one combined build) — confirmation-aware sign-up + server-side profile creation via `auth.users` trigger (remove client `createMyProfile`; **confirmed live 2026-07-20** — confirmation half-created the user then failed the client insert under RLS); `friendlyAuthError` distinguish the no-session case; password reset flow (Supabase `resetPasswordForEmail`, "if an account exists" copy); custom SMTP for auth emails; Turnstile on sign up / log in; rate limiting (auth, prediction save, league join); display-name moderation; decide on email verification
+- [ ] CI — GitHub Actions running the test suite on every push
+
+### Phase 2 exit gates
+- [ ] Separate production Supabase project — fresh migrations + real data; dev project keeps the test mess; Netlify env vars switch to prod
+- [ ] Single-tester scripted entry-flow friction test (one trusted person, defined script; findings triaged before Phase 3) — a friction check, not a launch
 
 ## Phase 3 — Core tournament experience (was Tier 4)
-- [ ] Match Centre; Matches joins nav as 5th tab
-- [ ] Full profiles, H2H pages, rank history, bracket comparisons
+Detail in `roadmap.md` § Phase 3.
+- [ ] Match Centre (design session first — biggest undesigned surface); Matches joins nav as 5th tab; league-scoped views by deep link
+- [ ] Live match strip (League tab + league detail; cyan, pulsing dot, league-context line)
 - [ ] Live tables with Predicted/Live switcher + "You" column (designed)
-- [ ] Phase-aware Home states (during/after)
-- [ ] E2E tests, staging env, audit logs, accessibility pass, full rehearsal
+- [ ] H2H pass 2 — rank-over-time graph + bracket-health-vs-real + compare-full-brackets side by side
+- [ ] Full profiles extensions — rank history (from `rank_history`), bracket comparisons
+- [ ] Phase-aware Home states (during/after) live
+- [ ] Shareable entry summary (feeds the Share stubs on Review + Home)
+- [ ] Landing page — public front door (3-step explainer, demo before account); before any public sharing
+- [ ] Independent-app disclaimer + privacy notice / terms in footer
+- [ ] Error monitoring (Sentry free tier) — wired before the dress rehearsal
+- [ ] Account deletion + data export (right to erasure; policy for league memberships + leaderboard rows)
+- [ ] E2E tests (Playwright), staging env, audit logs, accessibility pass
+- [ ] Full dress rehearsal — simulate the whole competition with friends playing along; launch-blocking
+
+## Standing data/ops items (no phase — do when triggered)
+- [ ] Real teams into seed data once qualifying completes (Dec 2026 draw onward); host slots per roadmap
+- [ ] Verify tournament-structure doc against final UEFA 2028 regulations (esp. the 15-combination third-place table)
+- [ ] Players table population once squads confirmed (golden-boot search goes live; UI already final)
+- [ ] Per-matchday kickoff times after the 2027 schedule announcement
+- [ ] Free-tier ceilings check before real users; custom domain (optional); backup/export process before the tournament
 
 ## Phase 4 — Bonus Games platform (hub at More → Games; see docs/competition-structure.md)
 ## Phase 5 — KO Predictor

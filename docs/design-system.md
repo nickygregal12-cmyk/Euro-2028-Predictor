@@ -17,6 +17,7 @@ Source of truth for all visual and interaction design. Components implement exac
 - **No emojis anywhere in the UI.** Icons are SVG only (Tabler icons or equivalent outline set).
 - **Real flags, never emoji flags.** Use the `flag-icons` library (MIT) for all national flags. Flags render at 3:2 ratio, 2-3px corner radius, 1px hairline outline in `--line` so white-heavy flags (England) don't dissolve into light backgrounds.
 - Mobile-first. Every component is designed at 360px width first.
+- **Local timezone.** All times display in the user's local timezone (stored UTC); venue-local secondary where relevant.
 
 ## 2. Tokens
 
@@ -199,11 +200,34 @@ Principle: Home is a hub — it summarises and links, never replicates other scr
 - Unscored categories show "0 · pending" in muted — never hidden.
 - Total row pinned beneath, separated by a rule; the total must always equal the sum of rendered events (both derive from score_events — one source of truth).
 
-## 7. States (every component, no exceptions)
+## 7. Destructive actions (app-wide principle)
+
+Three tiers — the goal is that confirm dialogs stay rare enough to be respected:
+
+1. **Irreversible or costly → confirm Modal.** Leave league, Submit entry, bracket cascade-clear (when dependents exist), account deletion (Phase 3), and **sign out** — sign-out earns a confirm specifically because until password reset exists, an accidental sign-out on a phone can mean being locked out ("Sign out? You'll need your password to get back in."). Dialogs state the concrete consequence, never a generic "Are you sure?".
+2. **Reversible → no dialog; undo-toast where re-doing isn't trivial.** Removing a joker, changing a score, changing a bracket pick with no dependents. Joker removal shows a toast "Joker removed · Undo" (few seconds); when the affected match kicks off soon, the toast states it explicitly ("Joker removed · kicks off in 12m · Undo") since commitment rules make that removal effectively final.
+3. **Routine actions are never confirmed.** Over-confirming trains users to click through dialogs, which defeats tier 1.
+
+### /welcome page (Phase 2 — shown once, after first sign-in, before Home)
+- Single screen, no carousel. Eyebrow app title, "Welcome, [display name]" (21px display), one-line tagline ("One entry. A whole summer of bragging rights.").
+- Three-step card using the app's own hub iconography (football / tournament / cards — the joker step's icon in gold per the colour law): Predict every group match ("your group tables build themselves") → Build your bracket ("all the way to your champion at Wembley") → Play your jokers, beat your mates ("Five jokers double a match's points. Join a league and settle it properly.").
+- Primary CTA (accent, full width): **"Start with Group A →"** — drops straight into the group predictor, not Home.
+- Quiet bottom link: **"How the scoring works →"** — opens the existing scoring page; its back action lands on Home, not back on welcome.
+- Seen-tracking: `welcomed_at` on profiles (survives devices). Marked seen on ANY exit — Start, the rules link, or navigating away via the bottom nav. Never shown twice; content remains findable under More → How to play. Never shown to the dev user in normal flows.
+
+### H2H page (Phase 2 header/stats/split; graph + bracket health activate Phase 3)
+- **Face-off header**: both players — avatar, name (truncating), champion flag (tombstone-dimmed if eliminated) — with the headline totals large between them ("96 – 112 · Total points").
+- **Stat-vs-stat rows**: label centred, each player's value either side; the better value per row in accent on its side. Rows: Exact scores, KO picks alive, **Max still possible** (the hope metric). Extendable.
+- **Rank over time graph**: both players as lines (viewer accent, rival cyan), rank axis inverted (up = better), current rank in the legend. **Scope switcher** (top-right chip): Overall by default; dropdown lists only leagues BOTH players share. Requires `rank_history` snapshots (per user per matchday) — capture must start from the first scored result (schema item at the Phase 2/3 boundary; not retrofittable).
+- **Bracket health vs real** (renders only once knockouts begin): per-player chip — champion alive (accent tick) / out (red cross), "N/8 QF picks alive" style counts — plus "Compare full brackets ›" opening both predicted brackets side by side against real results (the Phase 3 bracket-comparison surface's entry point).
+- **Where you split**: plain-language agreement/disagreement strip ("You both had Scotland winning Group A" / "He had England beating France in the semi — you went the other way"). Agreements use a users icon, splits an arrows-split icon. The screenshot-to-group-chat card.
+- Reveal rules apply: H2H against another player is post-lock only (pre-lock, the H2H button on profiles is hidden along with everything else).
+
+## 8. States (every component, no exceptions)
 
 Every screen/component ships with: empty, loading (skeleton, not spinner, for content areas), error (with retry), locked, and saved/save-failed states designed and implemented together with the happy path — never retrofitted.
 
-## 8. Accessibility
+## 9. Accessibility
 
 - WCAG AA contrast in both themes (the per-theme accent/gold values exist precisely for this)
 - Never colour-only signalling (bars + numbers, icons + text)
@@ -213,7 +237,7 @@ Every screen/component ships with: empty, loading (skeleton, not spinner, for co
 - prefers-reduced-motion respected for all animation
 - Score inputs labelled per team ("Scotland score")
 
-## 9. CSS architecture
+## 10. CSS architecture
 
 - CSS Modules per component; tokens imported globally
 - No Tailwind, no CSS-in-JS libraries

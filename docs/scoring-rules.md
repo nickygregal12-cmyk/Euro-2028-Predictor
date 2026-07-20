@@ -106,6 +106,13 @@ Applied in order until the tie is broken:
 
 ---
 
+## 7. Entry validity & auto-submit at lock
+
+- An entry is **valid** when it passes the server-side completeness check: all 36 group predictions, all tie resolutions, all 15 knockout winners (golden boot and jokers are optional — their absence never blocks validity).
+- **Auto-submit rule:** at the entry lock instant, any valid entry that was never manually submitted is automatically submitted by the server. Nobody loses a complete entry to a forgotten button.
+- Incomplete entries at lock are not submitted and do not appear in standings. (Deadline reminder emails exist to minimise this case.)
+- Manual submission remains the normal path and is encouraged in the UI; auto-submit is the safety net, and auto-submitted entries are marked as such internally.
+
 ## Open items / things to revisit later
 
 - Confirm whether knockout mode ever moves beyond winner-only selection (e.g. a future score-prediction knockout mode) — if so, exact-score bonus rules will need defining for that mode separately, and must stay isolated from these original-entry scores per the "never merge original and live knockout scores" rule.
