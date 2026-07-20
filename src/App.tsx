@@ -18,6 +18,7 @@ import { LeagueDetailPage } from './features/leagues/LeagueDetailPage'
 import { JoinLandingPage } from './features/leagues/JoinLandingPage'
 import { MorePage } from './features/more/MorePage'
 import { ScoringRulesPage } from './features/more/ScoringRulesPage'
+import { MyPointsPage } from './features/scoring'
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
                 <Route path="/league/overall" element={<OverallStandingsPage />} />
                 <Route path="/league/:id" element={<LeagueDetailPage />} />
                 <Route path="/more" element={<MorePage />} />
+                <Route path="/more/points" element={<MyPointsPage />} />
                 <Route path="/more/scoring" element={<ScoringRulesPage />} />
               </Route>
             </Route>

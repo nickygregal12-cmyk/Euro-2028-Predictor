@@ -12,6 +12,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildGroupTableRows } from './groupTable'
+import { scoreOneMatch } from './matchScoring'
 import { venueCountryCode } from './venues'
 import { isEntryLocked } from '../../domain/tournament/entryLock'
 import { formatShortDate, countdownToDate } from '../../app/time'
@@ -110,10 +111,18 @@ export function GroupPredictorPage() {
       <div className={g.cards}>
         {groupMatches.map((m) => {
           const pred = preds.getPrediction(m.id)
+          // A match with a real result shows the scored card (result hero +
+          // points pill, incl. joker variants) regardless of the entry lock —
+          // results only arrive after kickoff. Points come from the domain
+          // scorer, the same rules as the stored score_events.
+          const resulted = m.homeScore !== null && m.awayScore !== null
+          const matchScore = resulted
+            ? scoreOneMatch(pred, { home: m.homeScore as number, away: m.awayScore as number })
+            : null
           return (
             <MatchCard
               key={m.id}
-              state={locked ? 'locked' : 'editable'}
+              state={resulted ? 'scored' : locked ? 'locked' : 'editable'}
               group={letter}
               matchday={m.matchday ?? 1}
               date={formatShortDate(m.matchDate)}
@@ -128,6 +137,8 @@ export function GroupPredictorPage() {
               saveStatus={preds.getSaveStatus(m.id)}
               onRetrySave={() => preds.retrySave(m.id)}
               countdown={countdownToDate(m.matchDate)}
+              result={resulted ? { home: m.homeScore as number, away: m.awayScore as number } : undefined}
+              score={matchScore ?? undefined}
               // Jokers stay actionable on locked cards until each match's own
               // kickoff (design-system §5 / scoring §1) — the entry lock freezes
               // scores, not joker moves.
