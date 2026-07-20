@@ -21,6 +21,7 @@ import { ScoringRulesPage } from './features/more/ScoringRulesPage'
 import { MyPointsPage } from './features/scoring'
 import { MatchCentreStub } from './features/matches/MatchCentreStub'
 import { WelcomePage } from './features/welcome/WelcomePage'
+import { ProfilePage } from './features/profile/ProfilePage'
 
 export default function App() {
   return (
@@ -64,6 +65,7 @@ export default function App() {
                   <Route path="/league/:id" element={<LeagueDetailPage />} />
                   <Route path="/match/:matchRef" element={<MatchCentreStub />} />
                   <Route path="/more" element={<MorePage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/more/points" element={<MyPointsPage />} />
                   <Route path="/more/scoring" element={<ScoringRulesPage />} />
                 </Route>
