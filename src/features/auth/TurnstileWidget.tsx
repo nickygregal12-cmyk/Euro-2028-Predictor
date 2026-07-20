@@ -46,14 +46,21 @@ export function TurnstileWidget({ siteKey, onToken }: TurnstileWidgetProps) {
   const container = useRef<HTMLDivElement>(null)
   const onTokenRef = useRef(onToken)
   onTokenRef.current = onToken
+  // Tracks the one live widget for this container. A ref (not a local) so the
+  // render guard and cleanup see the same value across React's StrictMode
+  // double-invoke of this effect, guaranteeing exactly one widget per container.
+  const widgetId = useRef<string | null>(null)
 
   useEffect(() => {
-    let widgetId: string | undefined
     let cancelled = false
     loadScript()
       .then(() => {
         if (cancelled || !container.current || !window.turnstile) return
-        widgetId = window.turnstile.render(container.current, {
+        // Never call render() twice into the same container — a second render
+        // (StrictMode remount, or any re-render) would collide with the live
+        // widget and error. Cleanup nulls this back out.
+        if (widgetId.current !== null) return
+        widgetId.current = window.turnstile.render(container.current, {
           sitekey: siteKey,
           action: 'turnstile-spin-v2',
           callback: (token: string) => onTokenRef.current(token),
@@ -64,11 +71,21 @@ export function TurnstileWidget({ siteKey, onToken }: TurnstileWidgetProps) {
       .catch(() => onTokenRef.current(null))
     return () => {
       cancelled = true
-      if (widgetId && window.turnstile) window.turnstile.remove(widgetId)
+      if (widgetId.current !== null && window.turnstile) {
+        window.turnstile.remove(widgetId.current)
+        widgetId.current = null
+      }
     }
   }, [siteKey])
 
-  // The cf-turnstile class + data-action satisfy the analytics attribution
-  // requirement (explicit render above also passes the same action).
-  return <div ref={container} className="cf-turnstile" data-action="turnstile-spin-v2" />
+  // Deliberately NO `cf-turnstile` class: that class is Cloudflare's trigger for
+  // *implicit* auto-render (its script repeatedly scans the DOM for it), which
+  // collides with our *explicit* render() above on the same container and loops
+  // "skipped implicit render because a widget already exists". We render
+  // explicitly to own the widget id (for cleanup) and wire the callbacks, so the
+  // container must stay off Cloudflare's implicit-render radar. Analytics
+  // attribution comes from the `action` passed to render(); data-action is kept
+  // for documentation/parity (it's read only during the implicit render we opt
+  // out of, so it's inert here but harmless).
+  return <div ref={container} data-action="turnstile-spin-v2" />
 }
