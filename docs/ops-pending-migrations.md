@@ -2,7 +2,7 @@
 
 The single source of truth for which migrations are **live in the dev database** vs. **code-complete but not yet applied**. Several Phase 2 features are marked `[x]` (done in code) but fail soft until their migration runs — so this list is what actually blocks the single-tester run being meaningful and the production-project split.
 
-**How this was built:** by reading the migration files on disk, every application confirmation recorded in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, and a **first-hand chat verification pass (2026-07-20)** that functionally checked the most recent batch against the live dev DB. The 7 migrations `20260720150000`–`20260720210000` were confirmed applied in that pass (see "Verification pass" below). Everything from `20260720140000` and earlier — **including the initial schema and the leagues + core scoring migrations** — has **no first-hand proof in this conversation** and must get a genuine live check before the single-tester run.
+**How this was built:** by reading the migration files on disk, every application confirmation recorded in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, and a **first-hand chat verification pass (2026-07-20)** that functionally checked the most recent batch against the live dev DB. The 7 migrations `20260720150000`–`20260720210000` were confirmed applied in that pass (see "Verification pass" below). Everything from `20260720140000` and earlier — **including the initial schema and the leagues + core scoring migrations** — has **no first-hand proof in this conversation** and must get a genuine live check before the single-tester run. One newer migration (`20260721120000`, scoring completion) was added after the pass and is **pending** — it depends on the base scoring migrations, so it must be applied after them.
 
 ## Rules
 
@@ -38,6 +38,7 @@ The single source of truth for which migrations are **live in the dev database**
 | 15 | `20260720190000_profile_on_signup.sql` | `handle_new_user()` / `on_auth_user_created` — server-side profile creation (2026-07-20 incident fix) | ✅ Confirmed (verification pass) |
 | 16 | `20260720200000_display_name_moderation.sql` | `enforce_display_name_policy` BEFORE trigger on `profiles` | ✅ Confirmed (functional — see below) |
 | 17 | `20260720210000_rate_limits.sql` | `rate_limit_events` + `enforce_rate_limit()` triggers (prediction save 60/min, league join 5/min) | ✅ Confirmed (trigger state — see below) |
+| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ⛔ Pending |
 
 ## Verification pass — 2026-07-20 (first-hand)
 
@@ -54,7 +55,8 @@ Migrations `20260720150000`–`20260720210000` were confirmed applied against th
 - **#15 (`…_profile_on_signup`) must be applied before any real sign-up** (confirmed applied on dev). The client `createMyProfile` was removed, so without this trigger a new sign-up creates an auth user with no `profiles` row.
 - **#9 → #10 → #14 touch the same scoring objects.** Apply in order; #10 fixes #9's trigger, and #14 (confirmed) redefines `recompute_tournament_scores()` to also capture rank history — note #14 is confirmed applied but the scoring migrations it builds on (#9/#10) are NOT, so on a fresh prod project the whole chain must be re-applied in order.
 - **After #14, backfill rank history once:** `select capture_rank_history('<tournament-id>');` (the trigger only fires on future writes, so already-completed matchdays need one manual capture).
-- **After the scoring migrations (#9, #10) are applied, re-run the dev seed** `npx tsx scripts/seed-dev/index.ts --commit` and confirm the overall leaderboard matches `tests/scripts/scoreEntries.test.ts` (the acceptance test).
+- **#18 (`…_scoring_positions_knockout_awards`) depends on #9/#10 (base scoring) and redefines `recompute_tournament_scores()` again** — apply it AFTER them (timestamp order handles this). It re-adds the `capture_rank_history()` call, so rank-history capture keeps working; once #9/#10/#14/#18 are all applied, capture produces real snapshots — backfill already-completed matchdays once with `select capture_rank_history('<tournament-id>');`.
+- **After the scoring migrations (#9, #10, #18) are applied, re-run the dev seed** `npx tsx scripts/seed-dev/index.ts --commit` and confirm the overall leaderboard matches `tests/scripts/scoreEntries.test.ts` (the acceptance test). On the seeded mid-group-stage §2/§3/§4 all score 0, so the leaderboard is unchanged by #18 — to exercise §2/§3/§4 live, complete a group / enter KO participants / set `tournaments.golden_boot_player_id`.
 
 ## Related seed files (not migrations, but part of a fresh DB)
 
