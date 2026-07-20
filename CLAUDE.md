@@ -20,7 +20,7 @@ A mobile-first Euro 2028 football predictor web app. Users predict every group m
 - Custom design system with CSS modules (no Tailwind)
 - Supabase (Postgres, Auth, RLS) — dev project live; client in `src/services/supabase/client.ts` (only this folder may import it); v0.1 schema/RLS in `supabase/migrations/`, seed in `supabase/seed.sql`
 - Vitest (+ React Testing Library) for tests; Playwright later
-- Netlify hosting — not wired up yet
+- Netlify hosting — live at euro28predictor.netlify.app (SPA redirect in place; env vars = Supabase URL + publishable key). Currently points at the **dev** Supabase project; the production-project split is a Phase 2 exit gate.
 
 ## Architecture rules (non-negotiable)
 
@@ -58,7 +58,7 @@ tests/
 
 ## Current status
 
-Tier 0 done bar Netlify (scaffold, Vitest, seed data, GitHub repo, Supabase dev project all set up).
+Tier 0 done (scaffold, Vitest, seed data, GitHub repo, Supabase dev project, Netlify all set up).
 Tier 1 domain logic **complete** — all functions done and tested: `calculateGroupTable()`, `resolveGroupTies()`, `rankThirdPlacedTeams()`, `resolveRoundOf16()` (R16 allocation table in `roundOf16Allocation.ts`), `advanceBracket()` (post-R16 feed-through in `knockoutBracket.ts`), `calculateScore()` and `calculateLeagueRank()` (point values in `scoringConfig.ts`). Full suite green (`npx vitest run`).
 
 Tier 2 (v0.1) started: Supabase client wired (fail-closed on missing env). The initial migration (`supabase/migrations/20260719120000_init_v0_1.sql`) has been **applied** to the dev DB. Migrations are append-only — do not edit an applied migration; add a new timestamped file (e.g. the joker column lives in `20260719130000_add_match_prediction_joker.sql`; manual tie-resolutions live in `20260719140000_add_predicted_tie_resolutions.sql`; the joker max-5 + kickoff-commitment trigger lives in `20260719150000_enforce_joker_rules.sql`; the bonus tables + `submit_entry()` validator live in `20260719160000_add_bonus_and_submit.sql`; the entry-lock triggers + `lock_at` column + `get_leaderboard()` live in `20260719170000_lock_and_leaderboard.sql`). Still to run via the dashboard SQL editor: the joker column follow-up, the joker-enforcement trigger, the tie-resolutions migration (`predicted_tie_resolutions`), the bonus/submit migration (`players`, `bonus_predictions`, `submit_entry()`), the lock/leaderboard migration (`tournaments.lock_at`, lock triggers, `get_leaderboard()`), and `supabase/seed.sql` (the fixture skeleton) if not already seeded. (Submitting an entry needs `submit_entry()` applied and the overall leaderboard needs `get_leaderboard()`; until then Submit and the League tab surface an error rather than completing. The `lock_at` column loads best-effort, so the app still runs before that migration — entries just read as never-locked.) (The tie-resolutions load is best-effort, so the app still runs before that migration is applied — resolutions just won't persist.) Schema covers only the v0.1 tables (profiles, tournament reference data, entries, predictions) with RLS on every table; leagues/score_events/admin tables are deliberately deferred to later tiers.
@@ -83,7 +83,9 @@ Auth screens **done** (auth-plan Phase 1 exit — the last thing before deploy).
 
 Phase 2 prep — **component pack + dev seed done** (design-system §6 adds the Profile page + Points breakdown specs). New presentational pieces: `PlayerChip` (avatar initials via a shared astral-safe `initialsOf` + truncating name; design-system) and `StatCard` (profile stat-grid tile; design-system); `PointsBreakdown` (`src/features/scoring/` — collapsible category rows + subtotals, expandable events with gold joker pills, "0 · pending" for unscored, pinned total that always equals the sum). It's driven by the canonical `score_events` shape defined now in `src/domain/tournament/scoreEvents.ts` (pure `groupScoreEvents` guarantees total === sum; `scoreEventsFromBreakdown` derives events from a real `calculateScore` breakdown) — no `score_events` table exists yet (scoring tier). `LeaderboardRow` now reuses `initialsOf` and takes an optional champion-pick flag; the full expandable league-detail row is deferred to the League detail page. All states in `/dev/components`. The **dev seed** (`scripts/seed-dev/`) fills a fake mid-tournament — ~20 hostile-named test users with complete submitted entries + ~12 results, scores via the real scoring pipeline — so Phase 2 pages develop against populated data (the hostile-data rule). It is dev-only, fail-closed (`seedPolicy.ts`, mirrors the auto-login guard, unit-tested), idempotent, dry-run by default; run via `npx tsx scripts/seed-dev/index.ts [--commit]` (no repo dependency added; see its README). Note: `scripts/` is dev tooling, checked via Vitest + a bundler-resolution `tsc` pass, not the app build.
 
-**Next up:** Netlify deploy (last Tier 2 / Phase 1 item) + real-phone test; run the dev seed against the dev DB. Then Phase 2 proper — leagues + the League detail page (which finishes the expandable LeaderboardRow) and the Home dashboard. Phase 3 (live). See `docs/build-todo.md`.
+**Phase 1 is closed** — the v0.1 spine is deployed at euro28predictor.netlify.app behind real auth (auth gating + a real sign-up verified on the deployed site). The deploy points at the **dev** Supabase project; standing up a separate **production** Supabase project is a Phase 2 exit gate.
+
+**Next up:** run the dev seed against the dev DB, then Phase 2 proper — leagues + the League detail page (which finishes the expandable LeaderboardRow), the Home dashboard build, profiles / H2H, and the auth-hardening bundle (see `docs/roadmap.md` § Phase 2). Full-horizon map in `docs/roadmap.md`; near-term checklist in `docs/build-todo.md`.
 
 ## Things NOT to do
 
