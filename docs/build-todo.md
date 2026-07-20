@@ -88,13 +88,13 @@ Detail for every item lives in `roadmap.md` § Phase 2.
 - [ ] Destructive-action polish (design-system §7) — sign-out confirm modal + joker-removal undo-toast (kickoff-aware copy)
 - [ ] Tie-breaks at final standings — show the tie-break explanation prominently when final league standings are computed
 - [ ] Bracket un-pick — add a clear/unpick action (only "change" exists today; parked from the review build)
-- [ ] Admin bootstrapping documented — the one-time SQL granting the first admin role, written into a repo ops note
+- [x] Admin bootstrapping documented — the one-time SQL granting the first admin role, written into a repo ops note (`docs/ops-admin-bootstrap.md`; self-flags to verify the role column/value against the live schema before first use)
 - [ ] Auth hardening (one combined build) — confirmation-aware sign-up + server-side profile creation via `auth.users` trigger (remove client `createMyProfile`; **confirmed live 2026-07-20** — confirmation half-created the user then failed the client insert under RLS); `friendlyAuthError` distinguish the no-session case; password reset flow (Supabase `resetPasswordForEmail`, "if an account exists" copy); custom SMTP for auth emails; Turnstile on sign up / log in; rate limiting (auth, prediction save, league join); display-name moderation; decide on email verification
 - [ ] CI — GitHub Actions running the test suite on every push
 
 ### Phase 2 exit gates
 - [ ] Separate production Supabase project — fresh migrations + real data; dev project keeps the test mess; Netlify env vars switch to prod
-- [ ] Single-tester scripted entry-flow friction test (one trusted person, defined script; findings triaged before Phase 3) — a friction check, not a launch
+- [ ] Single-tester scripted entry-flow friction test (one trusted person, defined script; findings triaged before Phase 3) — a friction check, not a launch. **Script written: `docs/test-script.md`**; the run + triage are the remaining gate.
 
 ## Phase 3 — Core tournament experience (was Tier 4)
 Detail in `roadmap.md` § Phase 3.
@@ -105,7 +105,8 @@ Detail in `roadmap.md` § Phase 3.
 - [ ] H2H pass 2 — rank-over-time graph + bracket-health-vs-real + compare-full-brackets side by side
 - [ ] Full profiles extensions — rank history (from `rank_history`), bracket comparisons
 - [ ] Phase-aware Home states (during/after) live
-- [ ] Shareable entry summary (feeds the Share stubs on Review + Home)
+- [ ] Shareable cards build (Phase 3-adjacent) — the self-contained image-generation capability specced in design-system §6 (Shareable cards): one 1080×1080 dark-navy renderer, three content states (quick tease / full bracket / during-tournament brag) + league-context variant; the Share stubs on Review + Home (and league contexts) route here. Supersedes the older "Shareable entry summary" line below.
+- [ ] Shareable entry summary (feeds the Share stubs on Review + Home) — now specced as **Shareable cards** (design-system §6); tracked by the item above
 - [ ] Landing page — public front door (3-step explainer, demo before account); before any public sharing
 - [ ] Independent-app disclaimer + privacy notice / terms in footer
 - [ ] Error monitoring (Sentry free tier) — wired before the dress rehearsal

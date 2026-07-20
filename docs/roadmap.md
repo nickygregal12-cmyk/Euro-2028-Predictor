@@ -34,7 +34,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Deadline reminder emails** — "entries lock in 48h / 24h, you're N% done" to incomplete entries; requires custom SMTP, which is therefore PULLED FORWARD into this phase rather than waiting for full auth hardening. Basic implementation: scheduled function checking incomplete entries against lock time.
 - [ ] **Auto-submit at lock** (decided): at the lock instant the server auto-submits any VALID never-submitted entry (scoring-rules §7); incomplete entries stay out of standings; auto-submitted entries marked internally. Implement in the lock migration/function; UI still encourages manual submit.
 - [ ] **Destructive-action polish** (design-system §7): sign-out confirm modal ("You'll need your password to get back in") and joker-removal undo-toast (kickoff-aware copy when the match starts soon)
-- [ ] **Admin bootstrapping documented**: the one-time SQL that grants the first admin role, written into an ops note in the repo — never be locked out of your own tournament.
+- [x] **Admin bootstrapping documented** — `docs/ops-admin-bootstrap.md`: the one-time SQL that grants the first admin role, written into an ops note in the repo — never be locked out of your own tournament. (Self-flags that the role column/value must be verified against the live schema before first use.)
 - [ ] **Auth hardening** (one combined build):
   - Confirmation-aware sign-up + server-side profile creation via auth.users trigger (remove client createMyProfile) — *confirmed live incident 2026-07-20*
   - friendlyAuthError: distinguish the no-session case (currently misreports as "email in use")
@@ -51,7 +51,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 ### Phase 2 exit gates
 - [ ] **Separate production Supabase project** — fresh migrations, real data; dev project keeps the test mess; Netlify env vars switch to prod project
 - [ ] Auth hardening complete (esp. password reset + SMTP)
-- [ ] **Single-tester entry-flow test**: ONE trusted person, run against a test script Nicky defines (sign up → full entry → join league → specific friction checkpoints), findings reported back and triaged before Phase 3. This is a friction check, not a launch — the real all-hands test is the Phase 3 dress rehearsal.
+- [ ] **Single-tester entry-flow test**: ONE trusted person, run against a test script Nicky defines (sign up → full entry → join league → specific friction checkpoints), findings reported back and triaged before Phase 3. This is a friction check, not a launch — the real all-hands test is the Phase 3 dress rehearsal. **Script written: `docs/test-script.md`** (silent-observation tasks + follow-up questions + note-taking shorthand); the run + triage remain the gate.
 
 **Testing model (three tiers):**
 1. Phase 2 exit — single-tester scripted friction test (above)
@@ -74,7 +74,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **During-tournament + post-tournament Home states** live (post-tournament layout designed at this phase)
 - [ ] **Admin result-entry page** (moved from Phase 2; **must exist before the dress rehearsal**) — protected route, result entry with scoring-impact preview before confirm, correction flow. Deferred from Phase 2 deliberately: build it once against the final feature set (including what the bonus games need from results) rather than accreting features onto an early version. Result correction is already safe via the delete-and-rederive recompute, and Phase 2 uses `docs/ops-result-entry.md` (SQL entry) in the meantime.
 - [ ] **Results UX** — whatever the admin flow needs beyond minimal (postponements, corrections at scale)
-- [ ] **Shareable entry summary** — design + build (feeds the Share stubs on Review and Home); could be pulled earlier, it's small
+- [ ] **Shareable cards build** (Phase 3-adjacent) — the self-contained image-generation capability now fully specced in **design-system §6 (Shareable cards)**: one 1080×1080 dark-navy renderer with three content states (quick tease / full bracket / during-tournament brag) plus a league-context recruitment-poster variant; designed to survive chat-app compression (big shapes, flags over names). The Share stubs on Review, Home, and league contexts route here. (Was "Shareable entry summary" — design is done, this is the build.)
 - [ ] **Landing page** — the public front door (explain in 3 steps, Start Predicting, demo before account); needed before any public sharing
 - [ ] **Independent-app disclaimer + privacy notice/terms** in footer
 - [ ] **Error monitoring** (Sentry free tier or similar) — know the app broke before the group chat does; wired before the dress rehearsal
