@@ -247,6 +247,17 @@ One shared skeleton, three temporal states, two match-type variants. Skeleton to
 
 **Data requirements (Phase 3 schema):** per-match prediction aggregates (scoreline counts overall; winner splits for KO) and a league-scoped per-match member-picks query (co-membership gated, post-lock gated — extends the get_league_members pattern). Both flagged for the Phase 3 build.
 
+### Matches tab (Phase 3 — 5th nav slot; the full fixture browser)
+The chronological answer to "check my predictions": every fixture, grouped by matchday ("Matchday 3 · Tue 14 Jun"), today auto-scrolled into view. Compact rows: flags, kickoff time (upcoming) or result (played), the user's prediction ("You said 2–1" / "You had Sco through"), points pill once scored (joker variants), joker marker where placed, chevron → match centre. Live matches get the inline cyan treatment (dot, score, minute). Filter row (All · By group · My jokers) — lightweight chips, not tabs. Division of labour: Home = today + catch-up (glanceable); Matches = browse everything; match centre = one fixture deep. No duplication of group screens — they remain the group-shaped view; this is the time-shaped view.
+
+### Landing page (Phase 3 — the logged-out root; signed-in users route straight to Home)
+Voice: "a mate built this," premium polish — personal, confident, honest. Single scroll, mobile-first, dark poster treatment.
+- **Hero**: eyebrow ("UK & Ireland · Summer 2028"), headline "Call the whole Euros. Before a ball is kicked.", two-sentence pitch (scale of the boast: every match, whole bracket, one locked entry, a summer of finding out), primary CTA **"Start predicting"** (solid accent — the only solid CTA on the page), under-line "Free. No ads. Built by a fan."
+- **Three beats** (persuasive, not instructional — /welcome handles instruction): 1. Score all 36 group games — tables build themselves. 2. Pick every knockout winner — champion at Wembley; five jokers double your surest matches. 3. Drag your mates into a league — every point explained, rivals' picks revealed at kickoff, all summer to argue.
+- **Proof glimpses**: two real UI fragments rendered from actual components (a scored match card with gold joker pill; a leaderboard row) — demonstrating a finished product, never mockups that can drift.
+- **Closer**: "Entries lock 9 June 2028. Get yours in." + secondary CTA **"Sign up free"** (outline style — different label from the hero: the pitch sells the action, the closer makes the honest ask). During the tournament, the closer reframes live ("Matchday 3 is live — see the standings").
+- **Footer**: "An independent fan project. Not affiliated with UEFA or any team." + Privacy · Terms · How scoring works (the scoring page is publicly readable — sceptics can audit the rules before signing up).
+
 ## 7. Destructive actions (app-wide principle)
 
 Three tiers — the goal is that confirm dialogs stay rare enough to be respected:
