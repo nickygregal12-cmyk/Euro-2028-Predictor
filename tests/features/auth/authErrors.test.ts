@@ -54,6 +54,40 @@ describe('friendlyAuthError', () => {
     expect(friendlyAuthError('boom', 'login')).toBe('Something went wrong. Please try again.')
   })
 
+  // Password-reset flow.
+  it('maps a weak new password on the update action to the same guidance', () => {
+    expect(
+      friendlyAuthError({ code: 'weak_password' }, 'update'),
+    ).toBe('Please choose a longer password (at least 6 characters).')
+  })
+
+  it('maps reusing the same password to a "must be different" message', () => {
+    expect(friendlyAuthError({ code: 'same_password' }, 'update')).toBe(
+      'Your new password must be different from your current one.',
+    )
+    expect(
+      friendlyAuthError({ message: 'New password should be different from the old password.' }, 'update'),
+    ).toBe('Your new password must be different from your current one.')
+  })
+
+  it('maps a missing recovery session (expired link) to request-a-new-one copy', () => {
+    const expected = 'Your reset link has expired or was already used. Please request a new one.'
+    expect(friendlyAuthError({ code: 'session_not_found' }, 'update')).toBe(expected)
+    expect(friendlyAuthError({ name: 'AuthSessionMissingError' }, 'update')).toBe(expected)
+    // The same shape on other actions falls through to generic (not applicable).
+    expect(friendlyAuthError({ code: 'session_not_found' }, 'login')).toBe(
+      'Something went wrong. Please try again.',
+    )
+  })
+
+  it('keeps a reset request neutral: an unknown failure never leaks or guesses', () => {
+    const reset = friendlyAuthError({ message: 'opaque recover failure' }, 'reset')
+    expect(reset).toBe('Something went wrong. Please try again.')
+    // Network + rate-limit still map on the reset action.
+    expect(friendlyAuthError(new TypeError('Failed to fetch'), 'reset')).toContain('connection')
+    expect(friendlyAuthError({ status: 429 }, 'reset')).toContain('Too many attempts')
+  })
+
   // Item 2 (incident follow-up): a no-session / RLS-rejection failure must NOT be
   // mislabelled as "email may already be in use" — it gets its own accurate copy,
   // distinct from the genuine email-in-use case.

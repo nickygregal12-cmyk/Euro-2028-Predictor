@@ -4,6 +4,8 @@ import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app
 import { AppShell } from './app/AppShell'
 import { LoginPage } from './features/auth/LoginPage'
 import { SignUpPage } from './features/auth/SignUpPage'
+import { ResetRequestPage } from './features/auth/ResetRequestPage'
+import { UpdatePasswordPage } from './features/auth/UpdatePasswordPage'
 import { ComponentsPreview } from './dev/ComponentsPreview'
 import { HomePage } from './features/home/HomePage'
 import { PredictHubPage } from './features/predict/PredictHubPage'
@@ -34,11 +36,17 @@ export default function App() {
           {/* AuthProvider wraps both the auth screens and the app so they share
               one session; the gates decide which the visitor sees. */}
           <Route element={<AuthLayout />}>
-            {/* Signed-out only: log in / sign up. */}
+            {/* Signed-out only: log in / sign up / request a password reset. */}
             <Route element={<RedirectIfAuthed />}>
               <Route path="/auth/login" element={<LoginPage />} />
               <Route path="/auth/signup" element={<SignUpPage />} />
+              <Route path="/auth/reset" element={<ResetRequestPage />} />
             </Route>
+
+            {/* Set-a-new-password lands here from the email link, which carries a
+                recovery session — so it sits OUTSIDE the gates (RedirectIfAuthed
+                would bounce that session to Home) and handles its own states. */}
+            <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
 
             {/* Invite deep link — handles both signed-in and signed-out itself,
                 so it sits outside the gates (survives the logged-out case). */}

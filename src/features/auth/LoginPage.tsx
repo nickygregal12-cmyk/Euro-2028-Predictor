@@ -35,6 +35,7 @@ export function LoginPage() {
         submitting={submitting}
         error={error}
         onSwitch={() => navigate('/auth/signup')}
+        onForgotPassword={() => navigate('/auth/reset')}
       />
     </AuthScreen>
   )

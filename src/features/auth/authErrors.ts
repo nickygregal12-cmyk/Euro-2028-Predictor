@@ -3,7 +3,7 @@
 // only the return value — a raw Supabase message must never reach the user
 // (docs/auth-plan.md §3).
 
-export type AuthAction = 'login' | 'signup'
+export type AuthAction = 'login' | 'signup' | 'reset' | 'update'
 
 // Supabase surfaces failures either as AuthError (with a `code` and HTTP
 // `status`) or, when the network is down, as a plain TypeError from fetch. We
@@ -73,9 +73,27 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     return "That email or password isn't right. Please try again."
   }
 
-  // Weak password (sign-up) — Supabase enforces a minimum length.
+  // Weak password (sign-up or setting a new one on reset) — Supabase enforces a
+  // minimum length.
   if (code === 'weak_password' || message.includes('password should be at least')) {
     return 'Please choose a longer password (at least 6 characters).'
+  }
+
+  // Setting a new password (reset flow) to the same one it already is.
+  if (code === 'same_password' || message.includes('should be different from the old')) {
+    return 'Your new password must be different from your current one.'
+  }
+
+  // The recovery session is gone: the reset link expired or was already used.
+  // Only meaningful when updating a password.
+  if (
+    action === 'update' &&
+    (code === 'session_not_found' ||
+      asText(e.name) === 'authsessionmissingerror' ||
+      message.includes('auth session missing') ||
+      message.includes('session_not_found'))
+  ) {
+    return 'Your reset link has expired or was already used. Please request a new one.'
   }
 
   // Malformed email.

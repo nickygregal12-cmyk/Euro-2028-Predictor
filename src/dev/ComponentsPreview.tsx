@@ -46,6 +46,8 @@ import { LeaguePreviewCard } from '../features/leagues/LeaguePreviewCard'
 import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
 import { SignUpForm } from '../features/auth/SignUpForm'
+import { ResetRequestForm } from '../features/auth/ResetRequestForm'
+import { UpdatePasswordForm } from '../features/auth/UpdatePasswordForm'
 import { TurnstileWidget } from '../features/auth/TurnstileWidget'
 import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
@@ -1026,6 +1028,40 @@ function Gallery() {
           onSubmit={() => {}}
           error="An account with this email already exists. Try logging in instead."
         />
+      </Section>
+
+      <Section title="Auth — reset password (request)">
+        <Label>default</Label>
+        <ResetRequestForm onSubmit={() => {}} />
+
+        <Label>submitting</Label>
+        <ResetRequestForm onSubmit={() => {}} submitting />
+
+        <Label>error (rate limited)</Label>
+        <ResetRequestForm
+          onSubmit={() => {}}
+          error="Too many attempts. Please wait a moment and try again."
+        />
+
+        <Label>sent (neutral confirmation)</Label>
+        <ResetRequestForm onSubmit={() => {}} sent />
+      </Section>
+
+      <Section title="Auth — set new password (from reset link)">
+        <Label>default</Label>
+        <UpdatePasswordForm onSubmit={() => {}} />
+
+        <Label>submitting</Label>
+        <UpdatePasswordForm onSubmit={() => {}} submitting />
+
+        <Label>error (link expired)</Label>
+        <UpdatePasswordForm
+          onSubmit={() => {}}
+          error="Your reset link has expired or was already used. Please request a new one."
+        />
+
+        <Label>done</Label>
+        <UpdatePasswordForm onSubmit={() => {}} done />
       </Section>
 
       <Section title="Turnstile widget (dormant unless VITE_TURNSTILE_SITE_KEY set)">

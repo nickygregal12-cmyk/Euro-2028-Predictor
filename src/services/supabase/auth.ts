@@ -66,6 +66,40 @@ export async function signUpWithPassword(params: {
   return { needsConfirmation: data.session === null }
 }
 
+/**
+ * Send a password-reset email. Supabase deliberately does NOT reveal whether the
+ * address has an account (email-enumeration protection), so this resolves without
+ * error for unknown emails — the caller always shows the same neutral "if an
+ * account exists" copy. The link in the email lands the user on
+ * `/auth/update-password` (via `redirectTo`), where Supabase's recovery session
+ * lets them set a new password.
+ *
+ * captchaToken is passed only when Turnstile is enabled — Supabase's CAPTCHA
+ * protection covers the recover endpoint too, so with CAPTCHA on a token is
+ * required; omitted otherwise (Option A, mirrors signIn/signUp).
+ */
+export async function sendPasswordReset(email: string, captchaToken?: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    // Use the current origin so the link resolves on whichever domain the user
+    // is on (euro28predictor.com or the netlify.app fallback). Both must be in
+    // Supabase Auth → URL Configuration's redirect allow-list.
+    redirectTo: `${window.location.origin}/auth/update-password`,
+    ...(captchaToken ? { captchaToken } : {}),
+  })
+  if (error) throw error
+}
+
+/**
+ * Set a new password for the currently-authenticated user. On the reset flow
+ * this runs against the recovery session Supabase established from the email
+ * link; it upgrades that into a normal session, so the user stays signed in.
+ * Throws if there's no session (expired/!invalid link) — the page handles that.
+ */
+export async function updatePassword(newPassword: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) throw error
+}
+
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut()
 }
