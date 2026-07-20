@@ -35,6 +35,48 @@ export async function createMyProfile(userId: string, displayName: string): Prom
   return { id: data.id, displayName: data.display_name }
 }
 
+/**
+ * The user's /welcome seen-timestamp. Best-effort: the column is a follow-up
+ * migration (20260720160000_add_profile_welcomed_at.sql). If it isn't applied
+ * yet (or the read fails), we return a NON-null sentinel so the gate treats the
+ * user as already welcomed — a missing column must never trap anyone on a
+ * welcome screen. Real reads return the actual value (null = show it).
+ */
+export async function fetchWelcomedAt(userId: string): Promise<{ welcomedAt: string | null }> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('welcomed_at')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error || !data) return { welcomedAt: PRE_MIGRATION_SENTINEL }
+    return { welcomedAt: (data as { welcomed_at: string | null }).welcomed_at ?? null }
+  } catch {
+    return { welcomedAt: PRE_MIGRATION_SENTINEL }
+  }
+}
+
+// A non-null value so a pre-migration read reads as "already welcomed".
+const PRE_MIGRATION_SENTINEL = '1970-01-01T00:00:00.000Z'
+
+/**
+ * Stamp `welcomed_at = now()` the first time the user sees /welcome (own-profile
+ * RLS). The `is null` guard keeps the FIRST-seen time and makes re-calls no-ops.
+ * Best-effort — the gate flips to "seen" optimistically in memory regardless, so
+ * a failed write just means the screen may reappear next session, never a block.
+ */
+export async function markWelcomedNow(userId: string): Promise<void> {
+  try {
+    await supabase
+      .from('profiles')
+      .update({ welcomed_at: new Date().toISOString() })
+      .eq('id', userId)
+      .is('welcomed_at', null)
+  } catch {
+    // ignore — see the doc comment; the in-memory flag already advanced
+  }
+}
+
 export type LastSeen = { lastSeenAt: string | null; lastSeenPoints: number | null }
 
 /**

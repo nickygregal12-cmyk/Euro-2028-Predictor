@@ -210,6 +210,24 @@ async function commit(): Promise<void> {
     )
   }
 
+  // Pre-stamp welcomed_at so impersonating a seed user in dev doesn't trigger the
+  // one-time /welcome screen. Best-effort: the column is a follow-up migration
+  // (20260720160000_add_profile_welcomed_at.sql); a missing column just warns.
+  {
+    const { error: welcomeErr } = await admin
+      .from('profiles')
+      .update({ welcomed_at: new Date().toISOString() })
+      .in(
+        'id',
+        seededUsers.map((u) => u.userId),
+      )
+    if (welcomeErr) {
+      console.warn(
+        `Could not pre-stamp welcomed_at (apply 20260720160000_add_profile_welcomed_at.sql): ${describeError(welcomeErr)}`,
+      )
+    }
+  }
+
   // --- enter results (simulate the mid-tournament) --------------------------
   for (const r of data.results) {
     const matchId = matchIdByRef.get(r.matchRef)

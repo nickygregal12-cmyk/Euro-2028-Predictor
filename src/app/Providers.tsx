@@ -45,3 +45,15 @@ export function RedirectIfAuthed() {
   }
   return <Outlet />
 }
+
+// Sits above the app shell (but not the /welcome route itself): a never-welcomed
+// user is routed to /welcome once, before Home. While the profile resolves it
+// shows the neutral splash so the app never flashes before the redirect
+// (docs/design-system.md §6). The gate is purely welcomed_at-driven — the dev
+// user is pre-stamped in supabase/dev-user.sql, so it's never special-cased here.
+export function RequireWelcome() {
+  const { welcomeStatus } = useAuth()
+  if (welcomeStatus === 'loading') return <AuthSplash />
+  if (welcomeStatus === 'needed') return <Navigate to="/welcome" replace />
+  return <Outlet />
+}
