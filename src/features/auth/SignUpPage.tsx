@@ -22,6 +22,7 @@ export function SignUpPage() {
     displayName: string
     email: string
     password: string
+    captchaToken?: string
   }) {
     setSubmitting(true)
     setError(null)

@@ -19,8 +19,19 @@ export function onAuthChange(callback: (session: Session | null) => void): () =>
   return () => subscription.unsubscribe()
 }
 
-export async function signInWithPassword(email: string, password: string): Promise<void> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
+export async function signInWithPassword(
+  email: string,
+  password: string,
+  captchaToken?: string,
+): Promise<void> {
+  // captchaToken is passed only when Turnstile is enabled; Supabase runs
+  // siteverify with its configured secret (Option A). Omitted otherwise so a
+  // project without CAPTCHA isn't sent an unexpected token.
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    ...(captchaToken ? { options: { captchaToken } } : {}),
+  })
   if (error) throw error
 }
 
@@ -40,11 +51,15 @@ export async function signUpWithPassword(params: {
   email: string
   password: string
   displayName: string
+  captchaToken?: string
 }): Promise<{ needsConfirmation: boolean }> {
   const { data, error } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
-    options: { data: { display_name: params.displayName.trim() } },
+    options: {
+      data: { display_name: params.displayName.trim() },
+      ...(params.captchaToken ? { captchaToken: params.captchaToken } : {}),
+    },
   })
   if (error) throw error
   if (!data.user) throw new Error('Sign-up did not return a user.')

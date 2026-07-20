@@ -46,6 +46,7 @@ import { LeaguePreviewCard } from '../features/leagues/LeaguePreviewCard'
 import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
 import { SignUpForm } from '../features/auth/SignUpForm'
+import { TurnstileWidget } from '../features/auth/TurnstileWidget'
 import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
 import { H2HScreen } from '../features/h2h/H2HScreen'
@@ -1024,6 +1025,14 @@ function Gallery() {
         <SignUpForm
           onSubmit={() => {}}
           error="An account with this email already exists. Try logging in instead."
+        />
+      </Section>
+
+      <Section title="Turnstile widget (dormant unless VITE_TURNSTILE_SITE_KEY set)">
+        <Label>rendered with Cloudflare's always-pass TEST site key</Label>
+        <TurnstileWidget
+          siteKey="1x00000000000000000000AA"
+          onToken={(t) => console.log('[dev] turnstile token', t?.slice(0, 12))}
         />
       </Section>
 

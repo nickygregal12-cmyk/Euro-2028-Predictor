@@ -45,9 +45,15 @@ export async function initDevAuth(): Promise<void> {
   } = await supabase.auth.getSession()
   if (session) return
 
+  // Dev auto-login is headless (no widget), so if you enable Turnstile CAPTCHA on
+  // the DEV Supabase project, configure it with Cloudflare's always-passes TEST
+  // secret and set VITE_TURNSTILE_DEV_TOKEN to any dummy string — startup sign-in
+  // then still passes. Unset (the default) sends no token.
+  const devCaptchaToken = (import.meta.env.VITE_TURNSTILE_DEV_TOKEN as string | undefined) || undefined
   const { error } = await supabase.auth.signInWithPassword({
     email: decision.email,
     password: decision.password,
+    ...(devCaptchaToken ? { options: { captchaToken: devCaptchaToken } } : {}),
   })
 
   if (error) {
