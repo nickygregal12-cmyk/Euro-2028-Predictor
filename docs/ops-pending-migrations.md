@@ -2,7 +2,7 @@
 
 The single source of truth for which migrations are **live in the dev database** vs. **code-complete but not yet applied**. Several Phase 2 features are marked `[x]` (done in code) but fail soft until their migration runs — so this list is what actually blocks the single-tester run being meaningful and the production-project split.
 
-**How this was built:** by reading the migration files on disk, every application confirmation recorded in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, and a **first-hand chat verification pass (2026-07-20)** that functionally checked the most recent batch against the live dev DB. The 7 migrations `20260720150000`–`20260720210000` were confirmed applied in that pass (see "Verification pass" below). Everything from `20260720140000` and earlier — **including the initial schema and the leagues + core scoring migrations** — has **no first-hand proof in this conversation** and must get a genuine live check before the single-tester run. One newer migration (`20260721120000`, scoring completion) was added after the pass and is **pending** — it depends on the base scoring migrations, so it must be applied after them.
+**How this was built:** by reading the migration files on disk, every application confirmation recorded in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, and a **first-hand chat verification pass (2026-07-20)** that functionally checked the most recent batch against the live dev DB. The 7 migrations `20260720150000`–`20260720210000` were confirmed applied in that pass (see "Verification pass" below). Everything from `20260720140000` and earlier — **including the initial schema and the leagues + core scoring migrations** — has **no first-hand proof in this conversation** and must get a genuine live check before the single-tester run. One newer migration (`20260721120000`, scoring completion) was added after that pass and has since been **confirmed applied** in a later chat verification session (see "Scoring-completion verification" below). It depends on the base scoring migrations, so on a fresh project it must still be applied after them.
 
 ## Rules
 
@@ -29,8 +29,8 @@ The single source of truth for which migrations are **live in the dev database**
 | 6 | `20260719170000_lock_and_leaderboard.sql` | `tournaments.lock_at` + entry-lock BEFORE triggers + `get_leaderboard()` | ⛔ Pending |
 | 7 | `20260719180000_add_leagues.sql` | `leagues` + `league_members` + SECURITY DEFINER league functions | ⛔ Pending |
 | 8 | `20260720120000_league_fk_semantics.sql` | FK deletion semantics: `leagues.owner_id` → RESTRICT, `league_members.user_id` → CASCADE | ⛔ Pending |
-| 9 | `20260720130000_add_scoring.sql` | Scoring engine: `score_events`, `entry_totals` view, `recompute_tournament_scores()` + `matches` result trigger | ⛔ Pending |
-| 10 | `20260720140000_fix_recompute_trigger.sql` | Fix: recompute fires on same-value result re-writes; `service_role` grant | ⛔ Pending |
+| 9 | `20260720130000_add_scoring.sql` | Scoring engine: `score_events`, `entry_totals` view, `recompute_tournament_scores()` + `matches` result trigger | ✅ Confirmed (implied — see below) |
+| 10 | `20260720140000_fix_recompute_trigger.sql` | Fix: recompute fires on same-value result re-writes; `service_role` grant | ✅ Confirmed (implied — see below) |
 | 11 | `20260720150000_add_last_seen.sql` | `profiles.last_seen_at` / `last_seen_points` for Home's catch-up line | ✅ Confirmed (verification pass) |
 | 12 | `20260720160000_add_profile_welcomed_at.sql` | `profiles.welcomed_at` for the once-only /welcome gate | ✅ Confirmed (verification pass) |
 | 13 | `20260720170000_reveal_after_lock.sql` | `get_rival_entry()` reveal-after-lock endpoint (post-lock + co-membership) | ✅ Confirmed (verification pass) |
@@ -38,7 +38,7 @@ The single source of truth for which migrations are **live in the dev database**
 | 15 | `20260720190000_profile_on_signup.sql` | `handle_new_user()` / `on_auth_user_created` — server-side profile creation (2026-07-20 incident fix) | ✅ Confirmed (verification pass) |
 | 16 | `20260720200000_display_name_moderation.sql` | `enforce_display_name_policy` BEFORE trigger on `profiles` | ✅ Confirmed (functional — see below) |
 | 17 | `20260720210000_rate_limits.sql` | `rate_limit_events` + `enforce_rate_limit()` triggers (prediction save 60/min, league join 5/min) | ✅ Confirmed (trigger state — see below) |
-| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ⛔ Pending |
+| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ✅ Confirmed (functional — see below) |
 
 ## Verification pass — 2026-07-20 (first-hand)
 
@@ -49,6 +49,19 @@ Migrations `20260720150000`–`20260720210000` were confirmed applied against th
 - **`add_last_seen`, `add_profile_welcomed_at`, `reveal_after_lock`, `add_rank_history`, `profile_on_signup`** — confirmed applied as part of the same verification pass.
 
 **Everything before this pass (`≤ 20260720140000`, incl. the initial schema, leagues, and the core scoring-into-DB migrations) has no first-hand proof in this conversation** and should stay flagged as needing a genuine live check before the single-tester run — even the initial schema (the app running proves *something* is there, but it was not re-verified here).
+
+## Scoring-completion verification — `20260721120000` (first-hand)
+
+Confirmed applied against the dev DB in a later chat session:
+
+- Migration `20260721120000_scoring_positions_knockout_awards` applied successfully.
+- `recompute_tournament_scores()` confirmed present; `tournaments.golden_boot_player_id` column confirmed present.
+- Dev seed re-run (`--commit`): the overall leaderboard is **unchanged** (Cristiano 30, xX_Predictor_Xx 27, …) and matches `tests/scripts/scoreEntries.test.ts` — proving §2/§3/§4 correctly score **0** on the still-incomplete seeded data (no complete groups, no KO results, no golden boot set) with no regression to §1.
+- `rank_history` confirmed still capturing — 22 rows for MD1 after the re-seed.
+
+Note: this confirms the pipeline is live and byte-identical to the reference on partial data; it does **not** yet exercise §2/§3/§4 with non-zero output (that needs a complete group / KO participants / an actual golden boot). Those paths are covered by the reference scenario tests (`tests/domain/scoringCompletion.test.ts`) and remain to be seen live when real results land.
+
+**Transitively confirms #9 and #10.** #18 `create or replace`s `recompute_tournament_scores()` and inserts into `score_events` — it cannot apply unless #9 (`add_scoring`, which creates that table/view/function + the result trigger) is already live. And the leaderboard showing real §1 totals after a `--commit` re-seed — which re-writes the same deterministic results after wiping entries — only works because #10 removed the "same value → skip recompute" early-return (without #10 those re-written entries would score 0). So the scoring-completion verification is first-hand proof that #9 and #10 are applied, even though they were never directly checked in a recorded session. Marked ✅ on that basis (was: the doc's own "applied in an unrecorded session" caveat, now resolved for these two).
 
 ## Order-sensitive callouts
 
