@@ -19,21 +19,10 @@ export async function fetchMyProfile(userId: string): Promise<Profile | null> {
   return { id: data.id, displayName: data.display_name }
 }
 
-/**
- * Create the signed-in user's profile row. Called immediately after sign-up,
- * once a session exists, so RLS ("own profile") admits the insert. The
- * display_name length is also enforced by a DB check (1–40 chars).
- */
-export async function createMyProfile(userId: string, displayName: string): Promise<Profile> {
-  const trimmed = displayName.trim()
-  const { data, error } = await supabase
-    .from('profiles')
-    .insert({ id: userId, display_name: trimmed })
-    .select('id, display_name')
-    .single()
-  if (error) throw error
-  return { id: data.id, displayName: data.display_name }
-}
+// (Profile creation on sign-up now happens server-side via the
+// on_auth_user_created trigger — see 20260720190000_profile_on_signup.sql. The
+// former client-side createMyProfile was removed: it depended on a live session
+// and broke under email confirmation, the 2026-07-20 incident.)
 
 /**
  * The user's /welcome seen-timestamp. Best-effort: the column is a follow-up

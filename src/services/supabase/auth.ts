@@ -3,7 +3,6 @@
 
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './client'
-import { createMyProfile } from './profile'
 
 export async function getCurrentSession(): Promise<Session | null> {
   const {
@@ -26,32 +25,30 @@ export async function signInWithPassword(email: string, password: string): Promi
 }
 
 /**
- * Sign up with email + password and create the matching profiles row.
+ * Sign up with email + password. The matching `profiles` row is created
+ * SERVER-SIDE by the `on_auth_user_created` trigger (20260720190000), reading
+ * the display name from the sign-up metadata below — so it works whether or not
+ * sign-up returns a session (confirmation off or on), with no client insert to
+ * race `auth.uid()` (the 2026-07-20 incident fix).
  *
- * v0.1 dev projects have email confirmation disabled, so sign-up returns a live
- * session and `auth.uid()` is set — which is what lets the profile insert pass
- * RLS. If a project ever enables confirmation there'd be no session here and the
- * profile insert would fail; that's a Phase 2 concern (password reset / email
- * confirmation) and out of scope for v0.1.
+ * Returns whether email confirmation is pending: with confirmation OFF (current
+ * dev setting) sign-up returns a session and `needsConfirmation` is false; if a
+ * project enables confirmation, there's no session and the caller shows a
+ * "check your email" state instead of treating it as a failure.
  */
 export async function signUpWithPassword(params: {
   email: string
   password: string
   displayName: string
-}): Promise<void> {
+}): Promise<{ needsConfirmation: boolean }> {
   const { data, error } = await supabase.auth.signUp({
     email: params.email,
     password: params.password,
+    options: { data: { display_name: params.displayName.trim() } },
   })
   if (error) throw error
-  const userId = data.user?.id
-  if (!userId) {
-    // No user id means sign-up didn't complete as expected (e.g. confirmation
-    // required). Surface it as a generic failure rather than silently skipping
-    // profile creation.
-    throw new Error('Sign-up did not return a user.')
-  }
-  await createMyProfile(userId, params.displayName)
+  if (!data.user) throw new Error('Sign-up did not return a user.')
+  return { needsConfirmation: data.session === null }
 }
 
 export async function signOut(): Promise<void> {

@@ -3,7 +3,10 @@
 // display_name length is also a DB check (1–40), and the password minimum is
 // Supabase's default — so they're a friendly first line, never the only guard.
 
-export const DISPLAY_NAME_MAX = 40
+import { checkDisplayName, DISPLAY_NAME_MAX } from './displayNamePolicy'
+
+// Re-exported so the form (and existing importers) keep one import site.
+export { DISPLAY_NAME_MAX }
 export const PASSWORD_MIN = 6
 
 export type SignUpValues = {
@@ -25,12 +28,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 export function validateSignUp(values: SignUpValues): SignUpFieldErrors {
   const errors: SignUpFieldErrors = {}
 
-  const name = values.displayName.trim()
-  if (name.length === 0) {
-    errors.displayName = 'Please choose a display name.'
-  } else if (name.length > DISPLAY_NAME_MAX) {
-    errors.displayName = `Display name must be ${DISPLAY_NAME_MAX} characters or fewer.`
-  }
+  // Empty / length / moderation (impersonation + profanity) all live in the
+  // display-name policy, which the server trigger mirrors.
+  const nameError = checkDisplayName(values.displayName)
+  if (nameError) errors.displayName = nameError
 
   const email = values.email.trim()
   if (email.length === 0) {

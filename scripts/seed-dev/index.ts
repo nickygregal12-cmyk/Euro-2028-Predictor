@@ -164,7 +164,14 @@ async function commit(): Promise<void> {
   for (const entry of data.entries) {
     const userId = await createUser(admin, entry)
     seededUsers.push({ userId, displayName: entry.displayName })
-    await insertOrThrow(admin, 'profiles', { id: userId, display_name: entry.displayName })
+    // Upsert, not insert: once the on_auth_user_created trigger
+    // (20260720190000) is applied, createUser already creates the profiles row
+    // from user_metadata.display_name, so a plain insert would conflict. Upsert
+    // works whether or not that migration is applied.
+    const { error: profErr } = await admin
+      .from('profiles')
+      .upsert({ id: userId, display_name: entry.displayName }, { onConflict: 'id' })
+    if (profErr) throw new Error(`profiles upsert failed for ${entry.email}: ${describeError(profErr)}`)
 
     const { data: entryRow, error: eErr } = await admin
       .from('entries')
