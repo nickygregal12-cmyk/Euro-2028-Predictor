@@ -67,6 +67,12 @@
   gap: var(--sp-4);
 }
 
+/* Centre the fixed-width Turnstile widget within the stretched form column. */
+.turnstile {
+  display: flex;
+  justify-content: center;
+}
+
 /* The row that switches between log in and sign up. */
 .switch {
   margin: 0;

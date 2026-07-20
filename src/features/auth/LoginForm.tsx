@@ -70,7 +70,12 @@ export function LoginForm({ onSubmit, submitting = false, error, onSwitch }: Log
           required
         />
         {turnstileEnabled && TURNSTILE_SITE_KEY && (
-          <TurnstileWidget key={captchaKey} siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} />
+          <TurnstileWidget
+            key={captchaKey}
+            siteKey={TURNSTILE_SITE_KEY}
+            onToken={setCaptchaToken}
+            className={s.turnstile}
+          />
         )}
         <Button
           type="submit"

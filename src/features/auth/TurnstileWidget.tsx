@@ -40,9 +40,11 @@ export type TurnstileWidgetProps = {
   // Called with the token on success, or null on expiry/error. Remount the
   // widget (change its React key) to force a fresh token after a failed submit.
   onToken: (token: string | null) => void
+  // Optional class on the container (e.g. to centre the fixed-width widget).
+  className?: string
 }
 
-export function TurnstileWidget({ siteKey, onToken }: TurnstileWidgetProps) {
+export function TurnstileWidget({ siteKey, onToken, className }: TurnstileWidgetProps) {
   const container = useRef<HTMLDivElement>(null)
   const onTokenRef = useRef(onToken)
   onTokenRef.current = onToken
@@ -87,5 +89,5 @@ export function TurnstileWidget({ siteKey, onToken }: TurnstileWidgetProps) {
   // attribution comes from the `action` passed to render(); data-action is kept
   // for documentation/parity (it's read only during the implicit render we opt
   // out of, so it's inert here but harmless).
-  return <div ref={container} data-action="turnstile-spin-v2" />
+  return <div ref={container} className={className} data-action="turnstile-spin-v2" />
 }
