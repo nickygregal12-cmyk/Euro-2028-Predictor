@@ -107,10 +107,31 @@ async function commit(): Promise<void> {
 
   // --- idempotent wipe: delete any prior seed users -------------------------
   const seedUserIds = await listSeedUserIds(admin)
-  for (const id of seedUserIds) {
-    // Cascades to profiles/entries/predictions via ON DELETE CASCADE.
-    const { error } = await admin.auth.admin.deleteUser(id)
-    if (error) throw new Error(`Failed to delete prior seed user ${id}: ${error.message}`)
+  if (seedUserIds.length > 0) {
+    // Clear every league row that references a seed user BEFORE deleting the
+    // auth users. leagues.owner_id is ON DELETE RESTRICT (a user who still owns
+    // a league can't be deleted — see 20260720120000_league_fk_semantics.sql),
+    // and cascading membership deletes through GoTrue's admin delete is where
+    // the underlying Postgres error gets masked as an empty {}. Clearing the
+    // rows here means the user delete never has to touch a public table.
+    // Best-effort: the leagues tables may not exist on an older dev DB.
+    const { error: leaguesErr } = await admin.from('leagues').delete().in('owner_id', seedUserIds)
+    if (leaguesErr && !isMissingRelation(leaguesErr)) {
+      throw new Error(`Failed to clear prior seed-owned leagues: ${describeError(leaguesErr)}`)
+    }
+    const { error: membersErr } = await admin
+      .from('league_members')
+      .delete()
+      .in('user_id', seedUserIds)
+    if (membersErr && !isMissingRelation(membersErr)) {
+      throw new Error(`Failed to clear prior seed league memberships: ${describeError(membersErr)}`)
+    }
+
+    for (const id of seedUserIds) {
+      // Cascades to profiles/entries/predictions via ON DELETE CASCADE.
+      const { error } = await admin.auth.admin.deleteUser(id)
+      if (error) throw new Error(`Failed to delete prior seed user ${id}: ${describeError(error)}`)
+    }
   }
   console.log(`Removed ${seedUserIds.length} prior seed user(s).`)
 
@@ -181,7 +202,7 @@ async function commit(): Promise<void> {
       .from('matches')
       .update({ home_score: r.homeScore, away_score: r.awayScore })
       .eq('id', matchId)
-    if (error) throw new Error(`result update failed for ${r.matchRef}: ${error.message}`)
+    if (error) throw new Error(`result update failed for ${r.matchRef}: ${describeError(error)}`)
   }
 
   console.log(
@@ -196,7 +217,7 @@ async function commit(): Promise<void> {
 // the League detail page renders against real, hostile-named members. Best-
 // effort: if the leagues migration (20260719180000_add_leagues.sql) isn't
 // applied yet, it warns and skips rather than failing the whole seed. Idempotent
-// via the seed-user wipe — deleting the owner cascades the league away.
+// via the seed-user wipe, which clears seed league rows before deleting users.
 async function seedTestLeague(
   admin: Admin,
   tournamentId: string,
@@ -246,7 +267,7 @@ async function listSeedUserIds(admin: Admin): Promise<string[]> {
   // Page through the auth users; keep the ones on the seed email domain.
   for (let page = 1; page <= 50; page++) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 })
-    if (error) throw new Error(`listUsers failed: ${error.message}`)
+    if (error) throw new Error(`listUsers failed: ${describeError(error)}`)
     const users = data.users ?? []
     for (const u of users) {
       if (u.email && u.email.endsWith(`@${SEED_EMAIL_DOMAIN}`)) ids.push(u.id)
@@ -263,13 +284,60 @@ async function createUser(admin: Admin, entry: GeneratedEntry): Promise<string> 
     email_confirm: true,
     user_metadata: { display_name: entry.displayName },
   })
-  if (error || !data.user) throw new Error(`createUser failed for ${entry.email}: ${error?.message}`)
+  if (error || !data.user) throw new Error(`createUser failed for ${entry.email}: ${describeError(error)}`)
   return data.user.id
 }
 
 async function insertOrThrow(admin: Admin, table: string, rows: unknown): Promise<void> {
   const { error } = await admin.from(table).insert(rows as never)
-  if (error) throw new Error(`insert into ${table} failed: ${error.message}`)
+  if (error) throw new Error(`insert into ${table} failed: ${describeError(error)}`)
+}
+
+// True when an error is "relation does not exist" — the leagues migration may
+// not be applied on an older dev DB, in which case there are no league rows to
+// clear and the wipe should carry on rather than abort.
+function isMissingRelation(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null
+  return (
+    e?.code === '42P01' || // Postgres undefined_table
+    e?.code === 'PGRST205' || // PostgREST: table not found in schema cache
+    /does not exist/i.test(e?.message ?? '')
+  )
+}
+
+// The Supabase admin API frequently masks the underlying Postgres error as an
+// empty object (its props are non-enumerable, so `${err}`/JSON.stringify give
+// "{}"). Dig every useful field out so a failure is actually diagnosable.
+function describeError(error: unknown): string {
+  if (error == null) return 'unknown error'
+  if (typeof error === 'string') return error
+
+  const e = error as Record<string, unknown>
+  const fields = ['message', 'code', 'status', 'details', 'hint', 'name']
+  const parts = fields
+    .map((k) => (e[k] != null && e[k] !== '' ? `${k}=${String(e[k])}` : null))
+    .filter(Boolean) as string[]
+  if (parts.length > 0) return parts.join(' · ')
+
+  // Fall back to non-enumerable own props (typical of API error objects), then
+  // to a plain stringify.
+  const own = Object.getOwnPropertyNames(e)
+    .map((k) => {
+      try {
+        return `${k}=${String(e[k])}`
+      } catch {
+        return null
+      }
+    })
+    .filter(Boolean) as string[]
+  if (own.length > 0) return own.join(' · ')
+
+  try {
+    const json = JSON.stringify(error)
+    return json && json !== '{}' ? json : String(error)
+  } catch {
+    return String(error)
+  }
 }
 
 // --- entrypoint --------------------------------------------------------------

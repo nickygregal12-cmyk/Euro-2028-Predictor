@@ -106,7 +106,7 @@ Detail in `roadmap.md` § Phase 3.
 - [ ] Landing page — public front door (3-step explainer, demo before account); before any public sharing
 - [ ] Independent-app disclaimer + privacy notice / terms in footer
 - [ ] Error monitoring (Sentry free tier) — wired before the dress rehearsal
-- [ ] Account deletion + data export (right to erasure; policy for league memberships + leaderboard rows)
+- [ ] Account deletion + data export (right to erasure; policy for league memberships + leaderboard rows). **FK semantics already set** (`20260720120000_league_fk_semantics.sql`): `league_members.user_id` CASCADE (memberships vanish), but `leagues.owner_id` RESTRICT — so the deletion flow MUST first transfer each owned league to a remaining member (or delete it if they're the last one) before the account can be removed; the DB blocks a silent cascade that would orphan/destroy other members' leagues.
 - [ ] E2E tests (Playwright), staging env, audit logs, accessibility pass
 - [ ] Full dress rehearsal — simulate the whole competition with friends playing along; launch-blocking
 
