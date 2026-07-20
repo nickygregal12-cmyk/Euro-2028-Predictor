@@ -53,4 +53,27 @@ describe('friendlyAuthError', () => {
     expect(friendlyAuthError(undefined, 'login')).toBe('Something went wrong. Please try again.')
     expect(friendlyAuthError('boom', 'login')).toBe('Something went wrong. Please try again.')
   })
+
+  // Item 2 (incident follow-up): a no-session / RLS-rejection failure must NOT be
+  // mislabelled as "email may already be in use" — it gets its own accurate copy,
+  // distinct from the genuine email-in-use case.
+  it('distinguishes a no-session / RLS failure from email-in-use', () => {
+    const setupCopy = "We couldn't finish setting up your account. Please try again."
+    expect(friendlyAuthError({ code: '42501' }, 'signup')).toBe(setupCopy)
+    expect(
+      friendlyAuthError({ message: 'new row violates row-level security policy for table "profiles"' }, 'signup'),
+    ).toBe(setupCopy)
+    expect(friendlyAuthError({ code: 'insufficient_privilege' }, 'signup')).toBe(setupCopy)
+    // ...and it is genuinely different from the email-in-use message.
+    expect(setupCopy).not.toBe(
+      friendlyAuthError({ code: 'email_exists' }, 'signup'),
+    )
+  })
+
+  it('never guesses "email may already be in use" on an unknown sign-up failure', () => {
+    const signup = friendlyAuthError({ message: 'some opaque backend failure' }, 'signup')
+    expect(signup.toLowerCase()).not.toContain('already')
+    expect(signup.toLowerCase()).not.toContain('in use')
+    expect(signup).toBe('Something went wrong. Please try again.')
+  })
 })

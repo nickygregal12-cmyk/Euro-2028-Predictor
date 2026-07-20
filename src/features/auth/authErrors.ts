@@ -64,8 +64,12 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     return 'An account with this email already exists. Try logging in instead.'
   }
 
-  // Wrong email/password (login).
-  if (code === 'invalid_credentials' || message.includes('invalid login credentials')) {
+  // Wrong email/password — this copy only makes sense on login; on sign-up an
+  // "invalid credentials" code is anomalous, so fall through to generic.
+  if (
+    action === 'login' &&
+    (code === 'invalid_credentials' || message.includes('invalid login credentials'))
+  ) {
     return "That email or password isn't right. Please try again."
   }
 
@@ -79,12 +83,34 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     return 'Please enter a valid email address.'
   }
 
+  // Display name rejected by the server moderation trigger (evasion of the
+  // client check). Don't echo which rule tripped.
+  if (message.includes('display name not allowed')) {
+    return 'That display name isn’t available. Please choose another.'
+  }
+
   // Too many attempts.
   if (code === 'over_request_rate_limit' || Number(e.status) === 429) {
     return 'Too many attempts. Please wait a moment and try again.'
   }
 
-  return action === 'signup'
-    ? `${GENERIC} If this keeps happening, the email may already be in use.`
-    : GENERIC
+  // A permission / no-session failure (e.g. a row-level-security rejection —
+  // the shape of the 2026-07-20 incident, when confirmation left sign-up with no
+  // session and the client profile insert was rejected). This is NOT an
+  // email-already-in-use case, so it must get its own accurate copy rather than
+  // the old fallback that guessed "email may already be in use". Profile
+  // creation is now a server-side trigger, so this is a defensive branch.
+  if (
+    code === '42501' ||
+    code === 'insufficient_privilege' ||
+    message.includes('row-level security') ||
+    message.includes('permission denied')
+  ) {
+    return "We couldn't finish setting up your account. Please try again."
+  }
+
+  // Unknown failure: a plain generic message for BOTH actions. Deliberately no
+  // "the email may already be in use" hint — the genuine email-in-use case is
+  // handled explicitly above; guessing it here mislabels unrelated failures.
+  return GENERIC
 }
