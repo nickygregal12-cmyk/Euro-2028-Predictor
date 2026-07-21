@@ -102,6 +102,7 @@ Independent low-risk fixes, each verified separately:
 - [x] `npm run test` script added (matches the README)
 - [x] `.gitignore` audited — node_modules/dist/.env* all covered; no change needed
 - [x] SEO hygiene — `public/robots.txt` (allow-all; fixes the SPA catch-all serving HTML at `/robots.txt`) + `<meta name="description">` in `index.html`
+- [x] Perf: self-hosted fonts (`@fontsource` Inter + Space Grotesk, latin+latin-ext, swap) — fixes render-blocking Google Fonts + drops the Google origins from the CSP; rendering identical. (Lighthouse "unused JS" = Supabase realtime bundled by `createClient`, no cheap win; "server response 0.55s" = deploy-preview artifact, re-verify on prod — both investigated, not acted on. See CLAUDE.md.)
 - Deferred (each its own session): TS strict mode, generated Supabase types/runtime validation, CI, DB tests, E2E, autosave concurrency, `submit_entry()` bracket revalidation, `entries.entry_type`
 
 ### ✅ Migrations — dev fully applied (2026-07-21)
