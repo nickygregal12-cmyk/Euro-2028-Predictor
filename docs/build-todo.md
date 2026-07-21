@@ -101,6 +101,7 @@ Independent low-risk fixes, each verified separately:
 - [x] Real 404 recovery page (`src/features/notfound/`) replacing the silent redirect — app voice, way back, 360px-safe, tested
 - [x] `npm run test` script added (matches the README)
 - [x] `.gitignore` audited — node_modules/dist/.env* all covered; no change needed
+- [x] SEO hygiene — `public/robots.txt` (allow-all; fixes the SPA catch-all serving HTML at `/robots.txt`) + `<meta name="description">` in `index.html`
 - Deferred (each its own session): TS strict mode, generated Supabase types/runtime validation, CI, DB tests, E2E, autosave concurrency, `submit_entry()` bracket revalidation, `entries.entry_type`
 
 ### ⚠️ Pending migrations — the real blocker for a meaningful test run
