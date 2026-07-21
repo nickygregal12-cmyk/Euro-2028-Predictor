@@ -40,7 +40,7 @@ Dev is fully applied; these rules govern applying the set to a **fresh prod proj
 | 16 | `20260720200000_display_name_moderation.sql` | `enforce_display_name_policy` BEFORE trigger on `profiles` | ✅ Confirmed (functional — see below) |
 | 17 | `20260720210000_rate_limits.sql` | `rate_limit_events` + `enforce_rate_limit()` triggers (prediction save 60/min, league join 5/min) | ✅ Confirmed (trigger state — see below) |
 | 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ✅ Confirmed (functional — see below) |
-| 19 | `20260721130000_match_centre.sql` | Match Centre reads: `get_league_match_picks()` (league-scoped per-match picks, post-lock + co-membership) + `get_match_prediction_distribution()` (overall anonymous distribution, post-lock) + `_stage_ord()` helper | ⛔ Pending |
+| 19 | `20260721130000_match_centre.sql` | Match Centre reads: `get_league_match_picks()` (league-scoped per-match picks, post-lock + co-membership **+ tournament-scope gate**) + `get_match_prediction_distribution()` (overall anonymous distribution, post-lock) + `_stage_ord()` helper | ⛔ Pending — amended pre-apply (see below) |
 
 ## Verification pass — 2026-07-20 (first-hand)
 
@@ -73,6 +73,28 @@ Confirmed applied against the dev DB in a later chat session:
 Note: this confirms the pipeline is live and byte-identical to the reference on partial data; it does **not** yet exercise §2/§3/§4 with non-zero output (that needs a complete group / KO participants / an actual golden boot). Those paths are covered by the reference scenario tests (`tests/domain/scoringCompletion.test.ts`) and remain to be seen live when real results land.
 
 **Transitively confirms #9 and #10.** #18 `create or replace`s `recompute_tournament_scores()` and inserts into `score_events` — it cannot apply unless #9 (`add_scoring`, which creates that table/view/function + the result trigger) is already live. And the leaderboard showing real §1 totals after a `--commit` re-seed — which re-writes the same deterministic results after wiping entries — only works because #10 removed the "same value → skip recompute" early-return (without #10 those re-written entries would score 0). So the scoring-completion verification is first-hand proof that #9 and #10 are applied, even though they were never directly checked in a recorded session. Marked ✅ on that basis (was: the doc's own "applied in an unrecorded session" caveat, now resolved for these two).
+
+## #19 pre-apply amendment — `20260721130000_match_centre.sql` (2026-07-21)
+
+The file was **amended before its first apply** (append-only starts at apply, not authorship — so the fix lands in the file itself, not a corrective migration). An external audit found a **tournament-scoping gap** in `get_league_match_picks()`: it confirmed league co-membership but never checked that the league and the requested match belong to the same tournament, so a member could pass a match from a *different* tournament and resolve this league's picks in a context they shouldn't reach. Fixed with an explicit `leagues.tournament_id = matches.tournament_id` gate that fails closed with the same `insufficient_privilege` errcode as the co-membership rejection.
+
+`get_match_prediction_distribution()` was **checked and intentionally left unchanged** — it takes no league argument and performs no co-membership check; it returns anonymous aggregates scoped to the match's own tournament, so the described cross-tournament leak cannot occur there (no phantom fix added).
+
+**Apply #19 now** to the dev DB (SQL editor, full file contents). Verification queries for Nicky to run after applying — paste back the **real rows/errors**, not "Success":
+
+```sql
+-- Setup: pick a league you belong to and a match in that league's tournament,
+-- plus a match from a DIFFERENT tournament.
+-- (a) Cross-tournament call MUST be rejected by the new gate:
+select get_league_match_picks('<your-league-id>', '<match-id-from-OTHER-tournament>');
+--   expect: ERROR  'Not a member of this league'  (SQLSTATE 42501 / insufficient_privilege)
+
+-- (b) Same-tournament call still works (returns the normal jsonb payload):
+select get_league_match_picks('<your-league-id>', '<match-id-in-SAME-tournament>');
+--   expect: jsonb with kind/locked/total_members/predicted_count/picks — no error
+```
+
+When Nicky confirms with that output, flip #19 to ✅ here and reconcile `build-todo.md` + `CLAUDE.md` **in the same response** (process rule 8).
 
 ## Order-sensitive callouts
 

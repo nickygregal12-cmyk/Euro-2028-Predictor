@@ -147,3 +147,4 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 5. Server enforces every rule; the client only reflects
 6. Doc filenames: repo names, not download names (rename on drop)
 7. End sessions with CLAUDE.md status + build-todo updates
+8. Claude Code never has database access (no service-role key, no CLI) — migrations are applied manually by Nicky in the Supabase SQL editor. When Nicky confirms a migration applied and verified (real query output, not "Success"), the confirmation turn itself updates docs/ops-pending-migrations.md (and roadmap/build-todo/CLAUDE.md where relevant) — docs sync on confirmation is part of the same response, never a follow-up.
