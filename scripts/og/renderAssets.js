@@ -1,5 +1,5 @@
 // Reproducible source for the public-site image assets in `public/`:
-//   og-image.png (1200×630), favicon.svg / favicon.ico / apple-touch-icon.png.
+//   og-image.jpg (1200×630), favicon.svg / favicon.ico / apple-touch-icon.png.
 //
 // There is no local SVG rasterizer in this repo, and these assets must render in
 // the app's actual typefaces (self-hosted Space Grotesk 500 + Inter, loaded by
@@ -12,11 +12,14 @@
 // ── How to regenerate ────────────────────────────────────────────────────────
 //   1. `npm run dev`, open the app (any page loads fonts.css).
 //   2. In the page console, paste this file's contents, then:
-//        copy(drawOgImage().toDataURL('image/png'))            // OG banner
+//        copy(drawOgImage().toDataURL('image/jpeg', 0.85))     // OG banner → og-image.jpg
 //        copy(drawFavicon(180, true).toDataURL('image/png'))   // apple-touch
 //        copy(drawFavicon(32).toDataURL('image/png'))          // ico source (also 16, 48)
 //   3. Decode each data: URL to bytes and write to public/ (favicon.ico wraps the
 //      16/32/48 PNGs in an ICO container; favicon.svg is hand-authored alongside).
+//   The OG banner is exported as JPEG (~38 KB) not PNG: the smooth navy gradient
+//   makes a PNG ~600 KB, which WhatsApp silently drops as an oversized preview
+//   thumbnail — and WhatsApp is the primary invite-sharing channel.
 //   Palette + type are the design-system tokens (src/styles/tokens.css).
 
 const C = {
