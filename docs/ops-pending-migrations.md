@@ -40,7 +40,7 @@ Dev is fully applied; these rules govern applying the set to a **fresh prod proj
 | 16 | `20260720200000_display_name_moderation.sql` | `enforce_display_name_policy` BEFORE trigger on `profiles` | ✅ Confirmed (functional — see below) |
 | 17 | `20260720210000_rate_limits.sql` | `rate_limit_events` + `enforce_rate_limit()` triggers (prediction save 60/min, league join 5/min) | ✅ Confirmed (trigger state — see below) |
 | 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ✅ Confirmed (functional — see below) |
-| 19 | `20260721130000_match_centre.sql` | Match Centre reads: `get_league_match_picks()` (league-scoped per-match picks, post-lock + co-membership **+ tournament-scope gate**) + `get_match_prediction_distribution()` (overall anonymous distribution, post-lock) + `_stage_ord()` helper | ⛔ Pending — amended pre-apply (see below) |
+| 19 | `20260721130000_match_centre.sql` | Match Centre reads: `get_league_match_picks()` (league-scoped per-match picks, post-lock + co-membership **+ tournament-scope gate**) + `get_match_prediction_distribution()` (overall anonymous distribution, post-lock) + `_stage_ord()` helper | ✅ Confirmed (gate verified — see below) |
 
 ## Verification pass — 2026-07-20 (first-hand)
 
@@ -94,7 +94,12 @@ select get_league_match_picks('<your-league-id>', '<match-id-in-SAME-tournament>
 --   expect: jsonb with kind/locked/total_members/predicted_count/picks — no error
 ```
 
-When Nicky confirms with that output, flip #19 to ✅ here and reconcile `build-todo.md` + `CLAUDE.md` **in the same response** (process rule 8).
+**Applied + verified — 2026-07-21 (first-hand, dev DB).** Ran a self-contained harness (`pg_temp.test_match_centre()`) that impersonates a real league member (`set_config` on `request.jwt.claims`) and points a cross-tournament call at a throwaway second tournament (created + rolled back in-transaction). Results:
+
+- **(a) cross-tournament** — rejected with **`42501` / "Not a member of this league"** (the new tournament-scope gate firing, not the co-membership one, since the caller *is* a member — the only difference is the match's tournament).
+- **(b) same-tournament** — normal payload returned (`kind=group locked=false total_members=1`), so the gate doesn't break the intended path.
+
+Real error + real row, not "Success". #19 is live; `get_match_prediction_distribution()` was intentionally left un-gated (no league arg — nothing to scope).
 
 ## Order-sensitive callouts
 
