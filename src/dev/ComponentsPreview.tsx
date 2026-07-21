@@ -52,6 +52,7 @@ import { TurnstileWidget } from '../features/auth/TurnstileWidget'
 import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
 import { H2HScreen } from '../features/h2h/H2HScreen'
+import { MatchCentreScreen } from '../features/matches/MatchCentreScreen'
 import { StatStrip } from '../features/home/StatStrip'
 import { TodayCard } from '../features/home/TodayCard'
 import { CatchUpLine } from '../features/home/CatchUpLine'
@@ -1143,6 +1144,132 @@ function Gallery() {
             mineOnlyFinalists: [SCO],
             theirsOnlyFinalists: [],
           }}
+        />
+      </Section>
+
+      <Section title="Match Centre — group · after · league scope (named rows)">
+        <MatchCentreScreen
+          eyebrow="Group A · Full time"
+          venue="Glasgow"
+          venueCountryCode="gb-sct"
+          home={SCO}
+          away={ENG}
+          temporalState="after"
+          result={{ home: 2, away: 1 }}
+          stake={{ kind: 'group', stake: { kind: 'group', pick: { homeScore: 2, awayScore: 1, joker: true }, outcome: 'exact', points: 10 } }}
+          scope={{ type: 'league', id: 'l1', name: 'The Office Sweepstake' }}
+          leagues={[{ id: 'l1', name: 'The Office Sweepstake' }, { id: 'l2', name: 'Fam' }]}
+          said={{
+            revealed: true,
+            kind: 'league-group',
+            rows: [
+              { displayName: 'Alex Turner', isYou: true, homeScore: 2, awayScore: 1, joker: true, outcome: 'exact', points: 10 },
+              { displayName: 'Søren Kjær-Nielsen', isYou: false, homeScore: 2, awayScore: 0, joker: false, outcome: 'correct', points: 3 },
+              { displayName: 'Maximilian von Habsburg-Lothringen III', isYou: false, homeScore: 1, awayScore: 0, joker: true, outcome: 'correct', points: 6 },
+              { displayName: '🦁 Leo the Lion', isYou: false, homeScore: 0, awayScore: 2, joker: false, outcome: 'wrong', points: 0 },
+              { displayName: 'Bo', isYou: false, homeScore: 1, awayScore: 3, joker: true, outcome: 'wrong', points: 0 },
+            ],
+          }}
+          scoreEvents={[{ id: 'e1', category: 'group_matches', explanation: 'Scotland 2–1 England · exact score', points: 10, joker: true }]}
+        />
+      </Section>
+
+      <Section title="Match Centre — group · after · overall scope (anonymous bars)">
+        <MatchCentreScreen
+          eyebrow="Group A · Full time"
+          venue="Glasgow"
+          venueCountryCode="gb-sct"
+          home={SCO}
+          away={ENG}
+          temporalState="after"
+          result={{ home: 2, away: 1 }}
+          stake={{ kind: 'group', stake: { kind: 'group', pick: { homeScore: 1, awayScore: 1, joker: false }, outcome: 'wrong', points: 0 } }}
+          scope={{ type: 'overall' }}
+          leagues={[{ id: 'l1', name: 'The Office Sweepstake' }]}
+          said={{
+            revealed: true,
+            kind: 'overall-group',
+            total: 21,
+            bars: [
+              { homeScore: 2, awayScore: 1, count: 8, isYou: false, outcome: 'exact' },
+              { homeScore: 1, awayScore: 1, count: 6, isYou: true, outcome: 'wrong' },
+              { homeScore: 2, awayScore: 0, count: 4, isYou: false, outcome: 'correct' },
+              { homeScore: 0, awayScore: 0, count: 3, isYou: false, outcome: 'wrong' },
+            ],
+          }}
+          scoreEvents={[]}
+        />
+      </Section>
+
+      <Section title="Match Centre — group · before · pre-lock (counts only, editable stake)">
+        <MatchCentreScreen
+          eyebrow="Group C · Upcoming"
+          venue="Cardiff"
+          venueCountryCode="gb-wls"
+          home={ESP}
+          away={FRA}
+          temporalState="before"
+          result={null}
+          countdownLabel="Kick-off 12 Jun"
+          stake={{ kind: 'group', stake: { kind: 'group', pick: { homeScore: 1, awayScore: 0, joker: false }, outcome: 'unknown', points: null } }}
+          scope={{ type: 'league', id: 'l1', name: 'Fam' }}
+          leagues={[{ id: 'l1', name: 'Fam' }]}
+          said={{ revealed: false, predicted: 18, total: 20 }}
+          scoreEvents={[]}
+        />
+      </Section>
+
+      <Section title="Match Centre — knockout · after · league scope (Had X ✓/✗ + casualties)">
+        <MatchCentreScreen
+          eyebrow="Round of 16 · Full time"
+          venue="Dublin"
+          venueCountryCode="ie"
+          home={SCO}
+          away={GER}
+          temporalState="after"
+          result={{ home: 1, away: 0 }}
+          koDetail="Scotland win 4–3 on penalties"
+          stake={{ kind: 'knockout', stake: { kind: 'knockout', backed: 'home', correct: true, points: 15 }, teamName: 'Scotland' }}
+          scope={{ type: 'league', id: 'l1', name: 'The Office Sweepstake' }}
+          leagues={[{ id: 'l1', name: 'The Office Sweepstake' }]}
+          said={{
+            revealed: true,
+            kind: 'league-ko',
+            homeName: 'Scotland',
+            awayName: 'Germany',
+            rows: [
+              { displayName: 'Alex Turner', isYou: true, backed: 'home', correct: true },
+              { displayName: 'Priya Shah', isYou: false, backed: 'home', correct: true },
+              { displayName: 'Wojciech Szczęsny', isYou: false, backed: 'away', correct: false },
+              { displayName: 'renée', isYou: false, backed: null, correct: null },
+            ],
+          }}
+          consequence={{ casualties: 1, example: 'Wojciech Szczęsny' }}
+          scoreEvents={[{ id: 'e1', category: 'knockout', explanation: 'Scotland · through to the quarter-finals', points: 15 }]}
+        />
+      </Section>
+
+      <Section title="Match Centre — knockout · during · overall scope (live, split bar)">
+        <MatchCentreScreen
+          eyebrow="Quarter-final · Live"
+          venue="London"
+          venueCountryCode="gb-eng"
+          home={ESP}
+          away={FRA}
+          temporalState="during"
+          result={null}
+          liveMinute="63'"
+          stake={{ kind: 'knockout', stake: { kind: 'knockout', backed: 'home', correct: null, points: null }, teamName: 'Spain' }}
+          scope={{ type: 'overall' }}
+          leagues={[{ id: 'l1', name: 'Fam' }]}
+          said={{
+            revealed: true,
+            kind: 'overall-ko',
+            homeName: 'Spain',
+            awayName: 'France',
+            split: { homeCount: 13, awayCount: 8, total: 21, youBacked: 'home', actualWinner: null },
+          }}
+          scoreEvents={[]}
         />
       </Section>
 

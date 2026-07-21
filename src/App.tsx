@@ -25,7 +25,7 @@ const LeagueDetailPage = lazy(() => import('./features/leagues/LeagueDetailPage'
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
 const ScoringRulesPage = lazy(() => import('./features/more/ScoringRulesPage').then((m) => ({ default: m.ScoringRulesPage })))
-const MatchCentreStub = lazy(() => import('./features/matches/MatchCentreStub').then((m) => ({ default: m.MatchCentreStub })))
+const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').then((m) => ({ default: m.MatchCentrePage })))
 const WelcomePage = lazy(() => import('./features/welcome/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
@@ -90,7 +90,7 @@ export default function App() {
                     <Route path="/league/overall" element={<OverallStandingsPage />} />
                     <Route path="/league/:id" element={<LeagueDetailPage />} />
                     <Route path="/h2h/:rivalId" element={<H2HPage />} />
-                    <Route path="/match/:matchRef" element={<MatchCentreStub />} />
+                    <Route path="/match/:matchRef" element={<MatchCentrePage />} />
                     <Route path="/more" element={<MorePage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     {/* /more/points consolidated into Profile (which embeds the same
