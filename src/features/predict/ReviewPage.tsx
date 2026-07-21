@@ -13,10 +13,8 @@ import {
 } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
-import { useAuth } from '../../features/auth/AuthProvider'
 import { ShareSheet } from '../share/ShareSheet'
-import { survivorsFromRounds } from '../share/buildShareModel'
-import { availableShareVariants, type ShareCardModel } from '../share/shareModel'
+import { useShareModel } from '../share/useShareModel'
 import { computeHubStatus } from './hubStatus'
 import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { ChampionCard } from '../bracket'
@@ -43,7 +41,6 @@ export function ReviewPage() {
   const navigate = useNavigate()
   const data = useTournamentData()
   const preds = usePredictions()
-  const auth = useAuth()
 
   // Golden-boot search state (hooks must run before any early return).
   const [shareOpen, setShareOpen] = useState(false)
@@ -52,6 +49,9 @@ export function ReviewPage() {
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<GoldenBootPlayer | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+
+  // Shareable-card model (design-system §6), assembled from this entry.
+  const share = useShareModel({ goldenBootName: selected?.name ?? null })
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
@@ -178,40 +178,6 @@ export function ReviewPage() {
   const locked = isEntryLocked(data.data.tournament.lockAt)
 
   const finalTie = bracket.rounds.find((round) => round.key === 'FINAL')?.ties[0]
-
-  // Shareable-card model (design-system §6). Assembled from this entry's data;
-  // the card renders client-side in the ShareSheet. Team country codes are the
-  // placeholder empties until real teams are seeded (the renderer degrades to
-  // initials), same as the rest of the app.
-  const teamsById = new Map(data.data.teams.map((t) => [t.id, t]))
-  const teamOf = (id: string) => {
-    const t = teamsById.get(id)
-    return t ? { name: t.name, countryCode: '' } : null
-  }
-  const finalists: ShareCardModel['finalists'] =
-    finalTie && finalTie.home.kind === 'team' && finalTie.away.kind === 'team'
-      ? [
-          { name: finalTie.home.name, countryCode: finalTie.home.countryCode },
-          { name: finalTie.away.name, countryCode: finalTie.away.countryCode },
-        ]
-      : null
-  const shareModel: ShareCardModel = {
-    header: { playerName: auth.displayName ?? 'You', locked },
-    champion: bracket.champion ? { name: bracket.champion.name, countryCode: bracket.champion.countryCode } : null,
-    finalists,
-    venue: null,
-    dateLabel: null,
-    stats: { goalsPredicted: goals.total, jokersArmed: preds.jokerCount },
-    awards: { goldenBootName: selected?.name ?? null, groupGoals: goals.total },
-    survivors: survivorsFromRounds(bracket.rounds, teamOf),
-    brag: null,
-    url: typeof window !== 'undefined' ? window.location.origin : '',
-  }
-  const shareVariants = availableShareVariants({
-    championPicked: bracket.champion !== null,
-    entryComplete: submitted,
-    tournamentStarted: false,
-  })
 
   function chooseGoldenBoot(player: GoldenBootPlayer) {
     setSelected(player)
@@ -343,7 +309,11 @@ export function ReviewPage() {
               ? "You're in — predictions are now locked. Good luck!"
               : `You're in. Editable until ${deadlineText} — change anything up to kickoff and it saves automatically; your entry stays submitted.`}
           </p>
-          <Button variant="secondary" onClick={() => setShareOpen(true)} disabled={shareVariants.length === 0}>
+          <Button
+            variant="secondary"
+            onClick={() => setShareOpen(true)}
+            disabled={!share.model || share.variants.length === 0}
+          >
             <span className={r.blocked}>
               <ShareIcon size={15} /> Share your entry
             </span>
@@ -391,7 +361,9 @@ export function ReviewPage() {
         submitting just locks you in as ready.
       </ConfirmModal>
 
-      <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} model={shareModel} variants={shareVariants} />
+      {share.model && (
+        <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} model={share.model} variants={share.variants} />
+      )}
     </div>
   )
 }
