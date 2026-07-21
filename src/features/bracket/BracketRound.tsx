@@ -18,6 +18,7 @@ import {
 import { RoundSwitcher } from './RoundSwitcher'
 import { TieCard } from './TieCard'
 import { ChampionCard } from './ChampionCard'
+import { ConflictBanner } from '../predict/ConflictBanner'
 import s from '../shared.module.css'
 import b from './bracket.module.css'
 
@@ -155,6 +156,8 @@ export function BracketRound() {
     <div className={s.page}>
       {header}
 
+      <ConflictBanner />
+
       <SaveLine status={preds.bracketSaveStatus} onRetry={preds.retryBracketSave} />
 
       <RoundSwitcher
@@ -209,7 +212,8 @@ export function BracketRound() {
 }
 
 function SaveLine({ status, onRetry }: { status: string; onRetry: () => void }) {
-  if (status === 'idle') return null
+  // 'conflict' is handled by the ConflictBanner above, not this inline line.
+  if (status === 'idle' || status === 'conflict') return null
   return (
     <div className={b.saveLine} role="status">
       {status === 'saving' && <span className={b.saveMuted}>Saving…</span>}

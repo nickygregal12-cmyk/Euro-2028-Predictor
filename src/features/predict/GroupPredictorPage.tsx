@@ -12,6 +12,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildGroupTableRows } from './groupTable'
+import { ConflictBanner } from './ConflictBanner'
 import { scoreOneMatch } from './matchScoring'
 import { venueCountryCode } from './venues'
 import { isEntryLocked } from '../../domain/tournament/entryLock'
@@ -84,6 +85,7 @@ export function GroupPredictorPage() {
 
   return (
     <div className={s.page}>
+      <ConflictBanner />
       <nav className={g.nav} aria-label="Group navigation">
         <button
           type="button"

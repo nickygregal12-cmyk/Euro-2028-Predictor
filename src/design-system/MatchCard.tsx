@@ -8,7 +8,10 @@ import { FEATURES } from './featureFlags'
 import type { MatchTeam } from './types'
 
 export type MatchCardState = 'editable' | 'locked' | 'scored'
-export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+// 'conflict' = the row was changed on another device (optimistic-concurrency).
+// The resolution actions live in a page-level banner, so the card only reflects
+// the state; it is not retried inline like a plain 'error'.
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'conflict'
 
 // 'none' = knockout match / no joker; 'available' = can play; 'on' = placed but
 // not yet committed; 'committed' = match kicked off with the joker on it.
@@ -196,6 +199,12 @@ export function MatchCard(props: MatchCardProps) {
             <button type="button" className={styles.retry} onClick={onRetrySave}>
               retry
             </button>
+          </span>
+        )
+      case 'conflict':
+        return (
+          <span className={`${styles.status} ${styles.statusError}`}>
+            <AlertIcon size={14} /> Changed on another device
           </span>
         )
       default:

@@ -25,6 +25,7 @@ import {
   TOTAL_GOALS_BANDS,
 } from '../../domain/tournament/scoringConfig'
 import { GoldenBootPicker, type GoldenBootPlayer } from './GoldenBootPicker'
+import { ConflictBanner } from './ConflictBanner'
 import { searchPlayers } from '../../services/supabase/bonus'
 import { daysUntil, formatLongDate } from '../../app/time'
 import s from '../shared.module.css'
@@ -204,6 +205,7 @@ export function ReviewPage() {
         <span className={s.eyebrow}>Predict</span>
         <h1 className={s.title}>Review and submit</h1>
       </div>
+      <ConflictBanner />
       <div className={r.blocked}>
         <LockIcon size={13} className={r.iconMuted} />
         <span className={s.sub}>

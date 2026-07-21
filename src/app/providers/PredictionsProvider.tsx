@@ -15,6 +15,7 @@ import {
   upsertMatchPrediction,
 } from '../../services/supabase/predictions'
 import { fetchGoldenBoot, upsertGoldenBoot } from '../../services/supabase/bonus'
+import { isVersionConflict } from '../../services/supabase/writeConflict'
 import {
   fetchTieResolutions,
   upsertTieResolution,
@@ -91,6 +92,11 @@ type PredictionsContextValue = {
   setGoldenBoot: (playerId: string | null) => void
   goldenBootSaveStatus: SaveStatus
   retryGoldenBoot: () => void
+  // Optimistic-concurrency conflict (a prediction row was changed on another
+  // device). Terminal + non-retryable: the user chooses how to resolve. True
+  // when ANY key is in conflict; resolveConflict applies to all of them.
+  hasConflict: boolean
+  resolveConflict: (choice: 'latest' | 'mine') => void
   // Submission. `submit` calls the server-side validator; it does not freeze the
   // entry — predictions stay editable and the entry stays submitted.
   submitting: boolean
@@ -134,6 +140,13 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const progressionDesiredRef = useRef<Record<string, ProgressionStage>>({})
   const progressionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
+  // Optimistic-concurrency versions the client last read per row. Echoed on the
+  // next write; a mismatch means the server row changed elsewhere (conflict).
+  // Updated from every successful save's returned version.
+  const matchVersionsRef = useRef<Record<string, number>>({})
+  const progressionVersionsRef = useRef<Record<string, number>>({})
+  const goldenBootVersionRef = useRef<number>(0)
+
   // The save controller serialises writes per key (at most one in flight,
   // coalesced pending, stale-response guard, bounded retry). `performSave` and
   // `onStatus` read only refs + stable setters, so the controller is created
@@ -143,19 +156,27 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     controllerRef.current = createSaveController({
       performSave,
       onStatus,
+      // A version conflict is terminal + non-retryable (server row changed
+      // elsewhere); the controller surfaces 'conflict' instead of auto-retrying.
+      isConflict: isVersionConflict,
     })
   }
   const controller = controllerRef.current
 
-  // Perform the actual write for a settled save key. Throws on failure so the
-  // controller retries; never touches local prediction state.
+  // Perform the actual write for a settled save key. Echoes the last-read version
+  // and records the new one on success. Throws on failure so the controller
+  // retries (or, for a version conflict, surfaces it). Never touches local state.
   async function performSave(key: string, payload: unknown): Promise<void> {
     const id = entryIdRef.current
     if (!id) throw new Error('No entry to save against')
     if (key.startsWith('m:')) {
       const matchId = key.slice(2)
       const p = payload as MatchSavePayload
-      await upsertMatchPrediction(id, matchId, p.homeScore, p.awayScore, p.joker)
+      const v = await upsertMatchPrediction(
+        id, matchId, p.homeScore, p.awayScore, p.joker,
+        matchVersionsRef.current[matchId] ?? 0,
+      )
+      matchVersionsRef.current[matchId] = v
       return
     }
     if (key.startsWith('t:')) {
@@ -166,12 +187,25 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     if (key === BRACKET_KEY) {
       const desired = (payload as BracketSavePayload).desired
       const persisted = progressionPersistedRef.current
+      const versions = progressionVersionsRef.current
       const ops: Promise<void>[] = []
       for (const [teamId, stage] of Object.entries(desired)) {
-        if (persisted[teamId] !== stage) ops.push(upsertProgression(id, teamId, stage))
+        if (persisted[teamId] !== stage) {
+          ops.push(
+            upsertProgression(id, teamId, stage, versions[teamId] ?? 0).then((v) => {
+              versions[teamId] = v
+            }),
+          )
+        }
       }
       for (const teamId of Object.keys(persisted)) {
-        if (desired[teamId] === undefined) ops.push(deleteProgression(id, teamId))
+        if (desired[teamId] === undefined) {
+          ops.push(
+            deleteProgression(id, teamId).then(() => {
+              delete versions[teamId]
+            }),
+          )
+        }
       }
       await Promise.all(ops)
       // The controller guarantees saves are sequential per key, so advancing the
@@ -180,7 +214,10 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       return
     }
     if (key === GOLDEN_BOOT_KEY) {
-      await upsertGoldenBoot(id, (payload as GoldenBootSavePayload).playerId)
+      const v = await upsertGoldenBoot(
+        id, (payload as GoldenBootSavePayload).playerId, goldenBootVersionRef.current,
+      )
+      goldenBootVersionRef.current = v
       return
     }
   }
@@ -222,9 +259,12 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
         const rows = await fetchMatchPredictions(entry.id)
         if (!active) return
         const map: Record<string, Prediction> = {}
+        const vmap: Record<string, number> = {}
         for (const r of rows) {
           map[r.matchId] = { homeScore: r.homeScore, awayScore: r.awayScore, joker: r.joker }
+          vmap[r.matchId] = r.version
         }
+        matchVersionsRef.current = vmap
         setPredictions(map)
         setReady(true)
         // Tie-resolutions load best-effort: they default to empty, so a failure
@@ -244,22 +284,30 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
           .then((rows) => {
             if (!active) return
             const map: Record<string, ProgressionStage> = {}
-            for (const r of rows) map[r.teamId] = r.stage
+            const vmap: Record<string, number> = {}
+            for (const r of rows) {
+              map[r.teamId] = r.stage
+              vmap[r.teamId] = r.version
+            }
             setProgression(map)
             progressionPersistedRef.current = map
             progressionDesiredRef.current = map
+            progressionVersionsRef.current = vmap
           })
           .catch(() => {
             if (!active) return
             setProgression({})
             progressionPersistedRef.current = {}
             progressionDesiredRef.current = {}
+            progressionVersionsRef.current = {}
           })
         // Golden-boot selection loads best-effort too (the bonus tables may not
         // be applied to this DB yet; a failure leaves it unset, which is safe).
         fetchGoldenBoot(entry.id)
-          .then((id) => {
-            if (active) setGoldenBootPlayerId(id)
+          .then((gb) => {
+            if (!active) return
+            setGoldenBootPlayerId(gb.playerId)
+            goldenBootVersionRef.current = gb.version
           })
           .catch(() => {
             if (active) setGoldenBootPlayerId(null)
@@ -384,6 +432,90 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  // Re-read the server's versions (and, for the bracket, its current stages) so
+  // the client's echoed versions match again. Updates version refs + the bracket
+  // baseline; when applyLocal is true it also overwrites local state with the
+  // server's ('Load latest'). When false it leaves local edits intact ('Keep
+  // mine' — the next re-issued write overwrites the server). Best-effort per row.
+  async function reloadVersionedState(id: string, applyLocal: boolean): Promise<void> {
+    try {
+      const rows = await fetchMatchPredictions(id)
+      const vmap: Record<string, number> = {}
+      const pmap: Record<string, Prediction> = {}
+      for (const r of rows) {
+        vmap[r.matchId] = r.version
+        pmap[r.matchId] = { homeScore: r.homeScore, awayScore: r.awayScore, joker: r.joker }
+      }
+      matchVersionsRef.current = vmap
+      if (applyLocal) {
+        predictionsRef.current = pmap
+        setPredictions(pmap)
+        setSaveStatus({})
+      }
+    } catch {
+      /* leave versions as-is on a transient read failure */
+    }
+    try {
+      const prows = await fetchProgression(id)
+      const smap: Record<string, ProgressionStage> = {}
+      const pvmap: Record<string, number> = {}
+      for (const r of prows) {
+        smap[r.teamId] = r.stage
+        pvmap[r.teamId] = r.version
+      }
+      progressionVersionsRef.current = pvmap
+      progressionPersistedRef.current = smap
+      if (applyLocal) {
+        progressionDesiredRef.current = smap
+        setProgression(smap)
+        setBracketSaveStatus('idle')
+      }
+    } catch {
+      /* ignore */
+    }
+    try {
+      const gb = await fetchGoldenBoot(id)
+      goldenBootVersionRef.current = gb.version
+      if (applyLocal) {
+        setGoldenBootPlayerId(gb.playerId)
+        setGoldenBootSaveStatus('idle')
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // Resolve a version conflict, wholesale across every key currently in conflict.
+  // 'latest' discards local edits for the server's copy; 'mine' keeps local and
+  // re-issues the writes against the freshly-read versions (a deliberate
+  // overwrite, allowed pre-lock). Local state never changes without this choice.
+  function resolveConflict(choice: 'latest' | 'mine') {
+    const id = entryIdRef.current
+    if (!id) return
+    const conflictedMatches = Object.entries(saveStatus)
+      .filter(([, st]) => st === 'conflict')
+      .map(([m]) => m)
+    const bracketConflict = bracketSaveStatus === 'conflict'
+    const gbConflict = goldenBootSaveStatus === 'conflict'
+    controller.reset()
+    void reloadVersionedState(id, choice === 'latest').then(() => {
+      if (choice === 'mine') {
+        for (const m of conflictedMatches) dispatchMatchSave(m)
+        if (bracketConflict) dispatchBracketSave()
+        if (gbConflict) {
+          controller.change(GOLDEN_BOOT_KEY, {
+            playerId: goldenBootPlayerId,
+          } satisfies GoldenBootSavePayload)
+        }
+      }
+    })
+  }
+
+  const hasConflict =
+    bracketSaveStatus === 'conflict' ||
+    goldenBootSaveStatus === 'conflict' ||
+    Object.values(saveStatus).some((st) => st === 'conflict')
+
   const jokerCount = useMemo(
     () => Object.values(predictions).filter((p) => p.joker).length,
     [predictions],
@@ -409,6 +541,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     setGoldenBoot,
     goldenBootSaveStatus,
     retryGoldenBoot: () => controller.manualRetry(GOLDEN_BOOT_KEY),
+    hasConflict,
+    resolveConflict,
     submitting,
     submit,
   }
