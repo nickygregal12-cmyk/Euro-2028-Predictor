@@ -73,6 +73,16 @@ begin
     raise exception 'Match not found' using errcode = 'no_data_found';
   end if;
 
+  -- Tournament-scope gate: the league and the match must belong to the same
+  -- tournament. A league is scoped to one tournament (leagues.tournament_id),
+  -- so a match from another tournament must not resolve this league's picks —
+  -- fail closed exactly like the co-membership gate.
+  if not exists (
+    select 1 from leagues where id = p_league_id and tournament_id = v_tournament
+  ) then
+    raise exception 'Not a member of this league' using errcode = 'insufficient_privilege';
+  end if;
+
   select lock_at into v_lock from tournaments where id = v_tournament;
   v_locked := v_lock is not null and now() >= v_lock;
 

@@ -8,6 +8,7 @@ import { fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchLeagueMatchPicks, fetchMatchDistribution } from '../../services/supabase/matchCentre'
 import { venueCountryCode } from '../predict/venues'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
+import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
 import {
   matchTemporalState,
@@ -29,6 +30,19 @@ const ROUND_LABEL: Record<string, string> = {
   final: 'Final',
 }
 const STAGE_UP: Record<string, KnockoutStage> = { r16: 'R16', qf: 'QF', sf: 'SF', final: 'FINAL', champion: 'CHAMPION' }
+
+// Your predicted furthest stage for each participant of a knockout tie (null if
+// your bracket didn't place that team), upper-cased for the domain. Both the
+// overall-KO youBacked and your own stake derive from this one place so the
+// "who did you back" answer always comes from koStake — never row-presence,
+// which mis-picks 'home' when both teams have a progression row (QF onward).
+function koStagesFor(
+  match: { homeTeamId: string | null; awayTeamId: string | null },
+  progression: Record<string, ProgressionStage>,
+): { homeStage: KnockoutStage | null; awayStage: KnockoutStage | null } {
+  const up = (id: string | null): KnockoutStage | null => (id && progression[id] ? STAGE_UP[progression[id]] : null)
+  return { homeStage: up(match.homeTeamId), awayStage: up(match.awayTeamId) }
+}
 
 export function MatchCentrePage() {
   const { matchRef } = useParams<{ matchRef: string }>()
@@ -99,9 +113,8 @@ export function MatchCentrePage() {
             const { bars, total } = groupDistribution(d.buckets, yp, result)
             setSaid({ revealed: true, kind: 'overall-group', bars, total })
           } else {
-            const homeStage = match.homeTeamId ? preds.bracketProgression[match.homeTeamId] : undefined
-            const awayStage = match.awayTeamId ? preds.bracketProgression[match.awayTeamId] : undefined
-            const youBacked = homeStage ? 'home' : awayStage ? 'away' : null
+            const { homeStage, awayStage } = koStagesFor(match, preds.bracketProgression)
+            const youBacked = koStake(homeStage, awayStage, match.round, actualWinner).backed
             const split = koSplit({ homeCount: d.homeCount, awayCount: d.awayCount, totalEntries: d.totalEntries }, youBacked, actualWinner)
             setSaid({
               revealed: true,
@@ -195,8 +208,7 @@ export function MatchCentrePage() {
       })
     }
   } else {
-    const homeStage = (match.homeTeamId && preds.bracketProgression[match.homeTeamId] ? STAGE_UP[preds.bracketProgression[match.homeTeamId]] : null) as KnockoutStage | null
-    const awayStage = (match.awayTeamId && preds.bracketProgression[match.awayTeamId] ? STAGE_UP[preds.bracketProgression[match.awayTeamId]] : null) as KnockoutStage | null
+    const { homeStage, awayStage } = koStagesFor(match, preds.bracketProgression)
     const ks = koStake(homeStage, awayStage, match.round, actualWinner)
     const teamName = ks.backed === 'home' ? home.name : ks.backed === 'away' ? away.name : null
     stakeProp = { kind: 'knockout', stake: ks, teamName }

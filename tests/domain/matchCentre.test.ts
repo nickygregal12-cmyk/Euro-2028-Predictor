@@ -69,6 +69,37 @@ describe('koStake — backed team + correctness + progression points', () => {
     expect(s.backed).toBe('home')
     expect(s.points).toBe(40)
   })
+
+  // Regression: from QF onward BOTH participants of a tie carry a progression
+  // row — the loser's furthest stage is this very round, the winner's is beyond.
+  // A row-presence inference ("whichever team has a row") mis-attributes to the
+  // home side; koStake must attribute to the team predicted BEYOND this round,
+  // whichever side that is. One case per affected round, backing the AWAY side
+  // (the exact case row-presence gets wrong).
+  it('qf: both teams have a row (home out at QF, away to SF) — backs away, not home', () => {
+    const s = koStake('QF', 'SF', 'qf', 'away')
+    expect(s.backed).toBe('away')
+    expect(s.correct).toBe(true)
+    expect(s.points).toBe(20) // reaching the SF
+  })
+  it('sf: both teams have a row (home out at SF, away to the final) — backs away', () => {
+    const s = koStake('SF', 'FINAL', 'sf', 'home')
+    expect(s.backed).toBe('away')
+    expect(s.correct).toBe(false) // away lost the SF
+    expect(s.points).toBe(0)
+  })
+  it('final: both teams have a row (home runner-up, away champion) — backs away', () => {
+    const s = koStake('FINAL', 'CHAMPION', 'final', 'away')
+    expect(s.backed).toBe('away')
+    expect(s.correct).toBe(true)
+    expect(s.points).toBe(40) // champion value
+  })
+  it('qf: symmetric — home to SF while away out at QF still backs home', () => {
+    const s = koStake('SF', 'QF', 'qf', 'home')
+    expect(s.backed).toBe('home')
+    expect(s.correct).toBe(true)
+    expect(s.points).toBe(20)
+  })
 })
 
 describe('groupDistribution', () => {
