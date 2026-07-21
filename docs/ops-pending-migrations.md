@@ -2,7 +2,7 @@
 
 The single source of truth for which migrations are **live in the dev database**, and the ordered set to apply when standing up the **production** project.
 
-**STATUS (2026-07-21): migrations 1–18 are confirmed applied to the dev DB; #19 (`…_match_centre`) is pending (added this session, needs applying).** The earlier "pending" flags on 1–18 were stale (applied in unrecorded sessions, exactly the drift this doc warns about). The dev migration prerequisite for the single-tester exit gate is otherwise **satisfied**; the fresh-**production**-project split still needs the whole ordered set applied from scratch.
+**STATUS (2026-07-22): migrations 1–19 are confirmed applied to the dev DB; #20 (`…_write_integrity`) is PENDING (added this session, needs applying).** The dev migration prerequisite for the single-tester exit gate is otherwise **satisfied**; the fresh-**production**-project split still needs the whole ordered set applied from scratch.
 
 **How this was built:** by reading the migration files on disk, every application confirmation in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, a **first-hand chat verification pass (2026-07-20)** for `20260720150000`–`20260720210000` (see "Verification pass"), the **scoring-completion verification** for `20260721120000`, and finally a **full applied-state check (2026-07-21)** that reconciled the remaining rows against the live dev DB — a read-only REST probe (tables/columns) plus a dashboard SQL query for the trigger/function/constraint bits the anon key can't see (see "Full applied-state verification"). Every row is now ✅.
 
@@ -41,6 +41,7 @@ Dev is fully applied; these rules govern applying the set to a **fresh prod proj
 | 17 | `20260720210000_rate_limits.sql` | `rate_limit_events` + `enforce_rate_limit()` triggers (prediction save 60/min, league join 5/min) | ✅ Confirmed (trigger state — see below) |
 | 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ✅ Confirmed (functional — see below) |
 | 19 | `20260721130000_match_centre.sql` | Match Centre reads: `get_league_match_picks()` (league-scoped per-match picks, post-lock + co-membership **+ tournament-scope gate**) + `get_match_prediction_distribution()` (overall anonymous distribution, post-lock) + `_stage_ord()` helper | ✅ Confirmed (gate verified — see below) |
+| 20 | `20260722120000_write_integrity.sql` | **Part A:** `version` column + `enforce_write_version()` BEFORE UPDATE trigger on `match_predictions`/`predicted_progression`/`bonus_predictions` (optimistic concurrency; distinct SQLSTATE `PT409`). **Part B:** redefines `submit_entry()` with SAFE structural bracket checks (no `r16` rows, exact 8-row shape, progression teams tournament-scoped). | ⏳ **Pending apply (dev)** — verification queries (a)–(e) in the migration file |
 
 ## Verification pass — 2026-07-20 (first-hand)
 
@@ -128,8 +129,11 @@ The cutover to a **separate production project** is driven by `docs/ops-prod-cut
 | 17 | `20260720210000_rate_limits.sql` | ⏳ Pending |
 | 18 | `20260721120000_scoring_positions_knockout_awards.sql` | ⏳ Pending |
 | 19 | `20260721130000_match_centre.sql` (incl. tournament-scope fix) | ⏳ Pending |
+| 20 | `20260722120000_write_integrity.sql` | ⏳ Pending |
 
 Legend: ✅ Confirmed applied (verified against the live **prod** DB) · ⏳ Pending.
+
+> **#20 and the prod cutover:** if the cutover (`docs/ops-prod-cutover.md`) hasn't run yet, its "apply ALL migrations in strict timestamp order" step already covers `20260722120000_write_integrity.sql` — no runbook edit is needed. If prod is already stood up, apply #20 to it as a standalone follow-up.
 
 ### Applied-state verification query
 
@@ -163,7 +167,10 @@ select * from (values
   ('#17 rate_limit_events table',      to_regclass('public.rate_limit_events') is not null),
   ('#18 tournaments.golden_boot',      exists (select 1 from information_schema.columns where table_name='tournaments' and column_name='golden_boot_player_id')),
   ('#19 get_league_match_picks fn',    exists (select 1 from pg_proc where proname='get_league_match_picks')),
-  ('#19 get_match_pred_distribution',  exists (select 1 from pg_proc where proname='get_match_prediction_distribution'))
+  ('#19 get_match_pred_distribution',  exists (select 1 from pg_proc where proname='get_match_prediction_distribution')),
+  ('#20 match_predictions.version',    exists (select 1 from information_schema.columns where table_name='match_predictions' and column_name='version')),
+  ('#20 enforce_write_version fn',     exists (select 1 from pg_proc where proname='enforce_write_version')),
+  ('#20 version trigger (progression)',exists (select 1 from pg_trigger where tgname='enforce_version_predicted_progression'))
 ) as checks(object, present)
 order by object;
 ```
