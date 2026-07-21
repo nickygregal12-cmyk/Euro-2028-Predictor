@@ -123,7 +123,7 @@ Detail in `roadmap.md` § Phase 3.
 - [ ] H2H pass 2 — rank-over-time graph + bracket-health-vs-real + compare-full-brackets side by side
 - [ ] Full profiles extensions — rank history (from `rank_history`), bracket comparisons
 - [ ] Phase-aware Home states (during/after) live
-- [ ] Shareable cards build (Phase 3-adjacent) — the self-contained image-generation capability specced in design-system §6 (Shareable cards): one 1080×1080 dark-navy renderer, three content states (quick tease / full bracket / during-tournament brag) + league-context variant; the Share stubs on Review + Home (and league contexts) route here. (Was the older "Shareable entry summary" line — folded into this.)
+- [~] Shareable cards build — **built (2026-07-21)**: self-contained 1080×1080 dark-navy **canvas** renderer (`src/features/share/renderShareCard.ts`), 3 states (tease / full bracket / brag + tombstone) + league-recruitment variant, real flags (bundled, canvas not tainted → PNG export works), native share / download. `ShareSheet` modal (variant switcher + live preview). Pure `shareModel.ts` (10 tests). Wired the **Review** "Share your entry" stub. States in `/dev/components`. Still to wire: Home submitted-banner + league Share entry points.
 - [ ] Landing page — public front door (3-step explainer, demo before account); before any public sharing
 - [ ] Independent-app disclaimer + privacy notice / terms in footer
 - [ ] Error monitoring (Sentry free tier) — wired before the dress rehearsal
