@@ -2,7 +2,7 @@
 
 The single source of truth for which migrations are **live in the dev database**, and the ordered set to apply when standing up the **production** project.
 
-**STATUS (2026-07-22): migrations 1–19 are confirmed applied to the dev DB; #20 (`…_write_integrity`) is PENDING (added this session, needs applying).** The dev migration prerequisite for the single-tester exit gate is otherwise **satisfied**; the fresh-**production**-project split still needs the whole ordered set applied from scratch.
+**STATUS (2026-07-22): all 20 migrations are confirmed applied to the dev DB — nothing pending.** (#20 `…_write_integrity` applied + functionally verified this session — see "Write-integrity verification" below.) The dev migration prerequisite for the single-tester exit gate is **satisfied**; the fresh-**production**-project split still needs the whole ordered set applied from scratch.
 
 **How this was built:** by reading the migration files on disk, every application confirmation in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, a **first-hand chat verification pass (2026-07-20)** for `20260720150000`–`20260720210000` (see "Verification pass"), the **scoring-completion verification** for `20260721120000`, and finally a **full applied-state check (2026-07-21)** that reconciled the remaining rows against the live dev DB — a read-only REST probe (tables/columns) plus a dashboard SQL query for the trigger/function/constraint bits the anon key can't see (see "Full applied-state verification"). Every row is now ✅.
 
@@ -41,7 +41,7 @@ Dev is fully applied; these rules govern applying the set to a **fresh prod proj
 | 17 | `20260720210000_rate_limits.sql` | `rate_limit_events` + `enforce_rate_limit()` triggers (prediction save 60/min, league join 5/min) | ✅ Confirmed (trigger state — see below) |
 | 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ✅ Confirmed (functional — see below) |
 | 19 | `20260721130000_match_centre.sql` | Match Centre reads: `get_league_match_picks()` (league-scoped per-match picks, post-lock + co-membership **+ tournament-scope gate**) + `get_match_prediction_distribution()` (overall anonymous distribution, post-lock) + `_stage_ord()` helper | ✅ Confirmed (gate verified — see below) |
-| 20 | `20260722120000_write_integrity.sql` | **Part A:** `version` column + `enforce_write_version()` BEFORE UPDATE trigger on `match_predictions`/`predicted_progression`/`bonus_predictions` (optimistic concurrency; distinct SQLSTATE `PT409`). **Part B:** redefines `submit_entry()` with SAFE structural bracket checks (no `r16` rows, exact 8-row shape, progression teams tournament-scoped). | ⏳ **Pending apply (dev)** — verification queries (a)–(e) in the migration file |
+| 20 | `20260722120000_write_integrity.sql` | **Part A:** `version` column + `enforce_write_version()` BEFORE UPDATE trigger on `match_predictions`/`predicted_progression`/`bonus_predictions` (optimistic concurrency; distinct SQLSTATE `PT409`). **Part B:** redefines `submit_entry()` with SAFE structural bracket checks (no `r16` rows, exact 8-row shape, progression teams tournament-scoped). | ✅ Confirmed (functional — see below) |
 
 ## Verification pass — 2026-07-20 (first-hand)
 
@@ -101,6 +101,18 @@ select get_league_match_picks('<your-league-id>', '<match-id-in-SAME-tournament>
 - **(b) same-tournament** — normal payload returned (`kind=group locked=false total_members=1`), so the gate doesn't break the intended path.
 
 Real error + real row, not "Success". #19 is live; `get_match_prediction_distribution()` was intentionally left un-gated (no league arg — nothing to scope).
+
+## Write-integrity verification — `20260722120000` (2026-07-22, first-hand, dev DB)
+
+Applied + functionally verified with two self-contained `pg_temp` harnesses (each in a rolled-back transaction). Real result rows, not "Success":
+
+- **Part A / (a) stale version** — an UPDATE carrying `version = stored − 1` was rejected with **`prediction version conflict (expected -1, stored 0)` [SQLSTATE `PT409`]** — the distinct, non-retryable conflict code (told apart from the `check_violation` lock/joker/rate-limit rejections).
+- **Part A / (b) correct version** — an UPDATE with the current version succeeded and the trigger incremented it server-side (**0 → 1**).
+- **Part A / (e) triggers compose** — with the tournament forced past lock and the CORRECT version, a score change was rejected by the **lock** trigger (`Predictions are locked — the tournament has started`), not the version trigger — proving the lock fires first (by name order) and is never masked.
+- **Part B / (d) valid submit** — a complete seed entry (36 group + the 8-row winner-only bracket) submitted successfully (returned a `submitted_at`).
+- **Part B / (c) corrupt submit** — the same entry with an orphan `r16` progression row was rejected with the specific **`Bracket has invalid round-of-16 rows — re-pick your winners`**.
+
+`version` column + `enforce_version_match_predictions` trigger confirmed present. #20 is live on dev.
 
 ## Prod applied-state tracking
 
