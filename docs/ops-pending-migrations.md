@@ -2,7 +2,7 @@
 
 The single source of truth for which migrations are **live in the dev database**, and the ordered set to apply when standing up the **production** project.
 
-**STATUS (2026-07-21): all 18 migrations are confirmed applied to the dev DB — nothing is pending.** The earlier "pending" flags were stale (applied in unrecorded sessions, exactly the drift this doc warns about). The dev migration prerequisite for the single-tester exit gate is therefore **satisfied**; the fresh-**production**-project split still needs the whole ordered set applied from scratch.
+**STATUS (2026-07-21): migrations 1–18 are confirmed applied to the dev DB; #19 (`…_match_centre`) is pending (added this session, needs applying).** The earlier "pending" flags on 1–18 were stale (applied in unrecorded sessions, exactly the drift this doc warns about). The dev migration prerequisite for the single-tester exit gate is otherwise **satisfied**; the fresh-**production**-project split still needs the whole ordered set applied from scratch.
 
 **How this was built:** by reading the migration files on disk, every application confirmation in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, a **first-hand chat verification pass (2026-07-20)** for `20260720150000`–`20260720210000` (see "Verification pass"), the **scoring-completion verification** for `20260721120000`, and finally a **full applied-state check (2026-07-21)** that reconciled the remaining rows against the live dev DB — a read-only REST probe (tables/columns) plus a dashboard SQL query for the trigger/function/constraint bits the anon key can't see (see "Full applied-state verification"). Every row is now ✅.
 
@@ -40,6 +40,7 @@ Dev is fully applied; these rules govern applying the set to a **fresh prod proj
 | 16 | `20260720200000_display_name_moderation.sql` | `enforce_display_name_policy` BEFORE trigger on `profiles` | ✅ Confirmed (functional — see below) |
 | 17 | `20260720210000_rate_limits.sql` | `rate_limit_events` + `enforce_rate_limit()` triggers (prediction save 60/min, league join 5/min) | ✅ Confirmed (trigger state — see below) |
 | 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Scoring completion: §2 group positions + §3 knockout + §4 awards into `score_events`; adds `tournaments.golden_boot_player_id`; redefines `recompute_tournament_scores()` (still calls `capture_rank_history()`); broadens the result trigger + adds a golden-boot trigger | ✅ Confirmed (functional — see below) |
+| 19 | `20260721130000_match_centre.sql` | Match Centre reads: `get_league_match_picks()` (league-scoped per-match picks, post-lock + co-membership) + `get_match_prediction_distribution()` (overall anonymous distribution, post-lock) + `_stage_ord()` helper | ⛔ Pending |
 
 ## Verification pass — 2026-07-20 (first-hand)
 
