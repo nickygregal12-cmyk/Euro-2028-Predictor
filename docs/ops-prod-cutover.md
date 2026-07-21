@@ -11,6 +11,22 @@ The ordered, manual checklist for standing up a **separate production Supabase p
 
 ---
 
+## ✅ EXECUTED — 2026-07-22 (all steps complete)
+
+Nicky ran this runbook end to end. **Prod project ref: `vkfnsqdyhvtwyqkisxhk`** (`https://vkfnsqdyhvtwyqkisxhk.supabase.co`). The checkboxes below are intentionally left blank so this stays the **template** for any future stand-up; this log is the record of the executed run.
+
+- **Step 1 — Resend key rotated.** Done (also closes the 21-Jul screenshot-exposure follow-up); the rotated key is what SMTP uses in step 6.
+- **Step 2 — prod project created**, ref `vkfnsqdyhvtwyqkisxhk`, same region as dev.
+- **Step 3 — all 20 migrations applied** in strict timestamp order (one concatenated paste in the SQL editor). Includes #20 `20260722120000_write_integrity.sql` (the list in step 3 predates #20; the concatenated paste covered it).
+- **Step 4 — verified.** Canonical query returned 30 rows, 28 direct-true; the two `false` rows were **query bugs** (wrong `tgname`s), not missing migrations — a `pg_trigger` diagnostic confirmed `enforce_joker_rules_trg` (O) on `match_predictions` and `enforce_display_name` (O) on `profiles`. Query corrected + prod table flipped to all-✅ in `docs/ops-pending-migrations.md`.
+- **Step 5 — baseline data loaded.** `seed.sql` + `prod-baseline.sql`; verified: tournaments 1 / groups 6 / teams 24 / matches 51 / `lock_at` = `2028-06-09 00:00:00+00` (starts_on-derived placeholder — the real MD1 kick-off instant lands with the 2027 schedule announcement, already the standing "Per-matchday kickoff times" roadmap item; **not** a new task).
+- **Step 6 — Auth configured.** Site URL `euro28predictor.com`, both-domain redirect wildcards, SMTP via the rotated Resend key (**live-verified** by a real password-recovery send, after fixing an initial config error), Turnstile CAPTCHA with the real secret, email confirmation OFF.
+- **Steps 7 & 8 — reordered in practice (env swap before admin grant).** The live site was the sign-up surface, so the order run was: **Netlify env swap → redeploy → sign-up/log-out/log-in/prediction-save smoke test (PASSED) → admin bootstrap**. Netlify env used the prod URL + the **new-style `sb_publishable_*` key** (confirmed working with supabase-js in production); clear-cache redeploy. Nicky's admin account created on prod and the bootstrap grant run.
+- **Step 9 — dev Turnstile secret reverted** to Cloudflare's test secret; **local dev auto-login confirmed working again** (the `captcha … request disallowed` error is gone). Closes the local-dev-auth blocker.
+- **Step 10 — rollback** not needed (smoke test passed).
+
+---
+
 ## Pre-flight
 
 - [ ] Confirm the tournament-scoping fix in `20260721130000_match_centre.sql` is **merged into the file on the branch you will apply from**. `get_league_match_picks()` must contain the `leagues.tournament_id = matches.tournament_id` gate (see `docs/ops-pending-migrations.md` § "#19 pre-apply amendment"). Do **not** apply this migration anywhere without that fix.
@@ -25,7 +41,7 @@ The ordered, manual checklist for standing up a **separate production Supabase p
 
 - [ ] Create a new Supabase project in the **same region as dev** (dev region: check the dev project's settings and match it — latency + Auth cookie parity).
 - [ ] Email confirmation stays **OFF** (configured in step 6) — recorded product decision (CLAUDE.md status).
-- [ ] **Record the new project ref here when created:** `PROD_PROJECT_REF = ____________________`
+- [ ] **Record the new project ref here when created:** `PROD_PROJECT_REF = ____________________` (2026-07-22 run: `vkfnsqdyhvtwyqkisxhk` — see the EXECUTED log above)
 - [ ] Note the prod Project URL (`https://<ref>.supabase.co`) and the anon/publishable key — needed for step 8.
 
 > The dev-only shims (`autoLoginPolicy.ts`, `seed-dev/seedPolicy.ts`) are pinned to the **dev** ref and hard-fail against any other ref, so they can never touch this prod project even if misconfigured. Nothing else in the app special-cases a ref.
