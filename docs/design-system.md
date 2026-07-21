@@ -283,6 +283,19 @@ The operator's cockpit for running a live tournament. Not a public surface — a
 - **Feature flags** — the runtime on/off switches the app already reads (e.g. `FEATURES.matchCardNavigation`), listed with current state and default, toggled per environment with a logged reason. The mechanism is deliberately simple (config the app reads), not a third-party flag service.
 - **Audit log** — the append-only record of every admin mutation: who, what, when, before→after, and the affected entity. Read-only, filterable by actor/section/entity, and itself never editable. This is what makes every other section safe to hand to a second trusted admin: nothing an operator does is invisible. (Roadmap already lists audit logs under the Phase 3 dress-rehearsal gate.)
 
+### Sweepstake builder (Phase 4+ bonus game — concept approved; full hostile-data 360px design pass required before build)
+The classic office sweepstake as a bonus game: entrants are assigned national teams, and the entrant whose team advances furthest wins. Designed and approved in concept (two screens mocked); it still owes a full design pass before build.
+
+- **Concept** — a sweepstake bonus game sitting under the Games hub: each entrant is allocated one or more teams; the furthest-advancing team wins the pot.
+- **Team assignment** — a **seeded snake draft** (draft order reverses each round). Snake ordering keeps it fair when team quality varies, so no single entrant hoards the strongest seeds.
+- **Entrants — MIXED** — registered app users **and** unregistered guest names (no account required). The organiser types guest names in; a guest exists only inside that one sweepstake.
+- **Winner** — the furthest-advancing team. Tie-break = the **seed rank of the deeper-going team** (better seed wins the tie).
+- **Two screens** (mocked, concept-approved):
+  1. **Builder / draft setup** — the organiser creates the sweepstake, adds entrants (a registered-user picker + free-text guest names), then runs and reveals the snake draft.
+  2. **Results / leaderboard** — entrant → assigned team → current status (alive / eliminated / champion), ordered by furthest progression.
+- **Competition separation law applies in full** (competition-structure): entry is voluntary, never auto-enrolled; results never touch Original Predictor points; every screen states which competition it is. **Known design tension to resolve in the full pass (not now):** guest entrants stretch the law further than any other bonus game — participants who aren't users at all. How that reconciles with "which competition is this / whose entry is this" is a design-pass question.
+- **Explicitly NOT specced yet** (all design-pass questions): the data model, joins/invites, edit-after-draft rules, and what happens if a guest later registers.
+
 ## 7. Destructive actions (app-wide principle)
 
 Three tiers — the goal is that confirm dialogs stay rare enough to be respected:

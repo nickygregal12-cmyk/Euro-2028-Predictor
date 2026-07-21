@@ -93,6 +93,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] Shared Bonus Games hub at More → Games (/games): per-game entry status, deadlines, current round, score/survival
 - [ ] Optional-entry framework: registration, deadlines, independent participant pools, game status/history, admin management
 - [ ] Separation law enforced throughout: entering anything is always voluntary; nothing auto-enrols; bonus results never touch Original Predictor points; every screen states which competition it is
+- [ ] Sweepstake builder (spec: design-system §6 → Sweepstake builder) — seeded snake draft, mixed registered/guest entrants, furthest-team-wins; sits alongside LMS / KO Predictor / Fan Duels under the Games hub and the separation law
 
 ## PHASE 5 — KO Predictor
 - [ ] Separate optional game once real knockout fixtures known; own registration, predictions, points, standings, per-match kickoff locks; global + invite-only KO competitions; never merged with Original scores
@@ -135,17 +136,19 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - Additional scoring modes; public user-created competitions
 - Magic links, social logins, MFA
 - Full PWA treatment (worth revisiting at Phase 3 — "feels like an app" was an original goal)
-
 - Desktop/tablet responsive pass (the app is mobile-first at 360px; a wider-viewport layout is deferred)
 - Production ops tooling (beyond the manual runbooks / ops notes already in `docs/`)
 - WCAG 2.2 AA compliance pass beyond the existing accessibility baseline (§9)
 - Notification preferences (per-user control over which emails/alerts are sent)
 - Device test matrix (systematic cross-device/browser coverage)
 - Data-confidence indicators (surfacing how firm/provisional a shown value is)
+
 ---
 
 ## DESIGN LEDGER (what's designed vs not)
-**ALL surfaces designed — ledger zero.** Every screen in the app now has a spec in `design-system.md`. The final additions that cleared the shelf: **Match Centre** (§6), **Matches tab** (§6), **Shareable cards** (§6), **Landing page** (§6), **Post-tournament Home** (§6) — with /welcome and H2H designed earlier. Design is no longer a blocker on any build: every remaining item in this roadmap is implementation, not design.
+**All Phase 1–3 surfaces fully designed — ledger zero for everything through the dress rehearsal.** Every screen in the app through Phase 3 now has a full spec in `design-system.md`. The final additions that cleared the shelf: **Match Centre** (§6), **Matches tab** (§6), **Shareable cards** (§6), **Landing page** (§6), **Post-tournament Home** (§6) — with /welcome and H2H designed earlier. Design is no longer a blocker on any Phase 1–3 build: every remaining item through Phase 3 is implementation, not design.
+
+**One item is CONCEPT-APPROVED, not fully specced: the Sweepstake builder** (Phase 4+ bonus game, design-system §6). Two screens are mocked and the concept is approved, but it is deliberately *not* at the same fidelity as the fully-specced surfaces above — it still owes a full hostile-data 360px design pass before build (open questions: guest-entrant separation-law tension, data model, joins/invites, edit-after-draft rules). Kept distinct here rather than claiming everything is equally designed.
 
 ## PROCESS RULES (hard-won, keep them)
 1. One Claude Code session per repo at a time; prompts queue, never parallelise
