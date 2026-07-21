@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Minimal + honest. The app is auth-gated, so the only index-worthy public URL is
+  the canonical root. Deliberately EXCLUDED:
+    * the auth pages (/auth/login, /auth/signup) — thin forms with no content
+      value to index; the root already serves the logged-out entry point;
+    * /join/:code invite links — dynamic and private-by-obscurity;
+    * everything behind auth (predict, league, profile, match centre, …).
+  Revisit when the public landing page ships (roadmap Phase 3).
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://euro28predictor.com/</loc>
+    <lastmod>2026-07-22</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

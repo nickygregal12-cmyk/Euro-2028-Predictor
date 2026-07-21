@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://euro28predictor.com/sitemap.xml
