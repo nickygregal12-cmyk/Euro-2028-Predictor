@@ -1,18 +1,34 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Alert, Button, ProgressBar, Skeleton, TeamFlag } from '../../design-system'
-import { CheckIcon } from '../../design-system/icons'
+import { CheckIcon, ShareIcon } from '../../design-system/icons'
 import { daysUntil, formatLongDate } from '../../app/time'
 import { StatStrip } from './StatStrip'
 import { TodayCard } from './TodayCard'
 import { CatchUpLine } from './CatchUpLine'
 import { LeagueSnapshot } from './LeagueSnapshot'
 import { useHomeData, type HomeModel } from './useHomeData'
+import { ShareSheet } from '../share/ShareSheet'
+import { useShareModel } from '../share/useShareModel'
+import type { ShareVariant } from '../share/shareModel'
 import s from '../shared.module.css'
 import h from './home.module.css'
 
 export function HomePage() {
   const navigate = useNavigate()
   const state = useHomeData()
+
+  // Share card (design-system §6). Brag numbers only during the tournament.
+  const hm = state.status === 'ready' ? state.model : null
+  const brag =
+    hm && hm.phase === 'during' ? { points: hm.totalPoints, rank: hm.rank, total: hm.entryCount } : null
+  const share = useShareModel({ brag })
+  const [shareOpen, setShareOpen] = useState(false)
+  const [shareDefault, setShareDefault] = useState<ShareVariant>('tease')
+  const openShare = (v: ShareVariant) => {
+    setShareDefault(v)
+    setShareOpen(true)
+  }
 
   const header = (
     <div className={s.header}>
@@ -47,21 +63,38 @@ export function HomePage() {
   }
 
   const m = state.model
+  const canShare = share.model !== null && share.variants.length > 0
   return (
     <div className={s.page}>
       {header}
-      {m.phase === 'during' && <DuringLayout m={m} navigate={navigate} />}
-      {m.phase === 'preSubmitted' && <PreSubmittedLayout m={m} navigate={navigate} />}
+      {m.phase === 'during' && <DuringLayout m={m} navigate={navigate} onShare={canShare ? openShare : undefined} />}
+      {m.phase === 'preSubmitted' && <PreSubmittedLayout m={m} navigate={navigate} onShare={canShare ? openShare : undefined} />}
       {m.phase === 'preIncomplete' && <PreIncompleteLayout m={m} navigate={navigate} />}
+      {share.model && (
+        <ShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          model={share.model}
+          variants={share.variants}
+          defaultVariant={shareDefault}
+        />
+      )}
     </div>
   )
 }
 
 type Nav = ReturnType<typeof useNavigate>
 
-function DuringLayout({ m, navigate }: { m: HomeModel; navigate: Nav }) {
+function DuringLayout({ m, navigate, onShare }: { m: HomeModel; navigate: Nav; onShare?: (v: ShareVariant) => void }) {
   return (
     <>
+      {onShare && (
+        <Button variant="secondary" fullWidth onClick={() => onShare('brag')}>
+          <span className={h.shareBtn}>
+            <ShareIcon size={15} /> Share your standing
+          </span>
+        </Button>
+      )}
       <StatStrip
         totalPoints={m.totalPoints}
         pointsToday={m.pointsToday}
@@ -85,7 +118,7 @@ function DuringLayout({ m, navigate }: { m: HomeModel; navigate: Nav }) {
   )
 }
 
-function PreSubmittedLayout({ m, navigate }: { m: HomeModel; navigate: Nav }) {
+function PreSubmittedLayout({ m, navigate, onShare }: { m: HomeModel; navigate: Nav; onShare?: (v: ShareVariant) => void }) {
   const days = m.lockAt ? daysUntil(m.lockAt.slice(0, 10)) : m.startsOn ? daysUntil(m.startsOn) : null
   return (
     <>
@@ -112,9 +145,10 @@ function PreSubmittedLayout({ m, navigate }: { m: HomeModel; navigate: Nav }) {
             <span className={s.eyebrow}>Your champion</span>
             <span className={h.championName}>{m.champion.name}</span>
           </span>
-          {/* Share is a stub until the shareable summary exists (design-system §6). */}
-          <Button variant="secondary" onClick={() => {}} disabled title="Coming soon">
-            Share
+          <Button variant="secondary" onClick={() => onShare?.('tease')} disabled={!onShare}>
+            <span className={h.shareBtn}>
+              <ShareIcon size={15} /> Share
+            </span>
           </Button>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Button, ConfirmModal, Skeleton, Toast } from '../../design-system'
-import { ChevronLeftIcon, MoreIcon, UsersIcon } from '../../design-system/icons'
+import { ChevronLeftIcon, MoreIcon, ShareIcon, UsersIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { isEntryLocked } from '../../domain/tournament/entryLock'
 import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
@@ -14,8 +14,11 @@ import {
   type LeagueMember,
 } from '../../services/supabase/leagues'
 import { InvitePanel } from './InvitePanel'
+import { inviteUrl } from './share'
 import { LeagueMemberRow } from './LeagueMemberRow'
 import { TransferOwnershipModal } from './TransferOwnershipModal'
+import { ShareSheet } from '../share/ShareSheet'
+import { useShareModel } from '../share/useShareModel'
 import s from '../shared.module.css'
 import d from './detail.module.css'
 
@@ -45,6 +48,14 @@ export function LeagueDetailPage() {
   const [acting, setActing] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [shareOpen, setShareOpen] = useState(false)
+
+  // Recruitment card: your own bracket with a "Join <league>" invite chip.
+  const shareLeague = state.status === 'ready' ? state.data.header : null
+  const share = useShareModel(
+    shareLeague ? { leagueName: shareLeague.name, url: inviteUrl(shareLeague.inviteCode) } : {},
+  )
+  const canShare = share.model !== null && share.variants.length > 0
 
   const menuWrap = useRef<HTMLDivElement>(null)
   const youRow = useRef<HTMLDivElement>(null)
@@ -245,6 +256,13 @@ export function LeagueDetailPage() {
         </div>
 
         <InvitePanel leagueName={lg.name} code={lg.inviteCode} mode="chip" />
+        {canShare && (
+          <Button variant="secondary" fullWidth onClick={() => setShareOpen(true)}>
+            <span className={d.shareBtn}>
+              <ShareIcon size={15} /> Share your bracket to recruit
+            </span>
+          </Button>
+        )}
       </div>
 
       {actionError && (
@@ -341,6 +359,16 @@ export function LeagueDetailPage() {
         <div className={d.toastHost}>
           <Toast variant="info" message={toast} onDismiss={() => setToast(null)} />
         </div>
+      )}
+
+      {share.model && (
+        <ShareSheet
+          open={shareOpen}
+          onClose={() => setShareOpen(false)}
+          model={share.model}
+          variants={share.variants}
+          defaultVariant="bracket"
+        />
       )}
     </div>
   )

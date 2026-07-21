@@ -16,6 +16,8 @@ export type ShareSheetProps = {
   onClose: () => void
   model: ShareCardModel
   variants: ShareVariant[]
+  // Which variant to show first (falls back to the first available one).
+  defaultVariant?: ShareVariant
 }
 
 /**
@@ -24,11 +26,18 @@ export type ShareSheetProps = {
  * The card renders client-side from the ShareCardModel; nothing leaves the device
  * except what the user actively shares.
  */
-export function ShareSheet({ open, onClose, model, variants }: ShareSheetProps) {
+export function ShareSheet({ open, onClose, model, variants, defaultVariant }: ShareSheetProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
-  const [variant, setVariant] = useState<ShareVariant>(variants[0] ?? 'tease')
+  const initial = defaultVariant && variants.includes(defaultVariant) ? defaultVariant : (variants[0] ?? 'tease')
+  const [variant, setVariant] = useState<ShareVariant>(initial)
   const [rendering, setRendering] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+
+  // The model is captured for rendering when the sheet opens / the variant
+  // changes — reading it from a ref keeps the canvas from redrawing on every
+  // parent render (the model is freshly assembled each render by useShareModel).
+  const modelRef = useRef(model)
+  modelRef.current = model
 
   // Re-render the card whenever the sheet opens or the variant changes.
   useEffect(() => {
@@ -36,13 +45,19 @@ export function ShareSheet({ open, onClose, model, variants }: ShareSheetProps) 
     let active = true
     setRendering(true)
     setStatus(null)
-    renderShareCard(canvasRef.current, model, variant).finally(() => {
+    renderShareCard(canvasRef.current, modelRef.current, variant).finally(() => {
       if (active) setRendering(false)
     })
     return () => {
       active = false
     }
-  }, [open, variant, model])
+  }, [open, variant])
+
+  // On open, snap to the requested default variant.
+  useEffect(() => {
+    if (open) setVariant(defaultVariant && variants.includes(defaultVariant) ? defaultVariant : (variants[0] ?? 'tease'))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   // Keep the selected variant valid if the available set changes.
   useEffect(() => {
