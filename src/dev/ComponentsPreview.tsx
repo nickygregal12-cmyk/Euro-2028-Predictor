@@ -53,6 +53,7 @@ import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
 import { H2HScreen } from '../features/h2h/H2HScreen'
 import { MatchCentreScreen } from '../features/matches/MatchCentreScreen'
+import { MatchesScreen } from '../features/matches/MatchesScreen'
 import { StatStrip } from '../features/home/StatStrip'
 import { TodayCard } from '../features/home/TodayCard'
 import { CatchUpLine } from '../features/home/CatchUpLine'
@@ -140,6 +141,7 @@ function ScoreInputDemo() {
 // "coming soon" EmptyState (per the design-system brief).
 const COMING_SOON: Record<Exclude<NavKey, 'home'>, string> = {
   predict: 'Predict',
+  matches: 'Matches',
   league: 'League',
   more: 'More',
 }
@@ -1145,6 +1147,41 @@ function Gallery() {
             theirsOnlyFinalists: [],
           }}
         />
+      </Section>
+
+      <Section title="Matches tab — browser (upcoming / live / played, group + KO, filters)">
+        <MatchesScreen
+          filter="all"
+          onFilter={() => {}}
+          onOpen={() => {}}
+          groups={[
+            {
+              key: 'MD1',
+              label: 'Matchday 1',
+              dateLabel: 'Wed 10 Jun',
+              rows: [
+                { matchRef: 'GA-1', home: SCO, away: ENG, state: 'after', timeLabel: '', result: { home: 2, away: 1 }, yourPick: 'You said 2–1', points: 10, joker: true, jokerPaid: true, outcome: 'exact' },
+                { matchRef: 'GC-1', home: ESP, away: FRA, state: 'after', timeLabel: '', result: { home: 0, away: 2 }, yourPick: 'You said 2–0', points: 0, joker: false, outcome: 'wrong' },
+                { matchRef: 'GB-1', home: GER, away: SCO, state: 'during', timeLabel: '', result: null, liveMinute: "63'", yourPick: 'You said 1–1', points: null, joker: true, jokerPaid: false, outcome: 'neutral' },
+                { matchRef: 'GA-2', home: ENG, away: ESP, state: 'before', timeLabel: 'Fri 12 Jun · 20:00', result: null, yourPick: 'You said 1–0', points: null, joker: false, outcome: 'neutral' },
+                { matchRef: 'GD-1', home: FRA, away: GER, state: 'before', timeLabel: 'Fri 12 Jun · 17:00', result: null, yourPick: null, points: null, joker: false, outcome: 'neutral' },
+              ],
+            },
+            {
+              key: 'R16',
+              label: 'Round of 16',
+              dateLabel: 'Sat 27 Jun',
+              rows: [
+                { matchRef: 'R16-1', home: SCO, away: GER, state: 'after', timeLabel: '', result: { home: 1, away: 0 }, yourPick: 'You had Scotland through', points: 15, joker: false, outcome: 'good' },
+                { matchRef: 'R16-2', home: ESP, away: FRA, state: 'before', timeLabel: 'Sat 27 Jun · 20:00', result: null, yourPick: 'You had Spain through', points: null, joker: false, outcome: 'neutral' },
+              ],
+            },
+          ]}
+        />
+      </Section>
+
+      <Section title="Matches tab — empty (My jokers filter, none placed)">
+        <MatchesScreen filter="jokers" onFilter={() => {}} onOpen={() => {}} groups={[]} emptyMessage="No jokers placed yet — place them on your group predictions." />
       </Section>
 
       <Section title="Match Centre — group · after · league scope (named rows)">

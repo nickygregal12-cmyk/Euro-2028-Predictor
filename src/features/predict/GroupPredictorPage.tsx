@@ -144,6 +144,8 @@ export function GroupPredictorPage() {
               // scores, not joker moves.
               jokerState={pred.joker ? 'on' : 'available'}
               onToggleJoker={() => preds.toggleJoker(m.id)}
+              // Chevron → the per-fixture match centre (enabled now that it ships).
+              onOpen={() => navigate(`/match/${m.matchRef}`)}
             />
           )
         })}

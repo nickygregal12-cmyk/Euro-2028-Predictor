@@ -1,14 +1,15 @@
 import styles from './BottomNav.module.css'
-import { HomeIcon, BallIcon, TrophyIcon, MoreIcon, type IconProps } from './icons'
+import { HomeIcon, BallIcon, CalendarIcon, TrophyIcon, MoreIcon, type IconProps } from './icons'
 
-// The four v0.1 app sections (design-system §6). Fixed set — tabs are config, so
-// the match centre (Phase 3) and league expansion (v0.5) slot in without a
-// nav rebuild. Config lives here rather than being passed in.
-export type NavKey = 'home' | 'predict' | 'league' | 'more'
+// The app sections (design-system §6). Fixed set — tabs are config, so new
+// sections slot in without a nav rebuild. Config lives here rather than being
+// passed in. The Matches tab (the time-shaped fixture browser) is the 5th slot.
+export type NavKey = 'home' | 'predict' | 'matches' | 'league' | 'more'
 
 const ITEMS: { key: NavKey; label: string; Icon: (p: IconProps) => React.ReactElement }[] = [
   { key: 'home', label: 'Home', Icon: HomeIcon },
   { key: 'predict', label: 'Predict', Icon: BallIcon },
+  { key: 'matches', label: 'Matches', Icon: CalendarIcon },
   { key: 'league', label: 'League', Icon: TrophyIcon },
   { key: 'more', label: 'More', Icon: MoreIcon },
 ]

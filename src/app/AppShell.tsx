@@ -9,12 +9,15 @@ import { RouteFallback } from './RouteFallback'
 const TAB_PATH: Record<NavKey, string> = {
   home: '/',
   predict: '/predict',
+  matches: '/matches',
   league: '/league',
   more: '/more',
 }
 
 function activeTab(pathname: string): NavKey {
   if (pathname.startsWith('/predict')) return 'predict'
+  // The per-fixture match centre (/match/:ref) belongs to the Matches tab.
+  if (pathname.startsWith('/matches') || pathname.startsWith('/match/')) return 'matches'
   if (pathname.startsWith('/league')) return 'league'
   if (pathname.startsWith('/more')) return 'more'
   return 'home'
