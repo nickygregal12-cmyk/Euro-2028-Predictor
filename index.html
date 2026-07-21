@@ -2,15 +2,52 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Favicons. Browsers that support SVG use favicon.svg; favicon.ico
+         (16/32/48) is the raster fallback; apple-touch-icon for iOS home screen.
+         (No web-app manifest — PWA treatment is parked in the roadmap.) -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <title>Euro 2028 Predictor</title>
     <meta
       name="description"
       content="Predict every match of Euro 2028 and compete with friends and family this summer."
     />
+    <link rel="canonical" href="https://euro28predictor.com/" />
+    <meta name="theme-color" content="#0A1128" />
+
+    <!-- Open Graph — how links unfurl in chat apps + social. All URLs are
+         absolute on the canonical domain (crawlers resolve nothing relative). -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Euro 2028 Predictor" />
+    <meta property="og:title" content="Euro 2028 Predictor" />
+    <meta
+      property="og:description"
+      content="Predict every match of Euro 2028 and compete with friends and family this summer."
+    />
+    <meta property="og:url" content="https://euro28predictor.com/" />
+    <meta property="og:image" content="https://euro28predictor.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Euro 2028 Predictor — predict every match, beat your mates."
+    />
+
+    <!-- Twitter / X card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Euro 2028 Predictor" />
+    <meta
+      name="twitter:description"
+      content="Predict every match of Euro 2028 and compete with friends and family this summer."
+    />
+    <meta name="twitter:image" content="https://euro28predictor.com/og-image.png" />
+
     <!-- Fonts are self-hosted (src/styles/fonts.css) — no render-blocking external
          font stylesheet and no third-party font-CDN connection on the critical path. -->
-    <title>Euro 2028 Predictor</title>
   </head>
   <body>
     <div id="root"></div>
