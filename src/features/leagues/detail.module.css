@@ -223,3 +223,10 @@
   font-family: var(--font-display);
   font-size: 15px;
 }
+
+/* Share-to-recruit button label — icon + text inline. */
+.shareBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
