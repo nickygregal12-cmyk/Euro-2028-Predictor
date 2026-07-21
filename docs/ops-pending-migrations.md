@@ -101,6 +101,75 @@ select get_league_match_picks('<your-league-id>', '<match-id-in-SAME-tournament>
 
 Real error + real row, not "Success". #19 is live; `get_match_prediction_distribution()` was intentionally left un-gated (no league arg — nothing to scope).
 
+## Prod applied-state tracking
+
+The cutover to a **separate production project** is driven by `docs/ops-prod-cutover.md`. This section tracks the prod DB's applied state — **initially all-pending**; flip a row to ✅ in the same session Nicky pastes back the real verification output (docs-sync-on-confirmation).
+
+**Prod project ref:** _not created yet_ (record it here and in the runbook when the project exists).
+
+| # | Migration | Prod status |
+|---|-----------|-------------|
+| 1 | `20260719120000_init_v0_1.sql` | ⏳ Pending |
+| 2 | `20260719130000_add_match_prediction_joker.sql` | ⏳ Pending |
+| 3 | `20260719140000_add_predicted_tie_resolutions.sql` | ⏳ Pending |
+| 4 | `20260719150000_enforce_joker_rules.sql` | ⏳ Pending |
+| 5 | `20260719160000_add_bonus_and_submit.sql` | ⏳ Pending |
+| 6 | `20260719170000_lock_and_leaderboard.sql` | ⏳ Pending |
+| 7 | `20260719180000_add_leagues.sql` | ⏳ Pending |
+| 8 | `20260720120000_league_fk_semantics.sql` | ⏳ Pending |
+| 9 | `20260720130000_add_scoring.sql` | ⏳ Pending |
+| 10 | `20260720140000_fix_recompute_trigger.sql` | ⏳ Pending |
+| 11 | `20260720150000_add_last_seen.sql` | ⏳ Pending |
+| 12 | `20260720160000_add_profile_welcomed_at.sql` | ⏳ Pending |
+| 13 | `20260720170000_reveal_after_lock.sql` | ⏳ Pending |
+| 14 | `20260720180000_add_rank_history.sql` | ⏳ Pending |
+| 15 | `20260720190000_profile_on_signup.sql` | ⏳ Pending |
+| 16 | `20260720200000_display_name_moderation.sql` | ⏳ Pending |
+| 17 | `20260720210000_rate_limits.sql` | ⏳ Pending |
+| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | ⏳ Pending |
+| 19 | `20260721130000_match_centre.sql` (incl. tournament-scope fix) | ⏳ Pending |
+
+Legend: ✅ Confirmed applied (verified against the live **prod** DB) · ⏳ Pending.
+
+### Applied-state verification query
+
+Run this against the target project's SQL editor after applying all migrations (runbook step 4). It returns one row per checked object with a `present` boolean — every row should be `true`. Each check stands in for the migration that creates it (single atomic `begin;…commit;`, so a present object implies its whole migration committed).
+
+```sql
+select * from (values
+  ('#1  entries table',                to_regclass('public.entries') is not null),
+  ('#1  matches table',                to_regclass('public.matches') is not null),
+  ('#2  match_predictions.joker',      exists (select 1 from information_schema.columns where table_name='match_predictions' and column_name='joker')),
+  ('#3  predicted_tie_resolutions',    to_regclass('public.predicted_tie_resolutions') is not null),
+  ('#4  enforce_joker_rules trigger',  exists (select 1 from pg_trigger where tgname='enforce_joker_rules')),
+  ('#5  submit_entry() fn',            to_regprocedure('public.submit_entry(uuid)') is not null),
+  ('#5  bonus_predictions table',      to_regclass('public.bonus_predictions') is not null),
+  ('#6  tournaments.lock_at',          exists (select 1 from information_schema.columns where table_name='tournaments' and column_name='lock_at')),
+  ('#6  get_leaderboard() fn',         exists (select 1 from pg_proc where proname='get_leaderboard')),
+  ('#7  leagues table',                to_regclass('public.leagues') is not null),
+  ('#7  league_members table',         to_regclass('public.league_members') is not null),
+  ('#7  create_league() fn',           exists (select 1 from pg_proc where proname='create_league')),
+  ('#8  owner_id FK = RESTRICT',       exists (select 1 from pg_constraint c join pg_class t on t.oid=c.conrelid where t.relname='leagues' and c.contype='f' and c.confdeltype='r')),
+  ('#9  score_events table',           to_regclass('public.score_events') is not null),
+  ('#9  entry_totals view',            to_regclass('public.entry_totals') is not null),
+  ('#9  recompute_tournament_scores',  exists (select 1 from pg_proc where proname='recompute_tournament_scores')),
+  ('#11 profiles.last_seen_at',        exists (select 1 from information_schema.columns where table_name='profiles' and column_name='last_seen_at')),
+  ('#12 profiles.welcomed_at',         exists (select 1 from information_schema.columns where table_name='profiles' and column_name='welcomed_at')),
+  ('#13 get_rival_entry() fn',         exists (select 1 from pg_proc where proname='get_rival_entry')),
+  ('#14 rank_history table',           to_regclass('public.rank_history') is not null),
+  ('#14 capture_rank_history() fn',    exists (select 1 from pg_proc where proname='capture_rank_history')),
+  ('#15 on_auth_user_created trigger', exists (select 1 from pg_trigger where tgname='on_auth_user_created')),
+  ('#16 enforce_display_name_policy',  exists (select 1 from pg_trigger where tgname='enforce_display_name_policy')),
+  ('#17 rate_limit_events table',      to_regclass('public.rate_limit_events') is not null),
+  ('#18 tournaments.golden_boot',      exists (select 1 from information_schema.columns where table_name='tournaments' and column_name='golden_boot_player_id')),
+  ('#19 get_league_match_picks fn',    exists (select 1 from pg_proc where proname='get_league_match_picks')),
+  ('#19 get_match_pred_distribution',  exists (select 1 from pg_proc where proname='get_match_prediction_distribution'))
+) as checks(object, present)
+order by object;
+```
+
+Paste the **real result rows** back (not "Success") — the next session flips the prod table above to ✅ per migration in the same turn.
+
 ## Order-sensitive callouts
 
 - **#15 (`…_profile_on_signup`) must be applied before any real sign-up** (confirmed applied on dev). The client `createMyProfile` was removed, so without this trigger a new sign-up creates an auth user with no `profiles` row.
@@ -111,7 +180,8 @@ Real error + real row, not "Success". #19 is live; `get_match_prediction_distrib
 
 ## Related seed files (not migrations, but part of a fresh DB)
 
-- `supabase/seed.sql` — the fixture skeleton (tournament, teams, groups, matches). Run once if a DB isn't already seeded.
+- `supabase/seed.sql` — the fixture skeleton (tournament, teams, groups, matches). The **single source of truth** for the fixture list; run once if a DB isn't already seeded (dev **and** prod).
+- `supabase/prod-baseline.sql` — the **production** baseline config: verifies the seed.sql skeleton is present and sets `tournaments.lock_at` (derived from `starts_on`). Prod-safe (no users/results/hostile data), idempotent. Run **after** seed.sql on a fresh prod project (see `docs/ops-prod-cutover.md` step 5).
 - `supabase/dev-user.sql` — the seeded dev auto-login user (dev only; pre-stamped `welcomed_at`). Never run in production.
 
 ## Keeping this honest
