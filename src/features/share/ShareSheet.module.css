@@ -1,0 +1,53 @@
+.tabs {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+.tab {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: 13px;
+  cursor: pointer;
+}
+.tab:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.tabOn {
+  border-color: var(--acc);
+  color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 12%, transparent);
+}
+
+.preview {
+  display: flex;
+  justify-content: center;
+}
+.canvas {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  aspect-ratio: 1;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: #0a0f1e;
+}
+
+.note {
+  margin: var(--sp-3) 0 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+  text-align: center;
+}
+
+.footer {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+}

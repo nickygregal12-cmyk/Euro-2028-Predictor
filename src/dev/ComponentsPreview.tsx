@@ -1,5 +1,7 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useRef, useEffect, type ReactNode } from 'react'
 import styles from './ComponentsPreview.module.css'
+import { renderShareCard } from '../features/share/renderShareCard'
+import type { ShareCardModel, ShareVariant } from '../features/share/shareModel'
 import {
   Button,
   TextInput,
@@ -144,6 +146,43 @@ const COMING_SOON: Record<Exclude<NavKey, 'home'>, string> = {
   matches: 'Matches',
   league: 'League',
   more: 'More',
+}
+
+// Draws a shareable card to a visible canvas (the ShareSheet uses the same
+// renderer inside a modal). Hostile data — accented/emoji-free, real flags.
+function ShareCardDemo({ model, variant }: { model: ShareCardModel; variant: ShareVariant }) {
+  const ref = useRef<HTMLCanvasElement>(null)
+  useEffect(() => {
+    if (ref.current) void renderShareCard(ref.current, model, variant)
+  }, [model, variant])
+  return (
+    <canvas
+      ref={ref}
+      width={1080}
+      height={1080}
+      style={{ width: '100%', maxWidth: 300, aspectRatio: '1', borderRadius: 14, border: '1px solid var(--line)' }}
+    />
+  )
+}
+
+const SHARE_MODEL: ShareCardModel = {
+  header: { playerName: 'Søren Kjær-Nielsen', locked: true },
+  champion: { name: 'Spain', countryCode: 'es' },
+  finalists: [
+    { name: 'Spain', countryCode: 'es' },
+    { name: 'France', countryCode: 'fr' },
+  ],
+  venue: 'Wembley, London',
+  dateLabel: '9 Jul 2028',
+  stats: { goalsPredicted: 89, jokersArmed: 5 },
+  awards: { goldenBootName: 'Kylian Mbappé', groupGoals: 89 },
+  survivors: [
+    { stage: 'R16', teams: [{ name: 'Spain', countryCode: 'es' }, { name: 'France', countryCode: 'fr' }, { name: 'Germany', countryCode: 'de' }, { name: 'Italy', countryCode: 'it' }, { name: 'Scotland', countryCode: 'gb-sct' }, { name: 'England', countryCode: 'gb-eng' }, { name: 'Croatia', countryCode: 'hr' }, { name: 'Portugal', countryCode: 'pt' }] },
+    { stage: 'QF', teams: [{ name: 'Spain', countryCode: 'es' }, { name: 'France', countryCode: 'fr' }, { name: 'Germany', countryCode: 'de' }, { name: 'England', countryCode: 'gb-eng' }] },
+    { stage: 'SF', teams: [{ name: 'Spain', countryCode: 'es' }, { name: 'France', countryCode: 'fr' }] },
+  ],
+  brag: { points: 112, rank: 89, total: 2140 },
+  url: 'euro28predictor.com',
 }
 
 function PageShellDemo() {
@@ -1147,6 +1186,19 @@ function Gallery() {
             theirsOnlyFinalists: [],
           }}
         />
+      </Section>
+
+      <Section title="Shareable cards — quick tease / full bracket / during-tournament brag">
+        <Label>tease (champion hero + final line + stat line + challenge chip)</Label>
+        <ShareCardDemo model={SHARE_MODEL} variant="tease" />
+        <Label>full bracket (survivors funnel + awards strip)</Label>
+        <ShareCardDemo model={SHARE_MODEL} variant="bracket" />
+        <Label>during-tournament brag (points + rank)</Label>
+        <ShareCardDemo model={SHARE_MODEL} variant="brag" />
+        <Label>brag — champion eliminated (tombstone)</Label>
+        <ShareCardDemo model={{ ...SHARE_MODEL, champion: { ...SHARE_MODEL.champion!, eliminated: true } }} variant="brag" />
+        <Label>tease — league recruitment (chip = invite)</Label>
+        <ShareCardDemo model={{ ...SHARE_MODEL, header: { ...SHARE_MODEL.header, leagueName: 'The Office Sweepstake' } }} variant="tease" />
       </Section>
 
       <Section title="Matches tab — browser (upcoming / live / played, group + KO, filters)">
