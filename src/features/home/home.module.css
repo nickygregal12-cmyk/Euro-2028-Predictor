@@ -334,3 +334,10 @@
   font-size: 16px;
   color: var(--tx);
 }
+
+/* Share button label — icon + text inline. */
+.shareBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
