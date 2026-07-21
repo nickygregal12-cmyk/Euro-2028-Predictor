@@ -1,8 +1,8 @@
 # Ops note — Migration applied-state + prod-setup checklist
 
-The single source of truth for which migrations are **live in the dev database**, and the ordered set to apply when standing up the **production** project.
+The single source of truth for which migrations are **live in the dev database**, and the ordered set applied when standing up the **production** project.
 
-**STATUS (2026-07-22): all 20 migrations are confirmed applied to the dev DB — nothing pending.** (#20 `…_write_integrity` applied + functionally verified this session — see "Write-integrity verification" below.) The dev migration prerequisite for the single-tester exit gate is **satisfied**; the fresh-**production**-project split still needs the whole ordered set applied from scratch.
+**STATUS (2026-07-22): BOTH databases fully applied — all 20 migrations live on dev AND on prod; nothing pending.** Dev: confirmed over prior sessions (#20 `…_write_integrity` functionally verified — see "Write-integrity verification"). **Prod (project ref `vkfnsqdyhvtwyqkisxhk`): stood up 2026-07-22** per `docs/ops-prod-cutover.md` — all 20 applied in strict timestamp order (single concatenated paste), verified by the canonical query (28 rows direct-true + the 2 trigger rows confirmed via a `pg_trigger` diagnostic — see "Prod applied-state tracking") plus a functional smoke test through the live app. The production-project split (Phase 2 exit gate) is **done**.
 
 **How this was built:** by reading the migration files on disk, every application confirmation in `CLAUDE.md`/`build-todo.md`/`roadmap.md`, a **first-hand chat verification pass (2026-07-20)** for `20260720150000`–`20260720210000` (see "Verification pass"), the **scoring-completion verification** for `20260721120000`, and finally a **full applied-state check (2026-07-21)** that reconciled the remaining rows against the live dev DB — a read-only REST probe (tables/columns) plus a dashboard SQL query for the trigger/function/constraint bits the anon key can't see (see "Full applied-state verification"). Every row is now ✅.
 
@@ -116,40 +116,42 @@ Applied + functionally verified with two self-contained `pg_temp` harnesses (eac
 
 ## Prod applied-state tracking
 
-The cutover to a **separate production project** is driven by `docs/ops-prod-cutover.md`. This section tracks the prod DB's applied state — **initially all-pending**; flip a row to ✅ in the same session Nicky pastes back the real verification output (docs-sync-on-confirmation).
+The cutover to a **separate production project** is driven by `docs/ops-prod-cutover.md`. **Executed 2026-07-22 — prod is fully applied.** All 20 migrations were applied in strict timestamp order (single concatenated paste in the SQL editor), then verified.
 
-**Prod project ref:** _not created yet_ (record it here and in the runbook when the project exists).
+**Prod project ref:** `vkfnsqdyhvtwyqkisxhk` (`https://vkfnsqdyhvtwyqkisxhk.supabase.co`).
+
+**Verification method (2026-07-22):** the canonical query below returned **30 rows, 28 direct-true**. The two initially-`false` rows (#4 joker trigger, #16 display-name trigger) were **query bugs, not missing migrations** — a `pg_trigger` diagnostic proved both exist and are enabled under their real names (`match_predictions → enforce_joker_rules_trg` (O); `profiles → enforce_display_name` (O); the same diagnostic also showed `enforce_lock_scores`, `enforce_version_match_predictions`, `rate_limit_prediction_save` on `match_predictions`, consistent with a full apply). The query below has been **corrected** to those real `tgname`s and is now truthful against both databases (proven against prod; a dev re-run is optional). A functional smoke test through the live app (sign-up → log out → log back in → prediction save) passed on top of the object checks.
 
 | # | Migration | Prod status |
 |---|-----------|-------------|
-| 1 | `20260719120000_init_v0_1.sql` | ⏳ Pending |
-| 2 | `20260719130000_add_match_prediction_joker.sql` | ⏳ Pending |
-| 3 | `20260719140000_add_predicted_tie_resolutions.sql` | ⏳ Pending |
-| 4 | `20260719150000_enforce_joker_rules.sql` | ⏳ Pending |
-| 5 | `20260719160000_add_bonus_and_submit.sql` | ⏳ Pending |
-| 6 | `20260719170000_lock_and_leaderboard.sql` | ⏳ Pending |
-| 7 | `20260719180000_add_leagues.sql` | ⏳ Pending |
-| 8 | `20260720120000_league_fk_semantics.sql` | ⏳ Pending |
-| 9 | `20260720130000_add_scoring.sql` | ⏳ Pending |
-| 10 | `20260720140000_fix_recompute_trigger.sql` | ⏳ Pending |
-| 11 | `20260720150000_add_last_seen.sql` | ⏳ Pending |
-| 12 | `20260720160000_add_profile_welcomed_at.sql` | ⏳ Pending |
-| 13 | `20260720170000_reveal_after_lock.sql` | ⏳ Pending |
-| 14 | `20260720180000_add_rank_history.sql` | ⏳ Pending |
-| 15 | `20260720190000_profile_on_signup.sql` | ⏳ Pending |
-| 16 | `20260720200000_display_name_moderation.sql` | ⏳ Pending |
-| 17 | `20260720210000_rate_limits.sql` | ⏳ Pending |
-| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | ⏳ Pending |
-| 19 | `20260721130000_match_centre.sql` (incl. tournament-scope fix) | ⏳ Pending |
-| 20 | `20260722120000_write_integrity.sql` | ⏳ Pending |
+| 1 | `20260719120000_init_v0_1.sql` | ✅ Confirmed |
+| 2 | `20260719130000_add_match_prediction_joker.sql` | ✅ Confirmed |
+| 3 | `20260719140000_add_predicted_tie_resolutions.sql` | ✅ Confirmed |
+| 4 | `20260719150000_enforce_joker_rules.sql` | ✅ Confirmed (via trigger diagnostic — `enforce_joker_rules_trg` O) |
+| 5 | `20260719160000_add_bonus_and_submit.sql` | ✅ Confirmed |
+| 6 | `20260719170000_lock_and_leaderboard.sql` | ✅ Confirmed |
+| 7 | `20260719180000_add_leagues.sql` | ✅ Confirmed |
+| 8 | `20260720120000_league_fk_semantics.sql` | ✅ Confirmed |
+| 9 | `20260720130000_add_scoring.sql` | ✅ Confirmed |
+| 10 | `20260720140000_fix_recompute_trigger.sql` | ✅ Confirmed |
+| 11 | `20260720150000_add_last_seen.sql` | ✅ Confirmed |
+| 12 | `20260720160000_add_profile_welcomed_at.sql` | ✅ Confirmed |
+| 13 | `20260720170000_reveal_after_lock.sql` | ✅ Confirmed |
+| 14 | `20260720180000_add_rank_history.sql` | ✅ Confirmed |
+| 15 | `20260720190000_profile_on_signup.sql` | ✅ Confirmed |
+| 16 | `20260720200000_display_name_moderation.sql` | ✅ Confirmed (via trigger diagnostic — `enforce_display_name` O) |
+| 17 | `20260720210000_rate_limits.sql` | ✅ Confirmed |
+| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | ✅ Confirmed |
+| 19 | `20260721130000_match_centre.sql` (incl. tournament-scope fix) | ✅ Confirmed |
+| 20 | `20260722120000_write_integrity.sql` | ✅ Confirmed |
 
 Legend: ✅ Confirmed applied (verified against the live **prod** DB) · ⏳ Pending.
 
-> **#20 and the prod cutover:** if the cutover (`docs/ops-prod-cutover.md`) hasn't run yet, its "apply ALL migrations in strict timestamp order" step already covers `20260722120000_write_integrity.sql` — no runbook edit is needed. If prod is already stood up, apply #20 to it as a standalone follow-up.
+> **On a future stand-up:** the runbook's "apply ALL migrations in strict timestamp order" step covers every file including `20260722120000_write_integrity.sql` — keep this doc + `ops-prod-cutover.md` as the template.
 
 ### Applied-state verification query
 
-Run this against the target project's SQL editor after applying all migrations (runbook step 4). It returns one row per checked object with a `present` boolean — every row should be `true`. Each check stands in for the migration that creates it (single atomic `begin;…commit;`, so a present object implies its whole migration committed).
+Run this against the target project's SQL editor after applying all migrations (runbook step 4). It returns one row per checked object with a `present` boolean — every row should be `true`. Each check stands in for the migration that creates it (single atomic `begin;…commit;`, so a present object implies its whole migration committed). **The two trigger `tgname`s were corrected 2026-07-22 after the prod run (`enforce_joker_rules_trg`, `enforce_display_name`); the query is now truthful against both dev and prod.**
 
 ```sql
 select * from (values
@@ -157,7 +159,7 @@ select * from (values
   ('#1  matches table',                to_regclass('public.matches') is not null),
   ('#2  match_predictions.joker',      exists (select 1 from information_schema.columns where table_name='match_predictions' and column_name='joker')),
   ('#3  predicted_tie_resolutions',    to_regclass('public.predicted_tie_resolutions') is not null),
-  ('#4  enforce_joker_rules trigger',  exists (select 1 from pg_trigger where tgname='enforce_joker_rules')),
+  ('#4  enforce_joker_rules trigger',  exists (select 1 from pg_trigger where tgname='enforce_joker_rules_trg')),
   ('#5  submit_entry() fn',            to_regprocedure('public.submit_entry(uuid)') is not null),
   ('#5  bonus_predictions table',      to_regclass('public.bonus_predictions') is not null),
   ('#6  tournaments.lock_at',          exists (select 1 from information_schema.columns where table_name='tournaments' and column_name='lock_at')),
@@ -175,7 +177,7 @@ select * from (values
   ('#14 rank_history table',           to_regclass('public.rank_history') is not null),
   ('#14 capture_rank_history() fn',    exists (select 1 from pg_proc where proname='capture_rank_history')),
   ('#15 on_auth_user_created trigger', exists (select 1 from pg_trigger where tgname='on_auth_user_created')),
-  ('#16 enforce_display_name_policy',  exists (select 1 from pg_trigger where tgname='enforce_display_name_policy')),
+  ('#16 enforce_display_name trigger', exists (select 1 from pg_trigger where tgname='enforce_display_name')),
   ('#17 rate_limit_events table',      to_regclass('public.rate_limit_events') is not null),
   ('#18 tournaments.golden_boot',      exists (select 1 from information_schema.columns where table_name='tournaments' and column_name='golden_boot_player_id')),
   ('#19 get_league_match_picks fn',    exists (select 1 from pg_proc where proname='get_league_match_picks')),
