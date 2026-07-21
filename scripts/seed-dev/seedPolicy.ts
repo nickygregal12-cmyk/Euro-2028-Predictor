@@ -18,6 +18,16 @@ export class SeedConfigError extends Error {
   }
 }
 
+/**
+ * The DEV Supabase project ref. The seed writes hostile test data and creates
+ * auth users with the service-role key, so it must PROVE it targets the dev
+ * project — anything else refuses, independent of SEED_DEV / NODE_ENV. This ref
+ * appears in the dev project's Supabase URL (https://<ref>.supabase.co). The
+ * auto-login shim pins the same ref independently
+ * (src/services/supabase/autoLoginPolicy.ts) — keep the two in step.
+ */
+export const DEV_PROJECT_REF = 'iouzoutneyjpugbbtdem'
+
 export type SeedEnv = {
   // Explicit acknowledgement — must equal 'i-understand' or the run refuses.
   SEED_DEV?: string
@@ -58,6 +68,14 @@ export function evaluateSeedPolicy(env: SeedEnv): SeedDecision {
   if (env.SUPABASE_PROD_URL && env.SUPABASE_PROD_URL.trim() === url) {
     throw new SeedProductionError(
       'Refusing to seed: SUPABASE_URL matches SUPABASE_PROD_URL. This is the production project.',
+    )
+  }
+  // Second, independent guard: the target must PROVE it is the dev project by
+  // ref, regardless of SEED_DEV / NODE_ENV / SUPABASE_PROD_URL above.
+  if (!url.includes(DEV_PROJECT_REF)) {
+    throw new SeedProductionError(
+      `Refusing to seed: not the dev project. SUPABASE_URL must contain the ` +
+        `dev project ref "${DEV_PROJECT_REF}" (got: "${url}").`,
     )
   }
   return { url, serviceKey }

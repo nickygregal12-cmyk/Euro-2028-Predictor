@@ -3,21 +3,24 @@ import {
   evaluateSeedPolicy,
   SeedConfigError,
   SeedProductionError,
+  DEV_PROJECT_REF,
 } from '../../scripts/seed-dev/seedPolicy'
 
 // The dev seed's fail-closed guard (mirrors the auto-login policy): a committing
 // run must prove it targets a dev database, or it refuses.
 
+const DEV_URL = `https://${DEV_PROJECT_REF}.supabase.co`
+
 const ok = {
   SEED_DEV: 'i-understand',
-  SUPABASE_URL: 'https://dev-project.supabase.co',
+  SUPABASE_URL: DEV_URL,
   SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
 }
 
 describe('evaluateSeedPolicy', () => {
   it('returns the connection when the dev acknowledgement + creds are present', () => {
     expect(evaluateSeedPolicy(ok)).toEqual({
-      url: 'https://dev-project.supabase.co',
+      url: DEV_URL,
       serviceKey: 'service-role-key',
     })
   })
@@ -40,7 +43,22 @@ describe('evaluateSeedPolicy', () => {
 
   it('refuses when the target matches the known production URL', () => {
     expect(() =>
-      evaluateSeedPolicy({ ...ok, SUPABASE_PROD_URL: 'https://dev-project.supabase.co' }),
+      evaluateSeedPolicy({ ...ok, SUPABASE_PROD_URL: DEV_URL }),
     ).toThrow(SeedProductionError)
+  })
+
+  // ---- dev-project-ref guard (production Supabase split) ----
+
+  it('refuses a prod-looking project ref even with the dev acknowledgement', () => {
+    expect(() =>
+      evaluateSeedPolicy({ ...ok, SUPABASE_URL: 'https://prodprojectref123.supabase.co' }),
+    ).toThrow(SeedProductionError)
+  })
+
+  it('accepts the dev project ref anywhere in the URL', () => {
+    expect(evaluateSeedPolicy({ ...ok, SUPABASE_URL: DEV_URL })).toEqual({
+      url: DEV_URL,
+      serviceKey: 'service-role-key',
+    })
   })
 })

@@ -2,17 +2,24 @@ import { describe, it, expect } from 'vitest'
 import {
   evaluateAutoLoginPolicy,
   isAutoLoginFlagOn,
+  isDevProjectUrl,
+  DEV_PROJECT_REF,
   AutoLoginProductionError,
   AutoLoginConfigError,
+  AutoLoginWrongProjectError,
 } from '../../src/services/supabase/autoLoginPolicy'
 
 // Proves the dev auto-login policy from docs/auth-plan.md §1 — in particular the
 // fail-closed rule: a production build that still carries the autologin flag
-// must refuse to start.
+// must refuse to start, and the dev-project-ref guard (the shim may only sign
+// in against the dev project).
+
+const DEV_URL = `https://${DEV_PROJECT_REF}.supabase.co`
 
 const creds = {
   VITE_DEV_USER_EMAIL: 'dev@euro28.local',
   VITE_DEV_USER_PASSWORD: 'dev-password',
+  VITE_SUPABASE_URL: DEV_URL,
 }
 
 describe('evaluateAutoLoginPolicy', () => {
@@ -71,15 +78,75 @@ describe('evaluateAutoLoginPolicy', () => {
 
   it('throws a config error when the flag is on in dev but creds are incomplete', () => {
     expect(() =>
-      evaluateAutoLoginPolicy({ DEV: true, VITE_DEV_AUTOLOGIN: 'true' }),
+      evaluateAutoLoginPolicy({
+        DEV: true,
+        VITE_DEV_AUTOLOGIN: 'true',
+        VITE_SUPABASE_URL: DEV_URL,
+      }),
     ).toThrow(AutoLoginConfigError)
     expect(() =>
       evaluateAutoLoginPolicy({
         DEV: true,
         VITE_DEV_AUTOLOGIN: 'true',
+        VITE_SUPABASE_URL: DEV_URL,
         VITE_DEV_USER_EMAIL: 'dev@euro28.local',
       }),
     ).toThrow(AutoLoginConfigError)
+  })
+
+  // ---- dev-project-ref guard (production Supabase split) ----
+
+  it('logs in when the Supabase URL is the dev project', () => {
+    expect(
+      evaluateAutoLoginPolicy({ DEV: true, VITE_DEV_AUTOLOGIN: 'true', ...creds }),
+    ).toEqual({
+      action: 'login',
+      email: creds.VITE_DEV_USER_EMAIL,
+      password: creds.VITE_DEV_USER_PASSWORD,
+    })
+  })
+
+  it('THROWS when auto-login is active but the URL is a prod-looking project', () => {
+    expect(() =>
+      evaluateAutoLoginPolicy({
+        DEV: true,
+        VITE_DEV_AUTOLOGIN: 'true',
+        VITE_DEV_USER_EMAIL: 'dev@euro28.local',
+        VITE_DEV_USER_PASSWORD: 'dev-password',
+        VITE_SUPABASE_URL: 'https://prodprojectref123.supabase.co',
+      }),
+    ).toThrow(AutoLoginWrongProjectError)
+  })
+
+  it('THROWS when auto-login is active but the URL is missing (fail-closed)', () => {
+    expect(() =>
+      evaluateAutoLoginPolicy({
+        DEV: true,
+        VITE_DEV_AUTOLOGIN: 'true',
+        VITE_DEV_USER_EMAIL: 'dev@euro28.local',
+        VITE_DEV_USER_PASSWORD: 'dev-password',
+      }),
+    ).toThrow(AutoLoginWrongProjectError)
+  })
+
+  it('does NOT evaluate the URL when auto-login is inactive (prod URL is fine when the flag is off)', () => {
+    expect(
+      evaluateAutoLoginPolicy({
+        DEV: false,
+        VITE_DEV_AUTOLOGIN: 'false',
+        VITE_SUPABASE_URL: 'https://prodprojectref123.supabase.co',
+      }),
+    ).toEqual({ action: 'skip' })
+  })
+})
+
+describe('isDevProjectUrl', () => {
+  it('is true only when the URL contains the dev project ref', () => {
+    expect(isDevProjectUrl(DEV_URL)).toBe(true)
+    expect(isDevProjectUrl(`https://${DEV_PROJECT_REF}.supabase.co`)).toBe(true)
+    expect(isDevProjectUrl('https://prodprojectref123.supabase.co')).toBe(false)
+    expect(isDevProjectUrl('')).toBe(false)
+    expect(isDevProjectUrl(undefined)).toBe(false)
   })
 })
 

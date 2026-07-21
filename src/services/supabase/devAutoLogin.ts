@@ -22,6 +22,7 @@ function readEnv(): AutoLoginEnv {
     VITE_DEV_AUTOLOGIN: import.meta.env.VITE_DEV_AUTOLOGIN,
     VITE_DEV_USER_EMAIL: import.meta.env.VITE_DEV_USER_EMAIL,
     VITE_DEV_USER_PASSWORD: import.meta.env.VITE_DEV_USER_PASSWORD,
+    VITE_SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL,
   }
 }
 
