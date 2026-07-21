@@ -66,6 +66,27 @@ Order-sensitive callouts (from `docs/ops-pending-migrations.md`):
 
 ## 5. Load the baseline data
 
+**Prod-safety inventory of `supabase/seed.sql`** (verified 2026-07-21 against the file + the init-migration schema — written down so the prod-safety claim is recorded, not assumed):
+
+```
+seed.sql — TABLES TOUCHED (5) and ROWS INSERTED (106 total):
+  tournaments   1 row   'UEFA Euro 2028', 2028, starts_on 2028-06-09, ends_on 2028-07-09
+                        (lock_at left NULL -> set by prod-baseline.sql; golden_boot_player_id NULL)
+  groups        6 rows  A–F
+  teams        24 rows  'Team A1'…'Team F4'  (TBD placeholders — real teams seeded post-Dec-2026 draw)
+  group_teams  24 rows  team -> group slot
+  matches      51 rows  36 group + 15 knockout, with match_date + venue + slot-ref source fields;
+                        home_score/away_score NOT supplied -> both NULL = NO RESULT
+                        (matches.home_score/away_score are nullable, no default; matches_score_pair OK)
+
+CONTAINS NO:  users / auth.users / profiles, entries, match_predictions,
+              predicted_tie_resolutions, bonus_predictions, leagues, league_members,
+              score_events, rank_history, rate_limit_events, or any match results.
+DEV-ONLY VALUES:  none. The only unset value is tournaments.lock_at, which
+                  prod-baseline.sql subsequently sets (step 5 below).
+=> PROD-SAFE. Same requirement as prod-baseline.sql.
+```
+
 Run these two files in the prod SQL editor, **in this order** (prod-baseline reuses seed.sql — the fixture list has one home):
 
 - [ ] `supabase/seed.sql` — the fixture / bracket skeleton: tournament, groups, 24 TBD teams (`Team A1`…`Team F4`), all 51 matches with dates/venues.
