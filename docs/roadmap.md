@@ -72,11 +72,13 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Live tables**: Predicted/Live switcher + "You" comparison column (designed)
 - [ ] **H2H pass 2**: rank-over-time graph (shared-league scope switcher) + bracket-health-vs-real card + compare-full-brackets side-by-side view (all designed)
 - [ ] **Full profiles extensions**: rank history (from rank_history), bracket comparisons
+- [ ] **League owner self-service** — owner-facing controls on the league detail page: regenerate invite code (invalidates the old one), revoke invite (pause joining entirely), remove a member (confirm modal, per the destructive-actions principle design-system §7), transfer ownership (required before an owner can leave — the never-orphaned invariant already enforced at the DB). Server-enforced (owner-only RLS/RPC); client only reflects. Distinct from the ADMIN-side league tools in design-system §6 (Admin panel → Leagues) — this is the owner's own league, not support intervention. Needs a design pass (hostile data, 360px) before build.
 - [ ] **During-tournament + post-tournament Home states** live (post-tournament layout designed at this phase)
 - [ ] **Admin panel** (moved from Phase 2; **must exist before the dress rehearsal**) — **fully designed, build deferred to Phase 3** (spec in **design-system §6 (Admin panel)**): protected ops console — Overview, Result entry (scoring-impact preview before confirm; explicit knockout ET/penalties handling — winner is scored, AET/pens display-only; correction/clear reuse the same delete-and-rederive recompute), Scoring/anomaly review, plus Users / Leagues / Fixtures / Connections / Feature flags / Audit log. Deferred from Phase 2 deliberately: build it once against the final feature set (including what the bonus games need from results) rather than accreting features onto an early version. Result correction is already safe via the delete-and-rederive recompute, and Phase 2 uses `docs/ops-result-entry.md` (SQL entry) in the meantime.
 - [ ] **Results UX** — whatever the admin flow needs beyond minimal (postponements, corrections at scale)
 - [~] **Shareable cards build** (Phase 3-adjacent) — **built (2026-07-21)**. Self-contained client-side image generation (`src/features/share/`): one 1080×1080 dark-navy **canvas** renderer (`renderShareCard.ts`, theme-independent, big shapes, real flags over names, no emojis) with all three content states (quick tease / full bracket funnel / during-tournament brag incl. tombstone) + the league-recruitment header/chip. Flags are bundled same-origin SVGs so the canvas isn't tainted (`toBlob` → valid PNG verified). `ShareSheet` = the share moment (variant switcher + live preview + native-share-with-file / download fallback). Pure `shareModel.ts` (variant availability, stat/brag/chip formatting, flag-size-by-depth; 10 tests). **Wired: the Review "Share your entry" stub** (was "coming soon"). All states in `/dev/components` (both themes, 360px). **Still to wire:** the Home submitted-banner + league-context Share entry points (the model already supports the league variant).
 - [ ] **Landing page** — the public front door (explain in 3 steps, Start Predicting, demo before account); needed before any public sharing
+- [ ] **Public-site metadata** — OG/Twitter card tags (title, description, share image), sitemap.xml, favicon/app-icon set. Well-timed: shareable cards + invite links already ship URLs into chat apps, and today they unfurl with nothing. Static tags first (one canonical share image); per-page/dynamic OG images are explicitly out of scope for this item.
 - [ ] **Independent-app disclaimer + privacy notice/terms** in footer
 - [ ] **Error monitoring** (Sentry free tier or similar) — know the app broke before the group chat does; wired before the dress rehearsal
 - [ ] **Analytics** — Plausible (free tier) at Phase 3; privacy-friendly, no cookie banner required
@@ -134,6 +136,12 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - Magic links, social logins, MFA
 - Full PWA treatment (worth revisiting at Phase 3 — "feels like an app" was an original goal)
 
+- Desktop/tablet responsive pass (the app is mobile-first at 360px; a wider-viewport layout is deferred)
+- Production ops tooling (beyond the manual runbooks / ops notes already in `docs/`)
+- WCAG 2.2 AA compliance pass beyond the existing accessibility baseline (§9)
+- Notification preferences (per-user control over which emails/alerts are sent)
+- Device test matrix (systematic cross-device/browser coverage)
+- Data-confidence indicators (surfacing how firm/provisional a shown value is)
 ---
 
 ## DESIGN LEDGER (what's designed vs not)
