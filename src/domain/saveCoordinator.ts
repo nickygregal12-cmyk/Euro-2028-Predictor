@@ -25,8 +25,11 @@
 //     this module only decides WHEN to save and what save-status to show.
 
 // Structurally identical to the design-system SaveStatus union; kept local so
-// the domain layer imports no React/component code.
-export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
+// the domain layer imports no React/component code. 'conflict' is a TERMINAL,
+// non-retryable state: the server rejected the write because the row changed
+// elsewhere (optimistic-concurrency), so auto-retrying would just fight the
+// other writer — the user must resolve it.
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error' | 'conflict'
 
 /** Automatic retries after the first failure, before surfacing a manual error. */
 export const AUTO_RETRY_LIMIT = 2
@@ -62,8 +65,11 @@ export function initSaveState<P>(): SaveState<P> {
 }
 
 export type SaveEvent<P> =
+  // `conflict` marks a version-conflict rejection (server row changed elsewhere).
+  // It is terminal and non-retryable — distinct from an ordinary failure (`ok:
+  // false`), which auto-retries.
   | { type: 'change'; payload: P }
-  | { type: 'result'; seq: number; ok: boolean }
+  | { type: 'result'; seq: number; ok: boolean; conflict?: boolean }
   | { type: 'retryTimer'; seq: number }
   | { type: 'manualRetry' }
 
@@ -108,6 +114,16 @@ export function reduceSave<P>(state: SaveState<P>, event: SaveEvent<P>): Reduced
       // success or failure must never overwrite newer state.
       if (state.active === null || !state.inFlight || event.seq !== state.active.seq) {
         return { state, effects: [] }
+      }
+      // Version conflict → TERMINAL, non-retryable. Clear the in-flight write and
+      // any coalesced pending (both are now against a stale version); surface
+      // 'conflict' and wait for the user to resolve (load-latest / keep-mine,
+      // driven by the provider, which re-issues fresh 'change' events).
+      if (event.conflict) {
+        return {
+          state: { ...state, status: 'conflict', active: null, inFlight: false, pending: null, attempt: 0 },
+          effects: [],
+        }
       }
       if (event.ok) {
         const settled: SaveState<P> = {

@@ -177,6 +177,52 @@ describe('reduceSave — retry with backoff then manual error', () => {
   })
 })
 
+describe('reduceSave — version conflict (terminal, non-retryable)', () => {
+  it('a conflict goes to the terminal conflict state with no retry', () => {
+    let s = run([{ type: 'change', payload: 'a' }]).state
+    const r = reduceSave(s, { type: 'result', seq: 1, ok: false, conflict: true })
+    expect(r.state.status).toBe('conflict')
+    expect(r.state.active).toBeNull()
+    expect(r.state.inFlight).toBe(false)
+    // No retry scheduled — auto-retrying a conflict would fight the other writer.
+    expect(r.effects).toHaveLength(0)
+  })
+
+  it('a conflict drops coalesced pending (it is against a stale version too)', () => {
+    let s = run([
+      { type: 'change', payload: 'a' }, // seq1 in flight
+      { type: 'change', payload: 'b' }, // pending
+    ]).state
+    const r = reduceSave(s, { type: 'result', seq: 1, ok: true, conflict: true })
+    expect(r.state.status).toBe('conflict')
+    expect(r.state.pending).toBeNull()
+    expect(r.effects).toHaveLength(0)
+  })
+
+  it('after a conflict, a fresh change still issues a new save (resolution path)', () => {
+    let s = reduceSave(
+      run([{ type: 'change', payload: 'a' }]).state,
+      { type: 'result', seq: 1, ok: false, conflict: true },
+    ).state
+    expect(s.status).toBe('conflict')
+    // "Keep mine" / continued editing re-drives via a normal change.
+    const r = reduceSave(s, { type: 'change', payload: 'b' })
+    expect(saves(r.effects)).toEqual([{ type: 'save', seq: 2, payload: 'b' }])
+    expect(r.state.status).toBe('saving')
+  })
+
+  it('a stale conflict response (wrong seq) is ignored', () => {
+    const base = run([
+      { type: 'change', payload: 'a' },
+      { type: 'change', payload: 'b' },
+      { type: 'result', seq: 1, ok: true }, // seq2 now in flight
+    ]).state
+    const stale = reduceSave(base, { type: 'result', seq: 1, ok: false, conflict: true })
+    expect(stale.state).toEqual(base)
+    expect(stale.effects).toHaveLength(0)
+  })
+})
+
 describe('reduceSave — guards / no-ops', () => {
   it('manualRetry is a no-op when idle or already in flight', () => {
     expect(reduceSave(initSaveState<P>(), { type: 'manualRetry' }).effects).toHaveLength(0)
