@@ -1,0 +1,213 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding-bottom: var(--sp-5);
+}
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 22px;
+  color: var(--tx);
+}
+
+/* Filter chips */
+.filters {
+  display: flex;
+  gap: var(--sp-2);
+}
+.chip {
+  padding: 6px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: 13px;
+  cursor: pointer;
+}
+.chip:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.chipOn {
+  border-color: var(--acc);
+  color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 12%, transparent);
+}
+
+/* Matchday group */
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  scroll-margin-top: var(--sp-3);
+}
+.groupHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 2px 0;
+}
+.groupLabel {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--tx);
+}
+.groupDate {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--tx3);
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Fixture row (whole row is the tap target → match centre) */
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  cursor: pointer;
+}
+.row:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.rowLive {
+  border-color: color-mix(in srgb, var(--cyn) 55%, var(--line));
+}
+.rowTop {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.side {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sideRight {
+  justify-content: flex-end;
+}
+.team {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--tx);
+}
+.center {
+  min-width: 54px;
+  text-align: center;
+}
+.result {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--tx);
+}
+.time {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: var(--cyn);
+}
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyn);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dot { animation: none; }
+}
+
+.rowBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.pick {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+.rowMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tx3);
+  flex: none;
+}
+.pts {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx);
+}
+.jokerPaid,
+.jokerBurned {
+  font-family: var(--font-display);
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+}
+.jokerPaid {
+  background: var(--gold-tint);
+  color: var(--gold);
+}
+.jokerBurned {
+  background: var(--chip);
+  color: var(--tx3);
+}
+
+/* Outcome tints on the points pill */
+.o_exact,
+.o_good {
+  background: color-mix(in srgb, var(--acc) 18%, transparent);
+  color: var(--acc);
+}
+.o_wrong,
+.o_bad {
+  color: var(--tx3);
+}
+.o_neutral,
+.o_correct {
+  color: var(--tx);
+}
