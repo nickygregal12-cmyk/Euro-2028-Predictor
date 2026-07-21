@@ -145,6 +145,32 @@ describe('createSaveController', () => {
     expect(lastStatus).toBe('saved')
   })
 
+  it('classifies a conflict via isConflict → terminal conflict, no retry', async () => {
+    let rejectFn!: (err: unknown) => void
+    const statuses: SaveStatus[] = []
+    let saveCount = 0
+    const controller = createSaveController({
+      performSave: () => {
+        saveCount++
+        return new Promise<void>((_res, rej) => {
+          rejectFn = rej
+        })
+      },
+      onStatus: (_k, s) => statuses.push(s),
+      isConflict: (err) => (err as { code?: string })?.code === 'PT409',
+    })
+
+    controller.change('gb', 'x')
+    expect(saveCount).toBe(1)
+    // Reject with the conflict-shaped error.
+    rejectFn({ code: 'PT409' })
+    await flush()
+    expect(statuses.at(-1)).toBe('conflict')
+    // A conflict is terminal: advancing timers must NOT auto-retry.
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(saveCount).toBe(1)
+  })
+
   it('dispose stops late responses from updating status', async () => {
     const gates: ReturnType<typeof deferred>[] = []
     const statuses: SaveStatus[] = []

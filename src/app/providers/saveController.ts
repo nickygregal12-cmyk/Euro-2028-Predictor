@@ -27,7 +27,12 @@ export type SaveController = {
 export function createSaveController(opts: {
   performSave: (key: string, payload: unknown) => Promise<void>
   onStatus: (key: string, status: SaveStatus) => void
+  // Classify a rejected save. A version conflict is terminal + non-retryable
+  // (the server row changed elsewhere); everything else auto-retries. Defaults
+  // to "never a conflict" so callers that don't care keep the old behaviour.
+  isConflict?: (err: unknown) => boolean
 }): SaveController {
+  const isConflict = opts.isConflict ?? (() => false)
   const states = new Map<string, SaveState<unknown>>()
   const retryTimers = new Map<string, ReturnType<typeof setTimeout>>()
   let disposed = false
@@ -52,7 +57,14 @@ export function createSaveController(opts: {
           opts
             .performSave(key, effect.payload)
             .then(() => dispatch(key, { type: 'result', seq: effect.seq, ok: true }))
-            .catch(() => dispatch(key, { type: 'result', seq: effect.seq, ok: false }))
+            .catch((err) =>
+              dispatch(key, {
+                type: 'result',
+                seq: effect.seq,
+                ok: false,
+                conflict: isConflict(err),
+              }),
+            )
           break
         case 'scheduleRetry':
           clearRetry(key)

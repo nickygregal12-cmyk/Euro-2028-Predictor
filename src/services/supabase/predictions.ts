@@ -4,6 +4,7 @@
 // and the joker flag.
 
 import { supabase } from './client'
+import { VersionConflictError, isVersionConflict } from './writeConflict'
 
 export type Entry = {
   id: string
@@ -15,6 +16,7 @@ export type MatchPrediction = {
   homeScore: number
   awayScore: number
   joker: boolean
+  version: number
 }
 
 /** Fetch the user's entry for a tournament, creating it on first use. */
@@ -55,7 +57,7 @@ export async function submitEntry(entryId: string): Promise<string> {
 export async function fetchMatchPredictions(entryId: string): Promise<MatchPrediction[]> {
   const { data, error } = await supabase
     .from('match_predictions')
-    .select('match_id, home_score, away_score, joker')
+    .select('match_id, home_score, away_score, joker, version')
     .eq('entry_id', entryId)
   if (error) throw error
   return (data ?? []).map((p) => ({
@@ -63,6 +65,7 @@ export async function fetchMatchPredictions(entryId: string): Promise<MatchPredi
     homeScore: p.home_score,
     awayScore: p.away_score,
     joker: p.joker,
+    version: p.version,
   }))
 }
 
@@ -71,23 +74,37 @@ export async function fetchMatchPredictions(entryId: string): Promise<MatchPredi
  * server remains the authority on locks; this write will be rejected by RLS /
  * lock enforcement once that lands, so callers must surface save failures.
  */
+// Optimistic concurrency: `expectedVersion` is the version the client last read
+// for this row (0 for a first write). The server's version trigger rejects a
+// stale write with SQLSTATE 'PT409'; we surface that as VersionConflictError.
+// Returns the new stored version for the caller to echo on its next write.
 export async function upsertMatchPrediction(
   entryId: string,
   matchId: string,
   homeScore: number,
   awayScore: number,
   joker: boolean,
-): Promise<void> {
-  const { error } = await supabase.from('match_predictions').upsert(
-    {
-      entry_id: entryId,
-      match_id: matchId,
-      home_score: homeScore,
-      away_score: awayScore,
-      joker,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'entry_id,match_id' },
-  )
-  if (error) throw error
+  expectedVersion: number,
+): Promise<number> {
+  const { data, error } = await supabase
+    .from('match_predictions')
+    .upsert(
+      {
+        entry_id: entryId,
+        match_id: matchId,
+        home_score: homeScore,
+        away_score: awayScore,
+        joker,
+        version: expectedVersion,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'entry_id,match_id' },
+    )
+    .select('version')
+    .single()
+  if (error) {
+    if (isVersionConflict(error)) throw new VersionConflictError()
+    throw error
+  }
+  return data.version
 }
