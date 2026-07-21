@@ -29,6 +29,8 @@ import { tieKey, type TieResolution } from '../../domain/tournament/tieResolutio
 import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import { canToggleJoker } from '../../domain/tournament/jokerPolicy'
 import { JOKER_ALLOWANCE } from '../../domain/tournament/scoringConfig'
+import type { SaveStatus as CoordinatorStatus } from '../../domain/saveCoordinator'
+import { createSaveController, type SaveController } from './saveController'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { useTournamentData } from './TournamentDataProvider'
 
@@ -46,6 +48,20 @@ export type Prediction = {
   awayScore: number | null
   joker: boolean
 }
+
+// Autosave keys routed through the save controller. A match's score + joker are
+// ONE database row (upserted together), so they share one key per match — the
+// controller must never race two writes to the same row. Ties are keyed by the
+// tied set, the bracket is a single set, and the golden boot is one field.
+const BRACKET_KEY = 'bracket'
+const GOLDEN_BOOT_KEY = 'gb'
+const matchKey = (matchId: string) => `m:${matchId}`
+const tieSaveKey = (key: string) => `t:${key}`
+
+type MatchSavePayload = { homeScore: number; awayScore: number; joker: boolean }
+type TieSavePayload = { scope: TieResolutionScope; orderedTeamIds: string[] }
+type BracketSavePayload = { desired: Record<string, ProgressionStage> }
+type GoldenBootSavePayload = { playerId: string | null }
 
 type PredictionsContextValue = {
   ready: boolean
@@ -73,6 +89,8 @@ type PredictionsContextValue = {
   // derived, never stored (domain/groupGoals.ts).
   goldenBootPlayerId: string | null
   setGoldenBoot: (playerId: string | null) => void
+  goldenBootSaveStatus: SaveStatus
+  retryGoldenBoot: () => void
   // Submission. `submit` calls the server-side validator; it does not freeze the
   // entry — predictions stay editable and the entry stays submitted.
   submitting: boolean
@@ -97,6 +115,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const [progression, setProgression] = useState<Record<string, ProgressionStage>>({})
   const [bracketSaveStatus, setBracketSaveStatus] = useState<SaveStatus>('idle')
   const [goldenBootPlayerId, setGoldenBootPlayerId] = useState<string | null>(null)
+  const [goldenBootSaveStatus, setGoldenBootSaveStatus] = useState<SaveStatus>('idle')
   const [submitting, setSubmitting] = useState(false)
   const [ready, setReady] = useState(false)
 
@@ -115,6 +134,75 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const progressionDesiredRef = useRef<Record<string, ProgressionStage>>({})
   const progressionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
+  // The save controller serialises writes per key (at most one in flight,
+  // coalesced pending, stale-response guard, bounded retry). `performSave` and
+  // `onStatus` read only refs + stable setters, so the controller is created
+  // once and stays valid across renders. See domain/saveCoordinator.ts.
+  const controllerRef = useRef<SaveController | null>(null)
+  if (controllerRef.current === null) {
+    controllerRef.current = createSaveController({
+      performSave,
+      onStatus,
+    })
+  }
+  const controller = controllerRef.current
+
+  // Perform the actual write for a settled save key. Throws on failure so the
+  // controller retries; never touches local prediction state.
+  async function performSave(key: string, payload: unknown): Promise<void> {
+    const id = entryIdRef.current
+    if (!id) throw new Error('No entry to save against')
+    if (key.startsWith('m:')) {
+      const matchId = key.slice(2)
+      const p = payload as MatchSavePayload
+      await upsertMatchPrediction(id, matchId, p.homeScore, p.awayScore, p.joker)
+      return
+    }
+    if (key.startsWith('t:')) {
+      const p = payload as TieSavePayload
+      await upsertTieResolution(id, p.scope, p.orderedTeamIds)
+      return
+    }
+    if (key === BRACKET_KEY) {
+      const desired = (payload as BracketSavePayload).desired
+      const persisted = progressionPersistedRef.current
+      const ops: Promise<void>[] = []
+      for (const [teamId, stage] of Object.entries(desired)) {
+        if (persisted[teamId] !== stage) ops.push(upsertProgression(id, teamId, stage))
+      }
+      for (const teamId of Object.keys(persisted)) {
+        if (desired[teamId] === undefined) ops.push(deleteProgression(id, teamId))
+      }
+      await Promise.all(ops)
+      // The controller guarantees saves are sequential per key, so advancing the
+      // baseline to exactly the snapshot we just wrote is safe (no overlap).
+      progressionPersistedRef.current = desired
+      return
+    }
+    if (key === GOLDEN_BOOT_KEY) {
+      await upsertGoldenBoot(id, (payload as GoldenBootSavePayload).playerId)
+      return
+    }
+  }
+
+  // Route a key's save-status into the matching React state for rendering.
+  function onStatus(key: string, status: CoordinatorStatus) {
+    if (key.startsWith('m:')) {
+      const matchId = key.slice(2)
+      setSaveStatus((s) => ({ ...s, [matchId]: status }))
+    } else if (key.startsWith('t:')) {
+      const tk = key.slice(2)
+      setTieSaveStatus((s) => ({ ...s, [tk]: status }))
+    } else if (key === BRACKET_KEY) {
+      setBracketSaveStatus(status)
+    } else if (key === GOLDEN_BOOT_KEY) {
+      setGoldenBootSaveStatus(status)
+    }
+  }
+
+  // Stop the controller (and its retry timers) when the provider unmounts.
+  useEffect(() => () => controllerRef.current?.dispose(), [])
+
   useEffect(() => {
     if (!userId || !tournamentId) {
       setReady(false)
@@ -122,6 +210,10 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     }
     let active = true
     setReady(false)
+    // A new entry is loading: drop any in-flight save state/timers from the
+    // previous entry so nothing carries over or writes to the wrong entry.
+    controllerRef.current?.reset()
+    setGoldenBootSaveStatus('idle')
     getOrCreateEntry(userId, tournamentId)
       .then(async (entry) => {
         if (!active) return
@@ -181,19 +273,23 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     }
   }, [userId, tournamentId])
 
-  function save(matchId: string) {
+  // Hand the match's latest complete row to the controller, which owns ordering,
+  // coalescing, stale-response rejection and retry. Reads the freshest values at
+  // dispatch time (matching the old debounced read).
+  function dispatchMatchSave(matchId: string) {
     const id = entryIdRef.current
     const pred = predictionsRef.current[matchId]
     if (!id || !pred || pred.homeScore === null || pred.awayScore === null) return
-    setSaveStatus((s) => ({ ...s, [matchId]: 'saving' }))
-    upsertMatchPrediction(id, matchId, pred.homeScore, pred.awayScore, pred.joker)
-      .then(() => setSaveStatus((s) => ({ ...s, [matchId]: 'saved' })))
-      .catch(() => setSaveStatus((s) => ({ ...s, [matchId]: 'error' })))
+    controller.change(matchKey(matchId), {
+      homeScore: pred.homeScore,
+      awayScore: pred.awayScore,
+      joker: pred.joker,
+    } satisfies MatchSavePayload)
   }
 
   function scheduleSave(matchId: string) {
     clearTimeout(timers.current[matchId])
-    timers.current[matchId] = setTimeout(() => save(matchId), SAVE_DEBOUNCE_MS)
+    timers.current[matchId] = setTimeout(() => dispatchMatchSave(matchId), SAVE_DEBOUNCE_MS)
   }
 
   function setScore(matchId: string, side: 'home' | 'away', value: number | null) {
@@ -230,7 +326,9 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       const next = { ...cur, joker: turningOn }
       const updated = { ...prev, [matchId]: next }
       predictionsRef.current = updated
-      if (next.homeScore !== null && next.awayScore !== null) save(matchId)
+      // Joker toggles save immediately (no debounce), but still go through the
+      // controller so a toggle can't race a concurrent score save on the row.
+      if (next.homeScore !== null && next.awayScore !== null) dispatchMatchSave(matchId)
       return updated
     })
   }
@@ -243,55 +341,32 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       const others = prev.filter((r) => tieKey(r.teamIds) !== key)
       return [...others, { teamIds: orderedTeamIds, order: orderedTeamIds }]
     })
-    setTieSaveStatus((s) => ({ ...s, [key]: 'saving' }))
-    upsertTieResolution(id, scope, orderedTeamIds)
-      .then(() => setTieSaveStatus((s) => ({ ...s, [key]: 'saved' })))
-      .catch(() => setTieSaveStatus((s) => ({ ...s, [key]: 'error' })))
+    controller.change(tieSaveKey(key), { scope, orderedTeamIds } satisfies TieSavePayload)
   }
 
-  // Reconcile stored progression to the desired map: upsert changed teams,
-  // delete removed ones. On full success the persisted baseline advances.
-  function flushProgression() {
-    const id = entryIdRef.current
-    if (!id) return
-    const desired = progressionDesiredRef.current
-    const persisted = progressionPersistedRef.current
-    const ops: Promise<void>[] = []
-    for (const [teamId, stage] of Object.entries(desired)) {
-      if (persisted[teamId] !== stage) ops.push(upsertProgression(id, teamId, stage))
-    }
-    for (const teamId of Object.keys(persisted)) {
-      if (desired[teamId] === undefined) ops.push(deleteProgression(id, teamId))
-    }
-    if (ops.length === 0) {
-      setBracketSaveStatus('saved')
-      return
-    }
-    setBracketSaveStatus('saving')
-    Promise.all(ops)
-      .then(() => {
-        // Advance the baseline only to the snapshot we just wrote.
-        progressionPersistedRef.current = desired
-        setBracketSaveStatus('saved')
-      })
-      .catch(() => setBracketSaveStatus('error'))
+  // Hand the latest desired progression map to the controller. The diff against
+  // the persisted baseline (upsert changed / delete removed) happens in
+  // performSave, so retries recompute against the current baseline.
+  function dispatchBracketSave() {
+    if (!entryIdRef.current) return
+    controller.change(BRACKET_KEY, {
+      desired: progressionDesiredRef.current,
+    } satisfies BracketSavePayload)
   }
 
   function setBracketProgression(next: Record<string, ProgressionStage>) {
     setProgression(next)
     progressionDesiredRef.current = next
     clearTimeout(progressionTimer.current)
-    progressionTimer.current = setTimeout(flushProgression, SAVE_DEBOUNCE_MS)
+    progressionTimer.current = setTimeout(dispatchBracketSave, SAVE_DEBOUNCE_MS)
   }
 
   function setGoldenBoot(playerId: string | null) {
-    const id = entryIdRef.current
-    setGoldenBootPlayerId(playerId) // optimistic
-    if (!id) return
-    upsertGoldenBoot(id, playerId).catch(() => {
-      // Best-effort; leave the optimistic value. The server stays authoritative
-      // and the picker is unusable until squads exist anyway.
-    })
+    setGoldenBootPlayerId(playerId) // optimistic — local state is never rolled back
+    if (!entryIdRef.current) return
+    // Now goes through the controller so a failure surfaces (with retry) instead
+    // of being swallowed, and rapid select/clear can't race.
+    controller.change(GOLDEN_BOOT_KEY, { playerId } satisfies GoldenBootSavePayload)
   }
 
   async function submit(): Promise<{ ok: boolean; message?: string }> {
@@ -322,16 +397,18 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     getSaveStatus: (matchId) => saveStatus[matchId] ?? 'idle',
     setScore,
     toggleJoker,
-    retrySave: (matchId) => save(matchId),
+    retrySave: (matchId) => controller.manualRetry(matchKey(matchId)),
     tieResolutions,
     getTieSaveStatus: (tiedTeamIds) => tieSaveStatus[tieKey(tiedTeamIds)] ?? 'idle',
     setTieResolution,
     bracketProgression: progression,
     bracketSaveStatus,
     setBracketProgression,
-    retryBracketSave: flushProgression,
+    retryBracketSave: () => controller.manualRetry(BRACKET_KEY),
     goldenBootPlayerId,
     setGoldenBoot,
+    goldenBootSaveStatus,
+    retryGoldenBoot: () => controller.manualRetry(GOLDEN_BOOT_KEY),
     submitting,
     submit,
   }

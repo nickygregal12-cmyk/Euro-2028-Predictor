@@ -282,6 +282,14 @@ export function ReviewPage() {
           emptyNote={SQUADS_PENDING}
           loading={searching}
         />
+        {preds.goldenBootSaveStatus === 'error' && (
+          <Alert variant="error" title="Golden Boot pick not saved">
+            We couldn't save your Golden Boot pick.{' '}
+            <button type="button" className={a.retry} onClick={preds.retryGoldenBoot}>
+              Retry
+            </button>
+          </Alert>
+        )}
         <div className={a.goals}>
           <div className={a.goalsTop}>
             <span className={s.sub}>Group-stage goals</span>
