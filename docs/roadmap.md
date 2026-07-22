@@ -20,11 +20,12 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 
 1. Finish Original Predictor write integrity (build-todo audit items, esp. item 8)
 2. Run the single-tester friction test (the open Phase 2 exit gate)
-3. Build the shared Bonus Games platform (Phase 4 — hub, optional-entry framework, separation law)
-4. Build and test KO Predictor, LMS, and the Predictor Cup individually (Phases 5–7), **each with a full design pass first** (the Cup has complete draft RULES but no UI design; the other two have summary specs only) and each game's admin controls landing with its schema. **Platform prerequisite: the shared knockout-prediction store** (competition-structure §1) — collected once, per-kickoff locks, read by KO Predictor AND the Cup.
-5. Finish the expanded core experience (Phase 3: hub re-cut, Matches expansion, My entry, Account, consensus page, etc.)
-6. **Full dress rehearsal across every launch game** (moves to AFTER steps 3–5)
-7. Tournament Readiness (the hardening phase below) + launch
+3. **Build the tournament-context engine** (adopted 2026-07-22 — `docs/architecture-and-tournament-states.md` §3–6: pure fake-clock resolver for phase/day/match/entry/competition states + the Home action-priority queue + deterministic state fixtures). Foundation for every state-heavy re-cut — Home phases, Matches expansion, My entry, spectator states all consume it, so it lands BEFORE them and they get built once.
+4. Build the shared Bonus Games platform (Phase 4 — hub, optional-entry framework, separation law, shared knockout-prediction store, **competition windows as stored data + `confirm_match_result`** per architecture doc §7/§9)
+5. Build and test KO Predictor, LMS, and the Predictor Cup individually (Phases 5–7), **each with a full design pass first** (the Cup has complete draft RULES but no UI design; the other two have summary specs only) and each game's admin controls landing with its schema. **Platform prerequisite: the shared knockout-prediction store** (competition-structure §1) — collected once, per-kickoff locks, read by KO Predictor AND the Cup.
+6. Finish the expanded core experience (Phase 3: hub re-cut, Matches expansion, My entry, Account, consensus page, etc.) — on the engine
+7. **Full dress rehearsal across every launch game** — run as ONE seeded tournament clock driven through every named state (architecture doc §11), never unrelated mock pages
+8. Tournament Readiness (the hardening phase below) + launch
 
 The **Sweepstake builder is explicitly NOT launch-blocking** — it stays Phase 4+ behind its own design pass and must never delay the three established games.
 
