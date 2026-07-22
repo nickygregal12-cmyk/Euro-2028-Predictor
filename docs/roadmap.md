@@ -14,6 +14,20 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 
 ---
 
+## LAUNCH SCOPE & BUILD SEQUENCE (decided 2026-07-22)
+
+**The Bonus Games — KO Predictor, Last Man Standing, and the Predictor Cup (which supersedes Fan Duels — 2026-07-22 evening decision; rules in `docs/predictor-cup-rules.md`) — are LAUNCH SCOPE.** They ship for the tournament alongside the Original Predictor, and the dress rehearsal must therefore cover every launch game, not just the main predictor. Phase numbers below are retained for cross-references, but the **build order** is now:
+
+1. Finish Original Predictor write integrity (build-todo audit items, esp. item 8)
+2. Run the single-tester friction test (the open Phase 2 exit gate)
+3. Build the shared Bonus Games platform (Phase 4 — hub, optional-entry framework, separation law)
+4. Build and test KO Predictor, LMS, and the Predictor Cup individually (Phases 5–7), **each with a full design pass first** (the Cup has complete draft RULES but no UI design; the other two have summary specs only) and each game's admin controls landing with its schema. **Platform prerequisite: the shared knockout-prediction store** (competition-structure §1) — collected once, per-kickoff locks, read by KO Predictor AND the Cup.
+5. Finish the expanded core experience (Phase 3: hub re-cut, Matches expansion, My entry, Account, consensus page, etc.)
+6. **Full dress rehearsal across every launch game** (moves to AFTER steps 3–5)
+7. Tournament Readiness (the hardening phase below) + launch
+
+The **Sweepstake builder is explicitly NOT launch-blocking** — it stays Phase 4+ behind its own design pass and must never delay the three established games.
+
 ## PHASE 2 — Original Predictor leagues + social layer
 
 **Design complete for Phase 2:** league hub, league detail (expandable rows, shared ranks 1-1-3, alphabetical within ties, tie-breaks only at final standings), join/create/leave flows, profile page (tombstone champion treatment), points breakdown component, reveal rules, H2H page (face-off header, stat-vs-stat, where-you-split). Nothing left on the design shelf — see the Design Ledger.
@@ -32,7 +46,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [x] **Result entry documented for Phase 2** — `docs/ops-result-entry.md`: how to enter / correct / clear a result via SQL, the automatic recompute (the `recompute_scores_on_result` trigger → `recompute_tournament_scores`), the manual backfill (`recompute_all_scores`), and verification queries — written from the live schema. The interim mechanism until the admin page; correction is already safe (delete-and-rederive recompute, no double-count). *(The admin result-entry **page** is deferred to Phase 3 — see there.)*
 - [x] **/welcome page** — post-first-signin orientation, shown once before Home: 3-step card, "Start with Group A →", quiet scoring link. Seen-tracked on `profiles.welcomed_at` (survives devices), marked on ENTRY for an exactly-once guarantee. Dev + seed users pre-stamped so the gate never fires in dev flows (no code special-casing). `src/features/welcome/`; migration `20260720160000_add_profile_welcomed_at.sql`.
 - [ ] **Deadline reminder emails** — "entries lock in 48h / 24h, you're N% done" to incomplete entries; requires custom SMTP, which is therefore PULLED FORWARD into this phase rather than waiting for full auth hardening. Basic implementation: scheduled function checking incomplete entries against lock time.
-- [ ] **Auto-submit at lock** (decided): at the lock instant the server auto-submits any VALID never-submitted entry (scoring-rules §7); incomplete entries stay out of standings; auto-submitted entries marked internally. Implement in the lock migration/function; UI still encourages manual submit.
+- [ ] **Auto-submit at lock** (decided): at the lock instant the server auto-submits any VALID never-submitted entry (scoring-rules §7); incomplete entries stay out of standings; auto-submitted entries marked internally. Implement in the lock migration/function; UI still encourages manual submit. **Same migration adds the `submit_entry()` lock-time rejection** (audit 2026-07-22: the function currently stamps `submitted_at` with no `lock_at` check — safe to close only once auto-submit exists, since the two are one behaviour; build-todo audit item 8e).
 - [ ] **Destructive-action polish** (design-system §7): sign-out confirm modal ("You'll need your password to get back in") and joker-removal undo-toast (kickoff-aware copy when the match starts soon)
 - [x] **Admin bootstrapping documented** — `docs/ops-admin-bootstrap.md`: the one-time SQL that grants the first admin role, written into an ops note in the repo — never be locked out of your own tournament. (Self-flags that the role column/value must be verified against the live schema before first use.)
 - [x] **Auth hardening** (one combined build) — **complete**: pure-code items + SMTP + Turnstile + password reset all shipped, and the email-verification decision is now made:
@@ -60,7 +74,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 
 **Testing model (three tiers):**
 1. Phase 2 exit — single-tester scripted friction test (above)
-2. Phase 3 exit — **full dress rehearsal**: simulated tournament with friends playing along over days — results entered, leagues moving, match centre live. This is the proper "get people to try it" moment and the effective final step before launch.
+2. **Full dress rehearsal** (after ALL launch-game builds — Phases 3–7; see Launch scope & build sequence): simulated tournament with friends playing along over days — results entered, leagues moving, match centre live, every bonus game played. The proper "get people to try it" moment and the effective final step before Tournament Readiness + launch.
 3. Spring 2028 — real launch once teams/squads are seeded.
 
 ---
@@ -69,7 +83,7 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 
 **Design needed first:** Match Centre (dedicated session, hostile-tested against seeded data) — the biggest undesigned surface.
 
-- [~] **Match Centre**: per-fixture pages, pre/during/post states, points explanation via PointsBreakdown, effect on table/bracket — **built (pulled forward from Phase 3, 2026-07-21)**. `/match/:matchRef` (`src/features/matches/`): all 3 temporal states × group/KO variants × overall/league scope; the "what [scope] said" block is the data-sensitive part — two new SECURITY DEFINER RPCs (`get_league_match_picks` = league names, post-lock + co-membership; `get_match_prediction_distribution` = overall anonymous bars, post-lock), both mirroring the `get_rival_entry` reveal gate (migration `20260721130000`, **pending apply**). Pure domain `matchCentre.ts` (tested); presentational states in `/dev/components` (verified 360px, both themes). **During is wired-but-unfed** (no live-score source yet). **Overall-bars small-N de-anonymisation: ACCEPTED for now** (all seed/dev accounts pre-traffic) — **revisit before Phase 3 close / launch** (add a min-count suppression threshold if real users are few); dated TODO, same treatment as the email-verification decision. Live end-to-end awaits applying `20260721130000` + a working auth session.
+- [~] **Match Centre**: per-fixture pages, pre/during/post states, points explanation via PointsBreakdown, effect on table/bracket — **built (pulled forward from Phase 3, 2026-07-21)**. `/match/:matchRef` (`src/features/matches/`): all 3 temporal states × group/KO variants × overall/league scope; the "what [scope] said" block is the data-sensitive part — two new SECURITY DEFINER RPCs (`get_league_match_picks` = league names, post-lock + co-membership; `get_match_prediction_distribution` = overall anonymous bars, post-lock), both mirroring the `get_rival_entry` reveal gate (migration `20260721130000`, **applied + gate-verified on dev 2026-07-21; applied on prod 2026-07-22**). Pure domain `matchCentre.ts` (tested); presentational states in `/dev/components` (verified 360px, both themes). **During is wired-but-unfed** (no live-score source yet). **Overall-bars small-N de-anonymisation: ACCEPTED for now** (all seed/dev accounts pre-traffic) — **revisit before Phase 3 close / launch** (add a min-count suppression threshold if real users are few); dated TODO, same treatment as the email-verification decision. Live end-to-end awaits a live-score source (the RPCs are applied on both DBs; the dev auth blocker cleared with the prod cutover).
   - [x] MatchCard chevron/navigation feature flag (`FEATURES.matchCardNavigation`) **enabled** (2026-07-21) — the group predictor's cards pass `onOpen → /match/:matchRef` now that the Match Centre + Matches tab ship
 - [ ] **Predict hub re-cut (design decided 2026-07-22; must land before the dress rehearsal)** — the hub becomes a hero + numbered journey stepper (big completion %, weighty lock countdown, champion flag anchor, one Continue CTA deep-linking to the first incomplete required item), the Groups step gains A–F quick-jump state chips, and every prediction screen gains persistent prev/next across stage boundaries (Groups A→F → Best thirds → Bracket → Jokers → Review, "Step N of 5" eyebrow). Full spec in design-system §6. A re-cut of built surfaces — hub page + cross-stage nav wiring; no schema.
 - [ ] **Matches tab expansion (design decided 2026-07-22; must land before the dress rehearsal)** — segmented sub-views: Fixtures (the built list + the unplayed-jokers nudge) / Tables (six groups via the Live table component — Predicted/Live switcher + You column) / Bracket "as it stands" (live-standings-fed R16 projection vs the user's predicted bracket, hardening into real fixtures; pure domain reused with real results) / Stats (group-goals race from day one; top-scorers card feed-dependent, hidden until the live-data feed supplies scorers). Full spec in design-system §6.
@@ -86,11 +100,11 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Live tables**: Predicted/Live switcher + "You" comparison column (designed)
 - [ ] **H2H pass 2**: rank-over-time graph (shared-league scope switcher) + bracket-health-vs-real card + compare-full-brackets side-by-side view (all designed)
 - [ ] **Full profiles extensions**: rank history (from rank_history), bracket comparisons
-- [ ] **League owner self-service** — owner-facing controls on the league detail page: regenerate invite code (invalidates the old one), revoke invite (pause joining entirely), remove a member (confirm modal, per the destructive-actions principle design-system §7), transfer ownership (required before an owner can leave — the never-orphaned invariant already enforced at the DB). Server-enforced (owner-only RLS/RPC); client only reflects. Distinct from the ADMIN-side league tools in design-system §6 (Admin panel → Leagues) — this is the owner's own league, not support intervention. Needs a design pass (hostile data, 360px) before build.
+- [ ] **League owner self-service** — **design pass DONE (2026-07-22, design-system §6 → League owner tools); decided scope: regenerate invite code + remove member + transfer/delete — NO pause-invites** (explicitly decided against). Server-enforced (owner-only RLS/RPC); client only reflects. Distinct from the ADMIN-side league tools (Admin panel → Leagues) — this is the owner's own league, not support intervention. Build remains.
 - [ ] **During-tournament + post-tournament Home states** live (post-tournament layout designed at this phase)
 - [ ] **Admin panel** (moved from Phase 2; **must exist before the dress rehearsal**) — **PREREQUISITE (audit 2026-07-22): the recompute advisory-lock migration must be applied first** (Phase 2 audit follow-up item 5) — the panel is the first thing that makes concurrent result writes possible, and today's recompute is only concurrency-safe under single-admin SQL entry. **Fully designed, build deferred to Phase 3** (spec in **design-system §6 (Admin panel)**): protected ops console — Overview, Result entry (scoring-impact preview before confirm; explicit knockout ET/penalties handling — winner is scored, AET/pens display-only; correction/clear reuse the same delete-and-rederive recompute), Scoring/anomaly review, plus Users / Leagues / Fixtures / Connections / Feature flags / Audit log. Deferred from Phase 2 deliberately: build it once against the final feature set (including what the bonus games need from results) rather than accreting features onto an early version. Result correction is already safe via the delete-and-rederive recompute, and Phase 2 uses `docs/ops-result-entry.md` (SQL entry) in the meantime.
 - [ ] **Results UX** — whatever the admin flow needs beyond minimal (postponements, corrections at scale)
-- [~] **Shareable cards build** (Phase 3-adjacent) — **built (2026-07-21)**. Self-contained client-side image generation (`src/features/share/`): one 1080×1080 dark-navy **canvas** renderer (`renderShareCard.ts`, theme-independent, big shapes, real flags over names, no emojis) with all three content states (quick tease / full bracket funnel / during-tournament brag incl. tombstone) + the league-recruitment header/chip. Flags are bundled same-origin SVGs so the canvas isn't tainted (`toBlob` → valid PNG verified). `ShareSheet` = the share moment (variant switcher + live preview + native-share-with-file / download fallback). Pure `shareModel.ts` (variant availability, stat/brag/chip formatting, flag-size-by-depth; 10 tests). **Wired: the Review "Share your entry" stub** (was "coming soon"). All states in `/dev/components` (both themes, 360px). **Still to wire:** the Home submitted-banner + league-context Share entry points (the model already supports the league variant).
+- [~] **Shareable cards build** (Phase 3-adjacent) — **built (2026-07-21)**. Self-contained client-side image generation (`src/features/share/`): one 1080×1080 dark-navy **canvas** renderer (`renderShareCard.ts`, theme-independent, big shapes, real flags over names, no emojis) with all three content states (quick tease / full bracket funnel / during-tournament brag incl. tombstone) + the league-recruitment header/chip. Flags are bundled same-origin SVGs so the canvas isn't tainted (`toBlob` → valid PNG verified). `ShareSheet` = the share moment (variant switcher + live preview + native-share-with-file / download fallback). Pure `shareModel.ts` (variant availability, stat/brag/chip formatting, flag-size-by-depth; 10 tests). **All three entry points wired (2026-07-21):** Review "Share your entry", Home (brag during / tease pre-submit), league detail (recruitment variant with invite chip) — via the shared `useShareModel` hook. All states in `/dev/components` (both themes, 360px).
 - [ ] **Landing page** — the public front door (explain in 3 steps, Start Predicting, demo before account); needed before any public sharing
 - [x] **Public-site metadata** — **done (2026-07-22)**. Static OG + Twitter (`summary_large_image`) tags in `index.html` (absolute URLs on euro28predictor.com), `rel=canonical`, `theme-color` = navy; a 1200×630 share image (`public/og-image.jpg`, on-brand navy + green "EURO 2028 PREDICTOR", approved take A; JPEG ~38 KB — the navy gradient makes a PNG ~600 KB, which WhatsApp silently drops as an oversized thumbnail, and WhatsApp is the primary invite channel); a favicon set replacing the purple placeholder — `favicon.svg` (navy "28" monogram), `favicon.ico` (16/32/48), `apple-touch-icon.png` (180); `sitemap.xml` (root only — auth pages/`/join/:code` excluded) referenced from robots.txt. Images generated reproducibly via the app's own canvas + self-hosted fonts (`scripts/og/renderAssets.js`, zero new deps). No web-app manifest (PWA stays parked). Per-page/dynamic OG images remain out of scope. **Post-deploy check pending** (Nicky): FB/Twitter validators + a real WhatsApp/iMessage unfurl (see build-todo).
 - [ ] **Independent-app disclaimer + privacy notice/terms** in footer
@@ -98,35 +112,45 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 - [ ] **Analytics** — Plausible (free tier) at Phase 3; privacy-friendly, no cookie banner required
 - [ ] **Account deletion + data export** — legal right to erasure; policy for what deletion means for league memberships, leaderboard rows, and (later) duel history; button in More, alongside the privacy notice
 - [ ] **E2E tests (Playwright)** for critical journeys; staging environment; audit logs; accessibility pass
-- [ ] **Full dress rehearsal (testing tier 2)** — simulate the entire competition start to finish with friends playing along: entries in, results entered over days, ties, a result correction, leagues and match centre live. The real "people try it" moment; launch-blocking.
+- [ ] **Full dress rehearsal (testing tier 2)** — simulate the entire competition start to finish with friends playing along: entries in, results entered over days, ties, a result correction, leagues and match centre live — **and every launch-scope bonus game exercised (2026-07-22 decision: KO Predictor, LMS, and the Predictor Cup are launch scope, so the rehearsal runs AFTER their builds — see Launch scope & build sequence)**. The real "people try it" moment; launch-blocking.
 
 ---
 
-## PHASE 4 — Bonus Games platform
+## TOURNAMENT READINESS — pre-launch hardening (added 2026-07-22, second-audit accepted; committed scope, not parking lot)
+
+The operational layer that makes tournament week boring. Runs after the dress rehearsal, before launch; several items land earlier via the audit follow-ups (CI, strict TS, generated types — build-todo). Nothing here is optional for launch:
+
+- [ ] CI on every push/PR (audit item 2 — should land far earlier; listed here as a launch gate too)
+- [ ] Strict TypeScript + generated database types (audit items 1/3)
+- [ ] Database-level tests + full browser journeys (E2E — Playwright)
+- [ ] Browser/device matrix + accessibility pass (WCAG 2.2 AA — promoted from the Parking Lot)
+- [ ] Load/concurrency/failure testing — match-window polling load at expected user count vs free-tier ceilings; recompute under concurrent result entry (advisory lock verified under contention)
+- [ ] Error tracking live (Sentry) + synthetic monitoring/alerting (uptime + a scripted probe of the critical journey)
+- [ ] Backup verification + an actual restore rehearsal (a backup that's never been restored is a hope, not a backup)
+- [ ] Incident runbooks + rollback steps + named responsibilities (promoted from the Parking Lot's "production ops tooling")
+- [ ] A second authorised admin + emergency access procedure (the audit-log design already makes this safe)
+- [ ] Staging rehearsal with tournament-like data + scenario simulation across the Original Predictor AND all three launch-scope bonus games (KO Predictor, LMS, Predictor Cup — confirmed 2026-07-22)
+
+## PHASE 4 — Bonus Games platform *(LAUNCH SCOPE — builds before the dress rehearsal; 2026-07-22)*
 
 - [ ] Shared Bonus Games hub at More → Games (/games): per-game entry status, deadlines, current round, score/survival
 - [ ] Optional-entry framework: registration, deadlines, independent participant pools, game status/history, admin management
 - [ ] Separation law enforced throughout: entering anything is always voluntary; nothing auto-enrols; bonus results never touch Original Predictor points; every screen states which competition it is
 - [ ] Sweepstake builder (spec: design-system §6 → Sweepstake builder) — seeded snake draft, mixed registered/guest entrants, furthest-team-wins; sits alongside LMS / KO Predictor / Fan Duels under the Games hub and the separation law
 
-## PHASE 5 — KO Predictor
+## PHASE 5 — KO Predictor *(LAUNCH SCOPE — builds before the dress rehearsal; needs its full design pass first)*
 - [ ] Separate optional game once real knockout fixtures known; own registration, predictions, points, standings, per-match kickoff locks; global + invite-only KO competitions; never merged with Original scores
 
-## PHASE 6 — Last Man Standing
+## PHASE 6 — Last Man Standing *(LAUNCH SCOPE — builds before the dress rehearsal; needs its full design pass first)*
 - [ ] Separate entry + player pool, round deadlines, survival/elimination states, previous-selection history, dedicated competitions via the Games hub
 
-## PHASE 7 — Fan Duels (staged)
-1. Competition entry (4/8/16/32/64 brackets, byes defined pre-draw)
-2. Random draw (transparent, published, locked after; audit trail; admin redraw only pre-predictions)
-3. Knockout bracket (mobile round-by-round)
-4. Round-based prediction sets (rounds aligned to EURO match periods, configurable; both players answer the same set; hidden until lock)
-5. Duel scoring (live provisional + confirmed)
-6. Advancement / elimination
-7. Tie-breaks (defined before competition starts; never invented after)
-8. Final + champion state
-9. Fan Duels profile stats (duel record, championships, rivalry record)
-10. Optional direct-challenge mode (secondary; never affects organised brackets)
-- Dedicated data structures throughout — never an extension of league_members
+## PHASE 7 — Predictor Cup *(LAUNCH SCOPE — supersedes Fan Duels, 2026-07-22; builds before the dress rehearsal; rules complete [`docs/predictor-cup-rules.md`]; **UI direction APPROVED same day — five screens specced in design-system §6**, full hostile-data pass at build; the heaviest of the three — but its design head-start is now the biggest of the three)*
+Rules v0.1 complete (2026-07-22, `docs/predictor-cup-rules.md`) — head-to-head tournament off existing predictions: dynamic groups (any field ≥6), 3–1–0 head-to-head matchdays, ~two-thirds qualification with points-per-game wildcards, seeded playoff to a power-of-two bracket, Extra-Time Accuracy + guaranteed Penalty Number (opposite-parity) knockout resolution, walkover/void rules, Champion + Golden Predictor honours. Build stages: entry → group draw (audit-trail) → group matchdays → qualification/wildcards → seeded playoff → knockout → champion.
+- **Decided laws (2026-07-22):** jokers never apply to Cup scoring; entry requires a submitted Original Predictor entry; knockout scorelines from the SHARED prediction store with the KO Predictor (competition-structure §1)
+- **Open before the format is final:** the WINDOW PLAN — field size → bracket depth → real-fixture bundles (the calendar offers ~4 natural post-group windows; deep brackets need split bundles, which raises tie frequency — the tie-breaks are built for it, but the plan must be published in the rules doc)
+- **Parked, never launch-blocking:** Shield/Plate secondary cups; Fan Duels' direct-challenge mode (moved to the Parking Lot)
+- Fan Duels profile stats concept carries over as Cup profile stats (cup record, runs, penalties won)
+- Dedicated data structures throughout (never an extension of league_members) — never an extension of league_members
 
 ---
 
@@ -146,16 +170,16 @@ This is the **full-horizon map**; `build-todo.md` is the tiered, tick-as-you-go 
 
 ## PARKING LOT (explicitly deferred, revisit only if demanded)
 - Activity tab/feed (activity stays ambient: movement arrows, latest column, possible "since last matchday" line)
+- Fan Duels direct-challenge mode (the one Fan Duels piece the Predictor Cup doesn't absorb — challenge a friend over a match/matchday)
+- Predictor Cup Shield/Plate secondary cups (announced-later scope per the rules doc; never launch-blocking)
 - Native apps, push notifications, chat/social feeds, avatar uploads
 - Automated live-score API (manual admin entry is the design; API may prefill later but admin always confirms). *Audit note (2026-07-22): whenever a live-score source IS built, two things attach to it — (1) the client-side refresh strategy during a live matchday (polling interval vs. realtime vs. focus-refetch) is currently undecided anywhere and must be designed, not improvised (today everything is deliberately fetch-on-mount + fail-soft); (2) the recompute advisory lock (Phase 2 audit follow-up item 5) must already be applied — a feed is a concurrent result writer.*
 - Additional scoring modes; public user-created competitions
 - Magic links, social logins, MFA
 - Full PWA treatment (worth revisiting at Phase 3 — "feels like an app" was an original goal)
 - Desktop/tablet responsive pass (the app is mobile-first at 360px; a wider-viewport layout is deferred)
-- Production ops tooling (beyond the manual runbooks / ops notes already in `docs/`)
-- WCAG 2.2 AA compliance pass beyond the existing accessibility baseline (§9)
-- Notification preferences (per-user control over which emails/alerts are sent)
-- Device test matrix (systematic cross-device/browser coverage)
+- Notification preferences (per-user control over which emails/alerts are sent) — *the single reminder-email toggle shipped with the Account page is not this; this is the full per-channel matrix*
+- *(Production ops tooling, WCAG 2.2 AA pass, and the device test matrix were PROMOTED to the Tournament Readiness phase — 2026-07-22.)*
 - Data-confidence indicators (surfacing how firm/provisional a shown value is)
 
 ---
