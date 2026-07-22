@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Favicons. Browsers that support SVG use favicon.svg; favicon.ico
          (16/32/48) is the raster fallback; apple-touch-icon for iOS home screen.
@@ -17,7 +17,11 @@
       content="Predict every match of Euro 2028 and compete with friends and family this summer."
     />
     <link rel="canonical" href="https://euro28predictor.com/" />
-    <meta name="theme-color" content="#0A1128" />
+    <!-- theme-color per scheme. Hexes MUST match --bg in src/styles/tokens.css
+         (dark #0A1128 / light #F7F5F0). An in-app theme override is applied at
+         runtime in src/app/providers/ThemeProvider.tsx — keep all three in sync. -->
+    <meta name="theme-color" content="#0A1128" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F7F5F0" media="(prefers-color-scheme: light)" />
 
     <!-- Open Graph — how links unfurl in chat apps + social. All URLs are
          absolute on the canonical domain (crawlers resolve nothing relative). -->

@@ -16,7 +16,7 @@
 }
 
 .withChevron {
-  padding-right: 30px;
+  padding-right: 44px;
 }
 
 /* Eyebrow ------------------------------------------------------------------ */
@@ -184,10 +184,17 @@
 .chevron {
   position: absolute;
   top: 50%;
-  right: 6px;
+  right: 0;
   transform: translateY(-50%);
   display: inline-flex;
-  padding: 6px;
+  align-items: center;
+  justify-content: center;
+  /* Full 44×44 target: 18px icon + 13px padding each side (2026-07-22 audit,
+     design-system §4/§5) — a sub-44 target beside the 44px score input is a
+     fat-finger collision. */
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 13px;
   background: none;
   border: none;
   border-radius: 8px;
