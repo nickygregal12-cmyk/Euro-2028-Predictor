@@ -60,9 +60,10 @@ re-signs-in), and the fail-closed production check still holds (runtime policy +
 - [x] Server-side profile creation on sign-up (auth.users trigger) — the incident fix (`20260720190000`)
 - [x] Display-name moderation rules — data-driven client policy (`displayNamePolicy.ts`) + server trigger (`20260720200000`)
 - [x] Rate limiting — app-level for prediction save + league join (`20260720210000`); Supabase covers its own auth endpoints
-- [ ] Cloudflare Turnstile on sign up / log in — needs Turnstile keys (external)
-- [ ] Password reset flow — soft-blocked on custom SMTP
-- [ ] Custom SMTP for auth emails — needs a provider account + verified domain (external)
+- [x] Cloudflare Turnstile on sign up / log in — **shipped + verified live in production** (Option A, Supabase built-in CAPTCHA; widget on both forms, token threaded to auth calls; double-render bug fixed 2026-07-20; secret held by Supabase, never the repo). Detail in build-todo/roadmap Auth hardening. *(This list previously still showed it open — synced 2026-07-22.)*
+- [x] Password reset flow — **shipped**: `/auth/reset` (neutral, enumeration-safe) + `/auth/update-password` (recovery-session grace window, expired-link fallback); reset request carries a Turnstile token. *(Synced 2026-07-22 — was stale here.)*
+- [x] Custom SMTP for auth emails — **shipped**: Resend + verified `euro28predictor.com` domain, configured in Supabase Auth, live-verified by a real recovery send (key rotated at the 2026-07-22 prod cutover). *(Synced 2026-07-22 — was stale here.)*
+- [ ] **Auth resilience (2026-07-22 interface audit — UI/CRO Batch C, build-todo):** submit buttons never disabled-until-valid — validation *speaks* on submit (per-field errors; a visible "still verifying you're human" line when the Turnstile token is missing); **Turnstile load failure is a designed state** (script blocked by ad-blockers/corporate networks → visible fallback + reload offer, never a permanently dead CTA — surface the `loadScript()` rejection, don't fold it into a null token); no silent `return` in any submit handler; password placeholder/hint de-duplicated. Spec: design-system §6 → Auth screens (amended 2026-07-22). *Rationale: a silently-broken CAPTCHA converts to a 100% loss for that visitor — nobody debugs a stranger's form.*
 
 **Explicitly not planned unless demanded later:** social logins, magic links, MFA.
 

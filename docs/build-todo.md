@@ -119,6 +119,32 @@ A full external-style audit of the repo (first-hand verification: `npm ci` clean
 
 - Still deferred, unsequenced (each its own session): DB tests, E2E (Playwright — roadmap Phase 3), `entries.entry_type`.
 
+### UI/CRO audit follow-ups (2026-07-22 interface audit) — sequenced batches, each its own session
+A full UI/UX + conversion audit of the built app (mobile physics, funnel pathing, visual hierarchy, acquisition surfaces). Every spec-level change is recorded in `design-system.md` marked **"2026-07-22 audit"** — the doc was amended first per the doc-wins rule; these batches make the code match it. **Nothing here is new scope invented:** three findings independently confirmed already-decided items (noted per item) and are promoted, not duplicated. **Batch A lands BEFORE the single-tester friction test** — the tester runs on their own phone, and known mobile-physics defects (iOS zoom-jump, nav under the home indicator, dead CTAs) would pollute every finding with known issues.
+
+- [ ] **A. Mobile physics + mechanical fixes** (one session; five near-one-line fixes) — **MUST precede the friction test**:
+  - `viewport-fit=cover` added to the viewport meta — without it `env(safe-area-inset-bottom)` is 0, so the BottomNav's home-indicator padding is dead code and the nav sits in the iPhone swipe zone (design-system §4 → Mobile platform contract)
+  - `TextInput` font-size 15 → **16px** — kills the iOS focus auto-zoom on every auth field (§3 input floor)
+  - Match-card chevron 30×30 → full **44×44** target (13px padding, `right: 0`, card `padding-right: 44px`) (§4/§5)
+  - Disabled-button label `--tx3` → `--tx2` (3.4:1 → AA-passing on `--mut`) (§3)
+  - `theme-color` per colour scheme (two metas + `ThemeProvider` runtime update) (§4 → Mobile platform contract)
+- [ ] **B. Entry-funnel completion levers** (one session) — the activation-rate work; lands before/with the Predict-hub re-cut:
+  - `ScoreInput` select-on-focus + single-digit auto-advance (§5 amendment — ~144 discrete taps for the group stage becomes ~half)
+  - `ScoreInput` state border: accent = empty, `--line` = filled (§5 amendment — restores accent meaning + free progress feedback)
+  - **Group-screen continuation CTA** under the completed group's table ("Next: Group B →"; Group F → "Next: Best third-placed teams →") — *the minimal interim cut of the already-decided continuous-journey re-cut (roadmap Phase 3 → Predict hub re-cut), pulled forward because Group F is currently a dead end at the deepest point of the entry funnel; the full prev/next chrome + "Step N of 5" eyebrow still land with the re-cut unchanged*
+  - Review **submit zone**: sticky + blocked state becomes an enabled "Fix N → [first blocker]" router (§6 Review amendment; disabled-instruction buttons banned app-wide)
+- [ ] **C. Acquisition-surface fixes** (one session) — **before any public sharing push / public-signup moment**:
+  - Auth submit never disabled-until-valid + **Turnstile load-failure designed state** (spoken validation, visible captcha fallback + reload, no silent `return` in submit handlers) — §6 Auth amendments; mirrored as an auth-plan §3 Phase 2 item
+  - **Logged-out `/join/:code` league preview before the sign-up ask** — *this is the already-decided public-invite-preview item (design-system §6 Join flow + roadmap Phase 3), promoted to this batch: the invite deep link is the highest-intent acquisition channel and today redirects straight to a contextless sign-up form, discarding the "Dave invited you to Office Legends" reciprocity moment entirely. Same scope as decided (anon-safe rate-limited RPC, name + member count only, neutral invalid-code response; append-only migration).* Also: move the `setPendingJoin` call out of render into an effect (render side-effect)
+  - Auth-screen value prop: /welcome three-step card reused above the sign-up form + tagline 15px `--tx` (interim until the Landing page ships and becomes the logged-out root); password placeholder/hint de-duplicated (§6 Auth amendments)
+- [ ] **D. Hierarchy re-cut** (one session — runs as a standard DP re-cut → punch-list → close-out cycle):
+  - **Joker state inversion** — available = tint pill, on = solid gold (§5 amendment; verify tint-pill visibility on *locked* cards at review per the build check noted there)
+  - Home during-layout **order rule** — stat strip first; Share moves to the top-nav header-action slot (§6 Home amendment)
+  - StatStrip tap affordance (`›` + press state) (§6)
+  - Today-card team-name truncation retired (full names; FIFA-trigram fallback at 360px — never "Netherl…") (§6)
+  - `LeaderboardRow` movement column hidden until `rank_history` has data (§6 League amendment)
+  - Eyebrow floor 11px app-wide (`--fs-eyebrow`; 10px retired) + /welcome vertical-rhythm fix (§3, §6)
+
 **Audit verdict on the rest (for the record):** the third-party audit text reviewed the same day described files/patterns that don't exist in this repo (no `PredictionBoard.tsx`/`KnockoutTree.tsx`/`src/utils/`, no realtime subscriptions, no client-side-only lockouts, no `any` types); its composite-index concern is already covered by the `unique (entry_id, match_id)` constraint + the existing `rank_history` composites and is a non-issue at current scale. Two kernels were salvaged into items 5 (advisory lock) and the live-score refresh-strategy note in `roadmap.md`. Discarded: React Query (contradicts the no-state-libs rule for no gain), extracting tie-breaks to utils (already pure domain), RLS audits on `rank_history`/`league_members` (already own-read / SECURITY-DEFINER-only).
 
 ### ✅ Migrations — dev fully applied (2026-07-21)
@@ -127,7 +153,7 @@ A full external-style audit of the repo (first-hand verification: `npm ci` clean
 ### Phase 2 exit gates
 - [x] Separate production Supabase project — **DONE 2026-07-22.** Prod project `vkfnsqdyhvtwyqkisxhk` stood up per `docs/ops-prod-cutover.md`: all 20 migrations applied + verified, `seed.sql`+`prod-baseline.sql` loaded (1 tournament / 6 groups / 24 teams / 51 matches / lock_at set), Auth configured (both-domain redirects, SMTP via rotated Resend key — live-verified, real Turnstile secret, email-confirm OFF), Netlify swapped to prod URL + `sb_publishable_*` key, **live smoke test passed** (sign-up / log out / log in / prediction save), admin bootstrapped. Dev reverted to the Turnstile test secret → local dev auto-login works again. Runbook kept as the template.
 - [x] Auth hardening complete (pure-code items, SMTP, Turnstile, password reset; email-verification decided OFF for now)
-- [ ] Single-tester scripted entry-flow friction test (one trusted person, defined script; findings triaged before Phase 3) — a friction check, not a launch. **Script written: `docs/test-script.md`**; the run + triage are the remaining gate. **Dev-migration prerequisite cleared (2026-07-21): all migrations applied, leagues + scoring live** (`docs/ops-pending-migrations.md`) — re-run the dev seed `--commit` first if the DB needs repopulating.
+- [ ] Single-tester scripted entry-flow friction test (one trusted person, defined script; findings triaged before Phase 3) — a friction check, not a launch. **Script written: `docs/test-script.md`**; the run + triage are the remaining gate. **Dev-migration prerequisite cleared (2026-07-21): all migrations applied, leagues + scoring live** (`docs/ops-pending-migrations.md`) — re-run the dev seed `--commit` first if the DB needs repopulating. **New prerequisite (2026-07-22): UI/CRO audit Batch A (mobile physics — see § UI/CRO audit follow-ups) ships first** — the tester runs on their own phone, and the known physics defects would dominate the findings with issues we already have on the list.
 
 ## Phase 3 — Core tournament experience (was Tier 4)
 Detail in `roadmap.md` § Phase 3.
