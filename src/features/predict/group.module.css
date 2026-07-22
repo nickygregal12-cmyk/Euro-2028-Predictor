@@ -44,3 +44,11 @@
   color: var(--tx3);
   margin-top: 4px;
 }
+
+/* Continuation CTA at the natural end of a completed group. A hairline above it
+   separates it from the predicted-standings table without new visual language. */
+.continue {
+  margin-top: 4px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}

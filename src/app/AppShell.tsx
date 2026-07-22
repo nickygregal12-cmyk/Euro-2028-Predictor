@@ -1,7 +1,8 @@
-import { Suspense } from 'react'
+import { Suspense, useRef } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { PageShell, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
+import { useScrollRestoration } from './navRestore'
 
 // Maps the current path to the active bottom-nav tab and back. The four tabs are
 // the v0.1 set (design-system §6); each renders its route's screen in the shell.
@@ -26,8 +27,15 @@ function activeTab(pathname: string): NavKey {
 export function AppShell() {
   const location = useLocation()
   const navigate = useNavigate()
+  // Restore scroll position on back/forward for the scrolling content region.
+  const contentRef = useRef<HTMLElement>(null)
+  useScrollRestoration(contentRef)
   return (
-    <PageShell active={activeTab(location.pathname)} onNavigate={(key) => navigate(TAB_PATH[key])}>
+    <PageShell
+      active={activeTab(location.pathname)}
+      onNavigate={(key) => navigate(TAB_PATH[key])}
+      contentRef={contentRef}
+    >
       {/* Lazily-loaded route chunks resolve here; the nav stays put while the
           content area shows the fallback. */}
       <Suspense fallback={<RouteFallback />}>

@@ -3,6 +3,7 @@ import { Alert, ConfirmModal, EmptyState, Skeleton } from '../../design-system'
 import { CheckIcon, AlertIcon, TrophyIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
+import { useLocationState } from '../../app/navRestore'
 import {
   applyBracketPick,
   winnersToProgression,
@@ -46,7 +47,8 @@ export function BracketRound() {
   const data = useTournamentData()
   const preds = usePredictions()
 
-  const [active, setActive] = useState<RoundKey>('R16')
+  // Persist the active round across back-navigation (reset on a fresh visit).
+  const [active, setActive] = useLocationState<RoundKey>('bracket-round', 'R16')
   const [pending, setPending] = useState<PendingPick | null>(null)
   // After a pick, we scroll to the next unpicked tie (or advance the round).
   const [autoTarget, setAutoTarget] = useState<{ kind: 'tie'; ref: string } | { kind: 'round'; key: RoundKey } | null>(null)

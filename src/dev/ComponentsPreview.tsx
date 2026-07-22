@@ -39,6 +39,7 @@ import {
   type TieSide,
 } from '../features/bracket'
 import { PlacedJokerCard } from '../features/predict/PlacedJokerCard'
+import { nextStageLabel, type NextStage } from '../features/predict/entryFlow'
 import { GoldenBootPicker } from '../features/predict/GoldenBootPicker'
 import { rankLeaderboard } from '../domain/tournament/rankLeaderboard'
 import { LeaderboardRow } from '../features/league/LeaderboardRow'
@@ -514,6 +515,31 @@ function Gallery() {
           <Label>full width</Label>
           <Button variant="primary" fullWidth>
             Continue
+          </Button>
+        </div>
+      </Section>
+
+      <Section title="Group continuation CTA (end of a completed group)">
+        {(
+          [
+            { kind: 'group', letter: 'B' },
+            { kind: 'third' },
+            { kind: 'bracket', started: false },
+            { kind: 'bracket', started: true },
+            { kind: 'review' },
+          ] as NextStage[]
+        ).map((stage, i) => (
+          <div className={styles.row} key={i}>
+            <Label>editable</Label>
+            <Button variant="primary" fullWidth>
+              {nextStageLabel(stage, false)}
+            </Button>
+          </div>
+        ))}
+        <div className={styles.row}>
+          <Label>locked (neutral)</Label>
+          <Button variant="secondary" fullWidth>
+            {nextStageLabel({ kind: 'group', letter: 'B' }, true)}
           </Button>
         </div>
       </Section>

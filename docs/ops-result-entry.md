@@ -4,6 +4,12 @@ There is no admin result-entry page yet — it's deferred to Phase 3 (built once
 
 Written against the live schema in `supabase/migrations/20260720130000_add_scoring.sql` (+ the initial `matches` table in `20260719120000_init_v0_1.sql`).
 
+## ⚠️ Concurrency caution (added 2026-07-22, post-audit) — one result-entry session at a time
+
+`recompute_tournament_scores()` is delete-and-rederive and runs synchronously in the result-write transaction — atomic and safe for a **single** writer, which is exactly what this SQL-editor workflow is. But two **concurrent** result writes (two SQL-editor sessions, or a future admin panel / live-score feed) can race overlapping delete/rederive passes: the last committer's snapshot may not include the other session's result, leaving the leaderboard briefly missing points until any next recompute self-heals it.
+
+**Rule until the advisory-lock migration lands** (roadmap Phase 2 audit follow-up item 5 — `pg_advisory_xact_lock` at the top of the recompute, which serialises this properly): enter results from **one session, sequentially**. If you ever suspect a race happened (e.g. two people entered results at once), a manual `select recompute_tournament_scores(...)` (see "Manual recompute" below) fully repairs it — delete-and-rederive means the fix is always one call away.
+
 ## How scoring reacts (why this is safe)
 
 - `matches.home_score` / `matches.away_score` hold the real result. A check constraint requires **both set or both null** (`matches_score_pair`).

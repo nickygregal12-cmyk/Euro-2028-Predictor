@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { EmptyState, Button } from '../../design-system'
 import { CalendarIcon } from '../../design-system/icons'
+import { useLocationState } from '../../app/navRestore'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import type { Match } from '../../services/supabase/tournamentData'
@@ -28,7 +29,8 @@ export function MatchesPage() {
   const navigate = useNavigate()
   const data = useTournamentData()
   const preds = usePredictions()
-  const [filter, setFilter] = useState<FilterKey>('all')
+  // Persist the active filter across back-navigation (reset on a fresh visit).
+  const [filter, setFilter] = useLocationState<FilterKey>('matches-filter', 'all')
 
   const teamName = useMemo(
     () => (data.status === 'ready' ? new Map(data.data.teams.map((t) => [t.id, t.name])) : new Map<string, string>()),

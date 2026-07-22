@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import styles from './PageShell.module.css'
 import { BottomNav, type NavKey } from './BottomNav'
 
@@ -10,6 +10,9 @@ export type PageShellProps = {
   headerAction?: ReactNode
   active: NavKey
   onNavigate: (key: NavKey) => void
+  // Ref to the scrolling content region — the app scrolls here (not the window),
+  // so scroll restoration attaches to it (see src/app/navRestore.ts).
+  contentRef?: Ref<HTMLElement>
   children: ReactNode
 }
 
@@ -18,7 +21,7 @@ export type PageShellProps = {
  * Fills its container height (use 100dvh at the app root); the content region
  * scrolls independently so the nav stays put. Presentational only.
  */
-export function PageShell({ title, headerAction, active, onNavigate, children }: PageShellProps) {
+export function PageShell({ title, headerAction, active, onNavigate, contentRef, children }: PageShellProps) {
   return (
     <div className={styles.shell}>
       {title || headerAction ? (
@@ -27,7 +30,7 @@ export function PageShell({ title, headerAction, active, onNavigate, children }:
           {headerAction ? <div className={styles.headerAction}>{headerAction}</div> : null}
         </header>
       ) : null}
-      <main className={styles.content}>{children}</main>
+      <main ref={contentRef} className={styles.content}>{children}</main>
       <BottomNav active={active} onNavigate={onNavigate} />
     </div>
   )

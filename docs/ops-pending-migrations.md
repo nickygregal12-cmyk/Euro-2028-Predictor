@@ -14,6 +14,17 @@ Dev is fully applied; these rules govern applying the set to a **fresh prod proj
 - Run each file's full contents in the dashboard SQL editor, then confirm with the "Full applied-state verification" query below.
 - The app fails soft before each migration (features error or read as empty), so a partially-migrated project keeps running — which is exactly why the dev applied-state drifted out of sync with this doc in the first place. Verify against the live DB, don't trust the flags alone.
 
+## Standing cadence — now that TWO databases are live (added 2026-07-22, post-audit)
+
+With prod stood up, every future migration follows this loop (also recorded as process rule 9 in `roadmap.md`):
+
+1. **Apply to dev first**, in the SQL editor, and verify functionally (the migration's own verification query — real output, not "Success").
+2. **Extend the canonical query below** in the same session if the migration adds new objects (a table/column/function/trigger that stands in for it), so the query stays a complete apply-check.
+3. **Apply to prod** once dev is verified. Dev and prod must never diverge by more than the migration currently in flight.
+4. **Re-run the canonical query on BOTH databases** after each apply and paste real rows back — not only at cutover events. Both tables in this doc get their new row flipped to ✅ in the same confirmation turn.
+
+Rationale: applied-state has drifted from the docs once already (dev, pre-2026-07-21). The fail-soft app masks a missing migration; only the query run catches it. Two DBs doubles the drift surface — the cadence is the guard.
+
 ## Status legend
 
 - ✅ **Confirmed applied** — verified against the live dev DB (read-only REST probe for tables/columns, dashboard SQL for triggers/functions/constraints, or a first-hand functional check).

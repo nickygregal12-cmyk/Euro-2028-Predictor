@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
+  Button,
   GroupTable,
   JokerCounter,
   MatchCard,
@@ -13,6 +14,7 @@ import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildGroupTableRows } from './groupTable'
 import { ConflictBanner } from './ConflictBanner'
+import { nextEntryStage, nextStagePath, nextStageLabel } from './entryFlow'
 import { scoreOneMatch } from './matchScoring'
 import { venueCountryCode } from './venues'
 import { isEntryLocked } from '../../domain/tournament/entryLock'
@@ -73,6 +75,24 @@ export function GroupPredictorPage() {
 
   const rows = buildGroupTableRows(groupTeams, groupMatches, preds.getPrediction)
   const locked = isEntryLocked(data.data.tournament.lockAt)
+
+  // Continuation CTA: once every match in this group has a predicted score, offer
+  // the next incomplete stage of the entry (same stage logic as the Predict hub).
+  const groupComplete =
+    groupMatches.length > 0 &&
+    groupMatches.every((m) => {
+      const p = preds.getPrediction(m.id)
+      return p.homeScore !== null && p.awayScore !== null
+    })
+  const nextStage = groupComplete
+    ? nextEntryStage(
+        data.data,
+        preds.getPrediction,
+        preds.jokerCount,
+        preds.tieResolutions,
+        preds.bracketProgression,
+      )
+    : null
 
   const index = LETTERS.indexOf(letter)
   const prev = index > 0 ? LETTERS[index - 1] : null
@@ -155,6 +175,18 @@ export function GroupPredictorPage() {
 
       <div className={g.tableLabel}>Predicted standings</div>
       <GroupTable caption={`Group ${letter} predicted table`} rows={rows} />
+
+      {nextStage && (
+        <div className={g.continue}>
+          <Button
+            variant={locked ? 'secondary' : 'primary'}
+            fullWidth
+            onClick={() => navigate(nextStagePath(nextStage))}
+          >
+            {nextStageLabel(nextStage, locked)}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
