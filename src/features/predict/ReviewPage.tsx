@@ -16,6 +16,7 @@ import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { ShareSheet } from '../share/ShareSheet'
 import { useShareModel } from '../share/useShareModel'
 import { computeHubStatus } from './hubStatus'
+import { submitBlockers } from './reviewSubmit'
 import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { ChampionCard } from '../bracket'
 import { sumGroupGoals } from '../../domain/tournament/groupGoals'
@@ -174,7 +175,12 @@ export function ReviewPage() {
       blocker: false, // jokers are optional — never block submission
     },
   ]
-  const blockers = rows.filter((row) => row.blocker).length
+  // Submit-zone blockers come from the same status as the checklist rows, but via
+  // the pure helper so the "Fix N → [first blocker]" router has one testable
+  // source of truth (order: groups → thirds → bracket; jokers never block).
+  const blockerList = submitBlockers(status)
+  const blockers = blockerList.length
+  const firstBlocker = blockerList[0] ?? null
   const submitted = preds.submittedAt !== null
   const locked = isEntryLocked(data.data.tournament.lockAt)
 
@@ -302,61 +308,65 @@ export function ReviewPage() {
         </div>
       </div>
 
-      {/* 4. Submit / submitted */}
+      {/* 4. Submit / submitted — sticky at the bottom of the scroll region so the
+          activation CTA is never hunted for at the end of a long checklist
+          (design-system §6 Review amendment, 2026-07-22 audit). */}
       {submitError && (
         <Alert variant="error" title="Couldn't submit">
           {submitError}
         </Alert>
       )}
 
-      {submitted ? (
-        <div className={r.banner}>
-          <span className={r.bannerHead}>
-            <CheckIcon size={18} className={r.bannerIcon} /> Entry submitted
-          </span>
-          <p className={r.bannerSub}>
-            {locked
-              ? "You're in — predictions are now locked. Good luck!"
-              : `You're in. Editable until ${deadlineText} — change anything up to kickoff and it saves automatically; your entry stays submitted.`}
-          </p>
-          <Button
-            variant="secondary"
-            onClick={() => setShareOpen(true)}
-            disabled={!share.model || share.variants.length === 0}
-          >
-            <span className={r.blocked}>
-              <ShareIcon size={15} /> Share your entry
+      <div className={r.submitZone}>
+        {submitted ? (
+          <div className={r.banner}>
+            <span className={r.bannerHead}>
+              <CheckIcon size={18} className={r.bannerIcon} /> Entry submitted
             </span>
-          </Button>
-        </div>
-      ) : locked ? (
-        <Alert variant="info" title="Predictions are locked">
-          The tournament has started, so entries can no longer be changed or submitted.
-        </Alert>
-      ) : blockers > 0 ? (
-        <div>
-          <Button variant="primary" fullWidth disabled>
-            <span className={r.blocked}>
-              <LockIcon size={15} /> Fix {blockers} item{blockers === 1 ? '' : 's'} to submit
-            </span>
-          </Button>
-          <p className={r.submitCaption}>Complete the checklist above to submit.</p>
-        </div>
-      ) : (
-        <div>
-          <Button
-            variant="primary"
-            fullWidth
-            loading={preds.submitting}
-            onClick={() => setConfirmOpen(true)}
-          >
-            Submit entry
-          </Button>
-          <p className={r.submitCaption}>
-            You can still edit everything after submitting, right up to kickoff.
-          </p>
-        </div>
-      )}
+            <p className={r.bannerSub}>
+              {locked
+                ? "You're in — predictions are now locked. Good luck!"
+                : `You're in. Editable until ${deadlineText} — change anything up to kickoff and it saves automatically; your entry stays submitted.`}
+            </p>
+            <Button
+              variant="secondary"
+              onClick={() => setShareOpen(true)}
+              disabled={!share.model || share.variants.length === 0}
+            >
+              <span className={r.blocked}>
+                <ShareIcon size={15} /> Share your entry
+              </span>
+            </Button>
+          </div>
+        ) : locked ? (
+          <Alert variant="info" title="Predictions are locked">
+            The tournament has started, so entries can no longer be changed or submitted.
+          </Alert>
+        ) : blockers > 0 && firstBlocker ? (
+          // Blocked → an ENABLED secondary that ROUTES to the first incomplete
+          // screen. Never a disabled control carrying the submit instruction.
+          <div>
+            <Button variant="secondary" fullWidth onClick={() => navigate(firstBlocker.route)}>
+              Fix {blockers} item{blockers === 1 ? '' : 's'} → {firstBlocker.label}
+            </Button>
+            <p className={r.submitCaption}>Complete the checklist above to submit.</p>
+          </div>
+        ) : (
+          <div>
+            <Button
+              variant="primary"
+              fullWidth
+              loading={preds.submitting}
+              onClick={() => setConfirmOpen(true)}
+            >
+              Submit entry
+            </Button>
+            <p className={r.submitCaption}>
+              You can still edit everything after submitting, right up to kickoff.
+            </p>
+          </div>
+        )}
+      </div>
 
       <ConfirmModal
         open={confirmOpen}

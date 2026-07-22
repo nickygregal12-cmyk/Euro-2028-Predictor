@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import styles from './MatchCard.module.css'
 import { ScoreInput } from './ScoreInput'
 import { TeamFlag } from './TeamFlag'
@@ -90,6 +90,10 @@ export function MatchCard(props: MatchCardProps) {
   const scored = state === 'scored'
   const jokerActive = jokerState === 'on' || jokerState === 'committed'
 
+  // Single-digit auto-advance pairing (design-system §5): entering a digit in the
+  // home box jumps to away; entering one in away blurs (done for this card).
+  const awayInputRef = useRef<HTMLInputElement>(null)
+
   const cardClass = [
     styles.card,
     jokerActive ? styles.jokerActive : '',
@@ -137,6 +141,7 @@ export function MatchCard(props: MatchCardProps) {
                 ariaLabel={`${home.name} score`}
                 onChange={onHomeScoreChange}
                 locked={locked}
+                onAdvance={() => awayInputRef.current?.focus()}
               />
               <span className={styles.sep}>–</span>
               <ScoreInput
@@ -144,6 +149,8 @@ export function MatchCard(props: MatchCardProps) {
                 ariaLabel={`${away.name} score`}
                 onChange={onAwayScoreChange}
                 locked={locked}
+                inputRef={awayInputRef}
+                onAdvance={() => awayInputRef.current?.blur()}
               />
             </>
           )}

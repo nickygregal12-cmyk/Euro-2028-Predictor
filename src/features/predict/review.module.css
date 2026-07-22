@@ -137,6 +137,18 @@
 }
 
 /* Submit area -------------------------------------------------------------- */
+/* Sticky at the bottom of the scroll region (PageShell's <main>), so the CTA is
+   always reachable. Bleeds to the scroll container's 16px padding edges for a
+   full-width gradient fade to --bg (~70% solid) that content dissolves into.
+   The BottomNav sits OUTSIDE the scroll region, so bottom:0 clears it. */
+.submitZone {
+  position: sticky;
+  bottom: 0;
+  margin: 4px -16px 0;
+  padding: 22px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(to bottom, transparent 0%, var(--bg) 30%);
+}
+
 .submitCaption {
   margin: 8px 0 0;
   font-family: var(--font-body);

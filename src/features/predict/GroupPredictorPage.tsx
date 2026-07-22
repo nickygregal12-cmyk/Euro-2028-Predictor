@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Alert,
+  Button,
   GroupTable,
   JokerCounter,
   MatchCard,
@@ -12,6 +13,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildGroupTableRows } from './groupTable'
+import { isGroupComplete, groupContinuation } from './groupContinuation'
 import { ConflictBanner } from './ConflictBanner'
 import { scoreOneMatch } from './matchScoring'
 import { venueCountryCode } from './venues'
@@ -73,6 +75,13 @@ export function GroupPredictorPage() {
 
   const rows = buildGroupTableRows(groupTeams, groupMatches, preds.getPrediction)
   const locked = isEntryLocked(data.data.tournament.lockAt)
+
+  // Continuation CTA: once every match in this group has a predicted score, offer
+  // the next stage of the linear entry flow (A–E → next group, F → best thirds).
+  // Shown in every state as pure navigation — browsing continuity costs nothing.
+  const continuation = isGroupComplete(groupMatches, preds.getPrediction)
+    ? groupContinuation(letter)
+    : null
 
   const index = LETTERS.indexOf(letter)
   const prev = index > 0 ? LETTERS[index - 1] : null
@@ -155,6 +164,14 @@ export function GroupPredictorPage() {
 
       <div className={g.tableLabel}>Predicted standings</div>
       <GroupTable caption={`Group ${letter} predicted table`} rows={rows} />
+
+      {continuation && (
+        <div className={g.continue}>
+          <Button variant="primary" fullWidth onClick={() => navigate(continuation.path)}>
+            {continuation.label}
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

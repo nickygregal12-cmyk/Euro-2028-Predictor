@@ -1,5 +1,8 @@
-/* Editable: 44×44, centred, 19px Space Grotesk 500, 1.5px accent border in
-   BOTH themes (equal prominence — primary action). */
+/* Editable: 44×44, centred, 19px Space Grotesk 500. The border signals state
+   (design-system §5, 2026-07-22 audit): EMPTY carries the 1.5px --acc border in
+   both themes (the call to action); FILLED drops to 1px --line (settled) — so a
+   group screen visibly calms as it fills, and the accent keeps meaning "act
+   here". */
 .input {
   width: var(--tap-min);
   height: var(--tap-min);
@@ -14,6 +17,11 @@
   border-radius: var(--radius-input);
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+/* Filled: settled — quiet 1px --line. */
+.filled {
+  border: 1px solid var(--line);
 }
 
 .input:focus-visible {

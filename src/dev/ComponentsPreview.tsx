@@ -309,8 +309,11 @@ function JokerToggleDemo() {
 }
 
 function EditableCardDemo() {
-  const [home, setHome] = useState<number | null>(2)
-  const [away, setAway] = useState<number | null>(1)
+  // Starts empty (accent borders) so this card is the live surface for the §5
+  // keyboard flow: type one digit in home → focus jumps to away → one more → done,
+  // and each box calms from accent to --line as it fills.
+  const [home, setHome] = useState<number | null>(null)
+  const [away, setAway] = useState<number | null>(null)
   const [joker, setJoker] = useState<'available' | 'on'>('available')
   return (
     <MatchCard
@@ -599,9 +602,15 @@ function Gallery() {
 
       <Section title="ScoreInput">
         <div className={styles.row}>
-          <Label>editable</Label>
-          <ScoreInputDemo />
+          {/* Border signals state (§5, 2026-07-22 audit): empty = 1.5px accent
+              "act here"; filled = 1px --line "settled". Type in the first box to
+              watch it calm from accent to line. */}
+          <Label>empty (accent)</Label>
           <ScoreInput value={null} ariaLabel="Empty score" onChange={() => {}} />
+          <Label>filled (line)</Label>
+          <ScoreInput value={2} ariaLabel="Filled score" onChange={() => {}} />
+          <Label>interactive</Label>
+          <ScoreInputDemo />
           <Label>locked</Label>
           <ScoreInput value={1} ariaLabel="Locked score" locked />
         </div>
