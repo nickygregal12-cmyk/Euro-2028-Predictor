@@ -44,7 +44,9 @@
   min-height: var(--tap-min);
   padding: 0 var(--sp-3);
   font-family: var(--font-body);
-  font-size: 15px;
+  /* 16px hard floor — mobile Safari auto-zooms on focus of any input <16px
+     (design-system §3 text-input floor, 2026-07-22 audit). */
+  font-size: 16px;
   color: var(--tx);
   background: transparent;
   border: 0;

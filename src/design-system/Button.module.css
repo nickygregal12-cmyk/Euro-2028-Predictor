@@ -31,7 +31,9 @@
 .btn:disabled:not(.loading) {
   background: var(--mut);
   border-color: var(--mut);
-  color: var(--tx3);
+  /* --tx2 not --tx3: --tx3 on --mut measures ~3.4:1 (fails AA); --tx2 passes
+     (design-system §3 disabled-control text pairing, 2026-07-22 audit). */
+  color: var(--tx2);
 }
 
 .fullWidth {

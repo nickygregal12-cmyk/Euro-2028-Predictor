@@ -7,6 +7,25 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 export type Theme = 'dark' | 'light'
 const STORAGE_KEY = 'euro28-theme'
 
+// Browser-chrome colour per theme. These hexes MUST match --bg in
+// src/styles/tokens.css and the static theme-color metas in index.html — keep
+// all three in sync (a token change here without the others silently desyncs
+// the mobile status bar from the app background).
+const THEME_COLOR: Record<Theme, string> = {
+  dark: '#0A1128',
+  light: '#F7F5F0',
+}
+
+// An in-app theme choice must beat the OS prefers-color-scheme media query that
+// scopes the two static metas. Setting BOTH metas to the resolved colour means
+// whichever one the OS matches yields the app-chosen colour.
+function applyThemeColor(theme: Theme) {
+  const metas = document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+  metas.forEach((meta) => {
+    meta.setAttribute('content', THEME_COLOR[theme])
+  })
+}
+
 type ThemeContextValue = {
   theme: Theme
   toggle: () => void
@@ -28,6 +47,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    applyThemeColor(theme)
     try {
       localStorage.setItem(STORAGE_KEY, theme)
     } catch {
