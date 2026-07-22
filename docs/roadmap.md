@@ -138,8 +138,8 @@ The operational layer that makes tournament week boring. Runs after the dress re
 - [ ] Separation law enforced throughout: entering anything is always voluntary; nothing auto-enrols; bonus results never touch Original Predictor points; every screen states which competition it is
 - [ ] Sweepstake builder (spec: design-system §6 → Sweepstake builder) — seeded snake draft, mixed registered/guest entrants, furthest-team-wins; sits alongside LMS / KO Predictor / Fan Duels under the Games hub and the separation law
 
-## PHASE 5 — KO Predictor *(LAUNCH SCOPE — builds before the dress rehearsal; needs its full design pass first)*
-- [ ] Separate optional game once real knockout fixtures known; own registration, predictions, points, standings, per-match kickoff locks; global + invite-only KO competitions; never merged with Original scores
+## PHASE 5 — KO Predictor *(LAUNCH SCOPE — builds before the dress rehearsal; rules decided + UI direction APPROVED 2026-07-22 — design-system §6, competition-structure §4; full hostile-data pass at build)*
+- [ ] Separate optional game once the real R16 line-up is known; own registration, points, standings; per-match kickoff locks via the SHARED prediction store (platform prerequisite). Decided 2026-07-22: Exact 5 / Result 3 / Through +2 scoring (draw-predicted picks require a who-goes-through toggle); rolling entry (latecomer funnel from the spectator state); global leaderboard only at launch (invite-only KO competitions deferred); no jokers. Never merged with Original scores. Three approved screens in design-system §6.
 
 ## PHASE 6 — Last Man Standing *(LAUNCH SCOPE — builds before the dress rehearsal; needs its full design pass first)*
 - [ ] Separate entry + player pool, round deadlines, survival/elimination states, previous-selection history, dedicated competitions via the Games hub
