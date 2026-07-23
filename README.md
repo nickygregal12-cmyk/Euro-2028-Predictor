@@ -30,10 +30,12 @@ src/
   styles/         # tokens, fonts, flags
 tests/
   domain/         # unit tests for domain functions
+  database-parity/# local TypeScript/PostgreSQL differential tests
   features/ services/ scripts/ app/
   setup.ts        # Vitest + jest-dom setup
 supabase/
   migrations/     # append-only, timestamp-ordered SQL migrations
+  tests/          # local pgTAP behaviour and permission tests
   seed.sql        # fixture/bracket skeleton (single source of truth)
   prod-baseline.sql
 scripts/
@@ -46,6 +48,8 @@ docs/             # authoritative product, architecture, scoring and ops documen
 ## Domain-first principle
 
 Tournament logic (group tables, tie-breaks, bracket progression, scoring) lives entirely in `src/domain/tournament/` as pure functions: they take data in, return data out, and never touch React or the database directly. Build and test these in isolation before wiring up any screen.
+
+The predicted group-order contract is also mirrored by a private PostgreSQL implementation in `predictor_internal`. A dedicated local-only workflow rebuilds disposable Supabase, runs pgTAP, and compares normalized TypeScript and PostgreSQL outputs fixture by fixture. This does not expose a public RPC or prove hosted production-schema parity.
 
 ## Scoring
 
@@ -65,11 +69,13 @@ The domain layer is built and tested:
 - [x] `calculateScore()`
 - [x] `calculateLeagueRank()`
 
-Baseline GitHub Actions CI is active. The first two TypeScript predicted-group-order contract batches are merged and cover automatic head-to-head ordering, recursive tied subsets, overall-stat fallbacks, partial and unresolved groups, input-order independence, structural fixture validation and the exhaustive 729-outcome feasibility invariant. See `docs/quality/reconciliations/2026-07-23-group-order-contract.md` for the dated merge record and remaining manual-resolution/database-parity work.
+Baseline GitHub Actions CI is active. Predicted-group-order Batches 1–3 are merged and cover automatic head-to-head ordering, recursive tied subsets, overall-stat fallbacks, partial and unresolved groups, input-order independence, explicit manual keep/reorder decisions, stale and hostile saved-resolution protection, inline group tie prompting, score-review return paths, and the **Finalise Group Standings** flow.
+
+Private PostgreSQL parity is also merged. The disposable local database workflow proves migration rebuild, database lint, pgTAP behaviour and permissions, and exact fixture-driven parity with production TypeScript for automatic, manual, hostile, stale and partial-group cases. See `docs/quality/reconciliations/2026-07-23-group-order-contract.md` and `docs/quality/reconciliations/2026-07-23-database-parity-foundation.md` for the dated merge records and boundaries.
 
 Phase 1 application surfaces (auth, predictions, bracket, jokers, awards, review/submit, leagues, leaderboard, H2H, matches, match centre, home, profile, share) are built and reachable. The current GitHub Actions pipeline passes install, build, lint, the full test suite and the high-severity production-dependency audit.
 
-**The app is not production-ready for a real scored competition.** Open Critical and High findings — including group-position persistence, submission-state protection, the knockout result model and the absence of any database/RLS/browser test layer — are recorded in `docs/quality/`. Read `docs/quality/current-status.md` before starting work.
+**The app is not production-ready for a real scored competition.** Open Critical and High findings — including entry submission-state protection, same-tournament validation, group-position persistence and locking, the knockout result model, hosted database assurance and browser-level testing — are recorded in `docs/quality/`. Read `docs/quality/current-status.md` before starting work.
 
 ## Where the rules live
 
