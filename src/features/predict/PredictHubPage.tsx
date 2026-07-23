@@ -104,13 +104,13 @@ export function PredictHubPage() {
   const days = startsOn ? daysUntil(startsOn) : null
   const locked = isEntryLocked(data.data.tournament.lockAt)
 
-  const thirdSub =
+  const standingsSub =
     status.thirdPlace.state === 'blocked'
       ? 'Predict all group matches first'
       : status.thirdPlace.state === 'ties'
-        ? `${status.thirdPlace.tieCount} tie${status.thirdPlace.tieCount === 1 ? '' : 's'} need your call`
-        : 'Settled — nothing to resolve'
-  const thirdState: RowState =
+        ? `${status.thirdPlace.tieCount} decision${status.thirdPlace.tieCount === 1 ? '' : 's'} need your call`
+        : 'Group standings confirmed'
+  const standingsState: RowState =
     status.thirdPlace.state === 'blocked'
       ? 'todo'
       : status.thirdPlace.state === 'ties'
@@ -149,9 +149,9 @@ export function PredictHubPage() {
           onOpen={() => navigate('/predict/groups/A')}
         />
         <HubRow
-          title="Best third-placed teams"
-          subtitle={thirdSub}
-          state={thirdState}
+          title="Finalise Group Standings"
+          subtitle={standingsSub}
+          state={standingsState}
           Base={TrophyIcon}
           onOpen={() => navigate('/predict/third-place')}
         />

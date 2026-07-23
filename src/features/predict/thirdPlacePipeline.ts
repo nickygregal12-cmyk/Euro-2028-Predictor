@@ -1,6 +1,6 @@
-// The best-third-placed pipeline: from the user's group predictions (plus their
+// Final group-standings pipeline: from the user's group predictions (plus their
 // manual tie-resolutions) through the domain layer to the ranked third-place
-// table and the list of ties still needing the user's call.
+// table and every tie still needing the user's call.
 //
 // It runs the domain twice per stage — once WITHOUT resolutions to discover
 // every tie the automatic criteria can't break, once WITH them to produce the
@@ -29,16 +29,19 @@ export type TieScope = 'group' | 'third'
 export type TieItem = {
   key: string
   scope: TieScope
-  title: string // e.g. "Group A" or "Best thirds · positions 4 & 5"
-  reason: string // plain-language explanation for the user
-  teams: { id: string; name: string; countryCode: string }[] // display order
-  resolved: boolean // the user has confirmed an order for this exact set
+  title: string
+  reason: string
+  teams: { id: string; name: string; countryCode: string }[]
+  resolved: boolean
+  // Groups whose score inputs can change this tie. Same-group ties have one;
+  // best-third ties can span several groups.
+  reviewGroups: string[]
 }
 
 export type ThirdPlacePipeline = {
   groupsComplete: boolean
   // Ranked third-place table, or null until it can be computed (every group
-  // predicted and every group's 3rd place settled).
+  // predicted and every group's third place settled).
   rows: ThirdPlaceRow[] | null
   // Every tie the automatic criteria couldn't break — pending and resolved.
   ties: TieItem[]
@@ -47,16 +50,14 @@ export type ThirdPlacePipeline = {
   pendingCount: number
 }
 
-// scoring-rules §6 step 7 phrasing (group tables).
 const GROUP_REASON =
-  "These teams can't be split by predicted results — in the real tournament this would come down to " +
-  "things like disciplinary records that can't be predicted. Choose the order you expect."
+  'These teams are still level after points, head-to-head results, goal difference and goals scored. ' +
+  'In the real tournament, disciplinary records may decide the order. Because you are not predicting ' +
+  'cards, keep the order shown, rearrange the teams, or change the group scores.'
 
-// The third-place analogue (tournament-structure §6): same idea, one level up.
 const THIRD_REASON =
-  'These third-placed teams are level on every criterion we can predict (points, goal difference, goals, ' +
-  'wins). In the real tournament UEFA would separate them on records that can’t be predicted. Choose ' +
-  'the order you expect.'
+  'These third-placed teams are level on every score-derived criterion. Keep the order shown, ' +
+  'rearrange the teams, or review the relevant group scores before deciding.'
 
 function toTeams(
   ids: string[],
@@ -74,6 +75,7 @@ function makeTie(
   tiedIds: string[],
   resolutions: TieResolution[],
   nameById: Map<string, string>,
+  reviewGroups: string[],
 ): TieItem {
   const stored = resolvedOrderFor(resolutions, tiedIds)
   return {
@@ -83,6 +85,7 @@ function makeTie(
     reason,
     teams: toTeams(stored ?? tiedIds, nameById),
     resolved: stored !== undefined,
+    reviewGroups: [...new Set(reviewGroups)].sort(),
   }
 }
 
@@ -91,54 +94,75 @@ export function buildThirdPlacePipeline(
   getPrediction: (matchId: string) => Prediction,
   resolutions: TieResolution[],
 ): ThirdPlacePipeline {
-  const groupMatches = data.matches.filter((m) => m.round === 'group')
-  for (const m of groupMatches) {
-    const p = getPrediction(m.id)
-    if (p.homeScore === null || p.awayScore === null) {
+  const groupMatches = data.matches.filter((match) => match.round === 'group')
+  for (const match of groupMatches) {
+    const prediction = getPrediction(match.id)
+    if (prediction.homeScore === null || prediction.awayScore === null) {
       return { groupsComplete: false, rows: null, ties: [], pendingCount: 0 }
     }
   }
 
-  const nameById = new Map(data.teams.map((t) => [t.id, t.name]))
+  const nameById = new Map(data.teams.map((team) => [team.id, team.name]))
+  const groupLetterById = new Map(data.groups.map((group) => [group.id, group.letter]))
+  const groupLetterByTeamId = new Map(
+    data.teams.map((team) => [team.id, groupLetterById.get(team.groupId) ?? '']),
+  )
   const groups = [...data.groups].sort((a, b) => a.letter.localeCompare(b.letter))
   const ties: TieItem[] = []
   const thirds: ThirdPlacedTeam[] = []
   let thirdsDetermined = true
 
-  for (const g of groups) {
+  for (const group of groups) {
     const teamIds = data.teams
-      .filter((t) => t.groupId === g.id)
+      .filter((team) => team.groupId === group.id)
       .sort((a, b) => a.slot - b.slot)
-      .map((t) => t.id)
+      .map((team) => team.id)
     const scores: MatchScore[] = groupMatches
-      .filter((m) => m.groupId === g.id && m.homeTeamId && m.awayTeamId)
-      .map((m) => {
-        const p = getPrediction(m.id)
+      .filter(
+        (match) =>
+          match.groupId === group.id && match.homeTeamId && match.awayTeamId,
+      )
+      .map((match) => {
+        const prediction = getPrediction(match.id)
         return {
-          homeTeamId: m.homeTeamId as string,
-          awayTeamId: m.awayTeamId as string,
-          homeScore: p.homeScore as number,
-          awayScore: p.awayScore as number,
+          homeTeamId: match.homeTeamId as string,
+          awayTeamId: match.awayTeamId as string,
+          homeScore: prediction.homeScore as number,
+          awayScore: prediction.awayScore as number,
         }
       })
 
     // Every manual tie in this group (independent of what the user has chosen).
     const raw = resolveGroupTies(teamIds, scores)
     for (const block of raw.unresolvedGroups) {
-      ties.push(makeTie('group', `Group ${g.letter}`, GROUP_REASON, block, resolutions, nameById))
+      ties.push(
+        makeTie(
+          'group',
+          `Group ${group.letter} needs your decision`,
+          GROUP_REASON,
+          block,
+          resolutions,
+          nameById,
+          [group.letter],
+        ),
+      )
     }
 
-    // The 3rd-placed team, with the user's orderings applied.
+    // The third-placed team, with the user's orderings applied.
     const resolved = resolveGroupTies(teamIds, scores, resolutions)
     const third = resolved.standings[2]
     if (third?.tiedUnresolved) thirdsDetermined = false
-    else if (third) thirds.push({ ...third, groupLetter: g.letter })
+    else if (third) thirds.push({ ...third, groupLetter: group.letter })
   }
 
   let rows: ThirdPlaceRow[] | null = null
   if (thirdsDetermined && thirds.length === groups.length) {
     const rawRank = rankThirdPlacedTeams(thirds)
     for (const tie of rawRank.unresolvedGroups) {
+      const reviewGroups = tie.teamIds
+        .map((teamId) => groupLetterByTeamId.get(teamId))
+        .filter((letter): letter is string => Boolean(letter))
+
       ties.push(
         makeTie(
           'third',
@@ -147,18 +171,22 @@ export function buildThirdPlacePipeline(
           tie.teamIds,
           resolutions,
           nameById,
+          reviewGroups,
         ),
       )
     }
 
     const resolvedRank = rankThirdPlacedTeams(thirds, resolutions)
-    rows = resolvedRank.ranking.map((r, i) => ({
-      position: i + 1,
-      groupLetter: r.groupLetter,
-      team: { name: nameById.get(r.teamId) ?? r.teamId, countryCode: '' },
-      played: r.played,
-      goalDifference: r.goalDifference,
-      points: r.points,
+    rows = resolvedRank.ranking.map((standing, index) => ({
+      position: index + 1,
+      groupLetter: standing.groupLetter,
+      team: {
+        name: nameById.get(standing.teamId) ?? standing.teamId,
+        countryCode: '',
+      },
+      played: standing.played,
+      goalDifference: standing.goalDifference,
+      points: standing.points,
     }))
   }
 
@@ -166,6 +194,6 @@ export function buildThirdPlacePipeline(
     groupsComplete: true,
     rows,
     ties,
-    pendingCount: ties.filter((t) => !t.resolved).length,
+    pendingCount: ties.filter((tie) => !tie.resolved).length,
   }
 }

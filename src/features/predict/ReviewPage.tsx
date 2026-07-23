@@ -141,7 +141,7 @@ export function ReviewPage() {
       blocker: !status.groups.complete,
     },
     {
-      label: 'Best third-placed teams',
+      label: 'Finalise Group Standings',
       Icon: TrophyIcon,
       state:
         status.thirdPlace.state === 'settled'
@@ -151,9 +151,9 @@ export function ReviewPage() {
             : 'todo',
       detail:
         status.thirdPlace.state === 'settled'
-          ? 'Settled'
+          ? 'Confirmed'
           : status.thirdPlace.state === 'ties'
-            ? `${status.thirdPlace.tieCount} tie${status.thirdPlace.tieCount === 1 ? '' : 's'} need your call`
+            ? `${status.thirdPlace.tieCount} decision${status.thirdPlace.tieCount === 1 ? '' : 's'} need your call`
             : 'Predict all groups first',
       route: '/predict/third-place',
       blocker: status.thirdPlace.state !== 'settled',
@@ -177,7 +177,7 @@ export function ReviewPage() {
   ]
   // Submit-zone blockers come from the same status as the checklist rows, but via
   // the pure helper so the "Fix N → [first blocker]" router has one testable
-  // source of truth (order: groups → thirds → bracket; jokers never block).
+  // source of truth (order: groups → finalise standings → bracket; jokers never block).
   const blockerList = submitBlockers(status)
   const blockers = blockerList.length
   const firstBlocker = blockerList[0] ?? null

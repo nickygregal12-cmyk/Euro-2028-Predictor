@@ -12,8 +12,14 @@ import type { SaveStatus } from './MatchCard'
 
 export type TieResolverTeam = { id: string; name: string; countryCode: string }
 
+export type TieResolverReviewAction = {
+  label: string
+  onClick: () => void
+}
+
 export type TieResolverProps = {
-  // Short context, e.g. "Group A" or "Best thirds · positions 4 & 5".
+  // Short context, e.g. "Group A needs your decision" or
+  // "Best thirds · positions 4 & 5".
   title: string
   // Plain-language explanation of why the app can't separate the teams.
   reason: string
@@ -23,6 +29,8 @@ export type TieResolverProps = {
   // Whether the user has already confirmed an order for this tie.
   resolved: boolean
   saveStatus?: SaveStatus
+  // Optional routes back to the score inputs that produced this tie.
+  reviewActions?: TieResolverReviewAction[]
   // Called with the chosen order (best first) when the user confirms.
   onResolve: (orderedIds: string[]) => void
 }
@@ -31,15 +39,14 @@ export type TieResolverProps = {
 // itself changes (different teams / different stored order), not on every
 // unrelated re-render.
 function idsKey(teams: TieResolverTeam[]): string {
-  return teams.map((t) => t.id).join('|')
+  return teams.map((team) => team.id).join('|')
 }
 
 /**
  * Manual tie-resolution control (scoring-rules §6 step 7). Presentational: the
  * parent supplies the tied teams and persists the chosen order via `onResolve`.
- * The user arranges the teams with up/down controls (44px targets, labelled per
- * team) and confirms. Amber throughout — third-place / caution is amber in the
- * design system.
+ * The user arranges the teams with up/down controls and may review the scores
+ * that caused the tie before confirming an explicit order.
  */
 export function TieResolver({
   title,
@@ -47,6 +54,7 @@ export function TieResolver({
   teams,
   resolved,
   saveStatus = 'idle',
+  reviewActions = [],
   onResolve,
 }: TieResolverProps) {
   const [order, setOrder] = useState<TieResolverTeam[]>(teams)
@@ -58,12 +66,17 @@ export function TieResolver({
   }, [idsKey(teams)]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const dirty = idsKey(order) !== idsKey(teams)
+  const confirmLabel = resolved
+    ? 'Update order'
+    : dirty
+      ? 'Save this order'
+      : 'Keep this order'
 
   function move(index: number, delta: number) {
-    setOrder((prev) => {
-      const next = [...prev]
+    setOrder((previous) => {
+      const next = [...previous]
       const target = index + delta
-      if (target < 0 || target >= next.length) return prev
+      if (target < 0 || target >= next.length) return previous
       ;[next[index], next[target]] = [next[target], next[index]]
       return next
     })
@@ -91,10 +104,10 @@ export function TieResolver({
       <p className={styles.reason}>{reason}</p>
 
       <ol className={styles.list}>
-        {order.map((team, i) => (
+        {order.map((team, index) => (
           <li key={team.id} className={styles.row}>
             <span className={styles.pos} aria-hidden="true">
-              {i + 1}
+              {index + 1}
             </span>
             <span className={styles.bar} aria-hidden="true" />
             <span className={styles.flag}>
@@ -105,8 +118,8 @@ export function TieResolver({
               <button
                 type="button"
                 className={styles.moveBtn}
-                onClick={() => move(i, -1)}
-                disabled={i === 0}
+                onClick={() => move(index, -1)}
+                disabled={index === 0}
                 aria-label={`Move ${team.name} up`}
               >
                 <ChevronUpIcon size={18} />
@@ -114,8 +127,8 @@ export function TieResolver({
               <button
                 type="button"
                 className={styles.moveBtn}
-                onClick={() => move(i, 1)}
-                disabled={i === order.length - 1}
+                onClick={() => move(index, 1)}
+                disabled={index === order.length - 1}
                 aria-label={`Move ${team.name} down`}
               >
                 <ChevronDownIcon size={18} />
@@ -133,13 +146,20 @@ export function TieResolver({
             <span className={styles.saveError}>Save failed — try again</span>
           )}
         </span>
-        <Button
-          variant="primary"
-          onClick={() => onResolve(order.map((t) => t.id))}
-          disabled={saveStatus === 'saving' || (resolved && !dirty)}
-        >
-          {resolved ? 'Update order' : 'Confirm order'}
-        </Button>
+        <div className={styles.actions}>
+          {reviewActions.map((action) => (
+            <Button key={action.label} variant="secondary" onClick={action.onClick}>
+              {action.label}
+            </Button>
+          ))}
+          <Button
+            variant="primary"
+            onClick={() => onResolve(order.map((team) => team.id))}
+            disabled={saveStatus === 'saving' || (resolved && !dirty)}
+          >
+            {confirmLabel}
+          </Button>
+        </div>
       </div>
     </section>
   )
