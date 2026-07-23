@@ -11,7 +11,7 @@
 | Area | Result |
 | --- | --- |
 | Repository migration | **Implemented.** Additive migration 34 closes public function execution by default and applies explicit allowlists. |
-| Disposable database assurance | **Covered by `supabase/tests/080_function_privileges.sql`; final result depends on database-parity CI.** |
+| Disposable database assurance | **Passed.** Database parity run #41 rebuilt all 34 migrations, passed lint, all pgTAP suites including the 18 privilege assertions, TypeScript/PostgreSQL parity and clean teardown. |
 | Hosted development | **Applied and verified.** Exact privilege matrix, default ACL, search paths, signup trigger and authenticated RPC smoke tests passed. |
 | Security advisors | **Material drift removed in development.** Anonymous security-definer and mutable-search-path warnings are gone. |
 | Production | **Unchanged.** Old broad function grants remain until the separately approved migrations 21–34 rollout. |
@@ -22,13 +22,7 @@
 
 PostgreSQL functions receive `EXECUTE` for `PUBLIC` by default unless default privileges are changed. Supabase API roles may also hold direct execution grants.
 
-Earlier migrations often used statements such as:
-
-```sql
-revoke all on function public.some_function(...) from public;
-```
-
-That removed inherited `PUBLIC` access in a clean local rebuild, but the hosted projects also contained direct grants to `anon`, `authenticated` and `service_role`. As a result, many internal, trigger and maintenance functions remained callable through the Data API despite the migration intent.
+Earlier migrations often revoked only `PUBLIC`. That worked in a clean local rebuild but the hosted projects also contained direct grants to `anon`, `authenticated` and `service_role`. Internal, trigger and maintenance functions therefore remained callable through the Data API despite the intended boundary.
 
 Three non-definer helpers also inherited the caller's mutable search path:
 
@@ -97,17 +91,15 @@ No direct browser or service-role execution is retained for:
 - write-version enforcement;
 - bracket validation helpers in the private schema.
 
-Trigger execution does not require callers to hold direct `EXECUTE` on the trigger function. This was verified by creating and deleting a temporary Auth user after hardening; the `auth.users` trigger still created the expected profile.
+Trigger execution does not require callers to hold direct `EXECUTE` on the trigger function. A temporary Auth user still caused the `auth.users` trigger to create the expected profile after hardening, and cleanup cascaded correctly.
 
 ## Hosted development verification
 
 The exact privilege query returned:
 
 - zero anonymous executable public functions;
-- zero missing authenticated allowlist functions;
-- zero unexpected authenticated functions;
-- zero missing service-role allowlist functions;
-- zero unexpected service-role functions;
+- zero missing or unexpected authenticated functions;
+- zero missing or unexpected service-role functions;
 - owner-only future public-function default ACL;
 - empty search paths for all three targeted helpers.
 
@@ -123,13 +115,26 @@ The original submission timestamp remained:
 2026-07-21 21:51:49.639442+00
 ```
 
-The complete migrations 21–34 post-rollout verifier then returned:
+The complete migrations 21–34 post-rollout verifier returned:
 
 ```text
 overall_pass = true
 ```
 
 All source fingerprints, 24 derived positions, eight progression rows, R16 resolution and bracket validation remained unchanged.
+
+## Disposable database CI
+
+Database parity run #41 completed successfully after the repository change. It proved:
+
+- clean start of disposable local Supabase;
+- rebuild of all 34 committed migrations;
+- database lint;
+- every pgTAP suite, including `080_function_privileges.sql`;
+- TypeScript/PostgreSQL differential parity;
+- clean disposable teardown.
+
+The new privilege suite contains 18 assertions covering no anonymous function execution, exact authenticated/service allowlists, owner-only defaults, fixed search paths, critical grants and continued signup-trigger behavior.
 
 ## Advisor result
 
@@ -144,28 +149,13 @@ Expected remaining notices:
 - leaked-password protection disabled, which is an Auth setting rather than a database migration;
 - informational no-policy notices for deny-all internal tables such as `rate_limit_events` and `match_result_revisions`.
 
-The remaining signed-in warnings must not be “fixed” by revoking the application RPCs without replacing their product functionality and authorization boundary.
-
-## Executable coverage
-
-`supabase/tests/080_function_privileges.sql` adds 18 assertions covering:
-
-- no anonymous public-function execution;
-- exact authenticated allowlist;
-- exact service-role allowlist;
-- owner-only future default ACL;
-- all three immutable search paths;
-- critical authenticated/service grants;
-- denial of direct signup-trigger execution;
-- continued signup-trigger behaviour.
-
-The hosted development database does not expose pgTAP, so the suite could not be invoked there. Equivalent live SQL assertions and the behavioural trigger test passed. The committed suite is intended for the disposable database-parity workflow.
+The signed-in warnings must not be “fixed” by revoking application RPCs without replacing their product functionality and authorization boundary.
 
 ## Production boundary
 
 Production was not changed.
 
-Migration 34 is now the fourteenth pending production migration after the independently proven 1–20 baseline. The approved rollout must apply migrations 21–34 in strict timestamp order and run the updated `scripts/database-rollout/post-rollout-verification.sql`.
+Migration 34 is the fourteenth pending production migration after the independently proven 1–20 baseline. The approved rollout must apply migrations 21–34 in strict timestamp order and run the updated `scripts/database-rollout/post-rollout-verification.sql`.
 
 Production closure requires:
 
