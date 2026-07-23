@@ -7,7 +7,7 @@ This is the live source of truth for repository migration count, hosted semantic
 | Environment | Semantic schema state | Migration-history state | Status |
 | --- | --- | --- | --- |
 | Development `iouzoutneyjpugbbtdem` | Migrations 1–33 effects present; cleaned to the expected post-rollout production mirror | Partial/tool-generated remote history; requires CLI reconciliation | **Hosted rehearsal complete** |
-| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 only | Original migrations were manually applied; authoritative 1–20 CLI history absent | **13 pending; hardened read-only preflight passed; rollout not performed** |
+| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 effects independently verified | Hosted history list empty; exact 1–20 metadata-only repair prepared but not executed | **13 pending; both read-only preflights passed; rollout not performed** |
 
 No production migration is approved merely because it exists on `main`, passed local CI or passed the read-only preflight.
 
@@ -15,28 +15,33 @@ No production migration is approved merely because it exists on `main`, passed l
 
 ### Original hosted baseline — 1–20
 
-| # | Migration | Purpose |
-| --- | --- | --- |
-| 1 | `20260719120000_init_v0_1.sql` | Initial tournament, entry and prediction schema with RLS |
-| 2 | `20260719130000_add_match_prediction_joker.sql` | Joker flag |
-| 3 | `20260719140000_add_predicted_tie_resolutions.sql` | Manual predicted tie decisions |
-| 4 | `20260719150000_enforce_joker_rules.sql` | Joker limit and kickoff commitment |
-| 5 | `20260719160000_add_bonus_and_submit.sql` | Players, bonus predictions and original submit RPC |
-| 6 | `20260719170000_lock_and_leaderboard.sql` | Tournament lock and leaderboard |
-| 7 | `20260719180000_add_leagues.sql` | Leagues and membership |
-| 8 | `20260720120000_league_fk_semantics.sql` | League FK deletion semantics |
-| 9 | `20260720130000_add_scoring.sql` | Initial SQL scorer |
-| 10 | `20260720140000_fix_recompute_trigger.sql` | Recompute-trigger correction |
-| 11 | `20260720150000_add_last_seen.sql` | Catch-up fields |
-| 12 | `20260720160000_add_profile_welcomed_at.sql` | Welcome gate field |
-| 13 | `20260720170000_reveal_after_lock.sql` | Rival entry reveal RPC |
-| 14 | `20260720180000_add_rank_history.sql` | Rank history |
-| 15 | `20260720190000_profile_on_signup.sql` | Server-created profile on signup |
-| 16 | `20260720200000_display_name_moderation.sql` | Display-name policy |
-| 17 | `20260720210000_rate_limits.sql` | Prediction and league-join rate limits |
-| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Group-position, knockout and award scoring |
-| 19 | `20260721130000_match_centre.sql` | Match-centre aggregate RPCs |
-| 20 | `20260722120000_write_integrity.sql` | Optimistic row versions and original structural checks |
+| # | Migration | Purpose | Production proof |
+| --- | --- | --- | --- |
+| 1 | `20260719120000_init_v0_1.sql` | Initial tournament, entry and prediction schema with RLS | Proven present |
+| 2 | `20260719130000_add_match_prediction_joker.sql` | Joker flag | Proven present |
+| 3 | `20260719140000_add_predicted_tie_resolutions.sql` | Manual predicted tie decisions | Proven present |
+| 4 | `20260719150000_enforce_joker_rules.sql` | Joker limit and kickoff commitment | Proven present |
+| 5 | `20260719160000_add_bonus_and_submit.sql` | Players, bonus predictions and original submit RPC | Proven present |
+| 6 | `20260719170000_lock_and_leaderboard.sql` | Tournament lock and leaderboard | Proven present |
+| 7 | `20260719180000_add_leagues.sql` | Leagues and membership | Proven present |
+| 8 | `20260720120000_league_fk_semantics.sql` | League FK deletion semantics | Proven present |
+| 9 | `20260720130000_add_scoring.sql` | Initial SQL scorer | Proven present |
+| 10 | `20260720140000_fix_recompute_trigger.sql` | Recompute-trigger correction | Proven present |
+| 11 | `20260720150000_add_last_seen.sql` | Catch-up fields | Proven present |
+| 12 | `20260720160000_add_profile_welcomed_at.sql` | Welcome gate field | Proven present |
+| 13 | `20260720170000_reveal_after_lock.sql` | Rival entry reveal RPC | Proven present |
+| 14 | `20260720180000_add_rank_history.sql` | Rank history | Proven present |
+| 15 | `20260720190000_profile_on_signup.sql` | Server-created profile on signup | Proven present |
+| 16 | `20260720200000_display_name_moderation.sql` | Display-name policy | Proven present |
+| 17 | `20260720210000_rate_limits.sql` | Prediction and league-join rate limits | Proven present |
+| 18 | `20260721120000_scoring_positions_knockout_awards.sql` | Group-position, knockout and award scoring | Proven present |
+| 19 | `20260721130000_match_centre.sql` | Match-centre aggregate RPCs | Proven present |
+| 20 | `20260722120000_write_integrity.sql` | Optimistic row versions and original structural checks | Proven present |
+
+The production verifier returned `all_structural_effects_present = true` with every individual check true. See:
+
+- `scripts/database-rollout/production-baseline-1-20-verification.sql`;
+- `docs/quality/reconciliations/2026-07-23-production-migration-history-1-20.md`.
 
 ### Hosted development rehearsed / production pending — 21–33
 
@@ -89,9 +94,9 @@ The clone regenerated all 24 group positions, resolved eight R16 fixtures and pa
 
 Any source-payload or submitted-timestamp change requires a fresh production-to-development clone and replay before the expected guards may be updated through review.
 
-## Production read-only preflight
+## Production read-only preflights
 
-The hardened committed preflight script returned `overall_structural_pass = true`.
+The committed entry/21–33 preflight returned `overall_structural_pass = true`.
 
 Current production evidence:
 
@@ -106,26 +111,28 @@ Current production evidence:
 - valid `8/4/2/1` knockout source tree;
 - 14 unique, correctly ordered winner-source references.
 
+The baseline 1–20 verifier separately proved every historical structural effect. It also reports current function ACL drift under `SECURITY-003`; that drift is not treated as missing migration structure and must not be “fixed” by replaying old migrations.
+
 Production has no persisted predicted group positions under the old schema. Development proved the new server boundary derives all 24 from the existing production inputs.
 
 The hardened post-rollout verifier returned `overall_pass = true` on cleaned migrated development.
 
 ## Migration-history boundary
 
-The original hosted schema was created through manual SQL, not a clean CLI push.
+The original hosted schema was created through manual SQL, not a clean CLI push. Production’s migration-history list remains empty.
 
-Development now has the correct semantic schema, but the connector recorded tool-generated migration timestamps for 12 operations and migration 30 was executed separately. Production has not been changed.
+The exact 1–20 metadata-only repair is now prepared in `docs/ops-hosted-migration-rollout.md`, but it has not been executed.
 
 Before any `db push`:
 
-1. link to the exact target project;
-2. run `supabase migration list`;
-3. verify the schema effect of every migration claimed as already applied;
-4. use `supabase migration repair <timestamp> --status applied` only for proven existing effects;
-5. rerun the list;
-6. require `supabase db push --dry-run` to show only genuinely pending repository files.
+1. link to the exact production project;
+2. run both committed production preflight scripts;
+3. run `supabase migration list`;
+4. apply only the prepared 1–20 history repair when every baseline check remains true;
+5. rerun the list and require 1–20 aligned with 21–33 pending;
+6. require `supabase db push --dry-run` to show migrations 21–33 only.
 
-Do not edit `supabase_migrations.schema_migrations` directly and do not use history repair to pretend SQL has run.
+Do not edit `supabase_migrations.schema_migrations` directly and do not use history repair to pretend SQL has run. Do not mark migrations 21–33 applied before their SQL runs.
 
 ## Production rollout prerequisites
 
@@ -135,8 +142,9 @@ All are required:
 - verified backup/export or equivalent recovery evidence;
 - named operator and rollback decision owner;
 - production write/deploy freeze;
-- immediate rerun of `scripts/database-rollout/production-preflight.sql`;
+- immediate rerun of both production preflight scripts;
 - exact timestamp and rollout-guard fingerprint match;
+- baseline verifier all true;
 - reviewed migration-history repair output;
 - dry run showing migrations 21–33 only;
 - strict timestamp-order push;
@@ -163,6 +171,8 @@ Follow `docs/ops-hosted-migration-rollout.md`.
 - `docs/quality/current-status.md`
 - `docs/quality/audits/2026-07-23-live-environment-audit.md`
 - `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`
+- `docs/quality/reconciliations/2026-07-23-production-migration-history-1-20.md`
 - `docs/ops-hosted-migration-rollout.md`
+- `scripts/database-rollout/production-baseline-1-20-verification.sql`
 - `scripts/database-rollout/production-preflight.sql`
 - `scripts/database-rollout/post-rollout-verification.sql`

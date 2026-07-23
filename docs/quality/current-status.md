@@ -8,11 +8,13 @@
 | --- | --- |
 | Latest formal audit | [`2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md), designation `2026-07-23L` |
 | Latest hosted rehearsal | [`2026-07-23-hosted-migration-rehearsal.md`](reconciliations/2026-07-23-hosted-migration-rehearsal.md) |
+| Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Repository migration count | 33 |
 | Development Supabase | `iouzoutneyjpugbbtdem` — migrations 21–33 semantic contract applied and verified; remote migration history still requires CLI reconciliation |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — original 20-migration hosted shape; production remains unchanged |
 | Production preflight | Hardened read-only preflight passed on 23 July 2026, including exact submitted timestamp and rehearsed payload fingerprints |
+| Production history baseline | All structural effects for migrations 1–20 independently verified; hosted migration-history list remains empty |
 
 Project references identify environments. Credentials and private keys must not be committed to documentation.
 
@@ -23,7 +25,7 @@ Project references identify environments. Credentials and private keys must not 
 | Repository development | **Safe to continue controlled development.** Full disposable migration/database CI remains green. |
 | Hosted development | **Semantically current through migration 33 and cleaned to the expected post-rollout mirror.** Migration-history metadata is not yet a clean mirror of repository timestamps. |
 | Current production release | **Critical deployment mismatch remains.** The post-PR #14 client is deployed against the original 20-migration production schema. |
-| Production migration readiness | **Preflight passed and rollout package prepared; execution not approved or performed.** |
+| Production migration readiness | **Baseline and entry preflights passed; rollout package and exact history-repair plan prepared; execution not approved or performed.** |
 | Real scored competition | **Not ready.** Production integrity controls are not live, browser E2E is absent and recovery is not rehearsed. |
 
 ## Critical current condition — `OPS-006`
@@ -100,12 +102,26 @@ Production has zero predicted group-position rows under the old schema. The exac
 
 The hardened post-rollout verifier also returned `overall_pass = true` against cleaned migrated development, including exact payload/timestamp preservation and complete result/revision privilege checks.
 
+## Production migration-history proof
+
+The committed baseline verifier returned:
+
+```text
+all_structural_effects_present = true
+```
+
+All twenty per-migration checks passed. Evidence covers tables, columns, RLS, policies, constraints, FK deletion semantics, functions, triggers, scorer integration, Match Centre RPCs and write-version/submission guards.
+
+The hosted migration-history API still returns no production migration rows. The rollout runbook therefore contains an exact history-only repair command for repository timestamps 1–20, followed by mandatory `migration list` and `db push --dry-run` checks.
+
+Current direct function ACLs do not match the narrow intended grants in several historical files. This is current hosted ACL drift, not missing migration structure, and remains the separate `SECURITY-003` hardening workstream. Replaying old migrations is not accepted as a security repair.
+
 ## Current blockers
 
 | Group | Open position |
 | --- | --- |
 | Production compatibility | `OPS-006`: execute the approved migrations 21–33 rollout or restore another explicitly compatible release pair. |
-| Migration history | Original hosted migrations were manually applied. Reconcile remote history with proven schema effects before `db push`. |
+| Migration history | Apply the prepared 1–20 metadata-only repair only inside the approved window, then require a dry run showing 21–33 only. |
 | Recovery | Obtain verified production backup/export evidence and name the recovery decision owner. |
 | Environment isolation | `OPS-007`: production Netlify deploy-preview and branch contexts inherit production Supabase configuration. |
 | Hosted function security | `SECURITY-003`: legacy mutable search paths and unnecessary browser execution grants remain. |
@@ -116,16 +132,19 @@ The hardened post-rollout verifier also returned `overall_pass = true` against c
 
 ## Migration-history position
 
-The semantic development schema is current, but its remote migration-history table contains tool-generated timestamps for 12 operations; migration 30 was executed separately. The original 1–20 hosted changes were also applied manually.
+The semantic development schema is current, but its remote migration-history table contains tool-generated timestamps for 12 operations; migration 30 was executed separately.
+
+Production’s migrations 1–20 were manually applied and all structural effects are now independently verified. Production migration history remains empty because no metadata repair has been performed.
 
 Before a CLI rollout:
 
-1. run `supabase migration list` against the explicitly linked target;
-2. mark only independently proven existing migrations as applied using `supabase migration repair`;
-3. rerun the list;
-4. require `supabase db push --dry-run` to show only genuinely pending files.
+1. run `scripts/database-rollout/production-baseline-1-20-verification.sql` and require all checks true;
+2. run `supabase migration list` against the explicitly linked production target;
+3. apply only the exact prepared 1–20 history repair from `docs/ops-hosted-migration-rollout.md`;
+4. rerun the list and require 1–20 aligned with 21–33 pending;
+5. require `supabase db push --dry-run` to show migrations 21–33 only.
 
-Never use migration-history repair to claim missing SQL has executed.
+Never use migration-history repair to claim missing SQL has executed. Do not mark 21–33 applied before their SQL runs.
 
 ## Scoring status
 
@@ -144,8 +163,8 @@ No migration rehearsal changed scoring values. Automatic deadline submission rem
 
 1. Review and explicitly approve the production rollout window and recovery owner.
 2. Obtain production backup/export and recovery evidence.
-3. Re-run the committed production preflight immediately before the change; any fingerprint or timestamp change requires a new clone/replay rehearsal.
-4. Reconcile production migration history and require a clean `db push --dry-run` showing migrations 21–33 only.
+3. Re-run both committed production preflight scripts immediately before the change.
+4. Apply the prepared 1–20 history-only repair and require a clean `db push --dry-run` showing migrations 21–33 only.
 5. Explicitly approve and execute the controlled production rollout.
 6. Run database post-verification and production application bracket save/reload smoke tests.
 7. Isolate production Netlify preview contexts (`OPS-007`).
