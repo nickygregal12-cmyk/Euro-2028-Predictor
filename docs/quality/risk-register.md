@@ -1,44 +1,75 @@
 # Quality risk register
 
-This is the permanent history and current status of verified findings. It is not the implementation backlog and must not be populated with speculative or unverified concerns.
+This is the permanent history and current status of verified findings. It is not the implementation backlog. Detailed remediation work belongs in GitHub Issues; the complete evidence remains in the [23 July 2026 full audit](audits/2026-07-23-full-audit.md).
 
-| ID | Title | Category | Severity | Confidence | First identified | Status | GitHub Issue | Resolution evidence | Last reviewed |
-| -- | ----- | -------- | -------- | ---------- | ---------------- | ------ | ------------ | ------------------- | ------------- |
-| — | No verified findings recorded during governance setup | — | — | — | — | — | — | — | — |
+## Current register summary
+
+| Severity | Open | Other statuses | Total |
+| --- | ---: | ---: | ---: |
+| Critical | 4 | 0 | 4 |
+| High | 14 | 0 | 14 |
+| Medium | 14 | 0 | 14 |
+| Low | 13 | 0 | 13 |
+| **Total** | **45** | **0** | **45** |
+
+No finding from the audit is marked resolved. The audit did not contain implementation evidence, validation evidence, a linked fix commit/PR and confirmation that the issue no longer reproduces.
+
+| ID | Title | Category | Severity | Confidence | First identified | Status | GitHub Issue | Evidence summary | Resolution evidence | Last reviewed |
+| -- | ----- | -------- | -------- | ---------- | ---------------- | ------ | ------------ | ---------------- | ------------------- | ------------- |
+| `DATA-001` | Current group-position scoring has no client persistence path | Data / Functional correctness | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | `predicted_group_positions` is created and scored in SQL, but no current `src/` service/provider reads or writes it; see `supabase/migrations/20260719120000_init_v0_1.sql`, `20260721120000_scoring_positions_knockout_awards.sql`, and `src/app/providers/PredictionsProvider.tsx`. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `SECURITY-001` | Owners can alter group-position rows after tournament lock | Security / Data integrity | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | Owner `FOR ALL` policy covers `predicted_group_positions`, while lock/version migrations omit the table; see migrations `20260719120000_init_v0_1.sql`, `20260719170000_lock_and_leaderboard.sql`, and `20260722120000_write_integrity.sql`. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `SECURITY-002` | Submission state is directly writable by the entry owner | Security / Functional correctness | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | `entries.submitted_at` is an ordinary column under a broad owner `FOR ALL` policy, so direct API updates can bypass `submit_entry()` validation; see `20260719120000_init_v0_1.sql` and prediction services. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DATA-002` | The current result schema cannot resolve a tied knockout match | Data / Product correctness | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | `matches` stores only home/away scores and has no authoritative winner, result method, extra-time or penalty fields; scoring and H2H therefore cannot resolve penalty-decided knockout matches. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DATA-003` | Same-tournament relationships are not enforced | Data / Security | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | Prediction tables independently reference entries/matches/groups/teams/players without composite same-tournament constraints or complete validation triggers. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `FUNC-001` | Server submission checks bracket shape, not a valid bracket tree | Functional correctness / Data | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `submit_entry()` checks counts and broad membership but does not replay all ties to prove every selected winner was a participant; migration comments explicitly leave full validation separate. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `FUNC-002` | Automatic deadline submission is documented but not implemented | Functional correctness / Reliability | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `docs/scoring-rules.md` requires valid entries to auto-submit at lock, but no scheduler/server process was found and `submit_entry()` does not enforce the lock boundary. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REL-001` | Score recomputation is not serialised | Reliability / Operations | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | The result-entry runbook documents a delete-and-rederive concurrency race; no tournament advisory lock or single transactional result-confirmation operation exists. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DATA-004` | The SQL actual-table resolver has a non-authoritative final fallback | Data / Functional correctness | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `_resolve_group_cluster()` ultimately orders fully unresolved actual ties by `group_teams.slot`, with no authoritative admin tie-resolution record. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DATA-005` | An empty score box can conceal an old saved value | Data / UX | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `ScoreInput` emits `null` when cleared, but `PredictionsProvider` only persists when both scores are non-null and no delete/clear service exists. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REL-002` | Late best-effort reads can overwrite active user state | Reliability / Frontend architecture | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `PredictionsProvider` becomes ready after match predictions while tie, progression and Golden Boot reads finish later and fail to empty/default states. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REL-003` | The final visible edit may not reach the server before submission | Reliability / Functional correctness | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | Prediction saves are debounced, but `submit()` calls the RPC immediately without flushing timers or waiting for acknowledged persistence. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REL-004` | Independent row writes can leave a partial bracket | Reliability / Data | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | Bracket changes are persisted as multiple independent upserts/deletes through `Promise.all`, so partial commits are possible and deletes lack expected-version protection. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DATA-006` | Tournament selection and reference-data loading are not multi-tournament safe | Data / Architecture | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | The client selects the oldest tournament and fetches broad group-team data; a lock-load failure can become `null`/apparently unlocked. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `OPS-001` | Current rollback procedure crosses environment boundaries | Deployment / Security | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `docs/ops-prod-cutover.md` directs the live app back to development Supabase values instead of rolling back the application while retaining the production database. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `OPS-002` | Production admin setup is not reproducible from migrations | Operations / Documentation / Security | **High** | Confirmed for repository schema | 2026-07-23 | Open | Recommended; not created | Admin runbooks set `profiles.role = 'admin'`, but no migration adds a `role` column and no active runtime role model was found. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `TEST-001` | Database rules that determine competition integrity are not executed by tests | Testing | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | No disposable Supabase/PostgreSQL migration, RLS, RPC, policy or full browser-journey test layer was identified; existing tests are mainly TypeScript domain/component tests. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `OPS-003` | Release, monitoring and recovery controls are incomplete | Deployment and operations | **High** | Confirmed for repository contents | 2026-07-23 | Open | Recommended; not created | No repository CI workflow, pinned Node runtime, production error reporting, uptime/alert ownership or rehearsed database restore/rollback procedure was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REL-005` | Open pages can remain convincingly stale | Reliability / UX | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | No global realtime subscription, polling, focus-refetch or visible current-data invalidation strategy was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REL-006` | Concurrent first-use requests can produce a unique-conflict failure | Reliability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Entry creation is select-then-insert despite a unique `(user_id, tournament_id)` constraint, leaving a two-tab race. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REL-007` | A stale device can delete a newer bracket pick | Reliability / Data | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Optimistic version checks cover updates, but progression deletion is a direct delete outside the concurrency contract. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `PERF-001` | League summary requests scale linearly and serially | Performance | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | `src/features/home/useHomeData.ts` awaits per-league member requests one at a time. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `UX-001` | Invite context is hidden behind generic signup | UX / Code quality | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | `JoinLandingPage.tsx` mutates pending-invite storage during render and redirects signed-out visitors before showing an invite preview. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `A11Y-001` | SPA navigation lacks a complete assistive-technology transition | Accessibility | **Medium** | High confidence from static inspection | 2026-07-23 | Open | Triage for Issue; not created | No skip link, route focus manager, route live region or dynamic route-title manager was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `A11Y-002` | Custom league-options menu semantics do not match behaviour | Accessibility | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | `LeagueDetailPage.tsx` declares menu/menuitem roles without the full menu-button keyboard model. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `TYPE-001` | Hand-written casts can hide schema drift | Code quality / Reliability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Strict TypeScript is disabled, Supabase generated database types are absent and critical RPC responses lack runtime validation. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DOC-001` | Repository documentation is extensive but not consistently authoritative | Documentation / Maintainability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | README/status documents and runbooks conflict with current code/migrations, including result-scoring status and admin bootstrap. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `SEC-001` | Invite token and aggregate disclosure need an abuse review | Security / Privacy | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | Short invite codes and cross-user aggregate RPCs may enable inference/enumeration in a small competition; production abuse settings were not inspected. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `SEC-002` | Internal database error wording can reach users | Security / UX | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | Several components render raw `Error.message` values instead of mapping database/network errors to safe user-facing messages. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DATA-007` | Rate limiting is count-then-insert rather than strictly atomic | Security / Reliability | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | Concurrent requests can all observe a count below the threshold because the rate-limit path lacks per-user/action serialisation. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `UX-002` | Unavailable data and genuinely empty data are visually conflated | UX / Reliability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Home and related reads catch failures and substitute empty arrays/zero-like states, which can look like valid facts. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `PERF-002` | Scoring recomputes the entire tournament | Performance / Reliability | **Medium** | High confidence; impact unmeasured | 2026-07-23 | Open | Triage for Issue; not created | Current score functions delete/rederive tournament-wide events; simplicity is useful, but target-capacity transaction cost has not been profiled. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `HYGIENE-001` | Unused Vite scaffold asset remains | Repository hygiene | **Low** | High confidence from static inspection | 2026-07-23 | Open | Normally no separate Issue | `src/assets/vite.svg` has no identified runtime import. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `HYGIENE-002` | Some pure modules appear test/reference-only | Repository hygiene | **Low** | Requires verification | 2026-07-23 | Open | Normally no separate Issue | `src/domain/rateLimit.ts`, `seedData.ts` and `calculateLeagueRank.ts` were not identified in the active runtime import graph; deletion safety was not proven. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `CODE-001` | Several orchestration files are large coordination hotspots | Code quality | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | The predictions provider and selected feature pages combine data orchestration, routing and presentation responsibilities. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `OPS-004` | Node runtime is not pinned | Deployment / Reproducibility | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | No `engines`, `.nvmrc` or equivalent explicit Netlify runtime pin was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `SEO-001` | SPA fallback produces soft 404 responses | SEO / Public web | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Netlify routes unknown paths to `index.html`, so client 404 views can retain HTTP 200 responses. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `SEO-002` | Metadata is largely global | SEO / Public web | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Static `index.html` metadata serves most routes; route-specific titles/social metadata are limited. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `A11Y-003` | Bottom navigation is imperative rather than link-semantic | Accessibility | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Bottom navigation uses imperative app navigation rather than ordinary link semantics and affordances. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `UX-003` | Other-player profile action is a placeholder | UX / Product completeness | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | League detail reports that player profiles are coming soon; no working destination exists. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `UX-004` | Sign-out is immediate | UX | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Current More/profile flow signs out directly while documentation discusses optional confirmation. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DATA-008` | Score values have no practical database maximum | Data validation | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | The database enforces non-negative `smallint` scores while the UI accepts two digits; no explicit operational maximum policy is recorded. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DOC-002` | Package version remains 0.0.0 | Documentation / Release | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | `package.json` reports version `0.0.0`. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `DOC-003` | Development component gallery is large and partly historical | Documentation / Maintainability | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | `src/dev/ComponentsPreview.tsx` contains many examples and future concepts; it is correctly excluded from production. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
+| `REPO-001` | Licence, changelog and editor baseline are absent | Repository hygiene | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | No repository licence, changelog or editor baseline file was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23 |
 
 ## Register rules
 
-- Findings remain in the register after resolution.
-- Resolved items must link to implementation evidence, validation evidence and the relevant commit or pull request where applicable.
-- Active remediation should normally be tracked through GitHub Issues.
-- This register records risk history and status, not detailed implementation task breakdowns.
-- Duplicate findings should be linked or marked `Superseded` rather than deleted.
-- Accepted risks must include rationale, scope, an owner-approved decision and a review trigger.
-- False positives must retain the evidence explaining why the finding was rejected.
-- A regression of the same underlying issue retains the original finding ID and records the new occurrence.
-- Severity and confidence changes must preserve the prior reasoning in the linked audit or issue history.
-- A historical audit report is evidence, not automatic proof that a finding is still present.
-
-## Minimum finding evidence
-
-Before adding a finding, record or link:
-
-- audited branch and commit SHA;
-- category, severity and confidence;
-- exact implementation or configuration evidence;
-- reproduction or validation method;
-- affected environment(s);
-- inaccessible systems and assumptions;
-- first identified date and audit report;
-- GitHub Issue when the finding is actionable and prioritised.
-
-## Resolution rule
-
-`Resolved` requires:
-
-1. implementation evidence;
-2. validation evidence;
-3. linked commit or pull request where applicable; and
-4. confirmation that the issue no longer reproduces.
-
-Removing the finding, a test, a TODO or the affected documentation is not resolution evidence.
+- Findings remain in this register after resolution.
+- Keep the original finding ID when the same underlying defect regresses.
+- A status change must link to reviewed evidence.
+- `Resolved` requires implementation evidence, validation evidence, a linked commit or pull request where applicable, and confirmation that the issue no longer reproduces.
+- `Accepted risk` requires owner-approved rationale, scope and a review trigger.
+- `False positive` requires retained evidence explaining why the original conclusion was rejected.
+- `Superseded` must name the replacement finding or control.
+- Uncertain evidence remains visible through the confidence field; it is not silently deleted.
+- GitHub Issues are the active implementation system. Do not expand this register into a duplicate task breakdown.

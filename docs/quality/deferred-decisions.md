@@ -1,27 +1,30 @@
 # Deferred decision register
 
-This register records decisions deliberately postponed because of timing, missing authoritative information or unresolved architecture. It is not a general backlog. Normal implementation tasks belong in GitHub Issues and product sequencing belongs in the existing roadmap and build TODO.
+This register records decisions deliberately postponed because of timing, missing authoritative information or unresolved architecture. It is not a general backlog.
+
+Normal defects belong in [`risk-register.md`](risk-register.md) and GitHub Issues. Normal planned implementation work remains in [`../roadmap.md`](../roadmap.md) and [`../build-todo.md`](../build-todo.md).
 
 | ID | Decision or deferred item | Context | Reason deferred | Dependency | Decision owner | Review trigger | Status | Last reviewed |
 | -- | ------------------------- | ------- | --------------- | ---------- | -------------- | -------------- | ------ | ------------- |
-| — | No quality-governance decisions recorded during setup | — | — | — | — | — | — | — |
+| DEC-001 | Authoritative resolution for fully unresolved actual group ties | The SQL scorer currently falls back to seed/slot order when modelled criteria cannot separate an actual group tie. | Official Euro 2028 regulations and the required administrative override workflow must be confirmed before implementation. | Official competition regulations and result-administration design | Project owner | When official Euro 2028 regulations are published, and no later than the pre-launch rules verification gate | Deferred | 2026-07-23 |
+| DEC-002 | Exact tournament lock instant and official fixture data | The application lock must correspond to the first official tournament kickoff, and reference data must be refreshed from authoritative sources. | Official draw, teams, fixtures and kickoff times are not yet final. | Official UEFA tournament data | Project owner | When the official draw/fixtures are released and again before production launch | Deferred | 2026-07-23 |
+| DEC-003 | Final leaderboard tie-break activation | Final tie-break rules are documented and pure-tested, while the active running leaderboard uses shared points ranks. | The audit could not establish whether the final tie-break sequence should automatically activate at tournament completion or remain an administrative calculation. | Owner decision and end-state product design | Project owner | Before the full tournament dress rehearsal | Deferred | 2026-07-23 |
+| DEC-004 | Minimum cohort and privacy rules for prediction aggregates | Match-centre and reveal RPCs expose cross-user or aggregate prediction information after eligibility checks. | The acceptable disclosure threshold for small leagues requires an explicit privacy/product decision. | Privacy policy and expected public-user model | Project owner | Before enabling public signup or public beta | Deferred | 2026-07-23 |
+| DEC-005 | Separate KO Predictor architecture and launch phase | The separate KO Predictor is documented as a future competition but has no route, schema or service implementation. | Original Predictor correctness and shared competition typing must be established first. | Original Predictor integrity repairs and approved bonus-game architecture | Project owner | Before any implementation branch for the KO Predictor is opened | Deferred | 2026-07-23 |
+| DEC-006 | Last Man Standing implementation phase | Last Man Standing appears only in future competition documentation. | It is intentionally outside the current Original Predictor launch scope. | Approved bonus-game roadmap phase | Project owner | When the project enters the approved bonus-game build phase | Deferred | 2026-07-23 |
+| DEC-007 | Predictor Cup implementation phase | Predictor Cup rules/design exist, but no runtime route, schema or service is present. | It is intentionally outside the current Original Predictor launch scope. | Original Predictor launch confidence and competition architecture | Project owner | Before beginning Predictor Cup implementation | Deferred | 2026-07-23 |
+| DEC-008 | Fan Duels direct-challenge concept | The earlier Fan Duels concept was superseded by Predictor Cup, with direct challenges parked. | The current product direction deliberately does not include it. | Future owner product decision | Project owner | Only if the owner explicitly reopens direct-challenge competition design | Superseded | 2026-07-23 |
+| DEC-009 | Incremental versus full-tournament score recomputation | Full delete-and-rederive scoring is simple and recoverable but may be expensive at target capacity. | Performance impact is unmeasured; optimisation before profiling could add unnecessary complexity. | Correct serialised scorer and a 250-user capacity benchmark | Project owner / technical lead | After correctness repairs and completion of the target-capacity load test | Deferred | 2026-07-23 |
+| DEC-010 | Public crawlability, marketing landing and route-specific SEO | The current product is an authenticated SPA with global metadata and client-side soft 404 behaviour. | Public marketing/SEO requirements are optional and have not been approved as current launch scope. | Public acquisition strategy | Project owner | Before a public sharing or search-acquisition campaign | Deferred | 2026-07-23 |
+| DEC-011 | Production player and squad data administration | Golden Boot selection requires a reliable production player list and an administrative update process. | Official qualified teams/squads and the final operational ownership are unavailable. | Official squads and safe admin/result workflow | Project owner | When official squads become available and before opening predictions | Deferred | 2026-07-23 |
 
 ## Register rules
 
-- Use this file only when a real decision has been intentionally postponed.
-- Normal fixes, feature work and audit remediation belong in GitHub Issues.
-- Do not duplicate items already governed by [`../roadmap.md`](../roadmap.md), [`../build-todo.md`](../build-todo.md) or another approved decision source; link to them instead when a quality review depends on the decision.
-- Every item must state why it cannot or should not be decided now.
-- Every item must have a concrete review trigger, such as an official fixture release, architecture approval, capacity test, security review or pre-release gate.
+- Use this register only for a conscious postponement, not as a general backlog.
+- Every deferred item must explain why it cannot or should not be decided now.
+- Every item must have an accountable decision owner and a concrete review trigger.
 - Deferred items must not disappear without a recorded decision.
-- Completed, rejected or superseded decisions remain in the table for traceability.
-- Record the accountable decision owner or approving role.
-- A deferred decision must not be presented as implemented behaviour.
-
-## Suggested statuses
-
-- Deferred
-- Under review
-- Decided
-- Rejected
-- Superseded
+- Completed, rejected and superseded decisions remain for traceability.
+- An item recorded here must not be described as implemented behaviour.
+- Where a decision also affects an open finding, keep the finding in the risk register and link the dependency rather than replacing the risk.
+- Product sequencing remains in the existing roadmap; implementation work remains in GitHub Issues.
