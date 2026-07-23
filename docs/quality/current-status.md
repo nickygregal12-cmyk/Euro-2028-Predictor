@@ -1,6 +1,6 @@
 # Current quality status
 
-> This is the live repository implementation-status document. It is derived from the dated 23 July 2026 audits plus later merged evidence. The dated audits and risk register remain historical snapshots and are not rewritten. Older implementation narratives in `docs/roadmap.md`, `docs/build-todo.md` and `CLAUDE.md` must not override this file.
+> This is the live repository implementation-status document. It is derived from the dated 23 July 2026 audits plus later repository evidence. The dated audits and risk register remain historical snapshots and are not rewritten. Older implementation narratives in `docs/roadmap.md`, `docs/build-todo.md` and `CLAUDE.md` must not override this file.
 
 ## Audit identity
 
@@ -17,9 +17,9 @@
 
 Project references identify environments. No credentials or private keys are stored here.
 
-## Post-audit merged evidence
+## Post-audit repository evidence
 
-The formal audits and historical risk register remain unchanged. Later implementation is recorded through merged PRs and reconciliation notes:
+The formal audits and historical risk register remain unchanged. Later implementation is recorded through repository PRs and reconciliation notes:
 
 - PR #1 — baseline GitHub Actions CI.
 - PRs #3 and #4 — canonical TypeScript predicted-group-order contract.
@@ -31,6 +31,8 @@ The formal audits and historical risk register remain unchanged. Later implement
 - PR #10 — application-only production rollback instructions; merge `3875bb62647b22ad3b73b9a5c265446d00b31c0c`.
 - PR #11 — authoritative regulation/extra-time/penalty result lifecycle, revision history, derived winner and serialized scoring recomputation; merge `f3aeebaf1e6b16fcb9909728ea670b0a8a37703c`.
 - PR #12 — full predicted knockout-tree replay and winner-fed QF/SF/final propagation; merge `0112bfa6283c089048534c5e75678dbeefd14b4e`.
+- PR #13 — live-document authority reconciliation; merge `02e9fe21cd862c57e3ba028409d648f3d4a559eb`.
+- PR #14 — complete version-checked predicted-bracket replacement through one owner-checked server transaction in this repository state; hosted verification remains outstanding.
 
 Current reconciliation notes:
 
@@ -41,18 +43,19 @@ Current reconciliation notes:
 - [`2026-07-23-knockout-result-lifecycle.md`](reconciliations/2026-07-23-knockout-result-lifecycle.md)
 - [`2026-07-23-knockout-bracket-tree-integrity.md`](reconciliations/2026-07-23-knockout-bracket-tree-integrity.md)
 - [`2026-07-23-post-func-001-docs-reconciliation.md`](reconciliations/2026-07-23-post-func-001-docs-reconciliation.md)
+- [`2026-07-23-atomic-bracket-persistence.md`](reconciliations/2026-07-23-atomic-bracket-persistence.md)
 
-This later evidence supersedes historical statements that the repository had no baseline CI, no canonical group-order contract, no executable SQL parity, no RPC-only submission boundary, no authoritative knockout result model or no match-by-match bracket validation. It does not prove hosted migration parity, production legacy-data compatibility, browser E2E behaviour or operational recovery readiness.
+This later evidence supersedes historical statements that the repository had no baseline CI, no canonical group-order contract, no executable SQL parity, no RPC-only submission boundary, no authoritative knockout result model, no match-by-match bracket validation or no atomic compound bracket write boundary. It does not prove hosted migration parity, production legacy-data compatibility, browser E2E behaviour or operational recovery readiness.
 
 ## Current verdicts
 
 | Verdict | Current value | Evidence/reference |
 | --- | --- | --- |
-| Development | **Safe to continue controlled repository development.** The principal entry, result and bracket-integrity defects now have executable disposable-local containment. | PRs #7, #9, #11 and #12 |
+| Development | **Safe to continue controlled repository development.** The principal entry, result and bracket-integrity defects now have executable disposable-local containment, including atomic bracket persistence. | PRs #7, #9, #11, #12 and #14 |
 | Production | **Not ready for a real scored competition.** Later migrations have not been applied or reconciled against hosted data; browser journeys and recovery controls remain incomplete. | Hosted evidence boundary; `OPS-003`; `OPS-005`; `TEST-001` |
 | Environment isolation | **Repository instructions preserve the production/development boundary; operational assurance remains partial.** | PR #10; rollback reconciliation |
-| Database assurance | **Strong disposable-local assurance; repository/static assurance only for hosted projects.** | Database parity workflow; PRs #7, #9, #11 and #12 |
-| Regression position | **No intentional product-scope regression identified.** Later work adds enforcement, tests and safer operations boundaries. | Feature baseline; merged PR scope |
+| Database assurance | **Strong disposable-local assurance; repository/static assurance only for hosted projects.** | Database parity workflow; PRs #7, #9, #11, #12 and #14 |
+| Regression position | **No intentional product-scope regression identified.** Later work adds enforcement, tests and safer operations boundaries. | Feature baseline; repository PR scope |
 
 ## Implemented repository/local integrity boundaries
 
@@ -69,18 +72,21 @@ Disposable local Supabase now executes and tests:
 - serialized tournament score recomputation;
 - penalty-decided champion scoring and final rank-history capture;
 - confirmed knockout-winner propagation;
-- downstream-result protection during upstream correction; and
-- complete predicted R16 derivation and 15-match bracket-tree replay.
+- downstream-result protection during upstream correction;
+- complete predicted R16 derivation and 15-match bracket-tree replay;
+- client denial of direct predicted-progression DML;
+- complete expected-version conflict detection for bracket snapshots; and
+- atomic delete/update/insert replacement of the whole predicted progression set.
 
 ## Current blockers
 
 | Blocker group | Open findings / summary |
 | --- | --- |
 | Critical findings | `DATA-001`, `DATA-002`, `SECURITY-001` and `SECURITY-002` have repository/local implementation evidence but still require targeted finding review and hosted migration verification. The unsafe `OPS-001` instruction is removed; wider recovery readiness remains open under `OPS-003`. |
-| High findings | `FUNC-001` has repository/local implementation evidence. `DATA-003` remains partial; `FUNC-002`, `DATA-004`, `DATA-005`, `REL-002`, `REL-003`, `REL-004`, `DATA-006`, `OPS-002`, `OPS-005`, the browser/hosted portions of `TEST-001` and wider `OPS-003` remain open. `REL-001` is materially narrowed by transactional tournament scoring locks. |
-| Launch blockers | Approved hosted migration and legacy-data reconciliation; atomic whole-bracket persistence; automatic real R16 population; browser result administration and E2E; verified backup/restore and incident recovery. |
+| High findings | `FUNC-001` and `REL-004` have repository/local implementation evidence. `DATA-003` remains partial; `FUNC-002`, `DATA-004`, `DATA-005`, `REL-002`, `REL-003`, `DATA-006`, `OPS-002`, `OPS-005`, the browser/hosted portions of `TEST-001` and wider `OPS-003` remain open. `REL-001` is materially narrowed by transactional tournament scoring locks. |
+| Launch blockers | Approved hosted migration and legacy-data reconciliation; automatic real R16 population; pending-write submission flushing; browser result administration and E2E; verified backup/restore and incident recovery. |
 | Security blockers | Hosted verification of current RLS/functions; remaining reference-data constraints; `OPS-002`; `OPS-005`; verification of current hosted configuration. |
-| Data-integrity blockers | `REL-004`; remaining `DATA-003`; `DATA-004`; `DATA-005`; automatic real R16 population; hosted verification of PRs #9, #11 and #12. |
+| Data-integrity blockers | Remaining `DATA-003`; `DATA-004`; `DATA-005`; `REL-003`; automatic real R16 population; hosted verification of PRs #9, #11, #12 and #14. |
 | Environment/operations blockers | `OPS-002`, `OPS-003`, `OPS-005`, hosted rollout/reconciliation and hosted/browser portions of `TEST-001`. |
 
 ## Current regressions
@@ -95,12 +101,12 @@ Neither dated audit classified a previously verified production capability as a 
 | Measure | Current value | Evidence/reference |
 | --- | --- | --- |
 | Explicit production routes | 23 routes plus catch-all; one dev-only component-gallery route | `src/App.tsx`; repeat audit |
-| Supabase migrations | Audit baseline 20; later resolver, entry, result and bracket migrations added through PRs #7, #9, #11 and #12 | Repository migration inventory |
-| Application tests | Repeat audit: 42 files / 335 tests passed; current application CI remains green through PR #12 | Repeat audit; PR #12 CI |
-| Build/type-check/lint | Green in current application CI | PR #12 CI |
-| Dependency audit | High-severity production audit green | PR #12 CI |
-| Scoring values | No scoring value changed by PRs #9, #11 or #12 | Scoring documents and migration scope |
-| Database integration | Disposable Supabase covers group-order parity, entry/RLS attacks, submission, derived positions, authoritative results, revisions, scoring locks, winner propagation and full predicted-tree replay | PRs #7, #9, #11 and #12 |
+| Supabase migrations | Audit baseline 20; later resolver, entry, result, bracket-tree and atomic-persistence migrations added through PRs #7, #9, #11, #12 and #14 | Repository migration inventory |
+| Application tests | Repeat audit: 42 files / 335 tests passed; later service and feature tests run in current application CI | Repeat audit; current CI |
+| Build/type-check/lint | Green in current application CI after the atomic RPC response was explicitly typed | Current CI |
+| Dependency audit | High-severity production audit green | Current CI |
+| Scoring values | No scoring value changed by PRs #9, #11, #12 or #14 | Scoring documents and migration scope |
+| Database integration | Disposable Supabase covers group-order parity, entry/RLS attacks, submission, derived positions, authoritative results, revisions, scoring locks, winner propagation, full predicted-tree replay and atomic complete-bracket replacement | PRs #7, #9, #11, #12 and #14 |
 | Browser E2E | No browser E2E framework or complete critical journeys identified | `TEST-001` |
 | Hosted production | Later migrations and real legacy data unverified | `OPS-005`; hosted rollout boundary |
 | Historical findings | Audit baseline: 47 findings — 5 Critical, 14 High, 14 Medium, 14 Low | [`risk-register.md`](risk-register.md) |
@@ -117,14 +123,15 @@ Neither dated audit classified a previously verified production capability as a 
 - real winner propagation from R16 through QF, SF and final;
 - full predicted Round of 16 derivation and 15-match bracket replay;
 - rejection of stage-count-correct but structurally impossible brackets;
+- one-transaction, version-checked replacement of complete predicted brackets;
 - repository rollback instructions preserving environment isolation.
 
 ## Still unresolved
 
 - hosted production schema, policies, migration history and fail-closed legacy-data preflights;
 - current Netlify production values and deploy-context isolation;
-- atomic server replacement of a user's complete predicted bracket (`REL-004`);
 - automatic real R16 population from confirmed group standings and best-third ranking;
+- explicit flushing/waiting for every pending debounced prediction write before submit (`REL-003`);
 - wider same-tournament/reference constraints (`DATA-003`);
 - result-entry administration UI and authenticated browser journeys;
 - Supabase Auth/email and Cloudflare Turnstile dashboard configuration verification;
@@ -138,14 +145,14 @@ Neither dated audit classified a previously verified production capability as a 
 
 - Use this file for current implementation, blockers and next repository work.
 - Use dated audits and `risk-register.md` for historical findings and audit evidence.
-- Use reconciliation notes for the exact boundary of later merged work.
+- Use reconciliation notes for the exact boundary of later repository work.
 - Use `roadmap.md` and `build-todo.md` for product planning history and future scope, but verify implementation claims against this file and current code.
 - Do not claim a repository/local fix is deployed until the hosted rollout is explicitly approved, applied and verified.
 
 ## Immediate next action
 
-The next repository implementation batch is **`REL-004` — atomic predicted-bracket persistence**. It should replace the user's complete progression set through one owner-checked, pre-lock server transaction, validate the supplied tree before commit, and leave the previous valid bracket unchanged on any failure.
+The next repository implementation batch should populate the **real Round of 16 participants from confirmed group standings and the authoritative best-third ranking**. It must use the same group-order and third-place rules already proven for predicted brackets, fail closed on unresolved real ties, and populate all eight R16 fixtures transactionally without overwriting confirmed downstream results.
 
-The linked following batch should populate real R16 participants from confirmed group standings and the authoritative best-third table.
+The following linked reliability batch should close `REL-003` by flushing or awaiting every pending debounced prediction write before manual submission.
 
-Hosted verification remains a separate explicitly approved workstream. Do not apply PR #9, #11 or #12 migrations to either hosted Supabase project without a reviewed rollout, read-only preflight evidence and a remediation/backup plan.
+Hosted verification remains a separate explicitly approved workstream. Do not apply PR #9, #11, #12 or #14 migrations to either hosted Supabase project without a reviewed rollout, read-only preflight evidence and a remediation/backup plan.

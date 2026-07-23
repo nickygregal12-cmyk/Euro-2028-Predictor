@@ -49,7 +49,7 @@ Tournament rules are implemented first as pure functions in `src/domain/tourname
 
 The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. A local-only workflow rebuilds disposable Supabase, runs database lint and pgTAP, and compares normalized TypeScript and PostgreSQL outputs fixture by fixture.
 
-The database is authoritative for entry locks, submission, derived group positions, match results, corrections, scoring recomputation, winner propagation and final bracket validity. Private integrity helpers are not exposed as public client RPCs.
+The database is authoritative for entry locks, submission, derived group positions, atomic bracket replacement, match results, corrections, scoring recomputation, winner propagation and final bracket validity. Private integrity helpers are not exposed as public client RPCs.
 
 ## Scoring
 
@@ -66,14 +66,15 @@ The repository and disposable-local database now have executable coverage for:
 - ownership, lock-time and same-tournament prediction boundaries;
 - regulation, extra-time and penalty result confirmation/correction/clear operations;
 - immutable result revision history and serialized score recomputation;
-- confirmed knockout-winner propagation into later fixtures; and
-- full match-by-match validation of a predicted 15-match knockout tree.
+- confirmed knockout-winner propagation into later fixtures;
+- full match-by-match validation of a predicted 15-match knockout tree; and
+- version-checked replacement of a user's complete predicted bracket through one server transaction.
 
 Baseline GitHub Actions CI runs reproducible install, build/type-check, lint, the full application test suite and a high-severity production dependency audit. The database workflow rebuilds every committed migration in disposable local Supabase, runs lint and all pgTAP suites, executes differential parity, and removes the local data afterwards.
 
-**The project is still not ready for a real scored production competition.** The later migrations have not been applied or reconciled against hosted development or production Supabase. Browser E2E, hosted legacy-data preflights, backup/restore rehearsal, atomic whole-bracket persistence, automatic real R16 population and wider immutable reference constraints remain open.
+**The project is still not ready for a real scored production competition.** The later migrations have not been applied or reconciled against hosted development or production Supabase. Browser E2E, hosted legacy-data preflights, backup/restore rehearsal, automatic real R16 population, pending-write submission flushing and wider immutable reference constraints remain open.
 
-The next repository implementation stage is **`REL-004` — replace a user's complete predicted bracket through one atomic server transaction**.
+The next repository implementation stage is **automatic population of the real Round of 16 from confirmed group standings and the authoritative best-third table**.
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work. It is the live implementation-status document. Dated audits and the risk register remain historical evidence. `docs/roadmap.md` and `docs/build-todo.md` contain valuable product and planning history, but their older implementation narratives may lag the current reconciliation and must not override `current-status.md`.
 
