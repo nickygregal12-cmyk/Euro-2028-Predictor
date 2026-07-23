@@ -2,7 +2,12 @@
 --
 -- READ-ONLY. Run immediately before a proposed production rollout.
 -- Expected current production state: exactly one submitted entry.
--- Any false/nonnull anomaly is a stop condition.
+-- Any false/nonnull anomaly or changed rollout-guard fingerprint is a stop condition.
+--
+-- The fingerprints intentionally bind this preflight to the exact production payload
+-- that was replayed successfully on hosted development on 23 July 2026. If the entry
+-- changes, repeat the hosted clone/replay rehearsal and update this script through a
+-- reviewed repository change. Do not edit expected values during a rollout window.
 
 with submitted as (
   select e.id, e.tournament_id, e.submitted_at, t.lock_at
@@ -61,9 +66,50 @@ with submitted as (
     (
       select string_agg(x::text, '|' order by x::text)
       from unnest(ptr.ordered_team_ids) x
-    ) = ptr.tie_key as key_valid
+    ) = ptr.tie_key as key_valid,
+    array_to_string(array(
+      select coalesce(g.letter, '?') || ':' || tm.name
+      from unnest(ptr.ordered_team_ids) with ordinality u(team_id, ord)
+      join public.teams tm on tm.id = u.team_id
+      left join public.group_teams gt on gt.team_id = tm.id
+      left join public.groups g on g.id = gt.group_id
+      order by u.ord
+    ), ',') as ordered_names
   from target t
   join public.predicted_tie_resolutions ptr on ptr.entry_id = t.id
+), prediction_rows as (
+  select m.match_ref, mp.home_score, mp.away_score, mp.joker
+  from target t
+  join public.match_predictions mp on mp.entry_id = t.id
+  join public.matches m on m.id = mp.match_id
+), progression_rows as (
+  select tm.name, pp.stage
+  from target t
+  join public.predicted_progression pp on pp.entry_id = t.id
+  join public.teams tm on tm.id = pp.team_id
+), fingerprints as (
+  select
+    (
+      select md5(coalesce(string_agg(
+        match_ref || ':' || home_score || ':' || away_score || ':' || joker,
+        '|' order by match_ref
+      ), ''))
+      from prediction_rows
+    ) as predictions,
+    (
+      select md5(coalesce(string_agg(
+        scope || ':' || ordered_names,
+        '|' order by scope, ordered_names
+      ), ''))
+      from tie_checks
+    ) as ties,
+    (
+      select md5(coalesce(string_agg(
+        name || ':' || stage,
+        '|' order by name
+      ), ''))
+      from progression_rows
+    ) as progression
 ), source_refs as (
   select m.match_ref, m.round, m.home_source as source
   from public.matches m
@@ -120,6 +166,10 @@ with submitted as (
 ), checks as (
   select
     (select count(*) from submitted) = 1 as exactly_one_submitted_entry,
+    (
+      select submitted_at = '2026-07-21 21:51:49.639442+00'::timestamptz
+      from target
+    ) as submitted_timestamp_unchanged,
     (select lock_at is not null and submitted_at < lock_at from target) as submitted_before_lock,
     (select count(*) = 6 from group_shapes) as six_groups,
     (
@@ -130,7 +180,13 @@ with submitted as (
          or valid_match_count <> 6
          or prediction_count <> 6
     ) as groups_complete,
-    (select count(*) = 36 from target t join public.match_predictions mp on mp.entry_id = t.id) as thirty_six_predictions,
+    (select count(*) = 36 from prediction_rows) as thirty_six_predictions,
+    (
+      select count(*) = 2
+         and count(*) filter (where scope = 'group') = 1
+         and count(*) filter (where scope = 'third') = 1
+      from tie_checks
+    ) as expected_tie_rows_present,
     (
       select count(*) = 0
       from tie_checks
@@ -142,6 +198,12 @@ with submitted as (
          or (scope = 'third' and group_count <> member_count)
     ) as tie_rows_valid,
     (
+      select predictions = '8d76619fe4b44fdac17de1cc2afe5aaa'
+         and ties = 'a4dcf183f5c48e3ba11ff75c59622598'
+         and progression = '0d7bc491daa9b24013204d061a2d38f1'
+      from fingerprints
+    ) as rehearsed_payload_unchanged,
+    (
       select count(*) = 8
          and count(*) filter (where pp.stage = 'qf') = 4
          and count(*) filter (where pp.stage = 'sf') = 2
@@ -152,10 +214,21 @@ with submitted as (
     ) as progression_shape_valid,
     (
       select count(*) = 0
+      from target t
+      join public.predicted_group_positions pgp on pgp.entry_id = t.id
+    ) as legacy_group_positions_unchanged,
+    (
+      select count(*) = 0
       from public.matches m
       join target t on t.tournament_id = m.tournament_id
       where m.home_score is not null or m.away_score is not null
     ) as no_legacy_scores,
+    (
+      select count(*) = 0 from public.score_events
+    ) as no_existing_score_events,
+    (
+      select count(*) = 0 from public.rank_history
+    ) as no_existing_rank_history,
     (
       select
         count(*) filter (where m.round = 'r16') = 8
@@ -181,17 +254,30 @@ select jsonb_build_object(
   'checks', to_jsonb(checks),
   'overall_structural_pass',
     exactly_one_submitted_entry
+    and submitted_timestamp_unchanged
     and submitted_before_lock
     and six_groups
     and groups_complete
     and thirty_six_predictions
+    and expected_tie_rows_present
     and tie_rows_valid
+    and rehearsed_payload_unchanged
     and progression_shape_valid
+    and legacy_group_positions_unchanged
     and no_legacy_scores
+    and no_existing_score_events
+    and no_existing_rank_history
     and knockout_counts_valid
     and knockout_sources_valid
     and scopes_valid,
+  'rollout_guard_fingerprints', (select to_jsonb(fingerprints) from fingerprints),
+  'expected_rollout_guard_fingerprints', jsonb_build_object(
+    'predictions', '8d76619fe4b44fdac17de1cc2afe5aaa',
+    'ties', 'a4dcf183f5c48e3ba11ff75c59622598',
+    'progression', '0d7bc491daa9b24013204d061a2d38f1'
+  ),
   'group_details', (select jsonb_agg(to_jsonb(group_shapes) order by letter) from group_shapes),
+  'tie_details', (select jsonb_agg(to_jsonb(tie_checks) order by scope, ordered_names) from tie_checks),
   'scope_anomalies', (select to_jsonb(anomalies) from anomalies),
   'existing_group_position_rows',
     (select count(*) from target t join public.predicted_group_positions pgp on pgp.entry_id = t.id)
