@@ -8,10 +8,11 @@
 | --- | --- |
 | Latest formal audit | [`2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md), designation `2026-07-23L` |
 | Latest hosted rehearsal | [`2026-07-23-hosted-migration-rehearsal.md`](reconciliations/2026-07-23-hosted-migration-rehearsal.md) |
+| Function privilege hardening | [`2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository migration count | 33 |
-| Development Supabase | `iouzoutneyjpugbbtdem` — migrations 21–33 semantic contract applied and verified; remote migration history still requires CLI reconciliation |
+| Repository migration count | 34 |
+| Development Supabase | `iouzoutneyjpugbbtdem` — migrations 21–34 semantic contract applied and verified; remote migration history still requires CLI reconciliation |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — original 20-migration hosted shape; production remains unchanged |
 | Production preflight | Hardened read-only preflight passed on 23 July 2026, including exact submitted timestamp and rehearsed payload fingerprints |
 | Production history baseline | All structural effects for migrations 1–20 independently verified; hosted migration-history list remains empty |
@@ -22,10 +23,10 @@ Project references identify environments. Credentials and private keys must not 
 
 | Area | Verdict |
 | --- | --- |
-| Repository development | **Safe to continue controlled development.** Full disposable migration/database CI remains green. |
-| Hosted development | **Semantically current through migration 33 and cleaned to the expected post-rollout mirror.** Migration-history metadata is not yet a clean mirror of repository timestamps. |
+| Repository development | **Safe to continue controlled development.** The migration chain now contains 34 files and executable privilege coverage. |
+| Hosted development | **Semantically current through migration 34 and verified as the expected post-rollout mirror.** Migration-history metadata is not yet a clean mirror of repository timestamps. |
 | Current production release | **Critical deployment mismatch remains.** The post-PR #14 client is deployed against the original 20-migration production schema. |
-| Production migration readiness | **Baseline and entry preflights passed; rollout package and exact history-repair plan prepared; execution not approved or performed.** |
+| Production migration readiness | **Baseline and entry preflights passed; migrations 21–34 are rehearsed; exact history-repair and rollout procedures are prepared; execution is not approved or performed.** |
 | Real scored competition | **Not ready.** Production integrity controls are not live, browser E2E is absent and recovery is not rehearsed. |
 
 ## Critical current condition — `OPS-006`
@@ -43,7 +44,7 @@ Development-only disposable competition state was cleared while preserving:
 - six groups and 24 provisional teams;
 - the 51-match fixture skeleton.
 
-Migrations 21–33 were then applied in timestamp order. Verified boundaries include:
+Migrations 21–34 were applied in timestamp order. Verified boundaries include:
 
 - private PostgreSQL resolver schema denied to browser roles;
 - RPC-only submission and server-derived group positions;
@@ -53,9 +54,32 @@ Migrations 21–33 were then applied in timestamp order. Verified boundaries inc
 - serialized scoring recomputation;
 - real winner propagation;
 - full predicted bracket-tree replay;
-- atomic expected-version complete-bracket replacement.
+- atomic expected-version complete-bracket replacement;
+- no anonymous execution of public application functions;
+- exact authenticated and service-role function allowlists;
+- owner-only default execution for future public functions;
+- immutable search paths for the three previously mutable helpers.
 
 Migration 30’s exact revision-table revoke was applied through SQL after the connector wrapper blocked that single statement; the resulting privileges were verified directly.
+
+## Function privilege hardening — `SECURITY-003`
+
+Migration `20260724001500_harden_function_privileges.sql` was applied to hosted development only.
+
+It:
+
+- revoked inherited and direct function execution from `PUBLIC`, `anon`, `authenticated` and `service_role` before regranting explicit allowlists;
+- preserved the 15 authenticated application RPCs;
+- limited scoring and result administration functions to `service_role`;
+- removed direct execution of trigger, signup and internal helper functions;
+- made future public functions owner-only by default;
+- set empty search paths on `gen_invite_code()`, `_stage_ord(text)` and `enforce_write_version()`.
+
+Live verification found no anonymous executable public functions, no missing or unexpected authenticated/service grants, and no remaining mutable-search-path advisor warning. The signup trigger and authenticated leaderboard, prediction-distribution and idempotent submission paths still worked.
+
+Supabase’s advisor continues to warn that the intentionally authenticated `SECURITY DEFINER` application RPCs are callable by signed-in users. That is their designed API boundary; ownership, co-membership, lock and scope checks remain inside those functions. Leaked-password protection remains a separate Auth configuration action.
+
+`SECURITY-003` is therefore **implemented and verified in repository/development; production pending**.
 
 ## Production-entry compatibility proof
 
@@ -100,7 +124,7 @@ Confirmed:
 
 Production has zero predicted group-position rows under the old schema. The exact clone proves migrations 26–27 regenerate all 24 rows before submission revalidation.
 
-The hardened post-rollout verifier also returned `overall_pass = true` against cleaned migrated development, including exact payload/timestamp preservation and complete result/revision privilege checks.
+The migrations 21–34 post-rollout verifier returned `overall_pass = true` against hosted development, including exact data fingerprints, object/table privileges and the complete function execution matrix.
 
 ## Production migration-history proof
 
@@ -114,17 +138,18 @@ All twenty per-migration checks passed. Evidence covers tables, columns, RLS, po
 
 The hosted migration-history API still returns no production migration rows. The rollout runbook therefore contains an exact history-only repair command for repository timestamps 1–20, followed by mandatory `migration list` and `db push --dry-run` checks.
 
-Current direct function ACLs do not match the narrow intended grants in several historical files. This is current hosted ACL drift, not missing migration structure, and remains the separate `SECURITY-003` hardening workstream. Replaying old migrations is not accepted as a security repair.
+Production still has the old broad function ACLs. Migration 34 is now the reviewed repair and must be applied as the final file in the migrations 21–34 production chain rather than replaying old migration files.
 
 ## Current blockers
 
 | Group | Open position |
 | --- | --- |
-| Production compatibility | `OPS-006`: execute the approved migrations 21–33 rollout or restore another explicitly compatible release pair. |
-| Migration history | Apply the prepared 1–20 metadata-only repair only inside the approved window, then require a dry run showing 21–33 only. |
+| Production compatibility | `OPS-006`: execute the approved migrations 21–34 rollout or restore another explicitly compatible release pair. |
+| Migration history | Apply the prepared 1–20 metadata-only repair only inside the approved window, then require a dry run showing 21–34 only. |
 | Recovery | Obtain verified production backup/export evidence and name the recovery decision owner. |
 | Environment isolation | `OPS-007`: production Netlify deploy-preview and branch contexts inherit production Supabase configuration. |
-| Hosted function security | `SECURITY-003`: legacy mutable search paths and unnecessary browser execution grants remain. |
+| Hosted function security | `SECURITY-003`: repository/development fixed and verified through migration 34; production remains pending. |
+| Auth security | Leaked-password protection remains disabled and requires a separately approved Auth configuration change. |
 | Entry reliability | `REL-003`: manual submit does not flush/await pending debounced saves. |
 | Product completeness | Automatic real R16 population, auto-submit, reminder emails and browser result administration remain absent. |
 | Test assurance | No Playwright or equivalent authenticated browser E2E critical journeys. |
@@ -132,19 +157,19 @@ Current direct function ACLs do not match the narrow intended grants in several 
 
 ## Migration-history position
 
-The semantic development schema is current, but its remote migration-history table contains tool-generated timestamps for 12 operations; migration 30 was executed separately.
+The semantic development schema is current through migration 34, but its remote migration-history table contains tool-generated timestamps rather than a clean repository mirror.
 
-Production’s migrations 1–20 were manually applied and all structural effects are now independently verified. Production migration history remains empty because no metadata repair has been performed.
+Production’s migrations 1–20 were manually applied and all structural effects are independently verified. Production migration history remains empty because no metadata repair has been performed.
 
 Before a CLI rollout:
 
 1. run `scripts/database-rollout/production-baseline-1-20-verification.sql` and require all checks true;
 2. run `supabase migration list` against the explicitly linked production target;
 3. apply only the exact prepared 1–20 history repair from `docs/ops-hosted-migration-rollout.md`;
-4. rerun the list and require 1–20 aligned with 21–33 pending;
-5. require `supabase db push --dry-run` to show migrations 21–33 only.
+4. rerun the list and require 1–20 aligned with 21–34 pending;
+5. require `supabase db push --dry-run` to show migrations 21–34 only.
 
-Never use migration-history repair to claim missing SQL has executed. Do not mark 21–33 applied before their SQL runs.
+Never use migration-history repair to claim missing SQL has executed. Do not mark migrations 21–34 applied before their SQL runs.
 
 ## Scoring status
 
@@ -157,18 +182,18 @@ Never use migration-history repair to claim missing SQL has executed. Do not mar
 - Golden Boot 25;
 - group-goals bands 40 / 30 / 20, tiered.
 
-No migration rehearsal changed scoring values. Automatic deadline submission remains a documented rule but is not implemented (`FUNC-002`).
+No security hardening changed scoring values. Automatic deadline submission remains a documented rule but is not implemented (`FUNC-002`).
 
 ## Immediate order of work
 
 1. Review and explicitly approve the production rollout window and recovery owner.
 2. Obtain production backup/export and recovery evidence.
 3. Re-run both committed production preflight scripts immediately before the change.
-4. Apply the prepared 1–20 history-only repair and require a clean `db push --dry-run` showing migrations 21–33 only.
+4. Apply the prepared 1–20 history-only repair and require a clean `db push --dry-run` showing migrations 21–34 only.
 5. Explicitly approve and execute the controlled production rollout.
-6. Run database post-verification and production application bracket save/reload smoke tests.
+6. Run the migrations 21–34 database post-verification, security advisors and production application bracket save/reload smoke tests.
 7. Isolate production Netlify preview contexts (`OPS-007`).
-8. Run the separate legacy function grant/search-path hardening batch (`SECURITY-003`).
+8. Enable leaked-password protection through the separately approved Auth-setting workstream.
 9. Close `REL-003`, then implement automatic real R16 population.
 
 ## Documentation authority
