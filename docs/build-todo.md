@@ -1,18 +1,24 @@
 # Euro 2028 Predictor — Current Build TODO
 
-**Status date:** 23 July 2026  
+**Status date:** 24 July 2026  
 **Purpose:** Near-term execution checklist. `docs/quality/current-status.md` is authoritative for facts; `docs/roadmap.md` holds the wider sequence.
 
 ## 0. Production compatibility incident — do first
 
-- [ ] Freeze ordinary production promotion.
-- [ ] Confirm production Netlify commit and production Supabase capability immediately before recovery work.
-- [ ] Decide the reviewed recovery path:
-  - [ ] compatible application rollback while keeping production Supabase unchanged; or
-  - [ ] staged migration rollout through development then production.
-- [ ] Do **not** point production at development Supabase.
-- [ ] Verify live bracket save and reload after compatibility is restored.
-- [ ] Record exact application commit, hosted migration state, operator and verification evidence.
+- [x] Freeze ordinary production promotion in repository guidance and runbooks.
+- [x] Confirm the production application/Supabase mismatch and exact missing RPC.
+- [x] Rehearse migrations 21–34 on hosted development using the normalized production entry.
+- [x] Prove production migrations 1–20 structural effects and prepare the exact history-only repair.
+- [x] Commit fail-closed production preflight and post-rollout verification scripts.
+- [ ] Obtain verified production backup/export or equivalent recovery evidence.
+- [ ] Name the production operator, rollback decision owner and change window.
+- [ ] Re-run both production preflights immediately before the change.
+- [ ] Apply the prepared 1–20 history-only repair and require a dry run showing migrations 21–34 only.
+- [ ] Obtain explicit owner approval and apply migrations 21–34 in strict timestamp order.
+- [ ] Verify live bracket save/reload, authenticated RPCs, function allowlists and submission timestamp after compatibility is restored.
+- [ ] Record the exact application commit, hosted migration state, operator and verification evidence.
+
+Do **not** point production at development Supabase and do not apply migration 33 or 34 alone.
 
 ## 1. Netlify environment isolation
 
@@ -22,47 +28,61 @@
 - [ ] Protect or disable production-project previews until isolation is verified.
 - [ ] Re-check Turnstile domain/context behavior after the change.
 
-## 2. Development migration preparation
+## 2. Development migration rehearsal — completed
 
-Current blockers: 22 submitted entries, 20 legacy 16-row brackets and 12 stored results.
-
-- [ ] Decide whether development data is disposable.
-- [ ] Prefer a documented reset/reseed when preserving hostile fixtures has no value.
-- [ ] Otherwise write an explicit remediation plan for:
-  - [ ] legacy 16-row progression rows;
-  - [ ] result-method classification for 12 scored matches;
-  - [ ] submitted-entry preflight validity.
-- [ ] Rebuild all 33 migrations in disposable local Supabase.
-- [ ] Run database lint, all pgTAP suites and TypeScript/PostgreSQL parity.
-- [ ] Apply migrations 21–33 to development only after explicit approval.
-- [ ] Verify every grant, policy, function and critical behavior in hosted development.
+- [x] Confirm development competition data was disposable while preserving Auth-backed profiles and reference data.
+- [x] Remove legacy 16-row brackets, old scored results and other disposable competition state.
+- [x] Apply migrations 21–33 in timestamp order.
+- [x] Clone the exact normalized production entry by stable match/team references.
+- [x] Regenerate 24 group positions and resolve all eight R16 fixtures.
+- [x] Replay the full 15-match predicted bracket and validate submission.
+- [x] Rehearse result confirm/correct/clear and winner propagation.
+- [x] Rehearse atomic bracket stale-snapshot rejection.
+- [x] Apply migration 34 and verify the exact function execution matrix.
+- [x] Restore development to the expected clean post-rollout mirror.
+- [x] Run the migrations 21–34 post-rollout verifier with `overall_pass = true`.
+- [ ] Let database-parity CI prove the new migration and pgTAP privilege suite on a clean disposable rebuild.
 
 ## 3. Hosted security hardening
 
-- [ ] Export and classify Supabase security-advisor findings for both hosted projects.
-- [ ] Revoke browser execute from internal group-order helpers unless explicitly required.
-- [ ] Revoke browser execute from trigger and maintenance helpers.
-- [ ] Restrict score-recompute and rank-capture functions to their intended server paths.
-- [ ] Set fixed safe `search_path` on remaining functions.
-- [ ] Verify public/anon/authenticated grants after the later migration chain.
-- [ ] Review enabling leaked-password protection.
-- [ ] Re-run advisors and retain the before/after result.
+### Function privileges and search paths — repository/development complete
+
+- [x] Export and classify hosted security-advisor findings.
+- [x] Revoke anonymous/browser execute from internal group-order helpers.
+- [x] Revoke direct execute from trigger, signup and maintenance helpers.
+- [x] Restrict score-recompute, rank-capture and result operations to service role.
+- [x] Preserve only the explicit authenticated application RPC allowlist.
+- [x] Set fixed empty `search_path` on the three mutable helpers.
+- [x] Close future public-function default execution to owner-only.
+- [x] Verify signup trigger behavior after direct function execution was removed.
+- [x] Re-run development advisors and retain the before/after result.
+- [ ] Apply migration 34 to production as part of the controlled 21–34 chain.
+- [ ] Verify the exact production ACL matrix and advisor delta after rollout.
+
+### Separate Auth/configuration work
+
+- [ ] Review and approve enabling leaked-password protection.
+- [ ] Enable leaked-password protection and verify signup/reset behavior.
+- [ ] Keep intentional signed-in application RPC advisor notices documented rather than revoking required functionality blindly.
 
 ## 4. Production migration preflight and rollout plan
 
-- [ ] Preserve a production schema/data snapshot appropriate to the current plan.
-- [ ] Run exact read-only equivalents of migrations 24, 25, 27, 28 and 32.
-- [ ] Prove the existing submitted production entry:
-  - [ ] has all 36 group predictions;
-  - [ ] has exact valid tie decisions;
-  - [ ] derives all 24 group positions;
-  - [ ] resolves the best-third boundary;
-  - [ ] replays one valid 15-match bracket tree.
-- [ ] Confirm there are still no stored production results before result-lifecycle rollout.
-- [ ] Prepare stop/rollback/remediation rules for every migration boundary.
-- [ ] Review the plan before any production mutation.
+- [x] Run exact read-only source-state equivalents of the later fail-closed migrations.
+- [x] Prove the existing submitted production entry:
+  - [x] has all 36 group predictions;
+  - [x] has exact valid tie decisions;
+  - [x] regenerates all 24 group positions on development;
+  - [x] resolves the best-third boundary;
+  - [x] replays one valid 15-match bracket tree.
+- [x] Confirm there are still no stored production results before result-lifecycle rollout.
+- [x] Prove every structural effect of production migrations 1–20.
+- [x] Prepare the exact 1–20 metadata-only migration-history repair.
+- [x] Prepare stop/rollback/remediation rules for every migration boundary.
+- [x] Extend the pending chain and verifier through migration 34.
+- [ ] Preserve a production schema/data backup or equivalent recovery artifact.
+- [ ] Review the final plan and dry-run output before any production mutation.
 - [ ] Apply in timestamp order only after explicit approval.
-- [ ] Verify bracket save/reload, submission, result lifecycle, scoring and winner propagation.
+- [ ] Verify bracket save/reload, submission, result lifecycle, scoring, winner propagation and function privilege boundaries.
 
 ## 5. Original Predictor reliability
 
@@ -193,8 +213,10 @@ The Sweepstake builder remains non-launch-blocking.
 - [x] Application CI.
 - [x] Disposable database parity CI.
 - [x] Canonical predicted group ordering.
-- [x] Repository/local RPC-only submission and derived group positions.
-- [x] Repository/local authoritative result lifecycle.
-- [x] Repository/local predicted bracket-tree replay and winner propagation.
-- [x] Repository/local atomic bracket persistence.
+- [x] RPC-only submission and derived group positions.
+- [x] Authoritative result lifecycle.
+- [x] Predicted bracket-tree replay and winner propagation.
+- [x] Atomic bracket persistence.
+- [x] Exact function privilege allowlists and closed future defaults.
+- [x] Hosted development migration/security rehearsal through migration 34.
 - [x] Live hosted audit and documentation reconciliation.
