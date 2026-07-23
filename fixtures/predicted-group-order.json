@@ -1,0 +1,98 @@
+[
+  {
+    "name": "ordinary-points",
+    "teams": ["a", "b", "c", "d"],
+    "matches": [
+      ["a", "b", 2, 0],
+      ["a", "c", 1, 0],
+      ["a", "d", 1, 0],
+      ["b", "c", 1, 0],
+      ["b", "d", 1, 0],
+      ["c", "d", 1, 0]
+    ],
+    "expectation": "resolved",
+    "order": ["a", "b", "c", "d"],
+    "explanation": "Every finishing position is separated by overall points."
+  },
+  {
+    "name": "overall-goal-difference",
+    "teams": ["a", "b", "c", "d"],
+    "matches": [
+      ["a", "b", 0, 0],
+      ["a", "c", 2, 0],
+      ["a", "d", 0, 1],
+      ["b", "c", 1, 0],
+      ["b", "d", 0, 3],
+      ["c", "d", 0, 1]
+    ],
+    "expectation": "resolved",
+    "order": ["d", "a", "b", "c"],
+    "criterionProof": {
+      "criterion": "overall-goal-difference",
+      "tiedTeams": ["a", "b"],
+      "headToHead": [
+        {"teamId": "a", "points": 1, "goalDifference": 0, "goalsFor": 0},
+        {"teamId": "b", "points": 1, "goalDifference": 0, "goalsFor": 0}
+      ],
+      "overall": [
+        {"teamId": "a", "points": 4, "goalDifference": 1, "goalsFor": 2},
+        {"teamId": "b", "points": 4, "goalDifference": -2, "goalsFor": 1}
+      ]
+    },
+    "explanation": "Teams a and b are level on points and on every head-to-head criterion; overall goal difference places a above b."
+  },
+  {
+    "name": "overall-goals-scored",
+    "teams": ["a", "b", "c", "d"],
+    "matches": [
+      ["a", "b", 0, 0],
+      ["a", "c", 3, 1],
+      ["a", "d", 0, 1],
+      ["b", "c", 2, 0],
+      ["b", "d", 0, 1],
+      ["c", "d", 0, 1]
+    ],
+    "expectation": "resolved",
+    "order": ["d", "a", "b", "c"],
+    "criterionProof": {
+      "criterion": "overall-goals-scored",
+      "tiedTeams": ["a", "b"],
+      "headToHead": [
+        {"teamId": "a", "points": 1, "goalDifference": 0, "goalsFor": 0},
+        {"teamId": "b", "points": 1, "goalDifference": 0, "goalsFor": 0}
+      ],
+      "overall": [
+        {"teamId": "a", "points": 4, "goalDifference": 1, "goalsFor": 3},
+        {"teamId": "b", "points": 4, "goalDifference": 1, "goalsFor": 2}
+      ]
+    },
+    "explanation": "Teams a and b are level on points, every head-to-head criterion and overall goal difference; overall goals scored places a above b."
+  },
+  {
+    "name": "partial-group",
+    "teams": ["a", "b", "c", "d"],
+    "matches": [
+      ["a", "b", 1, 0]
+    ],
+    "expectation": "partial",
+    "order": ["a", "c", "d", "b"],
+    "unresolved": [["c", "d"]],
+    "ranks": [1, 2, 2, 4],
+    "explanation": "resolveGroupTies accepts partial matches and returns partial standings; application-level completeness is enforced elsewhere."
+  },
+  {
+    "name": "all-draws-unresolved",
+    "teams": ["a", "b", "c", "d"],
+    "matches": [
+      ["a", "b", 1, 1],
+      ["a", "c", 1, 1],
+      ["a", "d", 1, 1],
+      ["b", "c", 1, 1],
+      ["b", "d", 1, 1],
+      ["c", "d", 1, 1]
+    ],
+    "expectation": "unresolved",
+    "unresolved": [["a", "b", "c", "d"]],
+    "explanation": "No automatic criterion separates the four teams, so they share rank one and require a manual resolution."
+  }
+]
