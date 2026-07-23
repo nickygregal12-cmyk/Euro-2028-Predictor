@@ -69,7 +69,7 @@ Other findings remain recorded as current defects or incomplete implementation r
 | Test files/support files | 43 (42 test files plus `tests/setup.ts`) | Repository inventory; re-counted `2026-07-23R` |
 | Unit/component test result | ✅ **Executed `2026-07-23R`: 42 files / 335 tests, all passing, 63.88s** (`npx vitest run`) | Repeat-audit check `C-5` |
 | Build result | ✅ **Executed `2026-07-23R`: `npx vite build` succeeded in 1.80s;** `dist/` 1.5 MB, largest chunk 251.52 kB (80.53 kB gzip), no source maps emitted | Repeat-audit check `C-4` |
-| Lint result | ✅ **Executed `2026-07-23R`: `npx oxlint` — 0 errors, 0 warnings** across 211 files, 95 rules | Repeat-audit check `C-3` and § 2.1 |
+| Lint result | ✅ **Executed `2026-07-23R`: `npx oxlint` — 0 errors, 0 warnings** across 211 files, 95 rules | Repeat-audit check `C-3` |
 | Type-check result | ✅ **Executed `2026-07-23R`: `npx tsc -b` — exit 0.** Weak evidence: `tsconfig.app.json` sets no `strict`-family flags, so this does not demonstrate null-safety (`TYPE-001`) | Repeat-audit check `C-2` and § 2.1 |
 | Dependency install | ✅ **Executed `2026-07-23R`: `npm ci` reproducible from `package-lock.json`** — 136 packages, no resolution errors | Repeat-audit check `C-1` |
 | Dependency vulnerabilities | ✅ **Executed `2026-07-23R`: `npm audit` — 0 vulnerabilities** across 181 resolved dependencies | Repeat-audit check `C-6` |
