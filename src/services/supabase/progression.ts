@@ -21,6 +21,12 @@ type ProgressionSnapshot = {
   versions: Record<string, number>
 }
 
+type AtomicProgressionRow = {
+  team_id: string
+  stage: string
+  version: number
+}
+
 type UpsertWaiter = {
   kind: 'upsert'
   teamId: string
@@ -95,7 +101,10 @@ async function replaceProgressionSnapshot(
     throw error
   }
 
-  return (data ?? []).map((row) => ({
+  // This project intentionally uses an ungenerated Supabase client type, so RPC
+  // payloads arrive as generic JSON. Narrow only the server contract we consume.
+  const rows = (data ?? []) as AtomicProgressionRow[]
+  return rows.map((row) => ({
     teamId: row.team_id,
     stage: row.stage as ProgressionStage,
     version: row.version,
