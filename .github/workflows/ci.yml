@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm run test
+      - run: npm audit --omit=dev --audit-level=high
+
+  database-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.34.3
+      - run: supabase --version
+      - run: supabase start
+      - run: supabase db reset --local
+      - run: supabase db lint --local
+      - run: npm ci
+      - run: npm run test:fixtures
+      - run: supabase test db
+      - run: supabase stop
+        if: always()

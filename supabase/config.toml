@@ -1,0 +1,4 @@
+project_id = "euro-2028-predictor-local"
+
+[db]
+major_version = 17

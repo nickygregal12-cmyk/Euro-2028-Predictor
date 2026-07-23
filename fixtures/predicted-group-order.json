@@ -1,0 +1,5 @@
+[
+  {"name":"all-draws-unresolved","teams":["t1","t2","t3","t4"],"matches":[["t1","t2",1,1],["t1","t3",1,1],["t1","t4",1,1],["t2","t3",1,1],["t2","t4",1,1],["t3","t4",1,1]],"resolutions":[],"status":"unresolved"},
+  {"name":"all-draws-manual","teams":["t1","t2","t3","t4"],"matches":[["t1","t2",1,1],["t1","t3",1,1],["t1","t4",1,1],["t2","t3",1,1],["t2","t4",1,1],["t3","t4",1,1]],"resolutions":[{"teamIds":["t1","t2","t3","t4"],"order":["t3","t1","t4","t2"]}],"status":"resolved","order":["t3","t1","t4","t2"]},
+  {"name":"incomplete","teams":["t1","t2","t3","t4"],"matches":[["t1","t2",2,0]],"resolutions":[],"status":"incomplete"}
+]
