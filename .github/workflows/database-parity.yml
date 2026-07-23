@@ -1,0 +1,44 @@
+name: Database parity
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/database-parity.yml'
+      - 'fixtures/predicted-group-order.json'
+      - 'scripts/database-parity/**'
+      - 'src/domain/tournament/**'
+      - 'supabase/**'
+      - 'tests/database-parity/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-supabase:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Rebuild from committed migrations
+        run: supabase db reset --local
+
+      - name: Lint local database
+        run: supabase db lint --local
+
+      - name: Run pgTAP database tests
+        run: supabase test db --local
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup
