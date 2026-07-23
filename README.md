@@ -6,7 +6,7 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-The `2026-07-23L` live audit confirmed that production Netlify serves the post-PR #14 application while both hosted Supabase projects still have the original 20-migration schema. Production does not contain the atomic bracket replacement RPC used by the deployed client. Treat application/database compatibility as the first recovery priority; do not apply hosted migrations or change production configuration without a reviewed plan and explicit approval.
+Production Netlify serves the post-PR #14 application while production Supabase still has the original 20-migration schema. Production does not contain the atomic bracket replacement RPC used by the deployed client. Hosted development has rehearsed and verified migrations 21–34, but that does not make production compatible. Treat application/database compatibility as the first recovery priority; do not apply hosted migrations or change production configuration without the reviewed runbook, recovery evidence and explicit approval.
 
 ## Setup
 
@@ -45,9 +45,9 @@ supabase/
 scripts/
   seed-dev/
   database-parity/
-  og/
+  database-rollout/
 docs/
-  quality/        # audits, risk register and live status
+  quality/        # audits, risk register, reconciliation and live status
 ```
 
 ## Domain and database principles
@@ -56,7 +56,7 @@ Tournament rules are implemented first as pure functions under `src/domain/tourn
 
 The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. The database-parity workflow rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-In the latest repository migration chain, the database is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation and atomic complete-bracket replacement. Those controls are not considered deployed until the target hosted schema is inspected, migrated and verified.
+In the latest 34-migration repository chain, the database is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement and exact function execution boundaries. Those controls are not considered deployed until the target hosted schema is inspected, migrated and verified.
 
 ## Scoring
 
@@ -77,15 +77,15 @@ Database parity CI runs:
 - disposable local Supabase start;
 - full migration rebuild;
 - database lint;
-- all pgTAP suites;
+- all pgTAP suites, including function privilege allowlists;
 - TypeScript/PostgreSQL differential parity;
 - clean teardown.
 
-PR #14's application CI run #71 and database parity run #40 passed. Browser E2E remains absent and is still a launch blocker.
+Browser E2E remains absent and is still a launch blocker.
 
-## Repository/local implementation
+## Repository and hosted-development implementation
 
-The repository and disposable-local database have executable coverage for:
+The repository and hosted development have executable or live verification for:
 
 - canonical predicted group ordering, including recursive head-to-head handling and unresolved ties;
 - exact manual same-group and best-third decisions;
@@ -96,9 +96,12 @@ The repository and disposable-local database have executable coverage for:
 - immutable result revisions and serialized scoring recomputation;
 - confirmed knockout-winner propagation;
 - full match-by-match predicted bracket replay;
-- expected-version, one-transaction complete-bracket replacement.
+- expected-version, one-transaction complete-bracket replacement;
+- zero anonymous public-function execution;
+- exact authenticated/service function allowlists and owner-only future defaults;
+- fixed search paths for previously mutable helpers.
 
-The 13 migrations implementing the later database controls are not applied to either hosted Supabase project as of the live audit.
+Migrations 21–34 are verified on hosted development and remain pending on production. Production must receive the complete chain in strict timestamp order; migration 34 must not be applied alone.
 
 ## Documentation authority
 
