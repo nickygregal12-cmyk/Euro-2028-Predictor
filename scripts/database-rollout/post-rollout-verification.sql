@@ -3,19 +3,67 @@
 -- READ-ONLY. Run after a hosted rollout. Any unexpected false value is a stop
 -- condition for lifting the deployment/write freeze.
 
-with submitted as (
+with submitted_all as (
   select e.id, e.tournament_id, e.submitted_at
   from public.entries e
   where e.submitted_at is not null
-  order by e.submitted_at
-  limit 1
+), submitted as (
+  select * from submitted_all order by submitted_at limit 1
+), prediction_rows as (
+  select m.match_ref, mp.home_score, mp.away_score, mp.joker
+  from submitted s
+  join public.match_predictions mp on mp.entry_id = s.id
+  join public.matches m on m.id = mp.match_id
+), progression_rows as (
+  select tm.name, pp.stage
+  from submitted s
+  join public.predicted_progression pp on pp.entry_id = s.id
+  join public.teams tm on tm.id = pp.team_id
+), tie_rows as (
+  select
+    ptr.scope,
+    array_to_string(array(
+      select coalesce(g.letter, '?') || ':' || tm.name
+      from unnest(ptr.ordered_team_ids) with ordinality u(team_id, ord)
+      join public.teams tm on tm.id = u.team_id
+      left join public.group_teams gt on gt.team_id = tm.id
+      left join public.groups g on g.id = gt.group_id
+      order by u.ord
+    ), ',') as ordered_names
+  from submitted s
+  join public.predicted_tie_resolutions ptr on ptr.entry_id = s.id
+), fingerprints as (
+  select
+    (
+      select md5(coalesce(string_agg(
+        match_ref || ':' || home_score || ':' || away_score || ':' || joker,
+        '|' order by match_ref
+      ), ''))
+      from prediction_rows
+    ) as predictions,
+    (
+      select md5(coalesce(string_agg(
+        scope || ':' || ordered_names,
+        '|' order by scope, ordered_names
+      ), ''))
+      from tie_rows
+    ) as ties,
+    (
+      select md5(coalesce(string_agg(
+        name || ':' || stage,
+        '|' order by name
+      ), ''))
+      from progression_rows
+    ) as progression
 ), privilege_checks as (
   select
     not has_schema_privilege('anon', 'predictor_internal', 'USAGE') as anon_private_schema_denied,
     not has_schema_privilege('authenticated', 'predictor_internal', 'USAGE') as auth_private_schema_denied,
     not has_table_privilege('authenticated', 'public.entries', 'UPDATE') as auth_entry_update_denied,
+    not has_table_privilege('authenticated', 'public.entries', 'DELETE') as auth_entry_delete_denied,
     not has_table_privilege('authenticated', 'public.predicted_group_positions', 'INSERT') as auth_position_insert_denied,
     not has_table_privilege('authenticated', 'public.predicted_group_positions', 'UPDATE') as auth_position_update_denied,
+    not has_table_privilege('authenticated', 'public.predicted_group_positions', 'DELETE') as auth_position_delete_denied,
     not has_table_privilege('authenticated', 'public.predicted_progression', 'INSERT') as auth_progression_insert_denied,
     not has_table_privilege('authenticated', 'public.predicted_progression', 'UPDATE') as auth_progression_update_denied,
     not has_table_privilege('authenticated', 'public.predicted_progression', 'DELETE') as auth_progression_delete_denied,
@@ -30,17 +78,65 @@ with submitted as (
       'EXECUTE'
     ) as anon_atomic_rpc_denied,
     not has_function_privilege(
+      'anon',
+      'public.confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)',
+      'EXECUTE'
+    ) as anon_result_confirm_denied,
+    not has_function_privilege(
+      'anon',
+      'public.correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)',
+      'EXECUTE'
+    ) as anon_result_correct_denied,
+    not has_function_privilege(
+      'anon',
+      'public.clear_match_result(uuid,text)',
+      'EXECUTE'
+    ) as anon_result_clear_denied,
+    not has_function_privilege(
       'authenticated',
       'public.confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)',
       'EXECUTE'
     ) as auth_result_confirm_denied,
+    not has_function_privilege(
+      'authenticated',
+      'public.correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)',
+      'EXECUTE'
+    ) as auth_result_correct_denied,
+    not has_function_privilege(
+      'authenticated',
+      'public.clear_match_result(uuid,text)',
+      'EXECUTE'
+    ) as auth_result_clear_denied,
     has_function_privilege(
       'service_role',
       'public.confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)',
       'EXECUTE'
     ) as service_result_confirm_allowed,
-    not has_table_privilege('service_role', 'public.match_result_revisions', 'SELECT') as service_revision_select_denied,
-    not has_table_privilege('service_role', 'public.match_result_revisions', 'INSERT') as service_revision_insert_denied
+    has_function_privilege(
+      'service_role',
+      'public.correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)',
+      'EXECUTE'
+    ) as service_result_correct_allowed,
+    has_function_privilege(
+      'service_role',
+      'public.clear_match_result(uuid,text)',
+      'EXECUTE'
+    ) as service_result_clear_allowed,
+    not has_table_privilege('anon', 'public.match_result_revisions', 'SELECT')
+      and not has_table_privilege('anon', 'public.match_result_revisions', 'INSERT')
+      and not has_table_privilege('anon', 'public.match_result_revisions', 'UPDATE')
+      and not has_table_privilege('anon', 'public.match_result_revisions', 'DELETE')
+      as anon_revision_all_denied,
+    not has_table_privilege('authenticated', 'public.match_result_revisions', 'SELECT')
+      and not has_table_privilege('authenticated', 'public.match_result_revisions', 'INSERT')
+      and not has_table_privilege('authenticated', 'public.match_result_revisions', 'UPDATE')
+      and not has_table_privilege('authenticated', 'public.match_result_revisions', 'DELETE')
+      as auth_revision_all_denied,
+    not has_table_privilege('service_role', 'public.match_result_revisions', 'SELECT')
+      and not has_table_privilege('service_role', 'public.match_result_revisions', 'INSERT')
+      and not has_table_privilege('service_role', 'public.match_result_revisions', 'UPDATE')
+      and not has_table_privilege('service_role', 'public.match_result_revisions', 'DELETE')
+      as service_revision_all_denied
 ), object_checks as (
   select
     exists(select 1 from pg_namespace where nspname = 'predictor_internal') as private_schema_exists,
@@ -67,7 +163,17 @@ with submitted as (
     ) as result_columns_exist
 ), data_checks as (
   select
-    (select count(*) from submitted) = 1 as submitted_entry_preserved,
+    (select count(*) = 1 from submitted_all) as exactly_one_submitted_entry_preserved,
+    (
+      select submitted_at = '2026-07-21 21:51:49.639442+00'::timestamptz
+      from submitted
+    ) as submitted_timestamp_preserved,
+    (
+      select predictions = '8d76619fe4b44fdac17de1cc2afe5aaa'
+         and ties = 'a4dcf183f5c48e3ba11ff75c59622598'
+         and progression = '0d7bc491daa9b24013204d061a2d38f1'
+      from fingerprints
+    ) as rehearsed_payload_preserved,
     (
       select count(*) = 24
       from submitted s
@@ -90,6 +196,9 @@ with submitted as (
          or m.home_score is not null
          or m.away_score is not null
     ) as no_result_invented,
+    (select count(*) = 0 from public.match_result_revisions) as no_revision_invented,
+    (select count(*) = 0 from public.score_events) as score_events_preserved,
+    (select count(*) = 0 from public.rank_history) as rank_history_preserved,
     (
       select predictor_internal.validate_entry_submission_snapshot(s.id, false)
              = s.tournament_id
@@ -109,6 +218,7 @@ select jsonb_build_object(
   'objects', to_jsonb(object_checks),
   'privileges', to_jsonb(privilege_checks),
   'data', to_jsonb(data_checks),
+  'rollout_guard_fingerprints', (select to_jsonb(fingerprints) from fingerprints),
   'overall_pass',
     object_checks.private_schema_exists
     and object_checks.resolver_exists
@@ -122,21 +232,36 @@ select jsonb_build_object(
     and privilege_checks.anon_private_schema_denied
     and privilege_checks.auth_private_schema_denied
     and privilege_checks.auth_entry_update_denied
+    and privilege_checks.auth_entry_delete_denied
     and privilege_checks.auth_position_insert_denied
     and privilege_checks.auth_position_update_denied
+    and privilege_checks.auth_position_delete_denied
     and privilege_checks.auth_progression_insert_denied
     and privilege_checks.auth_progression_update_denied
     and privilege_checks.auth_progression_delete_denied
     and privilege_checks.auth_atomic_rpc_allowed
     and privilege_checks.anon_atomic_rpc_denied
+    and privilege_checks.anon_result_confirm_denied
+    and privilege_checks.anon_result_correct_denied
+    and privilege_checks.anon_result_clear_denied
     and privilege_checks.auth_result_confirm_denied
+    and privilege_checks.auth_result_correct_denied
+    and privilege_checks.auth_result_clear_denied
     and privilege_checks.service_result_confirm_allowed
-    and privilege_checks.service_revision_select_denied
-    and privilege_checks.service_revision_insert_denied
-    and data_checks.submitted_entry_preserved
+    and privilege_checks.service_result_correct_allowed
+    and privilege_checks.service_result_clear_allowed
+    and privilege_checks.anon_revision_all_denied
+    and privilege_checks.auth_revision_all_denied
+    and privilege_checks.service_revision_all_denied
+    and data_checks.exactly_one_submitted_entry_preserved
+    and data_checks.submitted_timestamp_preserved
+    and data_checks.rehearsed_payload_preserved
     and data_checks.derived_positions_complete
     and data_checks.progression_preserved
     and data_checks.no_result_invented
+    and data_checks.no_revision_invented
+    and data_checks.score_events_preserved
+    and data_checks.rank_history_preserved
     and data_checks.submission_snapshot_valid
     and data_checks.bracket_tree_valid
     and data_checks.r16_resolves
