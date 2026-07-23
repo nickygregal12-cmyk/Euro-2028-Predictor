@@ -6,8 +6,8 @@ This is the live source of truth for repository migration count, hosted semantic
 
 | Environment | Semantic schema state | Migration-history state | Status |
 | --- | --- | --- | --- |
-| Development `iouzoutneyjpugbbtdem` | Migrations 1–33 effects present | Partial/tool-generated remote history; requires CLI reconciliation | **Hosted rehearsal complete** |
-| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 only | Original migrations were manually applied; authoritative 1–20 CLI history absent | **13 pending; read-only preflight passed; rollout not performed** |
+| Development `iouzoutneyjpugbbtdem` | Migrations 1–33 effects present; cleaned to the expected post-rollout production mirror | Partial/tool-generated remote history; requires CLI reconciliation | **Hosted rehearsal complete** |
+| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 only | Original migrations were manually applied; authoritative 1–20 CLI history absent | **13 pending; hardened read-only preflight passed; rollout not performed** |
 
 No production migration is approved merely because it exists on `main`, passed local CI or passed the read-only preflight.
 
@@ -63,13 +63,15 @@ Development disposable competition state was reset while preserving Auth-backed 
 Verified after migration 33:
 
 - private schema is inaccessible to browser roles;
-- direct authenticated updates to entry submission state are denied;
-- direct authenticated writes to group positions and progression are denied;
+- direct authenticated updates/deletes to entry submission state are denied;
+- direct authenticated insert/update/delete on group positions and progression are denied;
 - submission and bracket replacement use protected RPCs;
 - result confirm/correct/clear functions are service-role-only;
 - the result revision table is inaccessible to browser roles and the service role;
 - result confirmation, correction, clearing and winner propagation work;
 - stale complete-bracket snapshots raise `PT409` without partial writes.
+
+After behavioural evidence was captured, the development-only result revisions were cleared and the clone timestamp was restored to production. The final hosted development mirror has zero revisions, zero score events and zero rank history.
 
 See `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`.
 
@@ -77,30 +79,36 @@ See `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`.
 
 The normalized production payload was mapped into development by match reference and team name.
 
-Matching fingerprints:
+Current rollout-guard fingerprints:
 
-- predictions: `2844328a25f2ab315bd2af602e1e1159`;
-- tie decisions: `a82498444d2d8249cc59eb1f5dba3e5b`;
+- predictions: `8d76619fe4b44fdac17de1cc2afe5aaa`;
+- tie decisions: `a4dcf183f5c48e3ba11ff75c59622598`;
 - progression: `0d7bc491daa9b24013204d061a2d38f1`.
 
 The clone regenerated all 24 group positions, resolved eight R16 fixtures and passed the complete 15-match bracket and submission validators.
 
+Any source-payload or submitted-timestamp change requires a fresh production-to-development clone and replay before the expected guards may be updated through review.
+
 ## Production read-only preflight
 
-The committed preflight script returned `overall_structural_pass = true`.
+The hardened committed preflight script returned `overall_structural_pass = true`.
 
 Current production evidence:
 
-- one submitted entry before lock;
+- exactly one submitted entry with the rehearsed timestamp, before lock;
 - 36 group predictions;
-- two valid exact-set tie decisions;
+- exactly one group tie and one third-place tie, both valid;
+- all three rollout-guard fingerprints match;
 - complete `4/2/1/1` progression shape;
-- zero legacy match scores;
+- zero old group-position rows;
+- zero legacy match scores, score events and rank history;
 - zero inspected scope anomalies;
 - valid `8/4/2/1` knockout source tree;
 - 14 unique, correctly ordered winner-source references.
 
 Production has no persisted predicted group positions under the old schema. Development proved the new server boundary derives all 24 from the existing production inputs.
+
+The hardened post-rollout verifier returned `overall_pass = true` on cleaned migrated development.
 
 ## Migration-history boundary
 
@@ -128,6 +136,7 @@ All are required:
 - named operator and rollback decision owner;
 - production write/deploy freeze;
 - immediate rerun of `scripts/database-rollout/production-preflight.sql`;
+- exact timestamp and rollout-guard fingerprint match;
 - reviewed migration-history repair output;
 - dry run showing migrations 21–33 only;
 - strict timestamp-order push;
@@ -142,11 +151,12 @@ Follow `docs/ops-hosted-migration-rollout.md`.
 1. **No production migration without explicit approval.**
 2. **No production reset.** Never use `db reset --linked` against production.
 3. **Do not bypass fail-closed preflights.**
-4. **Preserve environment isolation.** Production remains connected to production Supabase.
-5. **Apply in strict timestamp order.** Never paste only migration 33.
-6. **Verify schema and behaviour, not a generic success message.**
-7. **Application and database form one release pair.**
-8. **Re-run security advisors after rollout.** Legacy `SECURITY-003` items remain a separate follow-up.
+4. **Do not update rollout guards during the change window.**
+5. **Preserve environment isolation.** Production remains connected to production Supabase.
+6. **Apply in strict timestamp order.** Never paste only migration 33.
+7. **Verify schema and behaviour, not a generic success message.**
+8. **Application and database form one release pair.**
+9. **Re-run security advisors after rollout.** Legacy `SECURITY-003` items remain a separate follow-up.
 
 ## Related evidence
 
