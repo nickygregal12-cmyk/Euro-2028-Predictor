@@ -1,10 +1,10 @@
 # Euro 2028 Predictor
 
-A mobile-first Euro 2028 football predictor web app. React 19 + TypeScript + Vite, Supabase (Postgres, Auth, RLS, RPCs) for data, Netlify for hosting.
+A mobile-first Euro 2028 football predictor web app. React 19 + TypeScript + Vite, Supabase (Postgres, Auth, RLS, RPCs) for data, and Netlify for hosting.
 
 ## Setup
 
-```
+```bash
 npm ci            # install exactly from package-lock.json
 npm run dev       # local dev server
 npm run test      # unit + component tests (Vitest)
@@ -16,77 +16,78 @@ Copy `.env.example` to `.env.local` and fill in the development Supabase values.
 
 ## Project structure
 
-```
+```text
 src/
-  app/            # app shell, routing, providers (theme, tournament data, predictions)
-  design-system/  # shared UI primitives + tokens-driven components
-  dev/            # dev-only component gallery (route gated out of production)
+  app/            # app shell, routing, providers
+  design-system/  # shared UI primitives and tokens-driven components
+  dev/            # dev-only component gallery
   domain/
-    tournament/   # pure domain functions — no UI, no database, data in/data out
-  features/       # UI features: auth, welcome, predict, bracket, leagues, league,
-                  # matches, h2h, home, profile, scoring, share, more, notfound
+    tournament/   # pure tournament functions — data in, data out
+  features/       # auth, predict, bracket, leagues, matches, home, profile, etc.
   services/
-    supabase/     # Supabase client + all queries/RPCs (the only network boundary)
+    supabase/     # Supabase client and all queries/RPCs
   styles/         # tokens, fonts, flags
 tests/
-  domain/         # unit tests for domain functions
-  database-parity/# local TypeScript/PostgreSQL differential tests
+  domain/         # domain unit tests
+  database-parity/# TypeScript/PostgreSQL differential tests
   features/ services/ scripts/ app/
-  setup.ts        # Vitest + jest-dom setup
 supabase/
-  migrations/     # append-only, timestamp-ordered SQL migrations
+  migrations/     # append-only timestamped migrations
   tests/          # local pgTAP behaviour and permission tests
-  seed.sql        # fixture/bracket skeleton (single source of truth)
+  seed.sql        # fixture/bracket skeleton
   prod-baseline.sql
 scripts/
   seed-dev/       # guarded development seeding
   og/             # Open Graph asset rendering
-docs/             # authoritative product, architecture, scoring and ops documents
-  quality/        # quality governance: audits, risk register, feature baseline
+docs/
+  quality/        # audits, risk register and current reconciliation
 ```
 
-## Domain-first principle
+## Domain and database principles
 
-Tournament logic (group tables, tie-breaks, bracket progression, scoring) lives entirely in `src/domain/tournament/` as pure functions: they take data in, return data out, and never touch React or the database directly. Build and test these in isolation before wiring up any screen.
+Tournament rules are implemented first as pure functions in `src/domain/tournament/`. Components render domain results rather than inventing standings, scoring or bracket rules.
 
-The predicted group-order contract is also mirrored by a private PostgreSQL implementation in `predictor_internal`. A dedicated local-only workflow rebuilds disposable Supabase, runs pgTAP, and compares normalized TypeScript and PostgreSQL outputs fixture by fixture. This does not expose a public RPC or prove hosted production-schema parity.
+The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. A local-only workflow rebuilds disposable Supabase, runs database lint and pgTAP, and compares normalized TypeScript and PostgreSQL outputs fixture by fixture.
+
+The database is authoritative for entry locks, submission, derived group positions, match results, corrections, scoring recomputation, winner propagation and final bracket validity. Private integrity helpers are not exposed as public client RPCs.
 
 ## Scoring
 
-`docs/scoring-rules.md` is the single source of truth. Point values are transcribed into `src/domain/tournament/scoringConfig.ts` and mirrored in the SQL scorer (`supabase/migrations/20260721120000_scoring_positions_knockout_awards.sql`). **No scoring number may ever appear as a literal inside logic.** All three layers were verified identical in the 23 July 2026 repeat audit.
+`docs/scoring-rules.md` is the single source of truth. Point values are transcribed into `src/domain/tournament/scoringConfig.ts` and mirrored in the SQL scorer. No scoring number should appear as an unexplained literal inside scoring logic.
 
-## Status
+## Current implementation status
 
-The domain layer is built and tested:
+The repository and disposable-local database now have executable coverage for:
 
-- [x] Project scaffolded (Vite + React + TypeScript)
-- [x] Vitest wired up and confirmed working
-- [x] `calculateGroupTable()`
-- [x] `resolveGroupTies()`
-- [x] `rankThirdPlacedTeams()`
-- [x] `resolveRoundOf16()`
-- [x] `advanceBracket()`
-- [x] `calculateScore()`
-- [x] `calculateLeagueRank()`
+- canonical predicted group ordering, including head-to-head recursion and unresolved ties;
+- explicit manual same-group and best-third tie decisions;
+- TypeScript/PostgreSQL group-order parity;
+- RPC-only entry submission and server-derived predicted group positions;
+- ownership, lock-time and same-tournament prediction boundaries;
+- regulation, extra-time and penalty result confirmation/correction/clear operations;
+- immutable result revision history and serialized score recomputation;
+- confirmed knockout-winner propagation into later fixtures; and
+- full match-by-match validation of a predicted 15-match knockout tree.
 
-Baseline GitHub Actions CI is active. Predicted-group-order Batches 1–3 are merged and cover automatic head-to-head ordering, recursive tied subsets, overall-stat fallbacks, partial and unresolved groups, input-order independence, explicit manual keep/reorder decisions, stale and hostile saved-resolution protection, inline group tie prompting, score-review return paths, and the **Finalise Group Standings** flow.
+Baseline GitHub Actions CI runs reproducible install, build/type-check, lint, the full application test suite and a high-severity production dependency audit. The database workflow rebuilds every committed migration in disposable local Supabase, runs lint and all pgTAP suites, executes differential parity, and removes the local data afterwards.
 
-Private PostgreSQL parity is also merged. The disposable local database workflow proves migration rebuild, database lint, pgTAP behaviour and permissions, and exact fixture-driven parity with production TypeScript for automatic, manual, hostile, stale and partial-group cases. See `docs/quality/reconciliations/2026-07-23-group-order-contract.md` and `docs/quality/reconciliations/2026-07-23-database-parity-foundation.md` for the dated merge records and boundaries.
+**The project is still not ready for a real scored production competition.** The later migrations have not been applied or reconciled against hosted development or production Supabase. Browser E2E, hosted legacy-data preflights, backup/restore rehearsal, atomic whole-bracket persistence, automatic real R16 population and wider immutable reference constraints remain open.
 
-Phase 1 application surfaces (auth, predictions, bracket, jokers, awards, review/submit, leagues, leaderboard, H2H, matches, match centre, home, profile, share) are built and reachable. The current GitHub Actions pipeline passes install, build, lint, the full test suite and the high-severity production-dependency audit.
+The next repository implementation stage is **`REL-004` — replace a user's complete predicted bracket through one atomic server transaction**.
 
-**The app is not production-ready for a real scored competition.** Open Critical and High findings — including entry submission-state protection, same-tournament validation, group-position persistence and locking, the knockout result model, hosted database assurance and browser-level testing — are recorded in `docs/quality/`. Read `docs/quality/current-status.md` before starting work.
+Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work. It is the live implementation-status document. Dated audits and the risk register remain historical evidence. `docs/roadmap.md` and `docs/build-todo.md` contain valuable product and planning history, but their older implementation narratives may lag the current reconciliation and must not override `current-status.md`.
 
 ## Where the rules live
 
 | Question | Document |
 | --- | --- |
-| Agent instructions, architecture rules, Git and database discipline | `CLAUDE.md` |
+| Current implementation, blockers and next repository action | `docs/quality/current-status.md` |
+| Agent instructions, architecture rules, Git and database discipline | `AGENTS.md`, `CLAUDE.md` |
 | Scoring and entry validity | `docs/scoring-rules.md` |
 | Tournament facts and structure | `docs/tournament-structure.md` |
 | Architecture and tournament states | `docs/architecture-and-tournament-states.md` |
 | Interface and design system | `docs/design-system.md` |
-| Current competition scope vs future competitions | `docs/competition-structure.md` |
-| Product sequence | `docs/roadmap.md`, `docs/build-todo.md` |
+| Competition boundaries | `docs/competition-structure.md` |
+| Product planning history | `docs/roadmap.md`, `docs/build-todo.md` |
 | Operations runbooks | `docs/ops-*.md` |
-| Quality position, risks, audits and post-audit reconciliations | `docs/quality/` |
+| Audits, risks and post-audit reconciliation | `docs/quality/` |
