@@ -1,6 +1,6 @@
-# Hosted migrations 21–33 — controlled rollout runbook
+# Hosted migrations 21–34 — controlled rollout runbook
 
-This runbook prepares and governs the production rollout of repository migrations 21–33.
+This runbook prepares and governs the production rollout of repository migrations 21–34.
 
 It does **not** authorize the rollout by itself. The owner must explicitly approve the production change after reviewing the current preflight, backup evidence, migration-history plan and deployment window.
 
@@ -9,7 +9,7 @@ It does **not** authorize the rollout by itself. The owner must explicitly appro
 - Production is never reset.
 - Never run `supabase db reset --linked` against production.
 - Never use development Supabase as a production fallback.
-- Never apply only migration 33.
+- Never apply only migration 33 or 34.
 - Never bypass or edit a failing preflight during the rollout window.
 - Never update a rollout-guard fingerprint during the rollout window.
 - Never use `migration repair` unless the corresponding schema effect is independently proven present.
@@ -19,19 +19,24 @@ It does **not** authorize the rollout by itself. The owner must explicitly appro
 
 ## Current evidence
 
-The 23 July 2026 rehearsal established:
+The 23–24 July 2026 rehearsal established:
 
-- disposable CI rebuilds all 33 migrations successfully;
-- hosted development now has the semantic effects of migrations 21–33;
+- disposable CI rebuilds the repository migration chain;
+- hosted development has the semantic effects of migrations 21–34;
 - the exact normalized production entry passed group reconstruction, R16 derivation, full 15-match bracket replay and submission validation in development;
 - production’s read-only structural preflight passed;
 - production still has zero legacy match results;
+- the exact function execution matrix and immutable helper search paths pass on development;
 - production itself remains on migrations 1–20 until this procedure is approved and executed.
 
 A separate read-only production baseline proof established that every structural effect required from repository migrations 1–20 is present, while the hosted migration-history list remains empty. See:
 
 - `scripts/database-rollout/production-baseline-1-20-verification.sql`;
 - `docs/quality/reconciliations/2026-07-23-production-migration-history-1-20.md`.
+
+The function-security rehearsal is recorded in:
+
+- `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`.
 
 The committed entry preflight is bound to the exact payload that was rehearsed:
 
@@ -42,8 +47,6 @@ The committed entry preflight is bound to the exact payload that was rehearsed:
 | eight progression rows | `0d7bc491daa9b24013204d061a2d38f1` |
 
 If any fingerprint or the submitted timestamp changes, stop and repeat the production-to-development clone and full replay. A legitimate user edit is not a reason to weaken the guard; it creates a new payload that must be rehearsed.
-
-See `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`.
 
 ## Required inputs
 
@@ -108,9 +111,9 @@ Required baseline outcome:
 
 - `all_structural_effects_present = true`;
 - all twenty individual migration checks are true;
-- any ACL drift remains recorded separately under `SECURITY-003` and is not confused with missing migration SQL.
+- the reported function ACL drift matches the known production state that migration 34 is designed to repair.
 
-Required entry/21–33 outcome:
+Required entry/source-state outcome:
 
 - `overall_structural_pass = true`;
 - exactly one submitted entry remains with timestamp `2026-07-21 21:51:49.639442+00` and it remains before lock;
@@ -136,7 +139,7 @@ Production currently has no tracked migration-history rows even though the read-
 supabase migration list
 ```
 
-Expected before repair: local files 1–33, with production history missing 1–20.
+Expected before repair: local files 1–34, with production history missing 1–20.
 
 2. Re-run and retain:
 
@@ -177,7 +180,7 @@ supabase migration repair \
 supabase migration list
 ```
 
-Required result: migrations 1–20 align locally/remotely; migrations 21–33 remain pending.
+Required result: migrations 1–20 align locally/remotely; migrations 21–34 remain pending.
 
 5. Preview the pending SQL:
 
@@ -185,11 +188,11 @@ Required result: migrations 1–20 align locally/remotely; migrations 21–33 re
 supabase db push --dry-run
 ```
 
-The dry run must show **only migrations 21–33**, in timestamp order.
+The dry run must show **only migrations 21–34**, in timestamp order.
 
-**Stop if it proposes migrations 1–20, skips any migration 21–33, includes an unknown migration, or the history cannot be explained.**
+**Stop if it proposes migrations 1–20, skips any migration 21–34, includes an unknown migration, or the history cannot be explained.**
 
-`migration repair` updates tracking metadata only. It does not apply SQL. Do not mark migrations 21–33 as applied on production before their SQL has executed.
+`migration repair` updates tracking metadata only. It does not apply SQL. Do not mark migrations 21–34 as applied on production before their SQL has executed.
 
 ## Phase 5 — apply the repository chain
 
@@ -214,6 +217,7 @@ The expected pending files are:
 11. `20260723184000_knockout_bracket_tree_integrity.sql`
 12. `20260723184100_bracket_tree_compatibility.sql`
 13. `20260723190000_atomic_bracket_persistence.sql`
+14. `20260724001500_harden_function_privileges.sql`
 
 Do not continue past a failed migration. Preserve the error and current state for investigation.
 
@@ -234,6 +238,10 @@ Required conditions include:
 - result lifecycle columns/functions exist;
 - confirm, correct and clear functions are denied to browser roles and allowed only to the service role;
 - revision table direct select/insert/update/delete are denied to browser and service roles;
+- anonymous roles can execute no public application function;
+- authenticated and service-role function allowlists are exact, with no missing or surplus function;
+- future public functions default to owner-only execution;
+- `gen_invite_code()`, `_stage_ord(text)` and `enforce_write_version()` have empty immutable search paths;
 - exactly one submitted entry and its original timestamp are preserved;
 - all three rollout-guard fingerprints are unchanged;
 - the submitted entry has 24 server-derived positions;
@@ -241,7 +249,17 @@ Required conditions include:
 - no result, revision, score event or rank-history row was invented;
 - production progression and source predictions are preserved.
 
-Then run Supabase security advisors and retain the output. Expected legacy advisor findings remain tracked under `SECURITY-003`; new warnings caused by the rollout are a stop condition.
+Then run Supabase security advisors and retain the output.
+
+Expected after migration 34:
+
+- no anonymous security-definer execution warning;
+- no mutable-search-path warning;
+- signed-in security-definer warnings remain only for the intentional authenticated application RPC allowlist;
+- leaked-password protection remains a separate Auth setting unless separately approved and enabled;
+- deny-all internal tables may retain informational “RLS enabled, no policy” notices.
+
+Any unexpected warning or privilege difference is a stop condition.
 
 ## Phase 7 — application smoke test
 
@@ -255,7 +273,9 @@ Using the approved production application and a controlled owner account:
 6. reload and confirm persistence through `replace_predicted_progression`;
 7. reverse the test change and confirm persistence;
 8. verify Review remains valid and submission timestamp is preserved;
-9. confirm leagues, profile and points views still load.
+9. confirm overall leaderboard and Match Centre prediction distribution still load;
+10. confirm league creation, preview, joining and league views still use the authenticated RPC boundary;
+11. confirm profiles and points views still load.
 
 Do not use an unisolated production deploy preview for this test.
 
@@ -267,7 +287,7 @@ Only after database and application smoke tests pass:
 - lift the deployment/write freeze;
 - record completion in `docs/quality/current-status.md`;
 - update `docs/ops-pending-migrations.md`;
-- retain preflight, history-repair, dry-run, push and verification outputs in the incident/change record.
+- retain preflight, history-repair, dry-run, push, advisor and verification outputs in the incident/change record.
 
 ## Failure handling
 
@@ -287,6 +307,10 @@ Stop. Preserve logs and identify whether the migration transaction rolled back. 
 
 Keep production connected to production Supabase. Do not reset. Determine the last applied migration from schema and history, then prepare a reviewed forward repair or database recovery decision.
 
+### Function privilege verification failure
+
+Keep the freeze in place. Do not restore broad `PUBLIC` grants. Compare the exact missing/surplus signatures with the repository allowlists and prepare a reviewed forward repair.
+
 ### Application smoke-test failure
 
 Do not point production at development. Either:
@@ -301,7 +325,6 @@ Database restore is a separate owner-approved action based on the backup evidenc
 Do not silently mix these into the migration window:
 
 - Netlify deploy-context isolation (`OPS-007`);
-- legacy function grant/search-path hardening (`SECURITY-003`);
 - leaked-password protection;
 - pending-write submission flush (`REL-003`);
 - automatic real R16 population;
