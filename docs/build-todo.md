@@ -41,7 +41,7 @@ Do **not** point production at development Supabase and do not apply migration 3
 - [x] Apply migration 34 and verify the exact function execution matrix.
 - [x] Restore development to the expected clean post-rollout mirror.
 - [x] Run the migrations 21–34 post-rollout verifier with `overall_pass = true`.
-- [ ] Let database-parity CI prove the new migration and pgTAP privilege suite on a clean disposable rebuild.
+- [x] Rebuild all 34 migrations and pass database lint, every pgTAP suite and TypeScript/PostgreSQL parity in database-parity CI run #41.
 
 ## 3. Hosted security hardening
 
