@@ -1,33 +1,37 @@
-# Ops note — Admin bootstrapping
+# Ops note — Administrator bootstrap status
 
-How the first (and any) admin is granted. There is deliberately no in-app path to become admin — it's a one-time manual grant per environment, done in the Supabase SQL editor.
+## Current status: not implemented
 
-## Grant admin
+Do **not** run the former `update profiles set role = 'admin' ...` instruction.
 
-```sql
-update profiles
-set role = 'admin'
-where id = (select id from auth.users where email = 'YOUR-EMAIL-HERE');
-```
+The `2026-07-23L` live audit confirmed that:
 
-Verify:
+- no repository migration defines `profiles.role`;
+- neither development nor production Supabase contains that column;
+- no current browser result-entry administration page exists;
+- the protected result lifecycle functions introduced by the repository are intended for a future server-side adapter and are not applied to either hosted database.
 
-```sql
-select p.role, u.email from profiles p join auth.users u on u.id = p.id where p.role = 'admin';
-```
+The previous production cutover record stating that the admin bootstrap had been run was inaccurate. This is not evidence of an untracked production column; the administrator model is still missing and remains tracked as `OPS-002`.
 
-> **Verify column/value names against the live schema before first use** — the role column and the exact value ('admin') must match what the admin RLS/functions check. If the admin result-entry build chose different naming, this note must be updated in the same commit.
+## Required design before any grant
 
-## Rules
+A future administrator boundary must be version-controlled and tested. The implementation batch must define:
 
-- Run per environment: dev project and (once it exists) the production project each need their own grant. **Do this in production as part of the production-project setup checklist (Phase 2 exit gate)** — not discovered missing in June 2028.
-- Admin permission checks are server-side (RLS / SECURITY DEFINER functions). The UI hiding admin routes is cosmetic; this grant is what actually matters.
-- Keep the admin set minimal: Nicky, plus at most one trusted backup for tournament-time result entry cover (holidays, matchday clashes). Grant the backup the same way.
-- Revoke by setting `role` back to its default value.
-- The dev seed never creates admins; seed users are always ordinary players.
+1. where authorization is stored, preferably a dedicated membership/role table or a deliberately designed profile field;
+2. allowed role values and uniqueness/minimum-backup rules;
+3. server-side checks for every privileged operation;
+4. RLS/function grants preventing self-promotion and ordinary-user execution;
+5. an auditable bootstrap and revocation path;
+6. behavior when the last administrator is removed;
+7. development and production verification queries;
+8. browser/admin adapter tests for result confirm, correct and clear.
 
-## Related
+UI route hiding is cosmetic and must never be the authorization boundary.
 
-- Admin result-entry page: Phase 2 build (checks this role server-side)
-- Audit logging of admin actions: Phase 3
-- Account deletion of an admin: transfer/delete owned leagues first (same ownership rules as any user), then revoke, then delete.
+## Interim result operation
+
+After the authoritative result-lifecycle migrations are approved, applied and verified, a privileged database owner may use the protected functions according to `docs/ops-result-entry.md`. That is an operational database-owner action, not a reusable end-user administrator model.
+
+## Future bootstrap rule
+
+When the authorization schema exists, add its migration, pgTAP permission tests, bootstrap runbook and hosted verification in the same reviewed workstream. Never document or execute a grant against a column or role value that is not present in the current schema.
