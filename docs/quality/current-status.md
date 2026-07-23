@@ -16,7 +16,7 @@
 | Deployment evidence | Baseline only: Netlify production deployment metadata at the audited commit. The repeat audit exercised **no** deployed environment. |
 | Deployed domains identified | `euro28predictor.com`; `euro28predictor.netlify.app` |
 | Development Supabase project reference | `iouzoutneyjpugbbtdem` |
-| Production Supabase project reference | `vkfnsqdyhvtwyqkisxhk` — **live since 2026-07-22**, all 20 migrations applied, baseline data loaded, real accounts created (`docs/ops-prod-cutover.md`) |
+| Production Supabase project reference | `vkfnsqdyhvtwyqkisxhk` — **live since 2026-07-22**, all 20 migrations then present applied, baseline data loaded, real accounts created (`docs/ops-prod-cutover.md`) |
 
 Project references identify environments; no credentials or browser keys are stored here.
 
@@ -30,38 +30,39 @@ The dated audits above remain unchanged. Later repository changes are recorded s
 - Documentation reconciliation merged through PR #5 at `308f1e226510b0263fb59d6b8fadde9b6385e1e3`.
 - Manual-resolution contract and **Finalise Group Standings** flow merged through PR #6 at `96abbe79501101e8212009007da6f6da5605e32d`.
 - Private PostgreSQL group-order parity, local pgTAP, permission tests and TypeScript/PostgreSQL differential coverage merged through PR #7 at `a188ecfb048608813e887b7b02b97c67d6555b97`.
-- Entry-boundary integrity, RPC-only submission, server-derived group-position snapshots, same-tournament prediction guards and local adversarial RLS/RPC coverage are delivered through PR #9.
-- The current overlays are recorded in [`reconciliations/2026-07-23-group-order-contract.md`](reconciliations/2026-07-23-group-order-contract.md), [`reconciliations/2026-07-23-database-parity-foundation.md`](reconciliations/2026-07-23-database-parity-foundation.md) and [`reconciliations/2026-07-23-entry-boundary-integrity.md`](reconciliations/2026-07-23-entry-boundary-integrity.md).
-- These changes supersede historical statements that the repository had no baseline CI, no canonical group-order contract, no local SQL parity harness, no executable entry/RLS tests, no group-position persistence path or no RPC-only submission boundary.
-- They do **not** prove hosted production migration parity, full reference-data constraints, valid bracket-tree replay, knockout-result modelling, release/recovery safety or browser E2E behaviour.
+- Entry-boundary integrity, RPC-only submission, server-derived group-position snapshots, same-tournament prediction guards and local adversarial RLS/RPC coverage merged through PR #9 at `773ffdc983663ba8c4c8a504d621a343717f5396`.
+- The production rollback runbook now prohibits connecting production domains or deploys to development Supabase and defines application-only rollback plus production-only configuration restoration.
+- The current overlays are recorded in [`reconciliations/2026-07-23-group-order-contract.md`](reconciliations/2026-07-23-group-order-contract.md), [`reconciliations/2026-07-23-database-parity-foundation.md`](reconciliations/2026-07-23-database-parity-foundation.md), [`reconciliations/2026-07-23-entry-boundary-integrity.md`](reconciliations/2026-07-23-entry-boundary-integrity.md) and [`reconciliations/2026-07-23-production-rollback-boundary.md`](reconciliations/2026-07-23-production-rollback-boundary.md).
+- These changes supersede historical statements that the repository had no baseline CI, no canonical group-order contract, no local SQL parity harness, no executable entry/RLS tests, no group-position persistence path, no RPC-only submission boundary or no safe repository rollback boundary.
+- They do **not** prove hosted production migration parity, current hosted environment-variable correctness, full reference-data constraints, valid bracket-tree replay, knockout-result modelling, verified backup/restore capability or browser E2E behaviour.
 
 ## Current verdicts
 
 | Verdict | Current value | Evidence/reference |
 | --- | --- | --- |
-| Development verdict | **Safe to continue controlled development.** The three Critical entry-boundary defects now have executable repository/local containment: server-derived group positions, lock-protected scoring snapshots and RPC-only submission. Unrelated expansion should still respect the remaining Critical and High integrity work. | PR #9; post-audit reconciliations |
-| Production verdict | **Safe only after remaining critical repairs and an explicitly approved hosted rollout; not production-ready for a real scored competition.** Local execution does not prove that production has applied the migrations or that its legacy data passes the fail-closed preflights. | Repeat-audit verdict; PR #9 evidence boundary |
-| Environment-isolation verdict | **Partial assurance with a documented live hazard.** Separate development and production project references are documented, but the written rollback procedure would now breach isolation (`OPS-001`, escalation proposed), and `OPS-005` raises an unresolved production schema-drift question. | `OPS-001`; `OPS-005`; `docs/ops-prod-cutover.md` |
-| Supabase assurance level | **Local executable assurance for private group-order parity and the current entry boundary. Repository-level static assurance only for hosted production.** Disposable Supabase now proves migrations, lint, grants, RLS, triggers, multi-user/multi-tournament attacks, submission RPC behaviour and differential parity without accessing a hosted project. | PRs #7 and #9; reconciliation notes |
-| Regression position | **No application regression identified.** Later work adds database enforcement and tests without intentionally removing current product scope. | Feature baseline; PRs #3–#9 |
+| Development verdict | **Safe to continue controlled development.** The three Critical entry-boundary defects now have executable repository/local containment, and the cross-environment rollback instruction has been removed. Unrelated expansion should still respect the remaining Critical and High integrity work. | PR #9; post-audit reconciliations |
+| Production verdict | **Safe only after remaining critical repairs and an explicitly approved hosted rollout; not production-ready for a real scored competition.** Local execution does not prove that production has applied later migrations, that its legacy data passes fail-closed preflights or that restore capability exists. | Repeat-audit verdict; PR #9 evidence boundary; rollback reconciliation |
+| Environment-isolation verdict | **Repository instructions now preserve the production/development boundary. Operational assurance remains partial.** The unsafe rollback instruction no longer reproduces in the current runbook, but current hosted configuration is unverified, `OPS-005` remains open and backup/restore recovery has not been rehearsed. | `docs/ops-prod-cutover.md`; rollback reconciliation; `OPS-003`; `OPS-005` |
+| Supabase assurance level | **Local executable assurance for private group-order parity and the current entry boundary. Repository-level static assurance only for hosted production.** Disposable Supabase proves migrations, lint, grants, RLS, triggers, multi-user/multi-tournament attacks, submission RPC behaviour and differential parity without accessing a hosted project. | PRs #7 and #9; reconciliation notes |
+| Regression position | **No application regression identified.** Later work adds database enforcement, tests and safer operations documentation without intentionally removing current product scope. | Feature baseline; PRs #3–#9; rollback reconciliation |
 
 ## Current blockers
 
 | Blocker group | Open findings / summary |
 | --- | --- |
-| Critical findings | `DATA-002` and `OPS-001` remain wholly open. `DATA-001`, `SECURITY-001` and `SECURITY-002` now have repository/local implementation evidence but remain pending targeted status review and hosted migration verification. |
+| Critical findings | `DATA-002` remains wholly open. `DATA-001`, `SECURITY-001` and `SECURITY-002` have repository/local implementation evidence but remain pending targeted status review and hosted migration verification. The `OPS-001` unsafe instruction no longer reproduces in current documentation, pending targeted finding-status review; wider recovery readiness remains open under `OPS-003`. |
 | High findings | `DATA-003` is partially addressed for current prediction writes; `FUNC-001`, `FUNC-002`, `REL-001`, `DATA-004`, `DATA-005`, `REL-002`, `REL-003`, `REL-004`, `DATA-006`, `OPS-002`, `OPS-005`, the remaining portions of `TEST-001`, and `OPS-003` remain open. |
-| Launch blockers | Approved hosted application/reconciliation of the entry-boundary migrations; valid bracket replay; authoritative knockout winner/result-method model; transactional result/scoring flow; browser E2E; safe release/recovery controls. |
-| Security blockers | Hosted verification of `SECURITY-001`/`SECURITY-002`; remaining `DATA-003` reference-data scope; `OPS-001`; `OPS-002`; `OPS-005`. |
+| Launch blockers | Approved hosted application/reconciliation of the entry-boundary migrations; valid bracket replay; authoritative knockout winner/result-method model; transactional result/scoring flow; browser E2E; verified backup/restore and incident-recovery controls. |
+| Security blockers | Hosted verification of `SECURITY-001`/`SECURITY-002`; remaining `DATA-003` reference-data scope; `OPS-002`; `OPS-005`; verification of current hosted configuration. |
 | Data-integrity blockers | `DATA-002`; remaining `DATA-003`; `DATA-004`; `DATA-005`; `FUNC-001`; `REL-001`; `REL-004`; hosted verification of the PR #9 boundary. |
-| Environment/operations blockers | `OPS-001`, `OPS-002`, `OPS-003`, `OPS-005`, hosted rollout/reconciliation and the hosted/browser portions of `TEST-001`. |
+| Environment/operations blockers | Targeted `OPS-001` status review; `OPS-002`, `OPS-003`, `OPS-005`, hosted rollout/reconciliation and the hosted/browser portions of `TEST-001`. |
 
 ## Current regressions
 
 Neither dated audit classified a previously verified production capability as a regression. Of the two safeguard failures recorded as baseline regressions:
 
 - `SAFE-007` — direct submission bypass — is contained in repository/local execution by PR #9, pending hosted rollout and targeted finding-status review;
-- `SAFE-031` — the documented rollback procedure crosses production/development boundaries — remains open under `OPS-001`.
+- `SAFE-031` — the rollback procedure crossed production/development boundaries — is contained in current repository documentation by the application-only rollback repair, pending targeted finding-status review.
 
 Other findings remain recorded as current defects or incomplete implementation rather than assumed regressions.
 
@@ -82,7 +83,7 @@ Other findings remain recorded as current defects or incomplete implementation r
 | Database integration tests | ✅ Disposable Supabase now covers private resolver parity plus entry grants/RLS, RPC-only submission, derived snapshots, manual tie refresh, lock behaviour and multi-user/multi-tournament attacks. ❌ Hosted production remains unproven. | PRs #7 and #9; `TEST-001` remains partially open |
 | End-to-end tests | 0 browser E2E framework/journeys identified | `TEST-001` |
 | Feature/safeguard baseline | 96 dated baseline entries across 10 classifications; no intentional scope removal in later work | [`feature-baseline.md`](feature-baseline.md); PRs #3–#9 |
-| Open findings | Audit baseline: **47: 5 Critical, 14 High, 14 Medium, 14 Low.** PR #9 provides targeted local resolution evidence for three Critical findings and partial evidence for `DATA-003`/`TEST-001`; the risk register remains historical until explicitly reviewed. | [`risk-register.md`](risk-register.md); reconciliation notes |
+| Open findings | Audit baseline: **47: 5 Critical, 14 High, 14 Medium, 14 Low.** Later reconciliations provide targeted evidence for entry integrity and the rollback boundary; the risk register remains historical until explicitly reviewed. | [`risk-register.md`](risk-register.md); reconciliation notes |
 
 ## Unresolved unknowns
 
@@ -94,29 +95,30 @@ Resolved or materially narrowed after the repeat audit:
 - public/client denial of private resolver and integrity helpers in disposable Supabase;
 - local multi-user/multi-tournament entry RLS and submission-RPC behaviour;
 - local direct-`submitted_at` denial and owner/non-owner submission behaviour;
-- local server-derived group-position creation, invalidation, manual-tie refresh and post-lock protection.
+- local server-derived group-position creation, invalidation, manual-tie refresh and post-lock protection;
+- repository rollback instructions now prohibit a production-to-development environment swap and define application-only recovery.
 
 Still unresolved:
 
 - live production Supabase schema, policies, migration history and legacy-data preflight result — `OPS-005` and the hosted boundary of PR #9;
+- current Netlify production environment-variable values and whether every deploy context is isolated correctly;
 - broader same-tournament constraints across mutable reference data;
 - Supabase Auth and email-confirmation settings;
 - Cloudflare Turnstile dashboard configuration;
-- actual Netlify environment-variable values, build settings and preview isolation — `netlify.toml` contains no `[build]` section;
 - GitHub branch-protection and required-check settings;
 - production logs, monitoring, user data and real scoring output;
-- backup schedules and restore capability;
+- backup schedules, backup verification and rehearsed restore capability;
 - authenticated browser behaviour across every production route;
 - runtime parity between the audit container and Netlify (`OPS-004`);
 - final official Euro 2028 regulations, teams, fixtures and exact lock instant.
 
 ## Immediate next action
 
-Two zero-risk documentation/operations actions remain important:
+The repository-only `OPS-001` rollback-documentation repair is complete in the current reconciliation. Two separate tracks now remain:
 
-1. rewrite `docs/ops-prod-cutover.md` § 10 as an **application-only** rollback and prohibit pointing production variables at a development project (`OPS-001`);
-2. only through an explicitly approved hosted-production verification process, query the production `profiles` column list and record the result to settle `OPS-005`.
+1. **Next Critical implementation target — `DATA-002`:** introduce an authoritative knockout result lifecycle covering regulation, extra time, penalties, winner identity, confirmation and correction. `FUNC-001` full bracket-tree replay and the remaining `DATA-003` reference-data constraints should follow as linked integrity work.
+2. **Explicitly approved hosted verification — `OPS-005`:** query the production `profiles` column list and migration state through a reviewed read-only process, then record the real output. Do not perform this as part of ordinary repository work.
 
-After PR #9 is merged, the next Critical implementation target is `DATA-002`: introduce an authoritative knockout result lifecycle covering regulation, extra time, penalties, winner identity, confirmation and correction. `FUNC-001` full bracket-tree replay and the remaining `DATA-003` reference-data constraints should follow as linked integrity work.
+A separate recovery workstream must eventually verify backups and rehearse restore/incident procedures before the project claims full operational recovery readiness.
 
-Do not apply or test PR #9 against either hosted Supabase project without explicit approval and a reviewed rollout/remediation plan.
+Do not apply or test the PR #9 database migrations against either hosted Supabase project without explicit approval and a reviewed rollout/remediation plan.
