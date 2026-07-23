@@ -53,7 +53,7 @@ Tournament logic (group tables, tie-breaks, bracket progression, scoring) lives 
 
 ## Status
 
-The domain layer is complete and tested:
+The domain layer is built and tested:
 
 - [x] Project scaffolded (Vite + React + TypeScript)
 - [x] Vitest wired up and confirmed working
@@ -65,7 +65,9 @@ The domain layer is complete and tested:
 - [x] `calculateScore()`
 - [x] `calculateLeagueRank()`
 
-Phase 1 application surfaces (auth, predictions, bracket, jokers, awards, review/submit, leagues, leaderboard, H2H, matches, match centre, home, profile, share) are built and reachable. 42 test files / 335 tests pass; the build, lint and type-check are clean; `npm audit` reports zero vulnerabilities.
+Baseline GitHub Actions CI is active. The first two TypeScript predicted-group-order contract batches are merged and cover automatic head-to-head ordering, recursive tied subsets, overall-stat fallbacks, partial and unresolved groups, input-order independence, structural fixture validation and the exhaustive 729-outcome feasibility invariant. See `docs/quality/reconciliations/2026-07-23-group-order-contract.md` for the dated merge record and remaining manual-resolution/database-parity work.
+
+Phase 1 application surfaces (auth, predictions, bracket, jokers, awards, review/submit, leagues, leaderboard, H2H, matches, match centre, home, profile, share) are built and reachable. The current GitHub Actions pipeline passes install, build, lint, the full test suite and the high-severity production-dependency audit.
 
 **The app is not production-ready for a real scored competition.** Open Critical and High findings — including group-position persistence, submission-state protection, the knockout result model and the absence of any database/RLS/browser test layer — are recorded in `docs/quality/`. Read `docs/quality/current-status.md` before starting work.
 
@@ -81,4 +83,4 @@ Phase 1 application surfaces (auth, predictions, bracket, jokers, awards, review
 | Current competition scope vs future competitions | `docs/competition-structure.md` |
 | Product sequence | `docs/roadmap.md`, `docs/build-todo.md` |
 | Operations runbooks | `docs/ops-*.md` |
-| Quality position, risks and audits | `docs/quality/` |
+| Quality position, risks, audits and post-audit reconciliations | `docs/quality/` |

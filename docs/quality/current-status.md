@@ -20,6 +20,16 @@
 
 Project references identify environments; no credentials or browser keys are stored here.
 
+## Post-audit reconciliation
+
+The dated audits above remain unchanged. Later repository changes are recorded separately so historical evidence is not rewritten.
+
+- Baseline GitHub Actions CI merged through PR #1.
+- TypeScript predicted-group-order contract Batch 1 merged through PR #3 at `3c0b5cd77490666e706cf3a7855e11417d94c824`.
+- TypeScript predicted-group-order contract Batch 2 merged through PR #4 at `cba741da488d58d1da5bb96986f4633e316d7497`.
+- The detailed reconciliation, remaining Batch 3 scope and **Finalise Group Standings** product decision are recorded in [`reconciliations/2026-07-23-group-order-contract.md`](reconciliations/2026-07-23-group-order-contract.md).
+- These merges supersede any historical statement that the repository had no baseline CI or no canonical TypeScript group-order fixture contract. They do **not** close the database/RLS, SQL-parity, entry-boundary or production-assurance findings below.
+
 ## Current verdicts
 
 | Verdict | Current value | Evidence/reference |
