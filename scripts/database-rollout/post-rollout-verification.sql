@@ -1,4 +1,4 @@
--- Euro 2028 Predictor — migrations 21–33 post-rollout verification
+-- Euro 2028 Predictor — migrations 21–34 post-rollout verification
 --
 -- READ-ONLY. Run after a hosted rollout. Any unexpected false value is a stop
 -- condition for lifting the deployment/write freeze.
@@ -55,6 +55,95 @@ with submitted_all as (
       ), ''))
       from progression_rows
     ) as progression
+), public_functions as (
+  select
+    p.oid::regprocedure::text as signature,
+    p.proconfig,
+    has_function_privilege('anon', p.oid, 'EXECUTE') as anon_exec,
+    has_function_privilege('authenticated', p.oid, 'EXECUTE') as authenticated_exec,
+    has_function_privilege('service_role', p.oid, 'EXECUTE') as service_exec
+  from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname = 'public'
+), expected_authenticated_functions(signature) as (
+  values
+    ('create_league(uuid,text)'),
+    ('delete_league(uuid)'),
+    ('get_leaderboard(uuid)'),
+    ('get_league(uuid)'),
+    ('get_league_match_picks(uuid,uuid)'),
+    ('get_league_members(uuid)'),
+    ('get_league_preview(text)'),
+    ('get_match_prediction_distribution(uuid)'),
+    ('get_my_leagues(uuid)'),
+    ('get_rival_entry(uuid,uuid)'),
+    ('join_league(text)'),
+    ('leave_league(uuid)'),
+    ('replace_predicted_progression(uuid,jsonb,jsonb)'),
+    ('submit_entry(uuid)'),
+    ('transfer_ownership(uuid,uuid)')
+), expected_service_functions(signature) as (
+  select signature from expected_authenticated_functions
+  union all values
+    ('capture_rank_history(uuid)'),
+    ('clear_match_result(uuid,text)'),
+    ('confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
+    ('correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
+    ('recompute_all_scores()'),
+    ('recompute_tournament_scores(uuid)')
+), function_acl_checks as (
+  select
+    (
+      select count(*) = 0
+      from public_functions
+      where anon_exec
+    ) as anon_function_execution_denied,
+    (
+      select count(*) = 0
+      from expected_authenticated_functions e
+      left join public_functions f using (signature)
+      where not coalesce(f.authenticated_exec, false)
+    ) as authenticated_allowlist_complete,
+    (
+      select count(*) = 0
+      from public_functions f
+      left join expected_authenticated_functions e using (signature)
+      where f.authenticated_exec and e.signature is null
+    ) as authenticated_allowlist_exact,
+    (
+      select count(*) = 0
+      from expected_service_functions e
+      left join public_functions f using (signature)
+      where not coalesce(f.service_exec, false)
+    ) as service_allowlist_complete,
+    (
+      select count(*) = 0
+      from public_functions f
+      left join expected_service_functions e using (signature)
+      where f.service_exec and e.signature is null
+    ) as service_allowlist_exact,
+    (
+      select proconfig::text = '{"search_path=\"\""}'
+      from public_functions
+      where signature = 'gen_invite_code()'
+    ) as invite_code_search_path_fixed,
+    (
+      select proconfig::text = '{"search_path=\"\""}'
+      from public_functions
+      where signature = '_stage_ord(text)'
+    ) as stage_ord_search_path_fixed,
+    (
+      select proconfig::text = '{"search_path=\"\""}'
+      from public_functions
+      where signature = 'enforce_write_version()'
+    ) as write_version_search_path_fixed,
+    (
+      select defaclacl::text = '{postgres=X/postgres}'
+      from pg_default_acl
+      where defaclrole = 'postgres'::regrole
+        and defaclnamespace = 'public'::regnamespace
+        and defaclobjtype = 'f'
+    ) as future_functions_owner_only
 ), privilege_checks as (
   select
     not has_schema_privilege('anon', 'predictor_internal', 'USAGE') as anon_private_schema_denied,
@@ -217,6 +306,7 @@ with submitted_all as (
 select jsonb_build_object(
   'objects', to_jsonb(object_checks),
   'privileges', to_jsonb(privilege_checks),
+  'function_acl', to_jsonb(function_acl_checks),
   'data', to_jsonb(data_checks),
   'rollout_guard_fingerprints', (select to_jsonb(fingerprints) from fingerprints),
   'overall_pass',
@@ -253,6 +343,15 @@ select jsonb_build_object(
     and privilege_checks.anon_revision_all_denied
     and privilege_checks.auth_revision_all_denied
     and privilege_checks.service_revision_all_denied
+    and function_acl_checks.anon_function_execution_denied
+    and function_acl_checks.authenticated_allowlist_complete
+    and function_acl_checks.authenticated_allowlist_exact
+    and function_acl_checks.service_allowlist_complete
+    and function_acl_checks.service_allowlist_exact
+    and function_acl_checks.invite_code_search_path_fixed
+    and function_acl_checks.stage_ord_search_path_fixed
+    and function_acl_checks.write_version_search_path_fixed
+    and function_acl_checks.future_functions_owner_only
     and data_checks.exactly_one_submitted_entry_preserved
     and data_checks.submitted_timestamp_preserved
     and data_checks.rehearsed_payload_preserved
@@ -266,4 +365,4 @@ select jsonb_build_object(
     and data_checks.bracket_tree_valid
     and data_checks.r16_resolves
 ) as post_rollout_verification
-from object_checks, privilege_checks, data_checks;
+from object_checks, privilege_checks, function_acl_checks, data_checks;

@@ -10,14 +10,16 @@ Do not import rules or features from previous World Cup projects, old branches, 
 
 ## Current critical status
 
-The `2026-07-23L` audit confirmed a release mismatch:
+The production application/database mismatch remains live:
 
-- production Netlify serves commit `51d8ac6` with PR #14's atomic bracket client;
-- production and development Supabase still have the original 20-migration schema;
+- production Netlify serves the post-PR #14 atomic-bracket client;
+- production Supabase still has the original 20-migration schema;
 - production lacks `replace_predicted_progression`, which the deployed bracket save path calls;
-- the 13 later repository migrations are not hosted.
+- the repository has 34 migrations;
+- hosted development has migrations 21–34 applied and verified against the exact normalized production entry;
+- production has 14 pending migrations, 21–34.
 
-Normal production promotion must pause until a reviewed plan restores a compatible application/database pair. Never solve this by pointing production at development Supabase. Do not apply hosted migrations without explicit owner approval, exact preflight evidence and a remediation/backup plan.
+Normal production promotion must pause until a reviewed plan restores a compatible application/database pair. Never solve this by pointing production at development Supabase. Do not apply hosted migrations without explicit owner approval, exact preflight evidence, verified recovery evidence and the controlled rollout runbook.
 
 ## Sources of truth
 
@@ -25,9 +27,11 @@ Normal production promotion must pause until a reviewed plan restores a compatib
 | --- | --- |
 | Current implementation, hosted status and next action | `docs/quality/current-status.md` |
 | Latest formal audit | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
+| Latest hosted migration/security evidence | `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`; `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md` |
 | Agent/Git/database discipline | `AGENTS.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Hosted migration inventory | `docs/ops-pending-migrations.md` |
+| Production rollout | `docs/ops-hosted-migration-rollout.md` |
 | Scoring and entry validity | `docs/scoring-rules.md` |
 | Tournament facts | `docs/tournament-structure.md` |
 | Architecture and tournament states | `docs/architecture-and-tournament-states.md` |
@@ -42,8 +46,9 @@ Older dated audits and Git history remain evidence, not current instructions.
 - Put tournament rules in pure functions under `src/domain/tournament/`.
 - Components render domain results; they do not invent standings, scoring or bracket rules.
 - All browser Supabase access goes through `src/services/supabase/`.
-- The latest repository database chain is authoritative for locks, submission, derived positions, results, progression and scoring.
-- Internal integrity helpers stay private; browser roles receive minimum privileges.
+- The latest repository database chain is authoritative for locks, submission, derived positions, results, progression, scoring and function execution boundaries.
+- Internal integrity, trigger and maintenance helpers receive no Data API execution.
+- Authenticated and service-role RPC access is an explicit allowlist; future public functions default to owner-only.
 - Original Predictor and bonus games remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references and unknown official data.
@@ -61,9 +66,9 @@ Older dated audits and Git history remain evidence, not current instructions.
 
 Keep `src/domain/tournament/scoringConfig.ts`, SQL and tests aligned. Automatic deadline submission is documented but not implemented.
 
-## Repository/local database position
+## Repository and hosted-development database position
 
-PRs #7, #9, #11, #12 and #14 provide disposable-local coverage for:
+The 34-migration repository chain and hosted development provide verified coverage for:
 
 - TypeScript/PostgreSQL predicted group-order parity;
 - RPC-only submission and server-derived predicted group positions;
@@ -72,9 +77,13 @@ PRs #7, #9, #11, #12 and #14 provide disposable-local coverage for:
 - serialized scoring recomputation;
 - real winner propagation;
 - predicted bracket-tree replay;
-- atomic complete-bracket replacement.
+- atomic complete-bracket replacement;
+- no anonymous public-function execution;
+- exact authenticated/service function allowlists;
+- owner-only future function defaults;
+- fixed helper search paths.
 
-These are not hosted capabilities until the pending migrations are applied and verified.
+These are not production capabilities until migrations 21–34 are applied and verified there.
 
 ## Required workflow
 
@@ -97,14 +106,15 @@ npm audit --omit=dev --audit-level=high
 
 ## Immediate order
 
-1. Resolve production application/schema mismatch (`OPS-006`).
-2. Isolate production Netlify preview/branch contexts from production Supabase (`OPS-007`).
-3. Prepare and review exact hosted preflights for migrations 21–33.
-4. Decide development reset/remediation for legacy 16-row brackets and stored results.
-5. Harden hosted function grants/search paths (`SECURITY-003`).
-6. Flush/await pending writes before submission (`REL-003`).
-7. Implement automatic real R16 population.
-8. Add browser E2E and rehearse backup/restore before launch readiness.
+1. Review and approve the production migrations 21–34 window, backup/recovery evidence and operator.
+2. Run the two committed production preflights and exact 1–20 history-only repair.
+3. Require `supabase db push --dry-run` to show migrations 21–34 only.
+4. Apply migrations 21–34 only after explicit approval; run the exact post-rollout verifier, advisors and application smoke tests.
+5. Isolate production Netlify preview/branch contexts from production Supabase (`OPS-007`).
+6. Enable leaked-password protection through a separate approved Auth-setting change.
+7. Flush/await pending writes before submission (`REL-003`).
+8. Implement automatic real R16 population.
+9. Add browser E2E and rehearse backup/restore before launch readiness.
 
 ## Hard prohibitions
 

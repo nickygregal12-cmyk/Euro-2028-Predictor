@@ -1,15 +1,15 @@
 # Euro 2028 Predictor — Current Roadmap
 
-**Status date:** 23 July 2026  
+**Status date:** 24 July 2026  
 **Authority:** Future product sequence only. For current implementation and hosted state, use `docs/quality/current-status.md`.
 
-The previous long-form roadmap described the position before the repository integrity PRs and before direct hosted inspection. Its detail remains available in Git history at audited commit `51d8ac6`, but it is no longer an accurate work order.
+The previous long-form roadmap described the position before the repository integrity PRs and direct hosted inspection. Its detail remains available in Git history, but it is no longer an accurate work order.
 
 ## Current position
 
 The application is live at `euro28predictor.com` and `euro28predictor.netlify.app`. DNS is no longer an open work item.
 
-Repository/local database work has completed:
+Repository and hosted-development database work has completed:
 
 - canonical TypeScript/PostgreSQL predicted group ordering;
 - manual group and best-third tie decisions;
@@ -18,38 +18,48 @@ Repository/local database work has completed:
 - serialized scoring recomputation;
 - predicted bracket-tree replay and real winner propagation;
 - atomic complete-bracket replacement;
-- application CI and disposable database parity CI.
+- exact authenticated/service function allowlists, no anonymous function execution and owner-only future defaults;
+- application CI and disposable database parity CI;
+- hosted development rehearsal through migration 34 using the exact normalized production entry.
 
-However, both hosted Supabase projects remain on the original 20-migration schema while the production client is deployed at PR #14. The roadmap therefore starts with release recovery, not new feature expansion.
+Production Supabase remains on the original 20-migration schema while the production client is deployed at PR #14. The roadmap therefore starts with release recovery, not new feature expansion.
 
 ## Stage 0 — Restore a compatible production release
 
 **Hard gate before ordinary production promotion.**
 
-1. Freeze non-recovery production deployment.
-2. Choose a reviewed compatibility path:
-   - temporarily restore a known-good application compatible with the 20-migration schema; or
-   - stage and verify migrations 21–33 through development and then production.
-3. Never point production at development Supabase.
-4. Verify bracket save/reload against the chosen compatible pair.
-5. Record the recovery decision and exact deployed app/schema versions.
+Completed preparation:
 
-## Stage 1 — Hosted integrity rollout
+1. the exact production entry passed migrations 21–34 on hosted development;
+2. production migrations 1–20 structural effects were independently proven;
+3. the exact 1–20 history-only repair is documented;
+4. production source-data preflights and post-rollout verification are committed;
+5. migration 34 repairs function grants/search paths as the final pending database file.
 
-1. Isolate Netlify production deploy previews and branch deploys from production Supabase.
-2. Review Supabase security-advisor findings:
-   - revoke unnecessary browser execution of internal, trigger and maintenance `SECURITY DEFINER` functions;
-   - fix mutable search paths;
-   - review leaked-password protection.
-3. Resolve development blockers:
-   - 20 submitted entries use the legacy 16-row progression representation;
-   - 12 matches contain old results;
-   - decide reset versus deliberate remediation.
-4. Run exact preflights for migrations 21–33.
-5. Apply and verify development first.
-6. Produce production backup/recovery evidence and a reviewed rollout plan.
-7. Apply production only after explicit approval.
-8. Verify policies, grants, RPCs, result lifecycle, scoring, winner propagation and atomic bracket persistence through real hosted behavior.
+Remaining execution:
+
+1. obtain verified production backup/recovery evidence;
+2. name the operator, recovery decision owner and change window;
+3. rerun both production preflights;
+4. apply the 1–20 metadata-only history repair;
+5. require `db push --dry-run` to show migrations 21–34 only;
+6. obtain explicit approval and apply the complete chain in timestamp order;
+7. verify bracket save/reload, authenticated RPCs, result/scoring boundaries and exact function allowlists;
+8. record the exact deployed app/schema pair and retained evidence.
+
+Never point production at development Supabase and never apply migration 33 or 34 alone.
+
+## Stage 1 — Finish hosted operations and security configuration
+
+1. Isolate Netlify production deploy previews and branch deploys from production Supabase (`OPS-007`).
+2. Enable leaked-password protection through a separately reviewed Auth configuration change.
+3. Re-run production security advisors after migration 34:
+   - require no anonymous security-definer exposure;
+   - require no mutable search paths;
+   - retain only the intentional signed-in application RPC warnings.
+4. Establish verified production backup and restore procedures.
+5. Add production error reporting, alert ownership and critical-journey monitoring.
+6. Verify Netlify runtime pinning, branch protection and required checks.
 
 ## Stage 2 — Close Original Predictor reliability gaps
 
@@ -58,8 +68,9 @@ However, both hosted Supabase projects remain on the original 20-migration schem
 3. `REL-002`: prevent independent late reads from overwriting newer state.
 4. `REL-006`: make first-entry creation idempotent under two-tab races.
 5. Finish wider same-tournament and immutable fixture/source constraints.
-6. Implement automatic deadline submission for valid entries.
-7. Add deadline reminder emails after Auth/SMTP configuration is re-verified.
+6. Map raw internal failures to stable user-facing errors.
+7. Implement automatic deadline submission for valid entries.
+8. Add deadline reminder emails after Auth/SMTP configuration is re-verified.
 
 ## Stage 3 — Complete real tournament progression and administration
 
@@ -139,6 +150,7 @@ Before public tournament launch:
 - Original Predictor and bonus competition points never combine.
 - Predicted and real brackets never blend.
 - Database rules, not UI state, protect locks and scoring inputs.
+- Public function execution is closed by default; every browser/service RPC requires an explicit reviewed grant.
 - No hosted migration without explicit approval and evidence.
 - No production-to-development rollback.
 - No feature is “implemented” because it exists only in this roadmap or a component gallery.
