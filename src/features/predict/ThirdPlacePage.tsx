@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import {
   Alert,
   EmptyState,
@@ -11,14 +12,21 @@ import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildThirdPlacePipeline } from './thirdPlacePipeline'
 import s from '../shared.module.css'
 
+const FINALISE_PATH = '/predict/third-place'
+
+function groupReviewPath(letter: string): string {
+  return `/predict/groups/${letter}?return=${encodeURIComponent(FINALISE_PATH)}`
+}
+
 export function ThirdPlacePage() {
+  const navigate = useNavigate()
   const data = useTournamentData()
   const preds = usePredictions()
 
   if (data.status === 'error') {
     return (
       <div className={s.page}>
-        <h1 className={s.title}>Best thirds</h1>
+        <h1 className={s.title}>Finalise Group Standings</h1>
         <Alert variant="error" title="Couldn't load the tournament">
           {data.message}
         </Alert>
@@ -36,12 +44,20 @@ export function ThirdPlacePage() {
     )
   }
 
-  const pipeline = buildThirdPlacePipeline(data.data, preds.getPrediction, preds.tieResolutions)
+  const pipeline = buildThirdPlacePipeline(
+    data.data,
+    preds.getPrediction,
+    preds.tieResolutions,
+  )
 
   const header = (
     <div className={s.header}>
       <span className={s.eyebrow}>Predict</span>
-      <h1 className={s.title}>Best third-placed teams</h1>
+      <h1 className={s.title}>Finalise Group Standings</h1>
+      <p className={s.sub}>
+        Resolve any remaining group ties, review the best third-placed teams and
+        confirm who reaches the knockout stage.
+      </p>
     </div>
   )
 
@@ -52,13 +68,14 @@ export function ThirdPlacePage() {
         <EmptyState
           icon={<InfoIcon size={22} />}
           title="Predict all group matches first"
-          description="The best-third ranking appears once every group is complete."
+          description="Final standings and the best-third ranking appear once every group is complete."
         />
       </div>
     )
   }
 
-  // Ties still needing a decision come first, so the call-to-action is on top.
+  // Pending decisions come first. Resolved decisions remain visible afterwards
+  // so the user can review or amend them before moving to the bracket.
   const orderedTies = [...pipeline.ties].sort(
     (a, b) => Number(a.resolved) - Number(b.resolved),
   )
@@ -66,9 +83,8 @@ export function ThirdPlacePage() {
   const tieNote =
     pipeline.pendingCount > 0 ? (
       <span>
-        {pipeline.pendingCount} tie{pipeline.pendingCount === 1 ? '' : 's'} below still need
-        {pipeline.pendingCount === 1 ? 's' : ''} your order — the qualifying four aren&apos;t final
-        until every tie is set.
+        {pipeline.pendingCount} decision{pipeline.pendingCount === 1 ? '' : 's'} still
+        required before the qualifying four are final.
       </span>
     ) : undefined
 
@@ -76,18 +92,9 @@ export function ThirdPlacePage() {
     <div className={s.page}>
       {header}
 
-      {pipeline.rows ? (
-        <ThirdPlaceTable rows={pipeline.rows} tieResolutionSlot={tieNote} />
-      ) : (
-        <Alert variant="warning" title="Resolve the ties below first">
-          Some of your groups finish level on every criterion we can predict, so who comes third
-          isn&apos;t decided yet. Set the order below and the ranking will appear.
-        </Alert>
-      )}
-
       {orderedTies.length > 0 && (
         <div className={s.stack}>
-          <span className={s.eyebrow}>Ties to resolve</span>
+          <span className={s.eyebrow}>Standings decisions</span>
           {orderedTies.map((tie) => (
             <TieResolver
               key={tie.key}
@@ -95,12 +102,32 @@ export function ThirdPlacePage() {
               reason={tie.reason}
               teams={tie.teams}
               resolved={tie.resolved}
-              saveStatus={preds.getTieSaveStatus(tie.teams.map((t) => t.id))}
+              saveStatus={preds.getTieSaveStatus(tie.teams.map((team) => team.id))}
+              reviewActions={tie.reviewGroups.map((letter) => ({
+                label:
+                  tie.scope === 'group'
+                    ? `Change Group ${letter} scores`
+                    : `Review Group ${letter} scores`,
+                onClick: () => navigate(groupReviewPath(letter)),
+              }))}
               onResolve={(order) => preds.setTieResolution(tie.scope, order)}
             />
           ))}
         </div>
       )}
+
+      <div className={s.stack}>
+        <span className={s.eyebrow}>Best third-placed teams</span>
+        {pipeline.rows ? (
+          <ThirdPlaceTable rows={pipeline.rows} tieResolutionSlot={tieNote} />
+        ) : (
+          <Alert variant="warning" title="Resolve the group decisions above">
+            At least one group&apos;s third-place team is still undecided. Confirm an
+            order or change that group&apos;s scores before the best-third table can be
+            completed.
+          </Alert>
+        )}
+      </div>
     </div>
   )
 }
