@@ -161,6 +161,52 @@ describe('PredictionsProvider submission save barrier', () => {
     expect(mocks.submitEntry).toHaveBeenCalledWith('entry-1')
   })
 
+  it('flushes the last debounced bracket snapshot before submit_entry', async () => {
+    const save = deferredNumber()
+    const order: string[] = []
+    mocks.upsertProgression.mockImplementation(() => {
+      order.push('bracket-save-started')
+      return save.promise.then((version) => {
+        order.push('bracket-save-finished')
+        return version
+      })
+    })
+    mocks.submitEntry.mockImplementation(async () => {
+      order.push('submitted')
+      return '2026-07-24T00:00:00.000Z'
+    })
+
+    const api = await renderReadyProvider()
+
+    act(() => {
+      api.setBracketProgression({ 'team-1': 'qf' })
+    })
+
+    let submission!: Promise<{ ok: boolean; message?: string }>
+    act(() => {
+      submission = api.submit()
+    })
+
+    expect(mocks.upsertProgression).toHaveBeenCalledWith(
+      'entry-1',
+      'team-1',
+      'qf',
+      0,
+    )
+    expect(order).toEqual(['bracket-save-started'])
+    expect(mocks.submitEntry).not.toHaveBeenCalled()
+
+    let result!: { ok: boolean; message?: string }
+    await act(async () => {
+      save.resolve(1)
+      result = await submission
+    })
+
+    expect(result).toEqual({ ok: true })
+    expect(order).toEqual(['bracket-save-started', 'bracket-save-finished', 'submitted'])
+    expect(mocks.submitEntry).toHaveBeenCalledWith('entry-1')
+  })
+
   it('does not call submit_entry when the flushed save reaches a terminal error', async () => {
     mocks.upsertMatchPrediction.mockRejectedValue(new Error('offline'))
     const api = await renderReadyProvider()
@@ -175,7 +221,7 @@ describe('PredictionsProvider submission save barrier', () => {
       submission = api.submit()
     })
 
-    // Exhaust the controller's two automatic retries without waiting real time.
+    // Wait through the controller's initial attempt and two automatic retries.
     await act(async () => {
       await vi.waitFor(() => expect(mocks.upsertMatchPrediction).toHaveBeenCalledTimes(3), {
         timeout: 4000,
