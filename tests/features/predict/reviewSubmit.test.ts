@@ -21,35 +21,52 @@ describe('submitBlockers', () => {
   })
 
   it('flags incomplete groups', () => {
-    const b = submitBlockers(status({ groups: { predicted: 30, total: 36, complete: false } }))
-    expect(b).toEqual([{ label: 'Groups A–F', route: '/predict/groups/A' }])
+    const blockers = submitBlockers(
+      status({ groups: { predicted: 30, total: 36, complete: false } }),
+    )
+    expect(blockers).toEqual([
+      { label: 'Groups A–F', route: '/predict/groups/A' },
+    ])
   })
 
-  it('flags pending third-place ties', () => {
-    const b = submitBlockers(status({ thirdPlace: { state: 'ties', tieCount: 2 } }))
-    expect(b).toEqual([{ label: 'Best third-placed teams', route: '/predict/third-place' }])
+  it('flags pending standings decisions', () => {
+    const blockers = submitBlockers(
+      status({ thirdPlace: { state: 'ties', tieCount: 2 } }),
+    )
+    expect(blockers).toEqual([
+      {
+        label: 'Finalise Group Standings',
+        route: '/predict/third-place',
+      },
+    ])
   })
 
   it('flags an incomplete bracket', () => {
-    const b = submitBlockers(status({ bracket: { picked: 12, total: 15 } }))
-    expect(b).toEqual([{ label: 'Knockout bracket', route: '/predict/bracket' }])
+    const blockers = submitBlockers(
+      status({ bracket: { picked: 12, total: 15 } }),
+    )
+    expect(blockers).toEqual([
+      { label: 'Knockout bracket', route: '/predict/bracket' },
+    ])
   })
 
   it('never flags jokers (optional)', () => {
-    expect(submitBlockers(status({ jokers: { placed: 0, total: 5 } }))).toEqual([])
+    expect(
+      submitBlockers(status({ jokers: { placed: 0, total: 5 } })),
+    ).toEqual([])
   })
 
-  it('orders groups → thirds → bracket', () => {
-    const b = submitBlockers(
+  it('orders groups → finalise standings → bracket', () => {
+    const blockers = submitBlockers(
       status({
         groups: { predicted: 0, total: 36, complete: false },
         thirdPlace: { state: 'blocked', tieCount: 0 },
         bracket: { picked: 0, total: 15 },
       }),
     )
-    expect(b.map((x) => x.label)).toEqual([
+    expect(blockers.map((blocker) => blocker.label)).toEqual([
       'Groups A–F',
-      'Best third-placed teams',
+      'Finalise Group Standings',
       'Knockout bracket',
     ])
   })
@@ -60,7 +77,7 @@ describe('firstBlocker', () => {
     expect(firstBlocker(status())).toBeNull()
   })
 
-  it('returns the first in checklist order — thirds before bracket', () => {
+  it('returns finalise standings before the bracket', () => {
     expect(
       firstBlocker(
         status({
@@ -68,7 +85,10 @@ describe('firstBlocker', () => {
           bracket: { picked: 10, total: 15 },
         }),
       ),
-    ).toEqual({ label: 'Best third-placed teams', route: '/predict/third-place' })
+    ).toEqual({
+      label: 'Finalise Group Standings',
+      route: '/predict/third-place',
+    })
   })
 
   it('groups win over everything', () => {
