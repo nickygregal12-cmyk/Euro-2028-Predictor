@@ -14,7 +14,7 @@
 | Hosted development data reset | **Completed.** Disposable competition data was cleared while Auth users, profiles and the 51-match reference skeleton were preserved. |
 | Hosted development migrations 21–33 | **Applied and structurally verified.** |
 | Production entry replay | **Passed in development using the exact normalized production payload.** |
-| Production read-only structural preflight | **Passed.** |
+| Production read-only structural preflight | **Passed, including exact payload fingerprints and timestamp.** |
 | Production rollout | **Not performed. Requires an approved window, backup evidence, migration-history reconciliation and the operator procedure in `docs/ops-hosted-migration-rollout.md`.** |
 
 This work does not claim that production is current. Production remains on the original 20-migration schema until a separate explicitly approved rollout is completed.
@@ -85,8 +85,8 @@ Verified after migration 33:
 - the shared submission and predicted-bracket validators exist;
 - result-state, method, 90-minute, 120-minute, shootout, winner, version and audit columns exist;
 - `replace_predicted_progression()` exists;
-- authenticated clients cannot update `entries`;
-- authenticated clients cannot insert or update derived group positions;
+- authenticated clients cannot update or delete `entries`;
+- authenticated clients cannot insert, update or delete derived group positions;
 - authenticated clients cannot insert, update or delete progression rows directly;
 - authenticated clients may execute the owner-checked atomic progression RPC;
 - anonymous clients cannot execute that RPC;
@@ -106,13 +106,15 @@ The one submitted production entry was copied into development by stable referen
 
 No production user identity or Auth credential was copied.
 
-Normalized fingerprints matched between production and the development clone:
+The current rollout-guard normalization matched between production and the development clone:
 
 | Payload | Fingerprint |
 | --- | --- |
-| 36 match predictions | `2844328a25f2ab315bd2af602e1e1159` |
-| two manual tie decisions | `a82498444d2d8249cc59eb1f5dba3e5b` |
+| 36 match predictions | `8d76619fe4b44fdac17de1cc2afe5aaa` |
+| two manual tie decisions | `a4dcf183f5c48e3ba11ff75c59622598` |
 | eight progression rows | `0d7bc491daa9b24013204d061a2d38f1` |
+
+These values are committed into both rollout SQL scripts. Any source-payload change blocks the rollout until the clone and full replay are repeated and a reviewed repository change records the new evidence.
 
 The clone produced:
 
@@ -148,32 +150,50 @@ A scheduled R16 fixture was temporarily assigned two development teams and exerc
 2. correction reversed the winner and replaced the QF participant;
 3. clearing returned the source match to scheduled and removed the propagated QF participant.
 
-After the rehearsal:
+During the behavioural rehearsal:
 
 - the R16 and QF participants were restored to their original null/scheduled state;
 - score events returned to zero;
-- three immutable confirm/correct/clear revisions remained;
+- three confirm/correct/clear revisions proved the immutable audit path;
 - direct service-role access to the revision table remained denied.
+
+After capturing that evidence, the development-only revision rows were removed and the clone submission timestamp was restored to the exact production timestamp. This left hosted development in the expected post-rollout state: zero revisions, zero score events, zero rank history and the exact production source payload.
 
 ## Production read-only preflight
 
-The production structural query returned `overall_structural_pass = true`.
+The hardened production query returned `overall_structural_pass = true`.
 
 Confirmed:
 
-- the submitted timestamp is before the configured lock;
-- the lock is configured;
+- exactly one submitted entry exists;
+- its timestamp remains `2026-07-21 21:51:49.639442+00` and is before the configured lock;
 - six groups exist;
 - every group has four teams, six valid group matches and six predictions;
 - 36 predictions exist in total;
-- both manual tie rows have valid exact team sets, scope and tie keys;
+- exactly one group tie and one third-place tie remain, with valid exact team sets, scope and tie keys;
+- all three rollout-guard fingerprints match the payload replayed on development;
 - progression has exactly four QF, two SF, one final and one champion row;
 - no match, progression or existing group-position cross-tournament anomalies were found;
-- no legacy match score exists;
+- no legacy match score, score event or rank-history row exists;
 - the knockout source tree contains 8 R16, 4 QF, 2 SF and 1 final;
 - all 14 winner-source references are unique and point to the required previous round.
 
 Production currently has zero persisted predicted group-position rows. That is expected under the old hosted schema. The exact production clone proved migration 26 rebuilds all 24 positions from the saved predictions and tie decisions before revalidation.
+
+## Hardened post-rollout verifier
+
+The final committed post-rollout script was executed against the cleaned hosted development mirror and returned `overall_pass = true`.
+
+It now proves:
+
+- exactly one submitted entry and the exact original timestamp remain;
+- source prediction, tie and progression fingerprints remain unchanged;
+- all 24 derived positions exist;
+- full R16 and 15-match bracket replay succeeds;
+- no result, revision, score-event or rank-history row is invented;
+- entry, derived-position and progression direct write privileges are denied as intended;
+- confirm/correct/clear are denied to both browser roles and allowed to the service role;
+- the revision table is denied direct select/insert/update/delete to anonymous, authenticated and service roles.
 
 ## Migration-history caveat
 
@@ -199,6 +219,7 @@ Production rollout is technically promising but remains blocked until all are tr
 - the exact migration-history repair commands are reviewed against `migration list` output;
 - production writes and deployments are frozen for the window;
 - the preflight SQL is rerun immediately before change;
+- all rollout-guard values still match;
 - migration 21–33 order is preserved;
 - post-rollout grants, policies, functions and browser bracket persistence are verified;
 - production deploy previews are isolated from production Supabase;
