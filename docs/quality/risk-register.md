@@ -1,89 +1,99 @@
-# Quality risk register
+# Euro 2028 Predictor — Current Risk Register
 
-This is the permanent history and current status of verified findings. It is not the implementation backlog. Detailed remediation work belongs in GitHub Issues; the complete evidence remains in the [23 July 2026 full audit](audits/2026-07-23-full-audit.md) and the [23 July 2026 repeat verification audit](audits/2026-07-23-repeat-verification-audit.md).
+**Current audit:** `2026-07-23L`  
+**Evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
+**Audited repository/deploy:** `51d8ac607ee9d04bc932df1fea01a488f844f05a`
 
-> **Last retest: `2026-07-23R` (repeat verification audit).** All 45 baseline findings were retested against a materially identical repository snapshot and **all 45 still reproduce**. None is resolved. Two findings were added (`OPS-005`, `REPO-002`) and one severity escalation is proposed (`OPS-001`, High → Critical). Entries whose `Last reviewed` value reads `2026-07-23R` were re-verified against code, migrations or executed command output during that audit.
+This register retains every original finding ID and adds findings discovered by the live hosted audit. Older audit reports remain immutable evidence. “Repository/local implemented” does **not** mean deployed.
 
-## Current register summary
+## Summary
 
-| Severity | Open | Other statuses | Total |
+| Severity | Total current findings | Closed/superseded | Open or partially resolved |
 | --- | ---: | ---: | ---: |
-| Critical | 5 | 0 | 5 |
-| High | 14 | 0 | 14 |
-| Medium | 14 | 0 | 14 |
+| Critical | 6 | 1 | 5 |
+| High | 16 | 1 | 15 |
+| Medium | 14 | 1 | 13 |
 | Low | 14 | 0 | 14 |
-| **Total** | **47** | **0** | **47** |
+| **Total** | **50** | **3** | **47** |
 
-No finding is marked resolved. Neither audit contained implementation evidence, validation evidence, a linked fix commit/PR and confirmation that an issue no longer reproduces.
+`OPS-001` is resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the live-audit documentation reconciliation. Several other findings are implemented locally but remain open because the hosted databases have not received the fixes.
 
-Movement since the baseline register (45 findings):
+## Critical
 
-| Change | Detail |
-| --- | --- |
-| Added | `OPS-005` (High) — executed admin bootstrap implies production schema drift from the migration set. |
-| Added | `REPO-002` (Low) — `.gitignore` does not cover `.env.production` / `.env.development`. |
-| Escalated | `OPS-001` High → **Critical**, pending owner confirmation. The production cutover completed on 2026-07-22, so the documented rollback would now point the live public domain at the development database rather than reverting to a pre-cutover state. |
-| Resolved | None. |
+| ID | Finding | Current status | Current evidence / required closure |
+| --- | --- | --- | --- |
+| `OPS-006` | Production application and Supabase schema are incompatible | **Open — confirmed live** | Netlify serves post-PR #14 code calling `replace_predicted_progression`; production lacks the RPC. Restore a compatible app/schema pair and verify bracket save/reload. |
+| `DATA-001` | Predicted group positions are not safely derived/persisted | **Open hosted; implemented repository/local** | PR #9 derives and protects positions locally. Both hosted projects still use the original writable table/policies. Apply and verify the later chain. |
+| `SECURITY-001` | Group-position scoring inputs can be forged/changed | **Open hosted; implemented repository/local** | Hosted authenticated role still has insert/update privileges and the broad owner policy. |
+| `SECURITY-002` | Submission timestamp can be bypassed directly | **Open hosted; implemented repository/local** | Hosted authenticated role still has `entries` update privilege. PR #9 removes this locally. |
+| `DATA-002` | Knockout results lack an authoritative winner/method | **Open hosted; implemented repository/local** | PR #11 is tested locally; hosted schemas lack result state/method/checkpoints/winner/revisions. |
+| `OPS-001` | Rollback instruction crossed production/development boundaries | **Resolved** | Current runbook prohibits production-to-development swaps; production Netlify currently references production Supabase. Reopen on any regression. |
 
-| ID | Title | Category | Severity | Confidence | First identified | Status | GitHub Issue | Evidence summary | Resolution evidence | Last reviewed |
-| -- | ----- | -------- | -------- | ---------- | ---------------- | ------ | ------------ | ---------------- | ------------------- | ------------- |
-| `DATA-001` | Current group-position scoring has no client persistence path | Data / Functional correctness | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | `predicted_group_positions` is created and scored in SQL, but no current `src/` service/provider reads or writes it; see `supabase/migrations/20260719120000_init_v0_1.sql`, `20260721120000_scoring_positions_knockout_awards.sql`, and `src/app/providers/PredictionsProvider.tsx`. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `SECURITY-001` | Owners can alter group-position rows after tournament lock | Security / Data integrity | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | Owner `FOR ALL` policy covers `predicted_group_positions`, while lock/version migrations omit the table; see migrations `20260719120000_init_v0_1.sql`, `20260719170000_lock_and_leaderboard.sql`, and `20260722120000_write_integrity.sql`. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `SECURITY-002` | Submission state is directly writable by the entry owner | Security / Functional correctness | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | `entries.submitted_at` is an ordinary column under a broad owner `FOR ALL` policy, so direct API updates can bypass `submit_entry()` validation; see `20260719120000_init_v0_1.sql` and prediction services. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DATA-002` | The current result schema cannot resolve a tied knockout match | Data / Product correctness | **Critical** | Confirmed | 2026-07-23 | Open | Recommended; not created | `matches` stores only home/away scores and has no authoritative winner, result method, extra-time or penalty fields; scoring and H2H therefore cannot resolve penalty-decided knockout matches. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DATA-003` | Same-tournament relationships are not enforced | Data / Security | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | Prediction tables independently reference entries/matches/groups/teams/players without composite same-tournament constraints or complete validation triggers. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `FUNC-001` | Server submission checks bracket shape, not a valid bracket tree | Functional correctness / Data | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `submit_entry()` checks counts and broad membership but does not replay all ties to prove every selected winner was a participant; migration comments explicitly leave full validation separate. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `FUNC-002` | Automatic deadline submission is documented but not implemented | Functional correctness / Reliability | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `docs/scoring-rules.md` requires valid entries to auto-submit at lock, but no scheduler/server process was found and `submit_entry()` does not enforce the lock boundary. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REL-001` | Score recomputation is not serialised | Reliability / Operations | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | The result-entry runbook documents a delete-and-rederive concurrency race; no tournament advisory lock or single transactional result-confirmation operation exists. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DATA-004` | The SQL actual-table resolver has a non-authoritative final fallback | Data / Functional correctness | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `_resolve_group_cluster()` ultimately orders fully unresolved actual ties by `group_teams.slot`, with no authoritative admin tie-resolution record. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DATA-005` | An empty score box can conceal an old saved value | Data / UX | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `ScoreInput` emits `null` when cleared, but `PredictionsProvider` only persists when both scores are non-null and no delete/clear service exists. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REL-002` | Late best-effort reads can overwrite active user state | Reliability / Frontend architecture | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | `PredictionsProvider` becomes ready after match predictions while tie, progression and Golden Boot reads finish later and fail to empty/default states. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REL-003` | The final visible edit may not reach the server before submission | Reliability / Functional correctness | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | Prediction saves are debounced, but `submit()` calls the RPC immediately without flushing timers or waiting for acknowledged persistence. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REL-004` | Independent row writes can leave a partial bracket | Reliability / Data | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | Bracket changes are persisted as multiple independent upserts/deletes through `Promise.all`, so partial commits are possible and deletes lack expected-version protection. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DATA-006` | Tournament selection and reference-data loading are not multi-tournament safe | Data / Architecture | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | The client selects the oldest tournament and fetches broad group-team data; a lock-load failure can become `null`/apparently unlocked. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `OPS-001` | Current rollback procedure crosses environment boundaries | Deployment / Security | **Critical** (escalated `2026-07-23R` from High; owner to confirm) | Confirmed | 2026-07-23 | Open | Recommended; not created | `docs/ops-prod-cutover.md` § 10 directs the live app back to development Supabase values instead of rolling back the application while retaining the production database. The same document now records `✅ EXECUTED — 2026-07-22 (all steps complete)` with prod ref `vkfnsqdyhvtwyqkisxhk` live and real accounts created, so the procedure would now expose development seed/hostile data on the live domain rather than reverting to a pre-cutover state. [Baseline evidence](audits/2026-07-23-full-audit.md); [escalation evidence](audits/2026-07-23-repeat-verification-audit.md#41-ops-001--escalation-proposed-high--critical) | None — unresolved | 2026-07-23R |
-| `OPS-002` | Production admin setup is not reproducible from migrations | Operations / Documentation / Security | **High** | Confirmed for repository schema | 2026-07-23 | Open | Recommended; not created | Admin runbooks set `profiles.role = 'admin'`, but no migration adds a `role` column and no active runtime role model was found. Re-verified `2026-07-23R`: `create table profiles` defines exactly `id`, `display_name`, `created_at`; `grep -rn "role" supabase/migrations/*.sql` finds no such column in any of the 20 migrations. See linked finding `OPS-005`. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `TEST-001` | Database rules that determine competition integrity are not executed by tests | Testing | **High** | Confirmed | 2026-07-23 | Open | Recommended; not created | No disposable Supabase/PostgreSQL migration, RLS, RPC, policy or full browser-journey test layer was identified; existing tests are mainly TypeScript domain/component tests. Proven by execution `2026-07-23R`: 42 files / 335 tests all pass in 63.88s, none touching Postgres, RLS, RPCs, triggers or a browser; `src/app/providers/PredictionsProvider.tsx` (557 lines) has no test file. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `OPS-003` | Release, monitoring and recovery controls are incomplete | Deployment and operations | **High** | Confirmed for repository contents | 2026-07-23 | Open | Recommended; not created | No repository CI workflow, pinned Node runtime, production error reporting, uptime/alert ownership or rehearsed database restore/rollback procedure was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `OPS-005` | Executed admin bootstrap implies production schema drift from the migration set | Operations / Data integrity / Security | **High** | Requires verification (needs a production database query) | 2026-07-23R | Open | Recommended; not created | `docs/ops-prod-cutover.md` logs the admin bootstrap grant as run on production, but `profiles.role` is defined by no migration. Either production has no administrator and the log is inaccurate, or the column exists in production but not in version control. Linked to `OPS-002`; defect against `SAFE-017` and `SAFE-032`. [Full evidence](audits/2026-07-23-repeat-verification-audit.md#42-ops-005--production-may-hold-schema-objects-absent-from-version-control) | None — unresolved | 2026-07-23R |
-| `REL-005` | Open pages can remain convincingly stale | Reliability / UX | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | No global realtime subscription, polling, focus-refetch or visible current-data invalidation strategy was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REL-006` | Concurrent first-use requests can produce a unique-conflict failure | Reliability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Entry creation is select-then-insert despite a unique `(user_id, tournament_id)` constraint, leaving a two-tab race. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REL-007` | A stale device can delete a newer bracket pick | Reliability / Data | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Optimistic version checks cover updates, but progression deletion is a direct delete outside the concurrency contract. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `PERF-001` | League summary requests scale linearly and serially | Performance | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | `src/features/home/useHomeData.ts` awaits per-league member requests one at a time. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `UX-001` | Invite context is hidden behind generic signup | UX / Code quality | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | `JoinLandingPage.tsx` mutates pending-invite storage during render and redirects signed-out visitors before showing an invite preview. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `A11Y-001` | SPA navigation lacks a complete assistive-technology transition | Accessibility | **Medium** | High confidence from static inspection | 2026-07-23 | Open | Triage for Issue; not created | No skip link, route focus manager, route live region or dynamic route-title manager was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `A11Y-002` | Custom league-options menu semantics do not match behaviour | Accessibility | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | `LeagueDetailPage.tsx` declares menu/menuitem roles without the full menu-button keyboard model. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `TYPE-001` | Hand-written casts can hide schema drift | Code quality / Reliability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Strict TypeScript is disabled, Supabase generated database types are absent and critical RPC responses lack runtime validation. Strengthened `2026-07-23R`: `tsconfig.app.json` contains no `strict` flag and none of the strict-family flags, so the executed clean `tsc -b` does not demonstrate null-safety. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DOC-001` | Repository documentation is extensive but not consistently authoritative | Documentation / Maintainability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | README/status documents and runbooks conflict with current code/migrations, including result-scoring status and admin bootstrap. Re-verified `2026-07-23R` with a concrete instance: `README.md` lists `resolveGroupTies()` as "next up" and five further domain functions as unbuilt, though all six exist and have passing test files, and it documents a `features/admin` directory that does not exist. A corrected `README.md` is proposed alongside the repeat audit; the finding stays **Open** because the `ops-admin-bootstrap.md` and `ops-prod-cutover.md` § 10 conflicts are unresolved. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `SEC-001` | Invite token and aggregate disclosure need an abuse review | Security / Privacy | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | Short invite codes and cross-user aggregate RPCs may enable inference/enumeration in a small competition; production abuse settings were not inspected. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `SEC-002` | Internal database error wording can reach users | Security / UX | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | Several components render raw `Error.message` values instead of mapping database/network errors to safe user-facing messages. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DATA-007` | Rate limiting is count-then-insert rather than strictly atomic | Security / Reliability | **Medium** | High confidence | 2026-07-23 | Open | Triage for Issue; not created | Concurrent requests can all observe a count below the threshold because the rate-limit path lacks per-user/action serialisation. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `UX-002` | Unavailable data and genuinely empty data are visually conflated | UX / Reliability | **Medium** | Confirmed | 2026-07-23 | Open | Triage for Issue; not created | Home and related reads catch failures and substitute empty arrays/zero-like states, which can look like valid facts. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `PERF-002` | Scoring recomputes the entire tournament | Performance / Reliability | **Medium** | High confidence; impact unmeasured | 2026-07-23 | Open | Triage for Issue; not created | Current score functions delete/rederive tournament-wide events; simplicity is useful, but target-capacity transaction cost has not been profiled. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `HYGIENE-001` | Unused Vite scaffold asset remains | Repository hygiene | **Low** | High confidence from static inspection | 2026-07-23 | Open | Normally no separate Issue | `src/assets/vite.svg` has no identified runtime import. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `HYGIENE-002` | Some pure modules appear test/reference-only | Repository hygiene | **Low** | Requires verification | 2026-07-23 | Open | Normally no separate Issue | `src/domain/rateLimit.ts`, `seedData.ts` and `calculateLeagueRank.ts` were not identified in the active runtime import graph; deletion safety was not proven. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `CODE-001` | Several orchestration files are large coordination hotspots | Code quality | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | The predictions provider and selected feature pages combine data orchestration, routing and presentation responsibilities. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `OPS-004` | Node runtime is not pinned | Deployment / Reproducibility | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | No `engines`, `.nvmrc` or equivalent explicit Netlify runtime pin was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `SEO-001` | SPA fallback produces soft 404 responses | SEO / Public web | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Netlify routes unknown paths to `index.html`, so client 404 views can retain HTTP 200 responses. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `SEO-002` | Metadata is largely global | SEO / Public web | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Static `index.html` metadata serves most routes; route-specific titles/social metadata are limited. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `A11Y-003` | Bottom navigation is imperative rather than link-semantic | Accessibility | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Bottom navigation uses imperative app navigation rather than ordinary link semantics and affordances. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `UX-003` | Other-player profile action is a placeholder | UX / Product completeness | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | League detail reports that player profiles are coming soon; no working destination exists. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `UX-004` | Sign-out is immediate | UX | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | Current More/profile flow signs out directly while documentation discusses optional confirmation. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DATA-008` | Score values have no practical database maximum | Data validation | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | The database enforces non-negative `smallint` scores while the UI accepts two digits; no explicit operational maximum policy is recorded. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DOC-002` | Package version remains 0.0.0 | Documentation / Release | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | `package.json` reports version `0.0.0`. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `DOC-003` | Development component gallery is large and partly historical | Documentation / Maintainability | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | `src/dev/ComponentsPreview.tsx` contains many examples and future concepts; it is correctly excluded from production. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REPO-001` | Licence, changelog and editor baseline are absent | Repository hygiene | **Low** | Confirmed | 2026-07-23 | Open | Normally no separate Issue | No repository licence, changelog or editor baseline file was identified. [Full evidence](audits/2026-07-23-full-audit.md) | None — unresolved | 2026-07-23R |
-| `REPO-002` | Environment-file ignore patterns miss `.env.production` and `.env.development` | Repository hygiene / Security | **Low** | Confirmed | 2026-07-23R | Open | Normally no separate Issue | `.gitignore` ignores `.env`, `.env.local` and `.env.*.local` only; Vite also loads `.env.development` and `.env.production`, neither of which matches. No such file is currently committed. [Full evidence](audits/2026-07-23-repeat-verification-audit.md#43-repo-002--gitignore-does-not-cover-non-local-vite-environment-files) | None — unresolved | 2026-07-23R |
+## High
+
+| ID | Finding | Current status | Current evidence / required closure |
+| --- | --- | --- | --- |
+| `OPS-007` | Production deploy previews/branch deploys inherit production Supabase values | **Open — confirmed configuration** | Production Netlify env values are scoped to `all` contexts. Scope previews away from production or disable/protect them. |
+| `SECURITY-003` | Hosted `SECURITY DEFINER` grants and mutable search paths are over-broad | **Open — confirmed configuration** | Supabase advisor flags internal, trigger and maintenance functions executable by browser roles plus mutable paths. Review each function and revoke by default. |
+| `DATA-003` | Same-tournament/reference constraints are incomplete | **Open — partially implemented** | PRs #9/#12 add major guards; wider immutable/composite reference constraints remain. Hosted controls are absent. |
+| `FUNC-001` | Bracket progression can be internally inconsistent | **Open hosted; implemented repository/local** | PR #12 validates the full predicted tree locally. Hosted validator/propagation absent. |
+| `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Rule exists in `docs/scoring-rules.md`; no scheduler/server implementation. |
+| `REL-001` | Score recomputation/result writes can race | **Open hosted; materially addressed repository/local** | PR #11 serializes locally. Hosted old recompute path remains. |
+| `DATA-004` | Actual tie resolution can depend on non-authoritative fallback behavior | **Open** | No fresh evidence of complete resolution. |
+| `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Open — confirmed code path** | Provider marks incomplete state idle but does not persist deletion. |
+| `REL-002` | Independent late reads can overwrite newer state | **Open** | Prediction/tie/bracket/bonus loading remains independently best-effort. |
+| `REL-003` | Manual submit does not flush pending debounced writes | **Open — confirmed code path** | `submit()` calls `submitEntry()` directly without awaiting timers/controller. |
+| `REL-004` | Compound bracket writes are non-atomic | **Open hosted; implemented repository/local** | PR #14 fixes locally. Hosted RPC absent and deployed client currently incompatible. |
+| `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
+| `OPS-002` | No version-controlled administrator model/control room boundary | **Open** | No `profiles.role` column exists in repository or hosted schema; no browser result admin page. |
+| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI and pgTAP now exist; authenticated browser E2E remains absent. |
+| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved** | CI and safer rollback exist; compatibility gating, monitoring, backup verification and restore rehearsal remain open. |
+| `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. The historical bootstrap statement was inaccurate rather than evidence of schema drift. |
+
+## Medium
+
+| ID | Finding | Current status | Closure evidence required |
+| --- | --- | --- | --- |
+| `REL-005` | Open pages can remain convincingly stale | Open | Add and test a deliberate realtime, polling or focus-refetch strategy. |
+| `REL-006` | Concurrent first-use requests can hit entry unique conflicts | Open | Replace/select-insert race with an idempotent server boundary and test two-tab creation. |
+| `REL-007` | Stale device can delete a newer bracket pick | **Open hosted; implemented repository/local** | PR #14 complete-snapshot versions contain this locally; verify hosted rollout and multi-device behavior. |
+| `PERF-001` | League summary requests scale linearly/serially | Open | Remove serial per-league request pattern and profile representative load. |
+| `UX-001` | Invite context is hidden behind generic signup | Open | Show trustworthy invite preview before auth and remove render-time storage mutation. |
+| `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | Open | Add skip link, route title/focus/live-region behavior and browser accessibility tests. |
+| `A11Y-002` | League options menu semantics do not match behavior | Open | Implement full menu-button keyboard model or use simpler disclosure semantics. |
+| `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | Open | Generate DB types, enable strictness incrementally and validate critical RPC payloads. |
+| `DOC-001` | Documentation is not consistently authoritative | **Resolved by current reconciliation** | Live audit, current status, migration inventory, risk register and agent rules now share one authority hierarchy. Reopen on contradiction. |
+| `SEC-001` | Invite/aggregate disclosure needs abuse review | Open | Threat-model enumeration and rate limits at intended competition size. |
+| `SEC-002` | Raw internal errors can reach users | Open | Map database/network failures to stable safe messages. |
+| `DATA-007` | Rate limiting is count-then-insert | Open | Serialize per user/action or use an atomic database primitive. |
+| `UX-002` | Unavailable data is conflated with empty data | Open | Preserve loading/error/unavailable states through home and related reads. |
+| `PERF-002` | Scoring recomputes the whole tournament | Open / accepted pending measurement | Profile target-capacity cost before deciding whether to optimize. |
+
+## Low
+
+| ID | Finding | Status |
+| --- | --- | --- |
+| `HYGIENE-001` | Unused Vite scaffold asset remains | Open |
+| `HYGIENE-002` | Some pure modules appear test/reference-only | Open; verify before deletion |
+| `CODE-001` | Large orchestration files are coordination hotspots | Open |
+| `OPS-004` | Runtime pinning is incomplete | Partially resolved: CI pins Node 22.22.2; Netlify runtime pin remains unverified |
+| `SEO-001` | SPA fallback produces soft 404s | Open |
+| `SEO-002` | Metadata is largely global | Open |
+| `A11Y-003` | Bottom navigation is imperative rather than link-semantic | Open |
+| `UX-003` | Other-player profile action remains incomplete | Open |
+| `UX-004` | Sign-out is immediate | Open |
+| `DATA-008` | Score values have no practical database maximum | Open |
+| `DOC-002` | Package version remains `0.0.0` | Open |
+| `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
+| `REPO-001` | Licence, changelog and editor baseline are absent | Open |
+| `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | Open; no such file currently committed |
 
 ## Register rules
 
-- Findings remain in this register after resolution.
-- Keep the original finding ID when the same underlying defect regresses.
-- A status change must link to reviewed evidence.
-- `Resolved` requires implementation evidence, validation evidence, a linked commit or pull request where applicable, and confirmation that the issue no longer reproduces.
-- `Accepted risk` requires owner-approved rationale, scope and a review trigger.
-- `False positive` requires retained evidence explaining why the original conclusion was rejected.
-- `Superseded` must name the replacement finding or control.
-- Uncertain evidence remains visible through the confidence field; it is not silently deleted.
-- GitHub Issues are the active implementation system. Do not expand this register into a duplicate task breakdown.
-- A proposed severity escalation records the escalating audit designation and remains flagged until the owner confirms it.
+- Keep original IDs when the same defect regresses.
+- A repository/local fix remains open when the actual risk is still present in hosted environments.
+- `Resolved` requires implementation, validation and current-environment evidence appropriate to the finding.
+- `Superseded` must name the active replacement finding.
+- Do not silently remove uncertain or accepted risks.
+- Use GitHub Issues/PRs for implementation work; this file records risk state rather than duplicating a task tracker.
+- Update this register with each material integrity, security, deployment or operations workstream.
