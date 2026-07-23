@@ -2,18 +2,17 @@
 
 > This is the live implementation and operations status document. Current code, current migrations, executable tests and verified hosted evidence override older roadmap, TODO, audit and chat narratives.
 
-## Audit identity
+## Evidence identity
 
 | Field | Current value |
 | --- | --- |
 | Latest formal audit | [`2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md), designation `2026-07-23L` |
-| Audited repository commit | `51d8ac607ee9d04bc932df1fea01a488f844f05a` |
+| Latest hosted rehearsal | [`2026-07-23-hosted-migration-rehearsal.md`](reconciliations/2026-07-23-hosted-migration-rehearsal.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Production Netlify deploy | Ready, `main`, same audited commit |
-| Development Supabase | `iouzoutneyjpugbbtdem`, active, original 20-migration hosted shape |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk`, active, original 20-migration hosted shape |
 | Repository migration count | 33 |
-| Hosted inspection | Read-only schema, policy, privilege and aggregate-data verification on 23 July 2026 |
+| Development Supabase | `iouzoutneyjpugbbtdem` — migrations 21–33 semantic contract applied and verified; remote migration history still requires CLI reconciliation |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — original 20-migration hosted shape; production remains unchanged |
+| Production preflight | Hardened read-only preflight passed on 23 July 2026, including exact submitted timestamp and rehearsed payload fingerprints |
 
 Project references identify environments. Credentials and private keys must not be committed to documentation.
 
@@ -21,126 +20,137 @@ Project references identify environments. Credentials and private keys must not 
 
 | Area | Verdict |
 | --- | --- |
-| Repository development | **Safe to continue controlled development.** PRs #7, #9, #11, #12 and #14 have executable repository/local evidence. |
-| Current production release | **Critical deployment mismatch.** The post-PR #14 client is deployed against the original 20-migration production schema. |
-| Real scored competition | **Not ready.** Critical integrity controls are not live, browser E2E is absent and recovery is not rehearsed. |
-| Hosted database assurance | **Directly inspected and confirmed behind the repository.** Both hosted projects lack the 13 later migrations. |
-| Documentation | Reconciled by the documentation branch containing the live audit; historical planning remains non-authoritative. |
+| Repository development | **Safe to continue controlled development.** Full disposable migration/database CI remains green. |
+| Hosted development | **Semantically current through migration 33 and cleaned to the expected post-rollout mirror.** Migration-history metadata is not yet a clean mirror of repository timestamps. |
+| Current production release | **Critical deployment mismatch remains.** The post-PR #14 client is deployed against the original 20-migration production schema. |
+| Production migration readiness | **Preflight passed and rollout package prepared; execution not approved or performed.** |
+| Real scored competition | **Not ready.** Production integrity controls are not live, browser E2E is absent and recovery is not rehearsed. |
 
-## Critical current condition
+## Critical current condition — `OPS-006`
 
-### Production application/schema incompatibility — `OPS-006`
+The deployed client calls `replace_predicted_progression(...)`, introduced by PR #14. Production does not contain that RPC and still permits authenticated direct progression DML under the old owner policy.
 
-The deployed client calls `replace_predicted_progression(...)`, introduced by PR #14. Production does not contain that RPC. Production still permits authenticated direct progression DML under the old owner policy.
+Expected effect: bracket edits on the live application fail rather than persist through the intended atomic path. Ordinary production promotion remains frozen until a compatible application/database pair is restored through the reviewed hosted rollout procedure.
 
-Expected effect: bracket edits on the live application fail rather than persist through the intended atomic path. Treat this as the first recovery priority. Do not continue normal production promotion until a compatible application/database pair is restored through a reviewed plan.
+## Hosted development result
 
-### Repository fixes are not hosted fixes
+Development-only disposable competition state was cleared while preserving:
 
-The following are implemented and tested in disposable local PostgreSQL, but remain absent from development and production Supabase:
+- 23 Auth-backed profiles;
+- the Euro 2028 tournament;
+- six groups and 24 provisional teams;
+- the 51-match fixture skeleton.
 
-- RPC-only entry submission;
-- server-derived predicted group positions;
-- client-denied group-position and entry-status writes;
+Migrations 21–33 were then applied in timestamp order. Verified boundaries include:
+
+- private PostgreSQL resolver schema denied to browser roles;
+- RPC-only submission and server-derived group positions;
 - same-tournament prediction guards;
 - authoritative regulation/extra-time/penalty result lifecycle;
 - immutable result revision history;
-- serialized tournament score recomputation;
-- real winner propagation into later fixtures;
+- serialized scoring recomputation;
+- real winner propagation;
 - full predicted bracket-tree replay;
-- atomic complete-bracket replacement.
+- atomic expected-version complete-bracket replacement.
 
-The original `DATA-001`, `DATA-002`, `SECURITY-001` and `SECURITY-002` risks therefore remain open in hosted environments.
+Migration 30’s exact revision-table revoke was applied through SQL after the connector wrapper blocked that single statement; the resulting privileges were verified directly.
 
-## Repository/local implementation evidence
+## Production-entry compatibility proof
 
-Merged work after the original audit:
+The one submitted production entry was mapped into development using stable match references and team names. Current rollout-guard fingerprints matched for:
 
-- PR #1 — baseline application CI;
-- PRs #3–#4 — canonical TypeScript predicted group ordering;
-- PR #6 — manual group and best-third tie resolution;
-- PR #7 — private PostgreSQL resolver, pgTAP and differential parity;
-- PR #9 — entry boundary, submission, derived group positions and same-tournament guards;
-- PR #10 — safe production-only rollback boundary;
-- PR #11 — authoritative result lifecycle, revisions and scoring serialization;
-- PR #12 — predicted bracket replay and real winner propagation;
-- PR #13 — documentation authority reconciliation;
-- PR #14 — atomic, expected-version complete-bracket replacement.
+- all 36 predictions: `8d76619fe4b44fdac17de1cc2afe5aaa`;
+- both manual tie decisions: `a4dcf183f5c48e3ba11ff75c59622598`;
+- all eight progression rows: `0d7bc491daa9b24013204d061a2d38f1`.
 
-PR #14 application CI run #71 and database parity run #40 passed. The current CI workflows cover reproducible install, build/type-check, lint, application tests, high-severity production dependency audit, migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity.
+The exact clone produced 24 server-derived group positions, resolved all eight R16 fixtures, passed the full 15-match bracket replay, passed the shared submission validator and submitted through `submit_entry()`.
 
-## Hosted verification summary
+The atomic RPC accepted the initial complete snapshot and rejected a deliberately stale snapshot with SQLSTATE `PT409` without changing the stored bracket.
 
-### Production
+## Result lifecycle proof
 
-- 3 profiles, 3 entries, 1 submitted entry;
-- submitted entry has 36 match predictions, 2 tie resolutions and a complete 8-row `4/2/1/1` progression shape;
-- no stored match results;
-- no inspected cross-tournament prediction anomalies;
-- no `profiles.role` column;
-- no authoritative result columns/functions;
-- no private resolver/bracket validator;
-- no atomic bracket RPC;
-- old broad owner policies and direct authenticated write privileges remain.
+Hosted development successfully rehearsed:
 
-The production data shape is promising for a rollout, but it has not passed the exact migration preflights or complete bracket replay. No production migration is approved by this document.
+1. confirming an R16 result;
+2. propagating its winner into the correct QF side;
+3. correcting the result to reverse the winner;
+4. replacing the QF participant;
+5. clearing the result and removing the propagated participant.
 
-### Development
+The fixtures were restored to scheduled/null-participant state and score events returned to zero. Three revisions proved the confirm/correct/clear audit path during rehearsal. After evidence capture, those development-only revisions were cleared and the clone timestamp was restored to the exact production timestamp, leaving zero revisions, zero score events and zero rank history.
 
-- 23 profiles, 23 entries, 22 submitted entries;
-- 12 scored matches;
-- 20 submitted entries use the legacy 16-row progression representation;
-- 2 submitted entries use the current 8-row representation;
-- no inspected cross-tournament prediction anomalies.
+## Production read-only preflight
 
-The later migration chain is expected to fail closed on development because of existing results and legacy submitted brackets. Plan an explicit development reset or remediation. Never copy that reset logic to production.
+The hardened committed production preflight returned `overall_structural_pass = true`.
+
+Confirmed:
+
+- exactly one submitted entry with timestamp `2026-07-21 21:51:49.639442+00`, before the configured lock;
+- six complete groups with four teams, six valid fixtures and six predictions each;
+- 36 predictions and exactly two valid exact-set tie decisions;
+- all three rollout-guard fingerprints match the payload replayed on development;
+- progression shape `4 QF / 2 SF / 1 final / 1 champion`;
+- zero legacy group-position rows before migration 26 rebuilds them;
+- zero legacy match scores, score events and rank history;
+- zero inspected match/progression/group-position scope anomalies;
+- complete knockout source tree `8 R16 / 4 QF / 2 SF / 1 final`;
+- 14 valid unique winner-source references.
+
+Production has zero predicted group-position rows under the old schema. The exact clone proves migrations 26–27 regenerate all 24 rows before submission revalidation.
+
+The hardened post-rollout verifier also returned `overall_pass = true` against cleaned migrated development, including exact payload/timestamp preservation and complete result/revision privilege checks.
 
 ## Current blockers
 
 | Group | Open position |
 | --- | --- |
-| Release compatibility | `OPS-006`: deployed client and production schema are incompatible. |
-| Hosted integrity | Apply/reconcile the 13 later migrations only through reviewed preflights and recovery planning. |
+| Production compatibility | `OPS-006`: execute the approved migrations 21–33 rollout or restore another explicitly compatible release pair. |
+| Migration history | Original hosted migrations were manually applied. Reconcile remote history with proven schema effects before `db push`. |
+| Recovery | Obtain verified production backup/export evidence and name the recovery decision owner. |
 | Environment isolation | `OPS-007`: production Netlify deploy-preview and branch contexts inherit production Supabase configuration. |
-| Hosted function security | `SECURITY-003`: review mutable search paths and unnecessary browser execution grants on `SECURITY DEFINER` functions. |
+| Hosted function security | `SECURITY-003`: legacy mutable search paths and unnecessary browser execution grants remain. |
 | Entry reliability | `REL-003`: manual submit does not flush/await pending debounced saves. |
-| Data behavior | `DATA-004`, `DATA-005`, `DATA-006` and wider `DATA-003` remain open. |
 | Product completeness | Automatic real R16 population, auto-submit, reminder emails and browser result administration remain absent. |
 | Test assurance | No Playwright or equivalent authenticated browser E2E critical journeys. |
-| Operations | Monitoring, backup verification and restore rehearsal remain incomplete. |
 | Official data | Final regulations, qualified teams, draw, exact fixtures/times and lock instant remain future dependencies. |
 
-## Security and configuration findings
+## Migration-history position
 
-- Production Netlify currently points to production Supabase, so the old cross-environment rollback hazard `OPS-001` is resolved.
-- Production Netlify environment values are scoped to `all` contexts, which conflicts with the rule that previews must never use production Supabase.
-- Supabase security advisor flags legacy mutable function search paths and numerous browser-executable `SECURITY DEFINER` functions; review each grant rather than assuming every warning is exploitable or harmless.
-- Supabase leaked-password protection is disabled.
-- The claimed production admin bootstrap did not create a version-controlled or hosted `profiles.role` column. `OPS-005` is superseded by the unresolved admin model finding `OPS-002`.
+The semantic development schema is current, but its remote migration-history table contains tool-generated timestamps for 12 operations; migration 30 was executed separately. The original 1–20 hosted changes were also applied manually.
+
+Before a CLI rollout:
+
+1. run `supabase migration list` against the explicitly linked target;
+2. mark only independently proven existing migrations as applied using `supabase migration repair`;
+3. rerun the list;
+4. require `supabase db push --dry-run` to show only genuinely pending files.
+
+Never use migration-history repair to claim missing SQL has executed.
 
 ## Scoring status
 
 `docs/scoring-rules.md`, `src/domain/tournament/scoringConfig.ts` and the SQL scorer remain aligned:
 
 - group correct result 3; exact score 5 total;
-- five jokers, doubling group-match points only;
+- five Jokers, doubling group-match points only;
 - group positions 2 each plus 5 for the complete order;
 - knockout progression 10 / 15 / 20 / 25 / 40, stacking;
 - Golden Boot 25;
 - group-goals bands 40 / 30 / 20, tiered.
 
-No post-audit PR changed a scoring value. Automatic deadline submission remains a documented rule but is not implemented (`FUNC-002`).
+No migration rehearsal changed scoring values. Automatic deadline submission remains a documented rule but is not implemented (`FUNC-002`).
 
 ## Immediate order of work
 
-1. Restore a compatible production application/database pair; freeze ordinary production promotion meanwhile.
-2. Isolate production Netlify deploy contexts from production Supabase.
-3. Prepare exact read-only preflights and a reviewed rollout/remediation/backup plan for the 13 pending migrations.
-4. Resolve development legacy seed incompatibility separately.
-5. Harden hosted function grants/search paths and review leaked-password protection.
-6. Close `REL-003` by flushing or awaiting every pending write before manual submit.
-7. Implement automatic real R16 population from confirmed standings and the authoritative best-third table.
-8. Add browser E2E and rehearse backup/restore before launch-readiness claims.
+1. Review and explicitly approve the production rollout window and recovery owner.
+2. Obtain production backup/export and recovery evidence.
+3. Re-run the committed production preflight immediately before the change; any fingerprint or timestamp change requires a new clone/replay rehearsal.
+4. Reconcile production migration history and require a clean `db push --dry-run` showing migrations 21–33 only.
+5. Explicitly approve and execute the controlled production rollout.
+6. Run database post-verification and production application bracket save/reload smoke tests.
+7. Isolate production Netlify preview contexts (`OPS-007`).
+8. Run the separate legacy function grant/search-path hardening batch (`SECURITY-003`).
+9. Close `REL-003`, then implement automatic real R16 population.
 
 ## Documentation authority
 
@@ -153,4 +163,4 @@ Use sources in this order:
 5. dated audits and archived risk evidence;
 6. roadmap/build-todo history for product intent only.
 
-Do not claim a repository/local fix is deployed until an approved hosted rollout is applied and verified. Do not infer hosted compatibility from a successful Netlify build.
+Do not claim production is migrated until the approved rollout, post-verification and application smoke test are complete.

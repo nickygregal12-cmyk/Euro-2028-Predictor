@@ -1,21 +1,19 @@
 # Hosted migration inventory and rollout status
 
-This is the live source of truth for repository migration count and hosted applied state. It supersedes the former statement that both databases were fully current at 20 migrations.
+This is the live source of truth for repository migration count, hosted semantic state and rollout readiness.
 
-## Current status — 23 July 2026 (`2026-07-23L`)
+## Current status — 23 July 2026
 
-| Environment | Verified hosted shape | Repository shape | Status |
+| Environment | Semantic schema state | Migration-history state | Status |
 | --- | --- | --- | --- |
-| Development `iouzoutneyjpugbbtdem` | Original migrations 1–20 only | 33 migrations | **13 pending; legacy seed data blocks direct application** |
-| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 only | 33 migrations | **13 pending; exact production preflight required** |
+| Development `iouzoutneyjpugbbtdem` | Migrations 1–33 effects present; cleaned to the expected post-rollout production mirror | Partial/tool-generated remote history; requires CLI reconciliation | **Hosted rehearsal complete** |
+| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 only | Original migrations were manually applied; authoritative 1–20 CLI history absent | **13 pending; hardened read-only preflight passed; rollout not performed** |
 
-The hosted projects were created through manual SQL application, so a Supabase CLI migration-history table is not available as the sole verifier. Applied state must be established from current schema, functions, grants, policies and exact migration preflights.
-
-No pending hosted migration is approved merely because it exists on `main` or passes disposable-local CI.
+No production migration is approved merely because it exists on `main`, passed local CI or passed the read-only preflight.
 
 ## Repository migration chain
 
-### Hosted in development and production — 1–20
+### Original hosted baseline — 1–20
 
 | # | Migration | Purpose |
 | --- | --- | --- |
@@ -40,107 +38,131 @@ No pending hosted migration is approved merely because it exists on `main` or pa
 | 19 | `20260721130000_match_centre.sql` | Match-centre aggregate RPCs |
 | 20 | `20260722120000_write_integrity.sql` | Optimistic row versions and original structural checks |
 
-### Repository-only and pending hosted rollout — 21–33
+### Hosted development rehearsed / production pending — 21–33
 
-| # | Migration | Workstream | Hosted status |
-| --- | --- | --- | --- |
-| 21 | `20260723170000_predictor_internal_schema.sql` | Private resolver schema boundary | Pending dev + prod |
-| 22 | `20260723173000_predicted_group_order_resolver.sql` | PostgreSQL predicted-group-order resolver | Pending dev + prod |
-| 23 | `20260723174500_harden_entry_lock_functions.sql` | Qualified lock functions/search paths | Pending dev + prod |
-| 24 | `20260723175000_submitted_entry_preflight.sql` | Submitted-entry fail-closed preflight | Pending dev + prod |
-| 25 | `20260723175500_entry_boundary_preflight.sql` | Cross-scope and entry-boundary preflight | Pending dev + prod |
-| 26 | `20260723180000_entry_boundary_integrity.sql` | RPC-only submission and derived group positions | Pending dev + prod |
-| 27 | `20260723181000_entry_submission_revalidation.sql` | Revalidate existing submitted entries | Pending dev + prod |
-| 28 | `20260723183000_knockout_result_lifecycle.sql` | Authoritative result lifecycle and revisions | Pending dev + prod |
-| 29 | `20260723183100_result_method_guard.sql` | Result-method integrity guard | Pending dev + prod |
-| 30 | `20260723183200_lock_result_revision_log.sql` | Immutable result revision log | Pending dev + prod |
-| 31 | `20260723184000_knockout_bracket_tree_integrity.sql` | Predicted tree replay and real winner propagation | Pending dev + prod |
-| 32 | `20260723184100_bracket_tree_compatibility.sql` | Compatibility/preflight for bracket-tree rules | Pending dev + prod |
-| 33 | `20260723190000_atomic_bracket_persistence.sql` | Atomic expected-version complete-bracket RPC | Pending dev + prod |
+| # | Migration | Workstream | Development | Production |
+| --- | --- | --- | --- | --- |
+| 21 | `20260723170000_predictor_internal_schema.sql` | Private resolver schema boundary | Applied + verified | Pending |
+| 22 | `20260723173000_predicted_group_order_resolver.sql` | PostgreSQL predicted-group-order resolver | Applied + verified | Pending |
+| 23 | `20260723174500_harden_entry_lock_functions.sql` | Qualified lock functions/search paths | Applied + verified | Pending |
+| 24 | `20260723175000_submitted_entry_preflight.sql` | Submitted-entry fail-closed preflight | Passed | Read-only equivalent passed |
+| 25 | `20260723175500_entry_boundary_preflight.sql` | Cross-scope and entry-boundary preflight | Passed | Read-only equivalent passed |
+| 26 | `20260723180000_entry_boundary_integrity.sql` | RPC-only submission and derived group positions | Applied + verified | Pending |
+| 27 | `20260723181000_entry_submission_revalidation.sql` | Revalidate existing submitted entries | Applied + exact production clone passed | Pending |
+| 28 | `20260723183000_knockout_result_lifecycle.sql` | Authoritative result lifecycle and revisions | Applied + behaviour rehearsed | Zero-score preflight passed; pending |
+| 29 | `20260723183100_result_method_guard.sql` | Result-method integrity guard | Applied + verified | Pending |
+| 30 | `20260723183200_lock_result_revision_log.sql` | Immutable result revision log | Exact revoke applied + verified | Pending |
+| 31 | `20260723184000_knockout_bracket_tree_integrity.sql` | Predicted tree replay and real winner propagation | Applied + behaviour rehearsed | Pending |
+| 32 | `20260723184100_bracket_tree_compatibility.sql` | Compatibility/preflight for bracket-tree rules | Applied + exact production clone passed | Read-only source-tree check passed; pending |
+| 33 | `20260723190000_atomic_bracket_persistence.sql` | Atomic expected-version complete-bracket RPC | Applied + PT409 rehearsal passed | Pending |
 
-## Confirmed live-schema differences
+## Development rehearsal result
 
-Both hosted projects currently lack:
+Development disposable competition state was reset while preserving Auth-backed profiles and reference data.
 
-- `predictor_internal.resolve_predicted_group_order`;
-- the private predicted-bracket validator;
-- RPC-only entry submission policies/grants;
-- protected server-derived group positions;
-- result lifecycle columns and confirm/correct/clear functions;
-- result revision history;
-- real winner propagation;
-- `replace_predicted_progression`.
+Verified after migration 33:
 
-Both hosted projects still grant authenticated direct write privileges to `entries`, `predicted_group_positions` and `predicted_progression` under the original owner policies.
+- private schema is inaccessible to browser roles;
+- direct authenticated updates/deletes to entry submission state are denied;
+- direct authenticated insert/update/delete on group positions and progression are denied;
+- submission and bracket replacement use protected RPCs;
+- result confirm/correct/clear functions are service-role-only;
+- the result revision table is inaccessible to browser roles and the service role;
+- result confirmation, correction, clearing and winner propagation work;
+- stale complete-bracket snapshots raise `PT409` without partial writes.
 
-## Current compatibility incident
+After behavioural evidence was captured, the development-only result revisions were cleared and the clone timestamp was restored to production. The final hosted development mirror has zero revisions, zero score events and zero rank history.
 
-Production Netlify serves application commit `51d8ac6`, which calls `replace_predicted_progression`. Production Supabase does not contain that RPC. Treat this as `OPS-006`: a deployed application/schema mismatch. Do not perform normal production promotion until a reviewed recovery plan restores a compatible pair.
+See `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`.
 
-## Development rollout blocker
+## Exact production-entry replay
 
-Read-only inspection found:
+The normalized production payload was mapped into development by match reference and team name.
 
-- 22 submitted development entries;
-- 20 with the legacy 16-row progression representation;
-- 2 with the current 8-row representation;
-- 12 scored matches.
+Current rollout-guard fingerprints:
 
-The later entry/bracket preflights and result-lifecycle preflight are expected to fail. Choose explicitly between:
+- predictions: `8d76619fe4b44fdac17de1cc2afe5aaa`;
+- tie decisions: `a4dcf183f5c48e3ba11ff75c59622598`;
+- progression: `0d7bc491daa9b24013204d061a2d38f1`.
 
-1. resetting disposable/seeded development data and rebuilding all 33 migrations; or
-2. preserving selected data through a reviewed remediation script.
+The clone regenerated all 24 group positions, resolved eight R16 fixtures and passed the complete 15-match bracket and submission validators.
 
-Development reset logic must never be reused against production.
+Any source-payload or submitted-timestamp change requires a fresh production-to-development clone and replay before the expected guards may be updated through review.
 
-## Production preflight position
+## Production read-only preflight
 
-Read-only inspection found:
+The hardened committed preflight script returned `overall_structural_pass = true`.
 
-- one submitted entry;
-- 36 match predictions;
-- two saved tie decisions;
-- a complete 8-row `4/2/1/1` progression shape;
-- no stored results;
-- no inspected cross-tournament prediction anomalies.
+Current production evidence:
 
-This improves the likelihood of a clean rollout but does not prove it. Before approval, execute the exact preflights in migrations 24, 25, 27, 28 and 32 inside a reviewed read-only/dry-run procedure and retain the real rows/errors.
+- exactly one submitted entry with the rehearsed timestamp, before lock;
+- 36 group predictions;
+- exactly one group tie and one third-place tie, both valid;
+- all three rollout-guard fingerprints match;
+- complete `4/2/1/1` progression shape;
+- zero old group-position rows;
+- zero legacy match scores, score events and rank history;
+- zero inspected scope anomalies;
+- valid `8/4/2/1` knockout source tree;
+- 14 unique, correctly ordered winner-source references.
+
+Production has no persisted predicted group positions under the old schema. Development proved the new server boundary derives all 24 from the existing production inputs.
+
+The hardened post-rollout verifier returned `overall_pass = true` on cleaned migrated development.
+
+## Migration-history boundary
+
+The original hosted schema was created through manual SQL, not a clean CLI push.
+
+Development now has the correct semantic schema, but the connector recorded tool-generated migration timestamps for 12 operations and migration 30 was executed separately. Production has not been changed.
+
+Before any `db push`:
+
+1. link to the exact target project;
+2. run `supabase migration list`;
+3. verify the schema effect of every migration claimed as already applied;
+4. use `supabase migration repair <timestamp> --status applied` only for proven existing effects;
+5. rerun the list;
+6. require `supabase db push --dry-run` to show only genuinely pending repository files.
+
+Do not edit `supabase_migrations.schema_migrations` directly and do not use history repair to pretend SQL has run.
+
+## Production rollout prerequisites
+
+All are required:
+
+- explicit owner approval;
+- verified backup/export or equivalent recovery evidence;
+- named operator and rollback decision owner;
+- production write/deploy freeze;
+- immediate rerun of `scripts/database-rollout/production-preflight.sql`;
+- exact timestamp and rollout-guard fingerprint match;
+- reviewed migration-history repair output;
+- dry run showing migrations 21–33 only;
+- strict timestamp-order push;
+- `scripts/database-rollout/post-rollout-verification.sql` passing;
+- production application save/reload smoke test through the atomic bracket RPC;
+- retained advisor output and change record.
+
+Follow `docs/ops-hosted-migration-rollout.md`.
 
 ## Rollout rules
 
-1. **No hosted migration without explicit approval.**
-2. **Development first.** Rebuild and verify all 33 migrations in the intended development state.
-3. **Do not bypass fail-closed preflights.** A failure requires investigation or remediation.
-4. **Preserve environment isolation.** Production never points to development.
-5. **Back up/record before production.** A recovery plan and compatibility decision must be reviewed before applying the chain.
-6. **Apply in strict timestamp order.** Do not paste only the final migration.
-7. **Verify schema and behavior, not “Success”.** Record columns, grants, policies, function signatures and functional tests.
-8. **Deploy compatible code and schema as one controlled release.** A successful Netlify build is not a database verification.
-9. **Re-run Supabase security advisors after rollout.** Triage every remaining browser-executable `SECURITY DEFINER` function and mutable search path.
-
-## Minimum post-rollout verification
-
-After applying the chain to a target environment, confirm at least:
-
-- `predictor_internal` exists but is inaccessible to `anon`/`authenticated`;
-- authenticated users cannot update `entries.submitted_at` directly;
-- authenticated users cannot insert/update/delete `predicted_group_positions`;
-- authenticated users cannot insert/update/delete `predicted_progression` directly;
-- `submit_entry` is owner-checked, lock-aware and validates the complete tree;
-- `replace_predicted_progression` exists and rejects stale complete snapshots;
-- result lifecycle columns and service-role-only result RPCs exist;
-- direct result writes and revision writes are denied;
-- winner propagation and downstream correction order work;
-- scoring and rank history remain correct;
-- the live application can save/reload a bracket through the RPC;
-- production deploy previews do not use production Supabase.
+1. **No production migration without explicit approval.**
+2. **No production reset.** Never use `db reset --linked` against production.
+3. **Do not bypass fail-closed preflights.**
+4. **Do not update rollout guards during the change window.**
+5. **Preserve environment isolation.** Production remains connected to production Supabase.
+6. **Apply in strict timestamp order.** Never paste only migration 33.
+7. **Verify schema and behaviour, not a generic success message.**
+8. **Application and database form one release pair.**
+9. **Re-run security advisors after rollout.** Legacy `SECURITY-003` items remain a separate follow-up.
 
 ## Related evidence
 
 - `docs/quality/current-status.md`
 - `docs/quality/audits/2026-07-23-live-environment-audit.md`
-- `docs/quality/reconciliations/2026-07-23-entry-boundary-integrity.md`
-- `docs/quality/reconciliations/2026-07-23-knockout-result-lifecycle.md`
-- `docs/quality/reconciliations/2026-07-23-knockout-bracket-tree-integrity.md`
-- `docs/quality/reconciliations/2026-07-23-atomic-bracket-persistence.md`
-- `docs/ops-prod-cutover.md`
+- `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`
+- `docs/ops-hosted-migration-rollout.md`
+- `scripts/database-rollout/production-preflight.sql`
+- `scripts/database-rollout/post-rollout-verification.sql`
