@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useMemo, useRef } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   Alert,
   Button,
@@ -7,13 +7,15 @@ import {
   JokerCounter,
   MatchCard,
   Skeleton,
+  TieResolver,
   type MatchTeam,
 } from '../../design-system'
 import { ChevronLeftIcon, ChevronRightIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildGroupTableRows } from './groupTable'
-import { isGroupComplete, groupContinuation } from './groupContinuation'
+import { groupContinuation } from './groupContinuation'
+import { buildGroupTiePrompt } from './groupTiePrompt'
 import { ConflictBanner } from './ConflictBanner'
 import { scoreOneMatch } from './matchScoring'
 import { venueCountryCode } from './venues'
@@ -23,17 +25,20 @@ import s from '../shared.module.css'
 import g from './group.module.css'
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
+const FINALISE_PATH = '/predict/third-place'
 
 export function GroupPredictorPage() {
   const params = useParams<{ letter: string }>()
   const letter = (params.letter ?? 'A').toUpperCase()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const cardsRef = useRef<HTMLDivElement>(null)
   const data = useTournamentData()
   const preds = usePredictions()
 
   const teamsById = useMemo(() => {
     if (data.status !== 'ready') return new Map<string, { name: string }>()
-    return new Map(data.data.teams.map((t) => [t.id, t]))
+    return new Map(data.data.teams.map((team) => [team.id, team]))
   }, [data])
 
   if (data.status === 'error') {
@@ -57,7 +62,7 @@ export function GroupPredictorPage() {
     )
   }
 
-  const group = data.data.groups.find((gr) => gr.letter === letter)
+  const group = data.data.groups.find((candidate) => candidate.letter === letter)
   if (!group) {
     return (
       <div className={s.page}>
@@ -68,20 +73,38 @@ export function GroupPredictorPage() {
     )
   }
 
-  const groupTeams = data.data.teams.filter((t) => t.groupId === group.id)
+  const groupTeams = data.data.teams.filter((team) => team.groupId === group.id)
   const groupMatches = data.data.matches
-    .filter((m) => m.round === 'group' && m.groupId === group.id)
-    .sort((a, b) => (a.matchday ?? 0) - (b.matchday ?? 0) || a.matchRef.localeCompare(b.matchRef))
+    .filter((match) => match.round === 'group' && match.groupId === group.id)
+    .sort(
+      (a, b) =>
+        (a.matchday ?? 0) - (b.matchday ?? 0) ||
+        a.matchRef.localeCompare(b.matchRef),
+    )
 
-  const rows = buildGroupTableRows(groupTeams, groupMatches, preds.getPrediction)
+  const rows = buildGroupTableRows(
+    groupTeams,
+    groupMatches,
+    preds.getPrediction,
+    preds.tieResolutions,
+  )
+  const tiePrompt = buildGroupTiePrompt(
+    letter,
+    groupTeams,
+    groupMatches,
+    preds.getPrediction,
+    preds.tieResolutions,
+  )
   const locked = isEntryLocked(data.data.tournament.lockAt)
+  const returnToFinalise = searchParams.get('return') === FINALISE_PATH
 
-  // Continuation CTA: once every match in this group has a predicted score, offer
-  // the next stage of the linear entry flow (A–E → next group, F → best thirds).
-  // Shown in every state as pure navigation — browsing continuity costs nothing.
-  const continuation = isGroupComplete(groupMatches, preds.getPrediction)
-    ? groupContinuation(letter)
-    : null
+  // The primary linear continuation is available only when the group is complete
+  // and every same-group tie has an explicit user decision. Arrow navigation stays
+  // available for browsing, but it is never mistaken for completion.
+  const continuation =
+    tiePrompt.complete && tiePrompt.pendingCount === 0
+      ? groupContinuation(letter)
+      : null
 
   const index = LETTERS.indexOf(letter)
   const prev = index > 0 ? LETTERS[index - 1] : null
@@ -92,9 +115,21 @@ export function GroupPredictorPage() {
     countryCode: '',
   })
 
+  function reviewScores() {
+    cardsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <div className={s.page}>
       <ConflictBanner />
+
+      {returnToFinalise && (
+        <Alert variant="info" title={`Review Group ${letter} scores`}>
+          Change any predictions that should affect the standings. Your previous
+          manual order is ignored automatically if the tied-team set changes.
+        </Alert>
+      )}
+
       <nav className={g.nav} aria-label="Group navigation">
         <button
           type="button"
@@ -119,44 +154,48 @@ export function GroupPredictorPage() {
 
       <JokerCounter used={preds.jokerCount} />
 
-      <div className={g.cards}>
-        {groupMatches.map((m) => {
-          const pred = preds.getPrediction(m.id)
+      <div ref={cardsRef} className={g.cards}>
+        {groupMatches.map((match) => {
+          const prediction = preds.getPrediction(match.id)
           // A match with a real result shows the scored card (result hero +
-          // points pill, incl. joker variants) regardless of the entry lock —
-          // results only arrive after kickoff. Points come from the domain
-          // scorer, the same rules as the stored score_events.
-          const resulted = m.homeScore !== null && m.awayScore !== null
+          // points pill, incl. joker variants) regardless of the entry lock.
+          const resulted = match.homeScore !== null && match.awayScore !== null
           const matchScore = resulted
-            ? scoreOneMatch(pred, { home: m.homeScore as number, away: m.awayScore as number })
+            ? scoreOneMatch(prediction, {
+                home: match.homeScore as number,
+                away: match.awayScore as number,
+              })
             : null
           return (
             <MatchCard
-              key={m.id}
+              key={match.id}
               state={resulted ? 'scored' : locked ? 'locked' : 'editable'}
               group={letter}
-              matchday={m.matchday ?? 1}
-              date={formatShortDate(m.matchDate)}
-              venue={m.venue}
-              venueCountryCode={venueCountryCode(m.venue)}
-              home={teamOf(m.homeTeamId)}
-              away={teamOf(m.awayTeamId)}
-              homeScore={pred.homeScore}
-              awayScore={pred.awayScore}
-              onHomeScoreChange={(v) => preds.setScore(m.id, 'home', v)}
-              onAwayScoreChange={(v) => preds.setScore(m.id, 'away', v)}
-              saveStatus={preds.getSaveStatus(m.id)}
-              onRetrySave={() => preds.retrySave(m.id)}
-              countdown={countdownToDate(m.matchDate)}
-              result={resulted ? { home: m.homeScore as number, away: m.awayScore as number } : undefined}
+              matchday={match.matchday ?? 1}
+              date={formatShortDate(match.matchDate)}
+              venue={match.venue}
+              venueCountryCode={venueCountryCode(match.venue)}
+              home={teamOf(match.homeTeamId)}
+              away={teamOf(match.awayTeamId)}
+              homeScore={prediction.homeScore}
+              awayScore={prediction.awayScore}
+              onHomeScoreChange={(value) => preds.setScore(match.id, 'home', value)}
+              onAwayScoreChange={(value) => preds.setScore(match.id, 'away', value)}
+              saveStatus={preds.getSaveStatus(match.id)}
+              onRetrySave={() => preds.retrySave(match.id)}
+              countdown={countdownToDate(match.matchDate)}
+              result={
+                resulted
+                  ? {
+                      home: match.homeScore as number,
+                      away: match.awayScore as number,
+                    }
+                  : undefined
+              }
               score={matchScore ?? undefined}
-              // Jokers stay actionable on locked cards until each match's own
-              // kickoff (design-system §5 / scoring §1) — the entry lock freezes
-              // scores, not joker moves.
-              jokerState={pred.joker ? 'on' : 'available'}
-              onToggleJoker={() => preds.toggleJoker(m.id)}
-              // Chevron → the per-fixture match centre (enabled now that it ships).
-              onOpen={() => navigate(`/match/${m.matchRef}`)}
+              jokerState={prediction.joker ? 'on' : 'available'}
+              onToggleJoker={() => preds.toggleJoker(match.id)}
+              onOpen={() => navigate(`/match/${match.matchRef}`)}
             />
           )
         })}
@@ -165,13 +204,41 @@ export function GroupPredictorPage() {
       <div className={g.tableLabel}>Predicted standings</div>
       <GroupTable caption={`Group ${letter} predicted table`} rows={rows} />
 
-      {continuation && (
-        <div className={g.continue}>
-          <Button variant="primary" fullWidth onClick={() => navigate(continuation.path)}>
-            {continuation.label}
-          </Button>
+      {tiePrompt.ties.length > 0 && (
+        <div className={s.stack}>
+          <span className={s.eyebrow}>Group decision</span>
+          {tiePrompt.ties.map((tie) => (
+            <TieResolver
+              key={tie.key}
+              title={tie.title}
+              reason={tie.reason}
+              teams={tie.teams}
+              resolved={tie.resolved}
+              saveStatus={preds.getTieSaveStatus(tie.teams.map((team) => team.id))}
+              reviewActions={[
+                { label: 'Change scores', onClick: reviewScores },
+              ]}
+              onResolve={(order) => preds.setTieResolution('group', order)}
+            />
+          ))}
         </div>
       )}
+
+      <div className={g.continue}>
+        {returnToFinalise ? (
+          <Button variant="primary" fullWidth onClick={() => navigate(FINALISE_PATH)}>
+            Return to Finalise Group Standings
+          </Button>
+        ) : continuation ? (
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={() => navigate(continuation.path)}
+          >
+            {continuation.label}
+          </Button>
+        ) : null}
+      </div>
     </div>
   )
 }
