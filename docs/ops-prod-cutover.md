@@ -1,54 +1,58 @@
 # Ops runbook — Production Supabase cutover
 
-The ordered, manual checklist for standing up a **separate production Supabase project** and pointing the live site at it (roadmap Phase 2 exit gate). Nicky executes every step by hand — Claude Code has no database access.
+This document records the manual creation of the **separate production Supabase project** and the original live-site cutover. The cutover was completed on 22 July 2026, so this is now primarily a historical execution record rather than a current deployment script. Nicky executes hosted operations by hand — coding agents have no database access.
 
-**Why this exists:** the live site currently runs against the **dev** Supabase project (ref `iouzoutneyjpugbbtdem`). Splitting prod out lets dev revert its Turnstile secret to Cloudflare's TEST secret so local dev auto-login works again (step 9). Until then, dev carries the REAL Turnstile secret, which breaks the headless dev auto-login shim (`captcha protection: request disallowed (invalid-input-response)`).
+**Current environment position:** the live site uses the production Supabase project recorded below. Development remains isolated on its separate project. Any future release or recovery action must preserve that boundary.
 
 **Ground rules**
-- Do the steps **in order**. Several later steps depend on earlier ones (schema before data; data before admin grant; everything before the Netlify swap).
-- Where a step says **paste the confirmation into the next Claude Code session**, do that — the docs-sync-on-confirmation rule means Claude updates the tracking docs in the same turn it receives real output (not "Success", the actual rows/errors).
-- Nothing here touches the dev project except the final step 9 (revert its Turnstile secret).
+- Do the initial cutover steps **in order** when reading the historical procedure. Several later steps depended on earlier ones.
+- Where a step asks for confirmation output, retain the real rows/errors rather than recording only “Success”.
+- **Never point a production domain, production deploy or production environment variable at the development Supabase project.** Development data, Auth settings, test CAPTCHA configuration and seeded accounts are not a production fallback.
+- After production cutover, rollback means reverting the application deployment or restoring last-known-good **production** configuration. It does not mean changing database environments.
+- Hosted database migration, restore or data-remediation work requires its own reviewed plan and explicit approval.
 
 ---
 
 ## ✅ EXECUTED — 2026-07-22 (all steps complete)
 
-Nicky ran this runbook end to end. **Prod project ref: `vkfnsqdyhvtwyqkisxhk`** (`https://vkfnsqdyhvtwyqkisxhk.supabase.co`). The checkboxes below are intentionally left blank so this stays the **template** for any future stand-up; this log is the record of the executed run.
+Nicky ran the original cutover end to end. **Prod project ref: `vkfnsqdyhvtwyqkisxhk`** (`https://vkfnsqdyhvtwyqkisxhk.supabase.co`). The checklist below is retained as the execution record for that stand-up. It must not be treated as a current migration inventory or reused without reconciling it against the repository’s latest migrations and operations documents.
 
 - **Step 1 — Resend key rotated.** Done (also closes the 21-Jul screenshot-exposure follow-up); the rotated key is what SMTP uses in step 6.
 - **Step 2 — prod project created**, ref `vkfnsqdyhvtwyqkisxhk`, same region as dev.
-- **Step 3 — all 20 migrations applied** in strict timestamp order (one concatenated paste in the SQL editor). Includes #20 `20260722120000_write_integrity.sql` (the list in step 3 predates #20; the concatenated paste covered it).
+- **Step 3 — all 20 migrations then present were applied** in strict timestamp order. Includes `20260722120000_write_integrity.sql`; later repository migrations are not covered by this historical statement.
 - **Step 4 — verified.** Canonical query returned 30 rows, 28 direct-true; the two `false` rows were **query bugs** (wrong `tgname`s), not missing migrations — a `pg_trigger` diagnostic confirmed `enforce_joker_rules_trg` (O) on `match_predictions` and `enforce_display_name` (O) on `profiles`. Query corrected + prod table flipped to all-✅ in `docs/ops-pending-migrations.md`.
-- **Step 5 — baseline data loaded.** `seed.sql` + `prod-baseline.sql`; verified: tournaments 1 / groups 6 / teams 24 / matches 51 / `lock_at` = `2028-06-09 00:00:00+00` (starts_on-derived placeholder — the real MD1 kick-off instant lands with the 2027 schedule announcement, already the standing "Per-matchday kickoff times" roadmap item; **not** a new task).
+- **Step 5 — baseline data loaded.** `seed.sql` + `prod-baseline.sql`; verified: tournaments 1 / groups 6 / teams 24 / matches 51 / `lock_at` = `2028-06-09 00:00:00+00` (starts_on-derived placeholder — the real MD1 kick-off instant lands with the 2027 schedule announcement, already the standing “Per-matchday kickoff times” roadmap item; **not** a new task).
 - **Step 6 — Auth configured.** Site URL `euro28predictor.com`, both-domain redirect wildcards, SMTP via the rotated Resend key (**live-verified** by a real password-recovery send, after fixing an initial config error), Turnstile CAPTCHA with the real secret, email confirmation OFF.
-- **Steps 7 & 8 — reordered in practice (env swap before admin grant).** The live site was the sign-up surface, so the order run was: **Netlify env swap → redeploy → sign-up/log-out/log-in/prediction-save smoke test (PASSED) → admin bootstrap**. Netlify env used the prod URL + the **new-style `sb_publishable_*` key** (confirmed working with supabase-js in production); clear-cache redeploy. Nicky's admin account created on prod and the bootstrap grant run.
-- **Step 9 — dev Turnstile secret reverted** to Cloudflare's test secret; **local dev auto-login confirmed working again** (the `captcha … request disallowed` error is gone). Closes the local-dev-auth blocker.
+- **Steps 7 & 8 — reordered in practice (env swap before admin grant).** The live site was the sign-up surface, so the order run was: **Netlify env swap → redeploy → sign-up/log-out/log-in/prediction-save smoke test (PASSED) → admin bootstrap**. Netlify env used the prod URL + the **new-style `sb_publishable_*` key** (confirmed working with supabase-js in production); clear-cache redeploy. Nicky’s admin account created on prod and the bootstrap grant run.
+- **Step 9 — dev Turnstile secret reverted** to Cloudflare’s test secret; **local dev auto-login confirmed working again** (the `captcha … request disallowed` error is gone). Closes the local-dev-auth blocker.
 - **Step 10 — rollback** not needed (smoke test passed).
 
 ---
 
-## Pre-flight
+## Historical initial-cutover checklist
 
-- [ ] Confirm the tournament-scoping fix in `20260721130000_match_centre.sql` is **merged into the file on the branch you will apply from**. `get_league_match_picks()` must contain the `leagues.tournament_id = matches.tournament_id` gate (see `docs/ops-pending-migrations.md` § "#19 pre-apply amendment"). Do **not** apply this migration anywhere without that fix.
+### Pre-flight
+
+- [ ] Confirm the tournament-scoping fix in `20260721130000_match_centre.sql` is **merged into the file on the branch you will apply from**. `get_league_match_picks()` must contain the `leagues.tournament_id = matches.tournament_id` gate (see `docs/ops-pending-migrations.md` § “#19 pre-apply amendment”). Do **not** apply this migration anywhere without that fix.
 - [ ] Confirm `supabase/prod-baseline.sql` and `supabase/seed.sql` are on the same branch.
+- [ ] Reconcile this historical list against the current repository migration inventory before any new hosted stand-up. Do not assume the list below is current.
 
-## 1. Rotate the Resend API key
+### 1. Rotate the Resend API key
 
 - [ ] Rotate the Resend API key (if not already rotated for the prod split). Generate a new key in the Resend dashboard; keep the old one until step 6 is verified, then delete it.
-- [ ] You will paste this rotated key into the **prod** Supabase SMTP settings in step 6. Do **not** put it in the repo or in any dev config.
+- [ ] Paste this rotated key only into the **production** Supabase SMTP settings. Do **not** put it in the repository or in development configuration.
 
-## 2. Create the prod Supabase project
+### 2. Create the production Supabase project
 
-- [ ] Create a new Supabase project in the **same region as dev** (dev region: check the dev project's settings and match it — latency + Auth cookie parity).
-- [ ] Email confirmation stays **OFF** (configured in step 6) — recorded product decision (CLAUDE.md status).
-- [ ] **Record the new project ref here when created:** `PROD_PROJECT_REF = ____________________` (2026-07-22 run: `vkfnsqdyhvtwyqkisxhk` — see the EXECUTED log above)
-- [ ] Note the prod Project URL (`https://<ref>.supabase.co`) and the anon/publishable key — needed for step 8.
+- [ ] Create a new Supabase project in the **same region as development**.
+- [ ] Email confirmation stays **OFF** unless the current product decision has been reviewed and changed.
+- [ ] Record the new project reference and Project URL through the approved private operations record; do not commit secret keys.
 
-> The dev-only shims (`autoLoginPolicy.ts`, `seed-dev/seedPolicy.ts`) are pinned to the **dev** ref and hard-fail against any other ref, so they can never touch this prod project even if misconfigured. Nothing else in the app special-cases a ref.
+> The dev-only shims (`autoLoginPolicy.ts`, `seed-dev/seedPolicy.ts`) are pinned to the development reference and hard-fail against any other reference. Production must never be used for development automation, and development must never be used as production recovery.
 
-## 3. Apply all migrations, in strict timestamp order
+### 3. Apply all migrations in strict timestamp order
 
-Apply each file's **full contents** in the prod project's SQL editor, one at a time, in this exact order (append-only; several redefine earlier objects — order matters, per `docs/ops-pending-migrations.md`):
+The following was the migration list used for the 22 July 2026 stand-up. It is retained only as historical evidence. **Use the current repository migration inventory for any future rollout.**
 
 - [ ] `20260719120000_init_v0_1.sql`
 - [ ] `20260719130000_add_match_prediction_joker.sql`
@@ -68,95 +72,115 @@ Apply each file's **full contents** in the prod project's SQL editor, one at a t
 - [ ] `20260720200000_display_name_moderation.sql`
 - [ ] `20260720210000_rate_limits.sql`
 - [ ] `20260721120000_scoring_positions_knockout_awards.sql`
-- [ ] `20260721130000_match_centre.sql`  ← must include the tournament-scoping fix (pre-flight)
+- [ ] `20260721130000_match_centre.sql`
+- [ ] `20260722120000_write_integrity.sql`
 
-Order-sensitive callouts (from `docs/ops-pending-migrations.md`):
-- `#9 → #10 → #14 → #18` all touch the scoring objects and must land in this order (the final `recompute_tournament_scores()` = the #18 definition).
-- Rank-history backfill (`select capture_rank_history('<tournament-id>');`) is **not needed at cutover** — there are no completed matchdays on a fresh prod DB yet; the trigger captures live from the first real result.
+Order-sensitive callouts from the executed cutover:
+- `#9 → #10 → #14 → #18` all touched scoring objects and had to land in that order.
+- Rank-history backfill was not needed for the fresh production database because no matchdays were completed.
 
-## 4. Run + record the applied-state verification query
+### 4. Run and record the applied-state verification query
 
-- [ ] Run the **applied-state verification query** from `docs/ops-pending-migrations.md` § "Prod applied-state tracking" against the prod DB.
-- [ ] Copy the **real output rows** (not "Success").
-- [ ] **Paste that output into the next Claude Code session.** That session updates the **Prod applied-state tracking** section of `docs/ops-pending-migrations.md` (flipping the prod column to ✅ per migration) in the **same turn** — docs-sync-on-confirmation.
+- [ ] Run the current applied-state verification query from `docs/ops-pending-migrations.md` against the intended production database.
+- [ ] Copy the real output rows rather than recording only “Success”.
+- [ ] Reconcile the output with version-controlled migration history before proceeding.
 
-## 5. Load the baseline data
+### 5. Load the baseline data
 
-**Prod-safety inventory of `supabase/seed.sql`** (verified 2026-07-21 against the file + the init-migration schema — written down so the prod-safety claim is recorded, not assumed):
+The original production-safety inventory of `supabase/seed.sql` was:
 
-```
+```text
 seed.sql — TABLES TOUCHED (5) and ROWS INSERTED (106 total):
   tournaments   1 row   'UEFA Euro 2028', 2028, starts_on 2028-06-09, ends_on 2028-07-09
-                        (lock_at left NULL -> set by prod-baseline.sql; golden_boot_player_id NULL)
+                         (lock_at left NULL -> set by prod-baseline.sql)
   groups        6 rows  A–F
-  teams        24 rows  'Team A1'…'Team F4'  (TBD placeholders — real teams seeded post-Dec-2026 draw)
+  teams        24 rows  'Team A1'…'Team F4'
   group_teams  24 rows  team -> group slot
-  matches      51 rows  36 group + 15 knockout, with match_date + venue + slot-ref source fields;
-                        home_score/away_score NOT supplied -> both NULL = NO RESULT
-                        (matches.home_score/away_score are nullable, no default; matches_score_pair OK)
+  matches      51 rows  36 group + 15 knockout, no results supplied
 
-CONTAINS NO:  users / auth.users / profiles, entries, match_predictions,
-              predicted_tie_resolutions, bonus_predictions, leagues, league_members,
-              score_events, rank_history, rate_limit_events, or any match results.
-DEV-ONLY VALUES:  none. The only unset value is tournaments.lock_at, which
-                  prod-baseline.sql subsequently sets (step 5 below).
-=> PROD-SAFE. Same requirement as prod-baseline.sql.
+CONTAINS NO: users / auth.users / profiles, entries, match_predictions,
+             predicted_tie_resolutions, bonus_predictions, leagues,
+             league_members, score_events, rank_history, rate_limit_events,
+             or match results.
 ```
 
-Run these two files in the prod SQL editor, **in this order** (prod-baseline reuses seed.sql — the fixture list has one home):
+- [ ] Re-audit the current `supabase/seed.sql` before any future production use; the historical inventory above is not a permanent safety guarantee.
+- [ ] Apply `supabase/seed.sql` and then `supabase/prod-baseline.sql` only under an approved stand-up plan.
+- [ ] Verify the expected tournament, match count and lock time.
+- [ ] Replace the placeholder midnight lock with the official first-match kickoff instant before the tournament.
 
-- [ ] `supabase/seed.sql` — the fixture / bracket skeleton: tournament, groups, 24 TBD teams (`Team A1`…`Team F4`), all 51 matches with dates/venues.
-- [ ] `supabase/prod-baseline.sql` — sets `tournaments.lock_at` (derived from `starts_on` = MD1 date) and verifies the skeleton is present. Idempotent.
-- [ ] Run the verification query at the bottom of `prod-baseline.sql`: expect **one** tournament row, `match_count = 51`, `lock_at = 2028-06-09 00:00+00`.
-- [ ] **NOTE:** `lock_at` resolves to 00:00 UTC on the MD1 date because per-match kick-off **times** are still unknown. It is a safe ~2-years-out lock, but **must be tightened to the real MD1 kick-off instant** before the tournament approaches (and real teams seeded after the Dec 2026 draw). Not a cutover blocker.
+### 6. Configure Auth
 
-## 6. Configure Auth
-
-In the prod project's Authentication settings:
+In the production project’s Authentication settings:
 
 - [ ] **Site URL:** `https://euro28predictor.com`
-- [ ] **Redirect URLs:** both domains, with wildcards, including the password-update path:
-  - `https://euro28predictor.com/**`
-  - `https://euro28predictor.netlify.app/**`
-  - (ensure `/auth/update-password` on both is covered by the wildcards above)
-- [ ] **SMTP:** configure via Resend using the **rotated** key from step 1 (sender on the verified `euro28predictor.com` domain).
-- [ ] **CAPTCHA (Turnstile):** enable with the **REAL** Cloudflare secret (the same production secret dev currently holds — Supabase runs siteverify; the secret never enters the repo). The client site key is already domain-locked to euro28predictor.com and is set in Netlify (unchanged, step 8).
-- [ ] **Email confirmation:** **OFF** (recorded product decision — friends/casual scale; the `handle_new_user()` trigger makes turning it on safe later).
-- [ ] Send a **real** password-recovery email from the dashboard to confirm SMTP works end-to-end.
+- [ ] **Redirect URLs:** production domains only, including the password-update path.
+- [ ] **SMTP:** configure via the approved production provider and secret store.
+- [ ] **CAPTCHA:** enable using the real production secret; never reuse the development test secret.
+- [ ] **Email confirmation:** follow the current recorded product decision.
+- [ ] Send a real password-recovery email to confirm SMTP works end to end.
 
-## 7. Admin bootstrap
+### 7. Admin bootstrap
 
-- [ ] Grant admin per `docs/ops-admin-bootstrap.md` — run the `update profiles set role = 'admin' …` grant for Nicky's account **in the prod project** (after Nicky has signed up on the live site in step 8, or immediately if pre-creating the account). Verify with the check query in that doc.
-- [ ] Keep the admin set minimal (Nicky + at most one trusted backup).
+- [ ] Grant administrator access only through the current reviewed admin-bootstrap procedure and verified production schema.
+- [ ] Keep the administrator set minimal.
+- [ ] Record the real verification output. Do not assume the historical bootstrap remains schema-compatible.
 
-## 8. Netlify env swap + smoke test
+### 8. Production application configuration and smoke test
 
-- [ ] In Netlify site env vars, swap to prod:
-  - `VITE_SUPABASE_URL` → prod Project URL (`https://<PROD_PROJECT_REF>.supabase.co`)
-  - `VITE_SUPABASE_ANON_KEY` → prod anon/publishable key
-  - `VITE_TURNSTILE_SITE_KEY` → **unchanged** (public site key, domain-locked)
-- [ ] Trigger a redeploy (env changes need a rebuild — Vite inlines `VITE_*` at build time).
-- [ ] Smoke-test on the **live domain** (`euro28predictor.com`):
-  - [ ] Sign up a fresh account (Turnstile solves; profile row is created by the trigger).
+- [ ] Set the production site’s Supabase URL and publishable key to the **production** project only.
+- [ ] Trigger a production deploy because Vite embeds `VITE_*` values at build time.
+- [ ] Smoke-test on the live domain:
+  - [ ] Sign up or use an approved test account.
   - [ ] Log in.
-  - [ ] Save a group prediction (autosave persists).
-- [ ] If the smoke test fails, use the rollback note (step 10) before debugging further.
+  - [ ] Save and reload a prediction.
+- [ ] If the smoke test fails, follow the application-only recovery procedure in section 10. Do not change the live site to development Supabase.
 
-## 9. Revert the DEV project's Turnstile secret (fixes local dev)
+### 9. Development CAPTCHA configuration
 
-- [ ] In the **dev** Supabase project (ref `iouzoutneyjpugbbtdem`) → Authentication → CAPTCHA, replace the REAL Turnstile secret with **Cloudflare's always-passes TEST secret** (`1x0000000000000000000000000000000AA`).
-- [ ] Confirm local dev auto-login works again: run `npm run dev`, load the app, verify it silently signs in as the dev user (no `invalid-input-response` error).
-- [ ] **Paste that confirmation into the next Claude Code session**, which records "local dev auto-login restored" in the CLAUDE.md status in the same turn.
+- [ ] Development may use Cloudflare’s always-passes test secret only in the development Supabase project.
+- [ ] Confirm local development authentication works.
+- [ ] Do not copy development Auth or CAPTCHA settings into production.
 
-## 10. Rollback
+## 10. Safe rollback and recovery boundary
 
-- [ ] If anything goes wrong after step 8, revert by swapping the Netlify env vars (`VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`) **back to the dev project values** and redeploying. That points the live site back at dev — the pre-cutover state — with no data migration needed. (Dev's Turnstile secret would then need re-reverting to the real secret if step 9 was already done and you want the live site's CAPTCHA to validate against dev again.)
+> **Absolute prohibition:** never roll back by changing a production domain or production deployment to the development Supabase URL or key.
+
+Choose the response that matches the failure:
+
+### Application deployment failure
+
+- [ ] Keep all production Supabase environment variables unchanged.
+- [ ] In Netlify, restore the last known-good **production application deploy** or redeploy the last known-good application commit.
+- [ ] Confirm the restored deploy still references the production project.
+- [ ] Smoke-test sign-in, an authenticated read and one approved write against production.
+
+### Incorrect production environment-variable change
+
+- [ ] Restore only the last known-good **production** Supabase URL and production publishable key from the protected Netlify configuration or approved private operations record.
+- [ ] Never substitute development values, even temporarily.
+- [ ] Redeploy and repeat the production smoke test.
+
+### Database migration, policy or data failure
+
+- [ ] Stop the rollout and preserve the production database for investigation.
+- [ ] Do not run a remote reset, destructive down migration, unreviewed SQL repair or environment swap.
+- [ ] Roll back the application deploy only when the previous application is compatible with the current production schema.
+- [ ] Otherwise disable or isolate the affected application path using an approved maintenance/containment plan.
+- [ ] Review migration history, backups/exports, logs and the exact failing preflight before deciding on forward repair or restore.
+- [ ] Database restore is not considered available until a backup has been verified and a restore procedure has been reviewed or rehearsed.
+
+### Incident record
+
+- [ ] Record the failed deploy/commit, production deploy restored, environment variables verified, smoke-test result and any database action taken.
+- [ ] Record explicitly that production remained attached to production Supabase throughout.
 
 ---
 
-## Related docs
+## Related documents
 
-- `docs/ops-pending-migrations.md` — the migration inventory, order-sensitive callouts, the verification query, and the **Prod applied-state tracking** section this runbook feeds.
-- `docs/ops-admin-bootstrap.md` — the admin grant (step 7).
-- `docs/auth-plan.md` — the dev auto-login shim and the dev-ref pinning that keeps it off prod.
-- `supabase/prod-baseline.sql` / `supabase/seed.sql` — the baseline data (step 5).
+- `docs/ops-pending-migrations.md` — migration inventory, verification query and hosted applied-state tracking.
+- `docs/ops-admin-bootstrap.md` — administrator setup; currently linked to the `OPS-005` schema-drift question and must be verified before reuse.
+- `docs/auth-plan.md` — development authentication behaviour and environment isolation.
+- `docs/quality/current-status.md` — current assurance boundaries and remaining operational findings.
+- `supabase/prod-baseline.sql` / `supabase/seed.sql` — baseline data sources; re-audit before future production use.
