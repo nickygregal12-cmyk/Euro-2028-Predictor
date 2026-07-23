@@ -1,0 +1,128 @@
+name: REL004 legacy test harness patch
+
+on:
+  push:
+    branches:
+      - rel-004-atomic-bracket-persistence
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rel-004-atomic-bracket-persistence
+          fetch-depth: 0
+
+      - name: Update legacy corruption fixtures
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/030_entry_boundary_integrity.sql')
+          text = path.read_text()
+          old = """select is(
+            pg_temp.capture_sqlstate($sql$
+              insert into public.predicted_progression (
+                entry_id,
+                team_id,
+                stage
+              ) values (
+                '00000000-0000-0000-0000-000000000201',
+                '00000000-0000-0000-0000-000000000411',
+                'qf'
+              )
+            $sql$),
+            '23514',
+            'a progression row cannot reference another tournament'
+          );"""
+          new = """-- Direct authenticated progression DML is denied by REL-004. Use the
+          -- service role only to exercise the underlying same-tournament trigger.
+          reset role;
+          set local role service_role;
+
+          select is(
+            pg_temp.capture_sqlstate($sql$
+              insert into public.predicted_progression (
+                entry_id,
+                team_id,
+                stage
+              ) values (
+                '00000000-0000-0000-0000-000000000201',
+                '00000000-0000-0000-0000-000000000411',
+                'qf'
+              )
+            $sql$),
+            '23514',
+            'the server progression path cannot reference another tournament'
+          );
+
+          set local role authenticated;
+          select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+          select set_config('request.jwt.claim.role', 'authenticated', true);"""
+          if text.count(old) != 1:
+              raise SystemExit('030 progression fixture block not found exactly once')
+          path.write_text(text.replace(old, new))
+
+          path = Path('supabase/tests/060_knockout_bracket_tree_integrity.sql')
+          text = path.read_text()
+          old = """-- Preserve all four stage counts but make R16-1 claim that both A1 and C2 advance.
+          delete from public.predicted_progression pp
+          using public.teams tm
+          where pp.entry_id = '20000000-0000-0000-0000-000000000201'
+            and pp.team_id = tm.id
+            and tm.name = 'Team D1';
+
+          insert into public.predicted_progression (entry_id, team_id, stage)
+          select
+            '20000000-0000-0000-0000-000000000201',
+            tm.id,
+            'qf'
+          from public.tournaments t
+          join public.teams tm on tm.tournament_id = t.id
+          where t.name = 'UEFA Euro 2028'
+            and tm.name = 'Team C2';"""
+          new = """-- Direct authenticated progression DML is denied by REL-004. Corrupt the
+          -- fixture as service_role, then return to the authenticated owner to prove
+          -- repeat submission still rejects the hostile match-by-match tree.
+          reset role;
+          set local role service_role;
+
+          -- Preserve all four stage counts but make R16-1 claim that both A1 and C2 advance.
+          delete from public.predicted_progression pp
+          using public.teams tm
+          where pp.entry_id = '20000000-0000-0000-0000-000000000201'
+            and pp.team_id = tm.id
+            and tm.name = 'Team D1';
+
+          insert into public.predicted_progression (entry_id, team_id, stage)
+          select
+            '20000000-0000-0000-0000-000000000201',
+            tm.id,
+            'qf'
+          from public.tournaments t
+          join public.teams tm on tm.tournament_id = t.id
+          where t.name = 'UEFA Euro 2028'
+            and tm.name = 'Team C2';
+
+          set local role authenticated;
+          select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000001', true);
+          select set_config('request.jwt.claim.role', 'authenticated', true);"""
+          if text.count(old) != 1:
+              raise SystemExit('060 hostile bracket fixture block not found exactly once')
+          path.write_text(text.replace(old, new))
+          PY
+
+      - name: Commit fixture compatibility and remove this workflow
+        run: |
+          rm .github/workflows/rel004-test-harness-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/tests/030_entry_boundary_integrity.sql \
+                  supabase/tests/060_knockout_bracket_tree_integrity.sql \
+                  .github/workflows/rel004-test-harness-patch.yml
+          git commit -m "test(db): adapt legacy progression fixtures to RPC-only writes"
+          git push origin HEAD:rel-004-atomic-bracket-persistence
