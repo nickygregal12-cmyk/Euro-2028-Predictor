@@ -2,8 +2,8 @@
 --
 -- New triggers protect future writes, but they cannot retroactively validate rows
 -- already present in a hosted database. Fail the migration rather than silently
--- inheriting cross-tournament scoring inputs. Group-position rows are derived, so
--- discard every legacy snapshot and let the following migration rebuild them.
+-- inheriting cross-tournament scoring inputs. Derived group-position rows are
+-- validated here and rebuilt transactionally by the following migration.
 
 begin;
 
@@ -77,11 +77,26 @@ begin
     raise exception 'Entry-boundary preflight failed: invalid tie-resolution scope exists'
       using errcode = 'check_violation';
   end if;
+
+  if exists (
+    select 1
+    from public.predicted_group_positions pgp
+    join public.entries e on e.id = pgp.entry_id
+    join public.groups g on g.id = pgp.group_id
+    join public.teams t on t.id = pgp.team_id
+    where e.tournament_id <> g.tournament_id
+       or e.tournament_id <> t.tournament_id
+       or not exists (
+         select 1
+         from public.group_teams gt
+         where gt.group_id = pgp.group_id
+           and gt.team_id = pgp.team_id
+       )
+  ) then
+    raise exception 'Entry-boundary preflight failed: invalid group-position scope exists'
+      using errcode = 'check_violation';
+  end if;
 end;
 $$;
-
--- This table is a derived scoring snapshot. Rebuilding from saved scores and
--- exact manual group-tie decisions is safer than attempting to trust legacy rows.
-delete from public.predicted_group_positions;
 
 commit;
