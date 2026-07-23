@@ -1,0 +1,100 @@
+# Agent operating rules
+
+Read this file before changing the repository.
+
+## Authority order
+
+For current implementation and operations state, use evidence in this order:
+
+1. current `main` code, migrations and executable tests;
+2. verified hosted Netlify/Supabase evidence;
+3. `docs/quality/current-status.md`;
+4. the latest dated audit and workstream reconciliation notes;
+5. older audits, roadmap and TODO documents for history or product intent only.
+
+Never import features, scoring values or game rules from previous World Cup projects, old branches, chats, prototypes or similarly named modes.
+
+## Current critical boundary
+
+At the `2026-07-23L` audit, production Netlify served the post-PR #14 client while production Supabase still had the original 20-migration schema. The production database lacked `replace_predicted_progression`, so the deployed bracket-save path was incompatible with the backend.
+
+Before any normal feature work or production promotion:
+
+- read `docs/quality/current-status.md`;
+- confirm the application and target database are compatible;
+- do not apply hosted migrations without a reviewed preflight, remediation/backup plan and explicit owner approval;
+- never point production at development Supabase as a rollback.
+
+## Git discipline
+
+- Work from current `main` on a dedicated branch.
+- Keep one concern per PR where practical.
+- Do not push directly to `main`.
+- Run the relevant application and database workflows before merge.
+- Do not treat a Netlify build as proof of database compatibility.
+- Record material architecture, rule and operations decisions in repository documents rather than chat memory.
+
+## Database discipline
+
+- Migrations are append-only after hosted application.
+- Repository migration count and hosted applied state are separate facts.
+- Use disposable local Supabase for migration rebuilds, pgTAP and parity tests.
+- Hosted inspection defaults to read-only.
+- Never run remote reset, destructive repair, unreviewed SQL or production data mutation without explicit approval.
+- Production and development projects must remain isolated.
+- Browser roles receive the minimum table/function privileges required; revoke by default for internal, trigger and maintenance helpers.
+- The database is authoritative for locks, submission, derived scoring inputs, results, progression and scoring integrity.
+
+## Architecture rules
+
+- Tournament rules belong in pure functions under `src/domain/tournament/` before UI wiring.
+- Components render domain output; they do not invent standings, scoring or bracket rules.
+- All Supabase browser access goes through `src/services/supabase/`.
+- Do not expose private integrity helpers as public browser RPCs.
+- Original Predictor and any bonus competitions remain separate competitions and scoring systems.
+- Predicted and real brackets must never be blended.
+- Fail closed on unresolved ties, invalid tournament references, unknown official data and incompatible hosted schemas.
+
+## Scoring authority
+
+`docs/scoring-rules.md` is the scoring source of truth. Values must stay aligned with:
+
+- `src/domain/tournament/scoringConfig.ts`;
+- the SQL scorer;
+- scoring tests.
+
+No unexplained scoring literal should appear in scoring logic.
+
+## Required checks
+
+For normal application changes:
+
+```bash
+npm ci
+npm run build
+npm run lint
+npm run test
+npm audit --omit=dev --audit-level=high
+```
+
+For migration or tournament-database changes, also run the disposable local database workflow represented by `.github/workflows/database-parity.yml`:
+
+- rebuild all migrations;
+- database lint;
+- all pgTAP suites;
+- TypeScript/PostgreSQL differential parity;
+- clean teardown.
+
+Browser-critical journeys still require a future E2E layer; do not claim E2E assurance from component tests.
+
+## Documentation maintenance
+
+Every merged implementation batch must update, when affected:
+
+- `docs/quality/current-status.md`;
+- `docs/quality/risk-register.md`;
+- `docs/ops-pending-migrations.md` for migration changes;
+- a dated reconciliation note for material integrity/operations work;
+- roadmap/TODO only for future sequencing, never as proof of implementation.
+
+Historical audits remain immutable. Correct current state through a new audit or reconciliation note rather than rewriting old evidence.
