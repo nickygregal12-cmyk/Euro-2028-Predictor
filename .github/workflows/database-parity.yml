@@ -22,10 +22,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
       - uses: supabase/setup-cli@v2
         with:
           version: 2.84.2
           github-token: ${{ github.token }}
+
+      - name: Install application dependencies
+        run: npm ci
 
       - name: Start disposable local Supabase
         run: supabase start
@@ -38,6 +46,12 @@ jobs:
 
       - name: Run pgTAP database tests
         run: supabase test db --local
+
+      - name: Compare TypeScript and PostgreSQL outputs
+        env:
+          DATABASE_PARITY: '1'
+          SUPABASE_DB_CONTAINER: supabase_db_euro-2028-predictor-local
+        run: npx vitest run tests/database-parity/predictedGroupOrderParity.test.ts
 
       - name: Stop and delete disposable local data
         if: always()
