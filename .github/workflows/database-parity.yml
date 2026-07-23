@@ -53,6 +53,14 @@ jobs:
           tail -n 220 /tmp/pgtap.log
           exit "$status"
 
+      - name: Upload failed pgTAP diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pgtap-failure-log
+          path: /tmp/pgtap.log
+          retention-days: 3
+
       - name: Compare TypeScript and PostgreSQL outputs
         env:
           DATABASE_PARITY: '1'
