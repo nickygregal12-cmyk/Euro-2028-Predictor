@@ -1,98 +1,984 @@
 [
   {
     "name": "ordinary-points",
-    "teams": ["a", "b", "c", "d"],
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
     "matches": [
-      ["a", "b", 2, 0],
-      ["a", "c", 1, 0],
-      ["a", "d", 1, 0],
-      ["b", "c", 1, 0],
-      ["b", "d", 1, 0],
-      ["c", "d", 1, 0]
+      [
+        "a",
+        "b",
+        2,
+        0
+      ],
+      [
+        "a",
+        "c",
+        1,
+        0
+      ],
+      [
+        "a",
+        "d",
+        1,
+        0
+      ],
+      [
+        "b",
+        "c",
+        1,
+        0
+      ],
+      [
+        "b",
+        "d",
+        1,
+        0
+      ],
+      [
+        "c",
+        "d",
+        1,
+        0
+      ]
     ],
     "expectation": "resolved",
-    "order": ["a", "b", "c", "d"],
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
     "explanation": "Every finishing position is separated by overall points."
   },
   {
     "name": "overall-goal-difference",
-    "teams": ["a", "b", "c", "d"],
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
     "matches": [
-      ["a", "b", 0, 0],
-      ["a", "c", 2, 0],
-      ["a", "d", 0, 1],
-      ["b", "c", 1, 0],
-      ["b", "d", 0, 3],
-      ["c", "d", 0, 1]
+      [
+        "a",
+        "b",
+        0,
+        0
+      ],
+      [
+        "a",
+        "c",
+        2,
+        0
+      ],
+      [
+        "a",
+        "d",
+        0,
+        1
+      ],
+      [
+        "b",
+        "c",
+        1,
+        0
+      ],
+      [
+        "b",
+        "d",
+        0,
+        3
+      ],
+      [
+        "c",
+        "d",
+        0,
+        1
+      ]
     ],
     "expectation": "resolved",
-    "order": ["d", "a", "b", "c"],
+    "order": [
+      "d",
+      "a",
+      "b",
+      "c"
+    ],
     "criterionProof": {
       "criterion": "overall-goal-difference",
-      "tiedTeams": ["a", "b"],
+      "tiedTeams": [
+        "a",
+        "b"
+      ],
       "headToHead": [
-        {"teamId": "a", "points": 1, "goalDifference": 0, "goalsFor": 0},
-        {"teamId": "b", "points": 1, "goalDifference": 0, "goalsFor": 0}
+        {
+          "teamId": "a",
+          "points": 1,
+          "goalDifference": 0,
+          "goalsFor": 0
+        },
+        {
+          "teamId": "b",
+          "points": 1,
+          "goalDifference": 0,
+          "goalsFor": 0
+        }
       ],
       "overall": [
-        {"teamId": "a", "points": 4, "goalDifference": 1, "goalsFor": 2},
-        {"teamId": "b", "points": 4, "goalDifference": -2, "goalsFor": 1}
+        {
+          "teamId": "a",
+          "points": 4,
+          "goalDifference": 1,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "b",
+          "points": 4,
+          "goalDifference": -2,
+          "goalsFor": 1
+        }
       ]
     },
     "explanation": "Teams a and b are level on points and on every head-to-head criterion; overall goal difference places a above b."
   },
   {
     "name": "overall-goals-scored",
-    "teams": ["a", "b", "c", "d"],
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
     "matches": [
-      ["a", "b", 0, 0],
-      ["a", "c", 3, 1],
-      ["a", "d", 0, 1],
-      ["b", "c", 2, 0],
-      ["b", "d", 0, 1],
-      ["c", "d", 0, 1]
+      [
+        "a",
+        "b",
+        0,
+        0
+      ],
+      [
+        "a",
+        "c",
+        3,
+        1
+      ],
+      [
+        "a",
+        "d",
+        0,
+        1
+      ],
+      [
+        "b",
+        "c",
+        2,
+        0
+      ],
+      [
+        "b",
+        "d",
+        0,
+        1
+      ],
+      [
+        "c",
+        "d",
+        0,
+        1
+      ]
     ],
     "expectation": "resolved",
-    "order": ["d", "a", "b", "c"],
+    "order": [
+      "d",
+      "a",
+      "b",
+      "c"
+    ],
     "criterionProof": {
       "criterion": "overall-goals-scored",
-      "tiedTeams": ["a", "b"],
+      "tiedTeams": [
+        "a",
+        "b"
+      ],
       "headToHead": [
-        {"teamId": "a", "points": 1, "goalDifference": 0, "goalsFor": 0},
-        {"teamId": "b", "points": 1, "goalDifference": 0, "goalsFor": 0}
+        {
+          "teamId": "a",
+          "points": 1,
+          "goalDifference": 0,
+          "goalsFor": 0
+        },
+        {
+          "teamId": "b",
+          "points": 1,
+          "goalDifference": 0,
+          "goalsFor": 0
+        }
       ],
       "overall": [
-        {"teamId": "a", "points": 4, "goalDifference": 1, "goalsFor": 3},
-        {"teamId": "b", "points": 4, "goalDifference": 1, "goalsFor": 2}
+        {
+          "teamId": "a",
+          "points": 4,
+          "goalDifference": 1,
+          "goalsFor": 3
+        },
+        {
+          "teamId": "b",
+          "points": 4,
+          "goalDifference": 1,
+          "goalsFor": 2
+        }
       ]
     },
     "explanation": "Teams a and b are level on points, every head-to-head criterion and overall goal difference; overall goals scored places a above b."
   },
   {
     "name": "partial-group",
-    "teams": ["a", "b", "c", "d"],
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
     "matches": [
-      ["a", "b", 1, 0]
+      [
+        "a",
+        "b",
+        1,
+        0
+      ]
     ],
     "expectation": "partial",
-    "order": ["a", "c", "d", "b"],
-    "unresolved": [["c", "d"]],
-    "ranks": [1, 2, 2, 4],
+    "order": [
+      "a",
+      "c",
+      "d",
+      "b"
+    ],
+    "unresolved": [
+      [
+        "c",
+        "d"
+      ]
+    ],
+    "ranks": [
+      1,
+      2,
+      2,
+      4
+    ],
     "explanation": "resolveGroupTies accepts partial matches and returns partial standings; application-level completeness is enforced elsewhere."
   },
   {
     "name": "all-draws-unresolved",
-    "teams": ["a", "b", "c", "d"],
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
     "matches": [
-      ["a", "b", 1, 1],
-      ["a", "c", 1, 1],
-      ["a", "d", 1, 1],
-      ["b", "c", 1, 1],
-      ["b", "d", 1, 1],
-      ["c", "d", 1, 1]
+      [
+        "a",
+        "b",
+        1,
+        1
+      ],
+      [
+        "a",
+        "c",
+        1,
+        1
+      ],
+      [
+        "a",
+        "d",
+        1,
+        1
+      ],
+      [
+        "b",
+        "c",
+        1,
+        1
+      ],
+      [
+        "b",
+        "d",
+        1,
+        1
+      ],
+      [
+        "c",
+        "d",
+        1,
+        1
+      ]
     ],
     "expectation": "unresolved",
-    "unresolved": [["a", "b", "c", "d"]],
+    "unresolved": [
+      [
+        "a",
+        "b",
+        "c",
+        "d"
+      ]
+    ],
     "explanation": "No automatic criterion separates the four teams, so they share rank one and require a manual resolution."
+  },
+  {
+    "name": "two-team-head-to-head-points",
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "matches": [
+      [
+        "a",
+        "b",
+        1,
+        0
+      ],
+      [
+        "a",
+        "c",
+        0,
+        3
+      ],
+      [
+        "a",
+        "d",
+        1,
+        0
+      ],
+      [
+        "b",
+        "c",
+        4,
+        0
+      ],
+      [
+        "b",
+        "d",
+        1,
+        0
+      ],
+      [
+        "c",
+        "d",
+        0,
+        0
+      ]
+    ],
+    "expectation": "resolved",
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "automaticProof": {
+      "criterion": "head-to-head-points",
+      "tiedTeams": [
+        "a",
+        "b"
+      ],
+      "overall": [
+        {
+          "teamId": "a",
+          "points": 6,
+          "goalDifference": -1,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "b",
+          "points": 6,
+          "goalDifference": 4,
+          "goalsFor": 5
+        }
+      ],
+      "headToHead": [
+        {
+          "teamId": "a",
+          "points": 3,
+          "goalDifference": 1,
+          "goalsFor": 1
+        },
+        {
+          "teamId": "b",
+          "points": 0,
+          "goalDifference": -1,
+          "goalsFor": 0
+        }
+      ]
+    },
+    "explanation": "a beats b head-to-head despite b having the better overall goal difference."
+  },
+  {
+    "name": "three-team-overall-goals-scored-fallback",
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "matches": [
+      [
+        "a",
+        "b",
+        0,
+        0
+      ],
+      [
+        "a",
+        "c",
+        0,
+        0
+      ],
+      [
+        "b",
+        "c",
+        0,
+        0
+      ],
+      [
+        "a",
+        "d",
+        3,
+        2
+      ],
+      [
+        "b",
+        "d",
+        2,
+        1
+      ],
+      [
+        "c",
+        "d",
+        1,
+        0
+      ]
+    ],
+    "expectation": "resolved",
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "automaticProof": {
+      "criterion": "overall-goals-scored",
+      "tiedTeams": [
+        "a",
+        "b",
+        "c"
+      ],
+      "overall": [
+        {
+          "teamId": "a",
+          "points": 5,
+          "goalDifference": 1,
+          "goalsFor": 3
+        },
+        {
+          "teamId": "b",
+          "points": 5,
+          "goalDifference": 1,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "c",
+          "points": 5,
+          "goalDifference": 1,
+          "goalsFor": 1
+        }
+      ],
+      "headToHead": [
+        {
+          "teamId": "a",
+          "points": 2,
+          "goalDifference": 0,
+          "goalsFor": 0
+        },
+        {
+          "teamId": "b",
+          "points": 2,
+          "goalDifference": 0,
+          "goalsFor": 0
+        },
+        {
+          "teamId": "c",
+          "points": 2,
+          "goalDifference": 0,
+          "goalsFor": 0
+        }
+      ]
+    },
+    "explanation": "Equal head-to-head statistics and overall goal difference leave overall goals scored to order a, b, c."
+  },
+  {
+    "name": "three-team-head-to-head-goal-difference",
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "matches": [
+      [
+        "a",
+        "b",
+        2,
+        0
+      ],
+      [
+        "b",
+        "c",
+        1,
+        0
+      ],
+      [
+        "c",
+        "a",
+        1,
+        0
+      ],
+      [
+        "a",
+        "d",
+        1,
+        0
+      ],
+      [
+        "b",
+        "d",
+        1,
+        0
+      ],
+      [
+        "c",
+        "d",
+        1,
+        0
+      ]
+    ],
+    "expectation": "resolved",
+    "order": [
+      "a",
+      "c",
+      "b",
+      "d"
+    ],
+    "automaticProof": {
+      "criterion": "head-to-head-goal-difference",
+      "tiedTeams": [
+        "a",
+        "b",
+        "c"
+      ],
+      "overall": [
+        {
+          "teamId": "a",
+          "points": 6,
+          "goalDifference": 2,
+          "goalsFor": 3
+        },
+        {
+          "teamId": "b",
+          "points": 6,
+          "goalDifference": 0,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "c",
+          "points": 6,
+          "goalDifference": 1,
+          "goalsFor": 2
+        }
+      ],
+      "headToHead": [
+        {
+          "teamId": "a",
+          "points": 3,
+          "goalDifference": 1,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "b",
+          "points": 3,
+          "goalDifference": -1,
+          "goalsFor": 1
+        },
+        {
+          "teamId": "c",
+          "points": 3,
+          "goalDifference": 0,
+          "goalsFor": 1
+        }
+      ]
+    },
+    "explanation": "Equal mini-league points leave head-to-head goal difference to order a, c, b."
+  },
+  {
+    "name": "three-team-head-to-head-goals-scored",
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "matches": [
+      [
+        "a",
+        "b",
+        3,
+        2
+      ],
+      [
+        "b",
+        "c",
+        2,
+        1
+      ],
+      [
+        "c",
+        "a",
+        1,
+        0
+      ],
+      [
+        "a",
+        "d",
+        1,
+        0
+      ],
+      [
+        "b",
+        "d",
+        1,
+        0
+      ],
+      [
+        "c",
+        "d",
+        1,
+        0
+      ]
+    ],
+    "expectation": "resolved",
+    "order": [
+      "b",
+      "a",
+      "c",
+      "d"
+    ],
+    "automaticProof": {
+      "criterion": "head-to-head-goals-scored",
+      "tiedTeams": [
+        "a",
+        "b",
+        "c"
+      ],
+      "overall": [
+        {
+          "teamId": "a",
+          "points": 6,
+          "goalDifference": 1,
+          "goalsFor": 4
+        },
+        {
+          "teamId": "b",
+          "points": 6,
+          "goalDifference": 1,
+          "goalsFor": 5
+        },
+        {
+          "teamId": "c",
+          "points": 6,
+          "goalDifference": 1,
+          "goalsFor": 3
+        }
+      ],
+      "headToHead": [
+        {
+          "teamId": "a",
+          "points": 3,
+          "goalDifference": 0,
+          "goalsFor": 3
+        },
+        {
+          "teamId": "b",
+          "points": 3,
+          "goalDifference": 0,
+          "goalsFor": 4
+        },
+        {
+          "teamId": "c",
+          "points": 3,
+          "goalDifference": 0,
+          "goalsFor": 2
+        }
+      ]
+    },
+    "explanation": "Equal mini-league points and goal difference leave head-to-head goals scored to order b, a, c."
+  },
+  {
+    "name": "recursive-subset-resolved",
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "matches": [
+      [
+        "a",
+        "b",
+        2,
+        1
+      ],
+      [
+        "b",
+        "c",
+        1,
+        0
+      ],
+      [
+        "c",
+        "a",
+        2,
+        1
+      ],
+      [
+        "a",
+        "d",
+        1,
+        0
+      ],
+      [
+        "b",
+        "d",
+        1,
+        0
+      ],
+      [
+        "c",
+        "d",
+        1,
+        0
+      ]
+    ],
+    "expectation": "resolved",
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "automaticProof": {
+      "criterion": "recursive-subset-resolved",
+      "tiedTeams": [
+        "a",
+        "b",
+        "c"
+      ],
+      "overall": [
+        {
+          "teamId": "a",
+          "points": 6,
+          "goalDifference": 1,
+          "goalsFor": 4
+        },
+        {
+          "teamId": "b",
+          "points": 6,
+          "goalDifference": 1,
+          "goalsFor": 3
+        },
+        {
+          "teamId": "c",
+          "points": 6,
+          "goalDifference": 1,
+          "goalsFor": 3
+        }
+      ],
+      "headToHead": [
+        {
+          "teamId": "a",
+          "points": 3,
+          "goalDifference": 0,
+          "goalsFor": 3
+        },
+        {
+          "teamId": "b",
+          "points": 3,
+          "goalDifference": 0,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "c",
+          "points": 3,
+          "goalDifference": 0,
+          "goalsFor": 2
+        }
+      ],
+      "recursiveSubset": [
+        "b",
+        "c"
+      ],
+      "recursiveHeadToHead": [
+        {
+          "teamId": "b",
+          "points": 3,
+          "goalDifference": 1,
+          "goalsFor": 1
+        },
+        {
+          "teamId": "c",
+          "points": 0,
+          "goalDifference": -1,
+          "goalsFor": 0
+        }
+      ]
+    },
+    "explanation": "a separates first; recalculated b/c head-to-head points put b above c."
+  },
+  {
+    "name": "recursive-subset-unresolved",
+    "teams": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "matches": [
+      [
+        "a",
+        "b",
+        1,
+        1
+      ],
+      [
+        "a",
+        "c",
+        0,
+        0
+      ],
+      [
+        "b",
+        "c",
+        0,
+        0
+      ],
+      [
+        "a",
+        "d",
+        1,
+        0
+      ],
+      [
+        "b",
+        "d",
+        1,
+        0
+      ],
+      [
+        "c",
+        "d",
+        1,
+        0
+      ]
+    ],
+    "expectation": "unresolved",
+    "order": [
+      "a",
+      "b",
+      "c",
+      "d"
+    ],
+    "automaticProof": {
+      "criterion": "recursive-subset-unresolved",
+      "tiedTeams": [
+        "a",
+        "b",
+        "c"
+      ],
+      "overall": [
+        {
+          "teamId": "a",
+          "points": 5,
+          "goalDifference": 1,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "b",
+          "points": 5,
+          "goalDifference": 1,
+          "goalsFor": 2
+        },
+        {
+          "teamId": "c",
+          "points": 5,
+          "goalDifference": 1,
+          "goalsFor": 1
+        }
+      ],
+      "headToHead": [
+        {
+          "teamId": "a",
+          "points": 2,
+          "goalDifference": 0,
+          "goalsFor": 1
+        },
+        {
+          "teamId": "b",
+          "points": 2,
+          "goalDifference": 0,
+          "goalsFor": 1
+        },
+        {
+          "teamId": "c",
+          "points": 2,
+          "goalDifference": 0,
+          "goalsFor": 0
+        }
+      ],
+      "recursiveSubset": [
+        "a",
+        "b"
+      ],
+      "recursiveHeadToHead": [
+        {
+          "teamId": "a",
+          "points": 1,
+          "goalDifference": 0,
+          "goalsFor": 1
+        },
+        {
+          "teamId": "b",
+          "points": 1,
+          "goalDifference": 0,
+          "goalsFor": 1
+        }
+      ]
+    },
+    "explanation": "c separates first; a and b remain equal after their direct draw and overall fallback.",
+    "unresolved": [
+      [
+        "a",
+        "b"
+      ]
+    ],
+    "ranks": [
+      1,
+      1,
+      3,
+      4
+    ]
   }
 ]

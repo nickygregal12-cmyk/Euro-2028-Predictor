@@ -1,0 +1,7 @@
+import { describe, expect, it } from 'vitest'
+import { calculateGroupTable, type MatchScore } from '../../src/domain/tournament/calculateGroupTable'
+const teams = ['a', 'b', 'c', 'd']
+const pairings: [string, string][] = [['a','b'], ['a','c'], ['a','d'], ['b','c'], ['b','d'], ['c','d']]
+const outcomes: MatchScore[][] = [[]]
+for (const [homeTeamId, awayTeamId] of pairings) { const next: MatchScore[][] = []; for (const matches of outcomes) for (const [homeScore, awayScore] of [[1,0], [0,0], [0,1]]) next.push([...matches, { homeTeamId, awayTeamId, homeScore, awayScore }]); outcomes.splice(0, outcomes.length, ...next) }
+describe('three-team head-to-head-points feasibility', () => it('finds no unequal mini-table points in all 729 complete outcome combinations', () => { let cases = 0; const patterns = new Set<string>(); for (const matches of outcomes) { const table = calculateGroupTable(teams, matches); for (const points of new Set(table.map((s) => s.points))) { const tied = table.filter((s) => s.points === points).map((s) => s.teamId); if (tied.length !== 3) continue; cases += 1; const mini = calculateGroupTable(tied, matches); const values = mini.map((s) => s.points); patterns.add([...values].sort((a,b) => a-b).join(',')); expect(new Set(values).size).toBe(1) } } expect(outcomes).toHaveLength(729); expect(cases).toBeGreaterThan(0); expect([...patterns].sort()).toEqual(['2,2,2', '3,3,3']) }))
