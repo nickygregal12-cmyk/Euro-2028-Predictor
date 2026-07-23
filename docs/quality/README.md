@@ -1,0 +1,159 @@
+[README.md](https://github.com/user-attachments/files/30300844/README.md)
+# Quality governance
+
+This directory provides a lightweight, durable quality-control layer for the Euro 2028 Predictor. It records the current assurance position, preserves verified risks, protects the known feature and safeguard baseline, and stores historical audit evidence without becoming a second product roadmap or backlog.
+
+## Existing authoritative controls
+
+The quality system complements rather than replaces the repository's existing controls:
+
+- [`../../CLAUDE.md`](../../CLAUDE.md) — agent instructions, architecture rules, Git discipline and database-change rules.
+- [`../roadmap.md`](../roadmap.md) — full product sequence and deliberately deferred product work.
+- [`../build-todo.md`](../build-todo.md) — current implementation checklist and near-term build sequencing.
+- [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md) — architecture and tournament-state contract.
+- [`../scoring-rules.md`](../scoring-rules.md) — approved Original Predictor scoring and entry-validity rules.
+- [`../competition-structure.md`](../competition-structure.md) — separation between the Original Predictor and future competitions.
+- [`../design-system.md`](../design-system.md) — approved interface and design-system rules.
+- Existing `docs/ops-*.md` files — operational procedures and environment-specific evidence.
+
+Do not move their content into this directory or create competing copies.
+
+## Source-of-truth hierarchy
+
+When sources disagree, use this order and record the disagreement rather than silently choosing a convenient answer:
+
+1. Current application code and database migrations describe actual implementation.
+2. Approved requirements and project-control documents describe intended behaviour.
+3. Automated tests provide repeatable validation evidence.
+4. GitHub Issues track actionable work.
+5. Pull requests and commits provide implementation history.
+6. [`current-status.md`](current-status.md) provides the latest quality summary.
+7. [`risk-register.md`](risk-register.md) preserves verified risks and findings.
+8. Dated files under [`audits/`](audits/) preserve historical audit reports.
+
+Historical audit reports are evidence snapshots. They must not become competing live task lists. A later audit may change the status of a finding, but it must not erase the earlier evidence.
+
+## Files in this directory
+
+- [`current-status.md`](current-status.md) — concise latest assurance summary and compact validation baseline.
+- [`feature-baseline.md`](feature-baseline.md) — verified feature and safeguard inventory used to detect silent loss.
+- [`risk-register.md`](risk-register.md) — permanent history and status of verified findings.
+- [`deferred-decisions.md`](deferred-decisions.md) — decisions intentionally postponed because information, timing or architecture is unresolved.
+- [`audit-prompt.md`](audit-prompt.md) — controlled location for the separately approved reusable audit prompt.
+- [`audits/`](audits/) — immutable, dated audit reports.
+
+## Audit finding workflow
+
+1. An audit identifies a verified finding.
+2. The finding is added to `risk-register.md` with evidence and a stable ID.
+3. An actionable Critical, High or agreed Medium finding receives a GitHub Issue.
+4. The issue title or body references the finding ID.
+5. Work is completed on a dedicated branch.
+6. The pull request references both the GitHub Issue and finding ID.
+7. Automated tests and required manual validation are completed.
+8. The pull request is reviewed and merged.
+9. The risk register is updated with resolution evidence.
+10. A future audit confirms that the issue has not regressed.
+
+GitHub Issues are the active implementation system. The risk register records risk history and assurance status; it is not a task decomposition document.
+
+## Finding identifiers
+
+Use a stable category prefix and a repository-wide sequence number. Do not renumber an existing finding when its title, severity or status changes.
+
+| Prefix | Category | Example |
+| --- | --- | --- |
+| `SEC` | Security and privacy | `SEC-001` |
+| `DATA` | Data integrity and database behaviour | `DATA-001` |
+| `AUTH` | Authentication and authorisation | `AUTH-001` |
+| `FUNC` | Functional or business-rule correctness | `FUNC-001` |
+| `UX` | User experience | `UX-001` |
+| `A11Y` | Accessibility | `A11Y-001` |
+| `PERF` | Performance | `PERF-001` |
+| `TEST` | Testing and validation | `TEST-001` |
+| `DEPLOY` | Deployment, environments and operations | `DEPLOY-001` |
+| `DOC` | Documentation and maintainability | `DOC-001` |
+
+Use the original ID for a regression of the same underlying issue. Use a new ID only for a materially different root cause or risk.
+
+## Severity definitions
+
+| Severity | Definition |
+| --- | --- |
+| **Critical** | Can plausibly cause a security breach, permission bypass, irreversible data corruption, materially incorrect core competition results, severe privacy exposure or a production outage requiring immediate containment. |
+| **High** | Can materially break a major user journey, undermine data or release confidence, create significant operational risk or make the application unsafe to launch without repair. |
+| **Medium** | Meaningful defect or control weakness that should be scheduled but does not immediately threaten the application or core competition integrity. |
+| **Low** | Minor defect, polish item, cleanup or optional improvement with limited user or operational impact. |
+
+Severity describes impact, not implementation effort or urgency alone.
+
+## Status definitions
+
+| Status | Definition |
+| --- | --- |
+| **Open** | Verified and not yet being actively repaired. |
+| **In progress** | A linked issue or branch is actively addressing the finding. |
+| **Blocked** | Work cannot progress until a recorded dependency or decision is resolved. |
+| **Resolved** | All resolution requirements below are satisfied. |
+| **Accepted risk** | An authorised owner has accepted the risk with rationale, scope and review trigger recorded. |
+| **False positive** | Evidence shows the reported issue is not present or not applicable; the rejection rationale is retained. |
+| **Superseded** | Replaced by another finding or control; the relationship and replacement ID are recorded. |
+
+## Evidence requirements
+
+A verified finding must contain enough evidence for another reviewer to reproduce or independently assess it. Evidence should normally include:
+
+- audited branch and commit SHA;
+- exact file paths, symbols, migrations, routes, database objects or configuration entries;
+- relevant command/test output or manual reproduction steps;
+- systems and environments inspected;
+- inaccessible or unverified systems;
+- confidence level and any assumptions;
+- links to the dated audit report and GitHub Issue where applicable.
+
+Do not mark a concern as confirmed solely because a comment, TODO, test name or historical report says it exists.
+
+## Resolution requirements
+
+A finding may be marked **Resolved** only when all of the following exist:
+
+1. implementation evidence;
+2. validation evidence;
+3. a linked commit or pull request where applicable; and
+4. confirmation that the issue no longer reproduces.
+
+Deleting a test, TODO, document, audit entry or finding is not resolution evidence. Rewording a requirement is not resolution unless an authorised product decision explicitly changes the requirement and the decision is recorded.
+
+## Regression review
+
+For each audit or release review:
+
+- compare the current application against `feature-baseline.md`;
+- retest resolved Critical and High findings where practical;
+- review safeguards affected by refactoring, migrations or dependency changes;
+- retain the original finding ID when the same issue returns;
+- record newly inaccessible systems as unknowns rather than assuming they remain safe;
+- update `current-status.md` only after the evidence has been reviewed.
+
+## Review frequency
+
+- Update `current-status.md` after each approved audit, material remediation batch or production-readiness review.
+- Review all open Critical and High risks before merging a release-sensitive batch.
+- Review accepted risks at their recorded trigger and at least before each production launch gate.
+- Compare the feature baseline during every full audit and before a major release.
+- Perform a full quality review before the tournament dress rehearsal and again before production launch.
+
+## Prohibited content
+
+Never store the following in `docs/quality/`:
+
+- service-role keys, database passwords or Supabase access tokens;
+- Netlify, GitHub, SMTP or private API tokens;
+- refresh tokens or user passwords;
+- personal user data or full database exports;
+- production logs containing personal information;
+- sensitive exploit payloads that create unnecessary risk;
+- duplicate roadmaps, backlogs, project-control systems or architecture-decision registers;
+- unverified allegations presented as confirmed findings;
+- detailed implementation task lists that belong in GitHub Issues;
+- public browser keys duplicated from existing environment documentation without a clear need.
