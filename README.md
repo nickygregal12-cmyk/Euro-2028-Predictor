@@ -1,18 +1,24 @@
 # Euro 2028 Predictor
 
-A mobile-first Euro 2028 football predictor web app. React 19 + TypeScript + Vite, Supabase (Postgres, Auth, RLS, RPCs) for data, and Netlify for hosting.
+A mobile-first Euro 2028 football predictor web app built with React 19, TypeScript, Vite, Supabase (Postgres, Auth, RLS and RPCs) and Netlify.
+
+## Current warning
+
+Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
+
+The `2026-07-23L` live audit confirmed that production Netlify serves the post-PR #14 application while both hosted Supabase projects still have the original 20-migration schema. Production does not contain the atomic bracket replacement RPC used by the deployed client. Treat application/database compatibility as the first recovery priority; do not apply hosted migrations or change production configuration without a reviewed plan and explicit approval.
 
 ## Setup
 
 ```bash
-npm ci            # install exactly from package-lock.json
-npm run dev       # local dev server
-npm run test      # unit + component tests (Vitest)
-npm run lint      # Oxlint
-npm run build     # tsc -b && vite build
+npm ci
+npm run dev
+npm run test
+npm run lint
+npm run build
 ```
 
-Copy `.env.example` to `.env.local` and fill in the development Supabase values. Never point local or preview builds at the production Supabase project.
+Copy `.env.example` to `.env.local` and use development Supabase values only. Never point local development, deploy previews or branch deploys at production Supabase.
 
 ## Project structure
 
@@ -22,73 +28,93 @@ src/
   design-system/  # shared UI primitives and tokens-driven components
   dev/            # dev-only component gallery
   domain/
-    tournament/   # pure tournament functions — data in, data out
+    tournament/   # pure tournament rules and calculations
   features/       # auth, predict, bracket, leagues, matches, home, profile, etc.
   services/
-    supabase/     # Supabase client and all queries/RPCs
+    supabase/     # browser database queries and RPC wrappers
   styles/         # tokens, fonts, flags
 tests/
-  domain/         # domain unit tests
-  database-parity/# TypeScript/PostgreSQL differential tests
+  domain/
+  database-parity/
   features/ services/ scripts/ app/
 supabase/
-  migrations/     # append-only timestamped migrations
-  tests/          # local pgTAP behaviour and permission tests
-  seed.sql        # fixture/bracket skeleton
+  migrations/     # append-only repository migration chain
+  tests/          # local pgTAP behavior and permission tests
+  seed.sql
   prod-baseline.sql
 scripts/
-  seed-dev/       # guarded development seeding
-  og/             # Open Graph asset rendering
+  seed-dev/
+  database-parity/
+  og/
 docs/
-  quality/        # audits, risk register and current reconciliation
+  quality/        # audits, risk register and live status
 ```
 
 ## Domain and database principles
 
-Tournament rules are implemented first as pure functions in `src/domain/tournament/`. Components render domain results rather than inventing standings, scoring or bracket rules.
+Tournament rules are implemented first as pure functions under `src/domain/tournament/`. Components render domain results rather than inventing standings, scoring or bracket behavior.
 
-The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. A local-only workflow rebuilds disposable Supabase, runs database lint and pgTAP, and compares normalized TypeScript and PostgreSQL outputs fixture by fixture.
+The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. The database-parity workflow rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-The database is authoritative for entry locks, submission, derived group positions, atomic bracket replacement, match results, corrections, scoring recomputation, winner propagation and final bracket validity. Private integrity helpers are not exposed as public client RPCs.
+In the latest repository migration chain, the database is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation and atomic complete-bracket replacement. Those controls are not considered deployed until the target hosted schema is inspected, migrated and verified.
 
 ## Scoring
 
-`docs/scoring-rules.md` is the single source of truth. Point values are transcribed into `src/domain/tournament/scoringConfig.ts` and mirrored in the SQL scorer. No scoring number should appear as an unexplained literal inside scoring logic.
+`docs/scoring-rules.md` is the source of truth. Values are transcribed into `src/domain/tournament/scoringConfig.ts` and mirrored in SQL. No scoring value should appear as an unexplained literal in scoring logic.
 
-## Current implementation status
+## Verification
 
-The repository and disposable-local database now have executable coverage for:
+Application CI runs:
 
-- canonical predicted group ordering, including head-to-head recursion and unresolved ties;
-- explicit manual same-group and best-third tie decisions;
+- reproducible install;
+- build/type-check;
+- lint;
+- application tests;
+- high-severity production dependency audit.
+
+Database parity CI runs:
+
+- disposable local Supabase start;
+- full migration rebuild;
+- database lint;
+- all pgTAP suites;
+- TypeScript/PostgreSQL differential parity;
+- clean teardown.
+
+PR #14's application CI run #71 and database parity run #40 passed. Browser E2E remains absent and is still a launch blocker.
+
+## Repository/local implementation
+
+The repository and disposable-local database have executable coverage for:
+
+- canonical predicted group ordering, including recursive head-to-head handling and unresolved ties;
+- exact manual same-group and best-third decisions;
 - TypeScript/PostgreSQL group-order parity;
-- RPC-only entry submission and server-derived predicted group positions;
+- RPC-only submission and server-derived predicted group positions;
 - ownership, lock-time and same-tournament prediction boundaries;
 - regulation, extra-time and penalty result confirmation/correction/clear operations;
-- immutable result revision history and serialized score recomputation;
-- confirmed knockout-winner propagation into later fixtures;
-- full match-by-match validation of a predicted 15-match knockout tree; and
-- version-checked replacement of a user's complete predicted bracket through one server transaction.
+- immutable result revisions and serialized scoring recomputation;
+- confirmed knockout-winner propagation;
+- full match-by-match predicted bracket replay;
+- expected-version, one-transaction complete-bracket replacement.
 
-Baseline GitHub Actions CI runs reproducible install, build/type-check, lint, the full application test suite and a high-severity production dependency audit. The database workflow rebuilds every committed migration in disposable local Supabase, runs lint and all pgTAP suites, executes differential parity, and removes the local data afterwards.
+The 13 migrations implementing the later database controls are not applied to either hosted Supabase project as of the live audit.
 
-**The project is still not ready for a real scored production competition.** The later migrations have not been applied or reconciled against hosted development or production Supabase. Browser E2E, hosted legacy-data preflights, backup/restore rehearsal, automatic real R16 population, pending-write submission flushing and wider immutable reference constraints remain open.
+## Documentation authority
 
-The next repository implementation stage is **automatic population of the real Round of 16 from confirmed group standings and the authoritative best-third table**.
-
-Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work. It is the live implementation-status document. Dated audits and the risk register remain historical evidence. `docs/roadmap.md` and `docs/build-todo.md` contain valuable product and planning history, but their older implementation narratives may lag the current reconciliation and must not override `current-status.md`.
-
-## Where the rules live
-
-| Question | Document |
+| Question | Source |
 | --- | --- |
-| Current implementation, blockers and next repository action | `docs/quality/current-status.md` |
-| Agent instructions, architecture rules, Git and database discipline | `AGENTS.md`, `CLAUDE.md` |
+| Current implementation, hosted status, blockers and next action | `docs/quality/current-status.md` |
+| Latest formal evidence | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
+| Agent, Git and database discipline | `AGENTS.md`; `CLAUDE.md` |
+| Current risks | `docs/quality/risk-register.md` |
+| Migration inventory and hosted applied state | `docs/ops-pending-migrations.md` |
 | Scoring and entry validity | `docs/scoring-rules.md` |
 | Tournament facts and structure | `docs/tournament-structure.md` |
 | Architecture and tournament states | `docs/architecture-and-tournament-states.md` |
 | Interface and design system | `docs/design-system.md` |
 | Competition boundaries | `docs/competition-structure.md` |
-| Product planning history | `docs/roadmap.md`, `docs/build-todo.md` |
+| Future product sequence | `docs/roadmap.md`; `docs/build-todo.md` |
 | Operations runbooks | `docs/ops-*.md` |
-| Audits, risks and post-audit reconciliation | `docs/quality/` |
+
+Dated audits are retained as historical evidence. Roadmap and TODO documents describe intent and sequencing, not proof that a feature or migration is live.
