@@ -4,7 +4,16 @@
 **Primary finding:** `FUNC-001`  
 **Evidence boundary:** repository and disposable local Supabase/PostgreSQL only
 
-This note records the repository position after adding full predicted bracket replay and real winner propagation. It does not rewrite the dated 23 July 2026 audits or silently change the historical risk register.
+## Merge record
+
+- Pull request: PR #12 — `draft: enforce knockout bracket tree integrity`
+- Verified head: `9a0239d12ba76eae2c6b726baff2a24948916b07`
+- Merged to `main`: `0112bfa6283c089048534c5e75678dbeefd14b4e`
+- Application CI run #61: passed
+- Database parity run #33: passed
+- Netlify deployment preview: passed
+
+This note records the repository position after merging full predicted bracket replay and real winner propagation. It does not rewrite the dated 23 July 2026 audits or silently change the historical risk register.
 
 ## Predicted entry contract
 
@@ -38,7 +47,7 @@ For winner-fed QF, SF and final slots:
 - an upstream winner cannot change while a downstream result remains confirmed or corrected; and
 - the downstream result must be cleared first, preserving an explicit and auditable correction order.
 
-The current source-tree check requires:
+The source-tree check requires:
 
 - eight R16 matches;
 - four quarter-finals;
@@ -49,7 +58,7 @@ The current source-tree check requires:
 
 ## Executable evidence
 
-The disposable database workflow now proves:
+The disposable database workflow proves:
 
 - full migration rebuild and database lint;
 - first and second R16 winner propagation into a QF;
@@ -63,13 +72,13 @@ The disposable database workflow now proves:
 - successful submission of that tree; and
 - rejection of a hostile bracket that retains the old accepted stage counts but cannot represent a valid match-by-match path.
 
-The existing group-order differential suite and all earlier entry/result lifecycle tests continue to pass in the same disposable run.
+The existing group-order differential suite and all earlier entry/result-lifecycle tests continue to pass in the same disposable run.
 
 ## Finding reconciliation
 
 | Finding | Repository/local result | Remaining boundary |
 | --- | --- | --- |
-| `FUNC-001` — bracket progression can be internally inconsistent | Full predicted match-by-match replay and real winner-fed QF/SF/final propagation are implemented and executable locally | Hosted migration application and targeted finding-status review remain outstanding |
+| `FUNC-001` — bracket progression can be internally inconsistent | Full predicted match-by-match replay and real winner-fed QF/SF/final propagation are merged and executable locally | Hosted migration application and targeted finding-status review remain outstanding |
 | `TEST-001` — no database or browser integration assurance | Further narrowed by executable predicted-tree, propagation and correction-order coverage | Browser E2E and hosted authenticated journeys remain open |
 | `REL-004` — compound bracket writes are not atomic | No change to the client persistence path | A server transaction for replacing the complete predicted progression set remains open |
 | `DATA-003` — incomplete same-tournament/reference constraints | Knockout sources and propagated participants are validated within this workflow | Wider immutable reference-data constraints remain open |
@@ -78,7 +87,7 @@ The existing group-order differential suite and all earlier entry/result lifecyc
 
 This work does not provide:
 
-- automatic population of the real R16 participants from confirmed group standings and the real best-third table;
+- automatic population of real R16 participants from confirmed group standings and the real best-third table;
 - an atomic client RPC for replacing a user's complete bracket;
 - a browser administration interface for result entry and correction;
 - browser end-to-end tests;
