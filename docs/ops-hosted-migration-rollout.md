@@ -28,7 +28,12 @@ The 23 July 2026 rehearsal established:
 - production still has zero legacy match results;
 - production itself remains on migrations 1–20 until this procedure is approved and executed.
 
-The committed preflight is bound to the exact payload that was rehearsed:
+A separate read-only production baseline proof established that every structural effect required from repository migrations 1–20 is present, while the hosted migration-history list remains empty. See:
+
+- `scripts/database-rollout/production-baseline-1-20-verification.sql`;
+- `docs/quality/reconciliations/2026-07-23-production-migration-history-1-20.md`.
+
+The committed entry preflight is bound to the exact payload that was rehearsed:
 
 | Payload | Rollout-guard fingerprint |
 | --- | --- |
@@ -50,7 +55,8 @@ Before starting, record:
 - operator name;
 - start time and change window;
 - backup/export identifier and retrieval location;
-- output of `supabase migration list`;
+- output of `scripts/database-rollout/production-baseline-1-20-verification.sql`;
+- output of `supabase migration list` before and after repair;
 - output of `supabase db push --dry-run`;
 - output of `scripts/database-rollout/production-preflight.sql`;
 - rollout-guard fingerprints from that output;
@@ -91,13 +97,20 @@ A Netlify deploy rollback is not a database rollback. Do not start without datab
 
 ## Phase 3 — immediate production preflight
 
-Run the committed read-only script:
+Run both committed read-only scripts:
 
 ```text
+scripts/database-rollout/production-baseline-1-20-verification.sql
 scripts/database-rollout/production-preflight.sql
 ```
 
-Required outcome:
+Required baseline outcome:
+
+- `all_structural_effects_present = true`;
+- all twenty individual migration checks are true;
+- any ACL drift remains recorded separately under `SECURITY-003` and is not confused with missing migration SQL.
+
+Required entry/21–33 outcome:
 
 - `overall_structural_pass = true`;
 - exactly one submitted entry remains with timestamp `2026-07-21 21:51:49.639442+00` and it remains before lock;
@@ -115,7 +128,7 @@ Required outcome:
 
 ## Phase 4 — reconcile migration history
 
-The schema effects of migrations 1–20 were applied manually and may not be represented in `supabase_migrations.schema_migrations`.
+Production currently has no tracked migration-history rows even though the read-only verifier proves the structural effects of migrations 1–20 are present.
 
 1. Inspect local versus remote history:
 
@@ -123,11 +136,39 @@ The schema effects of migrations 1–20 were applied manually and may not be rep
 supabase migration list
 ```
 
-2. For each migration 1–20, compare the live schema object/policy/function evidence with the migration file.
-3. Mark only independently proven migrations as applied:
+Expected before repair: local files 1–33, with production history missing 1–20.
+
+2. Re-run and retain:
+
+```text
+scripts/database-rollout/production-baseline-1-20-verification.sql
+```
+
+3. Only when all 20 checks are true, mark these repository timestamps as applied in tracking metadata:
 
 ```bash
-supabase migration repair <migration-timestamp> --status applied
+supabase migration repair \
+  20260719120000 \
+  20260719130000 \
+  20260719140000 \
+  20260719150000 \
+  20260719160000 \
+  20260719170000 \
+  20260719180000 \
+  20260720120000 \
+  20260720130000 \
+  20260720140000 \
+  20260720150000 \
+  20260720160000 \
+  20260720170000 \
+  20260720180000 \
+  20260720190000 \
+  20260720200000 \
+  20260720210000 \
+  20260721120000 \
+  20260721130000 \
+  20260722120000 \
+  --status applied
 ```
 
 4. Re-run:
@@ -135,6 +176,8 @@ supabase migration repair <migration-timestamp> --status applied
 ```bash
 supabase migration list
 ```
+
+Required result: migrations 1–20 align locally/remotely; migrations 21–33 remain pending.
 
 5. Preview the pending SQL:
 
@@ -146,7 +189,7 @@ The dry run must show **only migrations 21–33**, in timestamp order.
 
 **Stop if it proposes migrations 1–20, skips any migration 21–33, includes an unknown migration, or the history cannot be explained.**
 
-`migration repair` updates tracking metadata only. It does not apply SQL.
+`migration repair` updates tracking metadata only. It does not apply SQL. Do not mark migrations 21–33 as applied on production before their SQL has executed.
 
 ## Phase 5 — apply the repository chain
 
@@ -224,13 +267,17 @@ Only after database and application smoke tests pass:
 - lift the deployment/write freeze;
 - record completion in `docs/quality/current-status.md`;
 - update `docs/ops-pending-migrations.md`;
-- retain preflight, dry-run, push and verification outputs in the incident/change record.
+- retain preflight, history-repair, dry-run, push and verification outputs in the incident/change record.
 
 ## Failure handling
 
 ### Preflight failure
 
 Stop. Do not mutate production. Open a remediation workstream using the exact failing rows.
+
+### Migration-history repair mismatch
+
+Stop before `db push`. Do not add or remove history rows until the mismatch is understood from both schema and repository evidence.
 
 ### Migration failure before commit
 
