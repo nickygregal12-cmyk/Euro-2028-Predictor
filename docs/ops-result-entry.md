@@ -1,106 +1,232 @@
-# Ops note — Entering & correcting results (Phase 2 interim)
+# Ops runbook — Confirming and correcting match results
 
-There is no admin result-entry page yet — it's deferred to Phase 3 (built once against the final feature set, and it must exist before the dress rehearsal). For Phase 2, results are entered and corrected **directly in the Supabase SQL editor**. Scoring re-derives automatically: a trigger on `matches` recomputes `score_events` whenever a score changes.
+This runbook describes the repository result contract introduced by `DATA-002`.
+It is **not permission to apply the migrations to a hosted Supabase project**.
+Hosted rollout requires separate approval, preflight review and legacy-data
+reconciliation.
 
-Written against the live schema in `supabase/migrations/20260720130000_add_scoring.sql` (+ the initial `matches` table in `20260719120000_init_v0_1.sql`).
+There is no browser admin result-entry page yet. Until that server-side admin
+adapter exists, an authorised operator may call the protected functions from a
+privileged SQL session after the lifecycle migrations have been applied.
 
-## ⚠️ Concurrency caution (added 2026-07-22, post-audit) — one result-entry session at a time
+## Absolute rules
 
-`recompute_tournament_scores()` is delete-and-rederive and runs synchronously in the result-write transaction — atomic and safe for a **single** writer, which is exactly what this SQL-editor workflow is. But two **concurrent** result writes (two SQL-editor sessions, or a future admin panel / live-score feed) can race overlapping delete/rederive passes: the last committer's snapshot may not include the other session's result, leaving the leaderboard briefly missing points until any next recompute self-heals it.
+- Never update `matches.home_score`, `away_score`, result method, shootout fields,
+  winner, result state or result version directly.
+- Never disable the result-boundary trigger to force a result through.
+- Never guess whether an existing knockout score was regulation, extra time or
+  penalties.
+- A correction or clear must include a meaningful reason.
+- A failing constraint or migration preflight is a stop condition, not a prompt
+  to weaken the database rule.
 
-**Rule until the advisory-lock migration lands** (roadmap Phase 2 audit follow-up item 5 — `pg_advisory_xact_lock` at the top of the recompute, which serialises this properly): enter results from **one session, sequentially**. If you ever suspect a race happened (e.g. two people entered results at once), a manual `select recompute_tournament_scores(...)` (see "Manual recompute" below) fully repairs it — delete-and-rederive means the fix is always one call away.
+Direct result-column updates are rejected even for a privileged ordinary SQL
+caller. The only supported write paths are:
 
-## How scoring reacts (why this is safe)
+- `confirm_match_result(...)`
+- `correct_match_result(...)`
+- `clear_match_result(...)`
 
-- `matches.home_score` / `matches.away_score` hold the real result. A check constraint requires **both set or both null** (`matches_score_pair`).
-- Trigger **`recompute_scores_on_result`** fires `AFTER INSERT OR UPDATE OF home_score, away_score` and calls **`recompute_tournament_scores(tournament_id)`** (it skips if neither score actually changed).
-- `recompute_tournament_scores()` **deletes and re-derives** every `score_events` row for that tournament's entries from source data (predictions + results + jokers). So a correction never double-counts — the old events are gone before the new ones are written.
-- `entry_totals` (a view) sums `score_events` per entry; `get_leaderboard()` reads it. Nothing else to update.
+The functions are denied to `PUBLIC`, `anon` and `authenticated`. They are
+available to the server role for a future server-side admin adapter and remain
+callable by the database owner in a privileged SQL session.
 
-## Enter a result
+## Result model
 
-`match_ref` values: group `GA-1`…`GF-6`, knockout `R16-1`…`R16-8`, `QF-1`…`QF-4`, `SF-1`, `SF-2`, `FINAL`.
+The match row stores:
 
-```sql
-update matches
-set home_score = 2, away_score = 1
-where tournament_id = (select id from tournaments order by year limit 1)
-  and match_ref = 'GA-1';
-```
+- `result_state`: `scheduled`, `confirmed` or `corrected`;
+- `result_method`: `regulation`, `extra_time` or `penalties`;
+- `home_score_90` / `away_score_90`;
+- `home_score_120` / `away_score_120` when extra time was played;
+- `home_penalties` / `away_penalties` when a shootout occurred;
+- `home_score` / `away_score`: the public football score excluding shootout
+  kicks;
+- `winner_team_id`: the authoritative winner, derived by the lifecycle;
+- revision, timestamp and reason metadata.
 
-The trigger recomputes automatically — no further step.
+For a penalty-decided match, `home_score` and `away_score` remain tied at the
+120-minute score. The shootout score is separate, and `winner_team_id` determines
+advancement and champion scoring.
 
-## Correct a result
+## Find the match first
 
-Just run the update again with the corrected scores. Delete-and-rederive means no double-counting.
-
-```sql
-update matches
-set home_score = 3, away_score = 1
-where tournament_id = (select id from tournaments order by year limit 1)
-  and match_ref = 'GA-1';
-```
-
-## Clear a result (postponement / entered by mistake)
-
-Both columns must go null together (the check constraint):
-
-```sql
-update matches
-set home_score = null, away_score = null
-where tournament_id = (select id from tournaments order by year limit 1)
-  and match_ref = 'GA-1';
-```
-
-The trigger recomputes and that match stops scoring.
-
-## Manual recompute (backfill)
-
-The trigger only fires on **future** score changes. If results were entered **before** the scoring migration was applied (e.g. the dev seed, or a fresh production import), backfill once:
+Use an exact tournament and match reference. Do not rely on `order by year limit
+1` in an environment that may contain more than one tournament.
 
 ```sql
--- Every tournament:
-select recompute_all_scores();
-
--- Or a single tournament:
-select recompute_tournament_scores((select id from tournaments order by year limit 1));
+select
+  m.id,
+  m.match_ref,
+  m.round,
+  m.home_team_id,
+  ht.name as home_team,
+  m.away_team_id,
+  at.name as away_team,
+  m.result_state,
+  m.result_version
+from public.matches m
+left join public.teams ht on ht.id = m.home_team_id
+left join public.teams at on at.id = m.away_team_id
+where m.tournament_id = '<TOURNAMENT_UUID>'::uuid
+  and m.match_ref = 'FINAL';
 ```
 
-These run as a privileged role in the SQL editor; they're intentionally not client-callable.
+Confirm that both participants are correct before entering any result.
 
-## Verify
+## Confirm a regulation result
 
-After entering or correcting a result, confirm it landed:
+Group draws are allowed. A knockout regulation result must not be tied.
 
 ```sql
--- Who scored on this specific result, and how:
-select p.display_name, se.points, se.joker, se.explanation
-from score_events se
-join entries e on e.id = se.entry_id
-join profiles p on p.id = e.user_id
-where se.match_id = (
-  select id from matches
-  where match_ref = 'GA-1'
-    and tournament_id = (select id from tournaments order by year limit 1)
-)
-order by se.points desc, p.display_name;
-
--- Overall standings (what the League tab shows — submitted entries only):
-select p.display_name, t.total_points
-from entry_totals t
-join entries e on e.id = t.entry_id
-join profiles p on p.id = e.user_id
-where e.tournament_id = (select id from tournaments order by year limit 1)
-  and e.submitted_at is not null
-order by t.total_points desc, p.display_name;
+select public.confirm_match_result(
+  p_match_id => '<MATCH_UUID>'::uuid,
+  p_method => 'regulation',
+  p_home_90 => 2::smallint,
+  p_away_90 => 1::smallint,
+  p_reason => 'Verified against the official match report'
+);
 ```
 
-## Scope note
+For a group draw, use the same function with equal 90-minute scores. The derived
+winner will be `null`.
 
-Only **§1 group-match points** are derived today. Group positions (§2), knockout progression (§3), and awards (§4) score 0 until the **"Scoring engine completion"** item lands — so entering knockout results won't yet produce `score_events`. See `build-todo.md`.
+## Confirm an extra-time result
 
-## Related
+The 90-minute score must be tied. The 120-minute score must not be tied.
 
-- Scoring engine: `supabase/migrations/20260720130000_add_scoring.sql`
-- Reference / acceptance test: `tests/scripts/scoreEntries.test.ts`
-- The admin result-entry **page** that replaces this manual process: **Phase 3**, must exist before the dress rehearsal.
+```sql
+select public.confirm_match_result(
+  p_match_id => '<MATCH_UUID>'::uuid,
+  p_method => 'extra_time',
+  p_home_90 => 1::smallint,
+  p_away_90 => 1::smallint,
+  p_home_120 => 2::smallint,
+  p_away_120 => 1::smallint,
+  p_reason => 'Verified after extra time'
+);
+```
+
+## Confirm a penalty result
+
+Both the 90-minute and 120-minute football scores must be tied. The shootout
+score must not be tied.
+
+```sql
+select public.confirm_match_result(
+  p_match_id => '<MATCH_UUID>'::uuid,
+  p_method => 'penalties',
+  p_home_90 => 1::smallint,
+  p_away_90 => 1::smallint,
+  p_home_120 => 1::smallint,
+  p_away_120 => 1::smallint,
+  p_home_penalties => 5::smallint,
+  p_away_penalties => 4::smallint,
+  p_reason => 'Verified shootout result'
+);
+```
+
+The winner is derived from the shootout fields. Do not alter the tied public
+football score to manufacture a winner.
+
+## Correct a confirmed result
+
+Use the complete corrected result, not only the changed field. A non-empty reason
+is mandatory.
+
+```sql
+select public.correct_match_result(
+  p_match_id => '<MATCH_UUID>'::uuid,
+  p_method => 'penalties',
+  p_home_90 => 1::smallint,
+  p_away_90 => 1::smallint,
+  p_home_120 => 1::smallint,
+  p_away_120 => 1::smallint,
+  p_home_penalties => 4::smallint,
+  p_away_penalties => 5::smallint,
+  p_reason => 'Official report showed the shootout teams reversed'
+);
+```
+
+A correction advances `result_version`, changes the state to `corrected`,
+appends an immutable revision and recomputes scoring in the same transaction.
+
+## Clear an entered result
+
+Use this for a postponement, abandoned fixture or result attached to the wrong
+match. A reason is mandatory.
+
+```sql
+select public.clear_match_result(
+  p_match_id => '<MATCH_UUID>'::uuid,
+  p_reason => 'Fixture postponed before completion'
+);
+```
+
+Clearing returns the match to `scheduled`, removes the current score and winner,
+appends a revision and recomputes scoring. The revision sequence remains.
+
+## Verify the authoritative result
+
+```sql
+select
+  match_ref,
+  result_state,
+  result_method,
+  home_score_90,
+  away_score_90,
+  home_score_120,
+  away_score_120,
+  home_score,
+  away_score,
+  home_penalties,
+  away_penalties,
+  winner_team_id,
+  result_version,
+  confirmed_at,
+  corrected_at
+from public.matches
+where id = '<MATCH_UUID>'::uuid;
+```
+
+The revision table is intentionally not client-readable. A privileged database
+owner may inspect it during an authorised investigation:
+
+```sql
+select revision, action, reason, recorded_at, previous_result, new_result
+from public.match_result_revisions
+where match_id = '<MATCH_UUID>'::uuid
+order by revision;
+```
+
+## Scoring and concurrency
+
+Result write, revision insert and scoring recomputation run in one transaction.
+`recompute_tournament_scores()` takes a tournament advisory transaction lock, so
+concurrent result changes are serialised rather than interleaving delete-and-
+rederive passes.
+
+The scorer uses `winner_team_id` for the final champion, including a tied final
+decided on penalties. Rank history is captured after the authoritative winner
+has been scored.
+
+A manual recompute remains available to a privileged server/database owner:
+
+```sql
+select public.recompute_tournament_scores('<TOURNAMENT_UUID>'::uuid);
+```
+
+It uses the same advisory lock and deterministic delete-and-rederive pipeline.
+
+## Current boundaries
+
+This lifecycle does not yet:
+
+- propagate a winner automatically into the next knockout fixture;
+- replay and validate the complete bracket tree;
+- provide a browser admin interface;
+- verify that either hosted Supabase project has applied these migrations;
+- classify or repair legacy hosted scores automatically.
+
+The migration deliberately fails if scores already exist, because a bare score
+pair cannot establish the historical result method.
