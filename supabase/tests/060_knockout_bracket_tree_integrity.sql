@@ -329,6 +329,12 @@ select ok(
   'a complete replayable bracket submits successfully'
 );
 
+-- Direct authenticated progression DML is denied by REL-004. Corrupt the
+-- fixture as service_role, then return to the authenticated owner to prove
+-- repeat submission still rejects the hostile match-by-match tree.
+reset role;
+set local role service_role;
+
 -- Preserve all four stage counts but make R16-1 claim that both A1 and C2 advance.
 delete from public.predicted_progression pp
 using public.teams tm
@@ -345,6 +351,10 @@ from public.tournaments t
 join public.teams tm on tm.tournament_id = t.id
 where t.name = 'UEFA Euro 2028'
   and tm.name = 'Team C2';
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '20000000-0000-0000-0000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 
 select is(
   (

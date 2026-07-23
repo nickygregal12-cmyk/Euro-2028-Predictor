@@ -300,6 +300,11 @@ select is(
   'a match prediction cannot reference another tournament'
 );
 
+-- Direct authenticated progression DML is denied by REL-004. Use the
+-- service role only to exercise the underlying same-tournament trigger.
+reset role;
+set local role service_role;
+
 select is(
   pg_temp.capture_sqlstate($sql$
     insert into public.predicted_progression (
@@ -313,8 +318,12 @@ select is(
     )
   $sql$),
   '23514',
-  'a progression row cannot reference another tournament'
+  'the server progression path cannot reference another tournament'
 );
+
+set local role authenticated;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000001', true);
+select set_config('request.jwt.claim.role', 'authenticated', true);
 
 select is(
   pg_temp.capture_sqlstate($sql$
