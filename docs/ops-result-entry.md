@@ -1,58 +1,53 @@
 # Ops runbook — Confirming and correcting match results
 
-This runbook describes the repository result contract introduced by `DATA-002`.
-It is **not permission to apply the migrations to a hosted Supabase project**.
-Hosted rollout requires separate approval, preflight review and legacy-data
-reconciliation.
+This runbook describes the **repository result contract** introduced by migrations 28–32. It is not permission to apply migrations or enter results in a hosted project.
 
-There is no browser admin result-entry page yet. Until that server-side admin
-adapter exists, an authorised operator may call the protected functions from a
-privileged SQL session after the lifecycle migrations have been applied.
+## Hosted status — 23 July 2026
+
+Neither development nor production Supabase has the authoritative result-lifecycle migrations.
+
+- Production currently has no stored match scores, so the result preflight may be able to pass after full review.
+- Development has 12 legacy scored matches. Migration `20260723183000_knockout_result_lifecycle.sql` deliberately fails while those scores exist because their regulation/extra-time/penalty method cannot be inferred safely.
+- No browser administrator result-entry interface or version-controlled admin role exists.
+
+Do not use the functions below until the target environment has applied and verified the complete required migration chain.
 
 ## Absolute rules
 
-- Never update `matches.home_score`, `away_score`, result method, shootout fields,
-  winner, result state or result version directly.
-- Never disable the result-boundary trigger to force a result through.
-- Never guess whether an existing knockout score was regulation, extra time or
-  penalties.
-- A correction or clear must include a meaningful reason.
-- A failing constraint or migration preflight is a stop condition, not a prompt
-  to weaken the database rule.
+- Never update score, method, shootout, winner, result-state or result-version columns directly.
+- Never disable result-boundary or propagation triggers to force a result through.
+- Never guess whether a legacy knockout score was reached in regulation, extra time or penalties.
+- Corrections and clears require a meaningful reason.
+- A failed preflight or constraint is a stop condition.
+- Clear confirmed downstream results before changing an upstream winner.
+- Use an exact tournament ID and match reference; never rely on “latest tournament” ordering.
 
-Direct result-column updates are rejected even for a privileged ordinary SQL
-caller. The only supported write paths are:
+## Supported server functions
 
-- `confirm_match_result(...)`
-- `correct_match_result(...)`
-- `clear_match_result(...)`
+After migrations 28–32 are applied, the only supported result write paths are:
 
-The functions are denied to `PUBLIC`, `anon` and `authenticated`. They are
-available to the server role for a future server-side admin adapter and remain
-callable by the database owner in a privileged SQL session.
+- `public.confirm_match_result(...)`
+- `public.correct_match_result(...)`
+- `public.clear_match_result(...)`
+
+They are denied to `PUBLIC`, `anon` and `authenticated` in the repository chain and are intended for `service_role` through a future server-side administrator adapter. A privileged database owner can call them during an explicitly authorized interim operation.
 
 ## Result model
 
-The match row stores:
+A match stores:
 
 - `result_state`: `scheduled`, `confirmed` or `corrected`;
 - `result_method`: `regulation`, `extra_time` or `penalties`;
-- `home_score_90` / `away_score_90`;
-- `home_score_120` / `away_score_120` when extra time was played;
-- `home_penalties` / `away_penalties` when a shootout occurred;
-- `home_score` / `away_score`: the public football score excluding shootout
-  kicks;
-- `winner_team_id`: the authoritative winner, derived by the lifecycle;
-- revision, timestamp and reason metadata.
+- 90-minute score;
+- optional 120-minute score;
+- optional shootout score;
+- public football score excluding shootout kicks;
+- derived `winner_team_id`;
+- result version, timestamps and reason metadata.
 
-For a penalty-decided match, `home_score` and `away_score` remain tied at the
-120-minute score. The shootout score is separate, and `winner_team_id` determines
-advancement and champion scoring.
+For penalties, the public football score remains tied at 120 minutes. The shootout score is separate and `winner_team_id` drives progression and champion scoring.
 
-## Find the match first
-
-Use an exact tournament and match reference. Do not rely on `order by year limit
-1` in an environment that may contain more than one tournament.
+## Find and verify the match
 
 ```sql
 select
@@ -69,14 +64,14 @@ from public.matches m
 left join public.teams ht on ht.id = m.home_team_id
 left join public.teams at on at.id = m.away_team_id
 where m.tournament_id = '<TOURNAMENT_UUID>'::uuid
-  and m.match_ref = 'FINAL';
+  and m.match_ref = '<MATCH_REF>';
 ```
 
-Confirm that both participants are correct before entering any result.
+Confirm the fixture and both participants against an authoritative match source before writing.
 
 ## Confirm a regulation result
 
-Group draws are allowed. A knockout regulation result must not be tied.
+Group draws are allowed. A knockout regulation result cannot be tied.
 
 ```sql
 select public.confirm_match_result(
@@ -88,12 +83,9 @@ select public.confirm_match_result(
 );
 ```
 
-For a group draw, use the same function with equal 90-minute scores. The derived
-winner will be `null`.
-
 ## Confirm an extra-time result
 
-The 90-minute score must be tied. The 120-minute score must not be tied.
+The 90-minute score must be tied and the 120-minute score must produce a winner.
 
 ```sql
 select public.confirm_match_result(
@@ -109,8 +101,7 @@ select public.confirm_match_result(
 
 ## Confirm a penalty result
 
-Both the 90-minute and 120-minute football scores must be tied. The shootout
-score must not be tied.
+Both 90 and 120 minutes must be tied; the shootout cannot be tied.
 
 ```sql
 select public.confirm_match_result(
@@ -126,13 +117,9 @@ select public.confirm_match_result(
 );
 ```
 
-The winner is derived from the shootout fields. Do not alter the tied public
-football score to manufacture a winner.
+## Correct a result
 
-## Correct a confirmed result
-
-Use the complete corrected result, not only the changed field. A non-empty reason
-is mandatory.
+Supply the complete corrected result and a non-empty reason.
 
 ```sql
 select public.correct_match_result(
@@ -144,17 +131,13 @@ select public.correct_match_result(
   p_away_120 => 1::smallint,
   p_home_penalties => 4::smallint,
   p_away_penalties => 5::smallint,
-  p_reason => 'Official report showed the shootout teams reversed'
+  p_reason => 'Corrected from the official match report'
 );
 ```
 
-A correction advances `result_version`, changes the state to `corrected`,
-appends an immutable revision and recomputes scoring in the same transaction.
+If the changed upstream winner already feeds a confirmed/corrected downstream match, the database rejects the correction. Clear the downstream result first, then correct the upstream match, then re-confirm downstream results in order.
 
-## Clear an entered result
-
-Use this for a postponement, abandoned fixture or result attached to the wrong
-match. A reason is mandatory.
+## Clear a result
 
 ```sql
 select public.clear_match_result(
@@ -163,10 +146,9 @@ select public.clear_match_result(
 );
 ```
 
-Clearing returns the match to `scheduled`, removes the current score and winner,
-appends a revision and recomputes scoring. The revision sequence remains.
+Clearing returns the match to `scheduled`, removes the current result/winner, removes propagated winner-fed participants where safe, appends a revision and recomputes scoring.
 
-## Verify the authoritative result
+## Verify result, progression and scoring
 
 ```sql
 select
@@ -189,8 +171,7 @@ from public.matches
 where id = '<MATCH_UUID>'::uuid;
 ```
 
-The revision table is intentionally not client-readable. A privileged database
-owner may inspect it during an authorised investigation:
+A privileged investigator may inspect revisions:
 
 ```sql
 select revision, action, reason, recorded_at, previous_result, new_result
@@ -199,34 +180,38 @@ where match_id = '<MATCH_UUID>'::uuid
 order by revision;
 ```
 
-## Scoring and concurrency
+Also verify:
 
-Result write, revision insert and scoring recomputation run in one transaction.
-`recompute_tournament_scores()` takes a tournament advisory transaction lock, so
-concurrent result changes are serialised rather than interleaving delete-and-
-rederive passes.
+- the correct winner-fed child participant changed;
+- no unrelated fixture changed;
+- expected `score_events` were rederived;
+- leaderboard totals and rank history are coherent;
+- the result and revision versions advanced exactly once.
 
-The scorer uses `winner_team_id` for the final champion, including a tied final
-decided on penalties. Rank history is captured after the authoritative winner
-has been scored.
+## Current repository behavior
 
-A manual recompute remains available to a privileged server/database owner:
+The latest repository chain does include:
 
-```sql
-select public.recompute_tournament_scores('<TOURNAMENT_UUID>'::uuid);
-```
+- result confirmation/correction/clear;
+- immutable revisions;
+- serialized score recomputation;
+- penalty-decided champion scoring;
+- real winner propagation through QF, SF and final;
+- protection against changing an upstream winner under a confirmed downstream result.
 
-It uses the same advisory lock and deterministic delete-and-rederive pipeline.
+It does **not** yet include:
 
-## Current boundaries
+- automatic population of the real R16 from completed groups;
+- a browser/server administrator adapter;
+- automatic data-feed ingestion;
+- hosted rollout verification;
+- automatic repair of legacy scores.
 
-This lifecycle does not yet:
+## Related documents
 
-- propagate a winner automatically into the next knockout fixture;
-- replay and validate the complete bracket tree;
-- provide a browser admin interface;
-- verify that either hosted Supabase project has applied these migrations;
-- classify or repair legacy hosted scores automatically.
-
-The migration deliberately fails if scores already exist, because a bare score
-pair cannot establish the historical result method.
+- `docs/quality/current-status.md`
+- `docs/quality/audits/2026-07-23-live-environment-audit.md`
+- `docs/ops-pending-migrations.md`
+- `docs/ops-admin-bootstrap.md`
+- `docs/quality/reconciliations/2026-07-23-knockout-result-lifecycle.md`
+- `docs/quality/reconciliations/2026-07-23-knockout-bracket-tree-integrity.md`
