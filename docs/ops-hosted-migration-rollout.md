@@ -11,6 +11,7 @@ It does **not** authorize the rollout by itself. The owner must explicitly appro
 - Never use development Supabase as a production fallback.
 - Never apply only migration 33.
 - Never bypass or edit a failing preflight during the rollout window.
+- Never update a rollout-guard fingerprint during the rollout window.
 - Never use `migration repair` unless the corresponding schema effect is independently proven present.
 - Never use `--include-seed` on production.
 - One operator performs the database change; no concurrent migration push is allowed.
@@ -27,6 +28,16 @@ The 23 July 2026 rehearsal established:
 - production still has zero legacy match results;
 - production itself remains on migrations 1–20 until this procedure is approved and executed.
 
+The committed preflight is bound to the exact payload that was rehearsed:
+
+| Payload | Rollout-guard fingerprint |
+| --- | --- |
+| 36 match predictions | `8d76619fe4b44fdac17de1cc2afe5aaa` |
+| two manual tie decisions | `a4dcf183f5c48e3ba11ff75c59622598` |
+| eight progression rows | `0d7bc491daa9b24013204d061a2d38f1` |
+
+If any fingerprint or the submitted timestamp changes, stop and repeat the production-to-development clone and full replay. A legitimate user edit is not a reason to weaken the guard; it creates a new payload that must be rehearsed.
+
 See `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`.
 
 ## Required inputs
@@ -42,6 +53,7 @@ Before starting, record:
 - output of `supabase migration list`;
 - output of `supabase db push --dry-run`;
 - output of `scripts/database-rollout/production-preflight.sql`;
+- rollout-guard fingerprints from that output;
 - rollback decision owner.
 
 Do not place credentials, database passwords, access tokens or private backup URLs in the repository.
@@ -88,15 +100,18 @@ scripts/database-rollout/production-preflight.sql
 Required outcome:
 
 - `overall_structural_pass = true`;
-- submitted entry remains before lock;
+- exactly one submitted entry remains with timestamp `2026-07-21 21:51:49.639442+00` and it remains before lock;
 - every group remains 4 teams / 6 valid fixtures / 6 predictions;
+- exactly one group tie row and one third-place tie row remain valid;
+- all three rollout-guard fingerprints match the rehearsed values;
 - progression remains `4/2/1/1` with eight rows;
-- tie decisions remain valid;
+- old hosted group-position rows remain zero before migration 26 rebuilds them;
+- score events and rank history remain zero;
 - no cross-tournament anomaly exists;
 - no legacy score exists;
 - knockout source tree remains `8/4/2/1` with 14 valid unique winner sources.
 
-**Any failure is a stop condition.** Investigate outside the rollout window.
+**Any failure is a stop condition.** Investigate outside the rollout window. If the source payload changed, repeat the exact clone and replay rather than editing expected values in place.
 
 ## Phase 4 — reconcile migration history
 
@@ -170,16 +185,18 @@ scripts/database-rollout/post-rollout-verification.sql
 Required conditions include:
 
 - private schema exists and browser roles have no usage;
-- entry update privilege is denied to authenticated users;
-- group-position and progression direct DML are denied;
+- entry update and delete privileges are denied to authenticated users;
+- group-position and progression direct insert/update/delete are denied;
 - atomic progression RPC exists and is authenticated-only;
 - result lifecycle columns/functions exist;
-- result functions are denied to browser roles;
-- revision table is denied to browser and service roles;
+- confirm, correct and clear functions are denied to browser roles and allowed only to the service role;
+- revision table direct select/insert/update/delete are denied to browser and service roles;
+- exactly one submitted entry and its original timestamp are preserved;
+- all three rollout-guard fingerprints are unchanged;
 - the submitted entry has 24 server-derived positions;
 - complete bracket replay returns true;
-- no scored match was invented;
-- production data counts and submitted timestamp are preserved.
+- no result, revision, score event or rank-history row was invented;
+- production progression and source predictions are preserved.
 
 Then run Supabase security advisors and retain the output. Expected legacy advisor findings remain tracked under `SECURITY-003`; new warnings caused by the rollout are a stop condition.
 
