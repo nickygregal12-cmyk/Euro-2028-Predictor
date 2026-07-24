@@ -168,12 +168,16 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 
 ### Remaining reliability work
 
-- [ ] **`REL-002`** — prevent late best-effort reads from overwriting newer state.
+- [x] **`REL-002`** — prevent late best-effort reads from overwriting newer state.
   - [x] Guard match, tie, bracket and Golden Boot initial reads with per-slice local-edit generations.
   - [x] Reset every prediction slice and version baseline when the active entry context changes.
   - [x] Add focused provider regressions for late success and failure responses.
-  - [ ] Close issue #62 after the final head is green and merged to `main`.
+  - [x] Issue #62 closed after PR #63 passed final checks and merged to `main`.
 - [ ] **`REL-006`** — make first entry creation idempotent under concurrent tabs.
+  - [x] Replace the select-then-insert race with the existing unique-key insert-on-conflict boundary.
+  - [x] Add focused service regressions for winner, concurrent loser and genuine error paths.
+  - [x] Prove two independent browser contexts converge on one disposable-Supabase entry row.
+  - [ ] Close issue #64 after PR #65 passes the final documentation head and merges to `main`.
 - [ ] Complete wider tournament/reference immutability constraints.
 - [ ] Map raw database/network failures to stable user-facing errors.
 

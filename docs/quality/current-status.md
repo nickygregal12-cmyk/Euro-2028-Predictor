@@ -22,6 +22,8 @@
 | Feature-baseline identifiers | [`2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md) |
 | Authenticated browser E2E | [`2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md) |
 | Late-read overwrite guard | [`2026-07-24-late-read-overwrite-guard.md`](reconciliations/2026-07-24-late-read-overwrite-guard.md) |
+| Sign-out confirmation | [`2026-07-24-sign-out-confirmation.md`](reconciliations/2026-07-24-sign-out-confirmation.md) |
+| Entry creation idempotency | [`2026-07-24-entry-creation-idempotency.md`](reconciliations/2026-07-24-entry-creation-idempotency.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Current repository release-control baseline | `8657ad9f9d015b08e2349fda4127b992d2024fa4` — PR #59 updated the current rollout guards after PR #58 repaired migration 31 for existing submissions and moved the app to React Router 8.3.0; production remains contract 20 |
@@ -263,7 +265,9 @@ These are not production capabilities until the full migrations 21–35 rollout 
 - `SECURITY-003`: implemented repository/development; production pending migrations 21–35.
 - `REL-003`: repository tests pass; production/browser closure pending.
 - `DATA-005`: repository/development passes; production RPC/browser closure pending.
-- `REL-002`: repository implementation is in progress on issue #62; current `main` remains open until final validation and merge.
+- `REL-002`: resolved by merged PR #63 and its final CI/Browser E2E evidence.
+- `UX-004`: resolved by merged PR #43 and its confirmation/retry/browser evidence.
+- `REL-006`: implementation and executable concurrent-browser proof pass on PR #65; final documentation-head validation and merge remain.
 - `DOC-004`: resolved; the governance charter is restored and readable.
 - `TEST-002`: resolved by merged PR #45 and its green application/database workflows.
 - `DOC-001`, `TEST-003`, `DOC-006`: resolved by merged PR #47 and its green final-head validation.
@@ -312,9 +316,9 @@ Never edit migration history directly, mark absent SQL as applied or lift the de
 | Non-production auth | `AUTH-001` / issue #28: Turnstile/CAPTCHA context model and preview auth journeys are unverified. |
 | Hosted function security | `SECURITY-003`: production pending migrations 21–35. |
 | Auth security | Leaked-password protection remains disabled and requires a separate approved Auth change. |
-| Entry reliability | `REL-003` and `DATA-005` await compatible-production browser closure; issue #62 implements the repository guard for `REL-002`, while `REL-006` remains unimplemented. |
+| Entry reliability | `REL-003` and `DATA-005` await compatible-production browser closure; `REL-002` is resolved, and PR #65 is the final merge gate for `REL-006`. |
 | Product completeness | Automatic real R16 population, auto-submit, reminders and browser result administration remain absent. |
-| Test assurance | Dedicated disposable-local-Supabase Playwright coverage now includes authenticated routes, score persistence/clearing, submission barriers, bracket conflicts, lock rejection, signup confirmation and password recovery. Private-league invitation/join, result administration, browser accessibility and production smoke journeys remain open. |
+| Test assurance | Dedicated disposable-local-Supabase Playwright coverage now includes authenticated routes, score persistence/clearing, submission barriers, bracket conflicts, lock rejection, signup confirmation, password recovery and coordinated concurrent first-entry creation. Private-league invitation/join, result administration, browser accessibility and production smoke journeys remain open. |
 | Quality governance | `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. |
 | Official data | Final regulations, qualified teams, draw, fixtures/times and lock instant remain future dependencies. |
 
@@ -347,7 +351,7 @@ No reliability, deletion, backup, environment, deployment-contract, legacy-site 
 12. Resolve `AUTH-001` through issue #28 and verify preview login/signup/recovery.
 13. Resolve `OPS-008` through issue #27 in a separate legacy workstream; do not touch the World Cup environment from this repository.
 14. Enable leaked-password protection through a separate approved Auth workstream.
-15. Complete issue #62 (`REL-002`), then address `REL-006`, before automatic real R16 population.
+15. Complete PR #65 (`REL-006`) before automatic real R16 population.
 
 ## Documentation authority
 

@@ -19,26 +19,46 @@ export type MatchPrediction = {
   version: number
 }
 
-/** Fetch the user's entry for a tournament, creating it on first use. */
+function mapEntry(row: { id: string; submitted_at: string | null }): Entry {
+  return { id: row.id, submittedAt: row.submitted_at }
+}
+
+/**
+ * Fetch the user's entry for a tournament, creating it on first use.
+ *
+ * The unique (user_id, tournament_id) boundary is the concurrency authority.
+ * INSERT ... ON CONFLICT DO NOTHING lets one tab create the row while any
+ * concurrent loser falls through to a normal read instead of surfacing a raw
+ * unique-constraint error.
+ */
 export async function getOrCreateEntry(userId: string, tournamentId: string): Promise<Entry> {
+  const created = await supabase
+    .from('entries')
+    .upsert(
+      { user_id: userId, tournament_id: tournamentId },
+      {
+        onConflict: 'user_id,tournament_id',
+        ignoreDuplicates: true,
+      },
+    )
+    .select('id, submitted_at')
+    .maybeSingle()
+
+  if (created.error) throw created.error
+  if (created.data) return mapEntry(created.data)
+
+  // A zero-row RETURNING result means another request won the unique insert.
+  // The follow-up request reads the committed shared row rather than treating
+  // the expected concurrency outcome as an application error.
   const existing = await supabase
     .from('entries')
     .select('id, submitted_at')
     .eq('user_id', userId)
     .eq('tournament_id', tournamentId)
-    .maybeSingle()
-  if (existing.error) throw existing.error
-  if (existing.data) {
-    return { id: existing.data.id, submittedAt: existing.data.submitted_at }
-  }
-
-  const created = await supabase
-    .from('entries')
-    .insert({ user_id: userId, tournament_id: tournamentId })
-    .select('id, submitted_at')
     .single()
-  if (created.error) throw created.error
-  return { id: created.data.id, submittedAt: created.data.submitted_at }
+
+  if (existing.error) throw existing.error
+  return mapEntry(existing.data)
 }
 
 /**
