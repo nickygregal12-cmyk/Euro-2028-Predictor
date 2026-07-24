@@ -64,13 +64,15 @@ These are documentation reconciliations of already implemented controls, not run
 
 ## Validation evidence
 
-PR #50 implementation head `6ece7ee0a6a7406274fbe1b069a3d923074330d5` passed CI run 211, documented head `9ed0a051952c1eb9c8d755350db2e08d9f427a3e` passed CI run 212, and the final review head `589e67e754bc740458f623fa87f4740a7cf8ea7d` passed CI run 213:
+The implementation and documentation heads passed CI runs 211, 212, 213 and 214. The final review head before this evidence-only freeze was `9dc326d354e1633adde6d8b0710612e426bcfa79` in run 214:
 
 1. dependency installation passed;
 2. the Git-less environment-hygiene proof passed;
 3. build and lint passed;
 4. the complete test suite passed, including the new identifier-continuity assertions and repository-wide Markdown-link checks;
 5. the production-dependency audit passed.
+
+No further implementation, mapping or test change followed run 214; this final documentation-only commit records that immutable validation boundary.
 
 ## Safety boundary
 
