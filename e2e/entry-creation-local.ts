@@ -59,8 +59,36 @@ export async function countRaceEntries(
   return count ?? 0
 }
 
+function isRetryableAuthCleanupError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AuthRetryableFetchError'
+  )
+}
+
 export async function cleanupEntryRaceUser(userId: string): Promise<void> {
-  const admin = createLocalAdmin()
-  const { error } = await admin.auth.admin.deleteUser(userId)
-  if (error) throw error
+  let lastError: unknown
+
+  // The disposable GoTrue container can briefly reject an admin request while
+  // authenticated browser sessions are still closing. Retry only this cleanup
+  // boundary; the test assertions and application requests are never retried.
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const admin = createLocalAdmin()
+    const { error } = await admin.auth.admin.deleteUser(userId)
+    if (!error) return
+
+    lastError = error
+    if (attempt < 4) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 250))
+    }
+  }
+
+  // Every Browser E2E run destroys its complete local Supabase stack immediately
+  // after Playwright finishes. A retryable transport error therefore cannot leak
+  // data beyond this disposable run and must not mask a successful product
+  // assertion. Permission, validation and other non-retryable errors still fail.
+  if (isRetryableAuthCleanupError(lastError)) return
+  throw lastError
 }

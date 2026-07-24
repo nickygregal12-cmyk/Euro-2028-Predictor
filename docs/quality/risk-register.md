@@ -22,7 +22,8 @@
 **Authenticated browser E2E:** [`reconciliations/2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md)  
 **Late-read overwrite guard:** [`reconciliations/2026-07-24-late-read-overwrite-guard.md`](reconciliations/2026-07-24-late-read-overwrite-guard.md)  
 **Sign-out confirmation:** [`reconciliations/2026-07-24-sign-out-confirmation.md`](reconciliations/2026-07-24-sign-out-confirmation.md)  
-**Entry creation idempotency:** [`reconciliations/2026-07-24-entry-creation-idempotency.md`](reconciliations/2026-07-24-entry-creation-idempotency.md)
+**Entry creation idempotency:** [`reconciliations/2026-07-24-entry-creation-idempotency.md`](reconciliations/2026-07-24-entry-creation-idempotency.md)  
+**Foreground refresh:** [`reconciliations/2026-07-24-foreground-refresh.md`](reconciliations/2026-07-24-foreground-refresh.md)
 
 This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” or an approved recovery method does **not** mean recovery is proven.
 
@@ -62,6 +63,7 @@ This register retains every original finding ID and adds findings discovered by 
 | Resolved | PR #63 merged as `f30ee8367116132c7c4b6a079bdba9371b27cf76` after final CI and Browser E2E passed. This resolves `REL-002`. |
 | Resolved | PR #43 merged as `620180b16113c6d7b877e266afbb1fbea537967f` after final CI, Browser E2E and Netlify preview passed. This resolves `UX-004`. |
 | Resolved | PR #65 merged as `cd517f6f0fba48aaf54c16ee444671db29bd2741`; final CI run `30131321194`, Browser E2E run `30131321198` and the ready Netlify preview passed. This resolves `REL-006`. |
+| In progress | PR #68 implements `REL-005`; hook/provider tests and the guarded implementation run pass, with final Browser E2E, preview and merge evidence pending. |
 
 ## Critical
 
@@ -101,7 +103,7 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | --- | --- | --- |
 | `OPS-008` | A public legacy “development” site is sourced from the World Cup repository and a dormant staging backend | **Open — retire/protect approved; dashboard execution pending; issue #27** | The owner approved removal of public access and separate retirement of the hourly legacy activity. Automated team-login protection returned HTTP 422 and the password fallback was blocked before execution, so the site remains unchanged and public. Close after the separate Netlify dashboard action and verified public-access/function/cron/backend state. Do not repoint it to either current Euro project. |
 | `AUTH-001` | Production Turnstile site key is inherited by non-production contexts while development CAPTCHA configuration is unverified | **Open — always-pass test model approved; dashboard execution pending; issue #28** | The owner approved Cloudflare's matching always-pass test pair for previews/branches/dev and development Supabase, while production retains its real pair. Connected tools cannot update the development Supabase CAPTCHA secret/toggle. Close after both dashboard sides are configured together and preview login/signup/recovery plus production regression evidence pass. |
-| `REL-005` | Open pages can remain convincingly stale | Open | Add and test realtime, polling or focus-refetch strategy. |
+| `REL-005` | Open pages can remain convincingly stale | **Implementation complete — PR #68 pending final gates** | A deduplicated hidden-to-visible refresh contract updates tournament and persisted-entry state without polling, waits for save settlement, preserves errors/conflicts and uses `REL-002` revisions to protect in-flight local edits. Focused tests pass; close only after final Browser E2E, preview and merge. |
 | `REL-006` | Concurrent first-use requests can hit entry unique conflicts | **Resolved by PR #65** | Existing unique `(user_id, tournament_id)` authority supports an insert-on-conflict/fallback-read boundary; focused service tests and a coordinated two-context disposable-Supabase race passed final CI and Browser E2E before merge. Reopen on any duplicate-entry or raw first-use conflict regression. |
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Complete-snapshot versions contain this on development; verify production rollout and multi-device browser behavior. |
 | `PERF-001` | League summary requests scale linearly/serially | Open | Remove serial per-league request pattern and profile representative load. |
