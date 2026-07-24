@@ -1,0 +1,670 @@
+name: Bootstrap REL-002 late-read guard
+
+on:
+  push:
+    branches:
+      - agent/prevent-late-read-overwrite
+
+permissions:
+  contents: write
+
+jobs:
+  implement-and-verify:
+    if: github.event.head_commit.message != 'Guard prediction loads against stale reads'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Apply focused REL-002 implementation
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              return text.replace(old, new, 1)
+
+          provider_path = Path('src/app/providers/PredictionsProvider.tsx')
+          provider = provider_path.read_text()
+
+          provider = replace_once(
+              provider,
+              "type GoldenBootSavePayload = { playerId: string | null }\n",
+              "type GoldenBootSavePayload = { playerId: string | null }\n\n"
+              "type LoadSlice = 'matches' | 'ties' | 'progression' | 'goldenBoot'\n"
+              "type LoadRevisions = Record<LoadSlice, number>\n\n"
+              "const createLoadRevisions = (): LoadRevisions => ({\n"
+              "  matches: 0,\n"
+              "  ties: 0,\n"
+              "  progression: 0,\n"
+              "  goldenBoot: 0,\n"
+              "})\n",
+              'load revision types',
+          )
+
+          provider = replace_once(
+              provider,
+              "  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})\n"
+              "  const submittingRef = useRef(false)\n",
+              "  const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})\n"
+              "  const submittingRef = useRef(false)\n"
+              "  // Each initial best-effort read captures the corresponding local-edit\n"
+              "  // revision. A response may populate state only when the user has not\n"
+              "  // changed that slice since the read began. This prevents a slow success\n"
+              "  // or failure default from replacing newer local work.\n"
+              "  const localEditRevisionsRef = useRef<LoadRevisions>(createLoadRevisions())\n\n"
+              "  function markLocalEdit(slice: LoadSlice) {\n"
+              "    localEditRevisionsRef.current[slice] += 1\n"
+              "  }\n\n"
+              "  function initialLoadCanApply(slice: LoadSlice, revision: number) {\n"
+              "    return localEditRevisionsRef.current[slice] === revision\n"
+              "  }\n",
+              'load revision ref',
+          )
+
+          start_marker = "  useEffect(() => {\n    if (!userId || !tournamentId) {"
+          end_marker = "\n  // Hand the match's latest local state to the controller."
+          start = provider.find(start_marker)
+          end = provider.find(end_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('initial load effect markers not found')
+
+          new_effect = '''  useEffect(() => {
+    let active = true
+
+    // Entry context is changing (or disappearing). Clear every local slice and
+    // version baseline immediately so the previous account/tournament cannot
+    // remain visible or receive a delayed save while the next entry loads.
+    setReady(false)
+    clearDebounceTimers()
+    controllerRef.current?.reset()
+    entryIdRef.current = null
+    setEntryId(null)
+    setSubmittedAt(null)
+    predictionsRef.current = {}
+    setPredictions({})
+    setSaveStatus({})
+    matchVersionsRef.current = {}
+    setTieResolutions([])
+    setTieSaveStatus({})
+    setProgression({})
+    progressionPersistedRef.current = {}
+    progressionDesiredRef.current = {}
+    progressionVersionsRef.current = {}
+    setBracketSaveStatus('idle')
+    setGoldenBootPlayerId(null)
+    goldenBootVersionRef.current = 0
+    setGoldenBootSaveStatus('idle')
+    submittingRef.current = false
+    setSubmitting(false)
+    localEditRevisionsRef.current = createLoadRevisions()
+
+    if (!userId || !tournamentId) {
+      return () => {
+        active = false
+      }
+    }
+
+    getOrCreateEntry(userId, tournamentId)
+      .then(async (entry) => {
+        if (!active) return
+        entryIdRef.current = entry.id
+        setEntryId(entry.id)
+        setSubmittedAt(entry.submittedAt)
+
+        const matchLoadRevision = localEditRevisionsRef.current.matches
+        const rows = await fetchMatchPredictions(entry.id)
+        if (!active) return
+        if (initialLoadCanApply('matches', matchLoadRevision)) {
+          const map: Record<string, Prediction> = {}
+          const vmap: Record<string, number> = {}
+          for (const r of rows) {
+            map[r.matchId] = {
+              homeScore: r.homeScore,
+              awayScore: r.awayScore,
+              joker: r.joker,
+            }
+            vmap[r.matchId] = r.version
+          }
+          matchVersionsRef.current = vmap
+          predictionsRef.current = map
+          setPredictions(map)
+        }
+        setReady(true)
+
+        // These secondary reads remain fail-soft so missing optional data cannot
+        // block the entry. Their result/default may only apply if no newer local
+        // edit has occurred since the individual read began.
+        const tieLoadRevision = localEditRevisionsRef.current.ties
+        void fetchTieResolutions(entry.id)
+          .then((ties) => {
+            if (!active || !initialLoadCanApply('ties', tieLoadRevision)) return
+            setTieResolutions(ties.map((t) => ({ teamIds: t.teamIds, order: t.order })))
+          })
+          .catch(() => {
+            if (active && initialLoadCanApply('ties', tieLoadRevision)) {
+              setTieResolutions([])
+            }
+          })
+
+        const progressionLoadRevision = localEditRevisionsRef.current.progression
+        void fetchProgression(entry.id)
+          .then((progressionRows) => {
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
+            const map: Record<string, ProgressionStage> = {}
+            const vmap: Record<string, number> = {}
+            for (const row of progressionRows) {
+              map[row.teamId] = row.stage
+              vmap[row.teamId] = row.version
+            }
+            setProgression(map)
+            progressionPersistedRef.current = map
+            progressionDesiredRef.current = map
+            progressionVersionsRef.current = vmap
+          })
+          .catch(() => {
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
+            setProgression({})
+            progressionPersistedRef.current = {}
+            progressionDesiredRef.current = {}
+            progressionVersionsRef.current = {}
+          })
+
+        const goldenBootLoadRevision = localEditRevisionsRef.current.goldenBoot
+        void fetchGoldenBoot(entry.id)
+          .then((gb) => {
+            if (
+              !active ||
+              !initialLoadCanApply('goldenBoot', goldenBootLoadRevision)
+            ) {
+              return
+            }
+            setGoldenBootPlayerId(gb.playerId)
+            goldenBootVersionRef.current = gb.version
+          })
+          .catch(() => {
+            if (active && initialLoadCanApply('goldenBoot', goldenBootLoadRevision)) {
+              setGoldenBootPlayerId(null)
+            }
+          })
+      })
+      .catch(() => {
+        if (active) setReady(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [userId, tournamentId])
+'''
+          provider = provider[:start] + new_effect + provider[end:]
+
+          provider = replace_once(
+              provider,
+              "      const next = { ...cur, [side === 'home' ? 'homeScore' : 'awayScore']: value }\n"
+              "      const updated = { ...prev, [matchId]: next }\n",
+              "      const next = { ...cur, [side === 'home' ? 'homeScore' : 'awayScore']: value }\n"
+              "      markLocalEdit('matches')\n"
+              "      const updated = { ...prev, [matchId]: next }\n",
+              'score edit revision',
+          )
+
+          provider = replace_once(
+              provider,
+              "      if (!canToggleJoker({ turningOn, otherJokerCount, kickoffAt }).allowed) return prev\n"
+              "      const next = { ...cur, joker: turningOn }\n",
+              "      if (!canToggleJoker({ turningOn, otherJokerCount, kickoffAt }).allowed) return prev\n"
+              "      markLocalEdit('matches')\n"
+              "      const next = { ...cur, joker: turningOn }\n",
+              'joker edit revision',
+          )
+
+          provider = replace_once(
+              provider,
+              "  function setTieResolution(scope: TieResolutionScope, orderedTeamIds: string[]) {\n"
+              "    const id = entryIdRef.current\n"
+              "    if (!id) return\n"
+              "    const key = tieKey(orderedTeamIds)\n",
+              "  function setTieResolution(scope: TieResolutionScope, orderedTeamIds: string[]) {\n"
+              "    const id = entryIdRef.current\n"
+              "    if (!id) return\n"
+              "    markLocalEdit('ties')\n"
+              "    const key = tieKey(orderedTeamIds)\n",
+              'tie edit revision',
+          )
+
+          provider = replace_once(
+              provider,
+              "  function setBracketProgression(next: Record<string, ProgressionStage>) {\n"
+              "    setProgression(next)\n",
+              "  function setBracketProgression(next: Record<string, ProgressionStage>) {\n"
+              "    markLocalEdit('progression')\n"
+              "    setProgression(next)\n",
+              'progression edit revision',
+          )
+
+          provider = replace_once(
+              provider,
+              "  function setGoldenBoot(playerId: string | null) {\n"
+              "    setGoldenBootPlayerId(playerId) // optimistic — local state is never rolled back\n",
+              "  function setGoldenBoot(playerId: string | null) {\n"
+              "    markLocalEdit('goldenBoot')\n"
+              "    setGoldenBootPlayerId(playerId) // optimistic — local state is never rolled back\n",
+              'golden boot edit revision',
+          )
+
+          provider_path.write_text(provider)
+
+          Path('tests/app/PredictionsProvider.loading.test.tsx').write_text('''import { act, render, waitFor } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  PredictionsProvider,
+  usePredictions,
+} from '../../src/app/providers/PredictionsProvider'
+
+const mocks = vi.hoisted(() => ({
+  getOrCreateEntry: vi.fn(),
+  fetchMatchPredictions: vi.fn(),
+  upsertMatchPrediction: vi.fn(),
+  deleteMatchPrediction: vi.fn(),
+  submitEntry: vi.fn(),
+  fetchGoldenBoot: vi.fn(),
+  upsertGoldenBoot: vi.fn(),
+  fetchTieResolutions: vi.fn(),
+  upsertTieResolution: vi.fn(),
+  fetchProgression: vi.fn(),
+  upsertProgression: vi.fn(),
+  deleteProgression: vi.fn(),
+}))
+
+vi.mock('../../src/services/supabase/predictions', () => ({
+  getOrCreateEntry: mocks.getOrCreateEntry,
+  fetchMatchPredictions: mocks.fetchMatchPredictions,
+  upsertMatchPrediction: mocks.upsertMatchPrediction,
+  deleteMatchPrediction: mocks.deleteMatchPrediction,
+  submitEntry: mocks.submitEntry,
+}))
+
+vi.mock('../../src/services/supabase/bonus', () => ({
+  fetchGoldenBoot: mocks.fetchGoldenBoot,
+  upsertGoldenBoot: mocks.upsertGoldenBoot,
+}))
+
+vi.mock('../../src/services/supabase/tieResolutions', () => ({
+  fetchTieResolutions: mocks.fetchTieResolutions,
+  upsertTieResolution: mocks.upsertTieResolution,
+}))
+
+vi.mock('../../src/services/supabase/progression', () => ({
+  fetchProgression: mocks.fetchProgression,
+  upsertProgression: mocks.upsertProgression,
+  deleteProgression: mocks.deleteProgression,
+}))
+
+vi.mock('../../src/services/supabase/writeConflict', () => ({
+  isVersionConflict: () => false,
+}))
+
+vi.mock('../../src/features/auth/AuthProvider', () => ({
+  useAuth: () => ({ userId: 'user-1' }),
+}))
+
+vi.mock('../../src/app/providers/TournamentDataProvider', () => ({
+  useTournamentData: () => ({
+    status: 'ready',
+    data: {
+      tournament: { id: 'tournament-1' },
+      matches: [],
+    },
+  }),
+}))
+
+type PredictionsApi = ReturnType<typeof usePredictions>
+
+let currentApi: PredictionsApi | null = null
+
+function Harness() {
+  currentApi = usePredictions()
+  return null
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
+
+function renderProvider() {
+  render(
+    <PredictionsProvider>
+      <Harness />
+    </PredictionsProvider>,
+  )
+}
+
+async function renderReadyProvider() {
+  renderProvider()
+  await waitFor(() => expect(currentApi?.ready).toBe(true))
+  if (!currentApi) throw new Error('Predictions context did not mount')
+  return currentApi
+}
+
+describe('PredictionsProvider late-read protection', () => {
+  beforeEach(() => {
+    currentApi = null
+    vi.clearAllMocks()
+    mocks.getOrCreateEntry.mockResolvedValue({ id: 'entry-1', submittedAt: null })
+    mocks.fetchMatchPredictions.mockResolvedValue([])
+    mocks.fetchGoldenBoot.mockResolvedValue({ playerId: null, version: 0 })
+    mocks.fetchTieResolutions.mockResolvedValue([])
+    mocks.fetchProgression.mockResolvedValue([])
+    mocks.upsertMatchPrediction.mockResolvedValue(1)
+    mocks.deleteMatchPrediction.mockResolvedValue(false)
+    mocks.submitEntry.mockResolvedValue('2026-07-24T00:00:00.000Z')
+    mocks.upsertGoldenBoot.mockResolvedValue(1)
+    mocks.upsertTieResolution.mockResolvedValue(undefined)
+    mocks.upsertProgression.mockResolvedValue(1)
+    mocks.deleteProgression.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    currentApi = null
+  })
+
+  it('does not let the initial match read replace a newer local score', async () => {
+    const matchRead = deferred<
+      Array<{
+        matchId: string
+        homeScore: number
+        awayScore: number
+        joker: boolean
+        version: number
+      }>
+    >()
+    mocks.fetchMatchPredictions.mockReturnValue(matchRead.promise)
+
+    renderProvider()
+    await waitFor(() => expect(mocks.fetchMatchPredictions).toHaveBeenCalledWith('entry-1'))
+    if (!currentApi) throw new Error('Predictions context did not mount')
+
+    act(() => {
+      currentApi?.setScore('match-1', 'home', 2)
+      currentApi?.setScore('match-1', 'away', 1)
+    })
+
+    await act(async () => {
+      matchRead.resolve([
+        {
+          matchId: 'match-1',
+          homeScore: 0,
+          awayScore: 0,
+          joker: false,
+          version: 4,
+        },
+      ])
+      await matchRead.promise
+    })
+
+    await waitFor(() => expect(currentApi?.ready).toBe(true))
+    expect(currentApi?.getPrediction('match-1')).toEqual({
+      homeScore: 2,
+      awayScore: 1,
+      joker: false,
+    })
+  })
+
+  it('does not let a late tie read replace a newer manual order', async () => {
+    const tieRead = deferred<
+      Array<{
+        scope: 'group' | 'third'
+        teamIds: string[]
+        order: string[]
+      }>
+    >()
+    mocks.fetchTieResolutions.mockReturnValue(tieRead.promise)
+
+    const api = await renderReadyProvider()
+    act(() => {
+      api.setTieResolution('group', ['team-b', 'team-a'])
+    })
+
+    await act(async () => {
+      tieRead.resolve([
+        {
+          scope: 'group',
+          teamIds: ['team-a', 'team-b'],
+          order: ['team-a', 'team-b'],
+        },
+      ])
+      await tieRead.promise
+    })
+
+    expect(currentApi?.tieResolutions).toEqual([
+      {
+        teamIds: ['team-b', 'team-a'],
+        order: ['team-b', 'team-a'],
+      },
+    ])
+  })
+
+  it('does not let a late progression read replace a newer bracket snapshot', async () => {
+    const progressionRead = deferred<
+      Array<{ teamId: string; stage: 'r16' | 'qf' | 'sf' | 'final' | 'champion'; version: number }>
+    >()
+    mocks.fetchProgression.mockReturnValue(progressionRead.promise)
+
+    const api = await renderReadyProvider()
+    act(() => {
+      api.setBracketProgression({ 'team-local': 'qf' })
+    })
+
+    await act(async () => {
+      progressionRead.resolve([{ teamId: 'team-server', stage: 'sf', version: 6 }])
+      await progressionRead.promise
+    })
+
+    expect(currentApi?.bracketProgression).toEqual({ 'team-local': 'qf' })
+  })
+
+  it('does not let a late Golden Boot failure clear a newer local pick', async () => {
+    const goldenBootRead = deferred<{ playerId: string | null; version: number }>()
+    mocks.fetchGoldenBoot.mockReturnValue(goldenBootRead.promise)
+
+    const api = await renderReadyProvider()
+    act(() => {
+      api.setGoldenBoot('player-local')
+    })
+
+    await act(async () => {
+      goldenBootRead.reject(new Error('offline'))
+      await goldenBootRead.promise.catch(() => undefined)
+    })
+
+    expect(currentApi?.goldenBootPlayerId).toBe('player-local')
+  })
+})
+''')
+
+          current_status_path = Path('docs/quality/current-status.md')
+          current_status = current_status_path.read_text()
+          current_status = replace_once(
+              current_status,
+              "| Authenticated browser E2E | [`2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md) |\n",
+              "| Authenticated browser E2E | [`2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md) |\n"
+              "| Late-read overwrite guard | [`2026-07-24-late-read-overwrite-guard.md`](reconciliations/2026-07-24-late-read-overwrite-guard.md) |\n",
+              'current status reconciliation link',
+          )
+          current_status = replace_once(
+              current_status,
+              "- `DATA-005`: repository/development passes; production RPC/browser closure pending.\n",
+              "- `DATA-005`: repository/development passes; production RPC/browser closure pending.\n"
+              "- `REL-002`: repository implementation is in progress on issue #62; current `main` remains open until final validation and merge.\n",
+              'current status REL-002 position',
+          )
+          current_status = replace_once(
+              current_status,
+              "| Entry reliability | `REL-003` and `DATA-005` await compatible-production browser closure; `REL-002` and `REL-006` remain unimplemented. |\n",
+              "| Entry reliability | `REL-003` and `DATA-005` await compatible-production browser closure; issue #62 implements the repository guard for `REL-002`, while `REL-006` remains unimplemented. |\n",
+              'current status reliability blocker',
+          )
+          current_status = replace_once(
+              current_status,
+              "15. Address `REL-002`, then `REL-006`, before automatic real R16 population.\n",
+              "15. Complete issue #62 (`REL-002`), then address `REL-006`, before automatic real R16 population.\n",
+              'current status immediate order',
+          )
+          current_status = replace_once(
+              current_status,
+              "| Quality governance | `DOC-005` remains open. `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. |\n",
+              "| Quality governance | `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. |\n",
+              'current status stale DOC-005 blocker',
+          )
+          current_status_path.write_text(current_status)
+
+          risk_path = Path('docs/quality/risk-register.md')
+          risk = risk_path.read_text()
+          risk = replace_once(
+              risk,
+              "**Authenticated browser E2E:** [`reconciliations/2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md)\n",
+              "**Authenticated browser E2E:** [`reconciliations/2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md)  \n"
+              "**Late-read overwrite guard:** [`reconciliations/2026-07-24-late-read-overwrite-guard.md`](reconciliations/2026-07-24-late-read-overwrite-guard.md)\n",
+              'risk reconciliation link',
+          )
+          risk = replace_once(
+              risk,
+              "| `REL-002` | Independent late reads can overwrite newer state | **Open** | Prediction/tie/bracket/bonus loading remains independently best-effort. |\n",
+              "| `REL-002` | Independent late reads can overwrite newer state | **Implementation in progress — issue #62** | Per-slice edit generations now guard initial prediction, tie, bracket and Golden Boot reads on the working branch. Keep open until the final head passes required checks and merges to `main`. |\n",
+              'risk REL-002 row',
+          )
+          risk_path.write_text(risk)
+
+          todo_path = Path('docs/build-todo.md')
+          todo = todo_path.read_text()
+          todo = replace_once(
+              todo,
+              "- [ ] **`REL-002`** — prevent late best-effort reads from overwriting newer state.\n",
+              "- [ ] **`REL-002`** — prevent late best-effort reads from overwriting newer state.\n"
+              "  - [x] Guard match, tie, bracket and Golden Boot initial reads with per-slice local-edit generations.\n"
+              "  - [x] Reset every prediction slice and version baseline when the active entry context changes.\n"
+              "  - [x] Add focused provider regressions for late success and failure responses.\n"
+              "  - [ ] Close issue #62 after the final head is green and merged to `main`.\n",
+              'build TODO REL-002 row',
+          )
+          todo_path.write_text(todo)
+
+          Path('docs/quality/reconciliations/2026-07-24-late-read-overwrite-guard.md').write_text('''# Late-read overwrite guard — 24 July 2026
+
+## Finding
+
+`REL-002` remained open because `PredictionsProvider` marked the entry ready after the primary score read, then allowed independent fail-soft tie, bracket and Golden Boot reads to update local state whenever they eventually settled. A response that began before a user edit could therefore replace the newer local choice. The same class of race also existed for the primary prediction slice if an edit occurred while that read was still pending.
+
+## Repository implementation
+
+Issue #62 adds a local-edit generation for each independently loaded slice:
+
+- match predictions and Jokers;
+- manual tie resolutions;
+- knockout progression;
+- Golden Boot.
+
+Each initial read captures its slice generation and may apply either its successful payload or its fail-soft default only when that generation is unchanged. User edits advance only the relevant slice. A slow response therefore becomes inert instead of replacing newer work.
+
+The entry-context effect also clears every prediction slice, save status and optimistic-concurrency baseline before loading a different user/tournament entry. The existing save controller, lock authority, conflict flow, fail-soft optional-data model and explicit `Load latest` / `Keep mine` actions are unchanged.
+
+## Executable regression scope
+
+`tests/app/PredictionsProvider.loading.test.tsx` covers:
+
+1. a local score entered while the primary match read is pending;
+2. a newer manual tie order followed by a stale successful read;
+3. a newer bracket snapshot followed by a stale successful read;
+4. a newer Golden Boot pick followed by a late failed read whose empty default must not clear it.
+
+## Safety boundary
+
+This is client reliability and documentation only. It changes no migration, schema, RLS policy, RPC, scoring value, Supabase project/configuration, Netlify setting, deployment-contract value, production data, Turnstile configuration or legacy World Cup environment.
+
+## Closure boundary
+
+The implementation remains recorded as in progress until the generated head passes the guarded build, lint, full Vitest suite and production dependency audit, then merges to `main`. After merge, update the current status and risk register to mark `REL-002` resolved and close issue #62.
+
+## Validation
+
+Bootstrap validation pending.
+''')
+
+          workflow_path = Path('.github/workflows/agent-rel002-bootstrap.yml')
+          workflow_path.unlink()
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Guarded production build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Full test suite
+        run: npm run test
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Record bootstrap validation
+        shell: bash
+        run: |
+          python <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path('docs/quality/reconciliations/2026-07-24-late-read-overwrite-guard.md')
+          text = path.read_text()
+          text = text.replace(
+              'Bootstrap validation pending.\n',
+              f"GitHub Actions bootstrap run `{os.environ['GITHUB_RUN_ID']}` passed `npm ci`, the guarded production build, lint, the complete Vitest suite and `npm audit --omit=dev --audit-level=high` against the exact working tree committed below. Standard pull-request workflows remain required on the final commit.\n",
+          )
+          path.write_text(text)
+          PY
+
+      - name: Commit verified implementation
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            src/app/providers/PredictionsProvider.tsx \
+            tests/app/PredictionsProvider.loading.test.tsx \
+            docs/quality/current-status.md \
+            docs/quality/risk-register.md \
+            docs/build-todo.md \
+            docs/quality/reconciliations/2026-07-24-late-read-overwrite-guard.md \
+            .github/workflows/agent-rel002-bootstrap.yml
+          git commit -m "Guard prediction loads against stale reads"
+          git push origin HEAD:agent/prevent-late-read-overwrite
