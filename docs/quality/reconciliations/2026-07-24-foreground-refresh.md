@@ -39,4 +39,4 @@ Keep `REL-005` open until the final pull-request head passes the guarded build, 
 
 ## Validation
 
-Implementation head `8dac43c92b1757d12877e30603695d530b444fce` passed the guarded build, lint, complete Vitest suite and production dependency audit in CI run `30132387283`. This documentation reconciliation triggers the standard CI, Browser E2E and Netlify preview on the final review head.
+Implementation head `8dac43c92b1757d12877e30603695d530b444fce` passed the guarded build, lint, complete Vitest suite and production dependency audit in CI run `30132387283`. Reconciled head `7ac9128ef7033571ec6b8412adf9b3608cdb2528` passed the same guarded application gates in CI run `30132609768`. This documentation-only owner commit triggers standard CI, Browser E2E and Netlify validation on the final review head.
