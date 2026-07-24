@@ -203,10 +203,12 @@ test.describe('submission barriers', () => {
       await navigateToReview(page)
       await confirmSubmission(page)
 
-      await expect(page.getByRole('alert', { name: "Couldn't submit" })).toContainText(
-        'Some changes could not be saved',
-        { timeout: 15_000 },
-      )
+      const submitFailureAlert = page
+        .getByRole('alert')
+        .filter({ hasText: "Couldn't submit" })
+      await expect(submitFailureAlert).toContainText('Some changes could not be saved', {
+        timeout: 15_000,
+      })
       expect(failedAttempts).toBe(3)
       expect(submitRequests).toBe(0)
 
@@ -235,15 +237,16 @@ test.describe('submission barriers', () => {
         currentAway,
       )
       await home.fill(String(currentHome + 2))
-      await expect(
-        page.getByRole('alert', { name: 'These picks were changed on another device' }),
-      ).toBeVisible({ timeout: 10_000 })
+      const conflictAlert = page
+        .getByRole('alert')
+        .filter({ hasText: 'These picks were changed on another device' })
+      await expect(conflictAlert).toBeVisible({ timeout: 10_000 })
 
       await navigateToReview(page)
       await confirmSubmission(page)
-      await expect(page.getByRole('alert', { name: "Couldn't submit" })).toContainText(
-        'Resolve the prediction conflict',
-      )
+      await expect(
+        page.getByRole('alert').filter({ hasText: "Couldn't submit" }),
+      ).toContainText('Resolve the prediction conflict')
       expect(submitRequests).toBe(0)
 
       const keptMine = page.waitForResponse((response) =>
@@ -251,9 +254,7 @@ test.describe('submission barriers', () => {
       )
       await page.getByRole('button', { name: 'Keep mine', exact: true }).click()
       await keptMine
-      await expect(
-        page.getByRole('alert', { name: 'These picks were changed on another device' }),
-      ).toHaveCount(0)
+      await expect(conflictAlert).toHaveCount(0)
 
       // ---------------------------------------------------------------------
       // 3. Last-second edit: deliberately hold the final score request while
