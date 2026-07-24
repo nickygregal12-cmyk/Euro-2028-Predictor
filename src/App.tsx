@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { ThemeProvider } from './app/providers/ThemeProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
 import { AppShell } from './app/AppShell'
+import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
 
 // Route-level components are code-split (React.lazy) so each screen ships as its
@@ -44,6 +45,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
+        <RouteAccessibility />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             {/* Dev-only design-system gallery, outside the app shell + providers.

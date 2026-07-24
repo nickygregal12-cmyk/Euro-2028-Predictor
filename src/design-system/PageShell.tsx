@@ -22,13 +22,18 @@ export type PageShellProps = {
 export function PageShell({ title, headerAction, active, onNavigate, children }: PageShellProps) {
   return (
     <div className={styles.shell}>
+      <a className={styles.skipLink} href="#main-content">
+        Skip to main content
+      </a>
       {title || headerAction ? (
         <header className={styles.header}>
           {title ? <h1 className={styles.title}>{title}</h1> : <span />}
           {headerAction ? <div className={styles.headerAction}>{headerAction}</div> : null}
         </header>
       ) : null}
-      <main className={styles.content}>{children}</main>
+      <main id="main-content" className={styles.content} tabIndex={-1}>
+        {children}
+      </main>
       <BottomNav active={active} onNavigate={onNavigate} />
     </div>
   )

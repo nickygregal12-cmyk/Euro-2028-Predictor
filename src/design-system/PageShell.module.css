@@ -1,10 +1,30 @@
 /* App frame. Fills its container; content scrolls, nav stays put. */
 .shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
   background: var(--bg);
+}
+
+.skipLink {
+  position: absolute;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  z-index: 20;
+  transform: translateY(calc(-100% - var(--sp-4)));
+  padding: var(--sp-2) var(--sp-3);
+  border: 2px solid var(--acc);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--tx);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skipLink:focus {
+  transform: translateY(0);
 }
 
 .header {
@@ -35,4 +55,9 @@
   min-height: 0;
   overflow-y: auto;
   padding: var(--sp-4);
+}
+
+.content:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
 }
