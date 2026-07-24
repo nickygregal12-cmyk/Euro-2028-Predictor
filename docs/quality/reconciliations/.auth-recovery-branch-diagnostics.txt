@@ -1,5 +1,21 @@
-APPLICATION E2E:
-No application browser log captured.
+===== browser-npm =====
+No log captured.
 
-AUTH RECOVERY E2E:
-No auth recovery browser log captured.
+===== browser-chromium =====
+No log captured.
+
+===== browser-supabase-start =====
+No log captured.
+
+===== browser-supabase-reset =====
+No log captured.
+
+===== browser-env =====
+No log captured.
+
+===== application-e2e =====
+No log captured.
+
+===== auth-recovery-e2e =====
+No log captured.
+
