@@ -1,20 +1,25 @@
 const LOCAL_MAIL_PORT = '54324'
 
-type MailboxMessage = {
-  id: string
-  subject?: string
+type MailpitAddress = {
+  Email?: string
 }
 
-type MailboxResponse = MailboxMessage[] | { messages?: MailboxMessage[] }
+type MailpitMessageSummary = {
+  ID: string
+  Subject?: string
+  To?: MailpitAddress[]
+}
 
-type MessageResponse = {
-  subject?: string
-  body?: {
-    text?: string
-    html?: string
-  }
-  text?: string
-  html?: string
+type MailpitMessagesResponse = {
+  messages?: MailpitMessageSummary[]
+}
+
+type MailpitMessage = {
+  ID: string
+  Subject?: string
+  To?: MailpitAddress[]
+  Text?: string
+  HTML?: string
 }
 
 function required(name: string): string {
@@ -36,40 +41,31 @@ function localMailOrigin(): string {
   return parsed.origin
 }
 
-function mailboxName(email: string): string {
-  const at = email.indexOf('@')
-  if (at <= 0) throw new Error(`Invalid local E2E email address: ${email}`)
-  return email.slice(0, at)
+function addressedTo(message: { To?: MailpitAddress[] }, email: string): boolean {
+  return (message.To ?? []).some((recipient) => recipient.Email?.toLowerCase() === email.toLowerCase())
 }
 
-async function listMailbox(email: string): Promise<MailboxMessage[]> {
+async function listMessages(email: string): Promise<MailpitMessageSummary[]> {
+  const response = await fetch(`${localMailOrigin()}/api/v1/messages?limit=100`)
+  if (!response.ok) {
+    throw new Error(`Local Mailpit list failed with HTTP ${response.status}.`)
+  }
+  const payload = (await response.json()) as MailpitMessagesResponse
+  return (payload.messages ?? []).filter((message) => addressedTo(message, email))
+}
+
+async function readMessage(id: string): Promise<MailpitMessage> {
   const response = await fetch(
-    `${localMailOrigin()}/api/v1/mailbox/${encodeURIComponent(mailboxName(email))}`,
+    `${localMailOrigin()}/api/v1/message/${encodeURIComponent(id)}`,
   )
   if (!response.ok) {
-    throw new Error(`Local mail list failed with HTTP ${response.status}.`)
+    throw new Error(`Local Mailpit read failed with HTTP ${response.status}.`)
   }
-  const payload = (await response.json()) as MailboxResponse
-  return Array.isArray(payload) ? payload : payload.messages ?? []
+  return (await response.json()) as MailpitMessage
 }
 
-async function readMessage(email: string, id: string): Promise<MessageResponse> {
-  const response = await fetch(
-    `${localMailOrigin()}/api/v1/mailbox/${encodeURIComponent(mailboxName(email))}/${encodeURIComponent(id)}`,
-  )
-  if (!response.ok) {
-    throw new Error(`Local mail read failed with HTTP ${response.status}.`)
-  }
-  return (await response.json()) as MessageResponse
-}
-
-function linksFromMessage(message: MessageResponse): string[] {
-  const source = [
-    message.body?.html,
-    message.body?.text,
-    message.html,
-    message.text,
-  ]
+function linksFromMessage(message: MailpitMessage): string[] {
+  const source = [message.HTML, message.Text]
     .filter((part): part is string => Boolean(part))
     .join('\n')
     .replaceAll('&amp;', '&')
@@ -78,14 +74,16 @@ function linksFromMessage(message: MessageResponse): string[] {
 }
 
 export async function clearLocalMailbox(email: string): Promise<void> {
-  for (const message of await listMailbox(email)) {
-    const response = await fetch(
-      `${localMailOrigin()}/api/v1/mailbox/${encodeURIComponent(mailboxName(email))}/${encodeURIComponent(message.id)}`,
-      { method: 'DELETE' },
-    )
-    if (!response.ok && response.status !== 404) {
-      throw new Error(`Local mail delete failed with HTTP ${response.status}.`)
-    }
+  const IDs = (await listMessages(email)).map((message) => message.ID)
+  if (IDs.length === 0) return
+
+  const response = await fetch(`${localMailOrigin()}/api/v1/messages`, {
+    method: 'DELETE',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ IDs }),
+  })
+  if (!response.ok) {
+    throw new Error(`Local Mailpit delete failed with HTTP ${response.status}.`)
   }
 }
 
@@ -97,9 +95,9 @@ export async function waitForAuthLink(
   const deadline = Date.now() + timeoutMs
 
   while (Date.now() < deadline) {
-    const messages = await listMailbox(email)
-    for (const summary of [...messages].reverse()) {
-      const message = await readMessage(email, summary.id)
+    const messages = await listMessages(email)
+    for (const summary of messages) {
+      const message = await readMessage(summary.ID)
       const link = linksFromMessage(message).find((candidate) => {
         try {
           const parsed = new URL(candidate)
