@@ -35,6 +35,20 @@ async function removeExistingUser(): Promise<void> {
   if (error) throw error
 }
 
+async function ensureFutureTournamentLock(): Promise<void> {
+  const admin = createLocalAdmin()
+  const { data, error } = await admin.from('tournaments').select('id').limit(1).single()
+  if (error) throw error
+
+  const futureLock = new Date()
+  futureLock.setUTCFullYear(futureLock.getUTCFullYear() + 10)
+  const { error: updateError } = await admin
+    .from('tournaments')
+    .update({ lock_at: futureLock.toISOString() })
+    .eq('id', data.id)
+  if (updateError) throw updateError
+}
+
 async function waitForWelcomeStamp(timeoutMs = 10_000): Promise<void> {
   const userId = await authUserId()
   if (!userId) throw new Error(`Auth recovery E2E user ${EMAIL} was not created.`)
@@ -88,6 +102,7 @@ test.describe('authentication and recovery', () => {
     desktopOnly(testInfo)
     test.setTimeout(120_000)
 
+    await ensureFutureTournamentLock()
     await removeExistingUser()
     await clearLocalMailbox(EMAIL)
 
