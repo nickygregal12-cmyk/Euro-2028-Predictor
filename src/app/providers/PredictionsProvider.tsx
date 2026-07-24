@@ -35,6 +35,7 @@ import type { SaveStatus as CoordinatorStatus } from '../../domain/saveCoordinat
 import { createSaveController, type SaveController } from './saveController'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { useTournamentData } from './TournamentDataProvider'
+import { useReturnToForeground } from './useReturnToForeground'
 
 // Central prediction state for the whole entry: the hub reads aggregate counts
 // from it, the group predictor reads/writes individual scores. Autosave is
@@ -153,6 +154,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   // changed that slice since the read began. This prevents a slow success
   // or failure default from replacing newer local work.
   const localEditRevisionsRef = useRef<LoadRevisions>(createLoadRevisions())
+  const foregroundRefreshInFlightRef = useRef(false)
+  const mountedRef = useRef(false)
 
   function markLocalEdit(slice: LoadSlice) {
     localEditRevisionsRef.current[slice] += 1
@@ -311,13 +314,14 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   }
 
   // Stop the controller and all debounce/retry timers when the provider unmounts.
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
       clearDebounceTimers()
       controllerRef.current?.dispose()
-    },
-    [],
-  )
+    }
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -458,6 +462,106 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       active = false
     }
   }, [userId, tournamentId])
+
+  async function refreshPersistedEntryAfterForeground() {
+    const id = entryIdRef.current
+    if (
+      !id ||
+      !userId ||
+      !tournamentId ||
+      !ready ||
+      submittingRef.current ||
+      foregroundRefreshInFlightRef.current
+    ) {
+      return
+    }
+
+    foregroundRefreshInFlightRef.current = true
+    flushDebouncedSaves()
+
+    try {
+      // Never replace local work while a write is pending, retrying, failed or in
+      // conflict. Successful settlement means the server contains every local
+      // change that existed before these refresh reads begin.
+      const settled = await controller.waitForSettled()
+      if (!settled.ok || settled.cancelled || entryIdRef.current !== id) return
+
+      const revisions = { ...localEditRevisionsRef.current }
+      const [entryResult, matchResult, tieResult, progressionResult, goldenBootResult] =
+        await Promise.allSettled([
+          getOrCreateEntry(userId, tournamentId),
+          fetchMatchPredictions(id),
+          fetchTieResolutions(id),
+          fetchProgression(id),
+          fetchGoldenBoot(id),
+        ])
+
+      if (!mountedRef.current || entryIdRef.current !== id) return
+
+      if (
+        entryResult.status === 'fulfilled' &&
+        entryResult.value.id === id &&
+        !submittingRef.current
+      ) {
+        setSubmittedAt(entryResult.value.submittedAt)
+      }
+
+      if (
+        matchResult.status === 'fulfilled' &&
+        initialLoadCanApply('matches', revisions.matches)
+      ) {
+        const map: Record<string, Prediction> = {}
+        const versions: Record<string, number> = {}
+        for (const row of matchResult.value) {
+          map[row.matchId] = {
+            homeScore: row.homeScore,
+            awayScore: row.awayScore,
+            joker: row.joker,
+          }
+          versions[row.matchId] = row.version
+        }
+        matchVersionsRef.current = versions
+        predictionsRef.current = map
+        setPredictions(map)
+      }
+
+      if (tieResult.status === 'fulfilled' && initialLoadCanApply('ties', revisions.ties)) {
+        setTieResolutions(
+          tieResult.value.map((row) => ({ teamIds: row.teamIds, order: row.order })),
+        )
+      }
+
+      if (
+        progressionResult.status === 'fulfilled' &&
+        initialLoadCanApply('progression', revisions.progression)
+      ) {
+        const map: Record<string, ProgressionStage> = {}
+        const versions: Record<string, number> = {}
+        for (const row of progressionResult.value) {
+          map[row.teamId] = row.stage
+          versions[row.teamId] = row.version
+        }
+        setProgression(map)
+        progressionPersistedRef.current = map
+        progressionDesiredRef.current = map
+        progressionVersionsRef.current = versions
+      }
+
+      if (
+        goldenBootResult.status === 'fulfilled' &&
+        initialLoadCanApply('goldenBoot', revisions.goldenBoot)
+      ) {
+        setGoldenBootPlayerId(goldenBootResult.value.playerId)
+        goldenBootVersionRef.current = goldenBootResult.value.version
+      }
+    } finally {
+      foregroundRefreshInFlightRef.current = false
+    }
+  }
+
+  useReturnToForeground(() => {
+    void refreshPersistedEntryAfterForeground()
+  })
 
   // Hand the match's latest local state to the controller. A complete pair is
   // upserted; an incomplete pair deletes the stored row through the version-safe
