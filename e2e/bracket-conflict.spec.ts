@@ -43,7 +43,7 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   await expect(page).toHaveURL((url) => url.pathname === '/auth/login', { timeout: 15_000 })
   await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
+  await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Log in', exact: true }).click()
   await expectAuthenticatedPath(page, '/')
   await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
