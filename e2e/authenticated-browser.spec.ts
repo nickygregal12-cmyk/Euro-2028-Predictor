@@ -1,8 +1,12 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page, type Response } from '@playwright/test'
 
-async function expectAuthenticatedPath(page: import('@playwright/test').Page, path: string) {
+async function expectAuthenticatedPath(page: Page, path: string) {
   await expect(page).toHaveURL((url) => url.pathname === path, { timeout: 15_000 })
   await expect(page).not.toHaveURL(/\/auth\/login/)
+}
+
+function successfulWrite(response: Response, path: string): boolean {
+  return response.url().includes(path) && response.request().method() === 'POST' && response.ok()
 }
 
 test('authenticated user reaches core routes', async ({ page }) => {
@@ -41,19 +45,23 @@ test('group score persists, clears, and stays cleared after reload', async ({
   await expect(home).toBeVisible()
   await expect(away).toBeVisible()
 
+  const persisted = page.waitForResponse((response) =>
+    successfulWrite(response, '/rest/v1/match_predictions'),
+  )
   await home.fill('2')
   await away.fill('1')
-  await expect(page.getByText('Saving…').first()).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('Saved').first()).toBeVisible({ timeout: 10_000 })
+  await persisted
 
   await page.reload()
   await expect(home).toHaveValue('2')
   await expect(away).toHaveValue('1')
 
+  const deleted = page.waitForResponse((response) =>
+    successfulWrite(response, '/rest/v1/rpc/delete_match_prediction'),
+  )
   await home.fill('')
   await away.fill('')
-  await expect(page.getByText('Saving…').first()).toBeVisible({ timeout: 5_000 })
-  await expect(page.getByText('Saved').first()).toBeVisible({ timeout: 10_000 })
+  await deleted
 
   await page.reload()
   await expect(home).toHaveValue('')
