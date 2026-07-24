@@ -9,6 +9,8 @@ export type PageShellProps = {
   // Optional right-aligned header slot (e.g. a settings button).
   headerAction?: ReactNode
   active: NavKey
+  /** Dev/demo-only override. Production navigation should omit this. */
+  onNavigate?: (key: NavKey) => void
   children: ReactNode
 }
 
@@ -17,7 +19,7 @@ export type PageShellProps = {
  * Fills its container height (use 100dvh at the app root); the content region
  * scrolls independently so the nav stays put. Presentational only.
  */
-export function PageShell({ title, headerAction, active, children }: PageShellProps) {
+export function PageShell({ title, headerAction, active, onNavigate, children }: PageShellProps) {
   return (
     <div className={styles.shell}>
       {title || headerAction ? (
@@ -27,7 +29,7 @@ export function PageShell({ title, headerAction, active, children }: PageShellPr
         </header>
       ) : null}
       <main className={styles.content}>{children}</main>
-      <BottomNav active={active} />
+      <BottomNav active={active} onNavigate={onNavigate} />
     </div>
   )
 }
