@@ -16,8 +16,9 @@
 - [x] Inventory production recovery scope: approximately 12 MB, 4 Auth users, no Storage objects/Edge Functions, one custom Auth trigger.
 - [x] Confirm Free-plan backup limitations and the need for a manual logical export.
 - [x] Add fail-closed backup creation tooling, checksums and restore-rehearsal runbook.
+- [x] Add an application/database deployment contract and block production builds while production declares contract 20.
 - [ ] Choose the trusted backup machine, encryption/custody method, off-site destination, operator and recovery reviewer.
-- [ ] Freeze production writes/deployments and verify the current Netlify release/executable diff.
+- [ ] Freeze production writes/deployments and verify the current Netlify release, repository contract and production declared contract.
 - [ ] Rerun both production preflights immediately before backup/change.
 - [ ] Create the fresh production logical bundle.
 - [ ] Encrypt and store the bundle off-site; record non-secret custody/checksum evidence.
@@ -28,9 +29,11 @@
 - [ ] Apply the prepared 1–20 history-only repair and require a dry run showing migrations 21–35 only.
 - [ ] Obtain explicit approval and apply migrations 21–35 in strict timestamp order.
 - [ ] Verify bracket save/reload, authenticated RPCs, function allowlists, submission settlement and score clearing.
+- [ ] Change production `EURO28_DEPLOYED_DB_CONTRACT` from 20 to 35 only after post-verification, advisors and smoke tests pass.
+- [ ] Retry the approved production deployment and verify the current pointer advances.
 - [ ] Record the exact compatible release/application/schema pair, operator and retained evidence.
 
-Do **not** point production at development Supabase. Do not add unsafe direct-table fallbacks. Do not apply migration 33, 34 or 35 alone. Prepared backup tooling is not recovery evidence.
+Do **not** point production at development Supabase. Do not add unsafe direct-table fallbacks. Do not apply migration 33, 34 or 35 alone. Prepared backup tooling is not recovery evidence. Never lift the production deployment contract early.
 
 ## 1. Netlify environment and deployment controls
 
@@ -39,8 +42,12 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [x] Add a prebuild guard that rejects crossed, missing or unknown Netlify contexts.
 - [x] Prove a fresh guarded deploy preview reaches ready state using development Supabase.
 - [x] Ensure production-project previews and branch deploys cannot access production Supabase through inherited browser configuration.
+- [x] Define reviewed application/database contract version 35 and required RPC signatures.
+- [x] Verify the repository migration count matches the deployment contract.
+- [x] Set deploy-preview, branch-deploy and dev hosted contract to 35.
+- [x] Keep production hosted contract at 20 until migrations 21–35 are verified.
+- [x] Prove previews pass at contract 35 and the merged contract does not replace the ready production deploy at contract 20.
 - [ ] Confirm any separately maintained development Netlify site uses development Supabase.
-- [ ] Add an explicit app/schema compatibility decision before merging database-dependent client paths that auto-deploy from `main`.
 - [ ] Recheck Turnstile domain/context behavior after configuration changes.
 
 ## 2. Development migration rehearsal — complete
@@ -120,11 +127,14 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [x] Prepare exact 1–20 migration-history repair.
 - [x] Extend the pending chain and verifier through migration 35.
 - [x] Prepare stop/rollback/remediation rules.
+- [x] Add the release gate that prevents contract-35 application builds replacing production while production declares contract 20.
 - [ ] Complete the actual recovery-evidence checklist above.
 - [ ] Review final preflight and dry-run output.
 - [ ] Apply only after explicit approval.
 - [ ] Run database post-verification and advisors.
 - [ ] Run the full authenticated application smoke checklist.
+- [ ] Update the production hosted contract to 35 only after every verification succeeds.
+- [ ] Retry and verify the approved production deploy.
 
 ## 6. Original Predictor reliability
 
@@ -253,3 +263,4 @@ The Sweepstake builder remains non-launch-blocking.
 - [x] Stable application-code versus Netlify-release identity model.
 - [x] Production recovery inventory and fail-closed backup/restore preparation.
 - [x] Netlify production/non-production Supabase context isolation with a fail-closed build guard.
+- [x] Application/database deployment contract with an active production release freeze.
