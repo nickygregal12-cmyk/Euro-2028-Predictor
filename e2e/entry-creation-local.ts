@@ -59,6 +59,15 @@ export async function countRaceEntries(
   return count ?? 0
 }
 
+function isRetryableAuthCleanupError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AuthRetryableFetchError'
+  )
+}
+
 export async function cleanupEntryRaceUser(userId: string): Promise<void> {
   let lastError: unknown
 
@@ -76,5 +85,10 @@ export async function cleanupEntryRaceUser(userId: string): Promise<void> {
     }
   }
 
+  // Every Browser E2E run destroys its complete local Supabase stack immediately
+  // after Playwright finishes. A retryable transport error therefore cannot leak
+  // data beyond this disposable run and must not mask a successful product
+  // assertion. Permission, validation and other non-retryable errors still fail.
+  if (isRetryableAuthCleanupError(lastError)) return
   throw lastError
 }
