@@ -64,7 +64,7 @@ These are documentation reconciliations of already implemented controls, not run
 
 ## Validation evidence
 
-PR #50 implementation head `6ece7ee0a6a7406274fbe1b069a3d923074330d5` passed CI run 211:
+PR #50 implementation head `6ece7ee0a6a7406274fbe1b069a3d923074330d5` passed CI run 211, and the final documented head `9ed0a051952c1eb9c8d755350db2e08d9f427a3e` passed CI run 212:
 
 1. dependency installation passed;
 2. the Git-less environment-hygiene proof passed;
