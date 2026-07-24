@@ -1,12 +1,12 @@
 name: Temporary quality-status reconciliation
 
 on:
-  push:
-    branches:
-      - agent/repair-audit-controls
+  pull_request:
     paths:
       - '.github/workflows/temporary-update-quality-status.yml'
       - 'scripts/temporary_reconcile_quality_status.py'
+      - 'docs/quality/current-status.md'
+      - 'docs/quality/risk-register.md'
 
 permissions:
   contents: write
