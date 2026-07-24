@@ -3,11 +3,12 @@
 **Current audit:** `2026-07-23L`  
 **Evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
 **Current production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)  
+**Production recovery readiness:** [`reconciliations/2026-07-24-production-recovery-readiness.md`](reconciliations/2026-07-24-production-recovery-readiness.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
 
-This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible.
+This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” does **not** mean recovery is proven.
 
 ## Summary
 
@@ -25,7 +26,7 @@ This register retains every original finding ID and adds findings discovered by 
 
 | ID | Finding | Current status | Current evidence / required closure |
 | --- | --- | --- | --- |
-| `OPS-006` | Production application and Supabase schema are incompatible | **Open — broadened after automatic deploy** | Netlify automatically published commit `a403b079`. The live client calls both `replace_predicted_progression` and `delete_match_prediction`; read-only production inspection confirms both RPCs are absent. Restore a compatible app/schema pair and verify bracket save/reload plus score clear/reload. |
+| `OPS-006` | Production application and Supabase schema are incompatible | **Open — broadened after automatic deploy** | Application-code baseline `a403b079` calls both `replace_predicted_progression` and `delete_match_prediction`; read-only production inspection confirms both RPCs are absent. Restore a compatible app/schema pair and verify bracket save/reload plus score clear/reload. |
 | `DATA-001` | Predicted group positions are not safely derived/persisted | **Open production; implemented repository/development** | Migration 26 derives/protects positions and passes development verification. Production retains the old writable table/policies. |
 | `SECURITY-001` | Group-position scoring inputs can be forged/changed | **Open production; implemented repository/development** | Development denies direct group-position writes. Production authenticated role retains old insert/update privileges and broad owner policy. |
 | `SECURITY-002` | Submission timestamp can be bypassed directly | **Open production; implemented repository/development** | Development uses the RPC boundary and denies direct entry update/delete. Production retains old authenticated entry-update privilege. |
@@ -43,14 +44,14 @@ This register retains every original finding ID and adds findings discovered by 
 | `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Rule exists in `docs/scoring-rules.md`; no scheduler/server implementation. |
 | `REL-001` | Score recomputation/result writes can race | **Open production; materially addressed repository/development** | Development serializes recomputation. Production old recompute path remains. |
 | `DATA-004` | Actual tie resolution can depend on non-authoritative fallback behavior | **Open** | No fresh evidence of complete resolution. |
-| `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Partially resolved — client deployed, production backend absent** | Repository/development implementation and tests pass, and commit `a403b079` is now live. Production lacks `delete_match_prediction`, so clearing a persisted row reaches a save error and reload can restore the old score. Close only after migrations 21–35 plus authenticated clear/reload/conflict/lock browser journeys. |
+| `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Partially resolved — client deployed, production backend absent** | Repository/development implementation and tests pass. Production lacks `delete_match_prediction`, so clearing a persisted row reaches a save error and reload can restore the old score. Close only after migrations 21–35 plus authenticated clear/reload/conflict/lock browser journeys. |
 | `REL-002` | Independent late reads can overwrite newer state | **Open** | Prediction/tie/bracket/bonus loading remains independently best-effort. |
 | `REL-003` | Manual submit does not flush pending debounced writes | **Partially resolved — repository implemented and tested** | Provider/controller settlement tests pass. Close after compatible production rollout plus authenticated immediate-final-edit and failure/conflict browser verification. |
-| `REL-004` | Compound bracket writes are non-atomic | **Open production; client deployed/backend absent** | Atomic snapshot RPC and stale-version rollback pass on development. Commit `a403b079` is live, but production lacks `replace_predicted_progression`, so bracket persistence fails. |
+| `REL-004` | Compound bracket writes are non-atomic | **Open production; client deployed/backend absent** | Atomic snapshot RPC and stale-version rollback pass on development. Production lacks `replace_predicted_progression`, so bracket persistence fails. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
 | `OPS-002` | No version-controlled administrator model/control room boundary | **Open** | No `profiles.role` column exists in repository/hosted schema; no browser result admin page. |
 | `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI, pgTAP and provider-level submission/score-clear tests exist; authenticated production-like browser E2E remains absent. |
-| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved** | CI, preflights and safer rollback exist; automatic deployment broadened the live mismatch, and monitoring, backup verification and restore rehearsal remain open. |
+| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — tooling prepared, evidence absent** | Read-only inventory confirms a ~12 MB Free-plan production database with no Storage objects/Edge Functions and one custom Auth signup trigger. Fail-closed backup tooling, checksums and restore runbook now exist, but no fresh production dump, encrypted off-site artifact, retrieval proof or disposable restore has been performed. Production rollout remains blocked. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 
 ## Medium
@@ -89,12 +90,13 @@ This register retains every original finding ID and adds findings discovered by 
 | `DOC-002` | Package version remains `0.0.0` | Open |
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
 | `REPO-001` | Licence, changelog and editor baseline are absent | Open |
-| `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | Open; no such file currently committed |
+| `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | Open; local backup bundle patterns are now ignored, but the environment-file gap remains. |
 
 ## Register rules
 
 - Keep original IDs when the same defect regresses or broadens.
 - A repository/development fix remains open when the actual risk is still present or unverified in production.
+- Prepared tooling does not resolve a finding that requires a real artifact or restore proof.
 - `Resolved` requires implementation, validation and current-environment evidence appropriate to the finding.
 - `Superseded` must name the active replacement finding.
 - Do not silently remove uncertain or accepted risks.
