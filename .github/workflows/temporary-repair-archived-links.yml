@@ -1,0 +1,65 @@
+name: Temporary archived-link repair
+
+on:
+  push:
+    branches:
+      - agent/repair-audit-controls
+    paths:
+      - '.github/workflows/temporary-repair-archived-links.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/repair-audit-controls
+          fetch-depth: 0
+
+      - name: Repair archived relative links
+        shell: python
+        run: |
+          from pathlib import Path
+
+          paths = [
+              Path('docs/quality/history/feature-baseline-2026-07-23R.md'),
+              Path('docs/quality/history/risk-register-2026-07-23R.md'),
+          ]
+
+          replacements = {
+              '(audits/': '(../audits/',
+              '(risk-register.md)': '(../risk-register.md)',
+          }
+
+          changed = 0
+          for path in paths:
+              original = path.read_text(encoding='utf-8')
+              updated = original
+              for old, new in replacements.items():
+                  updated = updated.replace(old, new)
+              if updated != original:
+                  path.write_text(updated, encoding='utf-8')
+                  changed += 1
+
+          if changed != 2:
+              raise SystemExit(f'Expected to change both archived files; changed {changed}')
+
+          for path in paths:
+              content = path.read_text(encoding='utf-8')
+              if '(audits/' in content or '(risk-register.md)' in content:
+                  raise SystemExit(f'Broken archived target remains in {path}')
+
+      - name: Commit mechanical repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/quality/history/feature-baseline-2026-07-23R.md \
+                  docs/quality/history/risk-register-2026-07-23R.md
+          git diff --cached --check
+          git commit -m 'docs: repair archived quality links'
+          git push origin HEAD:agent/repair-audit-controls
