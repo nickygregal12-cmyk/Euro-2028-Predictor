@@ -162,6 +162,11 @@ export function createSaveController(opts: {
       return new Promise<SaveBarrierResult>((resolve) => barrierWaiters.add(resolve))
     },
     reset: () => {
+      // React Strict Mode intentionally runs an effect setup/cleanup preflight in
+      // development. PredictionsProvider disposes during that cleanup, then resets
+      // when the authenticated entry loads. A reset starts a fresh usable lifecycle
+      // rather than leaving the retained controller permanently inert.
+      disposed = false
       cancelBarrierWaiters()
       clearAllTimers()
       states.clear()
