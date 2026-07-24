@@ -6,6 +6,7 @@
 **Production recovery readiness:** [`reconciliations/2026-07-24-production-recovery-readiness.md`](reconciliations/2026-07-24-production-recovery-readiness.md)  
 **Netlify environment isolation:** [`reconciliations/2026-07-24-netlify-environment-isolation.md`](reconciliations/2026-07-24-netlify-environment-isolation.md)  
 **Application/schema deployment gate:** [`reconciliations/2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md)  
+**Legacy development/Turnstile evidence:** [`reconciliations/2026-07-24-legacy-development-site-and-turnstile.md`](reconciliations/2026-07-24-legacy-development-site-and-turnstile.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -18,9 +19,9 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
-| Medium | 14 | 1 | 13 |
+| Medium | 16 | 1 | 15 |
 | Low | 14 | 0 | 14 |
-| **Total** | **50** | **4** | **46** |
+| **Total** | **52** | **4** | **48** |
 
 `OPS-001` and `OPS-007` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
@@ -28,7 +29,7 @@ This register retains every original finding ID and adds findings discovered by 
 
 | ID | Finding | Current status | Current evidence / required closure |
 | --- | --- | --- | --- |
-| `OPS-006` | Production application and Supabase schema are incompatible | **Open — live mismatch contained by deployment gate** | Application-code baseline `a403b079` calls both `replace_predicted_progression` and `delete_match_prediction`; production lacks both. Contract 35 is now enforced in prebuild while production declares hosted contract 20, so new incompatible production releases cannot replace the current ready deploy. Close only after migrations 21–35, post-verification and browser smoke evidence. |
+| `OPS-006` | Production application and Supabase schema are incompatible | **Open — live mismatch contained by deployment gate** | Application-code baseline `a403b079` calls both `replace_predicted_progression` and `delete_match_prediction`; production lacks both. Contract 35 is enforced in prebuild while production declares hosted contract 20, so new incompatible production releases cannot replace the current ready deploy. Close only after migrations 21–35, post-verification and browser smoke evidence. |
 | `DATA-001` | Predicted group positions are not safely derived/persisted | **Open production; implemented repository/development** | Migration 26 derives/protects positions and passes development verification. Production retains the old writable table/policies. |
 | `SECURITY-001` | Group-position scoring inputs can be forged/changed | **Open production; implemented repository/development** | Development denies direct group-position writes. Production authenticated role retains old insert/update privileges and broad owner policy. |
 | `SECURITY-002` | Submission timestamp can be bypassed directly | **Open production; implemented repository/development** | Development uses the RPC boundary and denies direct entry update/delete. Production retains old authenticated entry-update privilege. |
@@ -42,7 +43,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `OPS-007` | Production deploy previews/branch deploys inherit production Supabase values | **Resolved** | Netlify `deploy-preview`, `branch-deploy` and `dev` contexts now use development Supabase while `production` remains production. PR #24’s ready preview passed the repository prebuild context guard. Reopen if the context matrix or guard regresses. |
 | `SECURITY-003` | Hosted `SECURITY DEFINER` grants and mutable search paths are over-broad | **Open production; implemented repository/development** | Migrations 34–35 establish exact function allowlists, closed defaults and fixed helper paths on development. Production retains old broad grants until migrations 21–35 roll out. |
 | `DATA-003` | Same-tournament/reference constraints are incomplete | **Open — partially implemented** | Major guards exist; wider immutable/composite constraints remain and production controls are absent. |
-| `FUNC-001` | Bracket progression can be internally inconsistent | **Open production; implemented repository/development** | Full predicted-tree replay/validation pass on development. Production validator/propagation is absent. |
+| `FUNC-001` | Bracket progression can be internally inconsistent | **Open production; implemented repository/development** | Full predicted-tree replay/validation passes on development. Production validator/propagation is absent. |
 | `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Rule exists in `docs/scoring-rules.md`; no scheduler/server implementation. |
 | `REL-001` | Score recomputation/result writes can race | **Open production; materially addressed repository/development** | Development serializes recomputation. Production old recompute path remains. |
 | `DATA-004` | Actual tie resolution can depend on non-authoritative fallback behavior | **Open** | No fresh evidence of complete resolution. |
@@ -60,6 +61,8 @@ This register retains every original finding ID and adds findings discovered by 
 
 | ID | Finding | Current status | Closure evidence required |
 | --- | --- | --- | --- |
+| `OPS-008` | A public legacy “development” site is sourced from the World Cup repository and a dormant staging backend | **Open — owner decision required; issue #27** | `euro28-predictor-dev.netlify.app` deploys `worldcup2026/euro28-development`, points at inactive Supabase project `gcfdwobpnanjchcnvdco`, enables time travel and exposes health/observability/hourly-heartbeat functions. It is not a current Euro 2028 environment. Close only after an explicit separate legacy-site decision and verified public-access/function/cron/backend state. Do not modify it from the current repository workstream. |
+| `AUTH-001` | Production Turnstile site key is inherited by non-production contexts while development CAPTCHA configuration is unverified | **Open — configuration decision required; issue #28** | Production auth currently succeeds, but development Auth has no recent evidence and the Cloudflare hostname list/Supabase development secret are not visible. Select an explicit non-production model—CAPTCHA off, matching Cloudflare test keys, or dedicated development widget—then verify preview login/signup/recovery and retain non-secret dashboard/log evidence. Never allow broad `netlify.app` merely to cover previews. |
 | `REL-005` | Open pages can remain convincingly stale | Open | Add and test realtime, polling or focus-refetch strategy. |
 | `REL-006` | Concurrent first-use requests can hit entry unique conflicts | Open | Replace/select-insert race with idempotent server boundary and test two-tab creation. |
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Complete-snapshot versions contain this on development; verify production rollout and multi-device browser behavior. |
@@ -92,7 +95,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `DOC-002` | Package version remains `0.0.0` | Open |
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
 | `REPO-001` | Licence, changelog and editor baseline are absent | Open |
-| `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | Open; local backup bundle patterns are now ignored, but the environment-file gap remains. |
+| `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | Open; local backup bundle patterns are ignored, but the environment-file gap remains. |
 
 ## Register rules
 
