@@ -1,0 +1,202 @@
+name: Production payload migration rehearsal
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/production-payload-rehearsal.yml'
+      - 'scripts/database-rollout/current-production-payload-rehearsal.sql'
+      - 'scripts/database-rollout/**'
+      - 'supabase/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay-current-production-payload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out the temporary rehearsal branch
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Rebuild only through production migration 20
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db reset --local --version 20260722120000
+
+          applied="$({
+            docker exec supabase_db_euro-2028-predictor-local \
+              psql -U postgres -d postgres -Atc \
+              'select count(*) from supabase_migrations.schema_migrations;'
+          })"
+
+          test "$applied" = "20" || {
+            echo "STOP: expected exactly 20 applied migrations before rehearsal, found $applied"
+            exit 1
+          }
+
+      - name: Apply production configuration baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i supabase_db_euro-2028-predictor-local \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < supabase/prod-baseline.sql
+
+      - name: Prove migration 1–20 structural baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i supabase_db_euro-2028-predictor-local \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 -At \
+            < scripts/database-rollout/production-baseline-1-20-verification.sql \
+            | tee /tmp/baseline-1-20.json
+
+          grep -F '"all_structural_effects_present": true' /tmp/baseline-1-20.json
+
+      - name: Load current production-shaped payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i supabase_db_euro-2028-predictor-local \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < scripts/database-rollout/current-production-payload-rehearsal.sql
+
+      - name: Run current-payload production preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed \
+            's/8d76619fe4b44fdac17de1cc2afe5aaa/320cf25d62767dee307d3602212909af/g' \
+            scripts/database-rollout/production-preflight.sql \
+            > /tmp/current-production-preflight.sql
+
+          docker exec -i supabase_db_euro-2028-predictor-local \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 -At \
+            < /tmp/current-production-preflight.sql \
+            | tee /tmp/current-production-preflight.json
+
+          grep -F '"overall_structural_pass": true' /tmp/current-production-preflight.json
+          grep -F '"predictions": "320cf25d62767dee307d3602212909af"' \
+            /tmp/current-production-preflight.json
+
+      - name: Prepare migration 31 PostgreSQL compatibility repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/migrations/20260723184000_knockout_bracket_tree_integrity.sql')
+          text = path.read_text()
+          replacements = {
+              "jsonb_object_length(coalesce(v_winners, '{}'::jsonb))": "(select count(*) from jsonb_object_keys(coalesce(v_winners, '{}'::jsonb)))",
+              "jsonb_object_length(coalesce(v_runners, '{}'::jsonb))": "(select count(*) from jsonb_object_keys(coalesce(v_runners, '{}'::jsonb)))",
+              "jsonb_object_length(v_winners)": "(select count(*) from jsonb_object_keys(v_winners))",
+          }
+
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'STOP: expected migration 31 expression not found: {old}')
+              text = text.replace(old, new)
+
+          if 'jsonb_object_length' in text:
+              raise SystemExit('STOP: an unsupported jsonb_object_length call remains')
+
+          path.write_text(text)
+          PY
+
+          git diff --check
+          git diff -- \
+            supabase/migrations/20260723184000_knockout_bracket_tree_integrity.sql \
+            | tee /tmp/migration31-compatibility.patch
+
+      - name: Apply pending migrations 21–35 in repository order
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration up --local --debug 2>&1 \
+            | tee /tmp/migration-up.log
+
+          applied="$({
+            docker exec supabase_db_euro-2028-predictor-local \
+              psql -U postgres -d postgres -Atc \
+              'select count(*) from supabase_migrations.schema_migrations;'
+          })"
+
+          test "$applied" = "35" || {
+            echo "STOP: expected 35 applied migrations after replay, found $applied"
+            exit 1
+          }
+
+          docker exec supabase_db_euro-2028-predictor-local \
+            psql -U postgres -d postgres -Atc \
+            "select version from supabase_migrations.schema_migrations order by version;" \
+            | tee /tmp/applied-migrations.txt
+
+          test "$(head -n 1 /tmp/applied-migrations.txt)" = "20260719120000"
+          test "$(tail -n 1 /tmp/applied-migrations.txt)" = "20260724003000"
+
+      - name: Verify contract 35 against the current payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          sed \
+            's/8d76619fe4b44fdac17de1cc2afe5aaa/320cf25d62767dee307d3602212909af/g' \
+            scripts/database-rollout/post-rollout-verification.sql \
+            > /tmp/current-post-rollout-verification.sql
+
+          docker exec -i supabase_db_euro-2028-predictor-local \
+            psql -U postgres -d postgres -v ON_ERROR_STOP=1 -At \
+            < /tmp/current-post-rollout-verification.sql \
+            | tee /tmp/current-post-rollout-verification.json
+
+          grep -F '"overall_pass": true' /tmp/current-post-rollout-verification.json
+          grep -F '"predictions": "320cf25d62767dee307d3602212909af"' \
+            /tmp/current-post-rollout-verification.json
+
+      - name: Lint the migrated database
+        run: supabase db lint --local
+
+      - name: Run pgTAP database tests
+        shell: bash
+        run: |
+          set +e
+          supabase test db --local > /tmp/pgtap.log 2>&1
+          status=$?
+          tail -n 240 /tmp/pgtap.log
+          exit "$status"
+
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-payload-rehearsal-failure
+          path: |
+            /tmp/baseline-1-20.json
+            /tmp/current-production-preflight.json
+            /tmp/migration31-compatibility.patch
+            /tmp/migration-up.log
+            /tmp/applied-migrations.txt
+            /tmp/current-post-rollout-verification.json
+            /tmp/pgtap.log
+          if-no-files-found: ignore
+          retention-days: 3
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup
