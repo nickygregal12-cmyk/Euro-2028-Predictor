@@ -1,0 +1,9 @@
+{
+  "contractVersion": 35,
+  "requiredMigrationCount": 35,
+  "requiredRpcSignatures": [
+    "public.replace_predicted_progression(uuid,jsonb,jsonb)",
+    "public.delete_match_prediction(uuid,uuid,integer)"
+  ],
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version."
+}
