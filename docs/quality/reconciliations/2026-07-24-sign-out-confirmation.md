@@ -16,6 +16,7 @@ Selecting Sign out immediately called the Auth provider and cleared the session.
 - the confirm action exposes loading state and blocks cancellation or duplicate activation while pending;
 - successful sign-out closes the dialog;
 - failed sign-out keeps the dialog open and displays a stable retry message without exposing provider details;
+- established two-device Browser E2E login helpers explicitly confirm the same visible dialog;
 - the underlying Auth/session boundary is unchanged.
 
 ## Executable evidence
@@ -27,6 +28,8 @@ Selecting Sign out immediately called the Auth provider and cleared the session.
 3. success closes the dialog;
 4. failure retains the dialog, hides raw provider details and permits a successful retry.
 
+The existing bracket-conflict and locked-state browser journeys now pass through the confirmation dialog when changing authenticated users, so the full suite exercises the production interaction rather than bypassing it.
+
 ## Safety boundary
 
 This is client interaction, regression coverage and quality documentation only. It changes no Supabase project, Auth configuration, database schema, migration history, production data, Netlify environment value, deployment contract or legacy World Cup environment.
@@ -37,4 +40,4 @@ Mark `UX-004` resolved only after the refreshed pull-request head passes the gua
 
 ## Validation
 
-Pending final pull-request checks.
+CI run `30130136684` passed the guarded build, lint, complete Vitest suite and production dependency audit on the corrected implementation and browser-helper tree. This documentation-only follow-up commit triggers the standard CI, Browser E2E and Netlify checks on the final review head.
