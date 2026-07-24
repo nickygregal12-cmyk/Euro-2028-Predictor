@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "node scripts/validate-netlify-environment.mjs",
+    "prebuild": "node scripts/validate-netlify-environment.mjs && node scripts/validate-deployment-contract.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
