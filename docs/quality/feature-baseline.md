@@ -1,10 +1,18 @@
 # Current feature and safeguard baseline
 
-**Formal audit:** `2026-07-23L`  
+**Formal audit:** `2026-07-23L`; re-compared at `2026-07-24R` (no regression)  
 **Latest reconciliation date:** 24 July 2026  
 **Full audit evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
 **Current hosted state:** [`current-status.md`](current-status.md)  
 **Current production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)
+
+> **Traceability notice — `2026-07-24R` (`DOC-005`, open).** This document was rewritten from 96 rows carrying stable identifiers (`FEAT-001`–`FEAT-044`, `PLAN-001`–`PLAN-008`, `SAFE-001`–`SAFE-044`) to 60 rows carrying none, and the `Last verified`, `Validation evidence` and `Regression notes` columns were dropped. The previous version is preserved in full at [`history/feature-baseline-2026-07-23R.md`](history/feature-baseline-2026-07-23R.md), so no evidence has been lost.
+>
+> The new structure is clearer to read, but `audit-prompt.md` § *Repeat-audit and quality-baseline controls* items 3 and 4 require comparing every feature and safeguard against this file and reusing original IDs when a defect returns. Without identifiers, a future auditor cannot reliably distinguish a reworded row from a removed capability — the exact failure mode this baseline exists to prevent. The 96→60 reduction is **not** itself evidence of feature loss; several rows were consolidated and several safeguards are now covered by executable tests. The problem is that this judgement can no longer be audited.
+>
+> **Required repair (owner action):** re-attach the archived identifiers to the current rows, and record explicitly which archived IDs were consolidated, superseded or intentionally retired. This was deliberately not attempted by the auditor — remapping 60 rows without knowing which consolidations were intended would manufacture false traceability. Until it is done, treat [`history/feature-baseline-2026-07-23R.md`](history/feature-baseline-2026-07-23R.md) as the identifier source when a finding needs to cite a `SAFE-*` or `FEAT-*` row.
+>
+> `2026-07-24R` compared both documents and detected **no feature or safeguard regression**: routes remain at 25, no capability lost reachability, and every safeguard change observed was a strengthening.
 
 This compact baseline prevents silent feature loss and scope import. Current code, migrations, executable tests, verified hosted evidence and `current-status.md` override older statuses. Historical audit files remain immutable.
 

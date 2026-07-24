@@ -1,7 +1,8 @@
 # Euro 2028 Predictor — Current Risk Register
 
-**Current audit:** `2026-07-23L`  
-**Evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
+**Current audit:** `2026-07-24R`  
+**Evidence:** [`audits/2026-07-24-repeat-verification-audit.md`](audits/2026-07-24-repeat-verification-audit.md)  
+**Preceding live audit:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md) (`2026-07-23L`)  
 **Current production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)  
 **Production recovery readiness:** [`reconciliations/2026-07-24-production-recovery-readiness.md`](reconciliations/2026-07-24-production-recovery-readiness.md)  
 **Netlify environment isolation:** [`reconciliations/2026-07-24-netlify-environment-isolation.md`](reconciliations/2026-07-24-netlify-environment-isolation.md)  
@@ -12,8 +13,6 @@
 **Environment-file hygiene:** [`reconciliations/2026-07-24-environment-file-hygiene.md`](reconciliations/2026-07-24-environment-file-hygiene.md)  
 **Editor baseline:** [`reconciliations/2026-07-24-editor-baseline.md`](reconciliations/2026-07-24-editor-baseline.md)  
 **Bottom-navigation links:** [`reconciliations/2026-07-24-bottom-navigation-links.md`](reconciliations/2026-07-24-bottom-navigation-links.md)  
-**Route-transition accessibility:** [`reconciliations/2026-07-24-route-transition-accessibility.md`](reconciliations/2026-07-24-route-transition-accessibility.md)  
-**League options disclosure:** [`reconciliations/2026-07-24-league-options-disclosure.md`](reconciliations/2026-07-24-league-options-disclosure.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -26,11 +25,24 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
-| Medium | 16 | 2 | 14 |
-| Low | 14 | 3 | 11 |
-| **Total** | **52** | **8** | **44** |
+| Medium | 19 | 0 | 19 |
+| Low | 16 | 3 | 13 |
+| **Total** | **57** | **6** | **51** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-002`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+
+### Movement at `2026-07-24R`
+
+| Change | Detail |
+| --- | --- |
+| Added | `DOC-004` (Medium) — `docs/quality/README.md`, the governance charter, was deleted while `audit-prompt.md` still requires it. Restored alongside this audit. |
+| Added | `DOC-005` (Medium) — the live feature baseline lost its stable identifiers, weakening the repeat-audit regression-comparison control. |
+| Added | `TEST-002` (Medium) — the database-parity CI gate filters on a non-existent path and omits the real rollout SQL directory. |
+| Added | `TEST-003` (Low) — one test file hard-fails outside a git work tree instead of skipping. |
+| Added | `DOC-006` (Low) — 53 broken relative links inside `docs/quality/history/`. |
+| Corrected | `HYGIENE-001` — the asset **is** present at `src/assets/vite.svg`; the previous "path not identified" note was factually wrong. |
+| Reopened | `DOC-001` — Resolved → **Partially resolved**. `docs/test-script.md` still cross-references a `build-todo` section and batch names that no longer exist. |
+| Verified repaired | `SECURITY-002`, `SECURITY-001`, `DATA-001`, `DATA-003`, `DATA-002`, `REL-003`, `REL-004`, `DATA-005` confirmed implemented at the correct layer in repository/development. All correctly remain open pending production. |
 
 ## Critical
 
@@ -75,21 +87,24 @@ This register retains every original finding ID and adds findings discovered by 
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Complete-snapshot versions contain this on development; verify production rollout and multi-device browser behavior. |
 | `PERF-001` | League summary requests scale linearly/serially | Open | Remove serial per-league request pattern and profile representative load. |
 | `UX-001` | Invite context is hidden behind generic signup | Open | Show trustworthy invite preview before auth and remove render-time storage mutation. |
-| `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | **Partially resolved — repository/preview implemented** | Skip link, stable main target, route titles, focus movement and polite live-region announcements are implemented and unit-tested. Two ready previews retained accessibility 100; repeat performance returned the 98 baseline. Close after real keyboard and screen-reader route journeys plus authenticated browser E2E retention. |
-| `A11Y-002` | League options menu semantics do not match behavior | **Resolved** | Replaced the incomplete ARIA menu pattern with a disclosure using `aria-expanded`/`aria-controls` and native action buttons. Escape restores trigger focus; outside close and owner/member actions are tested. Preview retained accessibility 100. Reopen if misleading menu roles or incomplete focus behavior return. |
+| `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | Open | Add skip link, route title/focus/live-region behavior and browser accessibility tests. |
+| `A11Y-002` | League options menu semantics do not match behavior | Open | Implement full menu-button keyboard model or simpler disclosure semantics. |
 | `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | Open | Generate DB types, enable strictness incrementally and validate critical RPC payloads. |
-| `DOC-001` | Documentation is not consistently authoritative | **Resolved by active reconciliation process** | Current-status/reconciliation sources are updated after hosted changes; reopen if contradictions persist without correction. |
+| `DOC-001` | Documentation is not consistently authoritative | **Partially resolved — reopened `2026-07-24R`** | The reconciliation process is working and the roadmap/build-todo rewrites are current. However `docs/test-script.md` still cross-references a `build-todo` § "UI/CRO audit follow-ups" section and "Batch A"/"Batch C" names that the 24 July rewrite removed, and still frames itself against the superseded "Phase 2 exit gate" model. A process is not by itself evidence of consistency. Close after a repository-wide cross-reference sweep. |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | Open | Threat-model enumeration and rate limits at intended competition size. |
 | `SEC-002` | Raw internal errors can reach users | Open | Map database/network failures to stable safe messages. |
 | `DATA-007` | Rate limiting is count-then-insert | Open | Serialize per user/action or use atomic database primitive. |
 | `UX-002` | Unavailable data is conflated with empty data | Open | Preserve loading/error/unavailable states through home and related reads. |
 | `PERF-002` | Scoring recomputes the whole tournament | Open / accepted pending measurement | Profile target-capacity cost before deciding whether to optimize. |
+| `DOC-004` | Quality governance charter is absent | **Open — restored draft supplied `2026-07-24R`** | `docs/quality/README.md` was deleted, removing the source-of-truth hierarchy, finding workflow, ID prefix registry, severity/status definitions, evidence and resolution requirements, and prohibited-content rules. `audit-prompt.md:955` still mandates reading it, so the repeat-audit control is unsatisfiable. Close after the restored charter is merged and the mandated read succeeds. |
+| `DOC-005` | Live feature baseline has lost its stable identifiers | **Open — owner action required** | `feature-baseline.md` was rewritten from 96 ID-bearing rows (`FEAT-*`, `PLAN-*`, `SAFE-*`) to 60 rows with no IDs and no `Last verified`/`Validation evidence` columns. The prior version is preserved at `history/feature-baseline-2026-07-23R.md`, so no evidence is lost, but row-by-row regression comparison is no longer reliable. The 96→60 reduction is not itself evidence of feature loss — the point is that it can no longer be audited. Close after IDs are re-attached and every archived ID is present or has a recorded disposition. |
+| `TEST-002` | Database-parity CI gate filters on a non-existent path | **Open** | `.github/workflows/database-parity.yml` triggers on `scripts/database-parity/**`, which does not exist. The real rollout SQL lives in `scripts/database-rollout/**` (`production-preflight.sql`, `post-rollout-verification.sql`, `production-baseline-1-20-verification.sql`, `managed-schema-customizations.sql`) and triggers nothing. `ci.yml` does not run pgTAP at all, so changes to the SQL guarding the pending migrations 21–35 rollout receive no database verification. A gate that silently does not fire reads as assurance. Close after the filter is corrected and a no-op edit under `scripts/database-rollout/` is shown to trigger the workflow. |
 
 ## Low
 
 | ID | Finding | Status |
 | --- | --- | --- |
-| `HYGIENE-001` | Unused Vite scaffold asset remains | **Open — original referenced asset not yet identified; common `vite.svg` scaffold paths are absent. Do not delete by assumption.** |
+| `HYGIENE-001` | Unused Vite scaffold asset remains | **Open — path confirmed `2026-07-24R`.** `src/assets/vite.svg` is present and has no import in `src/`, `index.html` or `public/`. The previous note stating the asset could not be located was factually incorrect. The caution against deleting by assumption stands; confirm no build-time or dynamic reference, then remove. |
 | `HYGIENE-002` | Some pure modules appear test/reference-only | Open; verify before deletion |
 | `CODE-001` | Large orchestration files are coordination hotspots | Open |
 | `OPS-004` | Runtime pinning is incomplete | **Resolved** — Node `22.22.2` is pinned in `.nvmrc`, package engines, GitHub Actions and `netlify.toml`; the alignment test and ready Netlify preview passed. Reopen on any declaration or hosted-build regression. |
@@ -103,6 +118,8 @@ This register retains every original finding ID and adds findings discovered by 
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
 | `REPO-001` | Licence, changelog and editor baseline are absent | **Partially resolved** — `.editorconfig` now enforces UTF-8, LF, final newlines and repository indentation rules, with executable drift coverage. Licence selection and changelog policy remain open. |
 | `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | **Resolved** — `.env` and all `.env.*` variants are ignored while `.env.example` remains committable; Git's own `check-ignore` semantics are covered by the test suite. Reopen if a sensitive variant becomes committable or the template becomes ignored. |
+| `TEST-003` | One test file hard-fails outside a git work tree | **Open** | `tests/scripts/envFileHygiene.test.ts` shells out to `git check-ignore` and throws when the command fails, including when it fails because no repository exists. All 8 tests fail in any git-less checkout; the same file passes 8/8 once `git init` is run, with no source change. CI is unaffected. The risk is that assumed environmental noise masks a genuine regression in the same file. `tests/database-parity/` already models the correct pattern with `describe.skip`. Close after the file skips with an explicit reason and still fails on a genuinely committable `.env.production`. |
+| `DOC-006` | Archived evidence has broken relative links | **Open** | A repository-wide link check found 53 broken internal links, all inside `docs/quality/history/` — 50 in `risk-register-2026-07-23R.md`, 3 in `feature-baseline-2026-07-23R.md`. Both were moved down one directory level without adjusting `audits/…` and `risk-register.md` targets. The live documentation set has zero broken links. Close after the targets are prefixed with `../` and a link check reports zero repository-wide. |
 
 ## Register rules
 
@@ -114,3 +131,5 @@ This register retains every original finding ID and adds findings discovered by 
 - Do not silently remove uncertain or accepted risks.
 - Use GitHub Issues/PRs for implementation work; this file records risk state rather than duplicating a task tracker.
 - Update this register after every material integrity, deployment, security or operations change.
+- Severity, status, evidence and resolution definitions live in [`README.md`](README.md). Do not restate or vary them here.
+- A documented process is not resolution evidence for a finding that requires demonstrated consistency, a real artifact or a restore proof.
