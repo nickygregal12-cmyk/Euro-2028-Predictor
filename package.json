@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "test:fixtures": "node scripts/check-fixtures.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
