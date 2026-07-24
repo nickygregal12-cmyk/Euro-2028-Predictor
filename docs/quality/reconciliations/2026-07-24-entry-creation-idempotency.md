@@ -38,4 +38,4 @@ This is a service-boundary, regression-test and quality-documentation change. It
 
 ## Validation
 
-Functional head `c1ee4d727ad7235e350d5e6c7c79072857834e58` passed CI run `30130735751`, Browser E2E run `30130735710` and a ready Netlify deploy preview. Final head `41853b5716764e953160e161a8dd4356bde1499b` passed CI run `30131321194`, Browser E2E run `30131321198` and the ready deploy preview, then PR #65 squash-merged as `cd517f6f0fba48aaf54c16ee444671db29bd2741` and issue #64 closed.
+Functional head `c1ee4d727ad7235e350d5e6c7c79072857834e58` passed CI run `30130735751`, Browser E2E run `30130735710` and a ready Netlify deploy preview. Final head `41853b5716764e953160e161a8dd4356bde1499b` passed CI run `30131321194`, Browser E2E run `30131321198` and the ready deploy preview, then PR #65 squash-merged as `cd517f6f0fba48aaf54c16ee444671db29bd2741` and issue #64 closed. Closure-document commit `09c32f3e9a59256a1afd211acc3f8e5ba14c4d4e` passed the guarded build, lint, complete Vitest suite and production dependency audit in CI run `30131720921`. This documentation-only owner commit triggers standard validation on the final authority-document head.
