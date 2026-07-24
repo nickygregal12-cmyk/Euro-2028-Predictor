@@ -1,0 +1,166 @@
+name: Temporary quality-status reconciliation
+
+on:
+  push:
+    branches:
+      - agent/repair-audit-controls
+    paths:
+      - '.github/workflows/temporary-update-quality-status.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/repair-audit-controls
+          fetch-depth: 0
+
+      - name: Update current quality controls
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(content: str, old: str, new: str, label: str) -> str:
+              count = content.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              return content.replace(old, new, 1)
+
+          status_path = Path('docs/quality/current-status.md')
+          status = status_path.read_text(encoding='utf-8')
+
+          status = replace_once(
+              status,
+              '| Persisted score clearing | [`2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md) |\n| Production baseline proof |',
+              '| Persisted score clearing | [`2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md) |\n| Database-parity trigger repair | [`2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md) |\n| Audit-control cleanup | [`2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md) |\n| Production baseline proof |',
+              'status evidence links',
+          )
+          status = replace_once(
+              status,
+              '| Current repository release-control baseline | `51c87e6e08ac102089db810b5e5eb2ecf757771c` |',
+              '| Current repository release-control baseline | `d9bba09543409067624223f6f3fc0a0c75152cc2` — PR #45 merged the database-parity trigger repair |',
+              'release-control baseline',
+          )
+          status = replace_once(
+              status,
+              '- `tests/scripts/envFileHygiene.test.ts` reports 8 failures in any checkout lacking a `.git` directory, and passes 8/8 once one exists. This is environmental, not a defect in the code under test — recorded as `TEST-003`.',
+              '- `2026-07-24R` found that `tests/scripts/envFileHygiene.test.ts` failed outside a Git work tree. Issue #46 now contains an explicit Git-work-tree gate and CI execution from `git archive`; pull-request validation is pending.',
+              'TEST-003 qualification',
+          )
+          status = replace_once(
+              status,
+              'The 12 pgTAP files under `supabase/tests/` were **read but not executed**; that requires a local Supabase stack. Their existence and CI wiring are verified, their pass state is not.\n\n## Quality-governance position — new at `2026-07-24R`',
+              'The 12 pgTAP files under `supabase/tests/` were **read but not executed** during `2026-07-24R`; that audit had no local Supabase stack. PR #45 subsequently ran the full disposable database workflow successfully before merge.\n\n## Repository control changes after `2026-07-24R`\n\n| Finding / batch | Current position |\n| --- | --- |\n| `DOC-004` | **Resolved.** `docs/quality/README.md` is restored on `main`, defines the required governance controls and satisfies `audit-prompt.md` repeat-audit item 1. |\n| `TEST-002` | **Resolved.** PR #45 merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`; CI run 188 and Database parity run 65 passed on its latest head, including migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity. |\n| Issue #46 | **In progress.** Git-less test behaviour, stale manual-test references and archived relative links are repaired on `agent/repair-audit-controls`; permanent regression checks and pull-request validation are pending. |\n\n## Quality-governance position',
+              'post-audit control section',
+          )
+          old_governance = '''| `DOC-004` | `docs/quality/README.md` — the charter defining severity, status, evidence and resolution standards — was deleted. `audit-prompt.md:955` still mandates reading it, so the repeat-audit control is unsatisfiable. A restored draft accompanies the audit. |
+| `DOC-005` | `feature-baseline.md` lost its stable `FEAT-*` / `PLAN-*` / `SAFE-*` identifiers (96 ID-bearing rows → 60 unidentified). The archive preserves the originals, but row-by-row regression comparison is no longer reliable. Owner action. |
+| `TEST-002` | `database-parity.yml` filters on `scripts/database-parity/**`, which does not exist, and omits `scripts/database-rollout/**` — the SQL guarding the pending migrations 21–35 rollout. That gate currently never fires for those files. |
+| `DOC-001` | Reopened as **Partially resolved**: `docs/test-script.md` cross-references a `build-todo` section and batch names removed by the 24 July rewrite. |
+| `HYGIENE-001` | Corrected: the asset is present at `src/assets/vite.svg`; the previous "path not identified" note was wrong. |
+
+**Fix `TEST-002` before the production migration window opens.** The rollout sequence below depends on preflight and post-rollout SQL that currently receives no automated verification.'''
+          new_governance = '''| `DOC-004` | **Resolved:** the restored governance charter is present and readable on `main`. |
+| `DOC-005` | **Open:** the live feature baseline still lacks stable `FEAT-*` / `PLAN-*` / `SAFE-*` identifiers and dispositions for every archived ID. |
+| `TEST-002` | **Resolved:** the real rollout SQL directory and deployment contract now trigger Database parity, protected by an executable regression test. |
+| `DOC-001` | **In progress — issue #46:** the stale test script is rewritten; repository validation is pending. |
+| `TEST-003` | **In progress — issue #46:** Git-less checkouts now skip explicitly and CI contains an archive-based proof step; validation is pending. |
+| `DOC-006` | **In progress — issue #46:** archived targets are repaired and a repository-wide relative-link test is added; validation is pending. |
+| `HYGIENE-001` | Corrected: the asset is present at `src/assets/vite.svg`; the previous "path not identified" note was wrong. |
+
+Issue #46 owns the remaining audit-control validation. Production migration and deployment gates are unchanged.'''
+          status = replace_once(status, old_governance, new_governance, 'governance table')
+          status = replace_once(
+              status,
+              '| Quality governance | **Degraded.** `DOC-004`, `DOC-005` and `TEST-002` weaken the controls that measure everything else. No feature or safeguard regression was detected. |',
+              '| Quality governance | **Improving but still degraded.** `DOC-004` and `TEST-002` are resolved; `DOC-005` remains open and issue #46 is validating `DOC-001`, `TEST-003` and `DOC-006`. No feature or safeguard regression was detected. |',
+              'quality verdict',
+          )
+          status = replace_once(
+              status,
+              '- `DATA-005`: repository/development passes; production RPC/browser closure pending.\n',
+              '- `DATA-005`: repository/development passes; production RPC/browser closure pending.\n- `DOC-004`: resolved; the governance charter is restored and readable.\n- `TEST-002`: resolved by merged PR #45 and its green application/database workflows.\n- `DOC-001`, `TEST-003`, `DOC-006`: in progress through issue #46.\n',
+              'current finding positions',
+          )
+          status = replace_once(
+              status,
+              '| Test assurance | No Playwright or equivalent authenticated browser E2E suite. `TEST-002`: the database-parity gate does not fire for `scripts/database-rollout/**`. |',
+              '| Test assurance | No Playwright or equivalent authenticated browser E2E suite. Database parity now covers migrations, rollout SQL, the deployment contract and its trigger regression test. |',
+              'test assurance blocker',
+          )
+          status = replace_once(
+              status,
+              '| Quality governance | `DOC-004` (charter absent), `DOC-005` (baseline identifiers lost), `DOC-001` (reopened). Repair before the next remediation batch so that batch can be measured. |',
+              '| Quality governance | `DOC-005` remains open. Issue #46 is validating the repaired `DOC-001`, `TEST-003` and `DOC-006` controls; `DOC-004` and `TEST-002` are resolved. |',
+              'quality governance blocker',
+          )
+          status_path.write_text(status, encoding='utf-8')
+
+          risk_path = Path('docs/quality/risk-register.md')
+          risk = risk_path.read_text(encoding='utf-8')
+          risk = replace_once(
+              risk,
+              '**Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)',
+              '**Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)  \n**Database-parity trigger repair:** [`reconciliations/2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md)  \n**Audit-control cleanup:** [`reconciliations/2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md)',
+              'risk reconciliation links',
+          )
+          risk = replace_once(risk, '| Medium | 19 | 0 | 19 |', '| Medium | 19 | 2 | 17 |', 'medium summary')
+          risk = replace_once(risk, '| **Total** | **57** | **6** | **51** |', '| **Total** | **57** | **8** | **49** |', 'total summary')
+          risk = replace_once(
+              risk,
+              '`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`.',
+              '`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004` and `TEST-002` are resolved. `OPS-005` is superseded by `OPS-002`.',
+              'resolved summary',
+          )
+          risk = replace_once(
+              risk,
+              '| Verified repaired | `SECURITY-002`, `SECURITY-001`, `DATA-001`, `DATA-003`, `DATA-002`, `REL-003`, `REL-004`, `DATA-005` confirmed implemented at the correct layer in repository/development. All correctly remain open pending production. |\n',
+              '| Verified repaired | `SECURITY-002`, `SECURITY-001`, `DATA-001`, `DATA-003`, `DATA-002`, `REL-003`, `REL-004`, `DATA-005` confirmed implemented at the correct layer in repository/development. All correctly remain open pending production. |\n\n### Movement after `2026-07-24R`\n\n| Change | Detail |\n| --- | --- |\n| Resolved | `DOC-004` — the governance charter is restored on `main` and the mandatory audit read is satisfiable. |\n| Resolved | `TEST-002` — PR #45 merged the corrected database-parity trigger contract after CI run 188 and Database parity run 65 passed. |\n| In progress | Issue #46 repairs `DOC-001`, `TEST-003` and `DOC-006` with permanent regression coverage; pull-request validation is pending. |\n',
+              'post-audit movement',
+          )
+          risk = replace_once(
+              risk,
+              '| `DOC-001` | Documentation is not consistently authoritative | **Partially resolved — reopened `2026-07-24R`** | The reconciliation process is working and the roadmap/build-todo rewrites are current. However `docs/test-script.md` still cross-references a `build-todo` § "UI/CRO audit follow-ups" section and "Batch A"/"Batch C" names that the 24 July rewrite removed, and still frames itself against the superseded "Phase 2 exit gate" model. A process is not by itself evidence of consistency. Close after a repository-wide cross-reference sweep. |',
+              '| `DOC-001` | Documentation is not consistently authoritative | **In progress — issue #46** | `docs/test-script.md` is rewritten against current environment gates and finding IDs, and executable coverage prevents its obsolete phase/batch references from returning. Close after the pull-request suite and repository-wide relative-link check pass. |',
+              'DOC-001 row',
+          )
+          risk = replace_once(
+              risk,
+              '| `DOC-004` | Quality governance charter is absent | **Open — restored draft supplied `2026-07-24R`** | `docs/quality/README.md` was deleted, removing the source-of-truth hierarchy, finding workflow, ID prefix registry, severity/status definitions, evidence and resolution requirements, and prohibited-content rules. `audit-prompt.md:955` still mandates reading it, so the repeat-audit control is unsatisfiable. Close after the restored charter is merged and the mandated read succeeds. |',
+              '| `DOC-004` | Quality governance charter is absent | **Resolved** | `docs/quality/README.md` is restored on `main`, contains the source-of-truth, workflow, severity/status, evidence, resolution and prohibited-content controls, and satisfies `audit-prompt.md` repeat-audit item 1. Reopen if the charter is removed or the mandatory read becomes unsatisfiable. |',
+              'DOC-004 row',
+          )
+          risk = replace_once(
+              risk,
+              '| `TEST-002` | Database-parity CI gate filters on a non-existent path | **Open** | `.github/workflows/database-parity.yml` triggers on `scripts/database-parity/**`, which does not exist. The real rollout SQL lives in `scripts/database-rollout/**` (`production-preflight.sql`, `post-rollout-verification.sql`, `production-baseline-1-20-verification.sql`, `managed-schema-customizations.sql`) and triggers nothing. `ci.yml` does not run pgTAP at all, so changes to the SQL guarding the pending migrations 21–35 rollout receive no database verification. A gate that silently does not fire reads as assurance. Close after the filter is corrected and a no-op edit under `scripts/database-rollout/` is shown to trigger the workflow. |',
+              '| `TEST-002` | Database-parity CI gate filters on a non-existent path | **Resolved** | PR #45 replaced the dead path with `scripts/database-rollout/**`, added `config/deployment-contract.json` and executable trigger-contract coverage, and merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`. CI run 188 and Database parity run 65 passed on its latest head, including rebuild, lint, pgTAP and differential parity. |',
+              'TEST-002 row',
+          )
+          risk = replace_once(
+              risk,
+              '| `TEST-003` | One test file hard-fails outside a git work tree | **Open** | `tests/scripts/envFileHygiene.test.ts` shells out to `git check-ignore` and throws when the command fails, including when it fails because no repository exists. All 8 tests fail in any git-less checkout; the same file passes 8/8 once `git init` is run, with no source change. CI is unaffected. The risk is that assumed environmental noise masks a genuine regression in the same file. `tests/database-parity/` already models the correct pattern with `describe.skip`. Close after the file skips with an explicit reason and still fails on a genuinely committable `.env.production`. |',
+              '| `TEST-003` | One test file hard-fails outside a git work tree | **In progress — issue #46** | The suite now detects Git-work-tree availability, skips explicitly when unavailable, and retains Git-native ignore assertions in normal checkouts. CI also runs the file from a `git archive` extraction with no `.git`. Close after both normal and archive-based pull-request steps pass. |',
+              'TEST-003 row',
+          )
+          risk = replace_once(
+              risk,
+              '| `DOC-006` | Archived evidence has broken relative links | **Open** | A repository-wide link check found 53 broken internal links, all inside `docs/quality/history/` — 50 in `risk-register-2026-07-23R.md`, 3 in `feature-baseline-2026-07-23R.md`. Both were moved down one directory level without adjusting `audits/…` and `risk-register.md` targets. The live documentation set has zero broken links. Close after the targets are prefixed with `../` and a link check reports zero repository-wide. |',
+              '| `DOC-006` | Archived evidence has broken relative links | **In progress — issue #46** | Both archived files now use `../audits/` and `../risk-register.md`, and a repository-wide relative Markdown-link test is present. Close after the pull-request suite reports zero broken links. |',
+              'DOC-006 row',
+          )
+          risk_path.write_text(risk, encoding='utf-8')
+
+      - name: Commit status reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/quality/current-status.md docs/quality/risk-register.md
+          git diff --cached --check
+          git commit -m 'docs: reconcile audit-control status'
+          git push origin HEAD:agent/repair-audit-controls
