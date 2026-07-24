@@ -207,7 +207,7 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [ ] Run mobile, keyboard and accessibility journeys.
 - [ ] Make critical E2E a required merge/release gate.
 - [ ] Confirm branch protection and required checks.
-- [ ] Pin/verify Netlify Node runtime.
+- [x] Pin and verify Node `22.22.2` across local tooling, package metadata, CI and Netlify; retain the alignment test.
 - [ ] Add production error reporting, alert ownership and critical-journey monitoring.
 - [ ] Complete and periodically repeat backup/restore/application rollback rehearsals.
 
@@ -264,3 +264,4 @@ The Sweepstake builder remains non-launch-blocking.
 - [x] Production recovery inventory and fail-closed backup/restore preparation.
 - [x] Netlify production/non-production Supabase context isolation with a fail-closed build guard.
 - [x] Application/database deployment contract with an active production release freeze.
+- [x] Exact Node `22.22.2` runtime pin across local, package, CI and Netlify build surfaces.

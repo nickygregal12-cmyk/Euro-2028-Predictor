@@ -7,6 +7,7 @@
 **Netlify environment isolation:** [`reconciliations/2026-07-24-netlify-environment-isolation.md`](reconciliations/2026-07-24-netlify-environment-isolation.md)  
 **Application/schema deployment gate:** [`reconciliations/2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md)  
 **Legacy development/Turnstile evidence:** [`reconciliations/2026-07-24-legacy-development-site-and-turnstile.md`](reconciliations/2026-07-24-legacy-development-site-and-turnstile.md)  
+**Node runtime pinning:** [`reconciliations/2026-07-24-node-runtime-pinning.md`](reconciliations/2026-07-24-node-runtime-pinning.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -20,10 +21,10 @@ This register retains every original finding ID and adds findings discovered by 
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
 | Medium | 16 | 1 | 15 |
-| Low | 14 | 0 | 14 |
-| **Total** | **52** | **4** | **48** |
+| Low | 14 | 1 | 13 |
+| **Total** | **52** | **5** | **47** |
 
-`OPS-001` and `OPS-007` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004` and `OPS-007` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ## Critical
 
@@ -85,7 +86,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `HYGIENE-001` | Unused Vite scaffold asset remains | Open |
 | `HYGIENE-002` | Some pure modules appear test/reference-only | Open; verify before deletion |
 | `CODE-001` | Large orchestration files are coordination hotspots | Open |
-| `OPS-004` | Runtime pinning is incomplete | Partially resolved: CI pins Node 22.22.2; Netlify runtime pin remains unverified |
+| `OPS-004` | Runtime pinning is incomplete | **Resolved** — Node `22.22.2` is pinned in `.nvmrc`, package engines, GitHub Actions and `netlify.toml`; the alignment test and ready Netlify preview passed. Reopen on any declaration or hosted-build regression. |
 | `SEO-001` | SPA fallback produces soft 404s | Open |
 | `SEO-002` | Metadata is largely global | Open |
 | `A11Y-003` | Bottom navigation is imperative rather than link-semantic | Open |
