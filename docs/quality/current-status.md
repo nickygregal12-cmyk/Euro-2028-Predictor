@@ -17,9 +17,11 @@
 | Function hardening | [`2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md) |
 | Submission settlement | [`2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md) |
 | Persisted score clearing | [`2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md) |
+| Database-parity trigger repair | [`2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md) |
+| Audit-control cleanup | [`2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current repository release-control baseline | `51c87e6e08ac102089db810b5e5eb2ecf757771c` |
+| Current repository release-control baseline | `d9bba09543409067624223f6f3fc0a0c75152cc2` — PR #45 merged the database-parity trigger repair |
 | Production application-code baseline | `a403b0796853453cb4115aea55729aced192a6ca` — introduced the deployed bracket and score-clear RPC dependencies |
 | Current ready production deploy | `6a630e4de510f100077bc120`, source commit `a6d3f1c97a93d48789435457769fd627c305ff27` |
 | Repository application/database contract | 35 — `config/deployment-contract.json` |
@@ -45,23 +47,34 @@ Run in a clean container from the committed lockfile. These are repository-level
 Two qualifications:
 
 - the 15 skipped tests are `tests/database-parity/predictedGroupOrderParity.test.ts`, correctly gated behind `DATABASE_PARITY`;
-- `tests/scripts/envFileHygiene.test.ts` reports 8 failures in any checkout lacking a `.git` directory, and passes 8/8 once one exists. This is environmental, not a defect in the code under test — recorded as `TEST-003`.
+- `2026-07-24R` found that `tests/scripts/envFileHygiene.test.ts` failed outside a Git work tree. Issue #46 now contains an explicit Git-work-tree gate and CI execution from `git archive`; pull-request validation is pending.
 
-The 12 pgTAP files under `supabase/tests/` were **read but not executed**; that requires a local Supabase stack. Their existence and CI wiring are verified, their pass state is not.
+The 12 pgTAP files under `supabase/tests/` were **read but not executed** during `2026-07-24R`; that audit had no local Supabase stack. PR #45 subsequently ran the full disposable database workflow successfully before merge.
 
-## Quality-governance position — new at `2026-07-24R`
+## Repository control changes after `2026-07-24R`
+
+| Finding / batch | Current position |
+| --- | --- |
+| `DOC-004` | **Resolved.** `docs/quality/README.md` is restored on `main`, defines the required governance controls and satisfies `audit-prompt.md` repeat-audit item 1. |
+| `TEST-002` | **Resolved.** PR #45 merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`; CI run 188 and Database parity run 65 passed on its latest head, including migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity. |
+| Issue #46 | **In progress.** Git-less test behaviour, stale manual-test references and archived relative links are repaired on `agent/repair-audit-controls`; permanent regression checks and pull-request validation are pending. |
+
+## Quality-governance position
 
 The engineering position improved substantially since `2026-07-23R`. The system that measures it weakened, and that is now the notable concern:
 
 | Finding | Position |
 | --- | --- |
-| `DOC-004` | `docs/quality/README.md` — the charter defining severity, status, evidence and resolution standards — was deleted. `audit-prompt.md:955` still mandates reading it, so the repeat-audit control is unsatisfiable. A restored draft accompanies the audit. |
-| `DOC-005` | `feature-baseline.md` lost its stable `FEAT-*` / `PLAN-*` / `SAFE-*` identifiers (96 ID-bearing rows → 60 unidentified). The archive preserves the originals, but row-by-row regression comparison is no longer reliable. Owner action. |
-| `TEST-002` | `database-parity.yml` filters on `scripts/database-parity/**`, which does not exist, and omits `scripts/database-rollout/**` — the SQL guarding the pending migrations 21–35 rollout. That gate currently never fires for those files. |
-| `DOC-001` | Reopened as **Partially resolved**: `docs/test-script.md` cross-references a `build-todo` section and batch names removed by the 24 July rewrite. |
+| `DOC-004` | **Resolved:** the restored governance charter is present and readable on `main`. |
+| `DOC-005` | **Open:** the live feature baseline still lacks stable `FEAT-*` / `PLAN-*` / `SAFE-*` identifiers and dispositions for every archived ID. |
+| `TEST-002` | **Resolved:** the real rollout SQL directory and deployment contract now trigger Database parity, protected by an executable regression test. |
+| `DOC-001` | **In progress — issue #46:** the stale test script is rewritten; repository validation is pending. |
+| `TEST-003` | **In progress — issue #46:** Git-less checkouts now skip explicitly and CI contains an archive-based proof step; validation is pending. |
+| `DOC-006` | **In progress — issue #46:** archived targets are repaired and a repository-wide relative-link test is added; validation is pending. |
 | `HYGIENE-001` | Corrected: the asset is present at `src/assets/vite.svg`; the previous "path not identified" note was wrong. |
 
-**Fix `TEST-002` before the production migration window opens.** The rollout sequence below depends on preflight and post-rollout SQL that currently receives no automated verification.
+
+Issue #46 owns the remaining audit-control validation. Production migration and deployment gates are unchanged.
 
 ## Release identity rule
 
@@ -79,7 +92,7 @@ Do not infer database compatibility from a successful build, a docs-only merge o
 | Area | Verdict |
 | --- | --- |
 | Repository development | **Safe to continue controlled development.** The chain contains 35 migrations and executable coverage for the current database contract; `2026-07-24R` independently executed install, type-check, lint, build, 434 tests, dependency audit and fixture validation, all green. |
-| Quality governance | **Degraded.** `DOC-004`, `DOC-005` and `TEST-002` weaken the controls that measure everything else. No feature or safeguard regression was detected. |
+| Quality governance | **Improving but still degraded.** `DOC-004` and `TEST-002` are resolved; `DOC-005` remains open and issue #46 is validating `DOC-001`, `TEST-003` and `DOC-006`. No feature or safeguard regression was detected. |
 | Hosted development database | **Semantically current through migration 35.** Data, ACL, deletion, bracket and compatibility checks pass; remote migration-history metadata is not a clean repository mirror. |
 | Netlify preview/branch/dev Supabase isolation | **Resolved for the current production Netlify project.** Non-production contexts use current development Supabase and a fail-closed prebuild guard. |
 | Automatic production deployment compatibility | **Contained.** Repository contract 35 cannot deploy while production declares contract 20. The existing ready site remains active. |
@@ -238,6 +251,9 @@ These are not production capabilities until the full migrations 21–35 rollout 
 - `SECURITY-003`: implemented repository/development; production pending migrations 21–35.
 - `REL-003`: repository tests pass; production/browser closure pending.
 - `DATA-005`: repository/development passes; production RPC/browser closure pending.
+- `DOC-004`: resolved; the governance charter is restored and readable.
+- `TEST-002`: resolved by merged PR #45 and its green application/database workflows.
+- `DOC-001`, `TEST-003`, `DOC-006`: in progress through issue #46.
 
 ## Production-entry compatibility proof
 
@@ -285,8 +301,8 @@ Never edit migration history directly, mark absent SQL as applied or lift the de
 | Auth security | Leaked-password protection remains disabled and requires a separate approved Auth change. |
 | Entry reliability | `REL-003` and `DATA-005` await compatible-production browser closure; `REL-002` and `REL-006` remain unimplemented. |
 | Product completeness | Automatic real R16 population, auto-submit, reminders and browser result administration remain absent. |
-| Test assurance | No Playwright or equivalent authenticated browser E2E suite. `TEST-002`: the database-parity gate does not fire for `scripts/database-rollout/**`. |
-| Quality governance | `DOC-004` (charter absent), `DOC-005` (baseline identifiers lost), `DOC-001` (reopened). Repair before the next remediation batch so that batch can be measured. |
+| Test assurance | No Playwright or equivalent authenticated browser E2E suite. Database parity now covers migrations, rollout SQL, the deployment contract and its trigger regression test. |
+| Quality governance | `DOC-005` remains open. Issue #46 is validating the repaired `DOC-001`, `TEST-003` and `DOC-006` controls; `DOC-004` and `TEST-002` are resolved. |
 | Official data | Final regulations, qualified teams, draw, fixtures/times and lock instant remain future dependencies. |
 
 ## Scoring status
