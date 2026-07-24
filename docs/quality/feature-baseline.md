@@ -3,14 +3,16 @@
 **Formal audit:** `2026-07-23L`  
 **Latest reconciliation date:** 24 July 2026  
 **Full audit evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
-**Current hosted state:** [`current-status.md`](current-status.md)
+**Current hosted state:** [`current-status.md`](current-status.md)  
+**Current production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)
 
 This compact baseline prevents silent feature loss and scope import. Current code, migrations, executable tests, verified hosted evidence and `current-status.md` override older statuses. Historical audit files remain immutable.
 
 ## Classification rules
 
 - **Implemented and production-hosted:** working application capability supported by the current production schema.
-- **Repository/development implemented:** working code and/or hosted-development database support exists, but the production release does not yet provide the complete capability.
+- **Deployed client / backend absent:** production application code is live but its required production database capability is missing.
+- **Repository/development implemented:** working code and/or hosted-development database support exists, but production does not provide the complete capability.
 - **Partial:** meaningful implementation exists but a required layer, route or journey remains absent.
 - **UI prototype only:** presentation exists without a working production data path.
 - **Documented/planned:** rule or intent exists without current working implementation.
@@ -28,13 +30,13 @@ This compact baseline prevents silent feature loss and scope import. Current cod
 | Recursive head-to-head predicted ordering | Production client + repository/development SQL parity | Client works; private SQL resolver pending production rollout |
 | Manual predicted same-group tie resolution | Implemented and production-hosted | Stronger server validation pending rollout |
 | Best-third ranking and manual boundary resolution | Implemented and production-hosted | Server replay pending rollout |
-| Winner-only Original Predictor bracket | Production read/UI path; write path incompatible | Production lacks `replace_predicted_progression` (`OPS-006`) |
-| Atomic complete-bracket replacement | Repository/development implemented | Migration 33 and PR #14; production RPC absent |
+| Winner-only Original Predictor bracket | **Deployed client / backend absent** | Production commit `a403b079` calls `replace_predicted_progression`; production RPC is absent (`OPS-006`) |
+| Atomic complete-bracket replacement | **Deployed client / backend absent** | Migration 33 passes on development; live production client requires it but production schema does not provide it |
 | Golden Boot selection | Implemented and production-hosted | Original prediction data/UI |
 | Derived group-stage goals prediction | Implemented and production-hosted | Derived from 36 scores |
 | Review and manual submission UI | Implemented and production-hosted | Production server boundary remains old |
 | Pending-write settlement before manual submit | Repository implemented | Provider/controller tests pass; production/browser closure pending (`REL-003`) |
-| Persisted score clearing | Repository/development implemented | Migration 35 and provider tests; production/browser closure pending (`DATA-005`) |
+| Persisted score clearing | **Deployed client / backend absent** | Production commit `a403b079` calls `delete_match_prediction`; production RPC is absent, so clearing reaches save error (`DATA-005`) |
 | Automatic valid-entry submission at lock | Documented/planned | `FUNC-002` open |
 | Deadline reminder emails | Documented/planned | No scheduler/email implementation |
 
@@ -47,16 +49,17 @@ This compact baseline prevents silent feature loss and scope import. Current cod
 | Same-tournament prediction guards | Partial repository/development | Major guards exist; wider constraints remain; production pending |
 | Lock-time write rejection | Partial | Earlier production triggers exist; hardened boundaries pending |
 | Full predicted bracket-tree replay | Repository/development implemented | Production submission uses old shape validation |
-| Optimistic complete-bracket conflict detection | Repository/development implemented | Production atomic RPC absent |
+| Optimistic complete-bracket conflict detection | **Deployed client / backend absent** | Production client expects the atomic RPC; backend does not contain it |
 | Save-settlement submission barrier | Repository implemented | Awaiting compatible production and browser E2E |
-| Version-safe match-prediction deletion | Repository/development implemented | Production lacks migration 35 |
-| Derived-position invalidation after score clear | Repository/development implemented | Production clear path absent |
+| Version-safe match-prediction deletion | **Deployed client / backend absent** | Production client expects migration 35’s RPC; backend does not contain it |
+| Derived-position invalidation after score clear | Repository/development implemented | Production clear cannot reach the required delete trigger path through the missing RPC |
 | Authoritative result method/winner | Repository/development implemented | Production result lifecycle absent |
 | Immutable result revision history | Repository/development implemented | Production revision path absent |
 | Real knockout winner propagation | Repository/development implemented | Production propagation absent |
 | Serialized score recomputation | Repository/development implemented | Production old scorer remains |
 | Exact function execution allowlists | Repository/development implemented | Production broad grants remain |
 | Production/development separation | Partial safeguard | Separate projects exist; production preview contexts are not isolated (`OPS-007`) |
+| App/schema compatibility gate before auto-deploy | Not present | PR #20 merge automatically deployed database-dependent client code before the production schema rollout |
 
 ## Leagues, social and viewing
 
@@ -87,6 +90,7 @@ This compact baseline prevents silent feature loss and scope import. Current cod
 | Monitoring and alerting | Not verified/present | Open operations work |
 | Verified backup and restore | Not present | Evidence and rehearsal required |
 | Safe application rollback | Documented | Must prove compatibility with current production schema |
+| Automatic production deploy | Implemented by Netlify/Git integration | Requires a missing app/schema compatibility gate before database-dependent merges |
 
 ## Bonus competition scope
 
@@ -100,9 +104,11 @@ This compact baseline prevents silent feature loss and scope import. Current cod
 
 No bonus game is implemented merely because a design note or component-gallery concept exists.
 
-## Current route baseline
+## Current route and data baseline
 
 The production application retains 23 explicit production routes plus catch-all. `/dev/components` is development-only. Route counts do not prove completeness or database compatibility.
+
+Post-deploy read-only production counts are four profiles, four entries, one submitted entry, 36 predictions, two tie decisions, eight progression rows and zero stored match scores.
 
 ## Safeguard regression rules
 
@@ -110,13 +116,14 @@ A future change must not silently:
 
 - weaken lock, ownership, same-tournament, version or submission checks;
 - re-enable direct browser writes to server-owned scoring inputs;
+- add direct-table fallbacks for missing production RPCs;
 - bypass the settlement barrier before manual submission;
 - delete a persisted score without expected-version protection;
 - accept structurally impossible brackets;
 - mix Original Predictor and bonus-game points/leagues;
 - blend predicted and real bracket state;
 - point production/previews at the wrong Supabase environment;
-- deploy code requiring absent database capabilities;
+- deploy code requiring absent database capabilities without an explicit compatibility decision;
 - change scoring values without updating rules, TypeScript, SQL and tests;
 - treat roadmap or gallery content as implemented.
 

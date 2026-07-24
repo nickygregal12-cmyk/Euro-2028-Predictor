@@ -10,14 +10,18 @@ Do not import rules or features from previous World Cup projects, old branches, 
 
 ## Current critical status
 
-The production application/database mismatch remains live:
+The production application/database mismatch remains live and broadened after PR #20:
 
-- production Netlify serves the post-PR #14 atomic-bracket client;
-- production Supabase still has the original 20-migration schema;
-- production lacks `replace_predicted_progression`;
+- Netlify automatically published production commit `a403b0796853453cb4115aea55729aced192a6ca`;
+- production Supabase still has the original 20-migration schema and no tracked migration-history table;
+- production lacks `replace_predicted_progression` used by bracket persistence;
+- production lacks `delete_match_prediction` used by persisted score clearing;
+- authenticated users still have old direct progression and match-prediction delete privileges;
 - the repository has 35 migrations;
-- hosted development has migrations 21–35 applied and verified against the normalized production entry;
+- hosted development has migrations 21–35 applied and verified;
 - production has 15 pending migrations, 21–35.
+
+Expected live behavior: bracket saves fail; clearing a stored score reaches a save error and reload can restore the old row. Do not add a direct-table fallback.
 
 Normal production promotion must pause until a reviewed plan restores a compatible app/schema pair. Never point production at development Supabase. Do not apply hosted migrations without explicit owner approval, fresh preflights, verified recovery evidence and the controlled rollout runbook.
 
@@ -26,6 +30,7 @@ Normal production promotion must pause until a reviewed plan restores a compatib
 | Topic | Document |
 | --- | --- |
 | Current implementation, hosted state and next action | `docs/quality/current-status.md` |
+| Current production release evidence | `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md` |
 | Latest formal audit | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
 | Hosted migration/security evidence | `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`; `2026-07-24-function-privilege-hardening.md` |
 | Submission settlement evidence | `docs/quality/reconciliations/2026-07-24-submit-save-barrier.md` |
@@ -55,6 +60,7 @@ Older audits and Git history remain evidence, not current instructions.
 - Save errors and optimistic conflicts block submission.
 - Clearing either side of a complete score queues `delete_match_prediction(...)` on the same serialized match key.
 - Prediction deletion must use the exact row version read; unknown or stale versions conflict rather than deleting unseen work.
+- Never restore old direct progression/delete writes as a production-compatibility shortcut.
 - Original Predictor and bonus games remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references and unknown official data.
@@ -88,7 +94,7 @@ The 35-migration chain and hosted development verify:
 - pending-write settlement before submission;
 - version-safe persisted score clearing with derived-position invalidation.
 
-These database controls are not production capabilities until migrations 21–35 are applied and verified there. `REL-003` and `DATA-005` remain partially open until compatible-production browser and durable E2E verification.
+These database controls are not production capabilities until migrations 21–35 are applied and verified there. The clients for bracket persistence and score clearing are already deployed, making backend compatibility the immediate release gate.
 
 ## Required workflow
 
@@ -106,7 +112,7 @@ npm audit --omit=dev --audit-level=high
 ```
 
 5. For database/tournament changes, also run the disposable Supabase rebuild, database lint, all pgTAP suites and TypeScript/PostgreSQL parity from `.github/workflows/database-parity.yml`.
-6. Update current status, risk register, migration inventory and a dated reconciliation when facts change.
+6. Update current status, risk register, migration inventory and a dated reconciliation when hosted facts change—including automatic deployments.
 7. Use Netlify previews for visual review only after preview data isolation is confirmed.
 
 ## Immediate order
@@ -127,6 +133,7 @@ npm audit --omit=dev --audit-level=high
 - No direct push to `main`.
 - No production database mutation, remote reset or unreviewed repair SQL.
 - No production-to-development fallback.
+- No direct-table fallback for missing production RPCs.
 - No claimed deployment without hosted verification.
 - No scoring or competition-rule change without updating authoritative rules and tests.
 - No reliance on chat memory over repository evidence.

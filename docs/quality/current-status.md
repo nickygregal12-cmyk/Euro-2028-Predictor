@@ -7,16 +7,18 @@
 | Field | Current value |
 | --- | --- |
 | Latest formal audit | [`2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md), designation `2026-07-23L` |
+| Current production release evidence | [`2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md) |
 | Hosted migration rehearsal | [`2026-07-23-hosted-migration-rehearsal.md`](reconciliations/2026-07-23-hosted-migration-rehearsal.md) |
 | Function hardening | [`2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md) |
 | Submission settlement | [`2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md) |
 | Persisted score clearing | [`2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
+| Current production application | Commit `a403b0796853453cb4115aea55729aced192a6ca`; Netlify deploy `6a62c49dfaa87100087a6ab1`, published 24 July 2026 |
 | Repository migration count | 35 |
 | Development Supabase | `iouzoutneyjpugbbtdem` — migrations 21–35 semantic contract applied and verified; remote history still requires CLI reconciliation |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — original 20-migration hosted shape; unchanged |
-| Production preflight | Hardened read-only source and baseline preflights passed on 23 July 2026 |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — original 20-migration hosted shape; no tracked migration-history table |
+| Production preflight | Hardened read-only source and baseline preflights passed on 23 July 2026; post-deploy RPC/privilege/count snapshot verified on 24 July 2026 |
 
 Project references identify environments. Credentials and private keys must not be committed to documentation.
 
@@ -26,15 +28,46 @@ Project references identify environments. Credentials and private keys must not 
 | --- | --- |
 | Repository development | **Safe to continue controlled development.** The chain contains 35 migrations with application and database coverage for submission settlement and persisted score clearing. |
 | Hosted development | **Semantically current through migration 35.** Exact data, ACL, deletion and compatibility checks pass; migration-history metadata is not a clean repository mirror. |
-| Current production release | **Critical mismatch remains.** The post-PR #14 client is deployed against the original 20-migration production schema. |
+| Current production release | **Critical mismatch broadened after automatic deployment.** Commit `a403b079` calls two RPCs absent from the original 20-migration production schema. |
 | Production migration readiness | **Prepared, not approved.** Baseline/source preflights and a development rehearsal exist for migrations 21–35; backup/recovery evidence, operator approval and the change window remain required. |
 | Real scored competition | **Not ready.** Production integrity controls are absent, browser E2E is missing and recovery has not been rehearsed. |
 
 ## Critical current condition — `OPS-006`
 
-The deployed client calls `replace_predicted_progression(...)`. Production lacks that RPC and still has the original direct progression-write model. Bracket edits on the live application are therefore expected to fail rather than persist through the intended atomic path.
+PR #20 was squash-merged and Netlify automatically published commit `a403b0796853453cb4115aea55729aced192a6ca` to production. Production Supabase was not migrated.
+
+The live client now depends on two absent production RPCs:
+
+1. `replace_predicted_progression(...)` for atomic complete-bracket persistence;
+2. `delete_match_prediction(...)` for expected-version persisted score clearing.
+
+Read-only production verification confirmed both functions are absent. Production also retains the old broad owner `ALL` policies and direct authenticated write/delete privileges that migrations 21–35 are intended to remove.
+
+Expected live effects:
+
+- bracket edits fail rather than persist through the atomic bracket boundary;
+- clearing a previously stored score fails through the save controller because the deletion RPC is missing, and a reload can restore the old row;
+- no old direct-table fallback is used by the new client.
+
+The score-clear path therefore fails closed instead of falsely reporting a successful deletion, but it is not operational in production.
 
 Ordinary production promotion remains frozen until a compatible application/database pair is restored through the approved hosted rollout. Never point production at development Supabase.
+
+## Current production data snapshot
+
+Read-only verification after the automatic deploy found:
+
+| Object | Count |
+| --- | ---: |
+| Profiles | 4 |
+| Entries | 4 |
+| Submitted entries | 1 |
+| Match predictions | 36 |
+| Predicted tie resolutions | 2 |
+| Predicted progression rows | 8 |
+| Matches with stored scores | 0 |
+
+The earlier audit had three profiles and entries. The current count of four is live user data, not evidence that a migration ran. No production row was changed during verification.
 
 ## Verified development database contract
 
@@ -63,52 +96,25 @@ Migration 30’s exact revision-table revoke was applied through SQL after the c
 
 Migration 34 removed inherited/public function execution and regranted explicit authenticated and service-role allowlists. Migration 35 adds only the protected prediction-delete RPC to those reviewed allowlists.
 
-Hosted verification found:
+Hosted development verification found zero anonymous executable public functions, exact authenticated/service grants, no mutable-search-path warning, and working signup and signed-in application RPCs.
 
-- zero anonymous executable public functions;
-- no missing or surplus authenticated/service grants;
-- no mutable-search-path advisor warning;
-- signup trigger execution still functional;
-- signed-in leaderboard, distribution and submission RPCs still functional.
-
-Supabase continues to flag intentionally signed-in `SECURITY DEFINER` RPCs because they are callable by authenticated users. Those functions are the designed API boundary and retain ownership, membership, scope and lock checks internally. Leaked-password protection is a separate Auth configuration action.
-
-`SECURITY-003` is implemented and verified in repository/development; production remains pending migrations 21–35.
+Production still has the old broad function/table boundary and remains pending migrations 21–35. Leaked-password protection is a separate Auth configuration action.
 
 ## Pending-write submission barrier — `REL-003`
 
-Manual submission now:
-
-- flushes pending score and bracket debounces;
-- waits for match, tie, bracket and Golden Boot writes that are in flight, coalesced or retrying;
-- includes score-deletion operations on the same match save key;
-- routes edits made during submission directly into the settlement barrier;
-- blocks submission on terminal save errors or optimistic conflicts;
-- cancels if the active entry/provider resets;
-- clears stale timers on entry change and unmount.
+Manual submission now flushes pending score/bracket debounces, waits for match/tie/bracket/Golden Boot writes—including score deletion—and blocks on terminal errors, conflicts or entry-context cancellation.
 
 Controller and provider tests prove immediate final-score and final-bracket edits cannot reach `submit_entry` before persistence settles, and terminal save failure prevents submission.
 
-`REL-003` is implemented and tested in the repository. It remains partially open until the compatible production rollout, authenticated browser verification and durable E2E coverage.
+`REL-003` is repository-complete but remains partially open until the compatible production rollout, authenticated browser verification and durable E2E coverage.
 
 ## Persisted score clearing — `DATA-005`
 
-Clearing either side of a complete score now queues a delete operation on the same serialized match key used for score upserts.
+The production application now includes the client clear path, but production lacks migration 35 and its RPC. Therefore the feature is **deployed-client/backend-absent**, not merely awaiting an application deployment.
 
-The database RPC verifies authentication, entry ownership, tournament scope, group round, configured lock and the exact row version read by the client. An unknown or stale version raises `PT409`; an already absent row returns `false`.
+Repository/development behavior remains verified: exact-version deletion, `PT409` protection for stale or unseen rows, derived-position invalidation, idempotency and lock refusal.
 
-Hosted rollback-only proof confirmed:
-
-- direct table deletion denied with `42501`;
-- unknown and stale versions denied with `PT409`;
-- the correct version removed the row;
-- the affected group-position snapshot fell from four rows to zero;
-- a second clear was idempotent;
-- a post-lock clear was denied and retained the row.
-
-Provider tests cover loaded-version deletion, unsaved-local clearing and conflict surfacing. pgTAP covers privileges, ownership, scope, version conflict, invalidation, idempotency and lock behavior.
-
-`DATA-005` is implemented and verified in repository/development. It remains partially open until migrations 21–35 reach production and clear/reload, stale-device conflict and post-lock browser journeys pass.
+Production closure still requires migrations 21–35 plus authenticated clear/reload, stale-device conflict and post-lock browser journeys.
 
 ## Production-entry compatibility proof
 
@@ -118,17 +124,13 @@ The one submitted production entry was mapped into development using stable matc
 - two tie decisions: `a4dcf183f5c48e3ba11ff75c59622598`;
 - eight progression rows: `0d7bc491daa9b24013204d061a2d38f1`.
 
-The clone produced 24 derived group-position rows, resolved all eight R16 fixtures, passed full bracket replay and submission validation, and retained the exact production submission timestamp. Migration-35 hosted proof was rolled back; the mirror remains at 36 predictions, 24 positions and eight progression rows.
+The clone produced 24 derived positions, resolved all eight R16 fixtures, passed full bracket replay and submission validation, and retained the production submission timestamp. Migration-35 hosted proof was rolled back; the mirror remains at 36 predictions, 24 positions and eight progression rows.
 
 Any source payload, timestamp or fingerprint change requires a fresh production-to-development replay.
 
-## Result lifecycle proof
-
-Hosted development rehearsed confirm, correction and clear for an R16 result, including winner propagation into the QF and reversal/removal after correction or clear. Temporary revisions and score effects were removed after evidence capture, restoring zero revisions, zero score events and zero rank history.
-
 ## Production baseline and migration history
 
-The committed baseline verifier returned every migration 1–20 structural check true. Production’s hosted migration-history list remains empty because those files were applied manually.
+The committed baseline verifier returned every migration 1–20 structural check true. Post-deploy read-only inspection confirmed `supabase_migrations.schema_migrations` does not exist in production.
 
 Before production rollout:
 
@@ -145,7 +147,7 @@ Never edit migration history directly or mark missing SQL as applied.
 
 | Group | Open position |
 | --- | --- |
-| Production compatibility | `OPS-006`: execute the approved migrations 21–35 rollout or restore another explicitly compatible release pair. |
+| Production compatibility | `OPS-006`: production commit `a403b079` lacks both required backend RPCs; execute the approved migrations 21–35 rollout or restore another explicitly compatible release pair. |
 | Recovery | Obtain verified production backup/export evidence and name the operator and recovery decision owner. |
 | Migration history | Apply the prepared 1–20 metadata-only repair only in the approved window, then require a 21–35-only dry run. |
 | Environment isolation | `OPS-007`: production Netlify previews and branch deploys inherit production Supabase configuration. |

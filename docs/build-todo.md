@@ -6,7 +6,11 @@
 ## 0. Production compatibility incident — do first
 
 - [x] Freeze ordinary production promotion in repository guidance and runbooks.
-- [x] Confirm the production application/Supabase mismatch and missing atomic bracket RPC.
+- [x] Confirm the original production application/Supabase mismatch and missing atomic bracket RPC.
+- [x] Confirm Netlify automatically published PR #20 merge commit `a403b079` to production.
+- [x] Verify read-only that production lacks both `replace_predicted_progression` and `delete_match_prediction`.
+- [x] Verify production still grants old direct progression and match-prediction delete privileges.
+- [x] Record the broadened two-RPC mismatch and current 4-profile/4-entry production snapshot.
 - [x] Rehearse migrations 21–35 on hosted development using the normalized production entry.
 - [x] Prove production migrations 1–20 structural effects and prepare exact history-only repair.
 - [x] Commit fail-closed production preflight and post-rollout verification scripts.
@@ -16,17 +20,18 @@
 - [ ] Apply the prepared 1–20 history-only repair and require a dry run showing migrations 21–35 only.
 - [ ] Obtain explicit approval and apply migrations 21–35 in strict timestamp order.
 - [ ] Verify bracket save/reload, authenticated RPCs, function allowlists, submission settlement and score clearing.
-- [ ] Record the exact application commit, schema state, operator and retained evidence.
+- [ ] Record the exact compatible application/schema pair, operator and retained evidence.
 
-Do **not** point production at development Supabase. Do not apply migration 33, 34 or 35 alone.
+Do **not** point production at development Supabase. Do not add unsafe direct-table fallbacks. Do not apply migration 33, 34 or 35 alone.
 
-## 1. Netlify environment isolation
+## 1. Netlify environment and deployment controls
 
 - [ ] Scope production Supabase values to production deploys only.
 - [ ] Ensure production-project previews and branch deploys cannot access production Supabase.
 - [ ] Confirm the separate development Netlify site uses development Supabase.
 - [ ] Protect or disable production-project previews until isolation is verified.
-- [ ] Recheck Turnstile domain/context behavior after the change.
+- [ ] Add an explicit app/schema compatibility decision before merging database-dependent client paths that auto-deploy from `main`.
+- [ ] Recheck Turnstile domain/context behavior after configuration changes.
 
 ## 2. Development migration rehearsal — complete
 
@@ -71,6 +76,7 @@ Do **not** point production at development Supabase. Do not apply migration 33, 
 - [x] Prove it reconstructs all 24 positions and one valid bracket tree on development.
 - [x] Confirm production has no stored result lifecycle state.
 - [x] Prove migrations 1–20 structural effects.
+- [x] Confirm the production migration-history table is absent.
 - [x] Prepare exact 1–20 migration-history repair.
 - [x] Extend the pending chain and verifier through migration 35.
 - [x] Prepare stop/rollback/remediation rules.
@@ -93,15 +99,18 @@ Do **not** point production at development Supabase. Do not apply migration 33, 
 - [ ] Browser-verify immediate final edits after production compatibility is restored.
 - [ ] Add the journey to Playwright/equivalent and close `REL-003`.
 
-### Persisted score clearing — repository/development complete, browser closure pending
+### Persisted score clearing — client deployed, backend pending
 
 - [x] **`DATA-005`** — persist deletion when a complete score is cleared.
-- [x] Deny direct table deletion and use an owner/scope/lock/version-checked RPC.
+- [x] Deny direct table deletion and use an owner/scope/lock/version-checked RPC in the migration chain.
 - [x] Serialize delete/upsert on the same match key.
 - [x] Protect unseen/newer rows with unknown/stale version conflicts.
 - [x] Clear stale derived group positions after deletion.
 - [x] Test loaded, unsaved-local and stale-device paths.
 - [x] Add pgTAP coverage for privileges, ownership, scope, version, idempotency and lock.
+- [x] Confirm the score-clear client is live in production commit `a403b079`.
+- [x] Confirm the production backend RPC is absent, causing save failure rather than successful clearing.
+- [ ] Apply migration 35 as part of the complete approved 21–35 chain.
 - [ ] Browser-verify clear/reload, restore, stale conflict and post-lock refusal in production.
 - [ ] Add the journey to Playwright/equivalent and close `DATA-005`.
 
@@ -201,3 +210,4 @@ The Sweepstake builder remains non-launch-blocking.
 - [x] Version-safe persisted score clearing.
 - [x] Hosted development rehearsal through migration 35.
 - [x] Live hosted audit and documentation authority hierarchy.
+- [x] Post-merge automatic production deploy reconciliation.
