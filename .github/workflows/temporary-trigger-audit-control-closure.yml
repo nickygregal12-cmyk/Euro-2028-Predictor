@@ -1,0 +1,53 @@
+name: Temporary trigger audit-control closure
+
+on:
+  push:
+    branches:
+      - agent/repair-audit-controls
+    paths:
+      - '.github/workflows/temporary-trigger-audit-control-closure.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/repair-audit-controls
+          fetch-depth: 0
+
+      - name: Execute closure transformation
+        shell: python
+        run: |
+          from pathlib import Path
+          import textwrap
+
+          source = Path('.github/workflows/temporary-finalize-audit-control-status.yml').read_text(encoding='utf-8').splitlines()
+          run_line = source.index('        run: |', source.index('      - name: Record validated closure evidence'))
+          end_line = source.index('      - name: Write finalised documents through GitHub contents API')
+          code = textwrap.dedent('\n'.join(source[run_line + 1:end_line]))
+          exec(compile(code, 'audit-control-closure', 'exec'))
+
+      - name: Write finalised documents
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: agent/repair-audit-controls
+        run: |
+          set -euo pipefail
+          for file in \
+            docs/quality/current-status.md \
+            docs/quality/risk-register.md \
+            docs/quality/reconciliations/2026-07-24-audit-control-cleanup.md; do
+            sha="$(gh api "repos/$REPOSITORY/contents/$file?ref=$BRANCH" --jq .sha)"
+            content="$(base64 -w 0 "$file")"
+            gh api --method PUT "repos/$REPOSITORY/contents/$file" \
+              -f message='docs: close validated audit-control findings' \
+              -f content="$content" \
+              -f sha="$sha" \
+              -f branch="$BRANCH" >/dev/null
+          done
