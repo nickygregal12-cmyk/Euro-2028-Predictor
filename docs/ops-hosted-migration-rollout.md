@@ -1,153 +1,136 @@
-# Hosted migrations 21–34 — controlled rollout runbook
+# Hosted migrations 21–35 — controlled rollout runbook
 
-This runbook prepares and governs the production rollout of repository migrations 21–34.
-
-It does **not** authorize the rollout by itself. The owner must explicitly approve the production change after reviewing the current preflight, backup evidence, migration-history plan and deployment window.
+This runbook governs the production rollout of repository migrations 21–35. It does **not** authorize the rollout. The owner must explicitly approve the change after reviewing fresh preflights, recovery evidence, migration-history repair and the deployment window.
 
 ## Absolute rules
 
 - Production is never reset.
 - Never run `supabase db reset --linked` against production.
 - Never use development Supabase as a production fallback.
-- Never apply only migration 33 or 34.
+- Never apply migration 33, 34 or 35 alone.
 - Never bypass or edit a failing preflight during the rollout window.
-- Never update a rollout-guard fingerprint during the rollout window.
-- Never use `migration repair` unless the corresponding schema effect is independently proven present.
+- Never change rollout-guard fingerprints during the rollout window.
+- Never use `migration repair` unless the matching schema effect is independently proven present.
 - Never use `--include-seed` on production.
-- One operator performs the database change; no concurrent migration push is allowed.
-- Application and database compatibility are verified as one release.
+- One named operator performs the database change.
+- Treat application and database compatibility as one release.
 
 ## Current evidence
 
-The 23–24 July 2026 rehearsal established:
+The 23–24 July 2026 work established:
 
-- disposable CI rebuilds the repository migration chain;
-- hosted development has the semantic effects of migrations 21–34;
-- the exact normalized production entry passed group reconstruction, R16 derivation, full 15-match bracket replay and submission validation in development;
-- production’s read-only structural preflight passed;
-- production still has zero legacy match results;
-- the exact function execution matrix and immutable helper search paths pass on development;
-- production itself remains on migrations 1–20 until this procedure is approved and executed.
+- disposable CI can rebuild the full 35-migration chain;
+- hosted development has the semantic effects of migrations 21–35;
+- the normalized production entry passes group reconstruction, R16 derivation, full bracket replay and submission validation;
+- migration 35 provides version-safe persisted score clearing;
+- production structural/source preflights pass;
+- production has zero legacy match results;
+- development’s function ACL and helper search-path contract passes;
+- production itself remains on migrations 1–20.
 
-A separate read-only production baseline proof established that every structural effect required from repository migrations 1–20 is present, while the hosted migration-history list remains empty. See:
+Evidence:
 
 - `scripts/database-rollout/production-baseline-1-20-verification.sql`;
-- `docs/quality/reconciliations/2026-07-23-production-migration-history-1-20.md`.
+- `scripts/database-rollout/production-preflight.sql`;
+- `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`;
+- `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`;
+- `docs/quality/reconciliations/2026-07-24-score-clearing.md`.
 
-The function-security rehearsal is recorded in:
+Current rollout guards:
 
-- `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`.
-
-The committed entry preflight is bound to the exact payload that was rehearsed:
-
-| Payload | Rollout-guard fingerprint |
+| Payload | Fingerprint |
 | --- | --- |
 | 36 match predictions | `8d76619fe4b44fdac17de1cc2afe5aaa` |
 | two manual tie decisions | `a4dcf183f5c48e3ba11ff75c59622598` |
 | eight progression rows | `0d7bc491daa9b24013204d061a2d38f1` |
 
-If any fingerprint or the submitted timestamp changes, stop and repeat the production-to-development clone and full replay. A legitimate user edit is not a reason to weaken the guard; it creates a new payload that must be rehearsed.
+If a fingerprint or submitted timestamp changes, stop and repeat the production-to-development clone and replay. Do not weaken a guard to accommodate changed source data.
 
-## Required inputs
+## Required change record
 
-Before starting, record:
+Record before starting:
 
-- repository commit to deploy;
+- approved repository commit;
 - production Supabase project reference;
 - production Netlify deploy/commit;
-- operator name;
+- operator and recovery decision owner;
 - start time and change window;
-- backup/export identifier and retrieval location;
-- output of `scripts/database-rollout/production-baseline-1-20-verification.sql`;
-- output of `supabase migration list` before and after repair;
-- output of `supabase db push --dry-run`;
-- output of `scripts/database-rollout/production-preflight.sql`;
-- rollout-guard fingerprints from that output;
-- rollback decision owner.
+- backup/export identifier and verified retrieval location;
+- both production preflight outputs;
+- migration-list output before and after repair;
+- `db push --dry-run` output;
+- rollout-guard fingerprints;
+- final verification, advisor and smoke-test outputs.
 
-Do not place credentials, database passwords, access tokens or private backup URLs in the repository.
+Do not place credentials, database passwords, tokens or private backup URLs in the repository.
 
 ## Phase 1 — freeze and verify identity
 
 1. Freeze ordinary production deployments and database writes.
-2. Confirm the repository working tree is clean and checked out at the approved commit.
-3. Confirm the linked Supabase project before every linked command:
+2. Confirm a clean checkout at the approved commit.
+3. Confirm the linked Supabase project:
 
 ```bash
 supabase projects list
 supabase link --project-ref vkfnsqdyhvtwyqkisxhk
 ```
 
-4. Confirm the public domains still use production Supabase.
-5. Confirm no preview/branch deploy will be used for the production smoke test unless its environment is isolated from production data.
+4. Confirm public domains still use production Supabase.
+5. Do not use an unisolated preview/branch deploy for production testing.
 
-**Stop if the linked project cannot be proven.**
+Stop if the target project cannot be proven.
 
 ## Phase 2 — backup and recovery evidence
 
-Obtain a current production database backup or export using an approved Supabase-supported method.
+Obtain a current production backup/export through an approved Supabase-supported method. Record creation time, type, scope, retention/retrieval location, verifier and recovery decision.
 
-Record:
-
-- creation time;
-- backup/export type;
-- scope;
-- retention/retrieval location;
-- person who verified it exists;
-- recovery decision if migration application fails.
-
-A Netlify deploy rollback is not a database rollback. Do not start without database recovery evidence.
+A Netlify rollback is not a database rollback. Do not start without database recovery evidence.
 
 ## Phase 3 — immediate production preflight
 
-Run both committed read-only scripts:
+Run:
 
 ```text
 scripts/database-rollout/production-baseline-1-20-verification.sql
 scripts/database-rollout/production-preflight.sql
 ```
 
-Required baseline outcome:
+Required baseline result:
 
 - `all_structural_effects_present = true`;
-- all twenty individual migration checks are true;
-- the reported function ACL drift matches the known production state that migration 34 is designed to repair.
+- all twenty per-migration checks true;
+- function ACL drift matches the known production state repaired by migration 34.
 
-Required entry/source-state outcome:
+Required source result:
 
 - `overall_structural_pass = true`;
-- exactly one submitted entry remains with timestamp `2026-07-21 21:51:49.639442+00` and it remains before lock;
-- every group remains 4 teams / 6 valid fixtures / 6 predictions;
-- exactly one group tie row and one third-place tie row remain valid;
-- all three rollout-guard fingerprints match the rehearsed values;
-- progression remains `4/2/1/1` with eight rows;
-- old hosted group-position rows remain zero before migration 26 rebuilds them;
-- score events and rank history remain zero;
-- no cross-tournament anomaly exists;
-- no legacy score exists;
-- knockout source tree remains `8/4/2/1` with 14 valid unique winner sources.
+- exactly one submitted entry with timestamp `2026-07-21 21:51:49.639442+00`, before lock;
+- each group remains four teams, six valid fixtures and six predictions;
+- one valid group tie and one valid third-place tie;
+- all rollout fingerprints match;
+- progression remains eight rows in `4/2/1/1` shape;
+- old group-position rows remain zero;
+- score events, rank history and legacy scores remain zero;
+- no scope anomaly exists;
+- knockout source tree remains `8/4/2/1` with fourteen valid winner sources.
 
-**Any failure is a stop condition.** Investigate outside the rollout window. If the source payload changed, repeat the exact clone and replay rather than editing expected values in place.
+Any failure is a stop condition. Investigate outside the change window.
 
 ## Phase 4 — reconcile migration history
 
-Production currently has no tracked migration-history rows even though the read-only verifier proves the structural effects of migrations 1–20 are present.
+Production contains the structural effects of migrations 1–20 but no tracked history rows.
 
-1. Inspect local versus remote history:
+1. Inspect history:
 
 ```bash
 supabase migration list
 ```
 
-Expected before repair: local files 1–34, with production history missing 1–20.
+Expected before repair: local files 1–35; production history missing 1–20.
 
-2. Re-run and retain:
+2. Re-run the baseline verifier and retain its all-true output.
 
-```text
-scripts/database-rollout/production-baseline-1-20-verification.sql
-```
-
-3. Only when all 20 checks are true, mark these repository timestamps as applied in tracking metadata:
+3. Only when every baseline check is true, repair tracking metadata:
 
 ```bash
 supabase migration repair \
@@ -174,35 +157,29 @@ supabase migration repair \
   --status applied
 ```
 
-4. Re-run:
+4. Re-run `supabase migration list`.
 
-```bash
-supabase migration list
-```
+Required result: migrations 1–20 align; migrations 21–35 remain pending.
 
-Required result: migrations 1–20 align locally/remotely; migrations 21–34 remain pending.
-
-5. Preview the pending SQL:
+5. Run:
 
 ```bash
 supabase db push --dry-run
 ```
 
-The dry run must show **only migrations 21–34**, in timestamp order.
+The dry run must show **only migrations 21–35**, in timestamp order. Stop if it proposes 1–20, skips a pending file, includes an unknown file or cannot be explained.
 
-**Stop if it proposes migrations 1–20, skips any migration 21–34, includes an unknown migration, or the history cannot be explained.**
+`migration repair` updates metadata only. Never mark migrations 21–35 applied before their SQL executes.
 
-`migration repair` updates tracking metadata only. It does not apply SQL. Do not mark migrations 21–34 as applied on production before their SQL has executed.
+## Phase 5 — apply the chain
 
-## Phase 5 — apply the repository chain
-
-After owner approval of the dry-run output:
+After explicit approval of the dry-run output:
 
 ```bash
 supabase db push
 ```
 
-The expected pending files are:
+Expected pending files:
 
 1. `20260723170000_predictor_internal_schema.sql`
 2. `20260723173000_predicted_group_order_resolver.sql`
@@ -218,8 +195,9 @@ The expected pending files are:
 12. `20260723184100_bracket_tree_compatibility.sql`
 13. `20260723190000_atomic_bracket_persistence.sql`
 14. `20260724001500_harden_function_privileges.sql`
+15. `20260724003000_delete_match_prediction_rpc.sql`
 
-Do not continue past a failed migration. Preserve the error and current state for investigation.
+Do not continue past a failed migration. Preserve the error and exact state.
 
 ## Phase 6 — database post-verification
 
@@ -229,104 +207,106 @@ Run:
 scripts/database-rollout/post-rollout-verification.sql
 ```
 
-Required conditions include:
+Every reported value must be true, including:
 
-- private schema exists and browser roles have no usage;
-- entry update and delete privileges are denied to authenticated users;
-- group-position and progression direct insert/update/delete are denied;
+- private schema exists and browser roles lack usage;
+- entry update/delete privileges are denied to authenticated users;
+- group-position and progression direct writes are denied;
+- direct `match_predictions` deletion is denied to authenticated and service API roles;
+- `delete_match_prediction(uuid,uuid,integer)` exists, is authenticated/service allowlisted and anonymous-denied;
 - atomic progression RPC exists and is authenticated-only;
 - result lifecycle columns/functions exist;
-- confirm, correct and clear functions are denied to browser roles and allowed only to the service role;
-- revision table direct select/insert/update/delete are denied to browser and service roles;
-- anonymous roles can execute no public application function;
-- authenticated and service-role function allowlists are exact, with no missing or surplus function;
-- future public functions default to owner-only execution;
-- `gen_invite_code()`, `_stage_ord(text)` and `enforce_write_version()` have empty immutable search paths;
-- exactly one submitted entry and its original timestamp are preserved;
-- all three rollout-guard fingerprints are unchanged;
-- the submitted entry has 24 server-derived positions;
-- complete bracket replay returns true;
-- no result, revision, score event or rank-history row was invented;
-- production progression and source predictions are preserved.
+- result administration is service-role-only;
+- revision table direct access is denied;
+- anonymous roles execute no public application function;
+- authenticated/service allowlists are exact;
+- future public functions default owner-only;
+- helper search paths are empty and immutable;
+- the submitted entry, timestamp and three fingerprints are preserved;
+- 24 derived positions and eight progression rows remain;
+- submission and bracket validators pass;
+- no result, revision, score event or rank-history row was invented.
 
-Then run Supabase security advisors and retain the output.
+Then run Supabase security advisors and retain output.
 
-Expected after migration 34:
+Expected:
 
 - no anonymous security-definer execution warning;
 - no mutable-search-path warning;
-- signed-in security-definer warnings remain only for the intentional authenticated application RPC allowlist;
-- leaked-password protection remains a separate Auth setting unless separately approved and enabled;
-- deny-all internal tables may retain informational “RLS enabled, no policy” notices.
+- signed-in warnings only for intentional authenticated RPCs;
+- leaked-password protection remains separate unless independently approved;
+- internal deny-all tables may retain informational no-policy notices.
 
-Any unexpected warning or privilege difference is a stop condition.
+Any unexpected privilege, object, data or advisor result is a stop condition.
 
-## Phase 7 — application smoke test
+## Phase 7 — authenticated application smoke tests
 
-Using the approved production application and a controlled owner account:
+Using the approved production application and controlled owner account:
 
-1. open the existing entry;
-2. confirm all 36 group predictions load;
-3. confirm manual ties and the complete bracket load;
-4. make one reversible pre-lock bracket change;
-5. wait for the save state to confirm success;
-6. reload and confirm persistence through `replace_predicted_progression`;
-7. reverse the test change and confirm persistence;
-8. verify Review remains valid and submission timestamp is preserved;
-9. confirm overall leaderboard and Match Centre prediction distribution still load;
-10. confirm league creation, preview, joining and league views still use the authenticated RPC boundary;
-11. confirm profiles and points views still load.
+### Existing data and bracket
 
-Do not use an unisolated production deploy preview for this test.
+1. Confirm all 36 predictions, both tie decisions and the complete bracket load.
+2. Make one reversible pre-lock bracket change.
+3. Wait for saved status, reload and confirm persistence through `replace_predicted_progression`.
+4. Reverse the change and confirm persistence.
+5. Confirm Review remains valid and the submission timestamp is preserved.
 
-## Phase 8 — compatibility and deployment decision
+### Submission settlement
 
-Only after database and application smoke tests pass:
+6. Make a final score edit and immediately submit.
+7. Confirm submission waits for the save and succeeds only after persistence.
+8. Confirm a controlled save error/conflict blocks submission.
 
-- confirm the deployed application commit expects the now-live schema;
-- lift the deployment/write freeze;
-- record completion in `docs/quality/current-status.md`;
-- update `docs/ops-pending-migrations.md`;
-- retain preflight, history-repair, dry-run, push, advisor and verification outputs in the incident/change record.
+### Persisted score clearing
+
+9. Clear one side of a previously saved complete score.
+10. Wait for saved status and reload; confirm the score remains cleared.
+11. Confirm the affected predicted group positions become incomplete/absent until the score is restored.
+12. Restore the score and confirm positions rebuild.
+13. Exercise a stale-device/version conflict and confirm newer work is not deleted.
+14. Confirm a post-lock clear is refused and the stored row remains.
+
+### Other critical reads
+
+15. Confirm leaderboard, Match Centre distribution, leagues, profiles and points views load.
+
+Do not use an unisolated production preview for these tests.
+
+## Phase 8 — compatibility decision
+
+Only after database and application verification pass:
+
+- confirm the deployed app commit expects the live schema;
+- lift the freeze;
+- record the exact app/schema pair;
+- update `current-status.md` and `ops-pending-migrations.md`;
+- retain all preflight, history, dry-run, push, advisor and smoke-test evidence.
 
 ## Failure handling
 
-### Preflight failure
+### Preflight or history mismatch
 
-Stop. Do not mutate production. Open a remediation workstream using the exact failing rows.
+Stop before SQL application. Do not mutate production or invent history rows.
 
-### Migration-history repair mismatch
+### Migration failure
 
-Stop before `db push`. Do not add or remove history rows until the mismatch is understood from both schema and repository evidence.
+Stop, preserve logs and determine whether the current file rolled back. Do not skip it. If earlier files committed, prepare a reviewed forward repair or owner-approved database recovery decision.
 
-### Migration failure before commit
+### Privilege verification failure
 
-Stop. Preserve logs and identify whether the migration transaction rolled back. Do not manually skip the file.
-
-### Migration failure after earlier files committed
-
-Keep production connected to production Supabase. Do not reset. Determine the last applied migration from schema and history, then prepare a reviewed forward repair or database recovery decision.
-
-### Function privilege verification failure
-
-Keep the freeze in place. Do not restore broad `PUBLIC` grants. Compare the exact missing/surplus signatures with the repository allowlists and prepare a reviewed forward repair.
+Keep the freeze. Never restore broad `PUBLIC` grants. Compare exact missing/surplus signatures with repository allowlists.
 
 ### Application smoke-test failure
 
-Do not point production at development. Either:
+Do not point production at development. Either repair the application against the migrated schema or restore a known-good production application that is compatible with that schema. Database recovery remains a separate owner-approved decision.
 
-- repair the application against the new production schema; or
-- restore a known-good production application deploy that remains compatible with the migrated production schema.
+## Separate follow-up work
 
-Database restore is a separate owner-approved action based on the backup evidence.
-
-## Explicitly separate follow-up work
-
-Do not silently mix these into the migration window:
+Do not mix these into the database window:
 
 - Netlify deploy-context isolation (`OPS-007`);
 - leaked-password protection;
-- pending-write submission flush (`REL-003`);
+- browser E2E infrastructure beyond required smoke evidence;
 - automatic real R16 population;
 - browser administration UI;
 - bonus games or design changes.

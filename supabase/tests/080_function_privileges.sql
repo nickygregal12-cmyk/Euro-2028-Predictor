@@ -9,6 +9,7 @@ create temporary table expected_authenticated_functions (
 insert into expected_authenticated_functions (signature) values
   ('create_league(uuid,text)'),
   ('delete_league(uuid)'),
+  ('delete_match_prediction(uuid,uuid,integer)'),
   ('get_leaderboard(uuid)'),
   ('get_league(uuid)'),
   ('get_league_match_picks(uuid,uuid)'),

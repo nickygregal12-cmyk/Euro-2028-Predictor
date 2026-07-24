@@ -389,9 +389,11 @@ select set_config('request.jwt.claim.role', 'authenticated', true);
 
 select is(
   pg_temp.capture_sqlstate($sql$
-    delete from public.match_predictions
-      where entry_id = '00000000-0000-0000-0000-000000000201'
-        and match_id = '00000000-0000-0000-0000-000000000506'
+    select public.delete_match_prediction(
+      '00000000-0000-0000-0000-000000000201',
+      '00000000-0000-0000-0000-000000000506',
+      0
+    )
   $sql$),
   '23514',
   'a match prediction cannot be deleted after tournament lock'

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getOrCreateEntry: vi.fn(),
   fetchMatchPredictions: vi.fn(),
   upsertMatchPrediction: vi.fn(),
+  deleteMatchPrediction: vi.fn(),
   submitEntry: vi.fn(),
   fetchGoldenBoot: vi.fn(),
   upsertGoldenBoot: vi.fn(),
@@ -23,6 +24,7 @@ vi.mock('../../src/services/supabase/predictions', () => ({
   getOrCreateEntry: mocks.getOrCreateEntry,
   fetchMatchPredictions: mocks.fetchMatchPredictions,
   upsertMatchPrediction: mocks.upsertMatchPrediction,
+  deleteMatchPrediction: mocks.deleteMatchPrediction,
   submitEntry: mocks.submitEntry,
 }))
 
@@ -104,6 +106,7 @@ describe('PredictionsProvider submission save barrier', () => {
     mocks.upsertTieResolution.mockResolvedValue(undefined)
     mocks.upsertProgression.mockResolvedValue(1)
     mocks.deleteProgression.mockResolvedValue(undefined)
+    mocks.deleteMatchPrediction.mockResolvedValue(false)
     mocks.submitEntry.mockResolvedValue('2026-07-24T00:00:00.000Z')
   })
 
@@ -138,7 +141,6 @@ describe('PredictionsProvider submission save barrier', () => {
       submission = api.submit()
     })
 
-    // submit() flushes the still-pending 600ms debounce immediately.
     expect(mocks.upsertMatchPrediction).toHaveBeenCalledWith(
       'entry-1',
       'match-1',
@@ -221,7 +223,6 @@ describe('PredictionsProvider submission save barrier', () => {
       submission = api.submit()
     })
 
-    // Wait through the controller's initial attempt and two automatic retries.
     await act(async () => {
       await vi.waitFor(() => expect(mocks.upsertMatchPrediction).toHaveBeenCalledTimes(3), {
         timeout: 4000,

@@ -133,9 +133,15 @@ select is(
   'an exact manual group-tie decision creates the trusted snapshot'
 );
 
-delete from public.match_predictions
-  where entry_id = '00000000-0000-0000-0000-000000000204'
-    and match_id = '00000000-0000-0000-0000-000000000526';
+do $$
+begin
+  perform public.delete_match_prediction(
+    '00000000-0000-0000-0000-000000000204',
+    '00000000-0000-0000-0000-000000000526',
+    0
+  );
+end;
+$$;
 
 select is(
   (

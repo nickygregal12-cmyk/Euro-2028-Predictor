@@ -6,7 +6,7 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-Production Netlify serves the post-PR #14 application while production Supabase still has the original 20-migration schema. Production does not contain the atomic bracket replacement RPC used by the deployed client. Hosted development has rehearsed and verified migrations 21–34, but that does not make production compatible. Treat application/database compatibility as the first recovery priority; do not apply hosted migrations or change production configuration without the reviewed runbook, recovery evidence and explicit approval.
+Production Netlify serves the post-PR #14 application while production Supabase still has the original 20-migration schema. Production does not contain the atomic bracket replacement RPC used by the deployed client. Hosted development has rehearsed and verified migrations 21–35, but that does not make production compatible. Treat application/database compatibility as the first recovery priority; do not apply hosted migrations or change production configuration without the reviewed runbook, recovery evidence and explicit approval.
 
 ## Setup
 
@@ -56,7 +56,7 @@ Tournament rules are implemented first as pure functions under `src/domain/tourn
 
 The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. The database-parity workflow rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-In the latest 34-migration repository chain, the database is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement and exact function execution boundaries. Those controls are not considered deployed until the target hosted schema is inspected, migrated and verified.
+In the latest 35-migration repository chain, the database is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing and exact function execution boundaries. Those controls are not considered deployed until the target hosted schema is inspected, migrated and verified.
 
 ## Scoring
 
@@ -97,11 +97,13 @@ The repository and hosted development have executable or live verification for:
 - confirmed knockout-winner propagation;
 - full match-by-match predicted bracket replay;
 - expected-version, one-transaction complete-bracket replacement;
+- pending-write settlement before manual submission;
+- version-safe persisted score clearing with derived-position invalidation;
 - zero anonymous public-function execution;
 - exact authenticated/service function allowlists and owner-only future defaults;
 - fixed search paths for previously mutable helpers.
 
-Migrations 21–34 are verified on hosted development and remain pending on production. Production must receive the complete chain in strict timestamp order; migration 34 must not be applied alone.
+Migrations 21–35 are verified on hosted development and remain pending on production. Production must receive the complete chain in strict timestamp order; migrations 33, 34 or 35 must not be applied alone.
 
 ## Documentation authority
 
