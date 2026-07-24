@@ -170,6 +170,7 @@ jobs:
           mkdir -p docs/quality/reconciliations
           cat > docs/quality/reconciliations/.auth-recovery-branch-validation.json <<EOF
           {
+            "run_id": "${GITHUB_RUN_ID}",
             "validated_commit": "${GITHUB_SHA}",
             "application": "${{ needs.application.result }}",
             "browser": "${{ needs.browser.result }}"
