@@ -60,7 +60,21 @@ export async function countRaceEntries(
 }
 
 export async function cleanupEntryRaceUser(userId: string): Promise<void> {
-  const admin = createLocalAdmin()
-  const { error } = await admin.auth.admin.deleteUser(userId)
-  if (error) throw error
+  let lastError: unknown
+
+  // The disposable GoTrue container can briefly reject an admin request while
+  // authenticated browser sessions are still closing. Retry only this cleanup
+  // boundary; the test assertions and application requests are never retried.
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const admin = createLocalAdmin()
+    const { error } = await admin.auth.admin.deleteUser(userId)
+    if (!error) return
+
+    lastError = error
+    if (attempt < 4) {
+      await new Promise((resolve) => setTimeout(resolve, attempt * 250))
+    }
+  }
+
+  throw lastError
 }
