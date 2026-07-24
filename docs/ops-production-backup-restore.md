@@ -93,7 +93,7 @@ printf '\n'
 export BACKUP_ROOT="/absolute/path/on/secure-volume"
 export CONFIRM_PRODUCTION_PROJECT_REF="vkfnsqdyhvtwyqkisxhk"
 
-./scripts/database-rollout/create-production-backup.sh
+bash scripts/database-rollout/create-production-backup.sh
 ```
 
 The script:
