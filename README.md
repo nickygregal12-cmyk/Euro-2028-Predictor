@@ -6,7 +6,7 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-Production Netlify serves the post-PR #14 application while production Supabase still has the original 20-migration schema. Production does not contain the atomic bracket replacement RPC used by the deployed client. Hosted development has rehearsed and verified migrations 21–35, but that does not make production compatible. Treat application/database compatibility as the first recovery priority; do not apply hosted migrations or change production configuration without the reviewed runbook, recovery evidence and explicit approval.
+Production Netlify automatically published commit `a403b0796853453cb4115aea55729aced192a6ca` after PR #20 merged, while production Supabase still has the original 20-migration schema. The live client calls both `replace_predicted_progression` and `delete_match_prediction`; read-only production verification confirms neither RPC exists. Bracket persistence and persisted score clearing are therefore incompatible with the live backend. Hosted development has rehearsed migrations 21–35, but that does not make production compatible. Do not apply hosted migrations or change production configuration without the reviewed runbook, recovery evidence and explicit approval.
 
 ## Setup
 
@@ -110,7 +110,8 @@ Migrations 21–35 are verified on hosted development and remain pending on prod
 | Question | Source |
 | --- | --- |
 | Current implementation, hosted status, blockers and next action | `docs/quality/current-status.md` |
-| Latest formal evidence | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
+| Current production release evidence | `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md` |
+| Latest formal audit | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
 | Agent, Git and database discipline | `AGENTS.md`; `CLAUDE.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Migration inventory and hosted applied state | `docs/ops-pending-migrations.md` |
