@@ -1,6 +1,7 @@
 const LOCAL_MAIL_PORT = '54324'
 
 type MailpitAddress = {
+  Address?: string
   Email?: string
 }
 
@@ -42,7 +43,11 @@ function localMailOrigin(): string {
 }
 
 function addressedTo(message: { To?: MailpitAddress[] }, email: string): boolean {
-  return (message.To ?? []).some((recipient) => recipient.Email?.toLowerCase() === email.toLowerCase())
+  const expected = email.toLowerCase()
+  return (message.To ?? []).some((recipient) => {
+    const storedAddress = recipient.Address ?? recipient.Email
+    return storedAddress?.toLowerCase() === expected
+  })
 }
 
 async function listMessages(email: string): Promise<MailpitMessageSummary[]> {
