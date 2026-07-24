@@ -19,9 +19,10 @@
 | Persisted score clearing | [`2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md) |
 | Database-parity trigger repair | [`2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md) |
 | Audit-control cleanup | [`2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md) |
+| Feature-baseline identifiers | [`2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current repository release-control baseline | `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8` — PR #47 merged the audit-control cleanup after final head CI run 200 passed |
+| Current repository release-control baseline | `2bfe5d6b06519cf26929ba49a57b5a5861644e14` — PR #50 restored stable feature-baseline identifiers after final head CI run 217 passed |
 | Production application-code baseline | `a403b0796853453cb4115aea55729aced192a6ca` — introduced the deployed bracket and score-clear RPC dependencies |
 | Current ready production deploy | `6a630e4de510f100077bc120`, source commit `a6d3f1c97a93d48789435457769fd627c305ff27` |
 | Repository application/database contract | 35 — `config/deployment-contract.json` |
@@ -58,15 +59,16 @@ The 12 pgTAP files under `supabase/tests/` were **read but not executed** during
 | `DOC-004` | **Resolved.** `docs/quality/README.md` is restored on `main`, defines the required governance controls and satisfies `audit-prompt.md` repeat-audit item 1. |
 | `TEST-002` | **Resolved.** PR #45 merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`; CI run 188 and Database parity run 65 passed on its latest head, including migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity. |
 | Issue #46 / PR #47 | **Resolved on `main`.** PR #47 merged as `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8`; issue #46 closed automatically. Final head `fd0fc31f4e0038e89b0d286927554de897e6d04f` passed CI run 200. |
+| Issue #49 / PR #50 | **Resolved on `main`.** PR #50 merged as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`; issue #49 closed automatically. Final head `f191a988e5cf18d773846c4d58b8f5d8becdd1c9` passed CI run 217. |
 
 ## Quality-governance position
 
-The engineering position improved substantially since `2026-07-23R`. The system that measures it weakened, and that is now the notable concern:
+The engineering position improved substantially since `2026-07-23R`. The quality-governance controls identified by that repeat audit are now restored and executable:
 
 | Finding | Position |
 | --- | --- |
 | `DOC-004` | **Resolved:** the restored governance charter is present and readable on `main`. |
-| `DOC-005` | **Open:** the live feature baseline still lacks stable `FEAT-*` / `PLAN-*` / `SAFE-*` identifiers and dispositions for every archived ID. |
+| `DOC-005` | **Resolved:** every compact baseline row has a unique primary ID, all 96 archived IDs have explicit dispositions, and executable tests enforce continuity and non-reuse. |
 | `TEST-002` | **Resolved:** the real rollout SQL directory and deployment contract now trigger Database parity, protected by an executable regression test. |
 | `DOC-001` | **Resolved:** the stale phase/batch references are removed, the script is aligned to current environment gates, and executable coverage prevents their return. |
 | `TEST-003` | **Resolved:** CI run 200 passed the Git-less archive proof and the normal Git-checkout assertions before merge. |
@@ -74,7 +76,7 @@ The engineering position improved substantially since `2026-07-23R`. The system 
 | `HYGIENE-001` | Corrected: the asset is present at `src/assets/vite.svg`; the previous "path not identified" note was wrong. |
 
 
-Issue #46 is closed and its audit-control findings are resolved on `main`. Production migration and deployment gates are unchanged.
+Issues #46 and #49 are closed, and all quality-governance findings added by `2026-07-24R` are resolved on `main`. Production migration and deployment gates are unchanged.
 
 ## Release identity rule
 
@@ -92,7 +94,7 @@ Do not infer database compatibility from a successful build, a docs-only merge o
 | Area | Verdict |
 | --- | --- |
 | Repository development | **Safe to continue controlled development.** The chain contains 35 migrations and executable coverage for the current database contract; `2026-07-24R` independently executed install, type-check, lint, build, 434 tests, dependency audit and fixture validation, all green. |
-| Quality governance | **Improved but still degraded by `DOC-005`.** `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. No feature or safeguard regression was detected. |
+| Quality governance | **Restored.** `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved, with executable continuity checks protecting the feature baseline. No feature or safeguard regression was detected. |
 | Hosted development database | **Semantically current through migration 35.** Data, ACL, deletion, bracket and compatibility checks pass; remote migration-history metadata is not a clean repository mirror. |
 | Netlify preview/branch/dev Supabase isolation | **Resolved for the current production Netlify project.** Non-production contexts use current development Supabase and a fail-closed prebuild guard. |
 | Automatic production deployment compatibility | **Contained.** Repository contract 35 cannot deploy while production declares contract 20. The existing ready site remains active. |
