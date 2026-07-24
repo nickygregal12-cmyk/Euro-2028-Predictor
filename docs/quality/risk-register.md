@@ -5,6 +5,7 @@
 **Current production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)  
 **Production recovery readiness:** [`reconciliations/2026-07-24-production-recovery-readiness.md`](reconciliations/2026-07-24-production-recovery-readiness.md)  
 **Netlify environment isolation:** [`reconciliations/2026-07-24-netlify-environment-isolation.md`](reconciliations/2026-07-24-netlify-environment-isolation.md)  
+**Application/schema deployment gate:** [`reconciliations/2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -27,7 +28,7 @@ This register retains every original finding ID and adds findings discovered by 
 
 | ID | Finding | Current status | Current evidence / required closure |
 | --- | --- | --- | --- |
-| `OPS-006` | Production application and Supabase schema are incompatible | **Open — broadened after automatic deploy** | Application-code baseline `a403b079` calls both `replace_predicted_progression` and `delete_match_prediction`; read-only production inspection confirms both RPCs are absent. Restore a compatible app/schema pair and verify bracket save/reload plus score clear/reload. |
+| `OPS-006` | Production application and Supabase schema are incompatible | **Open — live mismatch contained by deployment gate** | Application-code baseline `a403b079` calls both `replace_predicted_progression` and `delete_match_prediction`; production lacks both. Contract 35 is now enforced in prebuild while production declares hosted contract 20, so new incompatible production releases cannot replace the current ready deploy. Close only after migrations 21–35, post-verification and browser smoke evidence. |
 | `DATA-001` | Predicted group positions are not safely derived/persisted | **Open production; implemented repository/development** | Migration 26 derives/protects positions and passes development verification. Production retains the old writable table/policies. |
 | `SECURITY-001` | Group-position scoring inputs can be forged/changed | **Open production; implemented repository/development** | Development denies direct group-position writes. Production authenticated role retains old insert/update privileges and broad owner policy. |
 | `SECURITY-002` | Submission timestamp can be bypassed directly | **Open production; implemented repository/development** | Development uses the RPC boundary and denies direct entry update/delete. Production retains old authenticated entry-update privilege. |
