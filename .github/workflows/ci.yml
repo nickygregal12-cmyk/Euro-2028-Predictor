@@ -48,7 +48,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: agent/prevent-late-read-overwrite
-          fetch-depth: 0
+          fetch-depth: 1
+          show-progress: false
 
       - uses: actions/setup-node@v4
         with:
@@ -58,7 +59,8 @@ jobs:
       - name: Execute prepared focused patch
         shell: bash
         run: |
-          python <<'PY'
+          set +e
+          python <<'PY' > /tmp/rel002-bootstrap.log 2>&1
           from pathlib import Path
           from textwrap import dedent
 
@@ -69,7 +71,13 @@ jobs:
           script = dedent(workflow[start:end])
           exec(compile(script, 'rel002-bootstrap.py', 'exec'))
           PY
+          status=$?
+          cat /tmp/rel002-bootstrap.log
+          if [ "$status" -ne 0 ]; then
+            exit "$status"
+          fi
 
+          git fetch origin main --depth=1 --quiet
           git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
 
       - name: Install dependencies
