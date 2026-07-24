@@ -32,16 +32,29 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - id: node_setup
+        continue-on-error: true
+        uses: actions/setup-node@v4
         with:
           node-version: 22.22.2
           cache: npm
-      - uses: supabase/setup-cli@v2
+      - id: supabase_setup
+        if: steps.node_setup.outcome == 'success'
+        continue-on-error: true
+        uses: supabase/setup-cli@v2
         with:
           version: 2.84.2
           github-token: ${{ github.token }}
+      - name: Record action setup outcomes
+        shell: bash
+        run: |
+          printf 'node_setup=%s\nsupabase_setup=%s\n' \
+            '${{ steps.node_setup.outcome }}' \
+            '${{ steps.supabase_setup.outcome }}' \
+            | tee /tmp/browser-action-setup.log
       - name: Install browser dependencies
         id: browser_npm
+        if: steps.supabase_setup.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -131,7 +144,9 @@ jobs:
       - name: Require browser setup and both suites to pass
         shell: bash
         run: |
-          printf 'npm=%s chromium=%s start=%s reset=%s env=%s app=%s auth=%s\n' \
+          printf 'node=%s supabase_cli=%s npm=%s chromium=%s start=%s reset=%s env=%s app=%s auth=%s\n' \
+            '${{ steps.node_setup.outcome }}' \
+            '${{ steps.supabase_setup.outcome }}' \
             '${{ steps.browser_npm.outcome }}' \
             '${{ steps.chromium.outcome }}' \
             '${{ steps.supabase_start.outcome }}' \
@@ -139,7 +154,9 @@ jobs:
             '${{ steps.browser_env.outcome }}' \
             '${{ steps.application_journeys.outcome }}' \
             '${{ steps.auth_journeys.outcome }}'
-          if [[ '${{ steps.browser_npm.outcome }}' != 'success' || \
+          if [[ '${{ steps.node_setup.outcome }}' != 'success' || \
+                '${{ steps.supabase_setup.outcome }}' != 'success' || \
+                '${{ steps.browser_npm.outcome }}' != 'success' || \
                 '${{ steps.chromium.outcome }}' != 'success' || \
                 '${{ steps.supabase_start.outcome }}' != 'success' || \
                 '${{ steps.supabase_reset.outcome }}' != 'success' || \
@@ -180,10 +197,10 @@ jobs:
           }
           EOF
           {
-            for name in browser-npm browser-chromium browser-supabase-start browser-supabase-reset browser-env application-e2e auth-recovery-e2e; do
+            for name in browser-action-setup browser-npm browser-chromium browser-supabase-start browser-supabase-reset browser-env application-e2e auth-recovery-e2e; do
               echo "===== ${name} ====="
               if [[ -f "/tmp/auth-recovery-diagnostics/${name}.log" ]]; then
-                tail -n 100 "/tmp/auth-recovery-diagnostics/${name}.log"
+                tail -n 120 "/tmp/auth-recovery-diagnostics/${name}.log"
               else
                 echo 'No log captured.'
               fi
