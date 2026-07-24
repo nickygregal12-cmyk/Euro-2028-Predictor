@@ -8,6 +8,9 @@ on:
       - '.github/workflows/npm-audit-diagnostic.yml'
       - 'package.json'
       - 'package-lock.json'
+      - 'src/**'
+      - 'tests/**'
+      - 'e2e/**'
 
 permissions:
   contents: write
@@ -15,7 +18,7 @@ permissions:
 jobs:
   repair-and-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -30,18 +33,47 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Pin React Router DOM outside the advisory range
-        run: npm install --save-exact react-router-dom@7.11.0
+      - name: Replace compatibility-package imports
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          allowed = {'.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx'}
+          excluded = {'.git', 'node_modules', 'dist', 'coverage', 'playwright-report', 'test-results'}
+          changed = []
+
+          for path in Path('.').rglob('*'):
+              if not path.is_file() or path.suffix not in allowed:
+                  continue
+              if any(part in excluded for part in path.parts):
+                  continue
+              text = path.read_text()
+              updated = text.replace('react-router-dom', 'react-router')
+              if updated != text:
+                  path.write_text(updated)
+                  changed.append(str(path))
+
+          print('\n'.join(changed) if changed else 'No compatibility-package imports remained.')
+          PY
+
+      - name: Install patched React Router v8 package
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm uninstall react-router-dom
+          npm install --save-exact react-router@8.3.0
 
       - name: Record installed React Router versions
         shell: bash
         run: |
           set +e
-          npm ls react-router-dom react-router --all > /tmp/react-router-tree.txt 2>&1
+          npm ls react-router react-router-dom --all > /tmp/react-router-tree.txt 2>&1
           cat /tmp/react-router-tree.txt
           exit 0
 
-      - name: Capture repaired production dependency audit
+      - name: Capture production dependency audit
         shell: bash
         run: |
           set +e
@@ -52,7 +84,7 @@ jobs:
           echo "npm audit exit status: $status"
           exit 0
 
-      - name: Upload repaired audit evidence
+      - name: Upload audit evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -79,20 +111,21 @@ jobs:
           npm run lint
           npm test
 
-      - name: Commit package and lockfile repair
+      - name: Commit package and import migration
         shell: bash
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
 
-          if git diff --quiet -- package.json package-lock.json; then
-            echo 'React Router advisory repair is already committed.'
+          if git diff --quiet; then
+            echo 'React Router v8 migration is already committed.'
             exit 0
           fi
 
+          git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package.json package-lock.json
-          git commit -m 'Pin React Router outside CSRF advisory range'
+          git add package.json package-lock.json src tests e2e 2>/dev/null || true
+          git commit -m 'Migrate to patched React Router v8'
           git push origin "HEAD:${HEAD_BRANCH}"
