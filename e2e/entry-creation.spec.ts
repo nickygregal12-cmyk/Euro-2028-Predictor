@@ -51,8 +51,11 @@ test('two first-use tabs converge on one shared entry', async ({ page, browser }
   test.setTimeout(120_000)
 
   const prepared = await prepareEntryRaceUser()
-  const origin = new URL(page.url() || 'http://127.0.0.1:4173').origin
-  const secondContext = await browser.newContext({ baseURL: origin })
+  const baseURL = testInfo.project.use.baseURL
+  if (typeof baseURL !== 'string') {
+    throw new Error('Entry creation browser proof requires a string baseURL.')
+  }
+  const secondContext = await browser.newContext({ baseURL })
   const secondPage = await secondContext.newPage()
 
   let releaseRequests!: () => void
@@ -102,9 +105,8 @@ test('two first-use tabs converge on one shared entry', async ({ page, browser }
     const [firstWrite, secondWrite] = await Promise.all([
       firstResponse,
       secondResponse,
-      firstLogin,
-      secondLogin,
-    ]).then(([first, second]) => [first, second])
+    ])
+    await Promise.all([firstLogin, secondLogin])
 
     expect(firstWrite.ok()).toBe(true)
     expect(secondWrite.ok()).toBe(true)
