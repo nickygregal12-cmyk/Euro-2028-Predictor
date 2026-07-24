@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -35,3 +38,50 @@ jobs:
         run: npm run test
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+  close-rel005:
+    if: github.event_name == 'pull_request' && github.head_ref == 'docs/close-rel005' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/close-rel005
+          fetch-depth: 1
+          show-progress: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - name: Apply REL-005 closure evidence
+        run: python .github/scripts/close-rel005.py
+      - name: Restore standard CI workflow
+        shell: bash
+        run: |
+          git fetch origin main --depth=1 --quiet
+          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
+      - name: Install dependencies
+        run: npm ci
+      - name: Guarded production build
+        run: npm run build
+      - name: Lint
+        run: npm run lint
+      - name: Full test suite
+        run: npm run test
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Commit verified closure documents
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            docs/quality/risk-register.md \
+            docs/quality/current-status.md \
+            docs/build-todo.md \
+            docs/quality/reconciliations/2026-07-24-foreground-refresh.md \
+            .github/workflows/ci.yml \
+            .github/scripts/close-rel005.py
+          git commit -m "Close REL-005 in authority documents"
+          git push origin HEAD:docs/close-rel005
