@@ -269,7 +269,7 @@ These are not production capabilities until the full migrations 21–35 rollout 
 - `REL-002`: resolved by merged PR #63 and its final CI/Browser E2E evidence.
 - `UX-004`: resolved by merged PR #43 and its confirmation/retry/browser evidence.
 - `REL-006`: resolved by merged PR #65 and its final CI, concurrent-browser and preview evidence.
-- `REL-005`: implementation and focused provider evidence pass on PR #68; final Browser E2E, preview and merge remain.
+- `REL-005`: resolved by merged PR #68 and its final CI, two-page Browser E2E and preview evidence.
 - `DOC-004`: resolved; the governance charter is restored and readable.
 - `TEST-002`: resolved by merged PR #45 and its green application/database workflows.
 - `DOC-001`, `TEST-003`, `DOC-006`: resolved by merged PR #47 and its green final-head validation.
@@ -318,7 +318,7 @@ Never edit migration history directly, mark absent SQL as applied or lift the de
 | Non-production auth | `AUTH-001` / issue #28: Turnstile/CAPTCHA context model and preview auth journeys are unverified. |
 | Hosted function security | `SECURITY-003`: production pending migrations 21–35. |
 | Auth security | Leaked-password protection remains disabled and requires a separate approved Auth change. |
-| Entry reliability | `REL-002` and `REL-006` are resolved. PR #68 is the final repository merge gate for `REL-005`; `REL-003` and `DATA-005` await compatible-production browser closure. |
+| Entry reliability | `REL-002`, `REL-005` and `REL-006` are resolved. `REL-003` and `DATA-005` await compatible-production browser closure. |
 | Product completeness | Automatic real R16 population, auto-submit, reminders and browser result administration remain absent. |
 | Test assurance | Dedicated disposable-local-Supabase Playwright coverage now includes authenticated routes, score persistence/clearing, submission barriers, bracket conflicts, lock rejection, signup confirmation, password recovery, coordinated concurrent first-entry creation and a two-page foreground-refresh lifecycle. Private-league invitation/join, result administration, browser accessibility and production smoke journeys remain open. |
 | Quality governance | `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. |
@@ -353,7 +353,7 @@ No reliability, deletion, backup, environment, deployment-contract, legacy-site 
 12. Resolve `AUTH-001` through issue #28 and verify preview login/signup/recovery.
 13. Resolve `OPS-008` through issue #27 in a separate legacy workstream; do not touch the World Cup environment from this repository.
 14. Enable leaked-password protection through a separate approved Auth workstream.
-15. Complete PR #68 (`REL-005`) before defining the next integrity batch or automatic real R16 population.
+15. With `REL-002`, `REL-005` and `REL-006` resolved, define the next approved integrity batch before automatic real R16 population.
 
 ## Documentation authority
 

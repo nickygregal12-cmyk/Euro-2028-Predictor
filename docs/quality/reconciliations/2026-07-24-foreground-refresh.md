@@ -35,8 +35,8 @@ This is provider lifecycle, regression coverage and quality documentation only. 
 
 ## Closure boundary
 
-Keep `REL-005` open until the final pull-request head passes the guarded build, lint, complete Vitest suite, production dependency audit, Browser E2E and a ready Netlify preview, then merges to `main`.
+`REL-005` is resolved. Reopen it only if a genuine foreground return can again leave valid tournament or persisted-entry data convincingly stale, overwrite unsettled/conflicted local work or introduce duplicate refreshes.
 
 ## Validation
 
-Implementation head `8dac43c92b1757d12877e30603695d530b444fce` passed the guarded build, lint, complete Vitest suite and production dependency audit in CI run `30132387283`. Reconciled head `7ac9128ef7033571ec6b8412adf9b3608cdb2528` passed the same guarded application gates in CI run `30132609768`. This documentation-only owner commit triggers standard CI, Browser E2E and Netlify validation on the final review head.
+Implementation head `8dac43c92b1757d12877e30603695d530b444fce` passed the guarded build, lint, complete Vitest suite and production dependency audit in CI run `30132387283`. Final head `1660fe42a9cb3a5111bb21eb809879c9586665f3` passed CI run `30133656106`, Browser E2E run `30133656077` and the ready Netlify preview. The browser suite proved a hidden page adopted a second page's persisted score after returning, completed all established authenticated and recovery journeys, and cleaned up disposable data. PR #68 then squash-merged as `4b1c4d4ae4f944687a28f431b60698c110b83586` and issue #67 closed.
