@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { Alert, Button } from '../../design-system'
 import { updatePassword } from '../../services/supabase/auth'
 import { AuthScreen } from './AuthScreen'

@@ -1,4 +1,4 @@
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { AuthSplash } from '../features/auth/AuthSplash'
 import { getPendingJoin } from '../features/leagues/pendingJoin'

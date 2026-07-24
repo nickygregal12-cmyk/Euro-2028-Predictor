@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { Alert, Button, ProgressBar, Skeleton, TeamFlag } from '../../design-system'
 import { CheckIcon, ShareIcon } from '../../design-system/icons'
 import { daysUntil, formatLongDate } from '../../app/time'

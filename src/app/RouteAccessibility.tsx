@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { matchPath, useLocation } from 'react-router-dom'
+import { matchPath, useLocation } from 'react-router'
 
 const APP_NAME = 'Euro 2028 Predictor'
 
