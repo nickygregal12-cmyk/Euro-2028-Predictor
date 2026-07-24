@@ -2,7 +2,8 @@
 
 **Current audit:** `2026-07-23L`  
 **Evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
-**Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)
+**Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
+**Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)
 
 This register retains every original finding ID and adds findings discovered by the live hosted audit. Older audit reports remain immutable evidence. “Repository/local implemented” does **not** mean deployed.
 
@@ -16,7 +17,7 @@ This register retains every original finding ID and adds findings discovered by 
 | Low | 14 | 0 | 14 |
 | **Total** | **50** | **3** | **47** |
 
-`OPS-001` is resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the live-audit documentation reconciliation. Several other findings are implemented locally or on hosted development but remain open because production has not received the fixes.
+`OPS-001` is resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the live-audit documentation reconciliation. Several other findings are implemented locally or on hosted development but remain open because production has not received or browser-verified the fixes.
 
 ## Critical
 
@@ -40,13 +41,13 @@ This register retains every original finding ID and adds findings discovered by 
 | `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Rule exists in `docs/scoring-rules.md`; no scheduler/server implementation. |
 | `REL-001` | Score recomputation/result writes can race | **Open production; materially addressed repository/development** | Development serializes recomputation. Production old recompute path remains. |
 | `DATA-004` | Actual tie resolution can depend on non-authoritative fallback behavior | **Open** | No fresh evidence of complete resolution. |
-| `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Open — confirmed code path** | Provider marks incomplete state idle but does not persist deletion. |
+| `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Open — confirmed code path** | Clearing now cancels an unsent stale debounce, but an already persisted complete row is not deleted. Define and persist deletion semantics. |
 | `REL-002` | Independent late reads can overwrite newer state | **Open** | Prediction/tie/bracket/bonus loading remains independently best-effort. |
-| `REL-003` | Manual submit does not flush pending debounced writes | **Open — confirmed code path** | `submit()` calls `submitEntry()` directly without awaiting timers/controller. |
+| `REL-003` | Manual submit does not flush pending debounced writes | **Partially resolved — repository implemented and tested** | The provider now flushes score/bracket debounces, waits for all match/tie/bracket/bonus controller writes, and blocks on errors/conflicts. Controller and provider regression tests pass. Close after compatible production rollout plus authenticated browser verification of immediate final-edit submission and failure/conflict blocking. |
 | `REL-004` | Compound bracket writes are non-atomic | **Open production; implemented repository/development** | Atomic complete-snapshot RPC and stale-version rollback pass on development. Production RPC is absent and deployed client remains incompatible. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
 | `OPS-002` | No version-controlled administrator model/control room boundary | **Open** | No `profiles.role` column exists in repository or hosted schema; no browser result admin page. |
-| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI and pgTAP include privilege/integrity coverage; authenticated browser E2E remains absent. |
+| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI, pgTAP and provider-level submission tests exist; authenticated production-like browser E2E remains absent. |
 | `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved** | CI, read-only preflights and safer rollback exist; production compatibility, monitoring, backup verification and restore rehearsal remain open. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. The historical bootstrap statement was inaccurate rather than evidence of schema drift. |
 
@@ -91,7 +92,7 @@ This register retains every original finding ID and adds findings discovered by 
 ## Register rules
 
 - Keep original IDs when the same defect regresses.
-- A repository/development fix remains open when the actual risk is still present in production.
+- A repository/development fix remains open when the actual risk is still present or unverified in production.
 - `Resolved` requires implementation, validation and current-environment evidence appropriate to the finding.
 - `Superseded` must name the active replacement finding.
 - Do not silently remove uncertain or accepted risks.
