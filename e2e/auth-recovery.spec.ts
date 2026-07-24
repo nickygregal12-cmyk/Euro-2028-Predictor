@@ -21,14 +21,38 @@ function mobileOnly(testInfo: TestInfo) {
   )
 }
 
-async function removeExistingUser(): Promise<void> {
+async function authUserId(): Promise<string | null> {
   const admin = createLocalAdmin()
   const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
   if (error) throw error
-  const existing = data.users.find((user) => user.email === EMAIL)
-  if (!existing) return
-  const { error: deleteError } = await admin.auth.admin.deleteUser(existing.id)
-  if (deleteError) throw deleteError
+  return data.users.find((user) => user.email === EMAIL)?.id ?? null
+}
+
+async function removeExistingUser(): Promise<void> {
+  const id = await authUserId()
+  if (!id) return
+  const { error } = await createLocalAdmin().auth.admin.deleteUser(id)
+  if (error) throw error
+}
+
+async function waitForWelcomeStamp(timeoutMs = 10_000): Promise<void> {
+  const userId = await authUserId()
+  if (!userId) throw new Error(`Auth recovery E2E user ${EMAIL} was not created.`)
+  const admin = createLocalAdmin()
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    const { data, error } = await admin
+      .from('profiles')
+      .select('welcomed_at')
+      .eq('id', userId)
+      .maybeSingle()
+    if (error) throw error
+    if (data?.welcomed_at) return
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  throw new Error('Timed out waiting for the welcome timestamp to persist.')
 }
 
 async function logIn(page: Page, password: string): Promise<void> {
@@ -42,6 +66,16 @@ async function signOut(page: Page): Promise<void> {
   await page.goto('/more')
   await expect(page.getByRole('heading', { name: 'More' })).toBeVisible()
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+
+  const dialog = page.getByRole('dialog', { name: /sign out/i })
+  const confirmationOpened = await dialog
+    .waitFor({ state: 'visible', timeout: 500 })
+    .then(() => true)
+    .catch(() => false)
+  if (confirmationOpened) {
+    await dialog.getByRole('button', { name: 'Sign out', exact: true }).click()
+  }
+
   await expect(page).toHaveURL((url) => url.pathname === '/auth/login', { timeout: 15_000 })
 }
 
@@ -75,6 +109,7 @@ test.describe('authentication and recovery', () => {
 
     await page.getByRole('button', { name: /Start with Group A/ }).click()
     await expect(page).toHaveURL((url) => url.pathname === '/predict/groups/A')
+    await waitForWelcomeStamp()
 
     await signOut(page)
     await logIn(page, OLD_PASSWORD)
