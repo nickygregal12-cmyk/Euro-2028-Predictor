@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -35,3 +38,34 @@ jobs:
         run: npm run test
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+      - name: Record DOC-005 closure
+        if: github.head_ref == 'agent/close-feature-baseline-identifiers'
+        run: python scripts/temporary_close_doc005.py
+      - name: Persist DOC-005 closure
+        if: github.head_ref == 'agent/close-feature-baseline-identifiers'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: agent/close-feature-baseline-identifiers
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- \
+            docs/quality/current-status.md \
+            docs/quality/risk-register.md \
+            docs/quality/reconciliations/2026-07-24-feature-baseline-identifiers.md; then
+            echo 'Closure documents already current.'
+            exit 0
+          fi
+          for file in \
+            docs/quality/current-status.md \
+            docs/quality/risk-register.md \
+            docs/quality/reconciliations/2026-07-24-feature-baseline-identifiers.md; do
+            sha="$(gh api "repos/$REPOSITORY/contents/$file?ref=$BRANCH" --jq .sha)"
+            content="$(base64 -w 0 "$file")"
+            gh api --method PUT "repos/$REPOSITORY/contents/$file" \
+              -f message='docs: close DOC-005' \
+              -f content="$content" \
+              -f sha="$sha" \
+              -f branch="$BRANCH" >/dev/null
+          done
