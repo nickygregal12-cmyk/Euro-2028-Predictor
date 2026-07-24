@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - '.github/workflows/database-parity.yml'
+      - 'config/deployment-contract.json'
       - 'fixtures/predicted-group-order.json'
-      - 'scripts/database-parity/**'
+      - 'scripts/database-rollout/**'
       - 'src/domain/tournament/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
+      - 'tests/scripts/databaseParityWorkflow.test.ts'
   workflow_dispatch:
 
 permissions:
