@@ -52,6 +52,10 @@ function relativeFileTarget(rawTarget: string): string | null {
   }
 }
 
+function stableIds(content: string): Set<string> {
+  return new Set(content.match(/\b(?:FEAT|PLAN|SAFE)-\d{3}\b/g) ?? [])
+}
+
 describe('Markdown documentation integrity', () => {
   it('has no broken relative inline links', () => {
     const brokenLinks: string[] = []
@@ -92,5 +96,59 @@ describe('Markdown documentation integrity', () => {
     for (const reference of obsoleteReferences) {
       expect(testScript).not.toContain(reference)
     }
+  })
+
+  it('preserves feature-baseline identifier continuity', () => {
+    const liveBaseline = readFileSync(
+      resolve(repositoryRoot, 'docs/quality/feature-baseline.md'),
+      'utf8',
+    )
+    const archivedBaseline = readFileSync(
+      resolve(repositoryRoot, 'docs/quality/history/feature-baseline-2026-07-23R.md'),
+      'utf8',
+    )
+
+    const expectedArchivedIds = new Set([
+      ...Array.from({ length: 44 }, (_, index) => `FEAT-${String(index + 1).padStart(3, '0')}`),
+      ...Array.from({ length: 8 }, (_, index) => `PLAN-${String(index + 1).padStart(3, '0')}`),
+      ...Array.from({ length: 44 }, (_, index) => `SAFE-${String(index + 1).padStart(3, '0')}`),
+    ])
+    const archivedIds = stableIds(archivedBaseline)
+    const liveIds = stableIds(liveBaseline)
+
+    expect([...archivedIds].sort()).toEqual([...expectedArchivedIds].sort())
+    expect([...archivedIds].filter((id) => !liveIds.has(id))).toEqual([])
+
+    expect(liveBaseline).toContain('## Identifier continuity and archived dispositions')
+    expect(liveBaseline).toContain('## New identifier register')
+    expect(liveBaseline).not.toContain('`DOC-005`, open')
+
+    const compactBaseline = liveBaseline.split(
+      '## Identifier continuity and archived dispositions',
+      1,
+    )[0]
+    const compactTableRows = compactBaseline
+      .split('\n')
+      .filter(
+        (line) =>
+          line.startsWith('| ') &&
+          !line.startsWith('| ID |') &&
+          !line.startsWith('| --- |'),
+      )
+    const primaryIds = compactTableRows.map(
+      (line) => line.match(/^\| `((?:FEAT|PLAN|SAFE)-\d{3})` \|/)?.[1],
+    )
+
+    expect(compactTableRows).toHaveLength(59)
+    expect(primaryIds.every(Boolean)).toBe(true)
+    expect(new Set(primaryIds).size).toBe(primaryIds.length)
+
+    const newIdentifierSection =
+      liveBaseline
+        .split('## New identifier register', 2)[1]
+        ?.split('## Current route and data baseline', 1)[0] ?? ''
+    const newIds = stableIds(newIdentifierSection)
+
+    expect([...newIds].filter((id) => archivedIds.has(id))).toEqual([])
   })
 })
