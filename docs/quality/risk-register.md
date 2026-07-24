@@ -12,6 +12,7 @@
 **Environment-file hygiene:** [`reconciliations/2026-07-24-environment-file-hygiene.md`](reconciliations/2026-07-24-environment-file-hygiene.md)  
 **Editor baseline:** [`reconciliations/2026-07-24-editor-baseline.md`](reconciliations/2026-07-24-editor-baseline.md)  
 **Bottom-navigation links:** [`reconciliations/2026-07-24-bottom-navigation-links.md`](reconciliations/2026-07-24-bottom-navigation-links.md)  
+**Route-transition accessibility:** [`reconciliations/2026-07-24-route-transition-accessibility.md`](reconciliations/2026-07-24-route-transition-accessibility.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -73,7 +74,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Complete-snapshot versions contain this on development; verify production rollout and multi-device browser behavior. |
 | `PERF-001` | League summary requests scale linearly/serially | Open | Remove serial per-league request pattern and profile representative load. |
 | `UX-001` | Invite context is hidden behind generic signup | Open | Show trustworthy invite preview before auth and remove render-time storage mutation. |
-| `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | Open | Add skip link, route title/focus/live-region behavior and browser accessibility tests. |
+| `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | **Partially resolved — repository/preview implemented** | Skip link, stable main target, route titles, focus movement and polite live-region announcements are implemented and unit-tested. Two ready previews retained accessibility 100; repeat performance returned the 98 baseline. Close after real keyboard and screen-reader route journeys plus authenticated browser E2E retention. |
 | `A11Y-002` | League options menu semantics do not match behavior | Open | Implement full menu-button keyboard model or simpler disclosure semantics. |
 | `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | Open | Generate DB types, enable strictness incrementally and validate critical RPC payloads. |
 | `DOC-001` | Documentation is not consistently authoritative | **Resolved by active reconciliation process** | Current-status/reconciliation sources are updated after hosted changes; reopen if contradictions persist without correction. |
