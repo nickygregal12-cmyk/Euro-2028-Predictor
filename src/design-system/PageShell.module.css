@@ -16,7 +16,7 @@
   transform: translateY(calc(-100% - var(--sp-4)));
   padding: var(--sp-2) var(--sp-3);
   border: 2px solid var(--acc);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-input);
   background: var(--card);
   color: var(--tx);
   font-weight: 600;
