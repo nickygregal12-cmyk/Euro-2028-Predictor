@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { Button } from '../../design-system'
 import {
   GROUP_MATCH_POINTS,

@@ -236,8 +236,8 @@ begin
     where pgp.entry_id = p_entry_id
       and pgp.position in (1, 2);
 
-  if jsonb_object_length(coalesce(v_winners, '{}'::jsonb)) <> 6
-     or jsonb_object_length(coalesce(v_runners, '{}'::jsonb)) <> 6
+  if (select count(*) from jsonb_object_keys(coalesce(v_winners, '{}'::jsonb))) <> 6
+     or (select count(*) from jsonb_object_keys(coalesce(v_runners, '{}'::jsonb))) <> 6
   then
     raise exception 'Predicted group winners and runners-up are incomplete'
       using errcode = 'check_violation';
@@ -570,7 +570,7 @@ begin
     v_winners := v_winners || jsonb_build_object(v_match.match_ref, v_winner::text);
   end loop;
 
-  if jsonb_object_length(v_winners) <> 15 then
+  if (select count(*) from jsonb_object_keys(v_winners)) <> 15 then
     raise exception 'Predicted bracket replay did not resolve all 15 knockout matches'
       using errcode = 'check_violation';
   end if;

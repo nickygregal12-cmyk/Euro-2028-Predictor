@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, useNavigate } from 'react-router-dom'
+import { MemoryRouter, useNavigate } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { getRouteTitle, RouteAccessibility } from '../../src/app/RouteAccessibility'
 

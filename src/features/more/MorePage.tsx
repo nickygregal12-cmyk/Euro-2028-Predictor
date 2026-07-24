@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { Button } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'

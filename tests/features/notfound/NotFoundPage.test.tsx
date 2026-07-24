@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route } from 'react-router'
 import { NotFoundPage } from '../../../src/features/notfound/NotFoundPage'
 
 // The catch-all route now shows a real recovery view instead of silently
