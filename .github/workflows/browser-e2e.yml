@@ -1,0 +1,87 @@
+name: Browser E2E
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/browser-e2e.yml'
+      - 'e2e/**'
+      - 'playwright.config.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'src/**'
+      - 'supabase/**'
+      - 'tests/scripts/browserE2EWorkflow.test.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authenticated-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Rebuild from committed migrations and seed
+        run: supabase db reset --local
+
+      - name: Export local-only browser environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase.env
+          # shellcheck disable=SC1091
+          source /tmp/supabase.env
+          : "${API_URL:?Supabase API_URL missing}"
+          : "${ANON_KEY:?Supabase ANON_KEY missing}"
+          : "${SERVICE_ROLE_KEY:?Supabase SERVICE_ROLE_KEY missing}"
+          {
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo 'E2E_USER_EMAIL=e2e@euro28.local'
+            echo 'E2E_USER_PASSWORD=E2e-local-only-2028!'
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo 'VITE_DEV_AUTOLOGIN=true'
+            echo 'VITE_DEV_USER_EMAIL=e2e@euro28.local'
+            echo 'VITE_DEV_USER_PASSWORD=E2e-local-only-2028!'
+          } >> "$GITHUB_ENV"
+
+      - name: Run authenticated browser tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup
