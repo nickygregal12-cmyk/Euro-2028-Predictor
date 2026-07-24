@@ -13,7 +13,6 @@ export default defineConfig({
   reporter: process.env.CI
     ? [['line'], ['html', { open: 'never', outputFolder: 'playwright-report-auth' }]]
     : [['list']],
-  globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL,
     trace: 'retain-on-failure',
