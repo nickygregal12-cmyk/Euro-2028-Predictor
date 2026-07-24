@@ -26,10 +26,10 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables — never commit Supabase keys or secrets
+# Environment variables — never commit Supabase keys, passwords or secrets
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Production logical-backup staging — never commit sensitive Auth/data dumps
 .production-backups/
