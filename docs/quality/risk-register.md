@@ -17,7 +17,8 @@
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
 **Database-parity trigger repair:** [`reconciliations/2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md)  
-**Audit-control cleanup:** [`reconciliations/2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md)
+**Audit-control cleanup:** [`reconciliations/2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md)  
+**Feature-baseline identifiers:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
 
 This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” or an approved recovery method does **not** mean recovery is proven.
 
@@ -27,11 +28,11 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
-| Medium | 19 | 3 | 16 |
+| Medium | 19 | 4 | 15 |
 | Low | 16 | 5 | 11 |
-| **Total** | **57** | **11** | **46** |
+| **Total** | **57** | **12** | **45** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ### Movement at `2026-07-24R`
 
@@ -53,6 +54,7 @@ This register retains every original finding ID and adds findings discovered by 
 | Resolved | `DOC-004` — the governance charter is restored on `main` and the mandatory audit read is satisfiable. |
 | Resolved | `TEST-002` — PR #45 merged the corrected database-parity trigger contract after CI run 188 and Database parity run 65 passed. |
 | Resolved | PR #47 merged as `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8`; final head CI run 200 passed and issue #46 closed. This resolves `DOC-001`, `TEST-003` and `DOC-006`. |
+| Resolved | PR #50 merged as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`; final head CI run 217 passed and issue #49 closed. This resolves `DOC-005`. |
 
 ## Critical
 
@@ -107,7 +109,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `UX-002` | Unavailable data is conflated with empty data | Open | Preserve loading/error/unavailable states through home and related reads. |
 | `PERF-002` | Scoring recomputes the whole tournament | Open / accepted pending measurement | Profile target-capacity cost before deciding whether to optimize. |
 | `DOC-004` | Quality governance charter is absent | **Resolved** | `docs/quality/README.md` is restored on `main`, contains the source-of-truth, workflow, severity/status, evidence, resolution and prohibited-content controls, and satisfies `audit-prompt.md` repeat-audit item 1. Reopen if the charter is removed or the mandatory read becomes unsatisfiable. |
-| `DOC-005` | Live feature baseline has lost its stable identifiers | **Open — owner action required** | `feature-baseline.md` was rewritten from 96 ID-bearing rows (`FEAT-*`, `PLAN-*`, `SAFE-*`) to 60 rows with no IDs and no `Last verified`/`Validation evidence` columns. The prior version is preserved at `history/feature-baseline-2026-07-23R.md`, so no evidence is lost, but row-by-row regression comparison is no longer reliable. The 96→60 reduction is not itself evidence of feature loss — the point is that it can no longer be audited. Close after IDs are re-attached and every archived ID is present or has a recorded disposition. |
+| `DOC-005` | Live feature baseline has lost its stable identifiers | **Resolved by PR #50** | All 59 compact rows now have unique primary IDs; all 96 archived IDs have explicit continuity dispositions; new IDs are non-conflicting; and CI run 217 passed the executable continuity, Markdown, build, lint, full-test and dependency-audit gates. Reopen if an archived ID loses representation, a compact row loses its primary ID or an identifier is reused. |
 | `TEST-002` | Database-parity CI gate filters on a non-existent path | **Resolved** | PR #45 replaced the dead path with `scripts/database-rollout/**`, added `config/deployment-contract.json` and executable trigger-contract coverage, and merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`. CI run 188 and Database parity run 65 passed on its latest head, including rebuild, lint, pgTAP and differential parity. |
 
 ## Low

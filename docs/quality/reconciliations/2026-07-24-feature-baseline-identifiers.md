@@ -5,7 +5,7 @@
 **Pull request:** #50  
 **Branch:** `agent/restore-feature-baseline-ids`  
 **Finding:** `DOC-005`  
-**Status:** Pull-request validation complete; `main` closure pending
+**Status:** Closed on `main`
 
 ## Problem verified
 
@@ -64,7 +64,7 @@ These are documentation reconciliations of already implemented controls, not run
 
 ## Validation evidence
 
-CI runs 211 through 216 passed on the implementation and documentation heads. Final review head `f76cd3fa7a1154754167b675ff78fa4a5abff198` passed run 216:
+CI runs 211 through 217 passed on the implementation and documentation heads. Final merged PR head `f191a988e5cf18d773846c4d58b8f5d8becdd1c9` passed run 217:
 
 1. dependency installation passed;
 2. the Git-less environment-hygiene proof passed;
@@ -76,13 +76,12 @@ CI runs 211 through 216 passed on the implementation and documentation heads. Fi
 
 This batch changes documentation and documentation-control tests only. It does not change application code, scoring, migrations, Supabase data or configuration, Netlify settings, deployment-contract values or production data.
 
-## Closure boundary
+## Post-merge closure evidence
 
-Until the pull request is merged, `DOC-005` remains open because an unmerged branch is not the live quality authority.
+- PR #50 merged into `main` as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`.
+- Final PR head `f191a988e5cf18d773846c4d58b8f5d8becdd1c9` passed CI run 217, including installation, the Git-less proof, build, lint, the complete test suite, identifier-continuity assertions, repository-wide Markdown checks and the production-dependency audit.
+- GitHub automatically closed issue #49 as completed at merge.
+- `DOC-005` is resolved at the repository layer.
+- The risk register now records 12 closed or superseded findings and 45 open or partially resolved findings.
 
-After merge:
-
-1. confirm the exact `main` merge commit and green final-head CI;
-2. mark `DOC-005` resolved in `current-status.md` and `risk-register.md`;
-3. update the risk totals;
-4. close issue #49.
+No application behavior, scoring, migrations, Supabase data or configuration, Netlify settings, deployment-contract values or production data changed in this closure batch.
