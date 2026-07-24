@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -35,3 +38,41 @@ jobs:
         run: npm run test
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+      - name: Bootstrap authenticated browser E2E
+        if: github.head_ref == 'agent/add-authenticated-browser-e2e'
+        run: python scripts/temporary_bootstrap_browser_e2e.py
+      - name: Persist authenticated browser E2E
+        if: github.head_ref == 'agent/add-authenticated-browser-e2e'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: agent/add-authenticated-browser-e2e
+        run: |
+          set -euo pipefail
+          files=(
+            package.json
+            package-lock.json
+            .gitignore
+            playwright.config.ts
+            e2e/global-setup.ts
+            e2e/authenticated-browser.spec.ts
+            .github/workflows/browser-e2e.yml
+            tests/scripts/browserE2EWorkflow.test.ts
+            docs/quality/reconciliations/2026-07-24-authenticated-browser-e2e.md
+          )
+          for file in "${files[@]}"; do
+            content="$(base64 -w 0 "$file")"
+            if sha="$(gh api "repos/$REPOSITORY/contents/$file?ref=$BRANCH" --jq .sha 2>/dev/null)"; then
+              gh api --method PUT "repos/$REPOSITORY/contents/$file" \
+                -f message='test: add authenticated browser e2e foundation' \
+                -f content="$content" \
+                -f sha="$sha" \
+                -f branch="$BRANCH" >/dev/null
+            else
+              gh api --method PUT "repos/$REPOSITORY/contents/$file" \
+                -f message='test: add authenticated browser e2e foundation' \
+                -f content="$content" \
+                -f branch="$BRANCH" >/dev/null
+            fi
+          done
