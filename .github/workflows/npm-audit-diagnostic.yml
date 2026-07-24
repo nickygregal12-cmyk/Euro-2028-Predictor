@@ -1,4 +1,4 @@
-name: NPM audit diagnostic
+name: React Router advisory repair
 
 on:
   pull_request:
@@ -10,15 +10,17 @@ on:
       - 'package-lock.json'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  audit:
+  repair-and-verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -28,24 +30,45 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
-      - name: Capture production dependency audit
+      - name: Pin React Router DOM outside the advisory range
+        run: npm install --save-exact react-router-dom@7.11.0
+
+      - name: Verify production dependency audit
         shell: bash
         run: |
-          set +e
-          npm audit --omit=dev --json > /tmp/npm-audit.json 2> /tmp/npm-audit.stderr
-          status=$?
-          echo "$status" > /tmp/npm-audit.status
-          cat /tmp/npm-audit.stderr
-          echo "npm audit exit status: $status"
-          exit 0
+          set -euo pipefail
+          npm audit --omit=dev --json | tee /tmp/npm-audit-fixed.json
+
+      - name: Verify application build, lint and tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run build
+          npm run lint
+          npm test
+
+      - name: Commit package and lockfile repair
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- package.json package-lock.json; then
+            echo 'React Router advisory repair is already committed.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git commit -m 'Pin React Router outside CSRF advisory range'
+          git push origin "HEAD:${HEAD_BRANCH}"
 
       - name: Upload audit evidence
         uses: actions/upload-artifact@v4
         with:
-          name: npm-audit-diagnostic
-          path: |
-            /tmp/npm-audit.json
-            /tmp/npm-audit.stderr
-            /tmp/npm-audit.status
+          name: npm-audit-fixed
+          path: /tmp/npm-audit-fixed.json
           if-no-files-found: error
-          retention-days: 3
+          retention-days: 7
