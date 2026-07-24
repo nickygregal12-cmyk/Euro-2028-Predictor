@@ -16,14 +16,25 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current critical boundary
 
-At the `2026-07-23L` audit, production Netlify served the post-PR #14 client while production Supabase still had the original 20-migration schema. The production database lacked `replace_predicted_progression`, so the deployed bracket-save path was incompatible with the backend.
+Application-code baseline `a403b0796853453cb4115aea55729aced192a6ca` is live through the current Netlify release lineage while production Supabase remains on the original 20-migration schema with no tracked migration-history table.
+
+The executable client depends on two production RPCs that are absent:
+
+- `replace_predicted_progression(...)` for atomic bracket persistence;
+- `delete_match_prediction(...)` for version-safe persisted score clearing.
+
+Expected live effects are bracket-save failure and score-clear save failure with the old row able to reappear on reload. Never add an old direct-table fallback.
 
 Before any normal feature work or production promotion:
 
 - read `docs/quality/current-status.md`;
+- read `docs/ops-production-backup-restore.md` and `docs/ops-hosted-migration-rollout.md`;
 - confirm the application and target database are compatible;
-- do not apply hosted migrations without a reviewed preflight, remediation/backup plan and explicit owner approval;
+- do not apply hosted migrations until a fresh production logical bundle has been encrypted, retained off the working machine, retrieved, checksum-verified and successfully restored to a disposable target;
+- require a reviewed preflight, exact migration-history repair, 21–35-only dry run, named operator/recovery owner and explicit owner approval;
 - never point production at development Supabase as a rollback.
+
+Prepared backup tooling is not recovery evidence. A Netlify rollback is not a database rollback.
 
 ## Git discipline
 
@@ -94,6 +105,7 @@ Every merged implementation batch must update, when affected:
 - `docs/quality/current-status.md`;
 - `docs/quality/risk-register.md`;
 - `docs/ops-pending-migrations.md` for migration changes;
+- `docs/ops-production-backup-restore.md` for backup/recovery facts;
 - a dated reconciliation note for material integrity/operations work;
 - roadmap/TODO only for future sequencing, never as proof of implementation.
 

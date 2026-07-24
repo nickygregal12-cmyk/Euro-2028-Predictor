@@ -1,6 +1,6 @@
 # Hosted migrations 21–35 — controlled rollout runbook
 
-This runbook governs the production rollout of repository migrations 21–35. It does **not** authorize the rollout. The owner must explicitly approve the change after reviewing fresh preflights, recovery evidence, migration-history repair and the deployment window.
+This runbook governs the production rollout of repository migrations 21–35. It does **not** authorize the rollout. The owner must explicitly approve the change only after reviewing accepted recovery evidence, fresh preflights, migration-history repair, dry-run output, the named operator and the deployment window.
 
 ## Absolute rules
 
@@ -15,6 +15,8 @@ This runbook governs the production rollout of repository migrations 21–35. It
 - Never restore old direct-table client writes as a compatibility shortcut.
 - One named operator performs the database change.
 - Treat executable application code, current Netlify release and database schema as one verified release pair.
+- Prepared backup tooling, an unencrypted dump or an untested dump is not recovery evidence.
+- A Netlify rollback is not a database rollback.
 
 ## Release identity model
 
@@ -32,13 +34,13 @@ Current known executable baseline:
 - requires `replace_predicted_progression(uuid,jsonb,jsonb)` and `delete_match_prediction(uuid,uuid,integer)`;
 - both functions are absent from production.
 
-The first verified documentation-only descendant was commit `83e071c2c971ba16cffd8de6ae8fb92ffff5e7a3`, deploy `6a62c93afeb9b400086e1e3f`. Netlify reported the built files were already uploaded from an equivalent prior build. Future docs-only descendants should not be hard-coded here as permanently current.
+The first verified documentation-only descendant was commit `83e071c2c971ba16cffd8de6ae8fb92ffff5e7a3`, deploy `6a62c93afeb9b400086e1e3f`. Future documentation-only descendants must be verified live rather than hard-coded as permanently current.
 
 ## Current evidence
 
 The 23–24 July 2026 work established:
 
-- disposable CI can rebuild the full 35-migration chain;
+- disposable CI rebuilds the full 35-migration chain;
 - hosted development has migrations 21–35 applied and verified;
 - the normalized production entry passes group reconstruction, R16 derivation, full bracket replay and submission validation;
 - migration 35 provides version-safe persisted score clearing;
@@ -46,16 +48,20 @@ The 23–24 July 2026 work established:
 - production has zero legacy match results;
 - development’s function ACL and helper search-path contract passes;
 - production remains on migrations 1–20 with no migration-history table;
-- read-only production inspection confirms both executable-client RPC dependencies are absent.
+- read-only production inspection confirms both executable-client RPC dependencies are absent;
+- production is approximately 12 MB, with four Auth users, no Storage objects and no Edge Functions;
+- the Supabase organization is on Free, so the rollout must rely on a manually created and proven logical recovery bundle.
 
 Evidence:
 
 - `scripts/database-rollout/production-baseline-1-20-verification.sql`;
 - `scripts/database-rollout/production-preflight.sql`;
+- `docs/ops-production-backup-restore.md`;
 - `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`;
 - `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`;
 - `docs/quality/reconciliations/2026-07-24-score-clearing.md`;
-- `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`.
+- `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`;
+- `docs/quality/reconciliations/2026-07-24-production-recovery-readiness.md`.
 
 Rollout guards:
 
@@ -77,18 +83,20 @@ Record before starting:
 - production Supabase project reference;
 - operator and recovery decision owner;
 - start time and change window;
-- backup/export identifier and verified retrieval location;
+- plaintext bundle identifier and checksum set;
+- encrypted artifact checksum, retention and verified off-site retrieval reference;
+- disposable restore target and accepted restore-verification evidence;
 - both production preflight outputs;
 - migration-list output before and after repair;
 - `db push --dry-run` output;
 - rollout-guard fingerprints;
 - final verification, advisor and smoke-test outputs.
 
-Do not place credentials, database passwords, tokens or private backup URLs in the repository.
+Do not place credentials, database passwords, tokens, raw Auth data or private backup URLs in the repository.
 
 ## Phase 1 — freeze and verify identity
 
-1. Freeze ordinary production deployments and database writes.
+1. Freeze ordinary production deployments and database writes for the approved operation.
 2. Fetch the current production Netlify deploy live.
 3. Compare its executable/configuration diff with the owner-approved application-code baseline. Documentation-only differences are acceptable only when proven; unexplained functional differences are a stop condition.
 4. Confirm a clean checkout at the approved repository commit.
@@ -105,11 +113,83 @@ supabase link --project-ref vkfnsqdyhvtwyqkisxhk
 
 Stop if any target identity or executable diff cannot be proven.
 
-## Phase 2 — backup and recovery evidence
+## Phase 2 — create and prove recovery evidence
 
-Obtain a current production backup/export through an approved Supabase-supported method. Record creation time, type, scope, retention/retrieval location, verifier and recovery decision.
+Follow `docs/ops-production-backup-restore.md` exactly. This phase must finish **before** migration-history repair, dry-run approval or SQL application.
 
-A Netlify rollback is not a database rollback. Do not start without database recovery evidence.
+### 2A — create the source bundle
+
+On the named operator’s trusted machine:
+
+1. Confirm the approved source commit and a clean repository.
+2. Confirm Supabase CLI, Docker, `psql` and Python are available.
+3. Set the production URL only in the current shell, set a secure staging path outside the repository and explicitly acknowledge project `vkfnsqdyhvtwyqkisxhk`.
+4. Run:
+
+```bash
+bash scripts/database-rollout/create-production-backup.sh
+```
+
+5. Require the script to complete without bypassing any guard.
+6. Confirm the bundle contains:
+   - `roles.sql`;
+   - `schema.sql`;
+   - `data.sql` containing `auth.users` and `public.profiles`;
+   - `database-state.json`;
+   - `auth-storage-diff.sql`;
+   - `managed-schema-customizations.sql`;
+   - migration and tool provenance;
+   - `manifest.json`;
+   - `SHA256SUMS`.
+7. Confirm the bundle records the source as a sensitive plaintext staging artifact with `qualifying_recovery_evidence = false`.
+
+Any failed identity, clean-tree, dump, Auth-data, inventory or checksum guard is a stop condition.
+
+### 2B — encrypt and retain off-site
+
+1. Encrypt the bundle using the approved organizational method.
+2. Record the encrypted artifact checksum and key identifier without recording a secret or private key.
+3. Store a verified copy off the working machine.
+4. Record custody, retention/expiry and retrieval reference.
+5. Retrieve the artifact through the recorded path and verify the encrypted artifact checksum.
+6. Decrypt only into a restricted temporary location and require every plaintext checksum in `SHA256SUMS` to pass.
+
+A local-only copy, unencrypted archive or unchecked retrieval does not satisfy this phase.
+
+### 2C — disposable restore rehearsal
+
+Use a disposable Supabase-compatible target that is neither production nor the active development project.
+
+1. Record the target identifier, database version, operator and proof that destructive testing is permitted.
+2. Restore roles, schema, data and the reviewed managed-schema customization file in the order defined by `docs/ops-production-backup-restore.md`.
+3. Review `auth-storage-diff.sql`; apply only reviewed production customizations not already recreated elsewhere.
+4. Run the copied baseline verifier and source preflight.
+5. Require restored source counts and all three rollout fingerprints to match the bundle.
+6. Verify all Auth users/profiles exist without exposing their contents.
+7. Verify `on_auth_user_created` calls `public.handle_new_user()` and prove the signup/profile path with a disposable test user.
+8. Verify Storage remains empty unless the fresh source inventory proves otherwise.
+9. Verify the restored baseline still lacks the migration-33 and migration-35 RPCs, matching pre-rollout production.
+10. Preferably rehearse the exact 1–20 history repair, 21–35-only dry run, full 21–35 push and post-rollout verification on this restored target.
+11. Retain non-secret evidence and confirm cleanup of the disposable target and plaintext staging files.
+
+The restore must succeed and be reviewed. Merely generating a dump does not satisfy the recovery gate.
+
+### 2D — recovery acceptance
+
+Before proceeding, the owner/recovery decision owner must accept a record containing:
+
+- source baseline and current Netlify release identity;
+- bundle timestamp and source repository commit;
+- plaintext and encrypted checksums;
+- verified off-site retrieval reference;
+- disposable target identity;
+- restore tool versions and commands;
+- baseline/source-verification results;
+- Auth signup-trigger test result;
+- optional forward-rollout rehearsal results;
+- operator/reviewer and cleanup confirmation.
+
+If any required evidence is absent, the production migration window remains blocked.
 
 ## Phase 3 — immediate production preflight
 
@@ -140,7 +220,7 @@ Required source result:
 - no scope anomaly exists;
 - knockout source tree remains `8/4/2/1` with fourteen valid winner sources.
 
-Profile/entry totals may increase through legitimate signup activity. At the 24 July read-only snapshot, production had four profiles, four entries and one submitted entry. Do not treat total count growth alone as a failed guard; inspect ownership and submitted-entry/source invariants.
+Profile/entry totals may increase through legitimate signup activity. At the 24 July read-only snapshot, production had four profiles, four entries and one submitted entry. Do not treat total-count growth alone as a failed guard; inspect ownership and submitted-entry/source invariants.
 
 Any required failure is a stop condition. Investigate outside the change window.
 
@@ -157,7 +237,6 @@ supabase migration list
 Expected before repair: local files 1–35; production history missing 1–20.
 
 2. Re-run the baseline verifier and retain its all-true output.
-
 3. Only when every baseline check is true, repair tracking metadata:
 
 ```bash
@@ -186,10 +265,8 @@ supabase migration repair \
 ```
 
 4. Re-run `supabase migration list`.
-
-Required result: migrations 1–20 align; migrations 21–35 remain pending.
-
-5. Run:
+5. Require migrations 1–20 to align and migrations 21–35 to remain pending.
+6. Run:
 
 ```bash
 supabase db push --dry-run
@@ -201,7 +278,7 @@ The dry run must show **only migrations 21–35**, in timestamp order. Stop if i
 
 ## Phase 5 — apply the chain
 
-After explicit approval of the dry-run output:
+After explicit owner approval of the accepted recovery record, fresh preflights, history repair and dry-run output:
 
 ```bash
 supabase db push
@@ -305,13 +382,17 @@ Do not use an unisolated production preview for these tests.
 Only after database and application verification pass:
 
 - record the current Netlify release and executable application-code baseline;
-- confirm that executable code expects the live schema;
+- confirm executable code expects the live schema;
 - lift the freeze;
 - record the exact release/baseline/schema pair;
 - update `current-status.md`, `ops-pending-migrations.md` and the production release reconciliation;
-- retain all preflight, history, dry-run, push, advisor and smoke-test evidence.
+- retain all recovery, preflight, history, dry-run, push, advisor and smoke-test evidence.
 
 ## Failure handling
+
+### Recovery evidence failure
+
+Do not proceed to migration-history repair. Preserve non-secret evidence, keep the freeze and correct the backup, custody or restore process outside the change window.
 
 ### Preflight, identity or history mismatch
 
@@ -319,7 +400,7 @@ Stop before SQL application. Do not mutate production or invent history rows.
 
 ### Migration failure
 
-Stop, preserve logs and determine whether the current file rolled back. Do not skip it. If earlier files committed, prepare a reviewed forward repair or owner-approved database recovery decision.
+Stop, preserve logs and determine whether the current file rolled back. Do not skip it. If earlier files committed, prepare a reviewed forward repair or an owner-approved database recovery decision using the accepted artifact.
 
 ### Privilege verification failure
 

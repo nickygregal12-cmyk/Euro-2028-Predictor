@@ -6,23 +6,31 @@
 ## 0. Production compatibility incident — do first
 
 - [x] Freeze ordinary production promotion in repository guidance and runbooks.
-- [x] Confirm the original production application/Supabase mismatch and missing atomic bracket RPC.
-- [x] Confirm Netlify automatically published PR #20 merge commit `a403b079` to production.
+- [x] Confirm the production application/Supabase mismatch at bracket and score-clear RPC boundaries.
 - [x] Verify read-only that production lacks both `replace_predicted_progression` and `delete_match_prediction`.
-- [x] Verify production still grants old direct progression and match-prediction delete privileges.
-- [x] Record the broadened two-RPC mismatch and current 4-profile/4-entry production snapshot.
+- [x] Verify production retains old direct progression and match-prediction delete privileges.
+- [x] Record the two-RPC mismatch and current production snapshot.
 - [x] Rehearse migrations 21–35 on hosted development using the normalized production entry.
 - [x] Prove production migrations 1–20 structural effects and prepare exact history-only repair.
 - [x] Commit fail-closed production preflight and post-rollout verification scripts.
-- [ ] Obtain verified production backup/export or equivalent recovery evidence.
-- [ ] Name the operator, recovery decision owner and change window.
-- [ ] Rerun both production preflights immediately before change.
+- [x] Inventory production recovery scope: approximately 12 MB, 4 Auth users, no Storage objects/Edge Functions, one custom Auth trigger.
+- [x] Confirm Free-plan backup limitations and the need for a manual logical export.
+- [x] Add fail-closed backup creation tooling, checksums and restore-rehearsal runbook.
+- [ ] Choose the trusted backup machine, encryption/custody method, off-site destination, operator and recovery reviewer.
+- [ ] Freeze production writes/deployments and verify the current Netlify release/executable diff.
+- [ ] Rerun both production preflights immediately before backup/change.
+- [ ] Create the fresh production logical bundle.
+- [ ] Encrypt and store the bundle off-site; record non-secret custody/checksum evidence.
+- [ ] Retrieve and restore it to a disposable Supabase-compatible target.
+- [ ] Verify baseline/source invariants, Auth signup trigger and checksums.
+- [ ] Preferably rehearse migrations 21–35 from the restored bundle.
+- [ ] Only then name/approve the production migration window and recovery decision owner.
 - [ ] Apply the prepared 1–20 history-only repair and require a dry run showing migrations 21–35 only.
 - [ ] Obtain explicit approval and apply migrations 21–35 in strict timestamp order.
 - [ ] Verify bracket save/reload, authenticated RPCs, function allowlists, submission settlement and score clearing.
-- [ ] Record the exact compatible application/schema pair, operator and retained evidence.
+- [ ] Record the exact compatible release/application/schema pair, operator and retained evidence.
 
-Do **not** point production at development Supabase. Do not add unsafe direct-table fallbacks. Do not apply migration 33, 34 or 35 alone.
+Do **not** point production at development Supabase. Do not add unsafe direct-table fallbacks. Do not apply migration 33, 34 or 35 alone. Prepared backup tooling is not recovery evidence.
 
 ## 1. Netlify environment and deployment controls
 
@@ -70,7 +78,37 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [ ] Enable it and verify signup/reset behavior.
 - [ ] Keep intentional authenticated RPC advisor notices documented.
 
-## 4. Production preflight and rollout
+## 4. Production backup and restore evidence
+
+### Repository preparation — complete
+
+- [x] Add `create-production-backup.sh` with explicit production-ref acknowledgement.
+- [x] Refuse dirty repository state and repository-local output.
+- [x] Capture roles, schema and COPY-format data dumps.
+- [x] Require `auth.users` and `public.profiles` in the data dump.
+- [x] Capture database inventory, tool versions, repository commit and migration inventory.
+- [x] Capture Auth/Storage drift evidence and the known `on_auth_user_created` restore statement.
+- [x] Generate recursive SHA-256 checksums and owner-only permissions.
+- [x] Add Bash syntax/safety-policy tests.
+- [x] Ignore common local backup bundle names.
+- [x] Add detailed backup, encryption, custody and restore-rehearsal runbook.
+
+### Actual recovery evidence — blocked/pending
+
+- [ ] Select approved encryption and off-site storage/custody method.
+- [ ] Create a fresh source bundle during the production freeze.
+- [ ] Verify the source manifest and checksums.
+- [ ] Encrypt and copy the artifact off the working machine.
+- [ ] Record encrypted-artifact checksum, custody, retention and retrieval reference.
+- [ ] Retrieve/decrypt to a trusted temporary location and reverify checksums.
+- [ ] Restore roles, schema, data and managed Auth trigger to a disposable target.
+- [ ] Run baseline 1–20 verifier and production source preflight against the restore.
+- [ ] Verify Auth users/profiles and signup-trigger behavior with a disposable user.
+- [ ] Verify Storage state matches the source inventory.
+- [ ] Preferably repair history/apply migrations 21–35 and run the post-rollout verifier on the restored target.
+- [ ] Retain non-secret evidence and clean up the disposable target/plaintext data.
+
+## 5. Production preflight and rollout
 
 - [x] Prove the submitted production entry has 36 predictions, exact tie decisions and valid `4/2/1/1` progression.
 - [x] Prove it reconstructs all 24 positions and one valid bracket tree on development.
@@ -80,13 +118,13 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [x] Prepare exact 1–20 migration-history repair.
 - [x] Extend the pending chain and verifier through migration 35.
 - [x] Prepare stop/rollback/remediation rules.
-- [ ] Preserve a production backup/recovery artifact.
+- [ ] Complete the actual recovery-evidence checklist above.
 - [ ] Review final preflight and dry-run output.
 - [ ] Apply only after explicit approval.
 - [ ] Run database post-verification and advisors.
 - [ ] Run the full authenticated application smoke checklist.
 
-## 5. Original Predictor reliability
+## 6. Original Predictor reliability
 
 ### Pending-write submission — repository complete, browser closure pending
 
@@ -108,7 +146,7 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [x] Clear stale derived group positions after deletion.
 - [x] Test loaded, unsaved-local and stale-device paths.
 - [x] Add pgTAP coverage for privileges, ownership, scope, version, idempotency and lock.
-- [x] Confirm the score-clear client is live in production commit `a403b079`.
+- [x] Confirm the score-clear client is in application-code baseline `a403b079`.
 - [x] Confirm the production backend RPC is absent, causing save failure rather than successful clearing.
 - [ ] Apply migration 35 as part of the complete approved 21–35 chain.
 - [ ] Browser-verify clear/reload, restore, stale conflict and post-lock refusal in production.
@@ -121,7 +159,7 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [ ] Complete wider tournament/reference immutability constraints.
 - [ ] Map raw database/network failures to stable user-facing errors.
 
-## 6. Real tournament progression
+## 7. Real tournament progression
 
 - [ ] Implement transactional real R16 population from confirmed group standings.
 - [ ] Use canonical group-order and best-third rules.
@@ -131,7 +169,7 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [ ] Never overwrite participants beneath a confirmed downstream result.
 - [ ] Add exhaustive pgTAP coverage for qualifying-third combinations and corrections.
 
-## 7. Submission automation and reminders
+## 8. Submission automation and reminders
 
 - [ ] Implement automatic submission at lock for valid complete entries.
 - [ ] Record manual versus automatic submission.
@@ -140,7 +178,7 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [ ] Test exact lock-boundary behavior.
 - [ ] Replace provisional `lock_at` with the official opening kickoff when confirmed.
 
-## 8. Result administration
+## 9. Result administration
 
 - [ ] Define the version-controlled admin authorization model.
 - [ ] Do not rely on nonexistent `profiles.role` without a migration and tests.
@@ -149,7 +187,7 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [ ] Add browser tests for regulation, extra time, penalties and correction propagation.
 - [ ] Keep result RPCs unavailable to ordinary browser roles.
 
-## 9. Browser E2E and operations
+## 10. Browser E2E and operations
 
 - [ ] Add Playwright or equivalent.
 - [ ] Cover auth/recovery, welcome, full entry, ties, bracket, submission settlement and score clearing.
@@ -159,9 +197,9 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [ ] Confirm branch protection and required checks.
 - [ ] Pin/verify Netlify Node runtime.
 - [ ] Add production error reporting, alert ownership and critical-journey monitoring.
-- [ ] Create and rehearse backup/restore and application rollback procedures.
+- [ ] Complete and periodically repeat backup/restore/application rollback rehearsals.
 
-## 10. Core experience follow-ups
+## 11. Core experience follow-ups
 
 After integrity gates:
 
@@ -174,7 +212,7 @@ After integrity gates:
 - [ ] Menu semantics, invite preview and unavailable/error states.
 - [ ] Mobile physics and friction pass.
 
-## 11. Bonus games — after core gates
+## 12. Bonus games — after core gates
 
 - [ ] Build the optional competition framework and isolated scoring/league boundaries.
 - [ ] Complete rules/design/build/test for KO Predictor.
@@ -183,7 +221,7 @@ After integrity gates:
 
 The Sweepstake builder remains non-launch-blocking.
 
-## 12. Official data and final readiness
+## 13. Official data and final readiness
 
 - [ ] Reverify official Euro 2028 regulations and best-third allocation.
 - [ ] Load official qualifiers and draw assignments safely.
@@ -210,4 +248,5 @@ The Sweepstake builder remains non-launch-blocking.
 - [x] Version-safe persisted score clearing.
 - [x] Hosted development rehearsal through migration 35.
 - [x] Live hosted audit and documentation authority hierarchy.
-- [x] Post-merge automatic production deploy reconciliation.
+- [x] Stable application-code versus Netlify-release identity model.
+- [x] Production recovery inventory and fail-closed backup/restore preparation.

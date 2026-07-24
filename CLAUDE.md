@@ -10,9 +10,10 @@ Do not import rules or features from previous World Cup projects, old branches, 
 
 ## Current critical status
 
-The production application/database mismatch remains live and broadened after PR #20:
+The production application/database mismatch remains live after PR #20:
 
-- Netlify automatically published production commit `a403b0796853453cb4115aea55729aced192a6ca`;
+- application-code baseline `a403b0796853453cb4115aea55729aced192a6ca` introduced the currently deployed database dependencies;
+- later documentation-only Netlify release descendants may advance the release hash without changing executable compatibility;
 - production Supabase still has the original 20-migration schema and no tracked migration-history table;
 - production lacks `replace_predicted_progression` used by bracket persistence;
 - production lacks `delete_match_prediction` used by persisted score clearing;
@@ -23,7 +24,9 @@ The production application/database mismatch remains live and broadened after PR
 
 Expected live behavior: bracket saves fail; clearing a stored score reaches a save error and reload can restore the old row. Do not add a direct-table fallback.
 
-Normal production promotion must pause until a reviewed plan restores a compatible app/schema pair. Never point production at development Supabase. Do not apply hosted migrations without explicit owner approval, fresh preflights, verified recovery evidence and the controlled rollout runbook.
+Normal production promotion must pause until a reviewed plan restores a compatible app/schema pair. Never point production at development Supabase. Do not apply hosted migrations without explicit owner approval, fresh preflights, a proven recovery artifact and the controlled rollout runbook.
+
+The current Supabase organization is on Free. Prepared backup tooling is not recovery evidence. Before a production migration window, a fresh logical bundle must be encrypted, retained off the working machine, retrieved, checksum-verified and successfully restored to a disposable target.
 
 ## Sources of truth
 
@@ -31,6 +34,8 @@ Normal production promotion must pause until a reviewed plan restores a compatib
 | --- | --- |
 | Current implementation, hosted state and next action | `docs/quality/current-status.md` |
 | Current production release evidence | `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md` |
+| Production recovery readiness | `docs/quality/reconciliations/2026-07-24-production-recovery-readiness.md` |
+| Production backup and restore proof | `docs/ops-production-backup-restore.md` |
 | Latest formal audit | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
 | Hosted migration/security evidence | `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`; `2026-07-24-function-privilege-hardening.md` |
 | Submission settlement evidence | `docs/quality/reconciliations/2026-07-24-submit-save-barrier.md` |
@@ -117,16 +122,17 @@ npm audit --omit=dev --audit-level=high
 
 ## Immediate order
 
-1. Review and approve the production migrations 21–35 window, recovery evidence and operator.
-2. Run both production preflights and the exact 1–20 history-only repair.
-3. Require `supabase db push --dry-run` to show migrations 21–35 only.
-4. Apply migrations 21–35 only after explicit approval; run exact post-verification, advisors and smoke tests.
-5. Browser-verify bracket save/reload, immediate final-edit submission and score clear/reload/conflict/lock behavior; add durable E2E and close `REL-003`/`DATA-005`.
-6. Isolate production Netlify preview/branch contexts (`OPS-007`).
-7. Enable leaked-password protection through a separate approved Auth change.
-8. Address `REL-002`, then `REL-006`.
-9. Implement automatic real R16 population.
-10. Rehearse backup/restore before launch readiness.
+1. Freeze the approved production state and create the fresh logical backup bundle using `docs/ops-production-backup-restore.md`.
+2. Encrypt it, retain it off the working machine, retrieve it, verify checksums and complete a disposable restore rehearsal. Do not treat script availability or an untested dump as recovery evidence.
+3. Name the operator, recovery decision owner and change window; review and explicitly approve the production migrations 21–35 window only after recovery evidence is accepted.
+4. Rerun both production preflights and apply the exact 1–20 history-only repair.
+5. Require `supabase db push --dry-run` to show migrations 21–35 only.
+6. Apply migrations 21–35 only after explicit approval; run exact post-verification, advisors and smoke tests.
+7. Browser-verify bracket save/reload, immediate final-edit submission and score clear/reload/conflict/lock behavior; add durable E2E and close `REL-003`/`DATA-005`.
+8. Isolate production Netlify preview/branch contexts (`OPS-007`).
+9. Enable leaked-password protection through a separate approved Auth change.
+10. Address `REL-002`, then `REL-006`.
+11. Implement automatic real R16 population.
 
 ## Hard prohibitions
 
