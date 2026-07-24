@@ -40,11 +40,41 @@ jobs:
         with:
           version: 2.84.2
           github-token: ${{ github.token }}
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: supabase start
-      - run: supabase db reset --local
+      - name: Install browser dependencies
+        id: browser_npm
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npm ci 2>&1 | tee /tmp/browser-npm.log
+      - name: Install Chromium
+        id: chromium
+        if: steps.browser_npm.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          npx playwright install --with-deps chromium 2>&1 | tee /tmp/browser-chromium.log
+      - name: Start disposable local Supabase
+        id: supabase_start
+        if: steps.chromium.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase start 2>&1 | tee /tmp/browser-supabase-start.log
+      - name: Rebuild migrations and seed
+        id: supabase_reset
+        if: steps.supabase_start.outcome == 'success'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db reset --local 2>&1 | tee /tmp/browser-supabase-reset.log
       - name: Export local-only browser environment
+        id: browser_env
+        if: steps.supabase_reset.outcome == 'success'
+        continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
@@ -67,8 +97,10 @@ jobs:
             echo 'VITE_DEV_USER_EMAIL=e2e@euro28.local'
             echo 'VITE_DEV_USER_PASSWORD=E2e-local-only-2028!'
           } >> "$GITHUB_ENV"
+          echo 'Local browser environment exported.' > /tmp/browser-env.log
       - name: Run authenticated application journeys
         id: application_journeys
+        if: steps.browser_env.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -76,6 +108,7 @@ jobs:
           npm run test:e2e 2>&1 | tee /tmp/application-e2e.log
       - name: Run signup and password-recovery journeys
         id: auth_journeys
+        if: steps.browser_env.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -87,6 +120,7 @@ jobs:
         with:
           name: auth-recovery-branch-diagnostics
           path: |
+            /tmp/browser-*.log
             /tmp/application-e2e.log
             /tmp/auth-recovery-e2e.log
             playwright-report/
@@ -94,10 +128,24 @@ jobs:
             test-results/
           if-no-files-found: ignore
           retention-days: 3
-      - name: Require both browser suites to pass
+      - name: Require browser setup and both suites to pass
         shell: bash
         run: |
-          if [[ '${{ steps.application_journeys.outcome }}' != 'success' || '${{ steps.auth_journeys.outcome }}' != 'success' ]]; then
+          printf 'npm=%s chromium=%s start=%s reset=%s env=%s app=%s auth=%s\n' \
+            '${{ steps.browser_npm.outcome }}' \
+            '${{ steps.chromium.outcome }}' \
+            '${{ steps.supabase_start.outcome }}' \
+            '${{ steps.supabase_reset.outcome }}' \
+            '${{ steps.browser_env.outcome }}' \
+            '${{ steps.application_journeys.outcome }}' \
+            '${{ steps.auth_journeys.outcome }}'
+          if [[ '${{ steps.browser_npm.outcome }}' != 'success' || \
+                '${{ steps.chromium.outcome }}' != 'success' || \
+                '${{ steps.supabase_start.outcome }}' != 'success' || \
+                '${{ steps.supabase_reset.outcome }}' != 'success' || \
+                '${{ steps.browser_env.outcome }}' != 'success' || \
+                '${{ steps.application_journeys.outcome }}' != 'success' || \
+                '${{ steps.auth_journeys.outcome }}' != 'success' ]]; then
             exit 1
           fi
       - if: always()
@@ -132,19 +180,15 @@ jobs:
           }
           EOF
           {
-            echo 'APPLICATION E2E:'
-            if [[ -f /tmp/auth-recovery-diagnostics/application-e2e.log ]]; then
-              tail -n 60 /tmp/auth-recovery-diagnostics/application-e2e.log
-            else
-              echo 'No application browser log captured.'
-            fi
-            echo
-            echo 'AUTH RECOVERY E2E:'
-            if [[ -f /tmp/auth-recovery-diagnostics/auth-recovery-e2e.log ]]; then
-              tail -n 100 /tmp/auth-recovery-diagnostics/auth-recovery-e2e.log
-            else
-              echo 'No auth recovery browser log captured.'
-            fi
+            for name in browser-npm browser-chromium browser-supabase-start browser-supabase-reset browser-env application-e2e auth-recovery-e2e; do
+              echo "===== ${name} ====="
+              if [[ -f "/tmp/auth-recovery-diagnostics/${name}.log" ]]; then
+                tail -n 100 "/tmp/auth-recovery-diagnostics/${name}.log"
+              else
+                echo 'No log captured.'
+              fi
+              echo
+            done
           } > docs/quality/reconciliations/.auth-recovery-branch-diagnostics.txt
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
