@@ -34,10 +34,12 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 
 ## 1. Netlify environment and deployment controls
 
-- [ ] Scope production Supabase values to production deploys only.
-- [ ] Ensure production-project previews and branch deploys cannot access production Supabase.
-- [ ] Confirm the separate development Netlify site uses development Supabase.
-- [ ] Protect or disable production-project previews until isolation is verified.
+- [x] Scope production Supabase values to the production context.
+- [x] Point deploy-preview, branch-deploy and Netlify dev contexts at development Supabase.
+- [x] Add a prebuild guard that rejects crossed, missing or unknown Netlify contexts.
+- [x] Prove a fresh guarded deploy preview reaches ready state using development Supabase.
+- [x] Ensure production-project previews and branch deploys cannot access production Supabase through inherited browser configuration.
+- [ ] Confirm any separately maintained development Netlify site uses development Supabase.
 - [ ] Add an explicit app/schema compatibility decision before merging database-dependent client paths that auto-deploy from `main`.
 - [ ] Recheck Turnstile domain/context behavior after configuration changes.
 
@@ -250,3 +252,4 @@ The Sweepstake builder remains non-launch-blocking.
 - [x] Live hosted audit and documentation authority hierarchy.
 - [x] Stable application-code versus Netlify-release identity model.
 - [x] Production recovery inventory and fail-closed backup/restore preparation.
+- [x] Netlify production/non-production Supabase context isolation with a fail-closed build guard.
