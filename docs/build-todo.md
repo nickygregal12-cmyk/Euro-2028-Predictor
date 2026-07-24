@@ -178,6 +178,13 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
   - [x] Add focused service regressions for winner, concurrent loser and genuine error paths.
   - [x] Prove two independent browser contexts converge on one disposable-Supabase entry row.
   - [x] Issue #64 closed after PR #65 passed final checks and merged to `main`.
+- [ ] **`REL-005`** — refresh convincingly stale open pages after a genuine background return.
+  - [x] Add one deduplicated hidden-to-visible foreground contract without polling.
+  - [x] Refresh tournament data without a loading flash and retain valid data on failure.
+  - [x] Flush/settle prediction writes before refreshing persisted entry slices.
+  - [x] Preserve failed/conflicted/local in-flight work through save barriers and `REL-002` revisions.
+  - [x] Add focused hook/provider tests and a two-page disposable-Supabase browser journey.
+  - [ ] Close issue #67 after PR #68 passes final checks and merges to `main`.
 - [ ] Complete wider tournament/reference immutability constraints.
 - [ ] Map raw database/network failures to stable user-facing errors.
 
