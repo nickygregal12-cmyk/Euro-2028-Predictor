@@ -6,9 +6,6 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -38,44 +35,3 @@ jobs:
         run: npm run test
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
-
-  refresh-signout-e2e:
-    if: github.event_name == 'pull_request' && github.head_ref == 'ux/sign-out-confirmation' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ux/sign-out-confirmation
-          fetch-depth: 1
-          show-progress: false
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-          cache: npm
-      - name: Update established browser login helpers
-        shell: bash
-        run: |
-          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpvbGQgPSAiIiIgIGF3YWl0IHBhZ2UuZ2V0QnlSb2xlKCdidXR0b24nLCB7IG5hbWU6ICdTaWduIG91dCcsIGV4YWN0OiB0cnVlIH0pLmNsaWNrKCkKICBhd2FpdCBleHBlY3QocGFnZSkudG9IYXZlVVJMKCh1cmwpID0+IHVybC5wYXRobmFtZSA9PT0gJy9hdXRoL2xvZ2luJywgeyB0aW1lb3V0OiAxNV8wMDAgfSkKIiIiCm5ldyA9ICIiIiAgYXdhaXQgcGFnZS5nZXRCeVJvbGUoJ2J1dHRvbicsIHsgbmFtZTogJ1NpZ24gb3V0JywgZXhhY3Q6IHRydWUgfSkuY2xpY2soKQogIGNvbnN0IHNpZ25PdXREaWFsb2cgPSBwYWdlLmdldEJ5Um9sZSgnZGlhbG9nJywgeyBuYW1lOiAnU2lnbiBvdXQ/JyB9KQogIGF3YWl0IGV4cGVjdChzaWduT3V0RGlhbG9nKS50b0JlVmlzaWJsZSgpCiAgYXdhaXQgc2lnbk91dERpYWxvZy5nZXRCeVJvbGUoJ2J1dHRvbicsIHsgbmFtZTogJ1NpZ24gb3V0JywgZXhhY3Q6IHRydWUgfSkuY2xpY2soKQogIGF3YWl0IGV4cGVjdChwYWdlKS50b0hhdmVVUkwoKHVybCkgPT4gdXJsLnBhdGhuYW1lID09PSAnL2F1dGgvbG9naW4nLCB7IHRpbWVvdXQ6IDE1XzAwMCB9KQoiIiIKCmZvciBmaWxlbmFtZSBpbiBbJ2UyZS9icmFja2V0LWNvbmZsaWN0LnNwZWMudHMnLCAnZTJlL2xvY2tlZC1zdGF0ZS5zcGVjLnRzJ106CiAgICBwYXRoID0gUGF0aChmaWxlbmFtZSkKICAgIHRleHQgPSBwYXRoLnJlYWRfdGV4dCgpCiAgICBjb3VudCA9IHRleHQuY291bnQob2xkKQogICAgaWYgY291bnQgIT0gMToKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KGYne2ZpbGVuYW1lfTogZXhwZWN0ZWQgb25lIGltbWVkaWF0ZSBzaWduLW91dCBoZWxwZXIsIGZvdW5kIHtjb3VudH0nKQogICAgcGF0aC53cml0ZV90ZXh0KHRleHQucmVwbGFjZShvbGQsIG5ldywgMSkpCg==' | base64 -d > /tmp/refresh-signout-e2e.py
-          python /tmp/refresh-signout-e2e.py
-          git fetch origin main --depth=1 --quiet
-          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
-      - name: Install dependencies
-        run: npm ci
-      - name: Guarded production build
-        run: npm run build
-      - name: Lint
-        run: npm run lint
-      - name: Full test suite
-        run: npm run test
-      - name: Production dependency audit
-        run: npm audit --omit=dev --audit-level=high
-      - name: Commit browser helper update
-        shell: bash
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add e2e/bracket-conflict.spec.ts e2e/locked-state.spec.ts .github/workflows/ci.yml
-          git commit -m "Confirm sign-out in browser login helpers"
-          git push origin HEAD:ux/sign-out-confirmation
