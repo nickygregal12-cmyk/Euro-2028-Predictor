@@ -86,9 +86,20 @@ Do **not** point production at development Supabase and do not apply migration 3
 
 ## 5. Original Predictor reliability
 
-- [ ] **`REL-003`** — flush or await pending score/tie/bracket/bonus writes before manual submit.
-- [ ] Surface a clear submit-blocked state while any required write is pending, failed or conflicted.
-- [ ] Test submit immediately after editing the last score and last bracket pick.
+### Pending-write submission barrier — repository complete, browser verification pending
+
+- [x] **`REL-003`** — flush pending score and bracket debounces before manual submit.
+- [x] Await all score, tie, bracket and Golden Boot controller writes, including coalesced and retrying work.
+- [x] Block submission on save errors, version conflicts or entry-context cancellation.
+- [x] Surface clear submit-blocked messages for errors and conflicts.
+- [x] Test immediate submit after the final score.
+- [x] Test immediate submit after the final bracket pick.
+- [x] Test terminal save failure prevents `submit_entry`.
+- [ ] After production compatibility is restored, browser-verify final score/bracket/tie/bonus edits followed by immediate submit.
+- [ ] Add the pending-write/conflict journey to Playwright or equivalent and then close `REL-003`.
+
+### Remaining reliability work
+
 - [ ] **`DATA-005`** — define and persist score deletion when a completed prediction is cleared.
 - [ ] **`REL-002`** — prevent late best-effort reads from overwriting newer local/server state.
 - [ ] **`REL-006`** — make first entry creation idempotent under concurrent tabs.
@@ -218,5 +229,6 @@ The Sweepstake builder remains non-launch-blocking.
 - [x] Predicted bracket-tree replay and winner propagation.
 - [x] Atomic bracket persistence.
 - [x] Exact function privilege allowlists and closed future defaults.
+- [x] Pending-write manual submission barrier with provider regression tests.
 - [x] Hosted development migration/security rehearsal through migration 34.
 - [x] Live hosted audit and documentation reconciliation.
