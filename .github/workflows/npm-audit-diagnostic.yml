@@ -1,0 +1,51 @@
+name: NPM audit diagnostic
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/npm-audit-diagnostic.yml'
+      - 'package.json'
+      - 'package-lock.json'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Capture production dependency audit
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > /tmp/npm-audit.json 2> /tmp/npm-audit.stderr
+          status=$?
+          echo "$status" > /tmp/npm-audit.status
+          cat /tmp/npm-audit.stderr
+          echo "npm audit exit status: $status"
+          exit 0
+
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-diagnostic
+          path: |
+            /tmp/npm-audit.json
+            /tmp/npm-audit.stderr
+            /tmp/npm-audit.status
+          if-no-files-found: error
+          retention-days: 3
