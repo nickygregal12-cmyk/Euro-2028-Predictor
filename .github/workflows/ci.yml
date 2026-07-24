@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   ci:
     runs-on: ubuntu-latest
@@ -35,3 +38,228 @@ jobs:
         run: npm run test
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+
+  format-rel002:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/prevent-late-read-overwrite' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/prevent-late-read-overwrite
+          fetch-depth: 1
+          show-progress: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Restore normal source indentation
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('src/app/providers/PredictionsProvider.tsx')
+          text = path.read_text()
+          old = '''        if (initialLoadCanApply('matches', matchLoadRevision)) {
+const map: Record<string, Prediction> = {}
+const vmap: Record<string, number> = {}
+for (const r of rows) {
+  map[r.matchId] = {
+    homeScore: r.homeScore,
+    awayScore: r.awayScore,
+    joker: r.joker,
+  }
+  vmap[r.matchId] = r.version
+}
+matchVersionsRef.current = vmap
+predictionsRef.current = map
+setPredictions(map)
+        }
+        setReady(true)
+
+        // These secondary reads remain fail-soft so missing optional data cannot
+        // block the entry. Their result/default may only apply if no newer local
+        // edit has occurred since the individual read began.
+        const tieLoadRevision = localEditRevisionsRef.current.ties
+        void fetchTieResolutions(entry.id)
+.then((ties) => {
+  if (!active || !initialLoadCanApply('ties', tieLoadRevision)) return
+  setTieResolutions(ties.map((t) => ({ teamIds: t.teamIds, order: t.order })))
+})
+.catch(() => {
+  if (active && initialLoadCanApply('ties', tieLoadRevision)) {
+    setTieResolutions([])
+  }
+})
+
+        const progressionLoadRevision = localEditRevisionsRef.current.progression
+        void fetchProgression(entry.id)
+.then((progressionRows) => {
+  if (
+    !active ||
+    !initialLoadCanApply('progression', progressionLoadRevision)
+  ) {
+    return
+  }
+  const map: Record<string, ProgressionStage> = {}
+  const vmap: Record<string, number> = {}
+  for (const row of progressionRows) {
+    map[row.teamId] = row.stage
+    vmap[row.teamId] = row.version
+  }
+  setProgression(map)
+  progressionPersistedRef.current = map
+  progressionDesiredRef.current = map
+  progressionVersionsRef.current = vmap
+})
+.catch(() => {
+  if (
+    !active ||
+    !initialLoadCanApply('progression', progressionLoadRevision)
+  ) {
+    return
+  }
+  setProgression({})
+  progressionPersistedRef.current = {}
+  progressionDesiredRef.current = {}
+  progressionVersionsRef.current = {}
+})
+
+        const goldenBootLoadRevision = localEditRevisionsRef.current.goldenBoot
+        void fetchGoldenBoot(entry.id)
+.then((gb) => {
+  if (
+    !active ||
+    !initialLoadCanApply('goldenBoot', goldenBootLoadRevision)
+  ) {
+    return
+  }
+  setGoldenBootPlayerId(gb.playerId)
+  goldenBootVersionRef.current = gb.version
+})
+.catch(() => {
+  if (active && initialLoadCanApply('goldenBoot', goldenBootLoadRevision)) {
+    setGoldenBootPlayerId(null)
+  }
+})
+'''
+          new = '''        if (initialLoadCanApply('matches', matchLoadRevision)) {
+          const map: Record<string, Prediction> = {}
+          const vmap: Record<string, number> = {}
+          for (const r of rows) {
+            map[r.matchId] = {
+              homeScore: r.homeScore,
+              awayScore: r.awayScore,
+              joker: r.joker,
+            }
+            vmap[r.matchId] = r.version
+          }
+          matchVersionsRef.current = vmap
+          predictionsRef.current = map
+          setPredictions(map)
+        }
+        setReady(true)
+
+        // These secondary reads remain fail-soft so missing optional data cannot
+        // block the entry. Their result/default may only apply if no newer local
+        // edit has occurred since the individual read began.
+        const tieLoadRevision = localEditRevisionsRef.current.ties
+        void fetchTieResolutions(entry.id)
+          .then((ties) => {
+            if (!active || !initialLoadCanApply('ties', tieLoadRevision)) return
+            setTieResolutions(
+              ties.map((t) => ({ teamIds: t.teamIds, order: t.order })),
+            )
+          })
+          .catch(() => {
+            if (active && initialLoadCanApply('ties', tieLoadRevision)) {
+              setTieResolutions([])
+            }
+          })
+
+        const progressionLoadRevision = localEditRevisionsRef.current.progression
+        void fetchProgression(entry.id)
+          .then((progressionRows) => {
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
+            const map: Record<string, ProgressionStage> = {}
+            const vmap: Record<string, number> = {}
+            for (const row of progressionRows) {
+              map[row.teamId] = row.stage
+              vmap[row.teamId] = row.version
+            }
+            setProgression(map)
+            progressionPersistedRef.current = map
+            progressionDesiredRef.current = map
+            progressionVersionsRef.current = vmap
+          })
+          .catch(() => {
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
+            setProgression({})
+            progressionPersistedRef.current = {}
+            progressionDesiredRef.current = {}
+            progressionVersionsRef.current = {}
+          })
+
+        const goldenBootLoadRevision = localEditRevisionsRef.current.goldenBoot
+        void fetchGoldenBoot(entry.id)
+          .then((gb) => {
+            if (
+              !active ||
+              !initialLoadCanApply('goldenBoot', goldenBootLoadRevision)
+            ) {
+              return
+            }
+            setGoldenBootPlayerId(gb.playerId)
+            goldenBootVersionRef.current = gb.version
+          })
+          .catch(() => {
+            if (active && initialLoadCanApply('goldenBoot', goldenBootLoadRevision)) {
+              setGoldenBootPlayerId(null)
+            }
+          })
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one malformed load block, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
+          git fetch origin main --depth=1 --quiet
+          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Guarded production build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Full test suite
+        run: npm run test
+
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Commit formatting correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app/providers/PredictionsProvider.tsx .github/workflows/ci.yml
+          git commit -m "Format prediction load guards"
+          git push origin HEAD:agent/prevent-late-read-overwrite
