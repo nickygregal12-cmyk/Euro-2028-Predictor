@@ -98,7 +98,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase migration up --local
+          supabase migration up --local --debug 2>&1 \
+            | tee /tmp/migration-up.log
 
           applied="$({
             docker exec supabase_db_euro-2028-predictor-local \
@@ -157,6 +158,7 @@ jobs:
           path: |
             /tmp/baseline-1-20.json
             /tmp/current-production-preflight.json
+            /tmp/migration-up.log
             /tmp/applied-migrations.txt
             /tmp/current-post-rollout-verification.json
             /tmp/pgtap.log
