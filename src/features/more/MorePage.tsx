@@ -13,20 +13,31 @@ export function MorePage() {
   const { theme, toggle } = useTheme()
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState<string | null>(null)
+
+  function openSignOut() {
+    setSignOutError(null)
+    setSignOutOpen(true)
+  }
 
   function closeSignOut() {
-    if (!signingOut) setSignOutOpen(false)
+    if (signingOut) return
+    setSignOutError(null)
+    setSignOutOpen(false)
   }
 
   async function handleSignOut() {
     if (signingOut) return
     setSigningOut(true)
+    setSignOutError(null)
     try {
       // A real sign-out: clears the session and the route gate returns to the
       // log-in screen. (In a dev build with auto-login on, a full page reload
       // will sign back in as the dev tester — see docs/auth-plan.md §1.)
       await signOut()
       setSignOutOpen(false)
+    } catch {
+      setSignOutError('We couldn’t sign you out. Check your connection and try again.')
     } finally {
       setSigningOut(false)
     }
@@ -67,7 +78,7 @@ export function MorePage() {
       </button>
 
       <div className={s.card}>
-        <Button variant="destructive" fullWidth onClick={() => setSignOutOpen(true)}>
+        <Button variant="destructive" fullWidth onClick={openSignOut}>
           Sign out
         </Button>
       </div>
@@ -81,7 +92,8 @@ export function MorePage() {
         destructive
         loading={signingOut}
       >
-        You’ll need to sign in again to return to your predictions.
+        <p>You’ll need to sign in again to return to your predictions.</p>
+        {signOutError ? <p role="alert">{signOutError}</p> : null}
       </ConfirmModal>
     </div>
   )
