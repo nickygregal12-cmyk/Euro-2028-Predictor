@@ -10,14 +10,12 @@
 // dev user exists (CLAUDE.md rule 8). Nothing downstream may special-case it.
 
 /**
- * The DEV Supabase project ref. The dev auto-login shim silently signs in as the
- * seeded dev user, so it must NEVER run against anything but this exact project —
- * once a separate production project exists, a misconfigured URL is the one way
- * dev credentials could leak toward prod. This ref appears in the dev project's
- * Supabase URL (https://<ref>.supabase.co). The seed guard pins the same ref
- * independently (scripts/seed-dev/seedPolicy.ts) — keep the two in step.
+ * The shared DEV Supabase project ref. The dev auto-login shim may sign in only
+ * against this project or the standard disposable local Supabase endpoint. A
+ * production-looking or otherwise unknown URL always fails closed.
  */
 export const DEV_PROJECT_REF = 'iouzoutneyjpugbbtdem'
+export const LOCAL_SUPABASE_PORT = '54321'
 
 export interface AutoLoginEnv {
   /** import.meta.env.DEV — true under `vite dev` / tests, false in prod builds. */
@@ -26,7 +24,7 @@ export interface AutoLoginEnv {
   readonly VITE_DEV_AUTOLOGIN?: string
   readonly VITE_DEV_USER_EMAIL?: string
   readonly VITE_DEV_USER_PASSWORD?: string
-  /** VITE_SUPABASE_URL — the backend the app is pointed at; must be the dev project. */
+  /** VITE_SUPABASE_URL — must be shared development or standard local Supabase. */
   readonly VITE_SUPABASE_URL?: string
 }
 
@@ -51,26 +49,48 @@ export class AutoLoginProductionError extends Error {
 }
 
 /**
- * The auto-login shim is active but the configured Supabase URL is not the dev
- * project. Fail-closed (independent of the build-mode check): dev credentials
- * must never be sent at anything other than the dev project — a missing,
- * malformed, or prod-looking URL halts startup.
+ * The auto-login shim is active but the configured Supabase URL is not an
+ * approved development backend. Fail closed so test credentials can never be
+ * sent to production, staging, or an arbitrary host.
  */
 export class AutoLoginWrongProjectError extends Error {
   constructor(url: string | undefined) {
     super(
-      `Refusing to auto-login: not the dev project. VITE_SUPABASE_URL must ` +
-        `contain the dev project ref "${DEV_PROJECT_REF}" (got: ` +
-        `${url ? `"${url}"` : 'unset'}). The dev auto-login shim may only ` +
-        `sign in against the dev project (see docs/auth-plan.md).`,
+      `Refusing to auto-login: VITE_SUPABASE_URL must target shared development ` +
+        `("${DEV_PROJECT_REF}") or local Supabase ` +
+        `("http://127.0.0.1:${LOCAL_SUPABASE_PORT}" / localhost; got: ` +
+        `${url ? `"${url}"` : 'unset'}). See docs/auth-plan.md.`,
     )
     this.name = 'AutoLoginWrongProjectError'
   }
 }
 
-/** True only when `url` is present and points at the dev project ref. */
+/** True only when `url` is present and points at the shared dev project ref. */
 export function isDevProjectUrl(url: string | undefined): boolean {
   return typeof url === 'string' && url.includes(DEV_PROJECT_REF)
+}
+
+/**
+ * True only for the standard local Supabase API endpoint. Restricting protocol,
+ * hostname, and port prevents an arbitrary local service from receiving the
+ * deterministic development credentials.
+ */
+export function isLocalSupabaseUrl(url: string | undefined): boolean {
+  if (!url) return false
+  try {
+    const parsed = new URL(url)
+    return (
+      parsed.protocol === 'http:' &&
+      (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost') &&
+      parsed.port === LOCAL_SUPABASE_PORT
+    )
+  } catch {
+    return false
+  }
+}
+
+export function isApprovedAutoLoginUrl(url: string | undefined): boolean {
+  return isDevProjectUrl(url) || isLocalSupabaseUrl(url)
 }
 
 /** The flag is on in a dev build but the dev-user credentials are incomplete. */
@@ -98,7 +118,7 @@ export function evaluateAutoLoginPolicy(env: AutoLoginEnv): AutoLoginDecision {
   const flagOn = isAutoLoginFlagOn(env.VITE_DEV_AUTOLOGIN)
 
   // Fail-closed: the flag on outside a dev build must halt the app entirely,
-  // regardless of whether credentials are present.
+  // regardless of whether credentials are present or which backend is selected.
   if (flagOn && !env.DEV) {
     throw new AutoLoginProductionError()
   }
@@ -109,9 +129,8 @@ export function evaluateAutoLoginPolicy(env: AutoLoginEnv): AutoLoginDecision {
   }
 
   // Second, independent guard: auto-login WILL proceed, so the backend must be
-  // the dev project — regardless of the env flags above. A missing, malformed,
-  // or prod-looking Supabase URL fails closed here.
-  if (!isDevProjectUrl(env.VITE_SUPABASE_URL)) {
+  // either the shared development project or standard disposable local Supabase.
+  if (!isApprovedAutoLoginUrl(env.VITE_SUPABASE_URL)) {
     throw new AutoLoginWrongProjectError(env.VITE_SUPABASE_URL)
   }
 
