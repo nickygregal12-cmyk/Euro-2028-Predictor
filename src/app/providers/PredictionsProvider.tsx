@@ -68,6 +68,16 @@ type TieSavePayload = { scope: TieResolutionScope; orderedTeamIds: string[] }
 type BracketSavePayload = { desired: Record<string, ProgressionStage> }
 type GoldenBootSavePayload = { playerId: string | null }
 
+type LoadSlice = 'matches' | 'ties' | 'progression' | 'goldenBoot'
+type LoadRevisions = Record<LoadSlice, number>
+
+const createLoadRevisions = (): LoadRevisions => ({
+  matches: 0,
+  ties: 0,
+  progression: 0,
+  goldenBoot: 0,
+})
+
 type PredictionsContextValue = {
   ready: boolean
   submittedAt: string | null
@@ -138,6 +148,19 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   entryIdRef.current = entryId
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const submittingRef = useRef(false)
+  // Each initial best-effort read captures the corresponding local-edit
+  // revision. A response may populate state only when the user has not
+  // changed that slice since the read began. This prevents a slow success
+  // or failure default from replacing newer local work.
+  const localEditRevisionsRef = useRef<LoadRevisions>(createLoadRevisions())
+
+  function markLocalEdit(slice: LoadSlice) {
+    localEditRevisionsRef.current[slice] += 1
+  }
+
+  function initialLoadCanApply(slice: LoadSlice, revision: number) {
+    return localEditRevisionsRef.current[slice] === revision
+  }
 
   // Bracket persistence baselines: `persisted` is what's currently in the DB,
   // `desired` is the latest map the user has picked. The debounced flush syncs
@@ -297,54 +320,99 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (!userId || !tournamentId) {
-      setReady(false)
-      return
-    }
     let active = true
+
+    // Entry context is changing (or disappearing). Clear every local slice and
+    // version baseline immediately so the previous account/tournament cannot
+    // remain visible or receive a delayed save while the next entry loads.
     setReady(false)
-    // A new entry is loading: drop any in-flight save state/timers from the
-    // previous entry so nothing carries over or writes to the wrong entry.
     clearDebounceTimers()
     controllerRef.current?.reset()
+    entryIdRef.current = null
+    setEntryId(null)
+    setSubmittedAt(null)
+    predictionsRef.current = {}
+    setPredictions({})
+    setSaveStatus({})
+    matchVersionsRef.current = {}
+    setTieResolutions([])
+    setTieSaveStatus({})
+    setProgression({})
+    progressionPersistedRef.current = {}
+    progressionDesiredRef.current = {}
+    progressionVersionsRef.current = {}
+    setBracketSaveStatus('idle')
+    setGoldenBootPlayerId(null)
+    goldenBootVersionRef.current = 0
     setGoldenBootSaveStatus('idle')
+    submittingRef.current = false
+    setSubmitting(false)
+    localEditRevisionsRef.current = createLoadRevisions()
+
+    if (!userId || !tournamentId) {
+      return () => {
+        active = false
+      }
+    }
+
     getOrCreateEntry(userId, tournamentId)
       .then(async (entry) => {
         if (!active) return
+        entryIdRef.current = entry.id
         setEntryId(entry.id)
         setSubmittedAt(entry.submittedAt)
+
+        const matchLoadRevision = localEditRevisionsRef.current.matches
         const rows = await fetchMatchPredictions(entry.id)
         if (!active) return
-        const map: Record<string, Prediction> = {}
-        const vmap: Record<string, number> = {}
-        for (const r of rows) {
-          map[r.matchId] = { homeScore: r.homeScore, awayScore: r.awayScore, joker: r.joker }
-          vmap[r.matchId] = r.version
+        if (initialLoadCanApply('matches', matchLoadRevision)) {
+          const map: Record<string, Prediction> = {}
+          const vmap: Record<string, number> = {}
+          for (const r of rows) {
+            map[r.matchId] = {
+              homeScore: r.homeScore,
+              awayScore: r.awayScore,
+              joker: r.joker,
+            }
+            vmap[r.matchId] = r.version
+          }
+          matchVersionsRef.current = vmap
+          predictionsRef.current = map
+          setPredictions(map)
         }
-        matchVersionsRef.current = vmap
-        setPredictions(map)
         setReady(true)
-        // Tie-resolutions load best-effort: they default to empty, so a failure
-        // (e.g. the follow-up migration not yet applied to this DB) leaves ties
-        // showing as unresolved rather than blocking the whole entry from
-        // loading. Unresolved is the safe direction — it keeps Review locked.
-        fetchTieResolutions(entry.id)
+
+        // These secondary reads remain fail-soft so missing optional data cannot
+        // block the entry. Their result/default may only apply if no newer local
+        // edit has occurred since the individual read began.
+        const tieLoadRevision = localEditRevisionsRef.current.ties
+        void fetchTieResolutions(entry.id)
           .then((ties) => {
-            if (active) setTieResolutions(ties.map((t) => ({ teamIds: t.teamIds, order: t.order })))
+            if (!active || !initialLoadCanApply('ties', tieLoadRevision)) return
+            setTieResolutions(
+              ties.map((t) => ({ teamIds: t.teamIds, order: t.order })),
+            )
           })
           .catch(() => {
-            if (active) setTieResolutions([])
+            if (active && initialLoadCanApply('ties', tieLoadRevision)) {
+              setTieResolutions([])
+            }
           })
-        // Knockout progression loads best-effort too (same fail-soft reasoning:
-        // no picks is the safe default that keeps Review honestly locked).
-        fetchProgression(entry.id)
-          .then((rows) => {
-            if (!active) return
+
+        const progressionLoadRevision = localEditRevisionsRef.current.progression
+        void fetchProgression(entry.id)
+          .then((progressionRows) => {
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
             const map: Record<string, ProgressionStage> = {}
             const vmap: Record<string, number> = {}
-            for (const r of rows) {
-              map[r.teamId] = r.stage
-              vmap[r.teamId] = r.version
+            for (const row of progressionRows) {
+              map[row.teamId] = row.stage
+              vmap[row.teamId] = row.version
             }
             setProgression(map)
             progressionPersistedRef.current = map
@@ -352,27 +420,40 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
             progressionVersionsRef.current = vmap
           })
           .catch(() => {
-            if (!active) return
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
             setProgression({})
             progressionPersistedRef.current = {}
             progressionDesiredRef.current = {}
             progressionVersionsRef.current = {}
           })
-        // Golden-boot selection loads best-effort too (the bonus tables may not
-        // be applied to this DB yet; a failure leaves it unset, which is safe).
-        fetchGoldenBoot(entry.id)
+
+        const goldenBootLoadRevision = localEditRevisionsRef.current.goldenBoot
+        void fetchGoldenBoot(entry.id)
           .then((gb) => {
-            if (!active) return
+            if (
+              !active ||
+              !initialLoadCanApply('goldenBoot', goldenBootLoadRevision)
+            ) {
+              return
+            }
             setGoldenBootPlayerId(gb.playerId)
             goldenBootVersionRef.current = gb.version
           })
           .catch(() => {
-            if (active) setGoldenBootPlayerId(null)
+            if (active && initialLoadCanApply('goldenBoot', goldenBootLoadRevision)) {
+              setGoldenBootPlayerId(null)
+            }
           })
       })
       .catch(() => {
         if (active) setReady(false)
       })
+
     return () => {
       active = false
     }
@@ -416,6 +497,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       const cur = prev[matchId] ?? EMPTY
       const wasComplete = cur.homeScore !== null && cur.awayScore !== null
       const next = { ...cur, [side === 'home' ? 'homeScore' : 'awayScore']: value }
+      markLocalEdit('matches')
       const updated = { ...prev, [matchId]: next }
       predictionsRef.current = updated
       if (next.homeScore !== null && next.awayScore !== null) {
@@ -452,6 +534,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       // The database is the authority (jokerPolicy.ts / joker-enforcement
       // migration); this just avoids an obviously-doomed round trip.
       if (!canToggleJoker({ turningOn, otherJokerCount, kickoffAt }).allowed) return prev
+      markLocalEdit('matches')
       const next = { ...cur, joker: turningOn }
       const updated = { ...prev, [matchId]: next }
       predictionsRef.current = updated
@@ -467,6 +550,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   function setTieResolution(scope: TieResolutionScope, orderedTeamIds: string[]) {
     const id = entryIdRef.current
     if (!id) return
+    markLocalEdit('ties')
     const key = tieKey(orderedTeamIds)
     setTieResolutions((prev) => {
       const others = prev.filter((r) => tieKey(r.teamIds) !== key)
@@ -486,6 +570,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   }
 
   function setBracketProgression(next: Record<string, ProgressionStage>) {
+    markLocalEdit('progression')
     setProgression(next)
     progressionDesiredRef.current = next
     if (progressionTimer.current !== undefined) clearTimeout(progressionTimer.current)
@@ -503,6 +588,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   }
 
   function setGoldenBoot(playerId: string | null) {
+    markLocalEdit('goldenBoot')
     setGoldenBootPlayerId(playerId) // optimistic — local state is never rolled back
     if (!entryIdRef.current) return
     // Now goes through the controller so a failure surfaces (with retry) instead
