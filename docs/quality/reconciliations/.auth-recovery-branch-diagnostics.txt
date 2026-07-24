@@ -1,6 +1,3 @@
-===== browser-action-setup =====
-No log captured.
-
 ===== browser-npm =====
 No log captured.
 
