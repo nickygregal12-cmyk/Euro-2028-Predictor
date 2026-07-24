@@ -14,36 +14,39 @@ This runbook governs the production rollout of repository migrations 21–35. It
 - Never use `--include-seed` on production.
 - Never restore old direct-table client writes as a compatibility shortcut.
 - One named operator performs the database change.
-- Treat application and database compatibility as one release.
+- Treat executable application code, current Netlify release and database schema as one verified release pair.
 
-## Current evidence and release identity
+## Release identity model
+
+Netlify can publish a new production release for a documentation-only `main` merge. A later release commit does not necessarily mean executable application code changed.
+
+For every rollout, record and verify:
+
+1. the **current Netlify release commit/deploy**, fetched live at the start of the window;
+2. the **application-code baseline** whose executable/configuration changes define the database dependencies;
+3. the diff between them, proving whether intervening releases are documentation-only or functional.
+
+Current known executable baseline:
+
+- application-code commit `a403b0796853453cb4115aea55729aced192a6ca`;
+- requires `replace_predicted_progression(uuid,jsonb,jsonb)` and `delete_match_prediction(uuid,uuid,integer)`;
+- both functions are absent from production.
+
+The first verified documentation-only descendant was commit `83e071c2c971ba16cffd8de6ae8fb92ffff5e7a3`, deploy `6a62c93afeb9b400086e1e3f`. Netlify reported the built files were already uploaded from an equivalent prior build. Future docs-only descendants should not be hard-coded here as permanently current.
+
+## Current evidence
 
 The 23–24 July 2026 work established:
 
 - disposable CI can rebuild the full 35-migration chain;
-- hosted development has the semantic effects of migrations 21–35;
+- hosted development has migrations 21–35 applied and verified;
 - the normalized production entry passes group reconstruction, R16 derivation, full bracket replay and submission validation;
 - migration 35 provides version-safe persisted score clearing;
 - production structural/source preflights pass;
 - production has zero legacy match results;
 - development’s function ACL and helper search-path contract passes;
-- production Supabase remains on migrations 1–20 with no migration-history table.
-
-The current production application is:
-
-| Field | Value |
-| --- | --- |
-| Commit | `a403b0796853453cb4115aea55729aced192a6ca` |
-| Netlify deploy | `6a62c49dfaa87100087a6ab1` |
-| Published | `2026-07-24T01:49:38.591Z` |
-| Branch/context | `main` / `production` |
-
-Read-only verification confirms the live client requires two absent production functions:
-
-- `replace_predicted_progression(uuid,jsonb,jsonb)`;
-- `delete_match_prediction(uuid,uuid,integer)`.
-
-The current application/database pair is therefore incompatible at both bracket persistence and persisted score clearing. This rollout is the prepared forward recovery path; it is not pre-approved.
+- production remains on migrations 1–20 with no migration-history table;
+- read-only production inspection confirms both executable-client RPC dependencies are absent.
 
 Evidence:
 
@@ -54,7 +57,7 @@ Evidence:
 - `docs/quality/reconciliations/2026-07-24-score-clearing.md`;
 - `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`.
 
-Current rollout guards:
+Rollout guards:
 
 | Payload | Fingerprint |
 | --- | --- |
@@ -68,8 +71,9 @@ If a fingerprint or submitted timestamp changes, stop and repeat the production-
 
 Record before starting:
 
-- approved repository commit;
-- current production application commit/deploy and whether it changed since this runbook update;
+- owner-approved repository/application-code baseline;
+- current production Netlify release commit/deploy fetched live;
+- executable/configuration diff between current release and approved baseline;
 - production Supabase project reference;
 - operator and recovery decision owner;
 - start time and change window;
@@ -85,20 +89,21 @@ Do not place credentials, database passwords, tokens or private backup URLs in t
 ## Phase 1 — freeze and verify identity
 
 1. Freeze ordinary production deployments and database writes.
-2. Confirm a clean checkout at the owner-approved repository commit.
-3. Verify the production Netlify deploy. Unless separately reviewed, the expected starting application is commit `a403b079` / deploy `6a62c49dfaa87100087a6ab1`.
-4. Confirm the linked Supabase project:
+2. Fetch the current production Netlify deploy live.
+3. Compare its executable/configuration diff with the owner-approved application-code baseline. Documentation-only differences are acceptable only when proven; unexplained functional differences are a stop condition.
+4. Confirm a clean checkout at the approved repository commit.
+5. Confirm the linked Supabase project:
 
 ```bash
 supabase projects list
 supabase link --project-ref vkfnsqdyhvtwyqkisxhk
 ```
 
-5. Confirm public domains still use production Supabase.
-6. Confirm both `replace_predicted_progression` and `delete_match_prediction` remain absent before rollout; an unexpected presence is a stop-and-investigate condition.
-7. Do not use an unisolated preview/branch deploy for production testing.
+6. Confirm public domains still use production Supabase.
+7. Confirm both `replace_predicted_progression` and `delete_match_prediction` remain absent before rollout. Unexpected presence is a stop-and-investigate condition.
+8. Do not use an unisolated preview/branch deploy for production testing.
 
-Stop if any target identity cannot be proven.
+Stop if any target identity or executable diff cannot be proven.
 
 ## Phase 2 — backup and recovery evidence
 
@@ -120,7 +125,7 @@ Required baseline result:
 - `all_structural_effects_present = true`;
 - all twenty per-migration checks true;
 - function ACL drift matches the known production state repaired by migration 34;
-- the migration-history table/list remains absent/unrepaired until Phase 4.
+- migration-history metadata remains absent/unrepaired until Phase 4.
 
 Required source result:
 
@@ -135,7 +140,7 @@ Required source result:
 - no scope anomaly exists;
 - knockout source tree remains `8/4/2/1` with fourteen valid winner sources.
 
-Profile/entry totals may increase through legitimate signup activity. Do not treat that alone as a failed rollout guard; inspect ownership and submitted-entry/source invariants. At the 24 July post-deploy snapshot, production had four profiles, four entries and one submitted entry.
+Profile/entry totals may increase through legitimate signup activity. At the 24 July read-only snapshot, production had four profiles, four entries and one submitted entry. Do not treat total count growth alone as a failed guard; inspect ownership and submitted-entry/source invariants.
 
 Any required failure is a stop condition. Investigate outside the change window.
 
@@ -245,12 +250,12 @@ Every reported value must be true, including:
 - authenticated/service allowlists are exact;
 - future public functions default owner-only;
 - helper search paths are empty and immutable;
-- the submitted entry, timestamp and three fingerprints are preserved;
+- submitted entry, timestamp and fingerprints are preserved;
 - 24 derived positions and eight progression rows remain;
-- submission and bracket validators pass;
+- submission/bracket validators pass;
 - no result, revision, score event or rank-history row was invented.
 
-Then run Supabase security advisors and retain output.
+Run Supabase security advisors and retain output.
 
 Expected:
 
@@ -264,15 +269,15 @@ Any unexpected privilege, object, data or advisor result is a stop condition.
 
 ## Phase 7 — authenticated application smoke tests
 
-Using the approved production application and controlled owner account:
+Using the verified current production release and a controlled owner account:
 
 ### Existing data and bracket
 
-1. Confirm all 36 submitted-entry predictions, both tie decisions and the complete bracket load.
+1. Confirm all 36 submitted-entry predictions, both tie decisions and complete bracket load.
 2. Make one reversible pre-lock bracket change.
 3. Wait for saved status, reload and confirm persistence through `replace_predicted_progression`.
 4. Reverse the change and confirm persistence.
-5. Confirm Review remains valid and the submission timestamp is preserved.
+5. Confirm Review remains valid and submission timestamp is preserved.
 
 ### Submission settlement
 
@@ -284,7 +289,7 @@ Using the approved production application and controlled owner account:
 
 9. Clear one side of a previously saved complete score.
 10. Wait for saved status and reload; confirm the score remains cleared.
-11. Confirm the affected predicted group positions become incomplete/absent until the score is restored.
+11. Confirm affected predicted group positions become incomplete/absent until restoration.
 12. Restore the score and confirm positions rebuild.
 13. Exercise a stale-device/version conflict and confirm newer work is not deleted.
 14. Confirm a post-lock clear is refused and the stored row remains.
@@ -299,15 +304,16 @@ Do not use an unisolated production preview for these tests.
 
 Only after database and application verification pass:
 
-- confirm the deployed app commit expects the live schema;
+- record the current Netlify release and executable application-code baseline;
+- confirm that executable code expects the live schema;
 - lift the freeze;
-- record the exact app/schema pair;
+- record the exact release/baseline/schema pair;
 - update `current-status.md`, `ops-pending-migrations.md` and the production release reconciliation;
 - retain all preflight, history, dry-run, push, advisor and smoke-test evidence.
 
 ## Failure handling
 
-### Preflight or history mismatch
+### Preflight, identity or history mismatch
 
 Stop before SQL application. Do not mutate production or invent history rows.
 
@@ -321,7 +327,7 @@ Keep the freeze. Never restore broad `PUBLIC` grants. Compare exact missing/surp
 
 ### Application smoke-test failure
 
-Do not point production at development and do not add old direct-table fallbacks. Either repair the application against the migrated schema or restore a known-good production application that is compatible with that schema. Database recovery remains a separate owner-approved decision.
+Do not point production at development and do not add old direct-table fallbacks. Either repair the application against the migrated schema or restore a known-good executable baseline compatible with that schema. Database recovery remains a separate owner-approved decision.
 
 ## Separate follow-up work
 

@@ -7,7 +7,8 @@ This is a historical record of the separate production Supabase project created 
 | Component | Verified position |
 | --- | --- |
 | Production domains | `euro28predictor.com` and `euro28predictor.netlify.app` |
-| Production Netlify | Commit `a403b0796853453cb4115aea55729aced192a6ca`; deploy `6a62c49dfaa87100087a6ab1`; automatically published from `main` at `2026-07-24T01:49:38.591Z` |
+| Production application-code baseline | `a403b0796853453cb4115aea55729aced192a6ca` — introduced the current bracket and score-clear RPC dependencies |
+| Netlify release commits | May advance on docs-only merges without executable application changes. Verify the current deploy live before any operation. First verified docs-only descendant: `83e071c2`, deploy `6a62c93afeb9b400086e1e3f`. |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk`; original 20-migration semantic shape; no migration-history table |
 | Development Supabase | `iouzoutneyjpugbbtdem`; migrations 21–35 applied and verified |
 | Repository shape | 35 migrations |
@@ -15,9 +16,20 @@ This is a historical record of the separate production Supabase project created 
 
 Production remains connected to production Supabase. Preserve that boundary in every release and incident.
 
+## Release identity rule
+
+A Netlify production release hash is not always an application-code change. Documentation-only merges can produce later release commits with identical built application files.
+
+For compatibility and rollback decisions, record both:
+
+1. the current Netlify release/deploy, verified live;
+2. the last executable application-code baseline relevant to the database schema.
+
+Do not treat one release hash as permanently current. Compare the current release diff with baseline `a403b079` before deciding whether the executable client changed.
+
 ## Critical release mismatch
 
-The automatic PR #20 deployment broadened the known application/database mismatch (`OPS-006`). The live client now calls:
+The executable production client calls:
 
 - `replace_predicted_progression(...)` for atomic bracket persistence;
 - `delete_match_prediction(...)` for persisted score clearing.
@@ -28,7 +40,9 @@ Expected effects:
 
 - bracket edits fail rather than persist atomically;
 - clearing a stored score reaches a save error and reload can restore the old row;
-- the new client does not fall back to unsafe direct writes.
+- the client does not fall back to unsafe direct writes.
+
+A later docs-only Netlify release does not change this verdict unless its diff modifies executable/configuration files.
 
 Do not apply migrations ad hoc from this document. Follow:
 
@@ -77,19 +91,7 @@ A previous version said an admin bootstrap grant had run. Direct inspection conf
 
 ## Hosted development rehearsal addendum
 
-The controlled 23–24 July rehearsal:
-
-- cleared disposable development competition state while preserving Auth-backed profiles/reference data;
-- applied migrations 21–35;
-- replayed the normalized production entry;
-- regenerated all 24 predicted group positions;
-- resolved all eight R16 fixtures and the full predicted bracket;
-- rehearsed result confirm/correct/clear and winner propagation;
-- verified atomic bracket stale-snapshot rejection;
-- removed anonymous public-function execution and enforced exact allowlists;
-- verified version-safe persisted score clearing, conflict protection and derived-position invalidation;
-- restored the mirror to 36 predictions, 24 positions, eight progression rows, zero revisions, zero score events and zero rank history;
-- passed the complete migrations 21–35 post-rollout contract.
+The controlled 23–24 July rehearsal applied migrations 21–35, replayed the normalized production entry, regenerated 24 predicted positions, resolved the R16 and full bracket, rehearsed results and winner propagation, verified exact function allowlists, and proved version-safe score clearing. Temporary evidence changes were removed afterward.
 
 This is rehearsal evidence only. It does not authorize or imply production rollout.
 
@@ -98,41 +100,43 @@ This is rehearsal evidence only. It does not authorize or imply production rollo
 - Production domains/deploys remain connected to production Supabase.
 - Development Supabase is never a production fallback.
 - Missing production RPCs must not be replaced by old direct-table client writes.
-- Application rollback restores a production deploy compatible with the current production schema while leaving production database configuration unchanged.
+- Application rollback restores a release whose **executable code** is compatible with the current production schema; a docs-only release hash alone does not prove or disprove compatibility.
 - Repairing variables uses last-known-good **production** values only.
 - Migration/data failure stops the rollout; it never triggers reset, improvised repair SQL or cross-environment swapping.
 
-## Current Netlify concern
+## Current Netlify concerns
 
-Production Supabase values are scoped to `all` deploy contexts. Production-project previews and branch deploys may therefore access production Supabase. Resolve `OPS-007` before treating previews as safe test environments.
+Production Supabase values are scoped to `all` deploy contexts. Production-project previews and branch deploys may therefore access production Supabase (`OPS-007`).
 
-The automatic deployment of `main` after PR #20 also shows that merging repository work can immediately change the live application even while database rollout is intentionally paused. Every merge affecting production write paths must therefore include an explicit app/schema compatibility decision.
+Merging to `main` can also automatically change the production release identity before a database rollout. Every merge affecting executable database-dependent paths must include an explicit app/schema compatibility decision.
 
 ## Future production rollout gate
 
 Before migrations 21–35 are applied:
 
-1. confirm production app commit `a403b079` and the current 20-migration schema state;
-2. retain verified backup/recovery evidence;
-3. rerun both production preflights;
-4. prove the submitted entry still matches the rehearsed timestamp/fingerprints;
-5. apply the exact 1–20 migration-history repair only while every baseline check remains true;
-6. require `supabase db push --dry-run` to show migrations 21–35 only;
-7. review failure/recovery decisions and obtain explicit approval;
-8. apply migrations 21–35 in timestamp order;
-9. run the exact object/data/table/function verifier and security advisors;
-10. verify bracket save/reload, immediate final-edit submission, score clear/reload/conflict/lock behavior, result lifecycle, scoring, leaderboard, Match Centre and leagues;
-11. record the compatible app/schema pair.
+1. verify the current Netlify release/deploy live;
+2. compare its executable/configuration diff with application-code baseline `a403b079`;
+3. retain verified backup/recovery evidence;
+4. rerun both production preflights;
+5. prove the submitted entry still matches the rehearsed timestamp/fingerprints;
+6. apply the exact 1–20 migration-history repair only while every baseline check remains true;
+7. require `supabase db push --dry-run` to show migrations 21–35 only;
+8. review failure/recovery decisions and obtain explicit approval;
+9. apply migrations 21–35 in timestamp order;
+10. run the exact verifier and security advisors;
+11. verify bracket save/reload, immediate final-edit submission, score clear/reload/conflict/lock behavior and critical reads;
+12. record the compatible application-code baseline, current release and database schema pair.
 
 ## Application rollback
 
 A safe application rollback:
 
-1. identifies a known-good production deploy compatible with the current schema;
-2. restores it through Netlify;
-3. leaves production Supabase URL/key unchanged;
-4. verifies auth, reads and critical writes against production;
-5. records commit, operator, reason and checks.
+1. identifies a known-good executable application baseline compatible with the current schema;
+2. selects a Netlify release containing that executable baseline;
+3. restores it through Netlify;
+4. leaves production Supabase URL/key unchanged;
+5. verifies auth, reads and critical writes against production;
+6. records release commit, executable baseline, operator, reason and checks.
 
 Rollback is incomplete until application/database compatibility is demonstrated.
 

@@ -11,20 +11,22 @@ This is the live source of truth for repository migration count, hosted semantic
 
 No production migration is approved merely because it exists in the repository, passed CI or passed a read-only preflight.
 
-## Current production application boundary
+## Production application/release boundary
 
-Netlify automatically published commit `a403b0796853453cb4115aea55729aced192a6ca` after PR #20 merged. Deploy `6a62c49dfaa87100087a6ab1` is the current production application.
-
-That client expects two functions from the pending chain:
+Application-code baseline `a403b0796853453cb4115aea55729aced192a6ca` introduced the executable client paths that require:
 
 | Client path | Required function | Introduced by | Production state |
 | --- | --- | --- | --- |
 | Atomic complete-bracket persistence | `replace_predicted_progression(uuid,jsonb,jsonb)` | Migration 33 | **Absent** |
 | Persisted score clearing | `delete_match_prediction(uuid,uuid,integer)` | Migration 35 | **Absent** |
 
+Netlify release commits may advance after documentation-only merges without changing the built application. The first verified docs-only descendant was commit `83e071c2`, deploy `6a62c93afeb9b400086e1e3f`; Netlify reported all built files were already uploaded from an equivalent prior build.
+
+Operational checks must verify the current Netlify deploy live and compare its executable/configuration diff with application-code baseline `a403b079`. Do not pin one release hash as permanently current.
+
 Read-only production inspection also confirmed the old broad owner `ALL` policies remain on `predicted_progression` and `match_predictions`, with authenticated direct progression DML and match-prediction deletion still granted.
 
-The application/database pair is therefore incompatible at both write boundaries. Do not restore old direct-table client writes as a workaround. The approved recovery remains the complete 21–35 chain or another explicitly compatible production application release.
+The application/database pair is incompatible at both write boundaries. Do not restore old direct-table client writes as a workaround. The approved forward recovery remains the complete 21–35 chain or another explicitly compatible executable application baseline.
 
 ## Repository migration chain
 
@@ -53,7 +55,7 @@ The application/database pair is therefore incompatible at both write boundaries
 | 19 | `20260721130000_match_centre.sql` | Match-centre aggregate RPCs | Present |
 | 20 | `20260722120000_write_integrity.sql` | Optimistic versions and original structural checks | Present |
 
-`scripts/database-rollout/production-baseline-1-20-verification.sql` returned every structural check true. The migration-history metadata remains absent because these files were applied manually rather than through a clean CLI migration push.
+`scripts/database-rollout/production-baseline-1-20-verification.sql` returned every structural check true. Migration-history metadata remains absent because these files were applied manually rather than through a clean CLI migration push.
 
 ### Development applied / production pending — 21–35
 
@@ -71,9 +73,9 @@ The application/database pair is therefore incompatible at both write boundaries
 | 30 | `20260723183200_lock_result_revision_log.sql` | Immutable revision log | Applied + verified | Pending |
 | 31 | `20260723184000_knockout_bracket_tree_integrity.sql` | Predicted replay and real winner propagation | Behaviour rehearsed | Pending |
 | 32 | `20260723184100_bracket_tree_compatibility.sql` | Bracket-tree compatibility/preflight | Production clone passed | Read-only source check passed; pending |
-| 33 | `20260723190000_atomic_bracket_persistence.sql` | Atomic complete-bracket RPC | PT409 rollback rehearsed | Pending; live client already requires it |
+| 33 | `20260723190000_atomic_bracket_persistence.sql` | Atomic complete-bracket RPC | PT409 rollback rehearsed | Pending; executable client already requires it |
 | 34 | `20260724001500_harden_function_privileges.sql` | Exact function allowlists and fixed search paths | ACL/advisor/RPC verified | Pending |
-| 35 | `20260724003000_delete_match_prediction_rpc.sql` | Version-safe persisted score clearing | RPC/client/pgTAP/hosted proof verified | Pending; live client already requires it |
+| 35 | `20260724003000_delete_match_prediction_rpc.sql` | Version-safe persisted score clearing | RPC/client/pgTAP/hosted proof verified | Pending; executable client already requires it |
 
 ## Verified development contract
 
@@ -81,26 +83,18 @@ Development verification through migration 35 includes:
 
 - private resolver schema denied to browser roles;
 - RPC-only submission and server-derived positions;
-- same-tournament and pre-lock prediction boundaries;
+- same-tournament and pre-lock boundaries;
 - result confirm/correct/clear, immutable revisions and serialized scoring;
-- real winner propagation and complete predicted-bracket replay;
+- real winner propagation and predicted-bracket replay;
 - atomic expected-version bracket replacement;
 - zero anonymous public-function execution;
-- exact authenticated and service-role function allowlists;
-- owner-only future function defaults and fixed helper search paths;
-- version-safe `delete_match_prediction(...)` with direct table deletion denied;
-- unknown/stale delete versions returning `PT409`;
-- successful deletion invalidating the affected group-position snapshot;
-- idempotent repeated clearing and post-lock refusal.
+- exact authenticated/service function allowlists;
+- owner-only future defaults and fixed helper paths;
+- version-safe score deletion with direct table deletion denied;
+- `PT409` for unknown/stale delete versions;
+- derived-position invalidation, idempotency and post-lock refusal.
 
 Hosted proof was rollback-only where source rows were temporarily changed. The normalized development mirror remains at 36 predictions, 24 derived positions, eight progression rows and the exact submitted timestamp/fingerprints.
-
-See:
-
-- `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`;
-- `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`;
-- `docs/quality/reconciliations/2026-07-24-score-clearing.md`;
-- `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`.
 
 ## Production source evidence
 
@@ -115,7 +109,7 @@ The post-deploy read-only snapshot found:
 - both client-required RPCs absent;
 - old direct table privileges/policies still present.
 
-The rollout-guard fingerprints remain:
+Rollout guards:
 
 - predictions `8d76619fe4b44fdac17de1cc2afe5aaa`;
 - tie decisions `a4dcf183f5c48e3ba11ff75c59622598`;
@@ -125,35 +119,35 @@ Any submitted timestamp, source payload or fingerprint change requires a fresh p
 
 ## Migration-history and rollout boundary
 
-Before any production `db push`:
+Before production `db push`:
 
-1. link to the exact production project;
-2. rerun both committed production preflights;
-3. run `supabase migration list`;
-4. apply only the prepared metadata repair for proven migrations 1–20;
-5. require the list to show 1–20 aligned and 21–35 pending;
-6. require `supabase db push --dry-run` to show migrations 21–35 only;
-7. obtain explicit approval before applying SQL.
+1. verify the current Netlify release live and compare executable/configuration changes with baseline `a403b079`;
+2. link to the exact production project;
+3. rerun both committed production preflights;
+4. run `supabase migration list`;
+5. apply only the prepared metadata repair for proven migrations 1–20;
+6. require 1–20 aligned and 21–35 pending;
+7. require `supabase db push --dry-run` to show migrations 21–35 only;
+8. obtain explicit approval before applying SQL.
 
 Do not edit migration history directly. Do not mark migrations 21–35 applied before their SQL executes.
 
 ## Production rollout prerequisites
 
-All are mandatory:
+Mandatory:
 
 - explicit owner approval;
 - verified backup/export or equivalent recovery evidence;
 - named operator and rollback decision owner;
 - production write/deploy freeze;
 - fresh baseline and source-data preflights;
+- verified current release and executable baseline;
 - exact timestamp and fingerprints;
 - reviewed 1–20 history-repair output;
 - dry run showing 21–35 only;
 - strict timestamp-order application;
-- `scripts/database-rollout/post-rollout-verification.sql` passing;
-- security-advisor evidence;
-- bracket save/reload smoke test;
-- score clear/reload, conflict and post-lock refusal smoke tests;
+- exact post-rollout verifier and security advisors;
+- bracket save/reload and score clear/reload/conflict/lock smoke tests;
 - retained change record.
 
 Follow `docs/ops-hosted-migration-rollout.md`.
@@ -167,4 +161,4 @@ Follow `docs/ops-hosted-migration-rollout.md`.
 5. Preserve environment isolation.
 6. Apply migrations 21–35 in strict order; never apply migration 33, 34 or 35 alone.
 7. Verify schema, privileges, data and application behaviour—not a generic success message.
-8. Treat application and database as one release pair.
+8. Treat executable application code, current release and database as one verified release pair.
