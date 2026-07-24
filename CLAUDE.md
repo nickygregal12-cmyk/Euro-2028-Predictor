@@ -13,7 +13,6 @@ Do not import rules or features from previous World Cup projects, old branches, 
 The production application/database mismatch remains live after PR #20:
 
 - application-code baseline `a403b0796853453cb4115aea55729aced192a6ca` introduced the currently deployed database dependencies;
-- later documentation-only Netlify release descendants may advance the release hash without changing executable compatibility;
 - production Supabase still has the original 20-migration schema and no tracked migration-history table;
 - production lacks `replace_predicted_progression` used by bracket persistence;
 - production lacks `delete_match_prediction` used by persisted score clearing;
@@ -24,11 +23,20 @@ The production application/database mismatch remains live after PR #20:
 
 Expected live behavior: bracket saves fail; clearing a stored score reaches a save error and reload can restore the old row. Do not add a direct-table fallback.
 
+A hard application/database deployment gate now contains the mismatch:
+
+- repository application contract is `35`;
+- deploy-preview, branch-deploy and Netlify dev declare hosted contract `35`;
+- production declares hosted contract `20`;
+- new production builds fail before Vite while the current ready production deploy remains active.
+
+Never change production `EURO28_DEPLOYED_DB_CONTRACT` to `35` merely to make a build pass. It may change only after migrations 21–35, post-rollout verification, advisors and required production smoke tests have passed.
+
 Normal production promotion must pause until a reviewed plan restores a compatible app/schema pair. Never point production at development Supabase. Do not apply hosted migrations without explicit owner approval, fresh preflights, a proven recovery artifact and the controlled rollout runbook.
 
 The current Supabase organization is on Free. Prepared backup tooling is not recovery evidence. Before a production migration window, a fresh logical bundle must be encrypted, retained off the working machine, retrieved, checksum-verified and successfully restored to a disposable target.
 
-Netlify non-production isolation is resolved: deploy previews, branch deploys and Netlify development use development Supabase; production remains production. `scripts/validate-netlify-environment.mjs` runs before builds and must not be bypassed.
+Netlify non-production isolation is resolved: deploy previews, branch deploys and Netlify development use development Supabase; production remains production.
 
 ## Sources of truth
 
@@ -36,6 +44,7 @@ Netlify non-production isolation is resolved: deploy previews, branch deploys an
 | --- | --- |
 | Current implementation, hosted state and next action | `docs/quality/current-status.md` |
 | Current production release evidence | `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md` |
+| Application/database deploy gate | `docs/quality/reconciliations/2026-07-24-app-schema-deployment-gate.md` |
 | Production recovery readiness | `docs/quality/reconciliations/2026-07-24-production-recovery-readiness.md` |
 | Netlify environment isolation | `docs/quality/reconciliations/2026-07-24-netlify-environment-isolation.md` |
 | Production backup and restore proof | `docs/ops-production-backup-restore.md` |
@@ -47,6 +56,7 @@ Netlify non-production isolation is resolved: deploy previews, branch deploys an
 | Current risks | `docs/quality/risk-register.md` |
 | Hosted migration inventory | `docs/ops-pending-migrations.md` |
 | Production rollout | `docs/ops-hosted-migration-rollout.md` |
+| Deployment contract | `config/deployment-contract.json` |
 | Scoring and entry validity | `docs/scoring-rules.md` |
 | Tournament facts | `docs/tournament-structure.md` |
 | Architecture/states | `docs/architecture-and-tournament-states.md` |
@@ -70,7 +80,8 @@ Older audits and Git history remain evidence, not current instructions.
 - Prediction deletion must use the exact row version read; unknown or stale versions conflict rather than deleting unseen work.
 - Never restore old direct progression/delete writes as a production-compatibility shortcut.
 - Production Netlify context must use production Supabase; deploy-preview, branch-deploy and dev must use development Supabase.
-- Never weaken or bypass the Netlify prebuild context guard to make a deploy pass.
+- Never weaken or bypass either Netlify prebuild guard to make a deploy pass.
+- Adding a migration requires review and update of `config/deployment-contract.json`.
 - Original Predictor and bonus games remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references and unknown official data.
@@ -122,23 +133,25 @@ npm audit --omit=dev --audit-level=high
 ```
 
 5. For database/tournament changes, also run the disposable Supabase rebuild, database lint, all pgTAP suites and TypeScript/PostgreSQL parity from `.github/workflows/database-parity.yml`.
-6. Update current status, risk register, migration inventory and a dated reconciliation when hosted facts change—including automatic deployments and environment-context changes.
-7. Use Netlify previews for visual review only after the context guard passes and preview data isolation is verified.
+6. Update the deployment contract whenever migrations or required application RPCs change.
+7. Update current status, risk register, migration inventory and a dated reconciliation when hosted facts change—including automatic deployments and environment-context changes.
+8. Use Netlify previews for visual review only after both prebuild guards pass.
 
 ## Immediate order
 
 1. Freeze the approved production state and create the fresh logical backup bundle using `docs/ops-production-backup-restore.md`.
-2. Encrypt it, retain it off the working machine, retrieve it, verify checksums and complete a disposable restore rehearsal. Do not treat script availability or an untested dump as recovery evidence.
-3. Name the operator, recovery decision owner and change window; review and explicitly approve the production migrations 21–35 window only after recovery evidence is accepted.
+2. Encrypt it, retain it off the working machine, retrieve it, verify checksums and complete a disposable restore rehearsal.
+3. Name the operator, recovery decision owner and change window; approve the production migrations 21–35 window only after recovery evidence is accepted.
 4. Rerun both production preflights and apply the exact 1–20 history-only repair.
 5. Require `supabase db push --dry-run` to show migrations 21–35 only.
 6. Apply migrations 21–35 only after explicit approval; run exact post-verification, advisors and smoke tests.
-7. Browser-verify bracket save/reload, immediate final-edit submission and score clear/reload/conflict/lock behavior; add durable E2E and close `REL-003`/`DATA-005`.
-8. Add an explicit app/schema compatibility gate before database-dependent changes can auto-deploy from `main`.
-9. Verify Turnstile domain/context behavior and any separately maintained development Netlify site.
-10. Enable leaked-password protection through a separate approved Auth change.
-11. Address `REL-002`, then `REL-006`.
-12. Implement automatic real R16 population.
+7. Only after those checks pass, update production `EURO28_DEPLOYED_DB_CONTRACT` from `20` to `35` and retry the approved production deploy.
+8. Verify the current production pointer advances and record the exact release/application/database pair.
+9. Browser-verify bracket save/reload, immediate final-edit submission and score clear/reload/conflict/lock behavior; add durable E2E and close `REL-003`/`DATA-005`.
+10. Verify Turnstile domain/context behavior and any separately maintained development Netlify site.
+11. Enable leaked-password protection through a separate approved Auth change.
+12. Address `REL-002`, then `REL-006`.
+13. Implement automatic real R16 population.
 
 ## Hard prohibitions
 
@@ -147,6 +160,7 @@ npm audit --omit=dev --audit-level=high
 - No production-to-development fallback.
 - No direct-table fallback for missing production RPCs.
 - No Netlify context crossing or prebuild-guard bypass.
+- No early production deployment-contract change.
 - No claimed deployment without hosted verification.
 - No scoring or competition-rule change without updating authoritative rules and tests.
 - No reliance on chat memory over repository evidence.
