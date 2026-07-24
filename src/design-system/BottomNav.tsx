@@ -22,6 +22,8 @@ const ITEMS: {
 
 export type BottomNavProps = {
   active: NavKey
+  /** Dev/demo-only override. Production navigation should omit this. */
+  onNavigate?: (key: NavKey) => void
 }
 
 /**
@@ -29,7 +31,7 @@ export type BottomNavProps = {
  * browser and assistive-technology link behaviours remain available. Active
  * state is conveyed by aria-current as well as the icon/label colour change.
  */
-export function BottomNav({ active }: BottomNavProps) {
+export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
     <nav className={styles.nav} aria-label="Primary">
       {ITEMS.map(({ key, label, to, Icon }) => {
@@ -40,6 +42,14 @@ export function BottomNav({ active }: BottomNavProps) {
             to={to}
             className={`${styles.tab} ${isActive ? styles.active : ''}`}
             aria-current={isActive ? 'page' : undefined}
+            onClick={
+              onNavigate
+                ? (event) => {
+                    event.preventDefault()
+                    onNavigate(key)
+                  }
+                : undefined
+            }
           >
             <Icon size={22} />
             <span className={styles.label}>{label}</span>
