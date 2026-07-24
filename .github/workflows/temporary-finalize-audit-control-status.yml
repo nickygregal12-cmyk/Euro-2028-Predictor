@@ -1,0 +1,170 @@
+name: Temporary audit-control closure
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/temporary-finalize-audit-control-status.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/repair-audit-controls
+          fetch-depth: 0
+
+      - name: Record validated closure evidence
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(text: str, old: str, new: str, label: str) -> str:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected one match, found {count}')
+              return text.replace(old, new, 1)
+
+          status_path = Path('docs/quality/current-status.md')
+          status = status_path.read_text(encoding='utf-8')
+          status = replace_once(
+              status,
+              '- `2026-07-24R` found that `tests/scripts/envFileHygiene.test.ts` failed outside a Git work tree. Issue #46 now contains an explicit Git-work-tree gate and CI execution from `git archive`; pull-request validation is pending.',
+              '- `2026-07-24R` found that `tests/scripts/envFileHygiene.test.ts` failed outside a Git work tree. PR #47 CI run 195 subsequently passed an explicit `git archive` execution with the suite skipped for the stated reason, while the normal Git-checkout suite also passed.',
+              'status TEST-003 qualification',
+          )
+          status = replace_once(
+              status,
+              '| Issue #46 | **In progress.** Git-less test behaviour, stale manual-test references and archived relative links are repaired on `agent/repair-audit-controls`; permanent regression checks and pull-request validation are pending. |',
+              '| Issue #46 / PR #47 | **Validated for merge.** Head `eab67c8f56579d038e1d1164ee1675082df2ed91` passed CI run 195: Git-less archive proof, build, lint, full tests, Markdown-link checks and dependency audit. |',
+              'status issue 46 row',
+          )
+          status = replace_once(
+              status,
+              '| `DOC-001` | **In progress — issue #46:** the stale test script is rewritten; repository validation is pending. |',
+              '| `DOC-001` | **Resolved by PR #47:** the stale phase/batch references are removed, the script is aligned to current environment gates, and executable coverage prevents their return. |',
+              'status DOC-001 row',
+          )
+          status = replace_once(
+              status,
+              '| `TEST-003` | **In progress — issue #46:** Git-less checkouts now skip explicitly and CI contains an archive-based proof step; validation is pending. |',
+              '| `TEST-003` | **Resolved by PR #47:** CI run 195 passed both the Git-less archive proof and the normal Git-checkout assertions. |',
+              'status TEST-003 row',
+          )
+          status = replace_once(
+              status,
+              '| `DOC-006` | **In progress — issue #46:** archived targets are repaired and a repository-wide relative-link test is added; validation is pending. |',
+              '| `DOC-006` | **Resolved by PR #47:** archived targets are repaired and the repository-wide relative-link test passed in CI run 195. |',
+              'status DOC-006 row',
+          )
+          status = replace_once(
+              status,
+              'Issue #46 owns the remaining audit-control validation. Production migration and deployment gates are unchanged.',
+              'PR #47 completed the repository validation for issue #46. Merge publishes the closure evidence to `main`; production migration and deployment gates remain unchanged.',
+              'status closure sentence',
+          )
+          status = replace_once(
+              status,
+              '| Quality governance | **Improving but still degraded.** `DOC-004` and `TEST-002` are resolved; `DOC-005` remains open and issue #46 is validating `DOC-001`, `TEST-003` and `DOC-006`. No feature or safeguard regression was detected. |',
+              '| Quality governance | **Improved but still degraded by `DOC-005`.** `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` have validated repository fixes. No feature or safeguard regression was detected. |',
+              'status governance verdict',
+          )
+          status = replace_once(
+              status,
+              '- `DOC-001`, `TEST-003`, `DOC-006`: in progress through issue #46.',
+              '- `DOC-001`, `TEST-003`, `DOC-006`: resolved by PR #47 validation; merge publishes the evidence to `main`.',
+              'status finding positions',
+          )
+          status = replace_once(
+              status,
+              '| Quality governance | `DOC-005` remains open. Issue #46 is validating the repaired `DOC-001`, `TEST-003` and `DOC-006` controls; `DOC-004` and `TEST-002` are resolved. |',
+              '| Quality governance | `DOC-005` remains open. `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` have validated repository fixes. |',
+              'status blocker row',
+          )
+          status_path.write_text(status, encoding='utf-8')
+
+          risk_path = Path('docs/quality/risk-register.md')
+          risk = risk_path.read_text(encoding='utf-8')
+          risk = replace_once(risk, '| Medium | 19 | 2 | 17 |', '| Medium | 19 | 3 | 16 |', 'risk medium summary')
+          risk = replace_once(risk, '| Low | 16 | 3 | 13 |', '| Low | 16 | 5 | 11 |', 'risk low summary')
+          risk = replace_once(risk, '| **Total** | **57** | **8** | **49** |', '| **Total** | **57** | **11** | **46** |', 'risk total summary')
+          risk = replace_once(
+              risk,
+              '`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004` and `TEST-002` are resolved.',
+              '`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved.',
+              'risk resolved summary',
+          )
+          risk = replace_once(
+              risk,
+              '| In progress | Issue #46 repairs `DOC-001`, `TEST-003` and `DOC-006` with permanent regression coverage; pull-request validation is pending. |',
+              '| Resolved | PR #47 head `eab67c8f56579d038e1d1164ee1675082df2ed91` passed CI run 195, closing `DOC-001`, `TEST-003` and `DOC-006` at the repository layer. |',
+              'risk movement row',
+          )
+          risk = replace_once(
+              risk,
+              '| `DOC-001` | Documentation is not consistently authoritative | **In progress — issue #46** | `docs/test-script.md` is rewritten against current environment gates and finding IDs, and executable coverage prevents its obsolete phase/batch references from returning. Close after the pull-request suite and repository-wide relative-link check pass. |',
+              '| `DOC-001` | Documentation is not consistently authoritative | **Resolved by PR #47** | `docs/test-script.md` is aligned to current environment gates and finding IDs; repository-wide relative-link and obsolete-reference checks passed in CI run 195. Reopen on a new verified authority or cross-reference inconsistency. |',
+              'risk DOC-001 row',
+          )
+          risk = replace_once(
+              risk,
+              '| `TEST-003` | One test file hard-fails outside a git work tree | **In progress — issue #46** | The suite now detects Git-work-tree availability, skips explicitly when unavailable, and retains Git-native ignore assertions in normal checkouts. CI also runs the file from a `git archive` extraction with no `.git`. Close after both normal and archive-based pull-request steps pass. |',
+              '| `TEST-003` | One test file hard-fails outside a git work tree | **Resolved by PR #47** | CI run 195 passed the explicit Git-less `git archive` execution and the normal Git-checkout assertions. Reopen if Git-less execution fails or becomes an unexplained false pass. |',
+              'risk TEST-003 row',
+          )
+          risk = replace_once(
+              risk,
+              '| `DOC-006` | Archived evidence has broken relative links | **In progress — issue #46** | Both archived files now use `../audits/` and `../risk-register.md`, and a repository-wide relative Markdown-link test is present. Close after the pull-request suite reports zero broken links. |',
+              '| `DOC-006` | Archived evidence has broken relative links | **Resolved by PR #47** | Both archived files use the correct parent-relative targets and the repository-wide Markdown-link check passed in CI run 195. Reopen on any broken relative-link regression. |',
+              'risk DOC-006 row',
+          )
+          risk_path.write_text(risk, encoding='utf-8')
+
+          reconciliation_path = Path('docs/quality/reconciliations/2026-07-24-audit-control-cleanup.md')
+          reconciliation = reconciliation_path.read_text(encoding='utf-8')
+          reconciliation = replace_once(
+              reconciliation,
+              '**Status:** Repository implementation prepared; pull-request validation pending',
+              '**Status:** Validated for merge on PR #47',
+              'reconciliation status',
+          )
+          validation_heading = '## Validation required before closure'
+          validation_index = reconciliation.index(validation_heading)
+          reconciliation = reconciliation[:validation_index] + '''## Validation evidence
+
+PR #47 head `eab67c8f56579d038e1d1164ee1675082df2ed91` completed CI run 195 successfully:
+
+- dependency installation passed;
+- the `git archive` checkout, which contains no `.git` directory, reported the environment-file suite as explicitly skipped rather than failed;
+- the normal Git-checkout environment-file assertions passed in the complete suite;
+- build and lint passed;
+- the complete Vitest suite passed, including repository-wide relative Markdown-link validation and obsolete test-script reference checks;
+- the production-dependency audit passed.
+
+This validates `DOC-001`, `TEST-003` and `DOC-006` at the repository layer. `TEST-002` and `DOC-004` were also reconciled as resolved. Merge of PR #47 publishes the implementation and evidence to `main`; no production, Supabase, Netlify, migration, scoring or application-runtime change is part of this batch.
+'''
+          reconciliation_path.write_text(reconciliation, encoding='utf-8')
+
+      - name: Write finalised documents through GitHub contents API
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: agent/repair-audit-controls
+        run: |
+          set -euo pipefail
+          for file in \
+            docs/quality/current-status.md \
+            docs/quality/risk-register.md \
+            docs/quality/reconciliations/2026-07-24-audit-control-cleanup.md; do
+            sha="$(gh api "repos/$REPOSITORY/contents/$file?ref=$BRANCH" --jq .sha)"
+            content="$(base64 -w 0 "$file")"
+            gh api --method PUT "repos/$REPOSITORY/contents/$file" \
+              -f message='docs: close validated audit-control findings' \
+              -f content="$content" \
+              -f sha="$sha" \
+              -f branch="$BRANCH" >/dev/null
+          done
