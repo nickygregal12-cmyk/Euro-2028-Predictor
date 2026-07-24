@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 const root = resolve(import.meta.dirname, '../..')
 const workflow = readFileSync(resolve(root, '.github/workflows/browser-e2e.yml'), 'utf8')
+const globalSetup = readFileSync(resolve(root, 'e2e/global-setup.ts'), 'utf8')
+const localFixtures = readFileSync(resolve(root, 'e2e/local-supabase.ts'), 'utf8')
 const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>
   devDependencies: Record<string, string>
@@ -14,6 +16,8 @@ const forbiddenHostedRefs = [
   'iouzoutneyjpugbbtdem',
   'gcfdwobpnanjchcnvdco',
 ]
+
+const browserHarness = `${workflow}\n${globalSetup}\n${localFixtures}`
 
 describe('authenticated browser E2E workflow', () => {
   it('uses a disposable local Supabase rebuild and Playwright Chromium', () => {
@@ -26,7 +30,14 @@ describe('authenticated browser E2E workflow', () => {
   })
 
   it('contains no hosted Supabase project reference', () => {
-    for (const ref of forbiddenHostedRefs) expect(workflow).not.toContain(ref)
+    for (const ref of forbiddenHostedRefs) expect(browserHarness).not.toContain(ref)
+  })
+
+  it('guards admin fixtures to standard HTTP loopback Supabase', () => {
+    expect(localFixtures).toContain("parsed.protocol !== 'http:'")
+    expect(localFixtures).toContain("['127.0.0.1', 'localhost'].includes(parsed.hostname)")
+    expect(localFixtures).toContain("LOCAL_SUPABASE_PORT = '54321'")
+    expect(localFixtures).toContain('parsed.port !== LOCAL_SUPABASE_PORT')
   })
 
   it('pins the Playwright dependency and exposes stable scripts', () => {
