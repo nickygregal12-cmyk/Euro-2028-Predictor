@@ -4,6 +4,7 @@
 **Evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
 **Current production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)  
 **Production recovery readiness:** [`reconciliations/2026-07-24-production-recovery-readiness.md`](reconciliations/2026-07-24-production-recovery-readiness.md)  
+**Netlify environment isolation:** [`reconciliations/2026-07-24-netlify-environment-isolation.md`](reconciliations/2026-07-24-netlify-environment-isolation.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -15,12 +16,12 @@ This register retains every original finding ID and adds findings discovered by 
 | Severity | Total current findings | Closed/superseded | Open or partially resolved |
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
-| High | 16 | 1 | 15 |
+| High | 16 | 2 | 14 |
 | Medium | 14 | 1 | 13 |
 | Low | 14 | 0 | 14 |
-| **Total** | **50** | **3** | **47** |
+| **Total** | **50** | **4** | **46** |
 
-`OPS-001` is resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001` and `OPS-007` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ## Critical
 
@@ -37,7 +38,7 @@ This register retains every original finding ID and adds findings discovered by 
 
 | ID | Finding | Current status | Current evidence / required closure |
 | --- | --- | --- | --- |
-| `OPS-007` | Production deploy previews/branch deploys inherit production Supabase values | **Open — confirmed configuration** | Production Netlify env values are scoped to `all` contexts. Scope previews away from production or disable/protect them. |
+| `OPS-007` | Production deploy previews/branch deploys inherit production Supabase values | **Resolved** | Netlify `deploy-preview`, `branch-deploy` and `dev` contexts now use development Supabase while `production` remains production. PR #24’s ready preview passed the repository prebuild context guard. Reopen if the context matrix or guard regresses. |
 | `SECURITY-003` | Hosted `SECURITY DEFINER` grants and mutable search paths are over-broad | **Open production; implemented repository/development** | Migrations 34–35 establish exact function allowlists, closed defaults and fixed helper paths on development. Production retains old broad grants until migrations 21–35 roll out. |
 | `DATA-003` | Same-tournament/reference constraints are incomplete | **Open — partially implemented** | Major guards exist; wider immutable/composite constraints remain and production controls are absent. |
 | `FUNC-001` | Bracket progression can be internally inconsistent | **Open production; implemented repository/development** | Full predicted-tree replay/validation pass on development. Production validator/propagation is absent. |
