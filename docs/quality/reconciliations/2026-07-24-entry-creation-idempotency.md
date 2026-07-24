@@ -34,8 +34,8 @@ This is a service-boundary, regression-test and quality-documentation change. It
 
 ## Closure boundary
 
-Keep `REL-006` open until the final pull-request head passes the guarded build, lint, complete Vitest suite, production dependency audit, Browser E2E and a ready Netlify preview, then merges to `main`.
+`REL-006` is resolved. Reopen it only if concurrent first-use requests can again create duplicates, surface a raw unique conflict or fail to converge on the shared entry.
 
 ## Validation
 
-Functional head `c1ee4d727ad7235e350d5e6c7c79072857834e58` passed CI run `30130735751`, Browser E2E run `30130735710` and a ready Netlify deploy preview. The browser run rebuilt all committed migrations and seed data, released two coordinated first-use entry writes simultaneously, completed all established authenticated and recovery journeys, and cleaned up disposable data. Reconciliation commit `86d85330761c18a59195a50a6e08a7e422e4cf2f` then passed the guarded build, lint, complete Vitest suite and production dependency audit. This documentation-only owner commit triggers the standard CI, Browser E2E and Netlify gates on the final review head.
+Functional head `c1ee4d727ad7235e350d5e6c7c79072857834e58` passed CI run `30130735751`, Browser E2E run `30130735710` and a ready Netlify deploy preview. Final head `41853b5716764e953160e161a8dd4356bde1499b` passed CI run `30131321194`, Browser E2E run `30131321198` and the ready deploy preview, then PR #65 squash-merged as `cd517f6f0fba48aaf54c16ee444671db29bd2741` and issue #64 closed.
