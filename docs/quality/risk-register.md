@@ -7,13 +7,14 @@
 **Netlify environment isolation:** [`reconciliations/2026-07-24-netlify-environment-isolation.md`](reconciliations/2026-07-24-netlify-environment-isolation.md)  
 **Application/schema deployment gate:** [`reconciliations/2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md)  
 **Legacy development/Turnstile evidence:** [`reconciliations/2026-07-24-legacy-development-site-and-turnstile.md`](reconciliations/2026-07-24-legacy-development-site-and-turnstile.md)  
+**Owner default decisions:** [`reconciliations/2026-07-24-owner-default-decisions.md`](reconciliations/2026-07-24-owner-default-decisions.md)  
 **Node runtime pinning:** [`reconciliations/2026-07-24-node-runtime-pinning.md`](reconciliations/2026-07-24-node-runtime-pinning.md)  
 **Environment-file hygiene:** [`reconciliations/2026-07-24-environment-file-hygiene.md`](reconciliations/2026-07-24-environment-file-hygiene.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
 
-This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” does **not** mean recovery is proven.
+This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” or an approved recovery method does **not** mean recovery is proven.
 
 ## Summary
 
@@ -56,15 +57,15 @@ This register retains every original finding ID and adds findings discovered by 
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
 | `OPS-002` | No version-controlled administrator model/control room boundary | **Open** | No `profiles.role` column exists in repository/hosted schema; no browser result admin page. |
 | `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI, pgTAP and provider-level submission/score-clear tests exist; authenticated production-like browser E2E remains absent. |
-| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — tooling prepared, evidence absent** | Read-only inventory confirms a ~12 MB Free-plan production database with no Storage objects/Edge Functions and one custom Auth signup trigger. Fail-closed backup tooling, checksums and restore runbook now exist, but no fresh production dump, encrypted off-site artifact, retrieval proof or disposable restore has been performed. Production rollout remains blocked. |
+| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — recovery method approved, evidence absent; issue #32** | The owner approved Windows execution, 7-Zip AES-256 encryption, OneDrive custody and owner review. Fail-closed backup tooling/checksums/runbook exist, but no fresh production dump, encrypted off-site artifact, retrieval proof or disposable restore has been performed. Production rollout remains blocked until issue #32 is completed and accepted. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 
 ## Medium
 
 | ID | Finding | Current status | Closure evidence required |
 | --- | --- | --- | --- |
-| `OPS-008` | A public legacy “development” site is sourced from the World Cup repository and a dormant staging backend | **Open — owner decision required; issue #27** | `euro28-predictor-dev.netlify.app` deploys `worldcup2026/euro28-development`, points at inactive Supabase project `gcfdwobpnanjchcnvdco`, enables time travel and exposes health/observability/hourly-heartbeat functions. It is not a current Euro 2028 environment. Close only after an explicit separate legacy-site decision and verified public-access/function/cron/backend state. Do not modify it from the current repository workstream. |
-| `AUTH-001` | Production Turnstile site key is inherited by non-production contexts while development CAPTCHA configuration is unverified | **Open — configuration decision required; issue #28** | Production auth currently succeeds, but development Auth has no recent evidence and the Cloudflare hostname list/Supabase development secret are not visible. Select an explicit non-production model—CAPTCHA off, matching Cloudflare test keys, or dedicated development widget—then verify preview login/signup/recovery and retain non-secret dashboard/log evidence. Never allow broad `netlify.app` merely to cover previews. |
+| `OPS-008` | A public legacy “development” site is sourced from the World Cup repository and a dormant staging backend | **Open — retire/protect approved; dashboard execution pending; issue #27** | The owner approved removal of public access and separate retirement of the hourly legacy activity. Automated team-login protection returned HTTP 422 and the password fallback was blocked before execution, so the site remains unchanged and public. Close after the separate Netlify dashboard action and verified public-access/function/cron/backend state. Do not repoint it to either current Euro project. |
+| `AUTH-001` | Production Turnstile site key is inherited by non-production contexts while development CAPTCHA configuration is unverified | **Open — always-pass test model approved; dashboard execution pending; issue #28** | The owner approved Cloudflare's matching always-pass test pair for previews/branches/dev and development Supabase, while production retains its real pair. Connected tools cannot update the development Supabase CAPTCHA secret/toggle. Close after both dashboard sides are configured together and preview login/signup/recovery plus production regression evidence pass. |
 | `REL-005` | Open pages can remain convincingly stale | Open | Add and test realtime, polling or focus-refetch strategy. |
 | `REL-006` | Concurrent first-use requests can hit entry unique conflicts | Open | Replace/select-insert race with idempotent server boundary and test two-tab creation. |
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Complete-snapshot versions contain this on development; verify production rollout and multi-device browser behavior. |
@@ -103,7 +104,7 @@ This register retains every original finding ID and adds findings discovered by 
 
 - Keep original IDs when the same defect regresses or broadens.
 - A repository/development fix remains open when the actual risk is still present or unverified in production.
-- Prepared tooling does not resolve a finding that requires a real artifact or restore proof.
+- Prepared tooling or an approved method does not resolve a finding that requires a real artifact or restore proof.
 - `Resolved` requires implementation, validation and current-environment evidence appropriate to the finding.
 - `Superseded` must name the active replacement finding.
 - Do not silently remove uncertain or accepted risks.
