@@ -54,13 +54,12 @@ esac
   'Repository working tree must be clean so backup provenance is reproducible.'
 
 mkdir -p "${BACKUP_ROOT}"
+[[ ! -L "${BACKUP_ROOT}" ]] || fail 'BACKUP_ROOT must not be a symbolic link.'
 readonly BACKUP_ROOT_ABS="$(cd "${BACKUP_ROOT}" && pwd -P)"
 
 case "${BACKUP_ROOT_ABS}/" in
   "${REPO_ROOT}/"*) fail 'BACKUP_ROOT must be outside the repository.' ;;
 esac
-
-[[ ! -L "${BACKUP_ROOT_ABS}" ]] || fail 'BACKUP_ROOT must not be a symbolic link.'
 
 docker info >/dev/null 2>&1 || fail 'Docker must be running for Supabase CLI dump/diff commands.'
 
