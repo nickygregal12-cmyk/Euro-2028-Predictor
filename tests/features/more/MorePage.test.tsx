@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MorePage } from '../../../src/features/more/MorePage'
@@ -61,7 +61,7 @@ describe('MorePage sign out', () => {
     expect(mocks.signOut).toHaveBeenCalledOnce()
     expect(screen.getByRole('dialog', { name: 'Sign out?' })).toBeTruthy()
 
-    finishSignOut()
+    act(() => finishSignOut())
 
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Sign out?' })).toBeNull()
@@ -76,11 +76,10 @@ describe('MorePage sign out', () => {
     let dialog = screen.getByRole('dialog', { name: 'Sign out?' })
     fireEvent.click(within(dialog).getByRole('button', { name: 'Sign out' }))
 
-    expect(
-      await screen.findByRole('alert', {
-        name: 'We couldn’t sign you out. Check your connection and try again.',
-      }),
-    ).toBeTruthy()
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(
+      'We couldn’t sign you out. Check your connection and try again.',
+    )
     expect(screen.queryByText('internal provider detail')).toBeNull()
 
     dialog = screen.getByRole('dialog', { name: 'Sign out?' })
