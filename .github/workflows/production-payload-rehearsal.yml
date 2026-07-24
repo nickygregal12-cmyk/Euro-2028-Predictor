@@ -94,6 +94,37 @@ jobs:
           grep -F '"predictions": "320cf25d62767dee307d3602212909af"' \
             /tmp/current-production-preflight.json
 
+      - name: Prepare migration 31 PostgreSQL compatibility repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/migrations/20260723184000_knockout_bracket_tree_integrity.sql')
+          text = path.read_text()
+          replacements = {
+              "jsonb_object_length(coalesce(v_winners, '{}'::jsonb))": "(select count(*) from jsonb_object_keys(coalesce(v_winners, '{}'::jsonb)))",
+              "jsonb_object_length(coalesce(v_runners, '{}'::jsonb))": "(select count(*) from jsonb_object_keys(coalesce(v_runners, '{}'::jsonb)))",
+              "jsonb_object_length(v_winners)": "(select count(*) from jsonb_object_keys(v_winners))",
+          }
+
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'STOP: expected migration 31 expression not found: {old}')
+              text = text.replace(old, new)
+
+          if 'jsonb_object_length' in text:
+              raise SystemExit('STOP: an unsupported jsonb_object_length call remains')
+
+          path.write_text(text)
+          PY
+
+          git diff --check
+          git diff -- \
+            supabase/migrations/20260723184000_knockout_bracket_tree_integrity.sql \
+            | tee /tmp/migration31-compatibility.patch
+
       - name: Apply pending migrations 21–35 in repository order
         shell: bash
         run: |
@@ -158,6 +189,7 @@ jobs:
           path: |
             /tmp/baseline-1-20.json
             /tmp/current-production-preflight.json
+            /tmp/migration31-compatibility.patch
             /tmp/migration-up.log
             /tmp/applied-migrations.txt
             /tmp/current-post-rollout-verification.json
