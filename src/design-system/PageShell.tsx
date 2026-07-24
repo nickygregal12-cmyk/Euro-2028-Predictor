@@ -9,7 +9,8 @@ export type PageShellProps = {
   // Optional right-aligned header slot (e.g. a settings button).
   headerAction?: ReactNode
   active: NavKey
-  onNavigate: (key: NavKey) => void
+  /** Dev/demo-only override. Production navigation should omit this. */
+  onNavigate?: (key: NavKey) => void
   children: ReactNode
 }
 

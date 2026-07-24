@@ -1,46 +1,59 @@
+import { Link } from 'react-router-dom'
 import styles from './BottomNav.module.css'
 import { HomeIcon, BallIcon, CalendarIcon, TrophyIcon, MoreIcon, type IconProps } from './icons'
 
 // The app sections (design-system §6). Fixed set — tabs are config, so new
-// sections slot in without a nav rebuild. Config lives here rather than being
-// passed in. The Matches tab (the time-shaped fixture browser) is the 5th slot.
+// sections slot in without a nav rebuild. The Matches tab (the time-shaped
+// fixture browser) is the 5th slot.
 export type NavKey = 'home' | 'predict' | 'matches' | 'league' | 'more'
 
-const ITEMS: { key: NavKey; label: string; Icon: (p: IconProps) => React.ReactElement }[] = [
-  { key: 'home', label: 'Home', Icon: HomeIcon },
-  { key: 'predict', label: 'Predict', Icon: BallIcon },
-  { key: 'matches', label: 'Matches', Icon: CalendarIcon },
-  { key: 'league', label: 'League', Icon: TrophyIcon },
-  { key: 'more', label: 'More', Icon: MoreIcon },
+const ITEMS: {
+  key: NavKey
+  label: string
+  to: string
+  Icon: (p: IconProps) => React.ReactElement
+}[] = [
+  { key: 'home', label: 'Home', to: '/', Icon: HomeIcon },
+  { key: 'predict', label: 'Predict', to: '/predict', Icon: BallIcon },
+  { key: 'matches', label: 'Matches', to: '/matches', Icon: CalendarIcon },
+  { key: 'league', label: 'League', to: '/league', Icon: TrophyIcon },
+  { key: 'more', label: 'More', to: '/more', Icon: MoreIcon },
 ]
 
 export type BottomNavProps = {
   active: NavKey
-  onNavigate: (key: NavKey) => void
+  /** Dev/demo-only override. Production navigation should omit this. */
+  onNavigate?: (key: NavKey) => void
 }
 
 /**
- * Fixed four-tab bottom navigation. Active tab is accent; each tab is a real
- * button at least 44px tall (design-system §7). Colour is never the only active
- * signal — the label and icon both change colour and the tab is aria-current.
- * Presentational: the parent owns the active key and handles navigation.
+ * Fixed five-tab bottom navigation. Every destination is a real link, so
+ * browser and assistive-technology link behaviours remain available. Active
+ * state is conveyed by aria-current as well as the icon/label colour change.
  */
 export function BottomNav({ active, onNavigate }: BottomNavProps) {
   return (
     <nav className={styles.nav} aria-label="Primary">
-      {ITEMS.map(({ key, label, Icon }) => {
+      {ITEMS.map(({ key, label, to, Icon }) => {
         const isActive = key === active
         return (
-          <button
+          <Link
             key={key}
-            type="button"
+            to={to}
             className={`${styles.tab} ${isActive ? styles.active : ''}`}
             aria-current={isActive ? 'page' : undefined}
-            onClick={() => onNavigate(key)}
+            onClick={
+              onNavigate
+                ? (event) => {
+                    event.preventDefault()
+                    onNavigate(key)
+                  }
+                : undefined
+            }
           >
             <Icon size={22} />
             <span className={styles.label}>{label}</span>
-          </button>
+          </Link>
         )
       })}
     </nav>
