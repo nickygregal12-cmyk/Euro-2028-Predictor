@@ -10,6 +10,8 @@
 **Owner default decisions:** [`reconciliations/2026-07-24-owner-default-decisions.md`](reconciliations/2026-07-24-owner-default-decisions.md)  
 **Node runtime pinning:** [`reconciliations/2026-07-24-node-runtime-pinning.md`](reconciliations/2026-07-24-node-runtime-pinning.md)  
 **Environment-file hygiene:** [`reconciliations/2026-07-24-environment-file-hygiene.md`](reconciliations/2026-07-24-environment-file-hygiene.md)  
+**Editor baseline:** [`reconciliations/2026-07-24-editor-baseline.md`](reconciliations/2026-07-24-editor-baseline.md)  
+**Bottom-navigation links:** [`reconciliations/2026-07-24-bottom-navigation-links.md`](reconciliations/2026-07-24-bottom-navigation-links.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -23,10 +25,10 @@ This register retains every original finding ID and adds findings discovered by 
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
 | Medium | 16 | 1 | 15 |
-| Low | 14 | 2 | 12 |
-| **Total** | **52** | **6** | **46** |
+| Low | 14 | 3 | 11 |
+| **Total** | **52** | **7** | **45** |
 
-`OPS-001`, `OPS-004`, `OPS-007` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ## Critical
 
@@ -57,7 +59,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
 | `OPS-002` | No version-controlled administrator model/control room boundary | **Open** | No `profiles.role` column exists in repository/hosted schema; no browser result admin page. |
 | `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI, pgTAP and provider-level submission/score-clear tests exist; authenticated production-like browser E2E remains absent. |
-| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — recovery method approved, evidence absent; issue #32** | The owner approved Windows execution, 7-Zip AES-256 encryption, OneDrive custody and owner review. Fail-closed backup tooling/checksums/runbook exist, but no fresh production dump, encrypted off-site artifact, retrieval proof or disposable restore has been performed. Production rollout remains blocked until issue #32 is completed and accepted. |
+| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — recovery method approved, evidence absent; issue #32** | The owner approved personal-computer execution, 7-Zip AES-256 encryption, OneDrive custody and owner review. The current work laptop is explicitly not approved. Fail-closed backup tooling/checksums/runbook exist, but no fresh production dump, encrypted off-site artifact, retrieval proof or disposable restore has been performed. Production rollout remains blocked until issue #32 is completed and accepted. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 
 ## Medium
@@ -85,19 +87,19 @@ This register retains every original finding ID and adds findings discovered by 
 
 | ID | Finding | Status |
 | --- | --- | --- |
-| `HYGIENE-001` | Unused Vite scaffold asset remains | Open |
+| `HYGIENE-001` | Unused Vite scaffold asset remains | **Open — original referenced asset not yet identified; common `vite.svg` scaffold paths are absent. Do not delete by assumption.** |
 | `HYGIENE-002` | Some pure modules appear test/reference-only | Open; verify before deletion |
 | `CODE-001` | Large orchestration files are coordination hotspots | Open |
 | `OPS-004` | Runtime pinning is incomplete | **Resolved** — Node `22.22.2` is pinned in `.nvmrc`, package engines, GitHub Actions and `netlify.toml`; the alignment test and ready Netlify preview passed. Reopen on any declaration or hosted-build regression. |
-| `SEO-001` | SPA fallback produces soft 404s | Open |
+| `SEO-001` | SPA fallback produces soft 404s | **Open — the router already renders a dedicated recovery page for unknown paths; static Netlify SPA fallback still responds at the HTTP layer.** |
 | `SEO-002` | Metadata is largely global | Open |
-| `A11Y-003` | Bottom navigation is imperative rather than link-semantic | Open |
+| `A11Y-003` | Bottom navigation is imperative rather than link-semantic | **Resolved** — all five primary destinations are React Router links, retain `aria-current="page"`, support normal browser link actions and pass semantic regression tests. PR #37’s guarded preview reached ready state with accessibility 100. Reopen if a primary destination becomes button-imperative again. |
 | `UX-003` | Other-player profile action remains incomplete | Open |
 | `UX-004` | Sign-out is immediate | Open |
 | `DATA-008` | Score values have no practical database maximum | Open |
 | `DOC-002` | Package version remains `0.0.0` | Open |
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
-| `REPO-001` | Licence, changelog and editor baseline are absent | Open |
+| `REPO-001` | Licence, changelog and editor baseline are absent | **Partially resolved** — `.editorconfig` now enforces UTF-8, LF, final newlines and repository indentation rules, with executable drift coverage. Licence selection and changelog policy remain open. |
 | `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | **Resolved** — `.env` and all `.env.*` variants are ignored while `.env.example` remains committable; Git's own `check-ignore` semantics are covered by the test suite. Reopen if a sensitive variant becomes committable or the template becomes ignored. |
 
 ## Register rules
