@@ -24,7 +24,7 @@ Repository and hosted-development work has completed:
 - application CI and disposable database parity CI;
 - hosted development rehearsal through migration 35 using the normalized production entry.
 
-Production Supabase remains on the original 20-migration schema while the deployed client includes PR #14. The roadmap starts with release recovery, not feature expansion.
+Netlify automatically published production commit `a403b0796853453cb4115aea55729aced192a6ca` after PR #20 merged. Production Supabase remains on the original 20-migration schema and lacks both RPCs now required by the live client: `replace_predicted_progression` and `delete_match_prediction`. The roadmap starts with release recovery, not feature expansion.
 
 ## Stage 0 — Restore a compatible production release
 
@@ -38,7 +38,8 @@ Completed preparation:
 4. production source preflights and post-rollout verification are committed;
 5. migration 34 repairs function grants/search paths;
 6. migration 35 adds protected persisted score clearing;
-7. pending-write submission and deletion ordering are protected in code and tests.
+7. pending-write submission and deletion ordering are protected in code and tests;
+8. the automatic production deploy and broadened two-RPC mismatch are recorded in `2026-07-24-post-merge-production-release-state.md`.
 
 Remaining execution:
 
@@ -48,29 +49,30 @@ Remaining execution:
 4. apply the 1–20 metadata-only history repair;
 5. require `db push --dry-run` to show migrations 21–35 only;
 6. obtain explicit approval and apply the complete chain in timestamp order;
-7. verify bracket save/reload, authenticated RPCs, results/scoring and exact function allowlists;
+7. verify bracket save/reload, score clear/reload, authenticated RPCs, results/scoring and exact function allowlists;
 8. browser-verify immediate final-edit submission plus error/conflict blocking;
 9. browser-verify score clear/reload, restore, stale conflict and post-lock refusal;
 10. record the exact deployed app/schema pair and evidence.
 
-Never point production at development Supabase and never apply migration 33, 34 or 35 alone.
+Never point production at development Supabase, never restore unsafe direct-table fallbacks, and never apply migration 33, 34 or 35 alone.
 
 ## Stage 1 — Hosted operations and security configuration
 
 1. Isolate production Netlify previews and branch deploys from production Supabase (`OPS-007`).
-2. Enable leaked-password protection through a separate approved Auth change.
-3. Rerun production security advisors after migrations 21–35:
+2. Introduce an explicit app/schema compatibility decision before merging changes that automatically deploy new database-dependent client paths.
+3. Enable leaked-password protection through a separate approved Auth change.
+4. Rerun production security advisors after migrations 21–35:
    - no anonymous security-definer exposure;
    - no mutable search paths;
    - only intentional signed-in application RPC warnings.
-4. Establish verified backup and restore procedures.
-5. Add production error reporting, alert ownership and critical-journey monitoring.
-6. Verify Netlify runtime pinning, branch protection and required checks.
+5. Establish verified backup and restore procedures.
+6. Add production error reporting, alert ownership and critical-journey monitoring.
+7. Verify Netlify runtime pinning, branch protection and required checks.
 
 ## Stage 2 — Close Original Predictor reliability gaps
 
 1. `REL-003`: repository/development complete; close after compatible-production browser and durable E2E verification.
-2. `DATA-005`: repository/development complete; close after production clear/reload/conflict/lock browser and durable E2E verification.
+2. `DATA-005`: client is deployed but production backend is absent; close after migrations 21–35 plus clear/reload/conflict/lock browser and durable E2E verification.
 3. `REL-002`: prevent independent late reads from overwriting newer state.
 4. `REL-006`: make first-entry creation idempotent under two-tab races.
 5. Finish wider same-tournament and immutable fixture/source constraints.
@@ -156,6 +158,7 @@ Before public tournament launch:
 - Database rules, not UI state, protect locks and scoring inputs.
 - Manual submission waits for all current prediction writes to settle successfully.
 - Clearing a persisted score uses an expected-version server boundary; stale devices cannot delete newer work.
+- Missing production RPCs are never replaced by unsafe direct-table client fallbacks.
 - Public function execution is closed by default; every browser/service RPC requires an explicit reviewed grant.
 - No hosted migration without explicit approval and evidence.
 - No production-to-development rollback.
