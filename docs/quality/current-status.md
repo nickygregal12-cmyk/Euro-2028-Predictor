@@ -9,6 +9,7 @@
 | Latest formal audit | [`2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md), designation `2026-07-23L` |
 | Current production release evidence | [`2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md) |
 | Production recovery readiness | [`2026-07-24-production-recovery-readiness.md`](reconciliations/2026-07-24-production-recovery-readiness.md) |
+| Netlify environment isolation | [`2026-07-24-netlify-environment-isolation.md`](reconciliations/2026-07-24-netlify-environment-isolation.md) |
 | Hosted migration rehearsal | [`2026-07-23-hosted-migration-rehearsal.md`](reconciliations/2026-07-23-hosted-migration-rehearsal.md) |
 | Function hardening | [`2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md) |
 | Submission settlement | [`2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md) |
@@ -37,6 +38,7 @@ Do not hard-code one release hash as permanently current.
 | --- | --- |
 | Repository development | **Safe to continue controlled development.** The chain contains 35 migrations with application/database coverage for submission settlement and persisted score clearing. |
 | Hosted development | **Semantically current through migration 35.** Exact data, ACL, deletion and compatibility checks pass; migration-history metadata is not a clean repository mirror. |
+| Netlify non-production isolation | **Resolved.** Deploy previews, branch deploys and Netlify development use development Supabase; production remains production. A prebuild guard rejects crossed or missing contexts. |
 | Current production application/database pair | **Critical mismatch.** The executable client baseline depends on two RPCs absent from the original 20-migration production schema. Docs-only release descendants do not change that verdict. |
 | Recovery readiness | **Tooling prepared; evidence absent.** Production is approximately 12 MB on Supabase Free. A fail-closed logical-backup package and restore runbook now exist, but no encrypted off-site artifact or successful restore has been produced. |
 | Production migration readiness | **Blocked.** Baseline/source preflights and development rehearsal exist for migrations 21–35, but actual backup/restore evidence, operator approval and the change window remain required. |
@@ -62,6 +64,32 @@ The score-clear path fails closed instead of falsely reporting success, but it i
 Docs-only Netlify releases can change the release commit/deploy identity without changing executable application code or this mismatch. Treat descendants the same unless their diff changes executable/configuration files.
 
 Ordinary production promotion remains frozen until a compatible application/database pair is restored through the approved rollout. Never point production at development Supabase.
+
+## Netlify environment isolation — `OPS-007`
+
+Live Netlify configuration now has explicit Supabase values per context:
+
+| Context | Project |
+| --- | --- |
+| `production` | production `vkfnsqdyhvtwyqkisxhk` |
+| `deploy-preview` | development `iouzoutneyjpugbbtdem` |
+| `branch-deploy` | development `iouzoutneyjpugbbtdem` |
+| `dev` | development `iouzoutneyjpugbbtdem` |
+
+`scripts/validate-netlify-environment.mjs` runs before every build and fails closed when:
+
+- a production build receives a non-production ref;
+- a preview/branch/dev build receives the production ref;
+- required browser variables are missing;
+- Netlify reports an unknown context.
+
+PR #24 deploy preview `6a630b79c2a23b0008baf1db` reached ready state with the guard active and Lighthouse 98/100/100/100. The context matrix, successful guarded preview and regression suite resolve `OPS-007`.
+
+Still separate and open:
+
+- app/schema compatibility review before merging database-dependent client code that automatically deploys from `main`;
+- Turnstile context/domain verification;
+- confirmation of any separately maintained development Netlify site.
 
 ## Current production data and recovery snapshot
 
@@ -138,6 +166,10 @@ Migrations 21–35 are applied on hosted development. Verified boundaries includ
 
 ## Current finding positions
 
+### `OPS-007`
+
+Resolved. Non-production Netlify contexts use development Supabase, production remains production, and the repository prebuild guard prevents context crossing.
+
 ### `SECURITY-003`
 
 Implemented and verified in repository/development through migrations 34–35. Production retains the old broad grants until migrations 21–35 roll out. Leaked-password protection remains a separate Auth configuration action.
@@ -186,7 +218,7 @@ Never edit migration history directly or mark missing SQL as applied.
 | Production compatibility | `OPS-006`: executable baseline requires two absent RPCs; execute the approved migrations 21–35 rollout or restore another explicitly compatible application-code baseline. |
 | Recovery | `OPS-003`: tooling/runbook prepared, but no encrypted off-site backup or successful disposable restore exists. |
 | Migration history | Apply the prepared 1–20 metadata-only repair only in the approved window, then require a 21–35-only dry run. |
-| Environment/deployment isolation | `OPS-007`: production previews/branch deploys inherit production Supabase values; automatic `main` deploys also need an app/schema compatibility gate. |
+| Automatic deployment compatibility | Add an explicit app/schema compatibility decision before merging database-dependent client changes that auto-deploy from `main`. |
 | Hosted function security | `SECURITY-003`: repository/development fixed; production pending migrations 21–35. |
 | Auth security | Leaked-password protection remains disabled and requires a separate approved Auth change. |
 | Entry reliability | `REL-003` and `DATA-005` are repository/development complete but await production/browser closure. `REL-002` and `REL-006` remain unimplemented. |
@@ -205,7 +237,7 @@ Never edit migration history directly or mark missing SQL as applied.
 - Golden Boot 25;
 - group-goals bands 40 / 30 / 20, tiered.
 
-No reliability, deletion, backup or security hardening changed scoring values. Automatic deadline submission remains documented but unimplemented (`FUNC-002`).
+No reliability, deletion, backup, deployment-isolation or security hardening changed scoring values. Automatic deadline submission remains documented but unimplemented (`FUNC-002`).
 
 ## Immediate order of work
 
@@ -219,9 +251,10 @@ No reliability, deletion, backup or security hardening changed scoring values. A
 8. Apply the exact 1–20 history repair and require a dry run showing 21–35 only.
 9. Execute migrations 21–35 only after explicit approval.
 10. Run the post-rollout verifier, security advisors and browser smoke/E2E journeys.
-11. Isolate Netlify preview contexts and add compatibility gating for automatic production deploys.
-12. Enable leaked-password protection through a separate approved Auth workstream.
-13. Address `REL-002`, then `REL-006`, before automatic real R16 population.
+11. Add an app/schema compatibility gate for automatic production deploys.
+12. Verify Turnstile domain/context behavior and any separately maintained development Netlify site.
+13. Enable leaked-password protection through a separate approved Auth workstream.
+14. Address `REL-002`, then `REL-006`, before automatic real R16 population.
 
 ## Documentation authority
 
