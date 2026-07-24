@@ -20,8 +20,10 @@ describe('production backup script', () => {
     expect(script).toContain('PRODUCTION_DB_URL')
   })
 
-  it('refuses repository-local output and a dirty source tree', () => {
+  it('refuses repository-local, symlinked output and a dirty source tree', () => {
     expect(script).toContain('BACKUP_ROOT must be outside the repository')
+    expect(script).toContain('BACKUP_ROOT must not be a symbolic link')
+    expect(script).toContain('[[ ! -L "${BACKUP_ROOT}" ]]')
     expect(script).toContain('Repository working tree must be clean')
   })
 
