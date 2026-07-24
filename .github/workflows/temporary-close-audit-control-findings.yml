@@ -1,11 +1,12 @@
 name: Temporary audit-control finding closure
 
 on:
-  push:
-    branches:
-      - agent/close-audit-control-findings
+  pull_request:
     paths:
       - '.github/workflows/temporary-close-audit-control-findings.yml'
+      - 'docs/quality/current-status.md'
+      - 'docs/quality/risk-register.md'
+      - 'docs/quality/reconciliations/2026-07-24-audit-control-cleanup.md'
 
 permissions:
   contents: write
