@@ -39,7 +39,7 @@ Prepared backup tooling is not recovery evidence. A Netlify rollback is not a da
 ## Netlify environment and deployment boundary
 
 - Production Netlify context uses production Supabase only.
-- `deploy-preview`, `branch-deploy` and `dev` contexts use development Supabase only.
+- `deploy-preview`, `branch-deploy` and `dev` contexts on the current production Netlify project use development Supabase only.
 - `scripts/validate-netlify-environment.mjs` runs before builds and must not be bypassed.
 - `config/deployment-contract.json` is the reviewed application/database contract source.
 - `scripts/validate-deployment-contract.mjs` verifies migration count and requires the exact hosted contract on Netlify.
@@ -49,13 +49,24 @@ Prepared backup tooling is not recovery evidence. A Netlify rollback is not a da
 - Update production to contract `35` only after migrations 21–35, post-rollout verification, advisors and required smoke tests pass.
 - Adding a migration requires an explicit review of `deployment-contract.json`; a migration-count mismatch is a build failure.
 
+## Legacy environment and CAPTCHA boundary
+
+- `euro28-predictor-dev.netlify.app` is **not** a current environment. It is sourced from `nickygregal12-cmyk/worldcup2026`, branch `euro28-development`, and points at inactive Supabase project `gcfdwobpnanjchcnvdco`.
+- The legacy site is public, has time travel enabled and deploys observability, health and hourly-heartbeat functions.
+- Do not use, repoint, redeploy, pause, delete or otherwise alter that site, its functions, its schedule, its source repository or its Supabase project from this repository workstream. Issue #27 owns the separate decision.
+- The current production Netlify project supplies a real Turnstile site key to all contexts, but development Supabase CAPTCHA configuration is unverified. Issue #28 owns the decision.
+- Do not add broad `netlify.app` Turnstile hostname access to cover dynamic previews.
+- Do not use a Cloudflare test site key without the matching test secret/configuration in development Supabase.
+- Do not claim preview auth works from a successful static build. Verify login, signup and recovery with Auth logs after the environment-specific CAPTCHA model is approved.
+- Keep Turnstile/CAPTCHA changes separate from the production migrations 21–35 window.
+
 ## Git discipline
 
 - Work from current `main` on a dedicated branch.
 - Keep one concern per PR where practical.
 - Do not push directly to `main`.
 - Run the relevant application and database workflows before merge.
-- Do not treat a Netlify build as proof of database compatibility.
+- Do not treat a Netlify build as proof of database compatibility or authenticated journey health.
 - Record material architecture, rule and operations decisions in repository documents rather than chat memory.
 
 ## Database discipline
