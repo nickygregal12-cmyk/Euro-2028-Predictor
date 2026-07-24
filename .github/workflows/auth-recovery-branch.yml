@@ -32,29 +32,12 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-      - id: node_setup
-        continue-on-error: true
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22.22.2
           cache: npm
-      - id: supabase_setup
-        if: steps.node_setup.outcome == 'success'
-        continue-on-error: true
-        uses: supabase/setup-cli@v2
-        with:
-          version: 2.84.2
-          github-token: ${{ github.token }}
-      - name: Record action setup outcomes
-        shell: bash
-        run: |
-          printf 'node_setup=%s\nsupabase_setup=%s\n' \
-            '${{ steps.node_setup.outcome }}' \
-            '${{ steps.supabase_setup.outcome }}' \
-            | tee /tmp/browser-action-setup.log
       - name: Install browser dependencies
         id: browser_npm
-        if: steps.supabase_setup.outcome == 'success'
         continue-on-error: true
         shell: bash
         run: |
@@ -75,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          supabase start 2>&1 | tee /tmp/browser-supabase-start.log
+          npx --yes supabase@2.84.2 start 2>&1 | tee /tmp/browser-supabase-start.log
       - name: Rebuild migrations and seed
         id: supabase_reset
         if: steps.supabase_start.outcome == 'success'
@@ -83,7 +66,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          supabase db reset --local 2>&1 | tee /tmp/browser-supabase-reset.log
+          npx --yes supabase@2.84.2 db reset --local 2>&1 | tee /tmp/browser-supabase-reset.log
       - name: Export local-only browser environment
         id: browser_env
         if: steps.supabase_reset.outcome == 'success'
@@ -91,7 +74,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          supabase status -o env > /tmp/supabase.env
+          npx --yes supabase@2.84.2 status -o env > /tmp/supabase.env
           # shellcheck disable=SC1091
           source /tmp/supabase.env
           : "${API_URL:?Supabase API_URL missing}"
@@ -144,9 +127,7 @@ jobs:
       - name: Require browser setup and both suites to pass
         shell: bash
         run: |
-          printf 'node=%s supabase_cli=%s npm=%s chromium=%s start=%s reset=%s env=%s app=%s auth=%s\n' \
-            '${{ steps.node_setup.outcome }}' \
-            '${{ steps.supabase_setup.outcome }}' \
+          printf 'npm=%s chromium=%s start=%s reset=%s env=%s app=%s auth=%s\n' \
             '${{ steps.browser_npm.outcome }}' \
             '${{ steps.chromium.outcome }}' \
             '${{ steps.supabase_start.outcome }}' \
@@ -154,9 +135,7 @@ jobs:
             '${{ steps.browser_env.outcome }}' \
             '${{ steps.application_journeys.outcome }}' \
             '${{ steps.auth_journeys.outcome }}'
-          if [[ '${{ steps.node_setup.outcome }}' != 'success' || \
-                '${{ steps.supabase_setup.outcome }}' != 'success' || \
-                '${{ steps.browser_npm.outcome }}' != 'success' || \
+          if [[ '${{ steps.browser_npm.outcome }}' != 'success' || \
                 '${{ steps.chromium.outcome }}' != 'success' || \
                 '${{ steps.supabase_start.outcome }}' != 'success' || \
                 '${{ steps.supabase_reset.outcome }}' != 'success' || \
@@ -166,7 +145,7 @@ jobs:
             exit 1
           fi
       - if: always()
-        run: supabase stop --no-backup
+        run: npx --yes supabase@2.84.2 stop --no-backup
 
   record:
     if: always()
@@ -197,10 +176,10 @@ jobs:
           }
           EOF
           {
-            for name in browser-action-setup browser-npm browser-chromium browser-supabase-start browser-supabase-reset browser-env application-e2e auth-recovery-e2e; do
+            for name in browser-npm browser-chromium browser-supabase-start browser-supabase-reset browser-env application-e2e auth-recovery-e2e; do
               echo "===== ${name} ====="
               if [[ -f "/tmp/auth-recovery-diagnostics/${name}.log" ]]; then
-                tail -n 120 "/tmp/auth-recovery-diagnostics/${name}.log"
+                tail -n 140 "/tmp/auth-recovery-diagnostics/${name}.log"
               else
                 echo 'No log captured.'
               fi
