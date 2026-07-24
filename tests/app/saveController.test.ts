@@ -171,6 +171,131 @@ describe('createSaveController', () => {
     expect(saveCount).toBe(1)
   })
 
+  it('waitForSettled waits for every key and the latest coalesced value', async () => {
+    const calls: { key: string; payload: unknown; gate: ReturnType<typeof deferred> }[] = []
+    const controller = createSaveController({
+      performSave: (key, payload) => {
+        const gate = deferred()
+        calls.push({ key, payload, gate })
+        return gate.promise
+      },
+      onStatus: () => {},
+    })
+
+    controller.change('m:1', 'old')
+    controller.change('m:1', 'latest')
+    controller.change('gb', 'player')
+
+    let settled = false
+    const barrier = controller.waitForSettled().then((result) => {
+      settled = true
+      return result
+    })
+
+    expect(calls.map((call) => [call.key, call.payload])).toEqual([
+      ['m:1', 'old'],
+      ['gb', 'player'],
+    ])
+    expect(settled).toBe(false)
+
+    calls[0].gate.resolve()
+    await flush()
+    expect(calls.map((call) => [call.key, call.payload])).toEqual([
+      ['m:1', 'old'],
+      ['gb', 'player'],
+      ['m:1', 'latest'],
+    ])
+    expect(settled).toBe(false)
+
+    calls[1].gate.resolve()
+    await flush()
+    expect(settled).toBe(false)
+
+    calls[2].gate.resolve()
+    await flush()
+    await expect(barrier).resolves.toEqual({
+      ok: true,
+      cancelled: false,
+      errorKeys: [],
+      conflictKeys: [],
+    })
+  })
+
+  it('waitForSettled reports a terminal save error after automatic retries', async () => {
+    const gates: ReturnType<typeof deferred>[] = []
+    const controller = createSaveController({
+      performSave: () => {
+        const gate = deferred()
+        gates.push(gate)
+        return gate.promise
+      },
+      onStatus: () => {},
+    })
+
+    controller.change('gb', 'player')
+    const barrier = controller.waitForSettled()
+
+    for (let i = 0; i < 3; i++) {
+      gates[i].reject()
+      await flush()
+      await vi.advanceTimersByTimeAsync(RETRY_WAIT)
+    }
+
+    await expect(barrier).resolves.toEqual({
+      ok: false,
+      cancelled: false,
+      errorKeys: ['gb'],
+      conflictKeys: [],
+    })
+  })
+
+  it('waitForSettled reports version conflicts without retrying', async () => {
+    let rejectFn!: (error: unknown) => void
+    const controller = createSaveController({
+      performSave: () =>
+        new Promise<void>((_resolve, reject) => {
+          rejectFn = reject
+        }),
+      onStatus: () => {},
+      isConflict: (err) => (err as { code?: string })?.code === 'PT409',
+    })
+
+    controller.change('bracket', 'snapshot')
+    const barrier = controller.waitForSettled()
+    rejectFn({ code: 'PT409' })
+    await flush()
+
+    await expect(barrier).resolves.toEqual({
+      ok: false,
+      cancelled: false,
+      errorKeys: [],
+      conflictKeys: ['bracket'],
+    })
+  })
+
+  it('reset cancels an outstanding settlement barrier', async () => {
+    const gate = deferred()
+    const controller = createSaveController({
+      performSave: () => gate.promise,
+      onStatus: () => {},
+    })
+
+    controller.change('m:1', 'value')
+    const barrier = controller.waitForSettled()
+    controller.reset()
+
+    await expect(barrier).resolves.toEqual({
+      ok: false,
+      cancelled: true,
+      errorKeys: [],
+      conflictKeys: [],
+    })
+
+    // Late completion from the old entry is ignored by the cleared controller.
+    gate.resolve()
+    await flush()
+  })
+
   it('dispose stops late responses from updating status', async () => {
     const gates: ReturnType<typeof deferred>[] = []
     const statuses: SaveStatus[] = []

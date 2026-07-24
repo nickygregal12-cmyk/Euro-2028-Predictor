@@ -97,7 +97,8 @@ type PredictionsContextValue = {
   // when ANY key is in conflict; resolveConflict applies to all of them.
   hasConflict: boolean
   resolveConflict: (choice: 'latest' | 'mine') => void
-  // Submission. `submit` calls the server-side validator; it does not freeze the
+  // Submission flushes every debounce timer and waits for all controller writes
+  // to settle before calling the server-side validator. It does not freeze the
   // entry — predictions stay editable and the entry stays submitted.
   submitting: boolean
   submit: () => Promise<{ ok: boolean; message?: string }>
@@ -132,6 +133,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const entryIdRef = useRef<string | null>(null)
   entryIdRef.current = entryId
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  const submittingRef = useRef(false)
 
   // Bracket persistence baselines: `persisted` is what's currently in the DB,
   // `desired` is the latest map the user has picked. The debounced flush syncs
@@ -237,8 +239,39 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Stop the controller (and its retry timers) when the provider unmounts.
-  useEffect(() => () => controllerRef.current?.dispose(), [])
+  function clearMatchTimer(matchId: string) {
+    const timer = timers.current[matchId]
+    if (timer !== undefined) clearTimeout(timer)
+    delete timers.current[matchId]
+  }
+
+  function clearDebounceTimers() {
+    for (const matchId of Object.keys(timers.current)) clearMatchTimer(matchId)
+    if (progressionTimer.current !== undefined) clearTimeout(progressionTimer.current)
+    progressionTimer.current = undefined
+  }
+
+  function flushDebouncedSaves() {
+    const pendingMatches = Object.keys(timers.current)
+    for (const matchId of pendingMatches) {
+      clearMatchTimer(matchId)
+      dispatchMatchSave(matchId)
+    }
+    if (progressionTimer.current !== undefined) {
+      clearTimeout(progressionTimer.current)
+      progressionTimer.current = undefined
+      dispatchBracketSave()
+    }
+  }
+
+  // Stop the controller and all debounce/retry timers when the provider unmounts.
+  useEffect(
+    () => () => {
+      clearDebounceTimers()
+      controllerRef.current?.dispose()
+    },
+    [],
+  )
 
   useEffect(() => {
     if (!userId || !tournamentId) {
@@ -249,6 +282,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     setReady(false)
     // A new entry is loading: drop any in-flight save state/timers from the
     // previous entry so nothing carries over or writes to the wrong entry.
+    clearDebounceTimers()
     controllerRef.current?.reset()
     setGoldenBootSaveStatus('idle')
     getOrCreateEntry(userId, tournamentId)
@@ -336,8 +370,17 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   }
 
   function scheduleSave(matchId: string) {
-    clearTimeout(timers.current[matchId])
-    timers.current[matchId] = setTimeout(() => dispatchMatchSave(matchId), SAVE_DEBOUNCE_MS)
+    clearMatchTimer(matchId)
+    // A submit barrier must see edits made while it is waiting. During submit,
+    // bypass the debounce and route the latest value into the controller now.
+    if (submittingRef.current) {
+      dispatchMatchSave(matchId)
+      return
+    }
+    timers.current[matchId] = setTimeout(() => {
+      delete timers.current[matchId]
+      dispatchMatchSave(matchId)
+    }, SAVE_DEBOUNCE_MS)
   }
 
   function setScore(matchId: string, side: 'home' | 'away', value: number | null) {
@@ -349,7 +392,9 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       if (next.homeScore !== null && next.awayScore !== null) {
         scheduleSave(matchId)
       } else {
-        // Incomplete score: nothing to persist yet (both halves are required).
+        // Incomplete score: cancel any older complete-row debounce so it cannot
+        // persist stale values after the user has cleared one side.
+        clearMatchTimer(matchId)
         setSaveStatus((s) => ({ ...s, [matchId]: 'idle' }))
       }
       return updated
@@ -376,6 +421,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       predictionsRef.current = updated
       // Joker toggles save immediately (no debounce), but still go through the
       // controller so a toggle can't race a concurrent score save on the row.
+      // Cancel an older score timer first so it cannot issue a duplicate later.
+      clearMatchTimer(matchId)
       if (next.homeScore !== null && next.awayScore !== null) dispatchMatchSave(matchId)
       return updated
     })
@@ -405,8 +452,18 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   function setBracketProgression(next: Record<string, ProgressionStage>) {
     setProgression(next)
     progressionDesiredRef.current = next
-    clearTimeout(progressionTimer.current)
-    progressionTimer.current = setTimeout(dispatchBracketSave, SAVE_DEBOUNCE_MS)
+    if (progressionTimer.current !== undefined) clearTimeout(progressionTimer.current)
+    progressionTimer.current = undefined
+    // Like match edits, a bracket edit made during submit must join the barrier
+    // immediately rather than hiding behind a new debounce timer.
+    if (submittingRef.current) {
+      dispatchBracketSave()
+      return
+    }
+    progressionTimer.current = setTimeout(() => {
+      progressionTimer.current = undefined
+      dispatchBracketSave()
+    }, SAVE_DEBOUNCE_MS)
   }
 
   function setGoldenBoot(playerId: string | null) {
@@ -420,14 +477,44 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   async function submit(): Promise<{ ok: boolean; message?: string }> {
     const id = entryIdRef.current
     if (!id) return { ok: false, message: 'Your entry is still loading.' }
+    if (submittingRef.current) {
+      return { ok: false, message: 'Your entry is already being submitted.' }
+    }
+
+    submittingRef.current = true
     setSubmitting(true)
     try {
+      // Convert every pending debounce into a controller write, then wait for all
+      // current/in-flight/coalesced/retrying keys. The server validator must never
+      // observe the entry before the user's latest local state has settled.
+      flushDebouncedSaves()
+      const barrier = await controller.waitForSettled()
+      if (barrier.cancelled) {
+        return {
+          ok: false,
+          message: 'Your entry changed while saves were finishing. Please try submitting again.',
+        }
+      }
+      if (barrier.conflictKeys.length > 0) {
+        return {
+          ok: false,
+          message: 'Resolve the prediction conflict before submitting your entry.',
+        }
+      }
+      if (barrier.errorKeys.length > 0) {
+        return {
+          ok: false,
+          message: 'Some changes could not be saved. Retry the failed changes before submitting.',
+        }
+      }
+
       const when = await submitEntry(id)
       setSubmittedAt(when)
       return { ok: true }
     } catch (e) {
       return { ok: false, message: e instanceof Error ? e.message : 'Submission failed.' }
     } finally {
+      submittingRef.current = false
       setSubmitting(false)
     }
   }

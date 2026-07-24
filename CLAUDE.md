@@ -28,6 +28,7 @@ Normal production promotion must pause until a reviewed plan restores a compatib
 | Current implementation, hosted status and next action | `docs/quality/current-status.md` |
 | Latest formal audit | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
 | Latest hosted migration/security evidence | `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`; `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md` |
+| Pending-write submission evidence | `docs/quality/reconciliations/2026-07-24-submit-save-barrier.md` |
 | Agent/Git/database discipline | `AGENTS.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Hosted migration inventory | `docs/ops-pending-migrations.md` |
@@ -49,6 +50,8 @@ Older dated audits and Git history remain evidence, not current instructions.
 - The latest repository database chain is authoritative for locks, submission, derived positions, results, progression, scoring and function execution boundaries.
 - Internal integrity, trigger and maintenance helpers receive no Data API execution.
 - Authenticated and service-role RPC access is an explicit allowlist; future public functions default to owner-only.
+- Manual submission must flush score/bracket debounces and await every prediction save key before calling `submit_entry`.
+- Save errors and optimistic-concurrency conflicts must block submission rather than racing the server validator.
 - Original Predictor and bonus games remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references and unknown official data.
@@ -66,9 +69,9 @@ Older dated audits and Git history remain evidence, not current instructions.
 
 Keep `src/domain/tournament/scoringConfig.ts`, SQL and tests aligned. Automatic deadline submission is documented but not implemented.
 
-## Repository and hosted-development database position
+## Repository and hosted-development position
 
-The 34-migration repository chain and hosted development provide verified coverage for:
+The repository and hosted development provide verified coverage for:
 
 - TypeScript/PostgreSQL predicted group-order parity;
 - RPC-only submission and server-derived predicted group positions;
@@ -81,9 +84,10 @@ The 34-migration repository chain and hosted development provide verified covera
 - no anonymous public-function execution;
 - exact authenticated/service function allowlists;
 - owner-only future function defaults;
-- fixed helper search paths.
+- fixed helper search paths;
+- pending-write manual submission settlement with score/bracket provider regression tests.
 
-These are not production capabilities until migrations 21–34 are applied and verified there.
+Database controls are not production capabilities until migrations 21–34 are applied and verified there. `REL-003` is repository-implemented but remains partially open until compatible-production browser verification and durable E2E coverage.
 
 ## Required workflow
 
@@ -110,11 +114,12 @@ npm audit --omit=dev --audit-level=high
 2. Run the two committed production preflights and exact 1–20 history-only repair.
 3. Require `supabase db push --dry-run` to show migrations 21–34 only.
 4. Apply migrations 21–34 only after explicit approval; run the exact post-rollout verifier, advisors and application smoke tests.
-5. Isolate production Netlify preview/branch contexts from production Supabase (`OPS-007`).
-6. Enable leaked-password protection through a separate approved Auth-setting change.
-7. Flush/await pending writes before submission (`REL-003`).
-8. Implement automatic real R16 population.
-9. Add browser E2E and rehearse backup/restore before launch readiness.
+5. Browser-verify immediate submission after final score/bracket/tie/bonus edits and failure/conflict blocking; then add the durable E2E journey and close `REL-003`.
+6. Isolate production Netlify preview/branch contexts from production Supabase (`OPS-007`).
+7. Enable leaked-password protection through a separate approved Auth-setting change.
+8. Implement persisted score deletion (`DATA-005`).
+9. Implement automatic real R16 population.
+10. Add broader browser E2E and rehearse backup/restore before launch readiness.
 
 ## Hard prohibitions
 
