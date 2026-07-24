@@ -37,6 +37,10 @@ function desktopOnly(testInfo: TestInfo) {
   )
 }
 
+function pickedTeamName(label: string): string {
+  return label.replace(/ — through$/, '')
+}
+
 async function loginAs(page: Page, email: string, password: string) {
   await page.goto('/more')
   await expectAuthenticatedPath(page, '/more')
@@ -101,10 +105,32 @@ async function expectBracketSnapshot(page: Page, expected: BracketSnapshot) {
   expect(await readBracketSnapshot(page)).toEqual(expected)
 }
 
-async function changeFirstR16Winner(page: Page) {
+async function changeAdvancingR16Winner(page: Page) {
+  await selectRound(page, 'QF')
+  const qfWinnerLabels = await page
+    .locator('section button[aria-pressed="true"]')
+    .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') ?? ''))
+  const qfWinners = new Set(qfWinnerLabels.map(pickedTeamName))
+
   await selectRound(page, 'R16')
-  const firstTie = page.locator('section[aria-label^="R16"]').first()
-  const replacement = firstTie.locator('button[aria-pressed="false"]').first()
+  const ties = page.locator('section[aria-label^="R16"]')
+  let replacement = page.locator('button').first()
+  let found = false
+
+  for (let index = 0; index < (await ties.count()); index += 1) {
+    const tie = ties.nth(index)
+    const currentLabel =
+      (await tie.locator('button[aria-pressed="true"]').getAttribute('aria-label')) ?? ''
+    if (!qfWinners.has(pickedTeamName(currentLabel))) continue
+    replacement = tie.locator('button[aria-pressed="false"]').first()
+    found = true
+    break
+  }
+
+  if (!found) {
+    throw new Error('Browser E2E found no R16 winner advancing through the QF.')
+  }
+
   await expect(replacement).toBeVisible()
   await replacement.click()
 
@@ -169,10 +195,10 @@ test.describe('bracket snapshot conflict and recovery', () => {
         await openBracket(secondPage)
         await expectBracketSnapshot(secondPage, initialSnapshot)
 
-        // Device B replaces an early winner. The real cascade confirmation clears
-        // dependent QF/SF/final picks, then the UI rebuilds and atomically saves a
-        // complete replacement snapshot.
-        await changeFirstR16Winner(secondPage)
+        // Device B replaces an R16 winner that is also selected to win its QF.
+        // This guarantees the real cascade confirmation clears dependent QF/SF/
+        // final picks before the UI rebuilds and atomically saves a complete tree.
+        await changeAdvancingR16Winner(secondPage)
         const deviceBSnapshot = await readBracketSnapshot(secondPage)
         expect(deviceBSnapshot).not.toEqual(initialSnapshot)
 
@@ -205,9 +231,9 @@ test.describe('bracket snapshot conflict and recovery', () => {
         await openBracket(page)
         await expectBracketSnapshot(page, deviceBSnapshot)
 
-        // Device B changes the early winner again, creating a new authoritative
-        // snapshot while device A keeps the previously loaded complete bracket.
-        await changeFirstR16Winner(secondPage)
+        // Device B changes an advancing R16 winner again, creating a new complete
+        // authoritative snapshot while device A keeps its previously loaded tree.
+        await changeAdvancingR16Winner(secondPage)
         const newerServerSnapshot = await readBracketSnapshot(secondPage)
         expect(newerServerSnapshot).not.toEqual(deviceBSnapshot)
 
