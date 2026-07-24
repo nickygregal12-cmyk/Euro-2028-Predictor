@@ -1,22 +1,23 @@
 # Ops runbook — Confirming and correcting match results
 
-This runbook describes the **repository result contract** introduced by migrations 28–32. It is not permission to apply migrations or enter results in a hosted project.
+This runbook describes the repository result contract introduced by migrations 28–32. It is not permission to apply migrations or enter results in a hosted project.
 
-## Hosted status — 23 July 2026
+## Hosted status — 24 July 2026
 
-Neither development nor production Supabase has the authoritative result-lifecycle migrations.
+| Environment | Result-lifecycle position |
+| --- | --- |
+| Development `iouzoutneyjpugbbtdem` | Migrations 28–32 are applied and verified. Confirm/correct/clear, immutable revisions, serialized scoring and winner propagation were rehearsed; temporary evidence rows were removed afterward. |
+| Production `vkfnsqdyhvtwyqkisxhk` | Still on the original twenty-migration shape. No authoritative result-lifecycle functions/columns are live and no stored legacy result exists. |
 
-- Production currently has no stored match scores, so the result preflight may be able to pass after full review.
-- Development has 12 legacy scored matches. Migration `20260723183000_knockout_result_lifecycle.sql` deliberately fails while those scores exist because their regulation/extra-time/penalty method cannot be inferred safely.
-- No browser administrator result-entry interface or version-controlled admin role exists.
+No browser administrator result-entry interface or version-controlled admin role exists. Result RPCs are service-role-only in the later repository chain.
 
-Do not use the functions below until the target environment has applied and verified the complete required migration chain.
+Do not use the functions below in production until migrations 21–35 have been applied and verified through `docs/ops-hosted-migration-rollout.md`.
 
 ## Absolute rules
 
-- Never update score, method, shootout, winner, result-state or result-version columns directly.
-- Never disable result-boundary or propagation triggers to force a result through.
-- Never guess whether a legacy knockout score was reached in regulation, extra time or penalties.
+- Never update score, method, shootout, winner, state or version columns directly.
+- Never disable result-boundary or propagation triggers.
+- Never guess whether a legacy knockout score occurred in regulation, extra time or penalties.
 - Corrections and clears require a meaningful reason.
 - A failed preflight or constraint is a stop condition.
 - Clear confirmed downstream results before changing an upstream winner.
@@ -24,13 +25,13 @@ Do not use the functions below until the target environment has applied and veri
 
 ## Supported server functions
 
-After migrations 28–32 are applied, the only supported result write paths are:
+After the complete required migration chain is live, the only supported result write paths are:
 
 - `public.confirm_match_result(...)`
 - `public.correct_match_result(...)`
 - `public.clear_match_result(...)`
 
-They are denied to `PUBLIC`, `anon` and `authenticated` in the repository chain and are intended for `service_role` through a future server-side administrator adapter. A privileged database owner can call them during an explicitly authorized interim operation.
+They are denied to `PUBLIC`, `anon` and `authenticated`, and are intended for `service_role` through a future server-side administrator adapter. A database owner may call them only during an explicitly authorized interim operation.
 
 ## Result model
 
@@ -45,7 +46,7 @@ A match stores:
 - derived `winner_team_id`;
 - result version, timestamps and reason metadata.
 
-For penalties, the public football score remains tied at 120 minutes. The shootout score is separate and `winner_team_id` drives progression and champion scoring.
+For penalties, the public football score remains tied at 120 minutes. Shootout kicks are separate and `winner_team_id` drives progression/champion scoring.
 
 ## Find and verify the match
 
@@ -67,7 +68,7 @@ where m.tournament_id = '<TOURNAMENT_UUID>'::uuid
   and m.match_ref = '<MATCH_REF>';
 ```
 
-Confirm the fixture and both participants against an authoritative match source before writing.
+Confirm the fixture and participants against an authoritative match source before writing.
 
 ## Confirm a regulation result
 
@@ -135,7 +136,7 @@ select public.correct_match_result(
 );
 ```
 
-If the changed upstream winner already feeds a confirmed/corrected downstream match, the database rejects the correction. Clear the downstream result first, then correct the upstream match, then re-confirm downstream results in order.
+If an upstream winner feeds a confirmed/corrected downstream match, the database rejects the correction. Clear downstream results first, correct upstream, then reconfirm downstream in order.
 
 ## Clear a result
 
@@ -146,7 +147,7 @@ select public.clear_match_result(
 );
 ```
 
-Clearing returns the match to `scheduled`, removes the current result/winner, removes propagated winner-fed participants where safe, appends a revision and recomputes scoring.
+Clearing returns the match to `scheduled`, removes current result/winner, removes propagated winner-fed participants where safe, appends a revision and recomputes scoring.
 
 ## Verify result, progression and scoring
 
@@ -186,25 +187,26 @@ Also verify:
 - no unrelated fixture changed;
 - expected `score_events` were rederived;
 - leaderboard totals and rank history are coherent;
-- the result and revision versions advanced exactly once.
+- result and revision versions advanced exactly once.
 
-## Current repository behavior
+## Current repository/development behavior
 
-The latest repository chain does include:
+Implemented and verified:
 
-- result confirmation/correction/clear;
+- result confirmation, correction and clear;
 - immutable revisions;
 - serialized score recomputation;
 - penalty-decided champion scoring;
 - real winner propagation through QF, SF and final;
-- protection against changing an upstream winner under a confirmed downstream result.
+- protection against changing an upstream winner beneath a confirmed downstream result;
+- exact service-role-only result-function privileges.
 
-It does **not** yet include:
+Not yet implemented/live:
 
-- automatic population of the real R16 from completed groups;
-- a browser/server administrator adapter;
+- production rollout of migrations 21–35;
+- automatic real R16 population from completed groups;
+- browser/server administrator adapter;
 - automatic data-feed ingestion;
-- hosted rollout verification;
 - automatic repair of legacy scores.
 
 ## Related documents
@@ -212,6 +214,7 @@ It does **not** yet include:
 - `docs/quality/current-status.md`
 - `docs/quality/audits/2026-07-23-live-environment-audit.md`
 - `docs/ops-pending-migrations.md`
+- `docs/ops-hosted-migration-rollout.md`
 - `docs/ops-admin-bootstrap.md`
 - `docs/quality/reconciliations/2026-07-23-knockout-result-lifecycle.md`
 - `docs/quality/reconciliations/2026-07-23-knockout-bracket-tree-integrity.md`
