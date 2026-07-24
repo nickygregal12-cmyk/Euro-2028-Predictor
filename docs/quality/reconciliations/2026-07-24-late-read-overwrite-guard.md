@@ -36,4 +36,4 @@ The implementation remains recorded as in progress until the generated head pass
 
 ## Validation
 
-GitHub Actions bootstrap run `30128282074` passed `npm ci`, the guarded production build, lint, the complete Vitest suite and `npm audit --omit=dev --audit-level=high` against the exact working tree committed below. Standard pull-request workflows remain required on the final commit.
+GitHub Actions bootstrap run `30128282074` passed `npm ci`, the guarded production build, lint, the complete Vitest suite and `npm audit --omit=dev --audit-level=high` against the exact implementation working tree. This documentation-only follow-up commit triggers the standard pull-request workflows on the resulting final head.
