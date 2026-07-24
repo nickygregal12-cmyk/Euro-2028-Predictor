@@ -13,6 +13,7 @@
 **Editor baseline:** [`reconciliations/2026-07-24-editor-baseline.md`](reconciliations/2026-07-24-editor-baseline.md)  
 **Bottom-navigation links:** [`reconciliations/2026-07-24-bottom-navigation-links.md`](reconciliations/2026-07-24-bottom-navigation-links.md)  
 **Route-transition accessibility:** [`reconciliations/2026-07-24-route-transition-accessibility.md`](reconciliations/2026-07-24-route-transition-accessibility.md)  
+**League options disclosure:** [`reconciliations/2026-07-24-league-options-disclosure.md`](reconciliations/2026-07-24-league-options-disclosure.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -25,11 +26,11 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
-| Medium | 16 | 1 | 15 |
+| Medium | 16 | 2 | 14 |
 | Low | 14 | 3 | 11 |
-| **Total** | **52** | **7** | **45** |
+| **Total** | **52** | **8** | **44** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-002`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ## Critical
 
@@ -75,7 +76,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `PERF-001` | League summary requests scale linearly/serially | Open | Remove serial per-league request pattern and profile representative load. |
 | `UX-001` | Invite context is hidden behind generic signup | Open | Show trustworthy invite preview before auth and remove render-time storage mutation. |
 | `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | **Partially resolved — repository/preview implemented** | Skip link, stable main target, route titles, focus movement and polite live-region announcements are implemented and unit-tested. Two ready previews retained accessibility 100; repeat performance returned the 98 baseline. Close after real keyboard and screen-reader route journeys plus authenticated browser E2E retention. |
-| `A11Y-002` | League options menu semantics do not match behavior | Open | Implement full menu-button keyboard model or simpler disclosure semantics. |
+| `A11Y-002` | League options menu semantics do not match behavior | **Resolved** | Replaced the incomplete ARIA menu pattern with a disclosure using `aria-expanded`/`aria-controls` and native action buttons. Escape restores trigger focus; outside close and owner/member actions are tested. Preview retained accessibility 100. Reopen if misleading menu roles or incomplete focus behavior return. |
 | `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | Open | Generate DB types, enable strictness incrementally and validate critical RPC payloads. |
 | `DOC-001` | Documentation is not consistently authoritative | **Resolved by active reconciliation process** | Current-status/reconciliation sources are updated after hosted changes; reopen if contradictions persist without correction. |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | Open | Threat-model enumeration and rate limits at intended competition size. |
