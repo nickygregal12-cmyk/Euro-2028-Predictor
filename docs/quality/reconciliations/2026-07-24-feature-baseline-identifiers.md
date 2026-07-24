@@ -2,9 +2,10 @@
 
 **Date:** 24 July 2026  
 **Issue:** #49  
+**Pull request:** #50  
 **Branch:** `agent/restore-feature-baseline-ids`  
 **Finding:** `DOC-005`  
-**Status:** Repository implementation prepared; pull-request validation and `main` closure pending
+**Status:** Pull-request validation complete; `main` closure pending
 
 ## Problem verified
 
@@ -60,6 +61,16 @@ These are documentation reconciliations of already implemented controls, not run
 - the continuity and new-identifier registers remain present;
 - new IDs do not reuse archived IDs;
 - the obsolete open traceability notice cannot return.
+
+## Validation evidence
+
+PR #50 implementation head `6ece7ee0a6a7406274fbe1b069a3d923074330d5` passed CI run 211:
+
+1. dependency installation passed;
+2. the Git-less environment-hygiene proof passed;
+3. build and lint passed;
+4. the complete test suite passed, including the new identifier-continuity assertions and repository-wide Markdown-link checks;
+5. the production-dependency audit passed.
 
 ## Safety boundary
 
