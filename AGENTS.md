@@ -36,13 +36,18 @@ Before any normal feature work or production promotion:
 
 Prepared backup tooling is not recovery evidence. A Netlify rollback is not a database rollback.
 
-## Netlify environment boundary
+## Netlify environment and deployment boundary
 
 - Production Netlify context uses production Supabase only.
 - `deploy-preview`, `branch-deploy` and `dev` contexts use development Supabase only.
 - `scripts/validate-netlify-environment.mjs` runs before builds and must not be bypassed.
-- A crossed, missing or unknown context is a build failure, not a reason to weaken the guard.
-- Database-dependent client changes still require an explicit app/schema compatibility decision before merging to auto-deploying `main`.
+- `config/deployment-contract.json` is the reviewed application/database contract source.
+- `scripts/validate-deployment-contract.mjs` verifies migration count and requires the exact hosted contract on Netlify.
+- Production currently declares database contract `20`; the application requires `35`, so new production deploys must remain blocked.
+- Preview/branch/dev contexts declare contract `35` because hosted development is verified through migration 35.
+- Never change the production contract to `35` merely to make a build pass.
+- Update production to contract `35` only after migrations 21–35, post-rollout verification, advisors and required smoke tests pass.
+- Adding a migration requires an explicit review of `deployment-contract.json`; a migration-count mismatch is a build failure.
 
 ## Git discipline
 
@@ -114,6 +119,7 @@ Every merged implementation batch must update, when affected:
 - `docs/quality/risk-register.md`;
 - `docs/ops-pending-migrations.md` for migration changes;
 - `docs/ops-production-backup-restore.md` for backup/recovery facts;
+- `config/deployment-contract.json` for any migration/API contract change;
 - a dated reconciliation note for material integrity/operations work;
 - roadmap/TODO only for future sequencing, never as proof of implementation.
 
