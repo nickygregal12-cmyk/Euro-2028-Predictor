@@ -9,6 +9,7 @@
 | Latest formal audit | [`2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md), designation `2026-07-23L` |
 | Latest hosted rehearsal | [`2026-07-23-hosted-migration-rehearsal.md`](reconciliations/2026-07-23-hosted-migration-rehearsal.md) |
 | Function privilege hardening | [`2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md) |
+| Submission save barrier | [`2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Repository migration count | 34 |
@@ -23,7 +24,7 @@ Project references identify environments. Credentials and private keys must not 
 
 | Area | Verdict |
 | --- | --- |
-| Repository development | **Safe to continue controlled development.** The migration chain now contains 34 files and executable privilege coverage. |
+| Repository development | **Safe to continue controlled development.** The migration chain contains 34 files; function privileges and pending-write submission have executable coverage. |
 | Hosted development | **Semantically current through migration 34 and verified as the expected post-rollout mirror.** Migration-history metadata is not yet a clean mirror of repository timestamps. |
 | Current production release | **Critical deployment mismatch remains.** The post-PR #14 client is deployed against the original 20-migration production schema. |
 | Production migration readiness | **Baseline and entry preflights passed; migrations 21–34 are rehearsed; exact history-repair and rollout procedures are prepared; execution is not approved or performed.** |
@@ -80,6 +81,27 @@ Live verification found no anonymous executable public functions, no missing or 
 Supabase’s advisor continues to warn that the intentionally authenticated `SECURITY DEFINER` application RPCs are callable by signed-in users. That is their designed API boundary; ownership, co-membership, lock and scope checks remain inside those functions. Leaked-password protection remains a separate Auth configuration action.
 
 `SECURITY-003` is therefore **implemented and verified in repository/development; production pending**.
+
+## Pending-write submission barrier — `REL-003`
+
+Manual submission now crosses a shared save-settlement barrier before calling `submit_entry`.
+
+The provider:
+
+- flushes every pending score debounce;
+- flushes a pending complete-bracket debounce;
+- waits for match, tie, bracket and Golden Boot writes already in flight, coalesced or retrying;
+- routes edits made during submission directly into the same controller barrier;
+- blocks submission on terminal save errors or optimistic-concurrency conflicts;
+- cancels submission if the active entry/provider resets;
+- cancels stale score/bracket timers on entry change and unmount;
+- prevents a Joker toggle or cleared score side from leaving an older delayed score write behind.
+
+Controller tests cover multi-key settlement, newest coalesced values, retry exhaustion, conflicts and reset cancellation. Provider tests prove that immediate submission after the final score or bracket pick cannot call `submit_entry` before that write finishes, and that terminal save failure prevents submission entirely. Application CI run #92 passed install, build, lint, all tests and dependency audit.
+
+This does not implement deletion of an already persisted complete score when one side is cleared; that remains `DATA-005`.
+
+`REL-003` is **implemented and tested in the repository; compatible-production browser verification and durable E2E coverage remain required before closure**.
 
 ## Production-entry compatibility proof
 
@@ -138,7 +160,7 @@ All twenty per-migration checks passed. Evidence covers tables, columns, RLS, po
 
 The hosted migration-history API still returns no production migration rows. The rollout runbook therefore contains an exact history-only repair command for repository timestamps 1–20, followed by mandatory `migration list` and `db push --dry-run` checks.
 
-Production still has the old broad function ACLs. Migration 34 is now the reviewed repair and must be applied as the final file in the migrations 21–34 production chain rather than replaying old migration files.
+Production still has the old broad function ACLs. Migration 34 is the reviewed repair and must be applied as the final file in the migrations 21–34 production chain rather than replaying old migration files.
 
 ## Current blockers
 
@@ -150,7 +172,7 @@ Production still has the old broad function ACLs. Migration 34 is now the review
 | Environment isolation | `OPS-007`: production Netlify deploy-preview and branch contexts inherit production Supabase configuration. |
 | Hosted function security | `SECURITY-003`: repository/development fixed and verified through migration 34; production remains pending. |
 | Auth security | Leaked-password protection remains disabled and requires a separately approved Auth configuration change. |
-| Entry reliability | `REL-003`: manual submit does not flush/await pending debounced saves. |
+| Entry reliability | `REL-003`: repository implementation and tests pass; close after compatible-production browser verification and E2E coverage. `DATA-005`, `REL-002` and `REL-006` remain open. |
 | Product completeness | Automatic real R16 population, auto-submit, reminder emails and browser result administration remain absent. |
 | Test assurance | No Playwright or equivalent authenticated browser E2E critical journeys. |
 | Official data | Final regulations, qualified teams, draw, exact fixtures/times and lock instant remain future dependencies. |
@@ -182,7 +204,7 @@ Never use migration-history repair to claim missing SQL has executed. Do not mar
 - Golden Boot 25;
 - group-goals bands 40 / 30 / 20, tiered.
 
-No security hardening changed scoring values. Automatic deadline submission remains a documented rule but is not implemented (`FUNC-002`).
+No reliability or security hardening changed scoring values. Automatic deadline submission remains a documented rule but is not implemented (`FUNC-002`).
 
 ## Immediate order of work
 
@@ -192,9 +214,10 @@ No security hardening changed scoring values. Automatic deadline submission rema
 4. Apply the prepared 1–20 history-only repair and require a clean `db push --dry-run` showing migrations 21–34 only.
 5. Explicitly approve and execute the controlled production rollout.
 6. Run the migrations 21–34 database post-verification, security advisors and production application bracket save/reload smoke tests.
-7. Isolate production Netlify preview contexts (`OPS-007`).
-8. Enable leaked-password protection through the separately approved Auth-setting workstream.
-9. Close `REL-003`, then implement automatic real R16 population.
+7. Browser-verify immediate final-edit submission, failure blocking and conflict blocking; add the durable E2E journey and close `REL-003`.
+8. Isolate production Netlify preview contexts (`OPS-007`).
+9. Enable leaked-password protection through the separately approved Auth-setting workstream.
+10. Implement `DATA-005`, then automatic real R16 population.
 
 ## Documentation authority
 
@@ -207,4 +230,4 @@ Use sources in this order:
 5. dated audits and archived risk evidence;
 6. roadmap/build-todo history for product intent only.
 
-Do not claim production is migrated until the approved rollout, post-verification and application smoke test are complete.
+Do not claim production is migrated or `REL-003` is fully closed until the approved rollout and browser verification are complete.
