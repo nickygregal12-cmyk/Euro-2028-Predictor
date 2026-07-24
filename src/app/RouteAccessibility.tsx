@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import { matchPath, useLocation } from 'react-router-dom'
-import styles from './RouteAccessibility.module.css'
 
 const APP_NAME = 'Euro 2028 Predictor'
 
@@ -70,7 +69,7 @@ export function RouteAccessibility() {
   }, [pathname, routeTitle])
 
   return (
-    <p className={styles.liveRegion} aria-live="polite" aria-atomic="true">
+    <p className="sr-only" aria-live="polite" aria-atomic="true">
       {routeTitle} page loaded
     </p>
   )
