@@ -113,9 +113,8 @@ test.describe('authentication and recovery', () => {
     await page.getByRole('textbox', { name: 'Password', exact: true }).fill(OLD_PASSWORD)
     await page.getByRole('button', { name: 'Create account', exact: true }).click()
 
-    await expect(
-      page.getByRole('alert').filter({ hasText: 'Almost there — check your email' }),
-    ).toContainText(EMAIL)
+    await expect(page.getByRole('status')).toContainText('Almost there — check your email')
+    await expect(page.getByRole('status')).toContainText(EMAIL)
 
     const confirmationLink = await waitForAuthLink(EMAIL, 'signup')
     await page.goto(confirmationLink)
@@ -138,7 +137,7 @@ test.describe('authentication and recovery', () => {
     await expect(page.getByRole('heading', { name: 'Reset your password' })).toBeVisible()
     await page.getByLabel('Email').fill(EMAIL)
     await page.getByRole('button', { name: 'Send reset link', exact: true }).click()
-    await expect(page.getByRole('alert').filter({ hasText: 'Reset link sent' })).toBeVisible()
+    await expect(page.getByRole('status')).toContainText('Reset link sent')
 
     const recoveryLink = await waitForAuthLink(EMAIL, 'recovery')
     await page.goto(recoveryLink)
