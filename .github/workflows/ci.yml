@@ -66,13 +66,16 @@ jobs:
           set +e
           python <<'PY' > /tmp/rel002-bootstrap.log 2>&1
           from pathlib import Path
-          from textwrap import dedent
 
           workflow = Path('.github/workflows/agent-rel002-bootstrap.yml').read_text()
           marker = "          python <<'PY'\n"
           start = workflow.index(marker) + len(marker)
           end = workflow.index("\n          PY\n", start)
-          script = dedent(workflow[start:end])
+          raw_script = workflow[start:end]
+          script = '\n'.join(
+              line[10:] if line.startswith('          ') else line
+              for line in raw_script.splitlines()
+          )
           exec(compile(script, 'rel002-bootstrap.py', 'exec'))
           PY
           status=$?
