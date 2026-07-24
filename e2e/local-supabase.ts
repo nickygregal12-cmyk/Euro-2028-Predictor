@@ -81,37 +81,16 @@ export type PreparedEntry = {
   firstAwayName: string
 }
 
-async function clearEntryRows(entryId: string): Promise<void> {
-  const admin = createLocalAdmin()
-
-  // Keep the parent entry in place while score rows are removed. The group-
-  // position refresh trigger runs on each score deletion and correctly requires
-  // the entry to still exist; deleting the parent first would make the cascade
-  // fail closed with SQLSTATE 23503.
-  for (const table of [
-    'predicted_progression',
-    'predicted_tie_resolutions',
-    'bonus_predictions',
-    'match_predictions',
-  ]) {
-    const { error } = await admin.from(table).delete().eq('entry_id', entryId)
-    if (error) throw error
-  }
-
-  const { error: entryResetError } = await admin
-    .from('entries')
-    .update({ submitted_at: null })
-    .eq('id', entryId)
-  if (entryResetError) throw entryResetError
-}
-
 /**
- * Replace the local E2E user's entry with all 36 group predictions complete.
+ * Fill the existing local E2E entry with all 36 group predictions. The earlier
+ * save/delete smoke journey leaves the entry present and empty, so this helper
+ * deliberately refuses to bypass table grants with service-role DELETEs.
+ *
  * Group positions are deterministic (slot 1 > 2 > 3 > 4), while each third-
  * placed team has a different goal difference so the best-third table settles
  * without manual tie resolution.
  */
-export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
+export async function prepareCompleteGroupEntry(): Promise<PreparedEntry> {
   const admin = createLocalAdmin()
   const userId = await e2eUserId()
 
@@ -125,7 +104,7 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
 
   const { data: existing, error: existingError } = await admin
     .from('entries')
-    .select('id')
+    .select('id, submitted_at')
     .eq('user_id', userId)
     .eq('tournament_id', tournamentId)
     .maybeSingle()
@@ -133,8 +112,10 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
 
   let entryId: string
   if (existing) {
+    if (existing.submitted_at !== null) {
+      throw new Error('Browser E2E submission fixture requires an unsubmitted entry.')
+    }
     entryId = existing.id
-    await clearEntryRows(entryId)
   } else {
     const { data: created, error: entryError } = await admin
       .from('entries')
@@ -143,6 +124,17 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
       .single()
     if (entryError) throw entryError
     entryId = created.id
+  }
+
+  const { count: predictionCount, error: predictionCountError } = await admin
+    .from('match_predictions')
+    .select('match_id', { count: 'exact', head: true })
+    .eq('entry_id', entryId)
+  if (predictionCountError) throw predictionCountError
+  if ((predictionCount ?? 0) !== 0) {
+    throw new Error(
+      `Browser E2E submission fixture expected an empty entry, found ${predictionCount} predictions.`,
+    )
   }
 
   const { data: teams, error: teamsError } = await admin
@@ -171,7 +163,9 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
     }
     const home = teamsById.get(match.home_team_id)
     const away = teamsById.get(match.away_team_id)
-    if (!home || !away) throw new Error(`Seeded group match ${match.match_ref} references an unknown team.`)
+    if (!home || !away) {
+      throw new Error(`Seeded group match ${match.match_ref} references an unknown team.`)
+    }
     const score = predictedScore(home, away)
     return {
       entry_id: entryId,
@@ -187,7 +181,9 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
   if (predictionError) throw predictionError
 
   const first = matches[0]
-  if (!first.home_team_id || !first.away_team_id) throw new Error('First seeded match is unresolved.')
+  if (!first.home_team_id || !first.away_team_id) {
+    throw new Error('First seeded match is unresolved.')
+  }
   const firstHome = teamsById.get(first.home_team_id)
   const firstAway = teamsById.get(first.away_team_id)
   if (!firstHome || !firstAway) throw new Error('First seeded match teams are missing.')
