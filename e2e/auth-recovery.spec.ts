@@ -72,7 +72,7 @@ async function waitForWelcomeStamp(timeoutMs = 10_000): Promise<void> {
 async function logIn(page: Page, password: string): Promise<void> {
   await page.goto('/auth/login')
   await page.getByLabel('Email').fill(EMAIL)
-  await page.getByLabel('Password').fill(password)
+  await page.getByRole('textbox', { name: 'Password', exact: true }).fill(password)
   await page.getByRole('button', { name: 'Log in', exact: true }).click()
 }
 
@@ -110,7 +110,7 @@ test.describe('authentication and recovery', () => {
     await expect(page.getByRole('heading', { name: 'Create your account' })).toBeVisible()
     await page.getByLabel('Display name').fill(DISPLAY_NAME)
     await page.getByLabel('Email').fill(EMAIL)
-    await page.getByLabel('Password').fill(OLD_PASSWORD)
+    await page.getByRole('textbox', { name: 'Password', exact: true }).fill(OLD_PASSWORD)
     await page.getByRole('button', { name: 'Create account', exact: true }).click()
 
     await expect(
@@ -145,8 +145,10 @@ test.describe('authentication and recovery', () => {
     await expect(page.getByRole('heading', { name: 'Set a new password' })).toBeVisible({
       timeout: 20_000,
     })
-    await page.getByLabel('New password').fill(NEW_PASSWORD)
-    await page.getByLabel('Confirm new password').fill(NEW_PASSWORD)
+    await page.getByRole('textbox', { name: 'New password', exact: true }).fill(NEW_PASSWORD)
+    await page
+      .getByRole('textbox', { name: 'Confirm new password', exact: true })
+      .fill(NEW_PASSWORD)
     await page.getByRole('button', { name: 'Save new password', exact: true }).click()
 
     await expect(page.getByRole('heading', { name: 'Password updated' })).toBeVisible()
@@ -160,7 +162,7 @@ test.describe('authentication and recovery', () => {
     )
     await expect(page).toHaveURL((url) => url.pathname === '/auth/login')
 
-    await page.getByLabel('Password').fill(NEW_PASSWORD)
+    await page.getByRole('textbox', { name: 'Password', exact: true }).fill(NEW_PASSWORD)
     await page.getByRole('button', { name: 'Log in', exact: true }).click()
     await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
     await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
