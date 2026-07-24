@@ -147,7 +147,8 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [x] Test immediate submit after final score and bracket edits.
 - [x] Test terminal save failure blocking.
 - [ ] Browser-verify immediate final edits after production compatibility is restored.
-- [ ] Add the journey to Playwright/equivalent and close `REL-003`.
+- [x] Add immediate-final-edit, terminal failure and real conflict journeys to Playwright.
+- [ ] Close `REL-003` after compatible-production smoke evidence.
 
 ### Persisted score clearing — client deployed, backend pending
 
@@ -162,7 +163,8 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 - [x] Confirm the production backend RPC is absent, causing save failure rather than successful clearing.
 - [ ] Apply migration 35 as part of the complete approved 21–35 chain.
 - [ ] Browser-verify clear/reload, restore, stale conflict and post-lock refusal in production.
-- [ ] Add the journey to Playwright/equivalent and close `DATA-005`.
+- [x] Add clear/reload, stale conflict and post-lock refusal journeys to Playwright.
+- [ ] Close `DATA-005` after migrations 21–35 and compatible-production smoke evidence.
 
 ### Remaining reliability work
 
@@ -201,12 +203,14 @@ Do **not** point production at development Supabase. Do not add unsafe direct-ta
 
 ## 10. Browser E2E and operations
 
-- [ ] Add Playwright or equivalent.
-- [ ] Cover auth/recovery, welcome, full entry, ties, bracket, submission settlement and score clearing.
-- [ ] Cover conflict resolution, leagues and result administration.
-- [ ] Run mobile, keyboard and accessibility journeys.
-- [ ] Make critical E2E a required merge/release gate.
-- [ ] Confirm branch protection and required checks.
+- [x] Add a dedicated Playwright/Chromium gate against disposable local Supabase.
+- [x] Cover signup confirmation, password recovery, welcome, full entry, ties, bracket, submission settlement and score clearing.
+- [x] Cover score and atomic-bracket conflict resolution plus post-lock rejection.
+- [ ] Cover private-league invitation/join and result administration.
+- [x] Run authenticated and signed-out phone-width journeys.
+- [ ] Add keyboard and browser accessibility journeys.
+- [x] Run Browser E2E as a dedicated pull-request workflow for relevant paths.
+- [ ] Confirm branch protection and required-check enforcement.
 - [x] Pin and verify Node `22.22.2` across local tooling, package metadata, CI and Netlify; retain the alignment test.
 - [ ] Add production error reporting, alert ownership and critical-journey monitoring.
 - [ ] Complete and periodically repeat backup/restore/application rollback rehearsals.
