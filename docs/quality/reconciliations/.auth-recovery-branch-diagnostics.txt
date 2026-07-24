@@ -1,0 +1,5 @@
+APPLICATION E2E:
+No application browser log captured.
+
+AUTH RECOVERY E2E:
+No auth recovery browser log captured.
