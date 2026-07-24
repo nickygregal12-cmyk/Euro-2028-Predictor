@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../design-system'
+import { Button, ConfirmModal } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useTheme } from '../../app/providers/ThemeProvider'
@@ -11,7 +11,12 @@ export function MorePage() {
   const navigate = useNavigate()
   const { displayName, signOut } = useAuth()
   const { theme, toggle } = useTheme()
+  const [signOutOpen, setSignOutOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
+
+  function closeSignOut() {
+    if (!signingOut) setSignOutOpen(false)
+  }
 
   async function handleSignOut() {
     setSigningOut(true)
@@ -20,6 +25,7 @@ export function MorePage() {
       // log-in screen. (In a dev build with auto-login on, a full page reload
       // will sign back in as the dev tester — see docs/auth-plan.md §1.)
       await signOut()
+      setSignOutOpen(false)
     } finally {
       setSigningOut(false)
     }
@@ -60,10 +66,22 @@ export function MorePage() {
       </button>
 
       <div className={s.card}>
-        <Button variant="destructive" fullWidth loading={signingOut} onClick={handleSignOut}>
+        <Button variant="destructive" fullWidth onClick={() => setSignOutOpen(true)}>
           Sign out
         </Button>
       </div>
+
+      <ConfirmModal
+        open={signOutOpen}
+        onClose={closeSignOut}
+        onConfirm={handleSignOut}
+        title="Sign out?"
+        confirmLabel="Sign out"
+        destructive
+        loading={signingOut}
+      >
+        You’ll need to sign in again to return to your predictions.
+      </ConfirmModal>
     </div>
   )
 }
