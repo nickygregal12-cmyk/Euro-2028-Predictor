@@ -14,6 +14,7 @@
 **Bottom-navigation links:** [`reconciliations/2026-07-24-bottom-navigation-links.md`](reconciliations/2026-07-24-bottom-navigation-links.md)  
 **Route-transition accessibility:** [`reconciliations/2026-07-24-route-transition-accessibility.md`](reconciliations/2026-07-24-route-transition-accessibility.md)  
 **League options disclosure:** [`reconciliations/2026-07-24-league-options-disclosure.md`](reconciliations/2026-07-24-league-options-disclosure.md)  
+**Sign-out confirmation:** [`reconciliations/2026-07-24-sign-out-confirmation.md`](reconciliations/2026-07-24-sign-out-confirmation.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
@@ -27,10 +28,10 @@ This register retains every original finding ID and adds findings discovered by 
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
 | Medium | 16 | 2 | 14 |
-| Low | 14 | 3 | 11 |
-| **Total** | **52** | **8** | **44** |
+| Low | 14 | 4 | 10 |
+| **Total** | **52** | **9** | **43** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-002`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-002`, `A11Y-003`, `UX-004` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `DOC-001` is resolved by the active documentation authority/reconciliation process. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ## Critical
 
@@ -97,7 +98,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `SEO-002` | Metadata is largely global | Open |
 | `A11Y-003` | Bottom navigation is imperative rather than link-semantic | **Resolved** — all five primary destinations are React Router links, retain `aria-current="page"`, support normal browser link actions and pass semantic regression tests. PR #37’s guarded preview reached ready state with accessibility 100. Reopen if a primary destination becomes button-imperative again. |
 | `UX-003` | Other-player profile action remains incomplete | Open |
-| `UX-004` | Sign-out is immediate | Open |
+| `UX-004` | Sign-out is immediate | **Resolved** — sign-out now requires explicit destructive confirmation; Cancel performs no action, confirmation invokes sign-out once and loading blocks duplicate submission. Preview remained 98/100/100/100. Reopen if session clearing becomes immediate again. |
 | `DATA-008` | Score values have no practical database maximum | Open |
 | `DOC-002` | Package version remains `0.0.0` | Open |
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
