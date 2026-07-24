@@ -108,3 +108,25 @@ export async function upsertMatchPrediction(
   }
   return data.version
 }
+
+/**
+ * Remove one saved score pair through the protected database boundary. A null
+ * expected version means the client never read a row: the RPC returns false if
+ * none exists, but raises PT409 if another device created one in the meantime.
+ */
+export async function deleteMatchPrediction(
+  entryId: string,
+  matchId: string,
+  expectedVersion: number | null,
+): Promise<boolean> {
+  const { data, error } = await supabase.rpc('delete_match_prediction', {
+    p_entry_id: entryId,
+    p_match_id: matchId,
+    p_expected_version: expectedVersion,
+  })
+  if (error) {
+    if (isVersionConflict(error)) throw new VersionConflictError()
+    throw error
+  }
+  return data as boolean
+}
