@@ -5,7 +5,7 @@
 **Pull request:** #47  
 **Branch:** `agent/repair-audit-controls`  
 **Findings:** `TEST-002`, `TEST-003`, `DOC-001`, `DOC-006`  
-**Status:** Validated for merge; `main` closure pending
+**Status:** Closed on `main`
 
 ## Scope
 
@@ -43,12 +43,13 @@ PR #47 permanent-file head `eab67c8f56579d038e1d1164ee1675082df2ed91` completed 
 
 The temporary reconciliation helpers used while preparing the branch were removed and are not part of the permanent PR scope.
 
-## Closure boundary
+## Post-merge closure evidence
 
-`TEST-002` and `DOC-004` are already reconciled as resolved in the branch documents. `DOC-001`, `TEST-003` and `DOC-006` remain recorded as in progress until PR #47 is merged because repository policy does not treat an unmerged branch as the live control state.
+- PR #47 merged into `main` as `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8`.
+- The final clean PR head `fd0fc31f4e0038e89b0d286927554de897e6d04f` passed CI run 200, including the Git-less archive proof, build, lint, complete test suite, repository-wide Markdown-link checks and dependency audit.
+- GitHub automatically closed issue #46 as completed at merge.
+- `DOC-001`, `TEST-003` and `DOC-006` are therefore resolved at the repository layer.
+- `TEST-002` and `DOC-004` remain resolved.
+- The connected GitHub workflow-run endpoint did not expose a separate push-triggered run for the squash merge commit; this note does not claim an unseen `main` run.
 
-After merge:
-
-1. confirm the exact `main` merge commit and green `main` CI;
-2. mark `DOC-001`, `TEST-003` and `DOC-006` resolved in `current-status.md` and `risk-register.md`;
-3. close issue #46 and the reopened post-merge tracking for issue #44 where appropriate.
+No production, Supabase, Netlify, migration, deployment-contract, scoring or application-runtime change occurred in this closure batch.
