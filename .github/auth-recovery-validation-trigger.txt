@@ -1,0 +1,1 @@
+Trigger the branch-only auth recovery validation after action-outcome diagnostics were added.
