@@ -1,6 +1,8 @@
 # Hosted migrations 21–35 — controlled rollout runbook
 
-This runbook governs the production rollout of repository migrations 21–35. It does **not** authorize the rollout. The owner must explicitly approve the change only after reviewing accepted recovery evidence, fresh preflights, migration-history repair, dry-run output, the named operator and the deployment window.
+This runbook governs the production rollout of repository migrations 21–35 and the release of application/database contract 35.
+
+It does **not** authorize the rollout. The owner must explicitly approve the change only after reviewing accepted recovery evidence, fresh preflights, migration-history repair, dry-run output, the named operator and the deployment window.
 
 ## Absolute rules
 
@@ -13,28 +15,41 @@ This runbook governs the production rollout of repository migrations 21–35. It
 - Never use `migration repair` unless the matching schema effect is independently proven present.
 - Never use `--include-seed` on production.
 - Never restore old direct-table client writes as a compatibility shortcut.
+- Never change production `EURO28_DEPLOYED_DB_CONTRACT` from `20` to `35` merely to make a build pass.
 - One named operator performs the database change.
-- Treat executable application code, current Netlify release and database schema as one verified release pair.
+- Treat executable application code, the current Netlify release, the repository deployment contract and the hosted database schema as one verified release pair.
 - Prepared backup tooling, an unencrypted dump or an untested dump is not recovery evidence.
 - A Netlify rollback is not a database rollback.
 
-## Release identity model
+## Current release and contract state
 
-Netlify can publish a new production release for a documentation-only `main` merge. A later release commit does not necessarily mean executable application code changed.
+The repository currently requires application/database contract 35:
 
-For every rollout, record and verify:
+- contract source: `config/deployment-contract.json`;
+- required migration count: 35;
+- required RPCs:
+  - `public.replace_predicted_progression(uuid,jsonb,jsonb)`;
+  - `public.delete_match_prediction(uuid,uuid,integer)`.
 
-1. the **current Netlify release commit/deploy**, fetched live at the start of the window;
-2. the **application-code baseline** whose executable/configuration changes define the database dependencies;
-3. the diff between them, proving whether intervening releases are documentation-only or functional.
+Netlify build-context declarations:
 
-Current known executable baseline:
+| Context | Declared hosted database contract |
+| --- | ---: |
+| `production` | 20 |
+| `deploy-preview` | 35 |
+| `branch-deploy` | 35 |
+| `dev` | 35 |
 
-- application-code commit `a403b0796853453cb4115aea55729aced192a6ca`;
-- requires `replace_predicted_progression(uuid,jsonb,jsonb)` and `delete_match_prediction(uuid,uuid,integer)`;
-- both functions are absent from production.
+The production declaration intentionally blocks new production builds while production remains on the original 20-migration schema.
 
-The first verified documentation-only descendant was commit `83e071c2c971ba16cffd8de6ae8fb92ffff5e7a3`, deploy `6a62c93afeb9b400086e1e3f`. Future documentation-only descendants must be verified live rather than hard-coded as permanently current.
+Current verified ready production deploy at the time the gate was introduced:
+
+- deploy ID `6a630e4de510f100077bc120`;
+- source commit `a6d3f1c97a93d48789435457769fd627c305ff27`;
+- executable application lineage includes the two client RPC dependencies;
+- production Supabase lacks both RPCs.
+
+PR #25 merged contract enforcement as commit `2424a7bffc5390f55cb34ddffc3cc7c56d48bcdc`. The current production pointer remained on the earlier ready deploy. This is the intended release freeze, not an outage.
 
 ## Current evidence
 
@@ -50,18 +65,22 @@ The 23–24 July 2026 work established:
 - production remains on migrations 1–20 with no migration-history table;
 - read-only production inspection confirms both executable-client RPC dependencies are absent;
 - production is approximately 12 MB, with four Auth users, no Storage objects and no Edge Functions;
-- the Supabase organization is on Free, so the rollout must rely on a manually created and proven logical recovery bundle.
+- the Supabase organization is on Free, so the rollout must rely on a manually created and proven logical recovery bundle;
+- Netlify non-production contexts are isolated to development Supabase;
+- the application/database deployment contract blocks further incompatible production releases.
 
 Evidence:
 
 - `scripts/database-rollout/production-baseline-1-20-verification.sql`;
 - `scripts/database-rollout/production-preflight.sql`;
+- `scripts/database-rollout/post-rollout-verification.sql`;
 - `docs/ops-production-backup-restore.md`;
 - `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`;
 - `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`;
 - `docs/quality/reconciliations/2026-07-24-score-clearing.md`;
-- `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`;
-- `docs/quality/reconciliations/2026-07-24-production-recovery-readiness.md`.
+- `docs/quality/reconciliations/2026-07-24-production-recovery-readiness.md`;
+- `docs/quality/reconciliations/2026-07-24-netlify-environment-isolation.md`;
+- `docs/quality/reconciliations/2026-07-24-app-schema-deployment-gate.md`.
 
 Rollout guards:
 
@@ -77,9 +96,10 @@ If a fingerprint or submitted timestamp changes, stop and repeat the production-
 
 Record before starting:
 
-- owner-approved repository/application-code baseline;
+- owner-approved repository commit and `config/deployment-contract.json` content;
+- repository migration count;
 - current production Netlify release commit/deploy fetched live;
-- executable/configuration diff between current release and approved baseline;
+- current Netlify production `EURO28_DEPLOYED_DB_CONTRACT` value;
 - production Supabase project reference;
 - operator and recovery decision owner;
 - start time and change window;
@@ -90,7 +110,8 @@ Record before starting:
 - migration-list output before and after repair;
 - `db push --dry-run` output;
 - rollout-guard fingerprints;
-- final verification, advisor and smoke-test outputs.
+- database post-verification, advisor and smoke-test outputs;
+- production contract-value change and final deploy evidence.
 
 Do not place credentials, database passwords, tokens, raw Auth data or private backup URLs in the repository.
 
@@ -98,20 +119,22 @@ Do not place credentials, database passwords, tokens, raw Auth data or private b
 
 1. Freeze ordinary production deployments and database writes for the approved operation.
 2. Fetch the current production Netlify deploy live.
-3. Compare its executable/configuration diff with the owner-approved application-code baseline. Documentation-only differences are acceptable only when proven; unexplained functional differences are a stop condition.
-4. Confirm a clean checkout at the approved repository commit.
-5. Confirm the linked Supabase project:
+3. Confirm the current ready deploy remains available.
+4. Confirm the repository application/database contract is 35 and the repository has exactly 35 migration files.
+5. Confirm production Netlify declares `EURO28_DEPLOYED_DB_CONTRACT=20` before database rollout.
+6. Confirm a clean checkout at the approved repository commit.
+7. Confirm the linked Supabase project:
 
 ```bash
 supabase projects list
 supabase link --project-ref vkfnsqdyhvtwyqkisxhk
 ```
 
-6. Confirm public domains still use production Supabase.
-7. Confirm both `replace_predicted_progression` and `delete_match_prediction` remain absent before rollout. Unexpected presence is a stop-and-investigate condition.
-8. Do not use an unisolated preview/branch deploy for production testing.
+8. Confirm public domains still use production Supabase.
+9. Confirm both `replace_predicted_progression` and `delete_match_prediction` remain absent before rollout. Unexpected presence is a stop-and-investigate condition.
+10. Do not use a preview/branch deploy for production smoke testing.
 
-Stop if any target identity or executable diff cannot be proven.
+Stop if any target identity, contract value or executable diff cannot be proven.
 
 ## Phase 2 — create and prove recovery evidence
 
@@ -131,17 +154,9 @@ bash scripts/database-rollout/create-production-backup.sh
 ```
 
 5. Require the script to complete without bypassing any guard.
-6. Confirm the bundle contains:
-   - `roles.sql`;
-   - `schema.sql`;
-   - `data.sql` containing `auth.users` and `public.profiles`;
-   - `database-state.json`;
-   - `auth-storage-diff.sql`;
-   - `managed-schema-customizations.sql`;
-   - migration and tool provenance;
-   - `manifest.json`;
-   - `SHA256SUMS`.
-7. Confirm the bundle records the source as a sensitive plaintext staging artifact with `qualifying_recovery_evidence = false`.
+6. Confirm the bundle contains roles, schema and data dumps, source inventory, Auth/Storage drift evidence, managed-schema customizations, repository/tool provenance, `manifest.json` and `SHA256SUMS`.
+7. Confirm `data.sql` contains `auth.users` and `public.profiles`.
+8. Confirm the plaintext staging bundle records `qualifying_recovery_evidence = false`.
 
 Any failed identity, clean-tree, dump, Auth-data, inventory or checksum guard is a stop condition.
 
@@ -161,14 +176,14 @@ A local-only copy, unencrypted archive or unchecked retrieval does not satisfy t
 Use a disposable Supabase-compatible target that is neither production nor the active development project.
 
 1. Record the target identifier, database version, operator and proof that destructive testing is permitted.
-2. Restore roles, schema, data and the reviewed managed-schema customization file in the order defined by `docs/ops-production-backup-restore.md`.
-3. Review `auth-storage-diff.sql`; apply only reviewed production customizations not already recreated elsewhere.
+2. Restore roles, schema, data and the reviewed managed-schema customization file in the order defined by the backup/restore runbook.
+3. Review `auth-storage-diff.sql`; apply only reviewed production customizations not recreated elsewhere.
 4. Run the copied baseline verifier and source preflight.
-5. Require restored source counts and all three rollout fingerprints to match the bundle.
+5. Require restored source counts and all three rollout fingerprints to match.
 6. Verify all Auth users/profiles exist without exposing their contents.
 7. Verify `on_auth_user_created` calls `public.handle_new_user()` and prove the signup/profile path with a disposable test user.
 8. Verify Storage remains empty unless the fresh source inventory proves otherwise.
-9. Verify the restored baseline still lacks the migration-33 and migration-35 RPCs, matching pre-rollout production.
+9. Verify the restored baseline still lacks the migration-33 and migration-35 RPCs.
 10. Preferably rehearse the exact 1–20 history repair, 21–35-only dry run, full 21–35 push and post-rollout verification on this restored target.
 11. Retain non-secret evidence and confirm cleanup of the disposable target and plaintext staging files.
 
@@ -176,18 +191,7 @@ The restore must succeed and be reviewed. Merely generating a dump does not sati
 
 ### 2D — recovery acceptance
 
-Before proceeding, the owner/recovery decision owner must accept a record containing:
-
-- source baseline and current Netlify release identity;
-- bundle timestamp and source repository commit;
-- plaintext and encrypted checksums;
-- verified off-site retrieval reference;
-- disposable target identity;
-- restore tool versions and commands;
-- baseline/source-verification results;
-- Auth signup-trigger test result;
-- optional forward-rollout rehearsal results;
-- operator/reviewer and cleanup confirmation.
+Before proceeding, the owner/recovery decision owner must accept a record containing source/release identity, bundle and encrypted checksums, verified off-site retrieval, disposable restore evidence, baseline/source verification, Auth-trigger proof, operator/reviewer identity and cleanup confirmation.
 
 If any required evidence is absent, the production migration window remains blocked.
 
@@ -210,7 +214,7 @@ Required baseline result:
 Required source result:
 
 - `overall_structural_pass = true`;
-- exactly one submitted entry with timestamp `2026-07-21 21:51:49.639442+00`, before lock;
+- exactly one submitted entry with the rehearsed timestamp, before lock;
 - each group remains four teams, six valid fixtures and six predictions;
 - one valid group tie and one valid third-place tie;
 - all rollout fingerprints match;
@@ -220,9 +224,9 @@ Required source result:
 - no scope anomaly exists;
 - knockout source tree remains `8/4/2/1` with fourteen valid winner sources.
 
-Profile/entry totals may increase through legitimate signup activity. At the 24 July read-only snapshot, production had four profiles, four entries and one submitted entry. Do not treat total-count growth alone as a failed guard; inspect ownership and submitted-entry/source invariants.
+Profile/entry totals may increase through legitimate signup activity. Total-count growth alone is not a failed guard; inspect ownership and submitted-entry/source invariants.
 
-Any required failure is a stop condition. Investigate outside the change window.
+Any required failure is a stop condition.
 
 ## Phase 4 — reconcile migration history
 
@@ -233,8 +237,6 @@ Production contains the structural effects of migrations 1–20 but no tracked h
 ```bash
 supabase migration list
 ```
-
-Expected before repair: local files 1–35; production history missing 1–20.
 
 2. Re-run the baseline verifier and retain its all-true output.
 3. Only when every baseline check is true, repair tracking metadata:
@@ -276,7 +278,7 @@ The dry run must show **only migrations 21–35**, in timestamp order. Stop if i
 
 `migration repair` updates metadata only. Never mark migrations 21–35 applied before their SQL executes.
 
-## Phase 5 — apply the chain
+## Phase 5 — apply migrations 21–35
 
 After explicit owner approval of the accepted recovery record, fresh preflights, history repair and dry-run output:
 
@@ -314,43 +316,38 @@ scripts/database-rollout/post-rollout-verification.sql
 
 Every reported value must be true, including:
 
-- private schema exists and browser roles lack usage;
-- entry update/delete privileges are denied to authenticated users;
-- group-position and progression direct writes are denied;
-- direct `match_predictions` deletion is denied to authenticated and service API roles;
-- `delete_match_prediction(uuid,uuid,integer)` exists, is authenticated/service allowlisted and anonymous-denied;
-- `replace_predicted_progression(uuid,jsonb,jsonb)` exists and is authenticated-only;
-- result lifecycle columns/functions exist;
-- result administration is service-role-only;
-- revision table direct access is denied;
-- anonymous roles execute no public application function;
-- authenticated/service allowlists are exact;
-- future public functions default owner-only;
-- helper search paths are empty and immutable;
-- submitted entry, timestamp and fingerprints are preserved;
-- 24 derived positions and eight progression rows remain;
-- submission/bracket validators pass;
-- no result, revision, score event or rank-history row was invented.
+- private schema and browser boundaries;
+- denied direct entry, group-position, progression and match-prediction deletion writes;
+- authenticated/service allowlists and zero anonymous application execution;
+- both required application RPCs;
+- result lifecycle and revision boundaries;
+- immutable helper search paths and owner-only future defaults;
+- preserved submitted entry, timestamp and fingerprints;
+- 24 derived positions and eight progression rows;
+- valid submission/bracket replay;
+- no invented result, revision, score-event or rank-history row.
 
 Run Supabase security advisors and retain output.
 
 Expected:
 
-- no anonymous security-definer execution warning;
+- no anonymous security-definer warning;
 - no mutable-search-path warning;
-- signed-in warnings only for intentional authenticated RPCs;
+- signed-in warnings only for intentional application RPCs;
 - leaked-password protection remains separate unless independently approved;
 - internal deny-all tables may retain informational no-policy notices.
 
 Any unexpected privilege, object, data or advisor result is a stop condition.
 
-## Phase 7 — authenticated application smoke tests
+**Do not update the production Netlify contract yet.**
 
-Using the verified current production release and a controlled owner account:
+## Phase 7 — authenticated application smoke tests while the gate remains closed
+
+Use the existing verified ready production deploy and a controlled owner account. The application already contains the required client paths; the database has just been migrated.
 
 ### Existing data and bracket
 
-1. Confirm all 36 submitted-entry predictions, both tie decisions and complete bracket load.
+1. Confirm all submitted-entry predictions, both tie decisions and the complete bracket load.
 2. Make one reversible pre-lock bracket change.
 3. Wait for saved status, reload and confirm persistence through `replace_predicted_progression`.
 4. Reverse the change and confirm persistence.
@@ -359,7 +356,7 @@ Using the verified current production release and a controlled owner account:
 ### Submission settlement
 
 6. Make a final score edit and immediately submit.
-7. Confirm submission waits for the save and succeeds only after persistence.
+7. Confirm submission waits for persistence.
 8. Confirm a controlled save error/conflict blocks submission.
 
 ### Persisted score clearing
@@ -375,47 +372,70 @@ Using the verified current production release and a controlled owner account:
 
 15. Confirm leaderboard, Match Centre distribution, leagues, profiles and points views load.
 
-Do not use an unisolated production preview for these tests.
+Any failure keeps the deployment contract at 20 and the release freeze active.
 
-## Phase 8 — compatibility decision
+## Phase 8 — lift the deployment contract and publish
 
-Only after database and application verification pass:
+Only after Phases 6 and 7 pass:
 
-- record the current Netlify release and executable application-code baseline;
-- confirm executable code expects the live schema;
-- lift the freeze;
-- record the exact release/baseline/schema pair;
-- update `current-status.md`, `ops-pending-migrations.md` and the production release reconciliation;
-- retain all recovery, preflight, history, dry-run, push, advisor and smoke-test evidence.
+1. Obtain explicit owner/recovery-owner approval to lift the release gate.
+2. Update the **production** Netlify build variable:
+
+```text
+EURO28_DEPLOYED_DB_CONTRACT: 20 → 35
+```
+
+3. Do not change deploy-preview, branch-deploy or dev values; they already remain 35.
+4. Retry or trigger the approved production deploy from the reviewed repository commit.
+5. Require both prebuild guards to pass.
+6. Require the production deploy state to become ready.
+7. Verify the current production pointer advances to the approved commit.
+8. Confirm the public site still uses production Supabase.
+9. Re-run a concise bracket-save and score-clear smoke test on the newly current deploy.
+
+Changing the variable is an operational assertion that production contract 35 has been independently proven. It is not itself database evidence.
+
+## Phase 9 — close the change window
+
+Only after the new production deploy and final smoke checks pass:
+
+- lift the write/deployment freeze;
+- record the exact Netlify deploy, repository commit, application contract and database contract;
+- update `current-status.md`, `ops-pending-migrations.md`, the risk register and production release reconciliation;
+- retain all recovery, preflight, history, dry-run, push, advisor, contract-change and smoke-test evidence.
 
 ## Failure handling
 
 ### Recovery evidence failure
 
-Do not proceed to migration-history repair. Preserve non-secret evidence, keep the freeze and correct the backup, custody or restore process outside the change window.
+Do not proceed to migration-history repair. Preserve non-secret evidence and correct the backup, custody or restore process outside the window.
 
-### Preflight, identity or history mismatch
+### Preflight, identity, contract or history mismatch
 
-Stop before SQL application. Do not mutate production or invent history rows.
+Stop before SQL application. Do not mutate production, invent history rows or weaken a guard.
 
 ### Migration failure
 
 Stop, preserve logs and determine whether the current file rolled back. Do not skip it. If earlier files committed, prepare a reviewed forward repair or an owner-approved database recovery decision using the accepted artifact.
 
-### Privilege verification failure
+### Privilege or post-verification failure
 
-Keep the freeze. Never restore broad `PUBLIC` grants. Compare exact missing/surplus signatures with repository allowlists.
+Keep the freeze and production contract at 20. Never restore broad `PUBLIC` grants. Compare exact missing/surplus signatures with repository allowlists.
 
 ### Application smoke-test failure
 
-Do not point production at development and do not add old direct-table fallbacks. Either repair the application against the migrated schema or restore a known-good executable baseline compatible with that schema. Database recovery remains a separate owner-approved decision.
+Keep the current ready deploy and production contract 20. Do not point production at development and do not add old direct-table fallbacks. Repair the application/database pair or make a separate owner-approved recovery decision.
+
+### Production deploy failure after contract lift
+
+Keep the previous ready production deploy. Investigate the build without changing the database or weakening either prebuild guard. If the database remains verified contract 35, correct the application/deploy issue and retry through review.
 
 ## Separate follow-up work
 
 Do not mix these into the database window:
 
-- Netlify deploy-context isolation (`OPS-007`);
-- automatic-deploy compatibility gating;
+- Turnstile domain/context verification;
+- separately maintained development Netlify site verification;
 - leaked-password protection;
 - browser E2E infrastructure beyond required smoke evidence;
 - automatic real R16 population;
