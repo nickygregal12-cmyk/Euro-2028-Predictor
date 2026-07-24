@@ -39,3 +39,6 @@ production-backups/
 *.backup.tar.gz.age
 *.backup.zip
 *.backup.zip.gpg
+# Playwright browser-test output
+playwright-report/
+test-results/
