@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  issues: write
+  pull-requests: write
 
 jobs:
   ci:
@@ -58,6 +60,8 @@ jobs:
 
       - name: Execute prepared focused patch
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set +e
           python <<'PY' > /tmp/rel002-bootstrap.log 2>&1
@@ -74,6 +78,14 @@ jobs:
           status=$?
           cat /tmp/rel002-bootstrap.log
           if [ "$status" -ne 0 ]; then
+            {
+              echo '### REL-002 bootstrap assertion'
+              echo
+              echo '```text'
+              tail -40 /tmp/rel002-bootstrap.log
+              echo '```'
+            } > /tmp/rel002-comment.md
+            gh pr comment 63 --body-file /tmp/rel002-comment.md
             exit "$status"
           fi
 
