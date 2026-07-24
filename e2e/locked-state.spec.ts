@@ -242,16 +242,20 @@ test.describe('locked-state rejection', () => {
         ).toBeVisible({ timeout: 15_000 })
         expect(submitRequests).toBe(1)
 
-        // A fresh post-lock client can still read the authoritative saved entry.
+        // A fresh post-lock client renders the authoritative entry read-only.
         // Failed optimistic edits never replace the stored scores or bracket tree.
         const readPage = await makePage('/predict/groups/A')
-        const readFields = await openGroupA(
-          readPage,
-          prepared.firstHomeName,
-          prepared.firstAwayName,
-        )
-        await expect(readFields.home).toHaveValue(originalHome)
-        await expect(readFields.away).toHaveValue(originalAway)
+        await expect(readPage.getByRole('img', { name: 'Predictions locked' }).first()).toBeVisible()
+        await expect(
+          readPage.getByText(`${prepared.firstHomeName} score: ${originalHome}`, {
+            exact: false,
+          }).first(),
+        ).toBeVisible()
+        await expect(
+          readPage.getByText(`${prepared.firstAwayName} score: ${originalAway}`, {
+            exact: false,
+          }).first(),
+        ).toBeVisible()
 
         await readPage.goto('/predict/bracket')
         await expectAuthenticatedPath(readPage, '/predict/bracket')
