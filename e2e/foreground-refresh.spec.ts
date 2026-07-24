@@ -43,6 +43,31 @@ async function groupScoreInputs(page: Page) {
   return { home, away }
 }
 
+async function setPageVisibility(page: Page, value: DocumentVisibilityState) {
+  await page.evaluate((visibility) => {
+    const state = window as Window & {
+      __e2eVisibilityState?: DocumentVisibilityState
+      __e2eVisibilityPatched?: boolean
+    }
+
+    state.__e2eVisibilityState = visibility
+    if (!state.__e2eVisibilityPatched) {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => state.__e2eVisibilityState ?? 'visible',
+      })
+      Object.defineProperty(document, 'hidden', {
+        configurable: true,
+        get: () => state.__e2eVisibilityState === 'hidden',
+      })
+      state.__e2eVisibilityPatched = true
+    }
+
+    document.dispatchEvent(new Event('visibilitychange'))
+    if (visibility === 'visible') window.dispatchEvent(new Event('focus'))
+  }, value)
+}
+
 test('a background page refreshes a score changed in a second page', async ({ page }, testInfo) => {
   desktopOnly(testInfo)
   test.setTimeout(120_000)
@@ -58,7 +83,7 @@ test('a background page refreshes a score changed in a second page', async ({ pa
 
     secondPage = await page.context().newPage()
     const second = await groupScoreInputs(secondPage)
-    await secondPage.bringToFront()
+    await setPageVisibility(page, 'hidden')
     await expect
       .poll(() => page.evaluate(() => document.visibilityState), { timeout: 10_000 })
       .toBe('hidden')
@@ -68,7 +93,7 @@ test('a background page refreshes a score changed in a second page', async ({ pa
     await second.away.fill('2')
     await saved
 
-    await page.bringToFront()
+    await setPageVisibility(page, 'visible')
     await expect
       .poll(() => page.evaluate(() => document.visibilityState), { timeout: 10_000 })
       .toBe('visible')
