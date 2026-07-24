@@ -21,20 +21,20 @@ jobs:
           fetch-depth: 0
       - name: Reconcile quality status
         run: python scripts/temporary_reconcile_quality_status.py
-      - name: Commit reconciliation or diagnostic
+      - name: Write reconciled files through GitHub contents API
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          BRANCH: agent/repair-audit-controls
         run: |
           set -euo pipefail
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add docs/quality/current-status.md docs/quality/risk-register.md
-          if [[ -e docs/quality/reconciliations/temporary-status-reconcile-error.txt ]]; then
-            git add docs/quality/reconciliations/temporary-status-reconcile-error.txt
-          fi
-          if git diff --cached --quiet; then
-            echo 'No reconciliation changes were produced.'
-            exit 1
-          fi
-          git diff --cached --check
-          git commit -m 'docs: reconcile audit-control status'
-          git push origin HEAD:agent/repair-audit-controls
+          for file in docs/quality/current-status.md docs/quality/risk-register.md; do
+            sha="$(gh api "repos/$REPOSITORY/contents/$file?ref=$BRANCH" --jq .sha)"
+            content="$(base64 -w 0 "$file")"
+            gh api --method PUT "repos/$REPOSITORY/contents/$file" \
+              -f message='docs: reconcile audit-control status' \
+              -f content="$content" \
+              -f sha="$sha" \
+              -f branch="$BRANCH" >/dev/null
+          done
