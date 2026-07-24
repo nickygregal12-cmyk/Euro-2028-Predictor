@@ -32,11 +32,11 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 3 | 13 |
-| Medium | 19 | 4 | 15 |
+| Medium | 19 | 5 | 14 |
 | Low | 16 | 6 | 10 |
-| **Total** | **57** | **14** | **43** |
+| **Total** | **57** | **15** | **42** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003`, `DOC-006`, `REL-002` and `UX-004` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003`, `DOC-006`, `REL-002`, `REL-006` and `UX-004` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ### Movement at `2026-07-24R`
 
@@ -61,7 +61,7 @@ This register retains every original finding ID and adds findings discovered by 
 | Resolved | PR #50 merged as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`; final head CI run 217 passed and issue #49 closed. This resolves `DOC-005`. |
 | Resolved | PR #63 merged as `f30ee8367116132c7c4b6a079bdba9371b27cf76` after final CI and Browser E2E passed. This resolves `REL-002`. |
 | Resolved | PR #43 merged as `620180b16113c6d7b877e266afbb1fbea537967f` after final CI, Browser E2E and Netlify preview passed. This resolves `UX-004`. |
-| In progress | PR #65 implements `REL-006`; service, unit, Browser E2E and preview evidence are green, with final documentation-head validation and merge pending. |
+| Resolved | PR #65 merged as `cd517f6f0fba48aaf54c16ee444671db29bd2741`; final CI run `30131321194`, Browser E2E run `30131321198` and the ready Netlify preview passed. This resolves `REL-006`. |
 
 ## Critical
 
@@ -102,7 +102,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `OPS-008` | A public legacy “development” site is sourced from the World Cup repository and a dormant staging backend | **Open — retire/protect approved; dashboard execution pending; issue #27** | The owner approved removal of public access and separate retirement of the hourly legacy activity. Automated team-login protection returned HTTP 422 and the password fallback was blocked before execution, so the site remains unchanged and public. Close after the separate Netlify dashboard action and verified public-access/function/cron/backend state. Do not repoint it to either current Euro project. |
 | `AUTH-001` | Production Turnstile site key is inherited by non-production contexts while development CAPTCHA configuration is unverified | **Open — always-pass test model approved; dashboard execution pending; issue #28** | The owner approved Cloudflare's matching always-pass test pair for previews/branches/dev and development Supabase, while production retains its real pair. Connected tools cannot update the development Supabase CAPTCHA secret/toggle. Close after both dashboard sides are configured together and preview login/signup/recovery plus production regression evidence pass. |
 | `REL-005` | Open pages can remain convincingly stale | Open | Add and test realtime, polling or focus-refetch strategy. |
-| `REL-006` | Concurrent first-use requests can hit entry unique conflicts | **Implementation complete — PR #65 pending merge** | Existing unique `(user_id, tournament_id)` authority now supports an insert-on-conflict/fallback-read boundary; focused service tests and a coordinated two-context disposable-Supabase race pass. Close only after the final documentation head is green and merged. |
+| `REL-006` | Concurrent first-use requests can hit entry unique conflicts | **Resolved by PR #65** | Existing unique `(user_id, tournament_id)` authority supports an insert-on-conflict/fallback-read boundary; focused service tests and a coordinated two-context disposable-Supabase race passed final CI and Browser E2E before merge. Reopen on any duplicate-entry or raw first-use conflict regression. |
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Complete-snapshot versions contain this on development; verify production rollout and multi-device browser behavior. |
 | `PERF-001` | League summary requests scale linearly/serially | Open | Remove serial per-league request pattern and profile representative load. |
 | `UX-001` | Invite context is hidden behind generic signup | Open | Show trustworthy invite preview before auth and remove render-time storage mutation. |
