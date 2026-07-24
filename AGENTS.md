@@ -36,6 +36,14 @@ Before any normal feature work or production promotion:
 
 Prepared backup tooling is not recovery evidence. A Netlify rollback is not a database rollback.
 
+## Netlify environment boundary
+
+- Production Netlify context uses production Supabase only.
+- `deploy-preview`, `branch-deploy` and `dev` contexts use development Supabase only.
+- `scripts/validate-netlify-environment.mjs` runs before builds and must not be bypassed.
+- A crossed, missing or unknown context is a build failure, not a reason to weaken the guard.
+- Database-dependent client changes still require an explicit app/schema compatibility decision before merging to auto-deploying `main`.
+
 ## Git discipline
 
 - Work from current `main` on a dedicated branch.
