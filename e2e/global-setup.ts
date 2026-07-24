@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 const DEFAULT_EMAIL = 'e2e@euro28.local'
 const DEFAULT_PASSWORD = 'E2e-local-only-2028!'
+const LOCAL_SUPABASE_PORT = '54321'
 
 function required(name: string): string {
   const value = process.env[name]?.trim()
@@ -16,9 +17,13 @@ export default async function globalSetup() {
   const password = process.env.E2E_USER_PASSWORD || DEFAULT_PASSWORD
 
   const parsed = new URL(url)
-  if (!['127.0.0.1', 'localhost'].includes(parsed.hostname)) {
+  if (
+    parsed.protocol !== 'http:' ||
+    !['127.0.0.1', 'localhost'].includes(parsed.hostname) ||
+    parsed.port !== LOCAL_SUPABASE_PORT
+  ) {
     throw new Error(
-      `Browser E2E refuses non-local Supabase host ${parsed.hostname}.`,
+      `Browser E2E refuses non-standard local Supabase URL ${parsed.origin}.`,
     )
   }
 
@@ -28,6 +33,25 @@ export default async function globalSetup() {
       persistSession: false,
     },
   })
+
+  // The hardened write/delete functions fail closed when the tournament has no
+  // lock boundary. The provisional seed intentionally omits one, so browser E2E
+  // configures a future lock only inside the disposable local database.
+  const { data: tournaments, error: tournamentReadError } = await admin
+    .from('tournaments')
+    .select('id')
+    .limit(1)
+  if (tournamentReadError) throw tournamentReadError
+  const tournamentId = tournaments?.[0]?.id
+  if (!tournamentId) throw new Error('Browser E2E found no seeded tournament.')
+
+  const futureLock = new Date()
+  futureLock.setUTCFullYear(futureLock.getUTCFullYear() + 10)
+  const { error: tournamentUpdateError } = await admin
+    .from('tournaments')
+    .update({ lock_at: futureLock.toISOString() })
+    .eq('id', tournamentId)
+  if (tournamentUpdateError) throw tournamentUpdateError
 
   const { data: listed, error: listError } = await admin.auth.admin.listUsers({
     page: 1,
