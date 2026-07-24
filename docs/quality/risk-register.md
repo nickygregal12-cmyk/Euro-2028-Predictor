@@ -3,7 +3,8 @@
 **Current audit:** `2026-07-23L`  
 **Evidence:** [`audits/2026-07-23-live-environment-audit.md`](audits/2026-07-23-live-environment-audit.md)  
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
-**Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)
+**Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
+**Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
 
 This register retains every original finding ID and adds findings discovered by the live hosted audit. Older audit reports remain immutable evidence. “Repository/local implemented” does **not** mean deployed.
 
@@ -35,19 +36,19 @@ This register retains every original finding ID and adds findings discovered by 
 | ID | Finding | Current status | Current evidence / required closure |
 | --- | --- | --- | --- |
 | `OPS-007` | Production deploy previews/branch deploys inherit production Supabase values | **Open — confirmed configuration** | Production Netlify env values are scoped to `all` contexts. Scope previews away from production or disable/protect them. |
-| `SECURITY-003` | Hosted `SECURITY DEFINER` grants and mutable search paths are over-broad | **Open production; implemented repository/development** | Migration 34 removes anonymous/internal execution, applies exact authenticated/service allowlists, closes future defaults and fixes mutable helper paths. Hosted development exact ACL, advisor, trigger and RPC verification passed. Production retains the old broad grants until migrations 21–34 roll out. |
+| `SECURITY-003` | Hosted `SECURITY DEFINER` grants and mutable search paths are over-broad | **Open production; implemented repository/development** | Migration 34 removes anonymous/internal execution, applies exact authenticated/service allowlists, closes future defaults and fixes mutable helper paths. Migration 35 extends the exact allowlists with the protected prediction-delete RPC. Hosted development verification passed. Production retains the old broad grants until migrations 21–35 roll out. |
 | `DATA-003` | Same-tournament/reference constraints are incomplete | **Open — partially implemented** | PRs #9/#12 add major guards; wider immutable/composite reference constraints remain. Production controls are absent. |
 | `FUNC-001` | Bracket progression can be internally inconsistent | **Open production; implemented repository/development** | Full predicted-tree replay and validation pass on hosted development. Production validator/propagation is absent. |
 | `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Rule exists in `docs/scoring-rules.md`; no scheduler/server implementation. |
 | `REL-001` | Score recomputation/result writes can race | **Open production; materially addressed repository/development** | Development serializes recomputation. Production old recompute path remains. |
 | `DATA-004` | Actual tie resolution can depend on non-authoritative fallback behavior | **Open** | No fresh evidence of complete resolution. |
-| `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Open — confirmed code path** | Clearing now cancels an unsent stale debounce, but an already persisted complete row is not deleted. Define and persist deletion semantics. |
+| `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Partially resolved — repository/development implemented and verified** | Migration 35 makes deletion owner-, scope-, lock- and expected-version-safe through `delete_match_prediction`; the client queues deletion on the same serialized match key; provider tests, hosted-development proof and pgTAP cover clearing, conflicts, idempotency and derived-position invalidation. Close only after migrations 21–35 reach production and authenticated clear/reload/conflict/lock browser journeys pass. |
 | `REL-002` | Independent late reads can overwrite newer state | **Open** | Prediction/tie/bracket/bonus loading remains independently best-effort. |
 | `REL-003` | Manual submit does not flush pending debounced writes | **Partially resolved — repository implemented and tested** | The provider now flushes score/bracket debounces, waits for all match/tie/bracket/bonus controller writes, and blocks on errors/conflicts. Controller and provider regression tests pass. Close after compatible production rollout plus authenticated browser verification of immediate final-edit submission and failure/conflict blocking. |
 | `REL-004` | Compound bracket writes are non-atomic | **Open production; implemented repository/development** | Atomic complete-snapshot RPC and stale-version rollback pass on development. Production RPC is absent and deployed client remains incompatible. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
 | `OPS-002` | No version-controlled administrator model/control room boundary | **Open** | No `profiles.role` column exists in repository or hosted schema; no browser result admin page. |
-| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI, pgTAP and provider-level submission tests exist; authenticated production-like browser E2E remains absent. |
+| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI, pgTAP and provider-level submission/score-clearing tests exist; authenticated production-like browser E2E remains absent. |
 | `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved** | CI, read-only preflights and safer rollback exist; production compatibility, monitoring, backup verification and restore rehearsal remain open. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. The historical bootstrap statement was inaccurate rather than evidence of schema drift. |
 
