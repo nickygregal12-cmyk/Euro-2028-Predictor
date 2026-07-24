@@ -7,9 +7,24 @@ This is the live source of truth for repository migration count, hosted semantic
 | Environment | Semantic schema state | Migration-history state | Status |
 | --- | --- | --- | --- |
 | Development `iouzoutneyjpugbbtdem` | Migrations 1–35 effects present; exact data, ACL and prediction-delete contracts verified | Partial/tool-generated remote history; requires CLI reconciliation | **Hosted rehearsal complete through migration 35** |
-| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 effects independently verified | Hosted history list empty; exact 1–20 metadata-only repair prepared but not executed | **15 pending; read-only preflights passed; rollout not performed** |
+| Production `vkfnsqdyhvtwyqkisxhk` | Original migrations 1–20 effects independently verified | `supabase_migrations.schema_migrations` does not exist; exact 1–20 metadata-only repair prepared but not executed | **15 pending; rollout not performed** |
 
 No production migration is approved merely because it exists in the repository, passed CI or passed a read-only preflight.
+
+## Current production application boundary
+
+Netlify automatically published commit `a403b0796853453cb4115aea55729aced192a6ca` after PR #20 merged. Deploy `6a62c49dfaa87100087a6ab1` is the current production application.
+
+That client expects two functions from the pending chain:
+
+| Client path | Required function | Introduced by | Production state |
+| --- | --- | --- | --- |
+| Atomic complete-bracket persistence | `replace_predicted_progression(uuid,jsonb,jsonb)` | Migration 33 | **Absent** |
+| Persisted score clearing | `delete_match_prediction(uuid,uuid,integer)` | Migration 35 | **Absent** |
+
+Read-only production inspection also confirmed the old broad owner `ALL` policies remain on `predicted_progression` and `match_predictions`, with authenticated direct progression DML and match-prediction deletion still granted.
+
+The application/database pair is therefore incompatible at both write boundaries. Do not restore old direct-table client writes as a workaround. The approved recovery remains the complete 21–35 chain or another explicitly compatible production application release.
 
 ## Repository migration chain
 
@@ -38,7 +53,7 @@ No production migration is approved merely because it exists in the repository, 
 | 19 | `20260721130000_match_centre.sql` | Match-centre aggregate RPCs | Present |
 | 20 | `20260722120000_write_integrity.sql` | Optimistic versions and original structural checks | Present |
 
-`scripts/database-rollout/production-baseline-1-20-verification.sql` returned every structural check true. The production migration-history list nevertheless remains empty because these files were applied manually rather than through a clean CLI migration push.
+`scripts/database-rollout/production-baseline-1-20-verification.sql` returned every structural check true. The migration-history metadata remains absent because these files were applied manually rather than through a clean CLI migration push.
 
 ### Development applied / production pending — 21–35
 
@@ -56,9 +71,9 @@ No production migration is approved merely because it exists in the repository, 
 | 30 | `20260723183200_lock_result_revision_log.sql` | Immutable revision log | Applied + verified | Pending |
 | 31 | `20260723184000_knockout_bracket_tree_integrity.sql` | Predicted replay and real winner propagation | Behaviour rehearsed | Pending |
 | 32 | `20260723184100_bracket_tree_compatibility.sql` | Bracket-tree compatibility/preflight | Production clone passed | Read-only source check passed; pending |
-| 33 | `20260723190000_atomic_bracket_persistence.sql` | Atomic complete-bracket RPC | PT409 rollback rehearsed | Pending |
+| 33 | `20260723190000_atomic_bracket_persistence.sql` | Atomic complete-bracket RPC | PT409 rollback rehearsed | Pending; live client already requires it |
 | 34 | `20260724001500_harden_function_privileges.sql` | Exact function allowlists and fixed search paths | ACL/advisor/RPC verified | Pending |
-| 35 | `20260724003000_delete_match_prediction_rpc.sql` | Version-safe persisted score clearing | RPC/client/pgTAP/hosted proof verified | Pending |
+| 35 | `20260724003000_delete_match_prediction_rpc.sql` | Version-safe persisted score clearing | RPC/client/pgTAP/hosted proof verified | Pending; live client already requires it |
 
 ## Verified development contract
 
@@ -84,23 +99,27 @@ See:
 
 - `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`;
 - `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`;
-- `docs/quality/reconciliations/2026-07-24-score-clearing.md`.
+- `docs/quality/reconciliations/2026-07-24-score-clearing.md`;
+- `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`.
 
 ## Production source evidence
 
-Current read-only evidence supports the ordered 21–35 chain:
+The post-deploy read-only snapshot found:
 
-- exactly one submitted entry, before the configured lock;
-- 36 valid group predictions;
-- one group tie and one third-place tie;
-- exact rollout-guard fingerprints:
-  - predictions `8d76619fe4b44fdac17de1cc2afe5aaa`;
-  - tie decisions `a4dcf183f5c48e3ba11ff75c59622598`;
-  - progression `0d7bc491daa9b24013204d061a2d38f1`;
-- progression shape `4 QF / 2 SF / 1 final / 1 champion`;
-- zero old position rows, match scores, score events and rank history;
-- zero inspected scope anomalies;
-- valid knockout source tree and winner-source references.
+- 4 profiles and 4 entries;
+- exactly one submitted entry;
+- 36 group predictions;
+- two valid tie resolutions;
+- eight progression rows;
+- zero stored match scores;
+- both client-required RPCs absent;
+- old direct table privileges/policies still present.
+
+The rollout-guard fingerprints remain:
+
+- predictions `8d76619fe4b44fdac17de1cc2afe5aaa`;
+- tie decisions `a4dcf183f5c48e3ba11ff75c59622598`;
+- progression `0d7bc491daa9b24013204d061a2d38f1`.
 
 Any submitted timestamp, source payload or fingerprint change requires a fresh preflight and production-to-development replay.
 
@@ -116,7 +135,7 @@ Before any production `db push`:
 6. require `supabase db push --dry-run` to show migrations 21–35 only;
 7. obtain explicit approval before applying SQL.
 
-Do not edit the migration-history table directly. Do not mark migrations 21–35 applied before their SQL executes.
+Do not edit migration history directly. Do not mark migrations 21–35 applied before their SQL executes.
 
 ## Production rollout prerequisites
 
