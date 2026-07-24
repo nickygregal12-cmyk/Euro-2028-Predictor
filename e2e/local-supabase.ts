@@ -81,6 +81,30 @@ export type PreparedEntry = {
   firstAwayName: string
 }
 
+async function clearEntryRows(entryId: string): Promise<void> {
+  const admin = createLocalAdmin()
+
+  // Keep the parent entry in place while score rows are removed. The group-
+  // position refresh trigger runs on each score deletion and correctly requires
+  // the entry to still exist; deleting the parent first would make the cascade
+  // fail closed with SQLSTATE 23503.
+  for (const table of [
+    'predicted_progression',
+    'predicted_tie_resolutions',
+    'bonus_predictions',
+    'match_predictions',
+  ]) {
+    const { error } = await admin.from(table).delete().eq('entry_id', entryId)
+    if (error) throw error
+  }
+
+  const { error: entryResetError } = await admin
+    .from('entries')
+    .update({ submitted_at: null })
+    .eq('id', entryId)
+  if (entryResetError) throw entryResetError
+}
+
 /**
  * Replace the local E2E user's entry with all 36 group predictions complete.
  * Group positions are deterministic (slot 1 > 2 > 3 > 4), while each third-
@@ -99,19 +123,27 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
   const tournamentId = tournaments?.[0]?.id
   if (!tournamentId) throw new Error('Browser E2E found no seeded tournament.')
 
-  const { error: deleteError } = await admin
+  const { data: existing, error: existingError } = await admin
     .from('entries')
-    .delete()
+    .select('id')
     .eq('user_id', userId)
     .eq('tournament_id', tournamentId)
-  if (deleteError) throw deleteError
+    .maybeSingle()
+  if (existingError) throw existingError
 
-  const { data: entry, error: entryError } = await admin
-    .from('entries')
-    .insert({ user_id: userId, tournament_id: tournamentId })
-    .select('id')
-    .single()
-  if (entryError) throw entryError
+  let entryId: string
+  if (existing) {
+    entryId = existing.id
+    await clearEntryRows(entryId)
+  } else {
+    const { data: created, error: entryError } = await admin
+      .from('entries')
+      .insert({ user_id: userId, tournament_id: tournamentId })
+      .select('id')
+      .single()
+    if (entryError) throw entryError
+    entryId = created.id
+  }
 
   const { data: teams, error: teamsError } = await admin
     .from('teams')
@@ -142,7 +174,7 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
     if (!home || !away) throw new Error(`Seeded group match ${match.match_ref} references an unknown team.`)
     const score = predictedScore(home, away)
     return {
-      entry_id: entry.id,
+      entry_id: entryId,
       match_id: match.id,
       home_score: score.home,
       away_score: score.away,
@@ -161,7 +193,7 @@ export async function resetCompleteGroupEntry(): Promise<PreparedEntry> {
   if (!firstHome || !firstAway) throw new Error('First seeded match teams are missing.')
 
   return {
-    entryId: entry.id,
+    entryId,
     tournamentId,
     firstMatchId: first.id,
     firstHomeName: firstHome.name,
