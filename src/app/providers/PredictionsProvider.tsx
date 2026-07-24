@@ -9,6 +9,7 @@ import {
 } from 'react'
 import type { SaveStatus } from '../../design-system'
 import {
+  deleteMatchPrediction,
   fetchMatchPredictions,
   getOrCreateEntry,
   submitEntry,
@@ -51,15 +52,18 @@ export type Prediction = {
 }
 
 // Autosave keys routed through the save controller. A match's score + joker are
-// ONE database row (upserted together), so they share one key per match — the
-// controller must never race two writes to the same row. Ties are keyed by the
-// tied set, the bracket is a single set, and the golden boot is one field.
+// ONE database row (upserted or deleted together), so they share one key per
+// match — the controller must never race two writes to the same row. Ties are
+// keyed by the tied set, the bracket is a single set, and the golden boot is one
+// field.
 const BRACKET_KEY = 'bracket'
 const GOLDEN_BOOT_KEY = 'gb'
 const matchKey = (matchId: string) => `m:${matchId}`
 const tieSaveKey = (key: string) => `t:${key}`
 
-type MatchSavePayload = { homeScore: number; awayScore: number; joker: boolean }
+type MatchSavePayload =
+  | { kind: 'upsert'; homeScore: number; awayScore: number; joker: boolean }
+  | { kind: 'delete' }
 type TieSavePayload = { scope: TieResolutionScope; orderedTeamIds: string[] }
 type BracketSavePayload = { desired: Record<string, ProgressionStage> }
 type GoldenBootSavePayload = { playerId: string | null }
@@ -143,8 +147,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const progressionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   // Optimistic-concurrency versions the client last read per row. Echoed on the
-  // next write; a mismatch means the server row changed elsewhere (conflict).
-  // Updated from every successful save's returned version.
+  // next write/delete; a mismatch means the server row changed elsewhere.
+  // Updated from every successful save and removed after a successful clear.
   const matchVersionsRef = useRef<Record<string, number>>({})
   const progressionVersionsRef = useRef<Record<string, number>>({})
   const goldenBootVersionRef = useRef<number>(0)
@@ -166,7 +170,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const controller = controllerRef.current
 
   // Perform the actual write for a settled save key. Echoes the last-read version
-  // and records the new one on success. Throws on failure so the controller
+  // and records/removes it on success. Throws on failure so the controller
   // retries (or, for a version conflict, surfaces it). Never touches local state.
   async function performSave(key: string, payload: unknown): Promise<void> {
     const id = entryIdRef.current
@@ -174,8 +178,25 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     if (key.startsWith('m:')) {
       const matchId = key.slice(2)
       const p = payload as MatchSavePayload
+      if (p.kind === 'delete') {
+        const hasVersion = Object.prototype.hasOwnProperty.call(
+          matchVersionsRef.current,
+          matchId,
+        )
+        await deleteMatchPrediction(
+          id,
+          matchId,
+          hasVersion ? matchVersionsRef.current[matchId] : null,
+        )
+        delete matchVersionsRef.current[matchId]
+        return
+      }
       const v = await upsertMatchPrediction(
-        id, matchId, p.homeScore, p.awayScore, p.joker,
+        id,
+        matchId,
+        p.homeScore,
+        p.awayScore,
+        p.joker,
         matchVersionsRef.current[matchId] ?? 0,
       )
       matchVersionsRef.current[matchId] = v
@@ -217,7 +238,9 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     }
     if (key === GOLDEN_BOOT_KEY) {
       const v = await upsertGoldenBoot(
-        id, (payload as GoldenBootSavePayload).playerId, goldenBootVersionRef.current,
+        id,
+        (payload as GoldenBootSavePayload).playerId,
+        goldenBootVersionRef.current,
       )
       goldenBootVersionRef.current = v
       return
@@ -355,14 +378,19 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     }
   }, [userId, tournamentId])
 
-  // Hand the match's latest complete row to the controller, which owns ordering,
-  // coalescing, stale-response rejection and retry. Reads the freshest values at
-  // dispatch time (matching the old debounced read).
+  // Hand the match's latest local state to the controller. A complete pair is
+  // upserted; an incomplete pair deletes the stored row through the version-safe
+  // RPC. Both operations share one key, so a quick clear/re-entry remains ordered.
   function dispatchMatchSave(matchId: string) {
     const id = entryIdRef.current
     const pred = predictionsRef.current[matchId]
-    if (!id || !pred || pred.homeScore === null || pred.awayScore === null) return
+    if (!id || !pred) return
+    if (pred.homeScore === null || pred.awayScore === null) {
+      controller.change(matchKey(matchId), { kind: 'delete' } satisfies MatchSavePayload)
+      return
+    }
     controller.change(matchKey(matchId), {
+      kind: 'upsert',
       homeScore: pred.homeScore,
       awayScore: pred.awayScore,
       joker: pred.joker,
@@ -386,16 +414,24 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   function setScore(matchId: string, side: 'home' | 'away', value: number | null) {
     setPredictions((prev) => {
       const cur = prev[matchId] ?? EMPTY
+      const wasComplete = cur.homeScore !== null && cur.awayScore !== null
       const next = { ...cur, [side === 'home' ? 'homeScore' : 'awayScore']: value }
       const updated = { ...prev, [matchId]: next }
       predictionsRef.current = updated
       if (next.homeScore !== null && next.awayScore !== null) {
         scheduleSave(matchId)
       } else {
-        // Incomplete score: cancel any older complete-row debounce so it cannot
-        // persist stale values after the user has cleared one side.
+        // Clearing one side invalidates the complete database row. Cancel an
+        // unsent upsert and, when the previous local state was complete, queue a
+        // version-safe delete on the same controller key. If that complete state
+        // was only local, the RPC is idempotent; if another device created a row
+        // the unknown version raises PT409 rather than deleting unseen work.
         clearMatchTimer(matchId)
-        setSaveStatus((s) => ({ ...s, [matchId]: 'idle' }))
+        if (wasComplete) {
+          dispatchMatchSave(matchId)
+        } else {
+          setSaveStatus((s) => ({ ...s, [matchId]: 'idle' }))
+        }
       }
       return updated
     })
@@ -575,7 +611,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   // Resolve a version conflict, wholesale across every key currently in conflict.
   // 'latest' discards local edits for the server's copy; 'mine' keeps local and
   // re-issues the writes against the freshly-read versions (a deliberate
-  // overwrite, allowed pre-lock). Local state never changes without this choice.
+  // overwrite/delete, allowed pre-lock). Local state never changes without this
+  // choice.
   function resolveConflict(choice: 'latest' | 'mine') {
     const id = entryIdRef.current
     if (!id) return
