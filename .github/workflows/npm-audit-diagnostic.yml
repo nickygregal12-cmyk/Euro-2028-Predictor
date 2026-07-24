@@ -33,11 +33,43 @@ jobs:
       - name: Pin React Router DOM outside the advisory range
         run: npm install --save-exact react-router-dom@7.11.0
 
-      - name: Verify production dependency audit
+      - name: Record installed React Router versions
+        shell: bash
+        run: |
+          set +e
+          npm ls react-router-dom react-router --all > /tmp/react-router-tree.txt 2>&1
+          cat /tmp/react-router-tree.txt
+          exit 0
+
+      - name: Capture repaired production dependency audit
+        shell: bash
+        run: |
+          set +e
+          npm audit --omit=dev --json > /tmp/npm-audit-fixed.json 2> /tmp/npm-audit-fixed.stderr
+          status=$?
+          echo "$status" > /tmp/npm-audit-fixed.status
+          cat /tmp/npm-audit-fixed.stderr
+          echo "npm audit exit status: $status"
+          exit 0
+
+      - name: Upload repaired audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-fixed
+          path: |
+            /tmp/react-router-tree.txt
+            /tmp/npm-audit-fixed.json
+            /tmp/npm-audit-fixed.stderr
+            /tmp/npm-audit-fixed.status
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Require a clean production dependency audit
         shell: bash
         run: |
           set -euo pipefail
-          npm audit --omit=dev --json | tee /tmp/npm-audit-fixed.json
+          test "$(cat /tmp/npm-audit-fixed.status)" = "0"
 
       - name: Verify application build, lint and tests
         shell: bash
@@ -64,11 +96,3 @@ jobs:
           git add package.json package-lock.json
           git commit -m 'Pin React Router outside CSRF advisory range'
           git push origin "HEAD:${HEAD_BRANCH}"
-
-      - name: Upload audit evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: npm-audit-fixed
-          path: /tmp/npm-audit-fixed.json
-          if-no-files-found: error
-          retention-days: 7
