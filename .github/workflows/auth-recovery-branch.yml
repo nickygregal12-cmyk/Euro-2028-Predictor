@@ -1,0 +1,80 @@
+name: Auth recovery branch validation
+
+on:
+  push:
+    branches:
+      - agent/add-auth-recovery-e2e
+
+permissions:
+  contents: read
+
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run lint
+      - run: npm test
+      - run: npm audit --omit=dev
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: supabase start
+      - run: supabase db reset --local
+      - name: Export local-only browser environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase.env
+          # shellcheck disable=SC1091
+          source /tmp/supabase.env
+          : "${API_URL:?Supabase API_URL missing}"
+          : "${ANON_KEY:?Supabase ANON_KEY missing}"
+          : "${SERVICE_ROLE_KEY:?Supabase SERVICE_ROLE_KEY missing}"
+          MAIL_URL="${INBUCKET_URL:-http://127.0.0.1:54324}"
+          {
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_MAIL_URL=$MAIL_URL"
+            echo 'E2E_USER_EMAIL=e2e@euro28.local'
+            echo 'E2E_USER_PASSWORD=E2e-local-only-2028!'
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo 'VITE_DEV_AUTOLOGIN=true'
+            echo 'VITE_DEV_USER_EMAIL=e2e@euro28.local'
+            echo 'VITE_DEV_USER_PASSWORD=E2e-local-only-2028!'
+          } >> "$GITHUB_ENV"
+      - run: npm run test:e2e
+      - run: npm run test:e2e:auth
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: auth-recovery-branch-playwright
+          path: |
+            playwright-report/
+            playwright-report-auth/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 3
+      - if: always()
+        run: supabase stop --no-backup
