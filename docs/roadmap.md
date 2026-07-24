@@ -9,7 +9,7 @@ The previous long-form roadmap described the position before the repository inte
 
 The application is live at `euro28predictor.com` and `euro28predictor.netlify.app`. DNS is no longer an open work item.
 
-Repository and hosted-development database work has completed:
+Repository and hosted-development work has completed:
 
 - canonical TypeScript/PostgreSQL predicted group ordering;
 - manual group and best-third tie decisions;
@@ -19,6 +19,7 @@ Repository and hosted-development database work has completed:
 - predicted bracket-tree replay and real winner propagation;
 - atomic complete-bracket replacement;
 - exact authenticated/service function allowlists, no anonymous function execution and owner-only future defaults;
+- manual-submission save barrier that flushes score/bracket debounces and waits for all prediction writes;
 - application CI and disposable database parity CI;
 - hosted development rehearsal through migration 34 using the exact normalized production entry.
 
@@ -34,7 +35,8 @@ Completed preparation:
 2. production migrations 1–20 structural effects were independently proven;
 3. the exact 1–20 history-only repair is documented;
 4. production source-data preflights and post-rollout verification are committed;
-5. migration 34 repairs function grants/search paths as the final pending database file.
+5. migration 34 repairs function grants/search paths as the final pending database file;
+6. pending-write manual submission is protected in repository code and tests.
 
 Remaining execution:
 
@@ -45,7 +47,8 @@ Remaining execution:
 5. require `db push --dry-run` to show migrations 21–34 only;
 6. obtain explicit approval and apply the complete chain in timestamp order;
 7. verify bracket save/reload, authenticated RPCs, result/scoring boundaries and exact function allowlists;
-8. record the exact deployed app/schema pair and retained evidence.
+8. browser-verify immediate submission after the final score/bracket/tie/bonus edit and failure/conflict blocking;
+9. record the exact deployed app/schema pair and retained evidence.
 
 Never point production at development Supabase and never apply migration 33 or 34 alone.
 
@@ -63,7 +66,7 @@ Never point production at development Supabase and never apply migration 33 or 3
 
 ## Stage 2 — Close Original Predictor reliability gaps
 
-1. `REL-003`: flush or await all pending score, tie, bracket and bonus writes before manual submission.
+1. `REL-003`: repository implementation and tests are complete; close only after compatible-production browser verification and durable E2E coverage.
 2. `DATA-005`: define and implement persisted score-clearing behavior.
 3. `REL-002`: prevent independent late reads from overwriting newer state.
 4. `REL-006`: make first-entry creation idempotent under two-tab races.
@@ -91,7 +94,7 @@ Add Playwright or equivalent critical journeys for:
 - sign-up/login/password recovery;
 - first-use welcome;
 - complete group entry, ties, best thirds and bracket;
-- pending-write submission behavior;
+- pending-write submission after immediate final edits, including failure and conflict paths;
 - private league create/join/invite;
 - result confirm/correct/clear through the approved admin boundary;
 - scoring and rank changes;
@@ -150,6 +153,7 @@ Before public tournament launch:
 - Original Predictor and bonus competition points never combine.
 - Predicted and real brackets never blend.
 - Database rules, not UI state, protect locks and scoring inputs.
+- Manual submission never crosses the server validator until current prediction writes settle successfully.
 - Public function execution is closed by default; every browser/service RPC requires an explicit reviewed grant.
 - No hosted migration without explicit approval and evidence.
 - No production-to-development rollback.
