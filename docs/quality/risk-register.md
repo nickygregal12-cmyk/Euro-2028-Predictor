@@ -27,11 +27,11 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
-| Medium | 19 | 2 | 17 |
-| Low | 16 | 3 | 13 |
-| **Total** | **57** | **8** | **49** |
+| Medium | 19 | 3 | 16 |
+| Low | 16 | 5 | 11 |
+| **Total** | **57** | **11** | **46** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004` and `TEST-002` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ### Movement at `2026-07-24R`
 
@@ -52,7 +52,7 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | --- |
 | Resolved | `DOC-004` — the governance charter is restored on `main` and the mandatory audit read is satisfiable. |
 | Resolved | `TEST-002` — PR #45 merged the corrected database-parity trigger contract after CI run 188 and Database parity run 65 passed. |
-| In progress | Issue #46 repairs `DOC-001`, `TEST-003` and `DOC-006` with permanent regression coverage; pull-request validation is pending. |
+| Resolved | PR #47 merged as `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8`; final head CI run 200 passed and issue #46 closed. This resolves `DOC-001`, `TEST-003` and `DOC-006`. |
 
 ## Critical
 
@@ -100,7 +100,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | Open | Add skip link, route title/focus/live-region behavior and browser accessibility tests. |
 | `A11Y-002` | League options menu semantics do not match behavior | Open | Implement full menu-button keyboard model or simpler disclosure semantics. |
 | `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | Open | Generate DB types, enable strictness incrementally and validate critical RPC payloads. |
-| `DOC-001` | Documentation is not consistently authoritative | **In progress — issue #46** | `docs/test-script.md` is rewritten against current environment gates and finding IDs, and executable coverage prevents its obsolete phase/batch references from returning. Close after the pull-request suite and repository-wide relative-link check pass. |
+| `DOC-001` | Documentation is not consistently authoritative | **Resolved by PR #47** | `docs/test-script.md` is aligned to current environment gates and finding IDs; repository-wide relative-link and obsolete-reference checks passed in CI run 200 before merge. Reopen on a new verified authority or cross-reference inconsistency. |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | Open | Threat-model enumeration and rate limits at intended competition size. |
 | `SEC-002` | Raw internal errors can reach users | Open | Map database/network failures to stable safe messages. |
 | `DATA-007` | Rate limiting is count-then-insert | Open | Serialize per user/action or use atomic database primitive. |
@@ -128,8 +128,8 @@ This register retains every original finding ID and adds findings discovered by 
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
 | `REPO-001` | Licence, changelog and editor baseline are absent | **Partially resolved** — `.editorconfig` now enforces UTF-8, LF, final newlines and repository indentation rules, with executable drift coverage. Licence selection and changelog policy remain open. |
 | `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | **Resolved** — `.env` and all `.env.*` variants are ignored while `.env.example` remains committable; Git's own `check-ignore` semantics are covered by the test suite. Reopen if a sensitive variant becomes committable or the template becomes ignored. |
-| `TEST-003` | One test file hard-fails outside a git work tree | **In progress — issue #46** | The suite now detects Git-work-tree availability, skips explicitly when unavailable, and retains Git-native ignore assertions in normal checkouts. CI also runs the file from a `git archive` extraction with no `.git`. Close after both normal and archive-based pull-request steps pass. |
-| `DOC-006` | Archived evidence has broken relative links | **In progress — issue #46** | Both archived files now use `../audits/` and `../risk-register.md`, and a repository-wide relative Markdown-link test is present. Close after the pull-request suite reports zero broken links. |
+| `TEST-003` | One test file hard-fails outside a git work tree | **Resolved by PR #47** | CI run 200 passed the explicit Git-less `git archive` execution and the normal Git-checkout assertions before merge. Reopen if Git-less execution fails or becomes an unexplained false pass. |
+| `DOC-006` | Archived evidence has broken relative links | **Resolved by PR #47** | Both archived files use the correct parent-relative targets and the repository-wide Markdown-link check passed in CI run 200 before merge. Reopen on any broken relative-link regression. |
 
 ## Register rules
 

@@ -21,7 +21,7 @@
 | Audit-control cleanup | [`2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current repository release-control baseline | `d9bba09543409067624223f6f3fc0a0c75152cc2` — PR #45 merged the database-parity trigger repair |
+| Current repository release-control baseline | `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8` — PR #47 merged the audit-control cleanup after final head CI run 200 passed |
 | Production application-code baseline | `a403b0796853453cb4115aea55729aced192a6ca` — introduced the deployed bracket and score-clear RPC dependencies |
 | Current ready production deploy | `6a630e4de510f100077bc120`, source commit `a6d3f1c97a93d48789435457769fd627c305ff27` |
 | Repository application/database contract | 35 — `config/deployment-contract.json` |
@@ -47,7 +47,7 @@ Run in a clean container from the committed lockfile. These are repository-level
 Two qualifications:
 
 - the 15 skipped tests are `tests/database-parity/predictedGroupOrderParity.test.ts`, correctly gated behind `DATABASE_PARITY`;
-- `2026-07-24R` found that `tests/scripts/envFileHygiene.test.ts` failed outside a Git work tree. Issue #46 now contains an explicit Git-work-tree gate and CI execution from `git archive`; pull-request validation is pending.
+- `2026-07-24R` found that `tests/scripts/envFileHygiene.test.ts` failed outside a Git work tree. PR #47 CI run 200 passed both the explicit `git archive` Git-less execution and the normal Git-checkout assertions before merge.
 
 The 12 pgTAP files under `supabase/tests/` were **read but not executed** during `2026-07-24R`; that audit had no local Supabase stack. PR #45 subsequently ran the full disposable database workflow successfully before merge.
 
@@ -57,7 +57,7 @@ The 12 pgTAP files under `supabase/tests/` were **read but not executed** during
 | --- | --- |
 | `DOC-004` | **Resolved.** `docs/quality/README.md` is restored on `main`, defines the required governance controls and satisfies `audit-prompt.md` repeat-audit item 1. |
 | `TEST-002` | **Resolved.** PR #45 merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`; CI run 188 and Database parity run 65 passed on its latest head, including migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity. |
-| Issue #46 | **In progress.** Git-less test behaviour, stale manual-test references and archived relative links are repaired on `agent/repair-audit-controls`; permanent regression checks and pull-request validation are pending. |
+| Issue #46 / PR #47 | **Resolved on `main`.** PR #47 merged as `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8`; issue #46 closed automatically. Final head `fd0fc31f4e0038e89b0d286927554de897e6d04f` passed CI run 200. |
 
 ## Quality-governance position
 
@@ -68,13 +68,13 @@ The engineering position improved substantially since `2026-07-23R`. The system 
 | `DOC-004` | **Resolved:** the restored governance charter is present and readable on `main`. |
 | `DOC-005` | **Open:** the live feature baseline still lacks stable `FEAT-*` / `PLAN-*` / `SAFE-*` identifiers and dispositions for every archived ID. |
 | `TEST-002` | **Resolved:** the real rollout SQL directory and deployment contract now trigger Database parity, protected by an executable regression test. |
-| `DOC-001` | **In progress — issue #46:** the stale test script is rewritten; repository validation is pending. |
-| `TEST-003` | **In progress — issue #46:** Git-less checkouts now skip explicitly and CI contains an archive-based proof step; validation is pending. |
-| `DOC-006` | **In progress — issue #46:** archived targets are repaired and a repository-wide relative-link test is added; validation is pending. |
+| `DOC-001` | **Resolved:** the stale phase/batch references are removed, the script is aligned to current environment gates, and executable coverage prevents their return. |
+| `TEST-003` | **Resolved:** CI run 200 passed the Git-less archive proof and the normal Git-checkout assertions before merge. |
+| `DOC-006` | **Resolved:** archived targets are repaired and the repository-wide relative-link test passed in CI run 200 before merge. |
 | `HYGIENE-001` | Corrected: the asset is present at `src/assets/vite.svg`; the previous "path not identified" note was wrong. |
 
 
-Issue #46 owns the remaining audit-control validation. Production migration and deployment gates are unchanged.
+Issue #46 is closed and its audit-control findings are resolved on `main`. Production migration and deployment gates are unchanged.
 
 ## Release identity rule
 
@@ -92,7 +92,7 @@ Do not infer database compatibility from a successful build, a docs-only merge o
 | Area | Verdict |
 | --- | --- |
 | Repository development | **Safe to continue controlled development.** The chain contains 35 migrations and executable coverage for the current database contract; `2026-07-24R` independently executed install, type-check, lint, build, 434 tests, dependency audit and fixture validation, all green. |
-| Quality governance | **Improving but still degraded.** `DOC-004` and `TEST-002` are resolved; `DOC-005` remains open and issue #46 is validating `DOC-001`, `TEST-003` and `DOC-006`. No feature or safeguard regression was detected. |
+| Quality governance | **Improved but still degraded by `DOC-005`.** `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. No feature or safeguard regression was detected. |
 | Hosted development database | **Semantically current through migration 35.** Data, ACL, deletion, bracket and compatibility checks pass; remote migration-history metadata is not a clean repository mirror. |
 | Netlify preview/branch/dev Supabase isolation | **Resolved for the current production Netlify project.** Non-production contexts use current development Supabase and a fail-closed prebuild guard. |
 | Automatic production deployment compatibility | **Contained.** Repository contract 35 cannot deploy while production declares contract 20. The existing ready site remains active. |
@@ -253,7 +253,7 @@ These are not production capabilities until the full migrations 21–35 rollout 
 - `DATA-005`: repository/development passes; production RPC/browser closure pending.
 - `DOC-004`: resolved; the governance charter is restored and readable.
 - `TEST-002`: resolved by merged PR #45 and its green application/database workflows.
-- `DOC-001`, `TEST-003`, `DOC-006`: in progress through issue #46.
+- `DOC-001`, `TEST-003`, `DOC-006`: resolved by merged PR #47 and its green final-head validation.
 
 ## Production-entry compatibility proof
 
@@ -302,7 +302,7 @@ Never edit migration history directly, mark absent SQL as applied or lift the de
 | Entry reliability | `REL-003` and `DATA-005` await compatible-production browser closure; `REL-002` and `REL-006` remain unimplemented. |
 | Product completeness | Automatic real R16 population, auto-submit, reminders and browser result administration remain absent. |
 | Test assurance | No Playwright or equivalent authenticated browser E2E suite. Database parity now covers migrations, rollout SQL, the deployment contract and its trigger regression test. |
-| Quality governance | `DOC-005` remains open. Issue #46 is validating the repaired `DOC-001`, `TEST-003` and `DOC-006` controls; `DOC-004` and `TEST-002` are resolved. |
+| Quality governance | `DOC-005` remains open. `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. |
 | Official data | Final regulations, qualified teams, draw, fixtures/times and lock instant remain future dependencies. |
 
 ## Scoring status
