@@ -1,6 +1,7 @@
 /// <reference types="vitest/config" />
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import { configDefaults } from 'vitest/config'
 
 // https://vite.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -12,7 +13,7 @@ export default defineConfig(({ command, mode }) => {
   if (command === 'build' && env.VITE_DEV_AUTOLOGIN === 'true') {
     throw new Error(
       'Refusing to build: VITE_DEV_AUTOLOGIN=true. The dev auto-login shim ' +
-        'must never ship in a production build (see docs/auth-plan.md).',
+      'must never ship in a production build (see docs/auth-plan.md).',
     )
   }
 
@@ -28,6 +29,9 @@ export default defineConfig(({ command, mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './tests/setup.ts',
+      // Playwright owns the real-browser suite. Keeping it out of Vitest prevents
+      // either runner from interpreting the other runner's test API.
+      exclude: [...configDefaults.exclude, 'e2e/**'],
     },
   }
 })
