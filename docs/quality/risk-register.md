@@ -20,7 +20,9 @@
 **Audit-control cleanup:** [`reconciliations/2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md)  
 **Feature-baseline identifiers:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)  
 **Authenticated browser E2E:** [`reconciliations/2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md)  
-**Late-read overwrite guard:** [`reconciliations/2026-07-24-late-read-overwrite-guard.md`](reconciliations/2026-07-24-late-read-overwrite-guard.md)
+**Late-read overwrite guard:** [`reconciliations/2026-07-24-late-read-overwrite-guard.md`](reconciliations/2026-07-24-late-read-overwrite-guard.md)  
+**Sign-out confirmation:** [`reconciliations/2026-07-24-sign-out-confirmation.md`](reconciliations/2026-07-24-sign-out-confirmation.md)  
+**Entry creation idempotency:** [`reconciliations/2026-07-24-entry-creation-idempotency.md`](reconciliations/2026-07-24-entry-creation-idempotency.md)
 
 This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” or an approved recovery method does **not** mean recovery is proven.
 
@@ -29,12 +31,12 @@ This register retains every original finding ID and adds findings discovered by 
 | Severity | Total current findings | Closed/superseded | Open or partially resolved |
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
-| High | 16 | 2 | 14 |
+| High | 16 | 3 | 13 |
 | Medium | 19 | 4 | 15 |
-| Low | 16 | 5 | 11 |
-| **Total** | **57** | **12** | **45** |
+| Low | 16 | 6 | 10 |
+| **Total** | **57** | **14** | **43** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003`, `DOC-006`, `REL-002` and `UX-004` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ### Movement at `2026-07-24R`
 
@@ -57,6 +59,9 @@ This register retains every original finding ID and adds findings discovered by 
 | Resolved | `TEST-002` — PR #45 merged the corrected database-parity trigger contract after CI run 188 and Database parity run 65 passed. |
 | Resolved | PR #47 merged as `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8`; final head CI run 200 passed and issue #46 closed. This resolves `DOC-001`, `TEST-003` and `DOC-006`. |
 | Resolved | PR #50 merged as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`; final head CI run 217 passed and issue #49 closed. This resolves `DOC-005`. |
+| Resolved | PR #63 merged as `f30ee8367116132c7c4b6a079bdba9371b27cf76` after final CI and Browser E2E passed. This resolves `REL-002`. |
+| Resolved | PR #43 merged as `620180b16113c6d7b877e266afbb1fbea537967f` after final CI, Browser E2E and Netlify preview passed. This resolves `UX-004`. |
+| In progress | PR #65 implements `REL-006`; service, unit, Browser E2E and preview evidence are green, with final documentation-head validation and merge pending. |
 
 ## Critical
 
@@ -81,7 +86,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `REL-001` | Score recomputation/result writes can race | **Open production; materially addressed repository/development** | Development serializes recomputation. Production old recompute path remains. |
 | `DATA-004` | Actual tie resolution can depend on non-authoritative fallback behavior | **Open** | No fresh evidence of complete resolution. |
 | `DATA-005` | Clearing an incomplete score does not delete the stored prediction | **Partially resolved — client deployed, production backend absent** | Repository/development implementation and tests pass. Production lacks `delete_match_prediction`, so clearing a persisted row reaches a save error and reload can restore the old score. Close only after migrations 21–35 plus authenticated clear/reload/conflict/lock browser journeys. |
-| `REL-002` | Independent late reads can overwrite newer state | **Implementation in progress — issue #62** | Per-slice edit generations now guard initial prediction, tie, bracket and Golden Boot reads on the working branch. Keep open until the final head passes required checks and merges to `main`. |
+| `REL-002` | Independent late reads can overwrite newer state | **Resolved by PR #63** | Per-slice edit generations guard initial prediction, tie, bracket and Golden Boot reads; entry-context resets and delayed success/failure regressions passed final CI and Browser E2E before merge. Reopen on any stale-load overwrite regression. |
 | `REL-003` | Manual submit does not flush pending debounced writes | **Partially resolved — repository implemented and tested** | Provider/controller settlement tests pass. Close after compatible production rollout plus authenticated immediate-final-edit and failure/conflict browser verification. |
 | `REL-004` | Compound bracket writes are non-atomic | **Open production; client deployed/backend absent** | Atomic snapshot RPC and stale-version rollback pass on development. Production lacks `replace_predicted_progression`, so bracket persistence fails. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
@@ -97,7 +102,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `OPS-008` | A public legacy “development” site is sourced from the World Cup repository and a dormant staging backend | **Open — retire/protect approved; dashboard execution pending; issue #27** | The owner approved removal of public access and separate retirement of the hourly legacy activity. Automated team-login protection returned HTTP 422 and the password fallback was blocked before execution, so the site remains unchanged and public. Close after the separate Netlify dashboard action and verified public-access/function/cron/backend state. Do not repoint it to either current Euro project. |
 | `AUTH-001` | Production Turnstile site key is inherited by non-production contexts while development CAPTCHA configuration is unverified | **Open — always-pass test model approved; dashboard execution pending; issue #28** | The owner approved Cloudflare's matching always-pass test pair for previews/branches/dev and development Supabase, while production retains its real pair. Connected tools cannot update the development Supabase CAPTCHA secret/toggle. Close after both dashboard sides are configured together and preview login/signup/recovery plus production regression evidence pass. |
 | `REL-005` | Open pages can remain convincingly stale | Open | Add and test realtime, polling or focus-refetch strategy. |
-| `REL-006` | Concurrent first-use requests can hit entry unique conflicts | Open | Replace/select-insert race with idempotent server boundary and test two-tab creation. |
+| `REL-006` | Concurrent first-use requests can hit entry unique conflicts | **Implementation complete — PR #65 pending merge** | Existing unique `(user_id, tournament_id)` authority now supports an insert-on-conflict/fallback-read boundary; focused service tests and a coordinated two-context disposable-Supabase race pass. Close only after the final documentation head is green and merged. |
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Complete-snapshot versions contain this on development; verify production rollout and multi-device browser behavior. |
 | `PERF-001` | League summary requests scale linearly/serially | Open | Remove serial per-league request pattern and profile representative load. |
 | `UX-001` | Invite context is hidden behind generic signup | Open | Show trustworthy invite preview before auth and remove render-time storage mutation. |
@@ -126,7 +131,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `SEO-002` | Metadata is largely global | Open |
 | `A11Y-003` | Bottom navigation is imperative rather than link-semantic | **Resolved** — all five primary destinations are React Router links, retain `aria-current="page"`, support normal browser link actions and pass semantic regression tests. PR #37’s guarded preview reached ready state with accessibility 100. Reopen if a primary destination becomes button-imperative again. |
 | `UX-003` | Other-player profile action remains incomplete | Open |
-| `UX-004` | Sign-out is immediate | Open |
+| `UX-004` | Sign-out is immediate | **Resolved by PR #43** — destructive confirmation, pending-state protection, safe failure retry, unit regressions and established two-device Browser E2E journeys passed before merge. |
 | `DATA-008` | Score values have no practical database maximum | Open |
 | `DOC-002` | Package version remains `0.0.0` | Open |
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |

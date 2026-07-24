@@ -38,4 +38,4 @@ Keep `REL-006` open until the final pull-request head passes the guarded build, 
 
 ## Validation
 
-Pending final pull-request checks.
+Functional head `c1ee4d727ad7235e350d5e6c7c79072857834e58` passed CI run `30130735751`, Browser E2E run `30130735710` and a ready Netlify deploy preview. The browser run rebuilt all committed migrations and seed data, released two coordinated first-use entry writes simultaneously, completed all established authenticated and recovery journeys, and cleaned up disposable data. This documentation-only follow-up triggers the standard gates on the final review head.
