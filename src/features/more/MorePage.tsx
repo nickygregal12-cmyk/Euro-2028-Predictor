@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Button } from '../../design-system'
+import { Button, ConfirmModal } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useTheme } from '../../app/providers/ThemeProvider'
@@ -11,6 +11,7 @@ export function MorePage() {
   const navigate = useNavigate()
   const { displayName, signOut } = useAuth()
   const { theme, toggle } = useTheme()
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
 
   async function handleSignOut() {
@@ -22,6 +23,7 @@ export function MorePage() {
       await signOut()
     } finally {
       setSigningOut(false)
+      setConfirmSignOut(false)
     }
   }
 
@@ -60,10 +62,22 @@ export function MorePage() {
       </button>
 
       <div className={s.card}>
-        <Button variant="destructive" fullWidth loading={signingOut} onClick={handleSignOut}>
+        <Button variant="destructive" fullWidth onClick={() => setConfirmSignOut(true)}>
           Sign out
         </Button>
       </div>
+
+      <ConfirmModal
+        open={confirmSignOut}
+        onClose={() => setConfirmSignOut(false)}
+        onConfirm={handleSignOut}
+        title="Sign out?"
+        confirmLabel="Sign out"
+        destructive
+        loading={signingOut}
+      >
+        You’ll need to log in again to view and update your predictions.
+      </ConfirmModal>
     </div>
   )
 }
