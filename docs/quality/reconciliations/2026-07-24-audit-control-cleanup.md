@@ -2,9 +2,10 @@
 
 **Date:** 24 July 2026  
 **Issue:** #46  
+**Pull request:** #47  
 **Branch:** `agent/repair-audit-controls`  
 **Findings:** `TEST-002`, `TEST-003`, `DOC-001`, `DOC-006`  
-**Status:** Repository implementation prepared; pull-request validation pending
+**Status:** Validated for merge; `main` closure pending
 
 ## Scope
 
@@ -16,7 +17,7 @@ This repository-only batch:
 - repairs relative links in archived quality evidence after those files moved into `docs/quality/history/`;
 - adds permanent Markdown-link and obsolete-reference regression coverage;
 - adds a CI execution from `git archive` to prove Git-less checkouts skip rather than fail;
-- updates the live quality status and risk register after validation.
+- updates the live quality status and risk register conservatively while merge is pending.
 
 It does not change migrations, hosted Supabase data or configuration, Netlify configuration, deployment-contract values, application behaviour, tournament rules or scoring.
 
@@ -30,13 +31,24 @@ It does not change migrations, hosted Supabase data or configuration, Netlify co
 - both archived quality files now resolve moved links through `../audits/` and `../risk-register.md` without altering their finding/baseline contents.
 - `tests/scripts/markdownDocumentation.test.ts` checks relative inline Markdown links repository-wide and prevents the obsolete entry-test terms from returning.
 
-## Validation required before closure
+## Validation evidence
 
-1. application CI passes on the pull request;
-2. the normal Git-checkout environment-file hygiene tests pass;
-3. the Git-less CI step reports an explicit skipped suite rather than eight failures;
-4. repository Markdown link validation reports no broken links;
-5. the database-parity workflow trigger regression test remains green;
-6. after merge, confirm the exact `main` tree and close issue #46 plus any finding whose full closure evidence is then satisfied.
+PR #47 permanent-file head `eab67c8f56579d038e1d1164ee1675082df2ed91` completed CI run 195 successfully:
 
-Until those checks pass, `TEST-003`, `DOC-001` and `DOC-006` remain in progress. `TEST-002` is repository-resolved by merged PR #45, subject to the live register update in this batch.
+1. dependency installation passed;
+2. the Git-less `git archive` execution passed, reporting the environment-file suite as explicitly skipped rather than producing eight false failures;
+3. build and lint passed;
+4. the complete Vitest suite passed, including normal Git-checkout environment-file assertions, repository-wide relative Markdown-link validation and obsolete test-script reference checks;
+5. the production-dependency audit passed.
+
+The temporary reconciliation helpers used while preparing the branch were removed and are not part of the permanent PR scope.
+
+## Closure boundary
+
+`TEST-002` and `DOC-004` are already reconciled as resolved in the branch documents. `DOC-001`, `TEST-003` and `DOC-006` remain recorded as in progress until PR #47 is merged because repository policy does not treat an unmerged branch as the live control state.
+
+After merge:
+
+1. confirm the exact `main` merge commit and green `main` CI;
+2. mark `DOC-001`, `TEST-003` and `DOC-006` resolved in `current-status.md` and `risk-register.md`;
+3. close issue #46 and the reopened post-merge tracking for issue #44 where appropriate.
