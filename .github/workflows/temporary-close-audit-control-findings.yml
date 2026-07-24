@@ -58,8 +58,8 @@ jobs:
 
           reconciliation_path = Path('docs/quality/reconciliations/2026-07-24-audit-control-cleanup.md')
           reconciliation = reconciliation_path.read_text(encoding='utf-8')
-          reconciliation = replace_once(reconciliation, '**Status:** Repository implementation prepared; pull-request validation complete; post-merge closure pending', '**Status:** Closed on `main`', 'reconciliation status')
-          marker = '## Post-merge closure required'
+          reconciliation = replace_once(reconciliation, '**Status:** Validated for merge; `main` closure pending', '**Status:** Closed on `main`', 'reconciliation status')
+          marker = '## Closure boundary'
           index = reconciliation.index(marker)
           reconciliation = reconciliation[:index] + '''## Post-merge closure evidence
 
