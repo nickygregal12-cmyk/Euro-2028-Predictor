@@ -366,19 +366,19 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
         const rows = await fetchMatchPredictions(entry.id)
         if (!active) return
         if (initialLoadCanApply('matches', matchLoadRevision)) {
-const map: Record<string, Prediction> = {}
-const vmap: Record<string, number> = {}
-for (const r of rows) {
-  map[r.matchId] = {
-    homeScore: r.homeScore,
-    awayScore: r.awayScore,
-    joker: r.joker,
-  }
-  vmap[r.matchId] = r.version
-}
-matchVersionsRef.current = vmap
-predictionsRef.current = map
-setPredictions(map)
+          const map: Record<string, Prediction> = {}
+          const vmap: Record<string, number> = {}
+          for (const r of rows) {
+            map[r.matchId] = {
+              homeScore: r.homeScore,
+              awayScore: r.awayScore,
+              joker: r.joker,
+            }
+            vmap[r.matchId] = r.version
+          }
+          matchVersionsRef.current = vmap
+          predictionsRef.current = map
+          setPredictions(map)
         }
         setReady(true)
 
@@ -387,66 +387,68 @@ setPredictions(map)
         // edit has occurred since the individual read began.
         const tieLoadRevision = localEditRevisionsRef.current.ties
         void fetchTieResolutions(entry.id)
-.then((ties) => {
-  if (!active || !initialLoadCanApply('ties', tieLoadRevision)) return
-  setTieResolutions(ties.map((t) => ({ teamIds: t.teamIds, order: t.order })))
-})
-.catch(() => {
-  if (active && initialLoadCanApply('ties', tieLoadRevision)) {
-    setTieResolutions([])
-  }
-})
+          .then((ties) => {
+            if (!active || !initialLoadCanApply('ties', tieLoadRevision)) return
+            setTieResolutions(
+              ties.map((t) => ({ teamIds: t.teamIds, order: t.order })),
+            )
+          })
+          .catch(() => {
+            if (active && initialLoadCanApply('ties', tieLoadRevision)) {
+              setTieResolutions([])
+            }
+          })
 
         const progressionLoadRevision = localEditRevisionsRef.current.progression
         void fetchProgression(entry.id)
-.then((progressionRows) => {
-  if (
-    !active ||
-    !initialLoadCanApply('progression', progressionLoadRevision)
-  ) {
-    return
-  }
-  const map: Record<string, ProgressionStage> = {}
-  const vmap: Record<string, number> = {}
-  for (const row of progressionRows) {
-    map[row.teamId] = row.stage
-    vmap[row.teamId] = row.version
-  }
-  setProgression(map)
-  progressionPersistedRef.current = map
-  progressionDesiredRef.current = map
-  progressionVersionsRef.current = vmap
-})
-.catch(() => {
-  if (
-    !active ||
-    !initialLoadCanApply('progression', progressionLoadRevision)
-  ) {
-    return
-  }
-  setProgression({})
-  progressionPersistedRef.current = {}
-  progressionDesiredRef.current = {}
-  progressionVersionsRef.current = {}
-})
+          .then((progressionRows) => {
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
+            const map: Record<string, ProgressionStage> = {}
+            const vmap: Record<string, number> = {}
+            for (const row of progressionRows) {
+              map[row.teamId] = row.stage
+              vmap[row.teamId] = row.version
+            }
+            setProgression(map)
+            progressionPersistedRef.current = map
+            progressionDesiredRef.current = map
+            progressionVersionsRef.current = vmap
+          })
+          .catch(() => {
+            if (
+              !active ||
+              !initialLoadCanApply('progression', progressionLoadRevision)
+            ) {
+              return
+            }
+            setProgression({})
+            progressionPersistedRef.current = {}
+            progressionDesiredRef.current = {}
+            progressionVersionsRef.current = {}
+          })
 
         const goldenBootLoadRevision = localEditRevisionsRef.current.goldenBoot
         void fetchGoldenBoot(entry.id)
-.then((gb) => {
-  if (
-    !active ||
-    !initialLoadCanApply('goldenBoot', goldenBootLoadRevision)
-  ) {
-    return
-  }
-  setGoldenBootPlayerId(gb.playerId)
-  goldenBootVersionRef.current = gb.version
-})
-.catch(() => {
-  if (active && initialLoadCanApply('goldenBoot', goldenBootLoadRevision)) {
-    setGoldenBootPlayerId(null)
-  }
-})
+          .then((gb) => {
+            if (
+              !active ||
+              !initialLoadCanApply('goldenBoot', goldenBootLoadRevision)
+            ) {
+              return
+            }
+            setGoldenBootPlayerId(gb.playerId)
+            goldenBootVersionRef.current = gb.version
+          })
+          .catch(() => {
+            if (active && initialLoadCanApply('goldenBoot', goldenBootLoadRevision)) {
+              setGoldenBootPlayerId(null)
+            }
+          })
       })
       .catch(() => {
         if (active) setReady(false)
