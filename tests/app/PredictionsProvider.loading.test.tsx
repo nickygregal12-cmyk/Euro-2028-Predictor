@@ -131,7 +131,9 @@ describe('PredictionsProvider late-read protection', () => {
     mocks.fetchMatchPredictions.mockReturnValue(matchRead.promise)
 
     renderProvider()
-    await waitFor(() => expect(mocks.fetchMatchPredictions).toHaveBeenCalledWith('entry-1'))
+    await waitFor(() =>
+      expect(mocks.fetchMatchPredictions).toHaveBeenCalledWith('entry-1'),
+    )
     if (!currentApi) throw new Error('Predictions context did not mount')
 
     act(() => {
@@ -142,11 +144,11 @@ describe('PredictionsProvider late-read protection', () => {
     await act(async () => {
       matchRead.resolve([
         {
-matchId: 'match-1',
-homeScore: 0,
-awayScore: 0,
-joker: false,
-version: 4,
+          matchId: 'match-1',
+          homeScore: 0,
+          awayScore: 0,
+          joker: false,
+          version: 4,
         },
       ])
       await matchRead.promise
@@ -178,9 +180,9 @@ version: 4,
     await act(async () => {
       tieRead.resolve([
         {
-scope: 'group',
-teamIds: ['team-a', 'team-b'],
-order: ['team-a', 'team-b'],
+          scope: 'group',
+          teamIds: ['team-a', 'team-b'],
+          order: ['team-a', 'team-b'],
         },
       ])
       await tieRead.promise
@@ -196,7 +198,11 @@ order: ['team-a', 'team-b'],
 
   it('does not let a late progression read replace a newer bracket snapshot', async () => {
     const progressionRead = deferred<
-      Array<{ teamId: string; stage: 'r16' | 'qf' | 'sf' | 'final' | 'champion'; version: number }>
+      Array<{
+        teamId: string
+        stage: 'r16' | 'qf' | 'sf' | 'final' | 'champion'
+        version: number
+      }>
     >()
     mocks.fetchProgression.mockReturnValue(progressionRead.promise)
 
@@ -206,7 +212,9 @@ order: ['team-a', 'team-b'],
     })
 
     await act(async () => {
-      progressionRead.resolve([{ teamId: 'team-server', stage: 'sf', version: 6 }])
+      progressionRead.resolve([
+        { teamId: 'team-server', stage: 'sf', version: 6 },
+      ])
       await progressionRead.promise
     })
 
@@ -214,7 +222,10 @@ order: ['team-a', 'team-b'],
   })
 
   it('does not let a late Golden Boot failure clear a newer local pick', async () => {
-    const goldenBootRead = deferred<{ playerId: string | null; version: number }>()
+    const goldenBootRead = deferred<{
+      playerId: string | null
+      version: number
+    }>()
     mocks.fetchGoldenBoot.mockReturnValue(goldenBootRead.promise)
 
     const api = await renderReadyProvider()
