@@ -8,7 +8,7 @@ import {
 } from '@playwright/test'
 import {
   overwritePrediction,
-  resetCompleteGroupEntry,
+  prepareCompleteGroupEntry,
   type PreparedEntry,
 } from './local-supabase'
 
@@ -40,6 +40,12 @@ async function navigateToPredictHub(page: Page) {
   await expectAuthenticatedPath(page, '/predict')
 }
 
+async function navigateToGroupA(page: Page) {
+  await navigateToPredictHub(page)
+  await page.getByRole('button', { name: /Groups A–F/ }).click()
+  await expectAuthenticatedPath(page, '/predict/groups/A')
+}
+
 async function navigateToReview(page: Page) {
   await navigateToPredictHub(page)
   await page.getByRole('button', { name: /Review and submit/ }).click()
@@ -61,9 +67,8 @@ async function completeBracket(page: Page) {
   await expect(page.getByText('Finish the group stage first')).toHaveCount(0)
 
   for (let pick = 0; pick < 15; pick += 1) {
-    // An unpicked tie has no aria-pressed=true row yet. Once one side is selected,
-    // the remaining loser button stays available for changing the pick, so the
-    // section-level predicate is what advances us to the next untouched tie.
+    // An untouched tie has no aria-pressed=true row. Selecting its first available
+    // team drives the real auto-advance flow through R16, QF, SF and the final.
     const nextWinner = page
       .locator('section:not(:has(button[aria-pressed="true"])) button[aria-label^="Pick "]')
       .first()
@@ -72,14 +77,6 @@ async function completeBracket(page: Page) {
   }
 
   await expect(page.getByRole('status')).toContainText('Saved', { timeout: 15_000 })
-}
-
-async function prepareReviewReadyEntry(page: Page): Promise<PreparedEntry> {
-  const prepared = await resetCompleteGroupEntry()
-  await completeBracket(page)
-  await navigateToReview(page)
-  await expect(page.getByRole('button', { name: 'Submit entry', exact: true })).toBeVisible()
-  return prepared
 }
 
 async function openFirstGroupMatch(page: Page, prepared: PreparedEntry) {
@@ -148,177 +145,163 @@ test('group score persists, clears, and stays cleared after reload', async ({
   await expect(away).toHaveValue('')
 })
 
-test('submission waits for the final in-flight score save', async ({ page }, testInfo) => {
-  desktopOnly(testInfo)
-  const prepared = await prepareReviewReadyEntry(page)
-  const { home } = await openFirstGroupMatch(page, prepared)
-  const nextHomeScore = String(Number(await home.inputValue()) + 1)
+test.describe('submission barriers', () => {
+  // This is one stateful, ordered lifecycle. A failed attempt must leave its trace
+  // intact rather than retrying against the deliberately mutated local entry.
+  test.describe.configure({ retries: 0 })
 
-  let releaseHeldSave!: () => void
-  const heldSaveGate = new Promise<void>((resolve) => {
-    releaseHeldSave = resolve
-  })
-  let markSaveStarted!: () => void
-  const saveStarted = new Promise<void>((resolve) => {
-    markSaveStarted = resolve
-  })
-  let held = false
+  test(
+    'failure, conflict and final in-flight edit all gate server submission',
+    async ({ page }, testInfo) => {
+      desktopOnly(testInfo)
+      test.setTimeout(120_000)
 
-  await page.route('**/rest/v1/match_predictions*', async (route) => {
-    if (!held && route.request().method() === 'POST') {
-      held = true
-      markSaveStarted()
-      await heldSaveGate
-    }
-    await route.continue()
-  })
+      const prepared = await prepareCompleteGroupEntry()
+      await completeBracket(page)
+      await navigateToReview(page)
+      await expect(page.getByRole('button', { name: 'Submit entry', exact: true })).toBeVisible()
 
-  let submitRequests = 0
-  page.on('request', (request) => {
-    if (targets(request, '/rest/v1/rpc/submit_entry')) submitRequests += 1
-  })
+      let submitRequests = 0
+      page.on('request', (request) => {
+        if (targets(request, '/rest/v1/rpc/submit_entry')) submitRequests += 1
+      })
 
-  await home.fill(nextHomeScore)
-  await saveStarted
-  await navigateToReview(page)
-  await confirmSubmission(page)
+      // ---------------------------------------------------------------------
+      // 1. Ordinary failure: all automatic retries exhaust. Submission waits
+      //    for that terminal state, reports the error and never calls validator.
+      // ---------------------------------------------------------------------
+      let { home, away } = await openFirstGroupMatch(page, prepared)
+      let currentHome = Number(await home.inputValue())
+      let currentAway = Number(await away.inputValue())
 
-  // The confirm action has started, but the server validator must not run while
-  // the latest score is still on the wire.
-  await page.waitForTimeout(300)
-  expect(submitRequests).toBe(0)
+      let markFirstFailure!: () => void
+      const firstFailure = new Promise<void>((resolve) => {
+        markFirstFailure = resolve
+      })
+      let failedAttempts = 0
+      await page.route('**/rest/v1/match_predictions*', async (route) => {
+        if (route.request().method() !== 'POST') {
+          await route.continue()
+          return
+        }
+        failedAttempts += 1
+        if (failedAttempts === 1) markFirstFailure()
+        await route.fulfill({
+          status: 503,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            code: 'PGRST000',
+            message: 'Forced browser E2E save failure',
+            details: null,
+            hint: null,
+          }),
+        })
+      })
 
-  const scorePersisted = page.waitForResponse((response) =>
-    successfulWrite(response, '/rest/v1/match_predictions'),
+      await home.fill(String(currentHome + 1))
+      await firstFailure
+      await navigateToReview(page)
+      await confirmSubmission(page)
+
+      await expect(page.getByRole('alert', { name: "Couldn't submit" })).toContainText(
+        'Some changes could not be saved',
+        { timeout: 15_000 },
+      )
+      expect(failedAttempts).toBe(3)
+      expect(submitRequests).toBe(0)
+
+      // The visible manual retry reuses the retained local edit and fresh network.
+      await page.unroute('**/rest/v1/match_predictions*')
+      await navigateToGroupA(page)
+      const recovered = page.waitForResponse((response) =>
+        successfulWrite(response, '/rest/v1/match_predictions'),
+      )
+      await page.getByRole('button', { name: 'retry', exact: true }).first().click()
+      await recovered
+
+      // ---------------------------------------------------------------------
+      // 2. Optimistic-concurrency conflict: an external local client advances
+      //    the row version. Submit stays blocked until explicit Keep mine.
+      // ---------------------------------------------------------------------
+      home = page.getByLabel(`${prepared.firstHomeName} score`).first()
+      away = page.getByLabel(`${prepared.firstAwayName} score`).first()
+      currentHome = Number(await home.inputValue())
+      currentAway = Number(await away.inputValue())
+
+      await overwritePrediction(
+        prepared.entryId,
+        prepared.firstMatchId,
+        currentHome + 1,
+        currentAway,
+      )
+      await home.fill(String(currentHome + 2))
+      await expect(
+        page.getByRole('alert', { name: 'These picks were changed on another device' }),
+      ).toBeVisible({ timeout: 10_000 })
+
+      await navigateToReview(page)
+      await confirmSubmission(page)
+      await expect(page.getByRole('alert', { name: "Couldn't submit" })).toContainText(
+        'Resolve the prediction conflict',
+      )
+      expect(submitRequests).toBe(0)
+
+      const keptMine = page.waitForResponse((response) =>
+        successfulWrite(response, '/rest/v1/match_predictions'),
+      )
+      await page.getByRole('button', { name: 'Keep mine', exact: true }).click()
+      await keptMine
+      await expect(
+        page.getByRole('alert', { name: 'These picks were changed on another device' }),
+      ).toHaveCount(0)
+
+      // ---------------------------------------------------------------------
+      // 3. Last-second edit: deliberately hold the final score request while
+      //    submitting. The validator cannot run until that request succeeds.
+      // ---------------------------------------------------------------------
+      await navigateToGroupA(page)
+      home = page.getByLabel(`${prepared.firstHomeName} score`).first()
+      currentHome = Number(await home.inputValue())
+
+      let releaseHeldSave!: () => void
+      const heldSaveGate = new Promise<void>((resolve) => {
+        releaseHeldSave = resolve
+      })
+      let markSaveStarted!: () => void
+      const saveStarted = new Promise<void>((resolve) => {
+        markSaveStarted = resolve
+      })
+      let held = false
+
+      await page.route('**/rest/v1/match_predictions*', async (route) => {
+        if (!held && route.request().method() === 'POST') {
+          held = true
+          markSaveStarted()
+          await heldSaveGate
+        }
+        await route.continue()
+      })
+
+      await home.fill(String(currentHome + 1))
+      await saveStarted
+      await navigateToReview(page)
+      await confirmSubmission(page)
+
+      await page.waitForTimeout(300)
+      expect(submitRequests).toBe(0)
+
+      const scorePersisted = page.waitForResponse((response) =>
+        successfulWrite(response, '/rest/v1/match_predictions'),
+      )
+      const submitted = page.waitForResponse((response) =>
+        successfulWrite(response, '/rest/v1/rpc/submit_entry'),
+      )
+      releaseHeldSave()
+      await scorePersisted
+      await submitted
+
+      await expect(page.getByText('Entry submitted', { exact: true })).toBeVisible()
+      expect(submitRequests).toBe(1)
+    },
   )
-  const submitted = page.waitForResponse((response) =>
-    successfulWrite(response, '/rest/v1/rpc/submit_entry'),
-  )
-  releaseHeldSave()
-  await scorePersisted
-  await submitted
-
-  await expect(page.getByText('Entry submitted', { exact: true })).toBeVisible()
-  expect(submitRequests).toBe(1)
-})
-
-test('exhausted score-save retries block submission and manual retry recovers', async ({
-  page,
-}, testInfo) => {
-  desktopOnly(testInfo)
-  const prepared = await prepareReviewReadyEntry(page)
-  const { home } = await openFirstGroupMatch(page, prepared)
-  const nextHomeScore = String(Number(await home.inputValue()) + 1)
-
-  let markFirstFailure!: () => void
-  const firstFailure = new Promise<void>((resolve) => {
-    markFirstFailure = resolve
-  })
-  let attempts = 0
-  await page.route('**/rest/v1/match_predictions*', async (route) => {
-    if (route.request().method() !== 'POST') {
-      await route.continue()
-      return
-    }
-    attempts += 1
-    if (attempts === 1) markFirstFailure()
-    await route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        code: 'PGRST000',
-        message: 'Forced browser E2E save failure',
-        details: null,
-        hint: null,
-      }),
-    })
-  })
-
-  let submitRequests = 0
-  page.on('request', (request) => {
-    if (targets(request, '/rest/v1/rpc/submit_entry')) submitRequests += 1
-  })
-
-  await home.fill(nextHomeScore)
-  await firstFailure
-  await navigateToReview(page)
-  await confirmSubmission(page)
-
-  await expect(page.getByRole('alert', { name: "Couldn't submit" })).toContainText(
-    'Some changes could not be saved',
-    { timeout: 15_000 },
-  )
-  expect(attempts).toBe(3)
-  expect(submitRequests).toBe(0)
-
-  await page.unroute('**/rest/v1/match_predictions*')
-  await navigateToPredictHub(page)
-  await page.getByRole('button', { name: /Groups A–F/ }).click()
-  await expectAuthenticatedPath(page, '/predict/groups/A')
-
-  const recovered = page.waitForResponse((response) =>
-    successfulWrite(response, '/rest/v1/match_predictions'),
-  )
-  await page.getByRole('button', { name: 'retry', exact: true }).first().click()
-  await recovered
-
-  await navigateToReview(page)
-  const submitted = page.waitForResponse((response) =>
-    successfulWrite(response, '/rest/v1/rpc/submit_entry'),
-  )
-  await confirmSubmission(page)
-  await submitted
-  await expect(page.getByText('Entry submitted', { exact: true })).toBeVisible()
-})
-
-test('version conflict blocks submission until Keep mine succeeds', async ({
-  page,
-}, testInfo) => {
-  desktopOnly(testInfo)
-  const prepared = await prepareReviewReadyEntry(page)
-  const { home, away } = await openFirstGroupMatch(page, prepared)
-  const currentHome = Number(await home.inputValue())
-  const currentAway = Number(await away.inputValue())
-
-  // The browser has already read the row/version. Change it through the local
-  // service-role client to simulate another authenticated device.
-  await overwritePrediction(
-    prepared.entryId,
-    prepared.firstMatchId,
-    currentHome + 1,
-    currentAway,
-  )
-
-  await home.fill(String(currentHome + 2))
-  await expect(
-    page.getByRole('alert', { name: 'These picks were changed on another device' }),
-  ).toBeVisible({ timeout: 10_000 })
-
-  let submitRequests = 0
-  page.on('request', (request) => {
-    if (targets(request, '/rest/v1/rpc/submit_entry')) submitRequests += 1
-  })
-
-  await navigateToReview(page)
-  await confirmSubmission(page)
-  await expect(page.getByRole('alert', { name: "Couldn't submit" })).toContainText(
-    'Resolve the prediction conflict',
-  )
-  expect(submitRequests).toBe(0)
-
-  const keptMine = page.waitForResponse((response) =>
-    successfulWrite(response, '/rest/v1/match_predictions'),
-  )
-  await page.getByRole('button', { name: 'Keep mine', exact: true }).click()
-  await keptMine
-  await expect(
-    page.getByRole('alert', { name: 'These picks were changed on another device' }),
-  ).toHaveCount(0)
-
-  const submitted = page.waitForResponse((response) =>
-    successfulWrite(response, '/rest/v1/rpc/submit_entry'),
-  )
-  await confirmSubmission(page)
-  await submitted
-  await expect(page.getByText('Entry submitted', { exact: true })).toBeVisible()
 })
