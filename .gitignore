@@ -30,3 +30,12 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+
+# Production logical-backup staging — never commit sensitive Auth/data dumps
+.production-backups/
+production-backups/
+*.backup.tar
+*.backup.tar.gz
+*.backup.tar.gz.age
+*.backup.zip
+*.backup.zip.gpg
