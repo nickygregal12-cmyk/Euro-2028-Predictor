@@ -28,6 +28,8 @@ Normal production promotion must pause until a reviewed plan restores a compatib
 
 The current Supabase organization is on Free. Prepared backup tooling is not recovery evidence. Before a production migration window, a fresh logical bundle must be encrypted, retained off the working machine, retrieved, checksum-verified and successfully restored to a disposable target.
 
+Netlify non-production isolation is resolved: deploy previews, branch deploys and Netlify development use development Supabase; production remains production. `scripts/validate-netlify-environment.mjs` runs before builds and must not be bypassed.
+
 ## Sources of truth
 
 | Topic | Document |
@@ -35,6 +37,7 @@ The current Supabase organization is on Free. Prepared backup tooling is not rec
 | Current implementation, hosted state and next action | `docs/quality/current-status.md` |
 | Current production release evidence | `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md` |
 | Production recovery readiness | `docs/quality/reconciliations/2026-07-24-production-recovery-readiness.md` |
+| Netlify environment isolation | `docs/quality/reconciliations/2026-07-24-netlify-environment-isolation.md` |
 | Production backup and restore proof | `docs/ops-production-backup-restore.md` |
 | Latest formal audit | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
 | Hosted migration/security evidence | `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`; `2026-07-24-function-privilege-hardening.md` |
@@ -66,6 +69,8 @@ Older audits and Git history remain evidence, not current instructions.
 - Clearing either side of a complete score queues `delete_match_prediction(...)` on the same serialized match key.
 - Prediction deletion must use the exact row version read; unknown or stale versions conflict rather than deleting unseen work.
 - Never restore old direct progression/delete writes as a production-compatibility shortcut.
+- Production Netlify context must use production Supabase; deploy-preview, branch-deploy and dev must use development Supabase.
+- Never weaken or bypass the Netlify prebuild context guard to make a deploy pass.
 - Original Predictor and bonus games remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references and unknown official data.
@@ -117,8 +122,8 @@ npm audit --omit=dev --audit-level=high
 ```
 
 5. For database/tournament changes, also run the disposable Supabase rebuild, database lint, all pgTAP suites and TypeScript/PostgreSQL parity from `.github/workflows/database-parity.yml`.
-6. Update current status, risk register, migration inventory and a dated reconciliation when hosted facts change—including automatic deployments.
-7. Use Netlify previews for visual review only after preview data isolation is confirmed.
+6. Update current status, risk register, migration inventory and a dated reconciliation when hosted facts change—including automatic deployments and environment-context changes.
+7. Use Netlify previews for visual review only after the context guard passes and preview data isolation is verified.
 
 ## Immediate order
 
@@ -129,10 +134,11 @@ npm audit --omit=dev --audit-level=high
 5. Require `supabase db push --dry-run` to show migrations 21–35 only.
 6. Apply migrations 21–35 only after explicit approval; run exact post-verification, advisors and smoke tests.
 7. Browser-verify bracket save/reload, immediate final-edit submission and score clear/reload/conflict/lock behavior; add durable E2E and close `REL-003`/`DATA-005`.
-8. Isolate production Netlify preview/branch contexts (`OPS-007`).
-9. Enable leaked-password protection through a separate approved Auth change.
-10. Address `REL-002`, then `REL-006`.
-11. Implement automatic real R16 population.
+8. Add an explicit app/schema compatibility gate before database-dependent changes can auto-deploy from `main`.
+9. Verify Turnstile domain/context behavior and any separately maintained development Netlify site.
+10. Enable leaked-password protection through a separate approved Auth change.
+11. Address `REL-002`, then `REL-006`.
+12. Implement automatic real R16 population.
 
 ## Hard prohibitions
 
@@ -140,6 +146,7 @@ npm audit --omit=dev --audit-level=high
 - No production database mutation, remote reset or unreviewed repair SQL.
 - No production-to-development fallback.
 - No direct-table fallback for missing production RPCs.
+- No Netlify context crossing or prebuild-guard bypass.
 - No claimed deployment without hosted verification.
 - No scoring or competition-rule change without updating authoritative rules and tests.
 - No reliance on chat memory over repository evidence.
