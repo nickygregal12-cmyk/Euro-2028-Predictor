@@ -16,8 +16,22 @@ jobs:
         with:
           node-version: 22.22.2
           cache: npm
-      - run: npm ci
-      - run: npm run build
-      - run: npm run lint
-      - run: npm run test
-      - run: npm audit --omit=dev --audit-level=high
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify Git-less environment hygiene behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$(mktemp -d)"
+          git archive HEAD | tar -x -C "$archive"
+          ln -s "$GITHUB_WORKSPACE/node_modules" "$archive/node_modules"
+          cd "$archive"
+          npx vitest run tests/scripts/envFileHygiene.test.ts --reporter=verbose
+      - name: Build
+        run: npm run build
+      - name: Lint
+        run: npm run lint
+      - name: Test
+        run: npm run test
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high

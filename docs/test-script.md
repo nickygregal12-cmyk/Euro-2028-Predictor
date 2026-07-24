@@ -1,50 +1,76 @@
-# Single-Tester Entry-Flow Test Script (Phase 2 exit gate)
+# Single-Tester Entry-Flow Test Script
 
-One trusted tester, one sitting (~30-40 min), run by Nicky. The goal is finding **friction**, not praise. The tester's confusion is the product's fault, never theirs — say that to them at the start.
+One trusted tester, one sitting (about 30–40 minutes), run by Nicky. The goal is finding **friction**, not praise. The tester's confusion is the product's fault, never theirs — say that at the start.
 
-## Ground rules for the run
-- **Prerequisite (added 2026-07-22): UI/CRO audit Batch A has shipped** (build-todo § UI/CRO audit follow-ups — mobile physics: viewport-fit, 16px inputs, 44px chevron, contrast, theme-color). These are *known* defects; running the test before they land would spend the one trusted tester rediscovering issues already on the list and drown the genuinely new findings.
-- Tester uses **their own phone**, on **mobile data** if possible (not your Wi-Fi).
-- You give them the URL and NOTHING else. No walkthrough, no "so first you…".
-- During silent tasks: **you say nothing**. No hints, no "it's down there." Watch, and note every hesitation — a hesitation is a finding.
-- Note-taking shorthand: ⏸ hesitated · ❓ asked a question · ✗ did the wrong thing first · 💬 said something worth quoting verbatim.
+This is a usability and comprehension test, not proof of production readiness. Current code, `docs/quality/current-status.md` and hosted compatibility evidence decide which environment is safe to test.
 
-## Part 1 — Silent observation (no coaching)
+## Environment prerequisites
 
-**Task 1: "Here's a link. Make yourself an account and start playing."**
-Watch for: sign-up friction, whether /welcome makes sense (do they read it or skip?), whether they find their way into Group A without help, first reaction to the score inputs. *(Audit checks, 2026-07-22: the viewport must NOT zoom-jump when they focus the email/password fields — if it does, Batch A regressed; ⏸ any pause at the submit button — if they tap and nothing visibly happens, that's the resilience item [Batch C] not yet landed, note it and move on.)*
+- Use a current Euro 2028 preview or development environment connected to development Supabase at the repository's compatible database contract.
+- Do not use the legacy `euro28-predictor-dev.netlify.app` site; it belongs to the protected World Cup environment.
+- Verify login, signup and recovery are usable in the selected environment before involving the tester. A successful static preview build is not enough.
+- Do not use production for this flow while the application/database compatibility gate remains open.
+- Record the exact URL, commit/deploy identity, device and date with the findings.
 
-**Task 2: "Carry on until you've predicted a full group."**
-Watch for: score-entry speed and rhythm on their thumbs, whether they notice the group table updating live (💬 if they react), whether "Saved" registers with them at all, whether they understand how to get to the next group. *(Audit checks: count mis-taps — chevron opened when they aimed at the away score = the 44px target regressed; note whether they hunt for a "next" action at the bottom of the completed group — the continuation-CTA finding [Batch B].)*
+## Ground rules
 
-**Task 3: "Now finish the whole entry — everything the app wants from you."**
-The big one. Watch for: do they understand the hub as a checklist? Do they find the third-place screen confusing? The bracket — do they understand tap-to-pick without instruction? Do they place jokers at all unprompted, and do they understand what a joker is from the UI alone? Do they reach Review and understand what's blocking submission (if anything)? Do they submit?
-- If a tie-resolution prompt appears naturally, gold — watch closely. If not, don't engineer one mid-test; ask about the concept in debrief instead.
+- The tester uses **their own phone**, on **mobile data** if practical.
+- Give them the URL and nothing else. No walkthrough or hints.
+- During silent tasks, say nothing. Watch and note every hesitation.
+- Note-taking shorthand: ⏸ hesitated · ❓ asked a question · ✗ tried the wrong action first · 💬 useful verbatim reaction.
+
+## Part 1 — Silent observation
+
+**Task 1: “Here’s a link. Make yourself an account and start playing.”**
+
+Watch for signup friction, Turnstile or recovery problems, whether `/welcome` makes sense, whether they find Group A without help, and their first reaction to score inputs. Check that focusing email/password fields does not cause disruptive viewport zoom and that every submit action has visible progress or a safe error state.
+
+**Task 2: “Carry on until you’ve predicted a full group.”**
+
+Watch score-entry speed, thumb accuracy, whether the live group table is noticed, whether the save state is trusted, and whether the route to the next group is obvious. Record repeated mis-taps or hunting for a continuation action as findings rather than explaining the interface.
+
+**Task 3: “Now finish the whole entry — everything the app wants from you.”**
+
+Watch whether the prediction hub reads as a checklist; whether third-place selection is understood; whether tap-to-pick bracket behaviour is self-explanatory; whether Jokers are discovered and understood; and whether Review clearly explains anything blocking submission.
+
+If a tie-resolution prompt appears naturally, observe it closely. Do not manufacture one mid-test; discuss the concept in the debrief instead.
+
+For submission, pay particular attention to the final visible edit immediately before pressing submit. Any lost edit, save conflict or unclear failure is evidence against the remaining browser-closure requirements for `REL-003` and related persistence controls.
 
 ## Part 2 — Directed tasks
 
-**Task 4:** "Join my league" — send them the invite link by WhatsApp, exactly as a friend would. Watch the join flow land. *(If the tester is signed out when they tap it: do they see WHAT they were invited to before any sign-up ask? If they hit a contextless form, that's the public-invite-preview item [Batch C] — 💬 their reaction is exactly the drop-off evidence for it.)*
-**Task 5:** "Find out how many points an exact score is worth." (Tests discoverability of the scoring page.)
-**Task 6:** "Change your mind about one of your bracket picks — make [team] win instead." (Tests the cascade dialog comprehension if downstream picks exist. 💬 their reaction to the dialog.)
-**Task 7:** "Move one of your jokers to a different match." (Tests joker manageability + the overview screen.)
-**Task 8:** "Sign out and back in." (Tests the confirm, password recall reality, session behaviour.)
+**Task 4:** “Join my league.” Send the invite link exactly as a friend would. When signed out, check whether the visitor understands what they were invited to before being asked to authenticate. A contextless auth form remains evidence for `UX-001`.
 
-## Part 3 — Debrief questions (ask open, don't lead)
+**Task 5:** “Find out how many points an exact score is worth.” This tests scoring-page discoverability.
 
-1. "Walk me through what this game is, as you'd explain it to a mate." (Tests whether the model landed.)
-2. "What was the first moment you weren't sure what to do?"
-3. "Anything feel slow, fiddly, or annoying — especially entering scores?"
-4. "What do the jokers do?" (In their words — reveals whether the gold UI taught the rule.)
-5. "When does all this lock? What happens after that?" (Tests deadline comprehension.)
-6. "Would you actually play this next summer? What would make you tell friends about it?"
-7. "Anything you expected to find that wasn't there?"
+**Task 6:** “Change your mind about one bracket pick — make [team] win instead.” This tests downstream cascade-dialog comprehension.
 
-## Findings → actions
-Write findings same-day into three buckets:
-- **Fix before Phase 3** (broke comprehension of the core loop)
-- **Fix eventually** (friction, not failure)
-- **Note only** (preference/one-off)
-Report the bucketed list back into the project chat for triage into build-todo.
+**Task 7:** “Move one of your Jokers to another match.” This tests Joker manageability and overview comprehension.
+
+**Task 8:** “Sign out and back in.” This tests confirmation, session behaviour and practical password recall.
+
+## Part 3 — Debrief questions
+
+1. “Walk me through what this game is, as you’d explain it to a mate.”
+2. “What was the first moment you weren’t sure what to do?”
+3. “Anything feel slow, fiddly or annoying — especially entering scores?”
+4. “What do the Jokers do?”
+5. “When does all this lock, and what happens after that?”
+6. “Would you actually play this next summer? What would make you tell friends?”
+7. “Anything you expected to find that wasn’t there?”
+
+## Findings and actions
+
+Write findings up the same day with:
+
+- the exact task and observed behaviour;
+- environment/deploy identity and device;
+- impact on completion, trust or comprehension;
+- reproduction steps where practical;
+- severity and the relevant existing finding ID, or a proposed new ID when the root cause is materially different.
+
+Create or update GitHub Issues for actionable work. Update `docs/build-todo.md` only when sequencing changes; do not use chat or the TODO as implementation evidence.
 
 ## Pass bar
-The test "passes" if the tester completes a full valid entry and joins a league with zero verbal help. Anything else is findings, not failure — that's the point of running it.
+
+The tester completes a full valid entry and joins a league with zero verbal help. Anything else produces findings, not a failed tester. This pass bar demonstrates usability only; it does not close database, production compatibility, security, recovery or browser-E2E gates by itself.

@@ -16,6 +16,8 @@
 **Latest security reconciliation:** [`reconciliations/2026-07-24-function-privilege-hardening.md`](reconciliations/2026-07-24-function-privilege-hardening.md)  
 **Latest reliability reconciliation:** [`reconciliations/2026-07-24-submit-save-barrier.md`](reconciliations/2026-07-24-submit-save-barrier.md)  
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
+**Database-parity trigger repair:** [`reconciliations/2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md)  
+**Audit-control cleanup:** [`reconciliations/2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md)
 
 This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” or an approved recovery method does **not** mean recovery is proven.
 
@@ -25,11 +27,11 @@ This register retains every original finding ID and adds findings discovered by 
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 2 | 14 |
-| Medium | 19 | 0 | 19 |
+| Medium | 19 | 2 | 17 |
 | Low | 16 | 3 | 13 |
-| **Total** | **57** | **6** | **51** |
+| **Total** | **57** | **8** | **49** |
 
-`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003` and `REPO-002` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
+`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004` and `TEST-002` are resolved. `OPS-005` is superseded by `OPS-002`. `REPO-001` is partially resolved: the editor baseline is implemented and tested, while licence and changelog policy remain open. Several findings are implemented in repository/development but remain open because production has not received or browser-verified them.
 
 ### Movement at `2026-07-24R`
 
@@ -43,6 +45,14 @@ This register retains every original finding ID and adds findings discovered by 
 | Corrected | `HYGIENE-001` — the asset **is** present at `src/assets/vite.svg`; the previous "path not identified" note was factually wrong. |
 | Reopened | `DOC-001` — Resolved → **Partially resolved**. `docs/test-script.md` still cross-references a `build-todo` section and batch names that no longer exist. |
 | Verified repaired | `SECURITY-002`, `SECURITY-001`, `DATA-001`, `DATA-003`, `DATA-002`, `REL-003`, `REL-004`, `DATA-005` confirmed implemented at the correct layer in repository/development. All correctly remain open pending production. |
+
+### Movement after `2026-07-24R`
+
+| Change | Detail |
+| --- | --- |
+| Resolved | `DOC-004` — the governance charter is restored on `main` and the mandatory audit read is satisfiable. |
+| Resolved | `TEST-002` — PR #45 merged the corrected database-parity trigger contract after CI run 188 and Database parity run 65 passed. |
+| In progress | Issue #46 repairs `DOC-001`, `TEST-003` and `DOC-006` with permanent regression coverage; pull-request validation is pending. |
 
 ## Critical
 
@@ -90,15 +100,15 @@ This register retains every original finding ID and adds findings discovered by 
 | `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | Open | Add skip link, route title/focus/live-region behavior and browser accessibility tests. |
 | `A11Y-002` | League options menu semantics do not match behavior | Open | Implement full menu-button keyboard model or simpler disclosure semantics. |
 | `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | Open | Generate DB types, enable strictness incrementally and validate critical RPC payloads. |
-| `DOC-001` | Documentation is not consistently authoritative | **Partially resolved — reopened `2026-07-24R`** | The reconciliation process is working and the roadmap/build-todo rewrites are current. However `docs/test-script.md` still cross-references a `build-todo` § "UI/CRO audit follow-ups" section and "Batch A"/"Batch C" names that the 24 July rewrite removed, and still frames itself against the superseded "Phase 2 exit gate" model. A process is not by itself evidence of consistency. Close after a repository-wide cross-reference sweep. |
+| `DOC-001` | Documentation is not consistently authoritative | **In progress — issue #46** | `docs/test-script.md` is rewritten against current environment gates and finding IDs, and executable coverage prevents its obsolete phase/batch references from returning. Close after the pull-request suite and repository-wide relative-link check pass. |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | Open | Threat-model enumeration and rate limits at intended competition size. |
 | `SEC-002` | Raw internal errors can reach users | Open | Map database/network failures to stable safe messages. |
 | `DATA-007` | Rate limiting is count-then-insert | Open | Serialize per user/action or use atomic database primitive. |
 | `UX-002` | Unavailable data is conflated with empty data | Open | Preserve loading/error/unavailable states through home and related reads. |
 | `PERF-002` | Scoring recomputes the whole tournament | Open / accepted pending measurement | Profile target-capacity cost before deciding whether to optimize. |
-| `DOC-004` | Quality governance charter is absent | **Open — restored draft supplied `2026-07-24R`** | `docs/quality/README.md` was deleted, removing the source-of-truth hierarchy, finding workflow, ID prefix registry, severity/status definitions, evidence and resolution requirements, and prohibited-content rules. `audit-prompt.md:955` still mandates reading it, so the repeat-audit control is unsatisfiable. Close after the restored charter is merged and the mandated read succeeds. |
+| `DOC-004` | Quality governance charter is absent | **Resolved** | `docs/quality/README.md` is restored on `main`, contains the source-of-truth, workflow, severity/status, evidence, resolution and prohibited-content controls, and satisfies `audit-prompt.md` repeat-audit item 1. Reopen if the charter is removed or the mandatory read becomes unsatisfiable. |
 | `DOC-005` | Live feature baseline has lost its stable identifiers | **Open — owner action required** | `feature-baseline.md` was rewritten from 96 ID-bearing rows (`FEAT-*`, `PLAN-*`, `SAFE-*`) to 60 rows with no IDs and no `Last verified`/`Validation evidence` columns. The prior version is preserved at `history/feature-baseline-2026-07-23R.md`, so no evidence is lost, but row-by-row regression comparison is no longer reliable. The 96→60 reduction is not itself evidence of feature loss — the point is that it can no longer be audited. Close after IDs are re-attached and every archived ID is present or has a recorded disposition. |
-| `TEST-002` | Database-parity CI gate filters on a non-existent path | **Open** | `.github/workflows/database-parity.yml` triggers on `scripts/database-parity/**`, which does not exist. The real rollout SQL lives in `scripts/database-rollout/**` (`production-preflight.sql`, `post-rollout-verification.sql`, `production-baseline-1-20-verification.sql`, `managed-schema-customizations.sql`) and triggers nothing. `ci.yml` does not run pgTAP at all, so changes to the SQL guarding the pending migrations 21–35 rollout receive no database verification. A gate that silently does not fire reads as assurance. Close after the filter is corrected and a no-op edit under `scripts/database-rollout/` is shown to trigger the workflow. |
+| `TEST-002` | Database-parity CI gate filters on a non-existent path | **Resolved** | PR #45 replaced the dead path with `scripts/database-rollout/**`, added `config/deployment-contract.json` and executable trigger-contract coverage, and merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`. CI run 188 and Database parity run 65 passed on its latest head, including rebuild, lint, pgTAP and differential parity. |
 
 ## Low
 
@@ -118,8 +128,8 @@ This register retains every original finding ID and adds findings discovered by 
 | `DOC-003` | Component gallery is large and partly historical | Open; correctly dev-only |
 | `REPO-001` | Licence, changelog and editor baseline are absent | **Partially resolved** — `.editorconfig` now enforces UTF-8, LF, final newlines and repository indentation rules, with executable drift coverage. Licence selection and changelog policy remain open. |
 | `REPO-002` | `.gitignore` misses `.env.production` and `.env.development` | **Resolved** — `.env` and all `.env.*` variants are ignored while `.env.example` remains committable; Git's own `check-ignore` semantics are covered by the test suite. Reopen if a sensitive variant becomes committable or the template becomes ignored. |
-| `TEST-003` | One test file hard-fails outside a git work tree | **Open** | `tests/scripts/envFileHygiene.test.ts` shells out to `git check-ignore` and throws when the command fails, including when it fails because no repository exists. All 8 tests fail in any git-less checkout; the same file passes 8/8 once `git init` is run, with no source change. CI is unaffected. The risk is that assumed environmental noise masks a genuine regression in the same file. `tests/database-parity/` already models the correct pattern with `describe.skip`. Close after the file skips with an explicit reason and still fails on a genuinely committable `.env.production`. |
-| `DOC-006` | Archived evidence has broken relative links | **Open** | A repository-wide link check found 53 broken internal links, all inside `docs/quality/history/` — 50 in `risk-register-2026-07-23R.md`, 3 in `feature-baseline-2026-07-23R.md`. Both were moved down one directory level without adjusting `audits/…` and `risk-register.md` targets. The live documentation set has zero broken links. Close after the targets are prefixed with `../` and a link check reports zero repository-wide. |
+| `TEST-003` | One test file hard-fails outside a git work tree | **In progress — issue #46** | The suite now detects Git-work-tree availability, skips explicitly when unavailable, and retains Git-native ignore assertions in normal checkouts. CI also runs the file from a `git archive` extraction with no `.git`. Close after both normal and archive-based pull-request steps pass. |
+| `DOC-006` | Archived evidence has broken relative links | **In progress — issue #46** | Both archived files now use `../audits/` and `../risk-register.md`, and a repository-wide relative Markdown-link test is present. Close after the pull-request suite reports zero broken links. |
 
 ## Register rules
 
