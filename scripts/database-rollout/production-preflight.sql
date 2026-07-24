@@ -198,7 +198,7 @@ with submitted as (
          or (scope = 'third' and group_count <> member_count)
     ) as tie_rows_valid,
     (
-      select predictions = '8d76619fe4b44fdac17de1cc2afe5aaa'
+      select predictions = '320cf25d62767dee307d3602212909af'
          and ties = 'a4dcf183f5c48e3ba11ff75c59622598'
          and progression = '0d7bc491daa9b24013204d061a2d38f1'
       from fingerprints
@@ -272,7 +272,7 @@ select jsonb_build_object(
     and scopes_valid,
   'rollout_guard_fingerprints', (select to_jsonb(fingerprints) from fingerprints),
   'expected_rollout_guard_fingerprints', jsonb_build_object(
-    'predictions', '8d76619fe4b44fdac17de1cc2afe5aaa',
+    'predictions', '320cf25d62767dee307d3602212909af',
     'ties', 'a4dcf183f5c48e3ba11ff75c59622598',
     'progression', '0d7bc491daa9b24013204d061a2d38f1'
   ),

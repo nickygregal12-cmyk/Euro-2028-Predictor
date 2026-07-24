@@ -288,7 +288,7 @@ with submitted_all as (
       from submitted
     ) as submitted_timestamp_preserved,
     (
-      select predictions = '8d76619fe4b44fdac17de1cc2afe5aaa'
+      select predictions = '320cf25d62767dee307d3602212909af'
          and ties = 'a4dcf183f5c48e3ba11ff75c59622598'
          and progression = '0d7bc491daa9b24013204d061a2d38f1'
       from fingerprints
