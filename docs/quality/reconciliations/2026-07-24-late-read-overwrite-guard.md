@@ -1,3 +1,3 @@
 # REL-002 bootstrap trigger
 
-This placeholder is replaced by the branch bootstrap workflow.
+This second trigger commit uses the Git data ref path so the existing branch workflow receives a fresh push event.
