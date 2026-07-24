@@ -81,7 +81,7 @@ Database parity CI runs:
 - TypeScript/PostgreSQL differential parity;
 - clean teardown.
 
-Browser E2E remains absent and is still a launch blocker.
+A dedicated Browser E2E gate rebuilds disposable local Supabase and runs authenticated desktop/mobile journeys for score persistence and protected clearing, submission settlement and conflicts, atomic bracket conflicts, post-lock rejection, signup confirmation and password recovery. Invitation/join, administrator and production smoke journeys remain open.
 
 ## Repository and hosted-development implementation
 

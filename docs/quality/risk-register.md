@@ -18,7 +18,8 @@
 **Latest data reconciliation:** [`reconciliations/2026-07-24-score-clearing.md`](reconciliations/2026-07-24-score-clearing.md)
 **Database-parity trigger repair:** [`reconciliations/2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md)  
 **Audit-control cleanup:** [`reconciliations/2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md)  
-**Feature-baseline identifiers:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
+**Feature-baseline identifiers:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)  
+**Authenticated browser E2E:** [`reconciliations/2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md)
 
 This register retains every original finding ID and adds findings discovered by live hosted verification. Older audit reports remain immutable evidence. “Repository/development implemented” does **not** mean production-compatible, and “backup tooling prepared” or an approved recovery method does **not** mean recovery is proven.
 
@@ -84,7 +85,7 @@ This register retains every original finding ID and adds findings discovered by 
 | `REL-004` | Compound bracket writes are non-atomic | **Open production; client deployed/backend absent** | Atomic snapshot RPC and stale-version rollback pass on development. Production lacks `replace_predicted_progression`, so bracket persistence fails. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker. |
 | `OPS-002` | No version-controlled administrator model/control room boundary | **Open** | No `profiles.role` column exists in repository/hosted schema; no browser result admin page. |
-| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved** | Disposable database CI, pgTAP and provider-level submission/score-clear tests exist; authenticated production-like browser E2E remains absent. |
+| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — substantial disposable browser coverage** | A dedicated Playwright gate now proves authenticated routes, score save/clear/reload, submission settlement/failure/conflict, two-device atomic bracket recovery, post-lock rejection, signup confirmation, first-use welcome and password recovery against disposable local Supabase. Private-league invite/join, result administration, browser accessibility and production smoke evidence remain open. |
 | `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — recovery method approved, evidence absent; issue #32** | The owner approved personal-computer execution, 7-Zip AES-256 encryption, OneDrive custody and owner review. The current work laptop is explicitly not approved. Fail-closed backup tooling/checksums/runbook exist, but no fresh production dump, encrypted off-site artifact, retrieval proof or disposable restore has been performed. Production rollout remains blocked until issue #32 is completed and accepted. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 

@@ -20,9 +20,10 @@
 | Database-parity trigger repair | [`2026-07-24-database-parity-trigger.md`](reconciliations/2026-07-24-database-parity-trigger.md) |
 | Audit-control cleanup | [`2026-07-24-audit-control-cleanup.md`](reconciliations/2026-07-24-audit-control-cleanup.md) |
 | Feature-baseline identifiers | [`2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md) |
+| Authenticated browser E2E | [`2026-07-24-auth-recovery-browser-e2e.md`](reconciliations/2026-07-24-auth-recovery-browser-e2e.md) |
 | Production baseline proof | [`2026-07-23-production-migration-history-1-20.md`](reconciliations/2026-07-23-production-migration-history-1-20.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current repository release-control baseline | `2bfe5d6b06519cf26929ba49a57b5a5861644e14` — PR #50 restored stable feature-baseline identifiers after final head CI run 217 passed |
+| Current repository release-control baseline | `8657ad9f9d015b08e2349fda4127b992d2024fa4` — PR #59 updated the current rollout guards after PR #58 repaired migration 31 for existing submissions and moved the app to React Router 8.3.0; production remains contract 20 |
 | Production application-code baseline | `a403b0796853453cb4115aea55729aced192a6ca` — introduced the deployed bracket and score-clear RPC dependencies |
 | Current ready production deploy | `6a630e4de510f100077bc120`, source commit `a6d3f1c97a93d48789435457769fd627c305ff27` |
 | Repository application/database contract | 35 — `config/deployment-contract.json` |
@@ -60,6 +61,14 @@ The 12 pgTAP files under `supabase/tests/` were **read but not executed** during
 | `TEST-002` | **Resolved.** PR #45 merged as `d9bba09543409067624223f6f3fc0a0c75152cc2`; CI run 188 and Database parity run 65 passed on its latest head, including migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity. |
 | Issue #46 / PR #47 | **Resolved on `main`.** PR #47 merged as `fd5b8c4c936812ea772dad3c2ec7bfad58b01cf8`; issue #46 closed automatically. Final head `fd0fc31f4e0038e89b0d286927554de897e6d04f` passed CI run 200. |
 | Issue #49 / PR #50 | **Resolved on `main`.** PR #50 merged as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`; issue #49 closed automatically. Final head `f191a988e5cf18d773846c4d58b8f5d8becdd1c9` passed CI run 217. |
+
+## Authenticated browser E2E position
+
+The repository now has a dedicated Playwright/Chromium gate against disposable local Supabase. Merged batches #53–#56 cover authenticated desktop/mobile route access, score save/reload/protected clear/reload, pending/failing/conflicted submission writes, two-device atomic bracket conflicts and recovery, and authoritative post-lock rejection. PR #61 adds public signup, local email confirmation, first-use welcome, ordinary sign-out/login, reset request, recovery-link handling, password replacement, old-password rejection and new-password login.
+
+PR #61 functional head `840c2e1982acb75f7a5446fe1fdad6f9f0a68f18` passed CI run `30125343793`, Database parity run `30125343795` and Browser E2E run `30125343872`. The browser run rebuilt all 35 migrations, passed every established authenticated journey and passed the new signup/recovery desktop lifecycle plus phone-width auth smoke.
+
+This remains repository/disposable-development evidence only. It does not prove production compatibility, real SMTP/Turnstile configuration, private-league invitation joining or browser result administration.
 
 ## Quality-governance position
 
@@ -103,7 +112,7 @@ Do not infer database compatibility from a successful build, a docs-only merge o
 | Non-production Turnstile/CAPTCHA | **Unverified.** Production auth succeeds, but development CAPTCHA secret/toggle and Cloudflare hostname configuration are not proven. |
 | Recovery readiness | **Tooling prepared; evidence absent.** No qualifying encrypted off-site artifact or successful disposable restore exists. |
 | Production migration readiness | **Blocked.** Recovery proof, fresh preflights, named operator, approval and controlled window remain required. |
-| Real scored competition | **Not ready.** Production integrity controls and authenticated browser E2E remain incomplete. |
+| Real scored competition | **Not ready.** Repository browser E2E now covers the critical Original Predictor and authentication journeys, but production integrity controls, hosted smoke verification, invitations, administrator journeys, monitoring and recovery proof remain incomplete. |
 
 ## `OPS-006` — current production application/database mismatch
 
@@ -261,7 +270,7 @@ These are not production capabilities until the full migrations 21–35 rollout 
 
 The one submitted production entry was replayed on development using stable match/team references. Rollout fingerprints remain:
 
-- 36 predictions: `8d76619fe4b44fdac17de1cc2afe5aaa`;
+- 36 predictions: `320cf25d62767dee307d3602212909af`;
 - two tie decisions: `a4dcf183f5c48e3ba11ff75c59622598`;
 - eight progression rows: `0d7bc491daa9b24013204d061a2d38f1`.
 
@@ -303,7 +312,7 @@ Never edit migration history directly, mark absent SQL as applied or lift the de
 | Auth security | Leaked-password protection remains disabled and requires a separate approved Auth change. |
 | Entry reliability | `REL-003` and `DATA-005` await compatible-production browser closure; `REL-002` and `REL-006` remain unimplemented. |
 | Product completeness | Automatic real R16 population, auto-submit, reminders and browser result administration remain absent. |
-| Test assurance | No Playwright or equivalent authenticated browser E2E suite. Database parity now covers migrations, rollout SQL, the deployment contract and its trigger regression test. |
+| Test assurance | Dedicated disposable-local-Supabase Playwright coverage now includes authenticated routes, score persistence/clearing, submission barriers, bracket conflicts, lock rejection, signup confirmation and password recovery. Private-league invitation/join, result administration, browser accessibility and production smoke journeys remain open. |
 | Quality governance | `DOC-005` remains open. `DOC-004`, `TEST-002`, `DOC-001`, `TEST-003` and `DOC-006` are resolved. |
 | Official data | Final regulations, qualified teams, draw, fixtures/times and lock instant remain future dependencies. |
 
