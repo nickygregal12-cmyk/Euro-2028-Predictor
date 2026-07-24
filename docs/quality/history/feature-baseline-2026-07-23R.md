@@ -2,11 +2,11 @@
 
 This file is the primary control against silent feature loss. It records user-facing capabilities, future-scope boundaries and technical safeguards verified during the 23 July 2026 audit of `main` at commit `b68c4858a179adce433e01db439cabb93c6a0c01`.
 
-The full evidence is preserved in the [dated audit report](audits/2026-07-23-full-audit.md). Current defects remain separately tracked in [`risk-register.md`](risk-register.md).
+The full evidence is preserved in the [dated audit report](../audits/2026-07-23-full-audit.md). Current defects remain separately tracked in [`risk-register.md`](../risk-register.md).
 
 ## Repeat verification — `2026-07-23R`
 
-All 96 entries were re-compared during the [23 July 2026 repeat verification audit](audits/2026-07-23-repeat-verification-audit.md) against a repository snapshot that reproduces every structural counter of the baseline commit (20 migrations, 43 test/support files, 23 production routes plus catch-all plus one dev route, package version `0.0.0`).
+All 96 entries were re-compared during the [23 July 2026 repeat verification audit](../audits/2026-07-23-repeat-verification-audit.md) against a repository snapshot that reproduces every structural counter of the baseline commit (20 migrations, 43 test/support files, 23 production routes plus catch-all plus one dev route, package version `0.0.0`).
 
 | Result | Detail |
 | --- | --- |
