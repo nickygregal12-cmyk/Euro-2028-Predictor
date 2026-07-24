@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Alert, Button, ConfirmModal, Skeleton, Toast } from '../../design-system'
-import { ChevronLeftIcon, MoreIcon, ShareIcon, UsersIcon } from '../../design-system/icons'
+import { ChevronLeftIcon, ShareIcon, UsersIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { isEntryLocked } from '../../domain/tournament/entryLock'
 import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
@@ -16,6 +16,7 @@ import {
 import { InvitePanel } from './InvitePanel'
 import { inviteUrl } from './share'
 import { LeagueMemberRow } from './LeagueMemberRow'
+import { LeagueOptionsDisclosure } from './LeagueOptionsDisclosure'
 import { TransferOwnershipModal } from './TransferOwnershipModal'
 import { ShareSheet } from '../share/ShareSheet'
 import { useShareModel } from '../share/useShareModel'
@@ -42,7 +43,6 @@ export function LeagueDetailPage() {
   const [state, setState] = useState<State>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [menuOpen, setMenuOpen] = useState(false)
   const [confirm, setConfirm] = useState<null | 'leave' | 'delete'>(null)
   const [transferOpen, setTransferOpen] = useState(false)
   const [acting, setActing] = useState(false)
@@ -57,7 +57,6 @@ export function LeagueDetailPage() {
   )
   const canShare = share.model !== null && share.variants.length > 0
 
-  const menuWrap = useRef<HTMLDivElement>(null)
   const youRow = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -84,23 +83,6 @@ export function LeagueDetailPage() {
   useEffect(() => {
     if (state.status === 'ready') youRow.current?.scrollIntoView({ block: 'center' })
   }, [state.status])
-
-  // Close the overflow menu on outside click / Escape.
-  useEffect(() => {
-    if (!menuOpen) return
-    function onDown(e: MouseEvent) {
-      if (menuWrap.current && !menuWrap.current.contains(e.target as Node)) setMenuOpen(false)
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [menuOpen])
 
   // Auto-dismiss the coming-soon toast.
   useEffect(() => {
@@ -199,60 +181,12 @@ export function LeagueDetailPage() {
             </p>
           </div>
 
-          <div className={d.overflowWrap} ref={menuWrap}>
-            <button
-              type="button"
-              className={d.overflowBtn}
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-label="League options"
-              onClick={() => setMenuOpen((o) => !o)}
-            >
-              <MoreIcon size={20} />
-            </button>
-            {menuOpen && (
-              <div className={d.menu} role="menu">
-                {lg.isOwner ? (
-                  <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className={d.menuItem}
-                      onClick={() => {
-                        setMenuOpen(false)
-                        setTransferOpen(true)
-                      }}
-                    >
-                      Transfer ownership
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      className={`${d.menuItem} ${d.menuItemDanger}`}
-                      onClick={() => {
-                        setMenuOpen(false)
-                        setConfirm('delete')
-                      }}
-                    >
-                      Delete league
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`${d.menuItem} ${d.menuItemDanger}`}
-                    onClick={() => {
-                      setMenuOpen(false)
-                      setConfirm('leave')
-                    }}
-                  >
-                    Leave league
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <LeagueOptionsDisclosure
+            isOwner={lg.isOwner}
+            onTransferOwnership={() => setTransferOpen(true)}
+            onDeleteLeague={() => setConfirm('delete')}
+            onLeaveLeague={() => setConfirm('leave')}
+          />
         </div>
 
         <InvitePanel leagueName={lg.name} code={lg.inviteCode} mode="chip" />
