@@ -7,18 +7,19 @@
 | Field | Current value |
 | --- | --- |
 | Latest formal audit | [`2026-07-25-repeat-verification-audit.md`](audits/2026-07-25-repeat-verification-audit.md), designation `2026-07-25R` |
-| Preceding audit | [`2026-07-24-repeat-verification-audit.md`](audits/2026-07-24-repeat-verification-audit.md), designation `2026-07-24R` |
 | Latest recovery/audit reconciliation | [`2026-07-25-production-backup-and-repeat-audit.md`](reconciliations/2026-07-25-production-backup-and-repeat-audit.md) |
+| Route accessibility reconciliation | [`2026-07-25-browser-route-accessibility.md`](reconciliations/2026-07-25-browser-route-accessibility.md) |
+| Private league browser reconciliation | [`2026-07-25-private-league-invite-browser.md`](reconciliations/2026-07-25-private-league-invite-browser.md) |
 | Production release state | [`2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md) |
 | Application/database deploy gate | [`2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current audited `main` | `bd509101dd1d21a9882f6c40bef9676986215919` |
+| Latest formal-audit baseline | `bd509101dd1d21a9882f6c40bef9676986215919` |
 | Production application-code baseline | `a403b0796853453cb4115aea55729aced192a6ca` — introduced the deployed bracket and score-clear RPC dependencies |
 | Current ready production deploy | `6a630e4de510f100077bc120`, source commit `a6d3f1c97a93d48789435457769fd627c305ff27` |
 | Repository application/database contract | 35 |
 | Production declared database contract | 20 |
 | Repository migration count | 35 |
-| Development Supabase | `iouzoutneyjpugbbtdem` — schema and canonical migration history aligned through 35 |
+| Development Supabase | `iouzoutneyjpugbbtdem` — schema and canonical history aligned through 35 |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — migration 1–20 effects, no tracked history, contract-35 RPCs absent |
 | Disposable restore target | `eckuehkcmkhuhmsfxtxu` — owner-confirmed disposable; restore not yet performed |
 
@@ -26,12 +27,12 @@
 
 | Area | Verdict |
 | --- | --- |
-| Repository development | **Safe to continue controlled development.** Current architecture, CI, database parity and browser E2E provide strong repository/disposable-environment evidence. |
+| Repository development | **Safe to continue controlled development.** Architecture, CI, database parity and browser E2E provide strong repository/disposable evidence. |
 | Production application/database pair | **Critical mismatch remains, contained.** The live client requires two RPCs absent from production. |
 | Automatic production promotion | **Correctly blocked.** Repository contract 35 cannot replace production while production declares contract 20. |
-| Development database | **Current through migration 35.** Physical schema, canonical 35-row history, ACLs and application-schema diff are aligned. |
+| Development database | **Current through migration 35.** Physical schema, canonical history, ACLs and application-schema diff are aligned. |
 | Production preflight | **Passed read-only on 25 July.** Structural checks and all three rollout fingerprints match. |
-| Recovery readiness | **Partially evidenced.** A fresh checksum-verified encrypted off-device artifact exists; retrieval and disposable restore proof do not. |
+| Recovery readiness | **Partially evidenced.** A checksum-verified encrypted off-device artifact exists; retrieval and disposable restore proof do not. |
 | Production migration readiness | **Blocked.** Successful disposable restore and recovery acceptance remain mandatory before history repair or migrations 21–35. |
 | Migration 36 | **Draft only.** PR #76 remains unmerged and outside the production contract. |
 | Real scored competition | **Not launch-ready.** Production integrity rollout, admin journeys, monitoring, recovery proof, official data and dress rehearsal remain incomplete. |
@@ -42,20 +43,22 @@ The application is React 19, TypeScript, Vite, React Router and Supabase, hosted
 
 Current workflows provide:
 
-- lockfile install, build/type-check, Oxlint, Vitest and production dependency audit;
+- lockfile install, guarded build/type-check, Oxlint, Vitest and production dependency audit;
 - full disposable 35-migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity;
-- authenticated Playwright journeys against disposable Supabase;
-- signup, email confirmation and password-recovery Playwright journeys;
-- cleanup of disposable database state without backup retention.
+- authenticated Playwright journeys against disposable local Supabase;
+- desktop and phone-width route, prediction, submission, conflict and lock journeys;
+- signup, email confirmation and password-recovery journeys;
+- retained keyboard skip-link, route-focus and live-region evidence;
+- a two-account private league create, invite-preview, join and refreshed-member journey;
+- cleanup of disposable browser data without backup retention.
 
-Recent final implementation heads passed the relevant checks:
+Recent evidence includes:
 
-- PR #74: CI and Browser E2E;
-- PR #71: CI and Browser E2E;
-- PR #41: CI;
-- draft PR #76: CI, Database parity and Browser E2E.
+- PR #78: CI and Browser E2E passed before merge, retaining route-accessibility behaviour;
+- PR #79: CI run 374 and Browser E2E run 107 passed on the private-league invite/join head;
+- draft PR #76: CI, Database parity and Browser E2E pass, but migration 36 remains outside current authority.
 
-These are repository/disposable-environment results. They do not prove production schema compatibility, real SMTP/Turnstile configuration, production browser smoke behavior or recovery.
+These are repository/disposable-environment results. They do not prove production schema compatibility, real SMTP/Turnstile configuration, production browser smoke behaviour, a real screen-reader experience or recovery.
 
 ## Current production release and Netlify state
 
@@ -79,9 +82,7 @@ Current Netlify context matrix:
 | `branch-deploy` | development `iouzoutneyjpugbbtdem` | 35 |
 | `dev` | development `iouzoutneyjpugbbtdem` | 35 |
 
-`validate-netlify-environment.mjs` rejects crossed environments. `validate-deployment-contract.mjs` rejects migration-count drift and incompatible hosted contracts.
-
-PR #76 requires contract 36, so its contract-35 Netlify preview failure is correct. Do not change preview or production contract values to make that draft branch deploy.
+`validate-netlify-environment.mjs` rejects crossed environments. `validate-deployment-contract.mjs` rejects migration-count drift and incompatible hosted contracts. PR #76 correctly fails its contract-35 preview because it requires contract 36; do not change hosted values to make that draft deploy.
 
 ## Production application/database mismatch — `OPS-006`
 
@@ -90,17 +91,11 @@ Application baseline `a403b0796853453cb4115aea55729aced192a6ca` requires:
 1. `replace_predicted_progression(uuid,jsonb,jsonb)` for atomic complete-bracket persistence;
 2. `delete_match_prediction(uuid,uuid,integer)` for version-safe persisted score clearing.
 
-Read-only production verification confirms both are absent. Expected current effects:
-
-- bracket persistence fails rather than falling back to unsafe direct writes;
-- clearing a stored score reaches a save error and reload can restore the old row;
-- old broad production table privileges remain until migrations 21–35.
-
-This is an intentional release freeze, not a Netlify outage. Never change production contract 20 to 35 before the database rollout and post-verification pass.
+Read-only production verification confirms both are absent. Bracket persistence fails closed, stored-score clearing can restore the old row after reload, and old broad table privileges remain until migrations 21–35. Never change production contract 20 to 35 before database rollout and post-verification pass.
 
 ## Production database snapshot and preflight
 
-Read-only evidence on 25 July 2026 found the rollout-sensitive source shape remains:
+Read-only evidence on 25 July 2026 found:
 
 | Object | Count / value |
 | --- | ---: |
@@ -117,11 +112,11 @@ Total Auth users, profiles and unsubmitted entries may change through legitimate
 
 Both committed read-only production verifiers passed:
 
-- migration 1–20 structural proof: all twenty checks true;
-- source preflight: `overall_structural_pass = true`;
-- prediction fingerprint: `320cf25d62767dee307d3602212909af`;
-- tie fingerprint: `a4dcf183f5c48e3ba11ff75c59622598`;
-- progression fingerprint: `0d7bc491daa9b24013204d061a2d38f1`;
+- all twenty migration 1–20 structural checks;
+- `overall_structural_pass = true`;
+- prediction fingerprint `320cf25d62767dee307d3602212909af`;
+- tie fingerprint `a4dcf183f5c48e3ba11ff75c59622598`;
+- progression fingerprint `0d7bc491daa9b24013204d061a2d38f1`;
 - no scope anomaly;
 - valid `8/4/2/1` knockout tree and fourteen winner sources.
 
@@ -131,12 +126,11 @@ Production still has no `supabase_migrations.schema_migrations` table. Migration
 
 Hosted development is aligned through migration 35:
 
-- all 35 schema effects present;
-- exactly 35 canonical migration-history records;
+- all 35 schema effects present and exactly 35 canonical history records;
 - no pending contract-35 migration;
 - private resolver schema denied to browser roles;
 - RPC-only submission and server-derived positions;
-- same-tournament and lock guards;
+- same-tournament, ownership, version and lock guards;
 - authoritative result lifecycle and immutable revisions;
 - serialized scoring;
 - predicted bracket replay and real winner propagation;
@@ -145,27 +139,17 @@ Hosted development is aligned through migration 35:
 - exact function execution allowlists and fixed helper search paths;
 - empty final application-schema diff.
 
-Migration 36 exists only in draft PR #76. It is not part of development or production authority until reviewed and merged through the normal contract process.
+Migration 36 exists only in draft PR #76. It is not development or production authority until reviewed and merged through the normal contract process.
 
 ## Production backup and recovery status — `OPS-003`
 
-A fresh logical bundle was created on 25 July 2026. Operator-observed evidence confirms:
-
-- separate roles, schema and data dumps;
-- `auth.users` and `public.profiles` present;
-- supporting inventory, repository/tool provenance and verifier copies present;
-- owner-only plaintext permissions;
-- all plaintext SHA-256 checksums passed;
-- AES-256 encrypted archive created;
-- encrypted archive decrypted successfully;
-- encrypted archive checksum passed;
-- off-device copy owner-confirmed.
+A fresh logical bundle was created on 25 July 2026. Operator-observed evidence confirms separate roles/schema/data dumps, `auth.users` and `public.profiles`, supporting provenance, owner-only permissions, plaintext checksums, AES-256 encryption, successful decryption, encrypted checksum and an off-device copy.
 
 Still required before recovery qualifies:
 
-1. retrieve the off-device copy through the custody path;
-2. verify its encrypted checksum after retrieval;
-3. decrypt to a restricted temporary directory;
+1. retrieve the off-device copy;
+2. verify its encrypted checksum;
+3. decrypt into a restricted temporary directory;
 4. reverify all plaintext checksums;
 5. restore to `eckuehkcmkhuhmsfxtxu` or another approved disposable target;
 6. verify counts, fingerprints, Auth users/profiles and Storage state;
@@ -173,19 +157,19 @@ Still required before recovery qualifies:
 8. preferably rehearse history repair and migrations 21–35;
 9. retain non-secret recovery evidence and cleanup confirmation.
 
-A verified archive is stronger than prepared tooling but is not a proven recovery until restore succeeds.
+A verified archive is stronger than prepared tooling but is not proven recovery until restore succeeds.
 
 ## Feature and safeguard status
 
-### Current implemented scope
+### Implemented scope
 
-- authentication, signup/login, password recovery, moderation and sign-out;
+- authentication, signup/login, password recovery, moderation and confirmed sign-out;
 - first-use welcome gate;
 - group score predictions, Jokers, predicted tables, manual ties and best-third ranking;
 - Golden Boot and derived group-goals prediction;
 - Review/manual submission UI;
-- overall standings, private leagues, H2H, Match Centre and own profile;
-- route-level code splitting, not-found recovery page and security headers;
+- overall standings, private leagues, invite creation/joining, H2H, Match Centre and own profile;
+- route-level code splitting, not-found recovery and security headers;
 - substantial disposable database and browser tests.
 
 ### Deployed client / production backend absent
@@ -195,10 +179,10 @@ A verified archive is stronger than prepared tooling but is not a proven recover
 
 ### Partial or planned
 
+- trustworthy signed-out invite context and removal of the pending-join render mutation (`UX-001`);
 - other-player full profile and richer H2H;
 - expanded Match Centre phases;
-- private invite/join E2E;
-- browser result administration and admin authorization model;
+- browser result administration and an admin authorization model;
 - automatic valid-entry submission and reminder emails;
 - actual R16 population and unresolved actual-tie workflow;
 - post-lock prediction trends;
@@ -206,29 +190,19 @@ A verified archive is stronger than prepared tooling but is not a proven recover
 
 Bonus competitions remain separate planned products. No bonus game is implemented merely because it appears in design or roadmap documents.
 
-## Accessibility and safe-error position
+## Accessibility, errors and browser confidence
 
-Current `main` now includes:
+Current implementation includes route-specific titles, polite announcements, post-navigation main focus, skip navigation, semantic bottom links, disclosure-based league options, sign-out confirmation and centralized safe error mapping.
 
-- route-specific titles;
-- polite route-change announcements;
-- post-navigation focus to main content;
-- a skip-to-main control;
-- semantic bottom-navigation links;
-- disclosure-based league options with Escape focus restoration;
-- sign-out confirmation;
-- centralized safe user-facing error mapping.
+Status:
 
-Status movement:
-
-- `A11Y-002`: resolved in repository;
-- `SEC-002`: resolved in repository;
-- `HYGIENE-001`: resolved by removal of the unused Vite asset;
-- `A11Y-001`: partially resolved — implementation exists, but retained keyboard/screen-reader browser evidence remains open.
+- `A11Y-002`, `SEC-002` and `HYGIENE-001` are resolved;
+- `A11Y-001` is partially resolved: desktop/mobile keyboard and DOM announcement proof exists, but manual screen-reader review remains;
+- `TEST-001` is substantially resolved for disposable browser coverage, including private league create/invite/join; result administration, manual assistive-technology review and compatible-production smoke remain open.
 
 ## Current finding positions
 
-### Critical / High production-dependent findings
+### Critical / High production-dependent
 
 - `OPS-006`: open; production pair incompatible and contained.
 - `DATA-001`, `SECURITY-001`, `SECURITY-002`, `DATA-002`: repository/development implemented, production open.
@@ -236,16 +210,16 @@ Status movement:
 - `DATA-003`: open/in progress through draft PR #76; not on `main`.
 - `FUNC-001`, `REL-001`, `DATA-005`, `REL-003`, `REL-004`, `REL-007`: production closure pending.
 - `DATA-004`, `DATA-006`, `OPS-002`: open.
-- `TEST-001`: partially resolved with substantial disposable browser coverage.
-- `OPS-003`: partially resolved; encrypted artifact exists, restore proof absent.
+- `TEST-001`: partial; remaining gaps are result administration, manual assistive-technology review and production smoke.
+- `OPS-003`: partial; encrypted artifact exists, restore proof absent.
 
 ### Other open controls
 
 - `OPS-008`: legacy public World Cup-sourced environment awaits separate owner action.
 - `AUTH-001`: non-production Turnstile/CAPTCHA pairing unverified.
-- `TYPE-001`: TypeScript strictness/generated DB types open.
-- `SEC-001`, `DATA-007`: abuse/rate-limit work open.
-- `UX-001`, `UX-002`, `UX-003`: invite, data-state and other-profile work open.
+- `TYPE-001`: strict TypeScript/generated DB types open.
+- `SEC-001`, `DATA-007`: abuse and atomic rate-limit work open.
+- `UX-001`, `UX-002`, `UX-003`: invite context, data-state and other-profile work open.
 - `PERF-001`, `PERF-002`: profiling/measurement open.
 - `SEO-001`, `SEO-002`: soft 404 and metadata scope open.
 - `REPO-001`, `DOC-002`, `DOC-003`, `CODE-001`, `HYGIENE-002`: maintenance/policy work open.
@@ -263,13 +237,13 @@ Status movement:
 - Golden Boot 25;
 - group-goals bands 40 / 30 / 20, tiered.
 
-No audit, backup, security or documentation change altered scoring.
+No audit, backup, accessibility or browser-test change altered scoring.
 
 ## Immediate order of work
 
 1. Regain access to and retrieve the encrypted backup from off-device custody.
 2. Verify encrypted and plaintext checksums after retrieval.
-3. Restore to `eckuehkcmkhuhmsfxtxu` and verify counts, fingerprints, Auth/profile state, Storage and signup trigger.
+3. Restore to `eckuehkcmkhuhmsfxtxu` and verify data, Auth/profile state, Storage and signup trigger.
 4. Preferably rehearse the exact 1–20 history repair and migrations 21–35 on the restored target.
 5. Retain reviewed non-secret recovery evidence and cleanup confirmation.
 6. Only then approve a production migration window and named operator/recovery owner.
@@ -277,8 +251,8 @@ No audit, backup, security or documentation change altered scoring.
 8. Repair only migrations 1–20 metadata and require a 21–35-only dry run.
 9. Apply migrations 21–35 only after explicit approval.
 10. Run post-verification, advisors and authenticated production smoke journeys.
-11. Change production contract 20 to 35 only after all checks pass and verify the final release/schema pair.
-12. Continue `DATA-003`, Turnstile, legacy-environment, branch-protection and admin work as separate controlled workstreams.
+11. Change production contract 20 to 35 only after every check passes.
+12. Continue `DATA-003`, Turnstile, legacy-environment, branch-protection, admin and signed-out invite work as separate controlled workstreams.
 
 ## Documentation authority
 
