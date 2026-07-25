@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useState } from 'react'
 import { Modal, Button, Alert, initialsOf } from '../../design-system'
 import { transferOwnership, type LeagueMember } from '../../services/supabase/leagues'
@@ -45,7 +46,7 @@ export function TransferOwnershipModal({
       onTransferred()
     } catch (e) {
       setBusy(false)
-      setError(e instanceof Error ? e.message : 'Could not transfer ownership.')
+      setError(userFacingError(e, 'Could not transfer ownership. Please try again.'))
     }
   }
 

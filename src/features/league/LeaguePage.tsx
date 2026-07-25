@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
@@ -60,7 +61,7 @@ export function LeaguePage() {
         if (active)
           setState({
             status: 'error',
-            message: e instanceof Error ? e.message : 'Failed to load standings.',
+            message: userFacingError(e, 'Could not load standings. Please try again.'),
           })
       })
 

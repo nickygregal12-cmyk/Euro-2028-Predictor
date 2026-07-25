@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useState } from 'react'
 import type { MatchTeam } from '../../design-system'
 import { useAuth } from '../auth/AuthProvider'
@@ -263,7 +264,7 @@ export function useHomeData(): HomeState {
         if (active)
           setState({
             status: 'error',
-            message: e instanceof Error ? e.message : 'Failed to load your dashboard.',
+            message: userFacingError(e, 'Could not load your dashboard. Please try again.'),
           })
       })
 

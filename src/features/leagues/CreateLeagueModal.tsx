@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useState } from 'react'
 import { Modal, TextInput, Button, Alert } from '../../design-system'
 import { createLeague, type CreatedLeague } from '../../services/supabase/leagues'
@@ -54,7 +55,7 @@ export function CreateLeagueModal({ open, onClose, tournamentId, onView }: Creat
       const league = await createLeague(tournamentId, trimmed)
       setCreated(league)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not create the league. Try again.')
+      setError(userFacingError(e, 'Could not create the league. Try again.'))
     } finally {
       setSubmitting(false)
     }

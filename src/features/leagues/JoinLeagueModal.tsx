@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useState } from 'react'
 import { Modal, TextInput, Button, Alert } from '../../design-system'
 import { fetchLeaguePreview, joinLeague, type LeaguePreview } from '../../services/supabase/leagues'
@@ -50,7 +51,7 @@ export function JoinLeagueModal({ open, onClose, onJoined }: JoinLeagueModalProp
         setPreview(p)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not look up that code.')
+      setError(userFacingError(e, 'Could not look up that code. Please try again.'))
     } finally {
       setBusy(false)
     }
@@ -67,7 +68,7 @@ export function JoinLeagueModal({ open, onClose, onJoined }: JoinLeagueModalProp
       onJoined(id)
     } catch (e) {
       setBusy(false)
-      setError(e instanceof Error ? e.message : 'Could not join the league.')
+      setError(userFacingError(e, 'Could not join the league. Please try again.'))
     }
   }
 

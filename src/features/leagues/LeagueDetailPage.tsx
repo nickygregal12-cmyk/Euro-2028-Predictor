@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Alert, Button, ConfirmModal, Skeleton, Toast } from '../../design-system'
@@ -71,7 +72,7 @@ export function LeagueDetailPage() {
         if (active)
           setState({
             status: 'error',
-            message: e instanceof Error ? e.message : 'Failed to load the league.',
+            message: userFacingError(e, 'Could not load the league. Please try again.'),
           })
       })
     return () => {
@@ -139,7 +140,7 @@ export function LeagueDetailPage() {
       navigate('/league')
     } catch (e) {
       setActing(false)
-      setActionError(e instanceof Error ? e.message : 'Could not leave the league.')
+      setActionError(userFacingError(e, 'Could not leave the league. Please try again.'))
       setConfirm(null)
     }
   }
@@ -153,7 +154,7 @@ export function LeagueDetailPage() {
       navigate('/league')
     } catch (e) {
       setActing(false)
-      setActionError(e instanceof Error ? e.message : 'Could not delete the league.')
+      setActionError(userFacingError(e, 'Could not delete the league. Please try again.'))
       setConfirm(null)
     }
   }

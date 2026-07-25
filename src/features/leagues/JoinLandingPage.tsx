@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
@@ -42,7 +43,7 @@ export function JoinLandingPage() {
         if (active)
           setState({
             status: 'error',
-            message: e instanceof Error ? e.message : 'Could not load the invite.',
+            message: userFacingError(e, 'Could not load the invite. Please try again.'),
           })
       })
     return () => {
@@ -68,7 +69,7 @@ export function JoinLandingPage() {
       setJoining(false)
       setState({
         status: 'error',
-        message: e instanceof Error ? e.message : 'Could not join the league.',
+        message: userFacingError(e, 'Could not join the league. Please try again.'),
       })
     }
   }
