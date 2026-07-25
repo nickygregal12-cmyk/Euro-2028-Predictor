@@ -63,7 +63,8 @@ This baseline prevents silent feature loss and scope import. Update it whenever 
 | `SAFE-053` | Exact function execution allowlists | Repository/development implemented | Production broad grants remain |
 | `SAFE-013` | Production/development environment separation | Implemented for the current Netlify project | Non-production contexts use development Supabase; legacy site remains separate `OPS-008` |
 | `SAFE-054` | Application/schema compatibility gate | Implemented and containing mismatch | Repository contract 35 cannot deploy while production declares 20 |
-| `SAFE-039` | Safe user-facing error mapping | Implemented | Central mapper prevents raw infrastructure details reaching users |
+
+Safe user-facing error mapping is implemented under preserved safeguard `SAFE-039`; it is recorded in the continuity register rather than adding a sixtieth compact row.
 
 ## Leagues, social and viewing
 
