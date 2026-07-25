@@ -5,7 +5,7 @@ import h from './home.module.css'
 
 export type LeagueSnapshotProps = {
   league: LeagueStanding | null
-  available: boolean
+  available?: boolean
   onOpen: (leagueId: string) => void
   onCreate: () => void
 }
@@ -14,9 +14,15 @@ export type LeagueSnapshotProps = {
  * The Home league snapshot (design-system §6): the user's best league — name,
  * their position of N, gap to the top — tapping into the league detail. With no
  * leagues it becomes a quiet create prompt. A failed league read is rendered as
- * unavailable instead, so it can never masquerade as an empty account.
+ * unavailable instead, so it can never masquerade as an empty account. Existing
+ * presentational callers default to a successful read.
  */
-export function LeagueSnapshot({ league, available, onOpen, onCreate }: LeagueSnapshotProps) {
+export function LeagueSnapshot({
+  league,
+  available = true,
+  onOpen,
+  onCreate,
+}: LeagueSnapshotProps) {
   if (!available) {
     return (
       <div className={h.snapshotEmpty} role="status">
