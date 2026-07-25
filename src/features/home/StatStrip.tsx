@@ -8,7 +8,7 @@ export type StatStripProps = {
   entryCount: number | null
   bestLeagueRank: number | null
   hasLeague: boolean | null
-  leagueDataAvailable: boolean
+  leagueDataAvailable?: boolean
   onPoints: () => void
   onToday: () => void
   onRank: () => void
@@ -22,7 +22,8 @@ export type StatStripProps = {
  *
  * Null numeric values mean the source request was unavailable, not that the
  * player has zero points. League availability is explicit because `null` best
- * rank can also be a legitimate pre-scoring state.
+ * rank can also be a legitimate pre-scoring state. Existing presentational
+ * callers default to a successful league read.
  *
  * NOTE: rank "movement arrow" from the spec is intentionally absent — it needs
  * per-matchday rank snapshots (rank_history), a Phase 2/3 boundary roadmap item
@@ -35,7 +36,7 @@ export function StatStrip({
   entryCount,
   bestLeagueRank,
   hasLeague,
-  leagueDataAvailable,
+  leagueDataAvailable = true,
   onPoints,
   onToday,
   onRank,
