@@ -13,8 +13,21 @@ describe('ProfileScreen — full', () => {
     render(
       <ProfileScreen
         kind="full"
-        header={{ displayName: 'Alex Turner', isOwn: true, champion: SCO, championEliminated: false, leaguesCount: 3 }}
-        stats={{ totalPoints: 148, rank: 4, exactScores: 9, correctResults: 14, scoredMatches: 30, accuracyPercent: 77 }}
+        header={{
+          displayName: 'Alex Turner',
+          isOwn: true,
+          champion: SCO,
+          championEliminated: false,
+          leaguesCount: 3,
+        }}
+        stats={{
+          totalPoints: 148,
+          rank: 4,
+          exactScores: 9,
+          correctResults: 14,
+          scoredMatches: 30,
+          accuracyPercent: 77,
+        }}
         events={EVENTS}
         locked
       />,
@@ -37,8 +50,21 @@ describe('ProfileScreen — full', () => {
     render(
       <ProfileScreen
         kind="full"
-        header={{ displayName: 'Ng', isOwn: true, champion: null, championEliminated: false, leaguesCount: 0 }}
-        stats={{ totalPoints: 0, rank: null, exactScores: 0, correctResults: 0, scoredMatches: 0, accuracyPercent: null }}
+        header={{
+          displayName: 'Ng',
+          isOwn: true,
+          champion: null,
+          championEliminated: false,
+          leaguesCount: 0,
+        }}
+        stats={{
+          totalPoints: 0,
+          rank: null,
+          exactScores: 0,
+          correctResults: 0,
+          scoredMatches: 0,
+          accuracyPercent: null,
+        }}
         events={[]}
         locked={false}
       />,
@@ -52,12 +78,59 @@ describe('ProfileScreen — full', () => {
     expect(screen.queryByRole('button', { name: /view full entry/i })).not.toBeInTheDocument()
   })
 
+  it('marks unavailable remote sections without hiding locally derived accuracy', () => {
+    render(
+      <ProfileScreen
+        kind="full"
+        header={{
+          displayName: 'Alex Turner',
+          isOwn: true,
+          champion: SCO,
+          championEliminated: false,
+          leaguesCount: null,
+        }}
+        stats={{
+          totalPoints: null,
+          rank: null,
+          exactScores: 3,
+          correctResults: 6,
+          scoredMatches: 12,
+          accuracyPercent: 50,
+        }}
+        events={[]}
+        availability={{ leaderboard: false, leagues: false, events: false }}
+        locked
+      />,
+    )
+
+    expect(screen.getByText('Points unavailable')).toBeVisible()
+    expect(screen.getByText('Rank unavailable')).toBeVisible()
+    expect(screen.getByText('Leagues unavailable')).toBeVisible()
+    expect(screen.getByText('Points breakdown unavailable')).toBeVisible()
+    expect(screen.getByText('3')).toBeVisible()
+    expect(screen.getByText('50%')).toBeVisible()
+    expect(screen.queryByText('Group matches')).not.toBeInTheDocument()
+  })
+
   it("another player's profile shows H2H, not Edit", () => {
     render(
       <ProfileScreen
         kind="full"
-        header={{ displayName: 'José Peña', isOwn: false, champion: SCO, championEliminated: true, leaguesCount: 1 }}
-        stats={{ totalPoints: 96, rank: 96, exactScores: 3, correctResults: 8, scoredMatches: 24, accuracyPercent: 46 }}
+        header={{
+          displayName: 'José Peña',
+          isOwn: false,
+          champion: SCO,
+          championEliminated: true,
+          leaguesCount: 1,
+        }}
+        stats={{
+          totalPoints: 96,
+          rank: 96,
+          exactScores: 3,
+          correctResults: 8,
+          scoredMatches: 24,
+          accuracyPercent: 46,
+        }}
         events={EVENTS}
         locked
       />,
@@ -70,7 +143,13 @@ describe('ProfileScreen — full', () => {
 describe('ProfileScreen — reveal-gated hidden state', () => {
   it('shows only name, leagues, entry status + the lock explainer (no stats/breakdown)', () => {
     render(
-      <ProfileScreen kind="hidden" displayName="José Peña" leaguesCount={2} hasEntry lockDateLabel="9 June 2028" />,
+      <ProfileScreen
+        kind="hidden"
+        displayName="José Peña"
+        leaguesCount={2}
+        hasEntry
+        lockDateLabel="9 June 2028"
+      />,
     )
     expect(screen.getByText('José Peña')).toBeInTheDocument()
     expect(screen.getByText(/2 leagues · Entry in/)).toBeInTheDocument()
