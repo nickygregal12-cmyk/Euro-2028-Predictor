@@ -1,0 +1,44 @@
+name: SEC-002 inventory
+
+on:
+  push:
+    branches:
+      - agent/safe-user-facing-errors
+
+permissions:
+  contents: write
+
+jobs:
+  inventory:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/safe-user-facing-errors
+      - name: Inventory user-facing error surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '# SEC-002 raw error inventory'
+            echo
+            echo '## Direct message/property use'
+            echo '```text'
+            rg -n --glob '!node_modules/**' --glob '!dist/**' --glob '!docs/**' '(error|err|cause)\??\.message|instanceof Error|String\((error|err|cause)\)|set[A-Za-z]*Error\(|message:\s*(error|err|cause)' src tests e2e || true
+            echo '```'
+            echo
+            echo '## User-visible error/status rendering candidates'
+            echo '```text'
+            rg -n --glob '!node_modules/**' --glob '!dist/**' --glob '!docs/**' 'role=["'"']alert|status === ["'"']error|errorMessage|errorText|saveError|authError|submitError|setMessage\(' src tests e2e || true
+            echo '```'
+          } > docs/sec002-inventory.tmp.md
+      - name: Commit inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs/sec002-inventory.tmp.md
+          git commit -m 'chore: record SEC-002 error inventory'
+          git push origin HEAD:agent/safe-user-facing-errors
