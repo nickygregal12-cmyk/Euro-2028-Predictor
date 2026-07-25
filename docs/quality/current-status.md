@@ -11,6 +11,10 @@
 | Route accessibility reconciliation | [`2026-07-25-browser-route-accessibility.md`](reconciliations/2026-07-25-browser-route-accessibility.md) |
 | Private league browser reconciliation | [`2026-07-25-private-league-invite-browser.md`](reconciliations/2026-07-25-private-league-invite-browser.md) |
 | Pending invite boundary | [`2026-07-25-pending-invite-render-boundary.md`](reconciliations/2026-07-25-pending-invite-render-boundary.md) |
+| Home availability | [`2026-07-25-home-data-availability.md`](reconciliations/2026-07-25-home-data-availability.md) |
+| League hub availability | [`2026-07-25-league-hub-data-availability.md`](reconciliations/2026-07-25-league-hub-data-availability.md) |
+| Profile availability | [`2026-07-25-profile-data-availability.md`](reconciliations/2026-07-25-profile-data-availability.md) |
+| Match Centre league-scope availability | [`2026-07-25-match-centre-league-scope-availability.md`](reconciliations/2026-07-25-match-centre-league-scope-availability.md) |
 | Production release state | [`2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md) |
 | Application/database deploy gate | [`2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
@@ -59,6 +63,10 @@ Recent evidence includes:
 - PR #78: CI and Browser E2E passed before merge, retaining route-accessibility behaviour;
 - PR #79: final CI and Browser E2E passed before merge, retaining the private-league invite/join lifecycle;
 - PR #80 implementation head `e0010def1d794eefa26b926f23349beaad2cf7e3`: CI run 384 and Browser E2E run 116 passed before documentation reconciliation;
+- PR #81 final head `6046f9357521b0ebc1fda14fa2b0942d64ca73e7`: CI run 403 and Browser E2E run 134 passed before merge, preserving Home source availability;
+- PR #82 final head `d6f5e3062dfb1e7d28bfdaee1bf4d5ad29ffc38b`: CI run 406 and Browser E2E run 136 passed before merge, preserving League hub availability;
+- PR #83 final head `ea184afce6c9df797cdb1f3004358b41f449f1df`: CI run 410 and Browser E2E run 139 passed before merge, preserving Profile availability;
+- PR #85 final head `9b04c08c835913f5d1d8a1481c4096382671eb78`: CI run 415 and Browser E2E run 143 passed before merge, preserving Match Centre league-scope availability;
 - draft PR #76: CI, Database parity and Browser E2E pass, but migration 36 remains outside current authority.
 
 These are repository/disposable-environment results. They do not prove production schema compatibility, real SMTP/Turnstile configuration, production browser smoke behaviour, a real screen-reader experience or recovery.
@@ -202,6 +210,7 @@ Status:
 - `A11Y-002`, `SEC-002` and `HYGIENE-001` are resolved;
 - `A11Y-001` is partially resolved: desktop/mobile keyboard and DOM announcement proof exists, but manual screen-reader review remains;
 - `UX-001` is partially improved: render-time invite mutation is removed and confirmation/Welcome continuation is browser-proven; anonymous pre-auth league context remains open;
+- `UX-002` is partially resolved: Home, League hub, own Profile and Match Centre league-scope discovery preserve unavailable data instead of presenting false zero or empty states; remaining consumers still require review;
 - `TEST-001` is substantially resolved for disposable browser coverage, including private league create/invite/join and signed-out confirmation continuation; result administration, manual assistive-technology review and compatible-production smoke remain open.
 
 ## Current finding positions
@@ -224,7 +233,8 @@ Status:
 - `TYPE-001`: strict TypeScript/generated DB types open.
 - `SEC-001`, `DATA-007`: abuse and atomic rate-limit work open.
 - `UX-001`: anonymous pre-auth league context remains open after the render-boundary repair.
-- `UX-002`, `UX-003`: data-state and other-profile work open.
+- `UX-002`: partially resolved across four primary surfaces; remaining remote-read consumers require audit.
+- `UX-003`: other-player profile work remains open.
 - `PERF-001`, `PERF-002`: profiling/measurement open.
 - `SEO-001`, `SEO-002`: soft 404 and metadata scope open.
 - `REPO-001`, `DOC-002`, `DOC-003`, `CODE-001`, `HYGIENE-002`: maintenance/policy work open.
@@ -257,7 +267,7 @@ No audit, backup, accessibility, invite or browser-test change altered scoring.
 9. Apply migrations 21–35 only after explicit approval.
 10. Run post-verification, advisors and authenticated production smoke journeys.
 11. Change production contract 20 to 35 only after every check passes.
-12. Continue `DATA-003`, Turnstile, legacy-environment, branch-protection, admin and anonymous invite-context work as separate controlled workstreams.
+12. Continue the remaining `UX-002` consumer audit, `DATA-003`, Turnstile, legacy-environment, branch-protection, admin and anonymous invite-context work as separate controlled workstreams.
 
 ## Documentation authority
 
