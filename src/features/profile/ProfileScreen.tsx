@@ -1,4 +1,11 @@
-import { initialsOf, StatCard, TeamFlag, Button, type MatchTeam } from '../../design-system'
+import {
+  Alert,
+  initialsOf,
+  StatCard,
+  TeamFlag,
+  Button,
+  type MatchTeam,
+} from '../../design-system'
 import { ChevronRightIcon, LockIcon, UsersIcon } from '../../design-system/icons'
 import { PointsBreakdown } from '../scoring/PointsBreakdown'
 import { ordinal } from '../league/ordinal'
@@ -14,10 +21,21 @@ export type ProfileHeaderData = {
   champion: MatchTeam | null
   // Tombstone treatment: dimmed flag + struck-through name once knocked out.
   championEliminated: boolean
-  leaguesCount: number
+  // Null means the league source is unavailable, not that the player has none.
+  leaguesCount: number | null
 }
 
-export type ProfileFullStats = ProfileStats & { totalPoints: number; rank: number | null }
+export type ProfileFullStats = ProfileStats & {
+  // Null means the leaderboard source is unavailable, not zero points.
+  totalPoints: number | null
+  rank: number | null
+}
+
+export type ProfileDataAvailability = {
+  leaderboard: boolean
+  leagues: boolean
+  events: boolean
+}
 
 export type ProfileScreenProps =
   | {
@@ -25,6 +43,7 @@ export type ProfileScreenProps =
       header: ProfileHeaderData
       stats: ProfileFullStats
       events: ScoreEvent[]
+      availability?: Partial<ProfileDataAvailability>
       // The view-full-entry row is post-lock only (reveal rule); this flips it on.
       locked: boolean
       onViewEntry?: () => void
@@ -41,8 +60,9 @@ export type ProfileScreenProps =
       lockDateLabel: string
     }
 
-function leaguesLine(n: number): string {
-  return `${n} league${n === 1 ? '' : 's'}`
+function leaguesLine(count: number | null): string {
+  if (count === null) return 'Leagues unavailable'
+  return `${count} league${count === 1 ? '' : 's'}`
 }
 
 /**
@@ -79,6 +99,12 @@ export function ProfileScreen(props: ProfileScreenProps) {
   }
 
   const { header, stats, events, locked, onViewEntry, onH2H, onEdit } = props
+  const availability: ProfileDataAvailability = {
+    leaderboard: props.availability?.leaderboard ?? true,
+    leagues: props.availability?.leagues ?? true,
+    events: props.availability?.events ?? true,
+  }
+
   return (
     <>
       {/* Identity header */}
@@ -104,7 +130,8 @@ export function ProfileScreen(props: ProfileScreenProps) {
             <span className={p.headerMeta}>No champion picked yet</span>
           )}
           <span className={p.headerMeta}>
-            <UsersIcon size={13} /> {leaguesLine(header.leaguesCount)}
+            <UsersIcon size={13} />{' '}
+            {availability.leagues ? leaguesLine(header.leaguesCount) : 'Leagues unavailable'}
           </span>
         </span>
         <span className={p.headerAction}>
@@ -122,8 +149,17 @@ export function ProfileScreen(props: ProfileScreenProps) {
 
       {/* Stat grid — four up */}
       <div className={p.statGrid}>
-        <StatCard label="Points" value={stats.totalPoints} />
-        <StatCard label="Overall rank" value={stats.rank === null ? '–' : ordinal(stats.rank)} accent />
+        <StatCard
+          label={availability.leaderboard ? 'Points' : 'Points unavailable'}
+          value={availability.leaderboard ? (stats.totalPoints ?? '–') : '–'}
+        />
+        <StatCard
+          label={availability.leaderboard ? 'Overall rank' : 'Rank unavailable'}
+          value={
+            availability.leaderboard && stats.rank !== null ? ordinal(stats.rank) : '–'
+          }
+          accent
+        />
         <StatCard label="Exact scores" value={stats.exactScores} />
         <StatCard
           label="Accuracy"
@@ -134,7 +170,14 @@ export function ProfileScreen(props: ProfileScreenProps) {
       {/* Points breakdown card (reuses the existing component) */}
       <div className={p.breakdownCard}>
         <span className={s.eyebrow}>Points breakdown</span>
-        <PointsBreakdown events={events} defaultExpanded />
+        {availability.events ? (
+          <PointsBreakdown events={events} defaultExpanded />
+        ) : (
+          <Alert variant="warning" title="Points breakdown unavailable">
+            Your points history is still saved. This section will return when the connection
+            recovers.
+          </Alert>
+        )}
       </div>
 
       {/* View full entry — post-lock only (reveal rule) */}
