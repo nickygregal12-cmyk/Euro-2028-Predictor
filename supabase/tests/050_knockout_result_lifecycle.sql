@@ -695,6 +695,13 @@ select is(
   'extra time preserves both score checkpoints and derives the winner'
 );
 
+-- Return the fixture to a pending state so this assertion specifically exercises
+-- the negative-score constraint rather than the confirmed-result lifecycle guard.
+select public.clear_match_result(
+  '10000000-0000-0000-0000-000000000403',
+  'prepare negative-score validation'
+);
+
 select is(
   pg_temp.capture_sqlstate($sql$
     select public.confirm_match_result(
