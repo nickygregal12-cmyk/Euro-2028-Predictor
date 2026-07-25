@@ -8,10 +8,11 @@
 | --- | --- |
 | Latest production reconciliation | [`2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md) |
 | Latest recovery acceptance | [`2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md) |
+| Operational-assurance implementation | PR #92 / issue #91 — repository foundation under review; not yet a production monitoring claim |
 | Latest formal pre-rollout audit | [`2026-07-25-repeat-verification-audit.md`](audits/2026-07-25-repeat-verification-audit.md), designation `2026-07-25R` |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Approved/deployed source | `902a37aa6c50c967f8080d751147a5733b251fe3` |
-| Current production deploy | `6a652c3d3416d26d595ae2ef` |
+| Approved/deployed executable source | `902a37aa6c50c967f8080d751147a5733b251fe3` |
+| Current verified production deploy | `6a652c3d3416d26d595ae2ef` |
 | Repository application/database contract | 35 |
 | Production Netlify declared contract | 35 |
 | Repository migration count | 35 |
@@ -27,11 +28,12 @@
 | Repository development | **Safe to continue controlled development.** Architecture, CI, database parity and browser E2E provide strong repository/disposable evidence. |
 | Production application/database pair | **Compatible and verified at contract 35.** The former two-RPC mismatch is resolved. |
 | Production database rollout | **Complete.** History records exactly migrations 1–35, the final dry run is zero-pending and 63/63 post-rollout checks passed. |
-| Production application promotion | **Complete.** Netlify serves the approved commit and production contract 35. |
-| Environment isolation | **Verified.** Production uses production Supabase; deploy-preview, branch-deploy and dev use development Supabase. |
+| Production application promotion | **Complete for the verified baseline.** Netlify serves the approved executable commit and production contract 35. |
+| Environment isolation | **Verified for the current production baseline.** Production uses production Supabase; deploy-preview, branch-deploy and dev use development Supabase. |
 | Recovery readiness | **Technically proven and accepted.** The encrypted artifact, corrected clean restore and forward rehearsal passed. |
+| Operational assurance | **In progress.** PR #92 adds safe release identity, redacting capture, anonymous smoke automation and rollback procedures; external reporting, alerts, hosted verification and rollback rehearsal remain open. |
 | Migration 36 | **Draft only.** PR #76 remains outside current authority. |
-| Tournament launch readiness | **Not ready.** Monitoring, admin journeys, official data, Auth/CAPTCHA decisions, accessibility review and full dress rehearsal remain incomplete. |
+| Tournament launch readiness | **Not ready.** Monitoring delivery, admin journeys, official data, Auth/CAPTCHA decisions, accessibility review and full dress rehearsal remain incomplete. |
 
 ## Completed production contract-35 rollout
 
@@ -82,10 +84,10 @@ Total users, profiles and unsubmitted entries may legitimately change after this
 
 ## Current Netlify and live-site state
 
-Production Netlify now declares contract 35 and serves:
+The verified production baseline declares contract 35 and serves:
 
 - deploy `6a652c3d3416d26d595ae2ef`;
-- source `902a37aa6c50c967f8080d751147a5733b251fe3`;
+- executable source `902a37aa6c50c967f8080d751147a5733b251fe3`;
 - production Supabase `vkfnsqdyhvtwyqkisxhk`;
 - no deploy build error;
 - no secret-scan match;
@@ -100,7 +102,7 @@ Current context matrix:
 | `branch-deploy` | development `iouzoutneyjpugbbtdem` | 35 |
 | `dev` | development `iouzoutneyjpugbbtdem` | 35 |
 
-Live read-only verification passed:
+Live read-only verification of the accepted baseline passed:
 
 - production and immutable deploy roots returned HTTP 200 and identical HTML;
 - title, description, canonical URL and React root were correct;
@@ -115,6 +117,35 @@ Live read-only verification passed:
 
 No anonymous form was submitted and the live verification performed no database write.
 
+## Operational-assurance foundation — issue #91 / PR #92
+
+The repository branch under review adds:
+
+- generated non-secret release identity at `/release.json`;
+- application, environment, commit, deploy, contract and Supabase-reference metadata;
+- one provider-neutral client-error service boundary;
+- React render, startup, global error and unhandled-rejection capture;
+- controlled route categories rather than full URLs;
+- email, credential, URL-query, local-path and raw database-error redaction;
+- reporter failure isolation;
+- a generic application recovery screen;
+- a fail-closed anonymous HTTP production smoke command;
+- a separately configured anonymous Playwright production smoke;
+- an executable application rollback decision tree.
+
+This does **not** yet mean production monitoring is enabled. No third-party provider or delivery endpoint is configured. Captured production events remain undelivered until provider, privacy, retention, CSP/network and alert-owner approval is complete.
+
+Required closure for this workstream:
+
+1. CI and Browser E2E pass on the final PR head;
+2. deploy-preview `/release.json` identifies deploy-preview, contract 35 and development Supabase;
+3. both smoke commands pass against the approved preview with explicit non-production flags;
+4. provider, retention and alert destination are approved;
+5. provider delivery is verified in non-production before production enablement;
+6. the merged application is deployed and both anonymous production smoke commands pass;
+7. a compatible static-application rollback is rehearsed without changing production Supabase;
+8. a dated hosted reconciliation records the final evidence.
+
 ## Recovery status — `OPS-003`
 
 The accepted recovery artifact and corrected restore procedure are proven:
@@ -126,11 +157,11 @@ The accepted recovery artifact and corrected restore procedure are proven:
 - history repair and migrations 21–35 passed;
 - all 63 post-rollout checks, advisors and rollback-only smoke tests passed without manual ACL repair.
 
-Recovery proof and the production execution portion of `OPS-003` are complete. The broader finding remains open for monitoring, alert ownership, periodic recovery rehearsal and final launch rollback readiness.
+Recovery proof and the production execution portion of `OPS-003` are complete. The broader finding remains open for external monitoring delivery, alert ownership, periodic recovery rehearsal and final application-rollback readiness.
 
 ## Repository and test position
 
-Current workflows provide:
+Current `main` workflows provide:
 
 - lockfile install, guarded build/type-check, Oxlint, Vitest and production dependency audit;
 - full disposable 35-migration rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity;
@@ -140,13 +171,15 @@ Current workflows provide:
 - keyboard skip-link, route-focus and live-region evidence;
 - private league create/invite/join evidence;
 - signed-out invite persistence through confirmation and Welcome;
-- anonymous production application/environment smoke evidence.
+- one-off anonymous production application/environment smoke evidence.
+
+PR #92 adds durable anonymous production smoke tooling and focused observability-redaction tests, subject to final CI and hosted verification.
 
 `TEST-001` remains partial. Missing evidence includes browser result administration, manual screen-reader review and carefully controlled authenticated production browser mutation journeys.
 
 ## Feature and safeguard status
 
-Production contract 35 now supports:
+Production contract 35 supports:
 
 - canonical predicted group ordering and exact manual tie decisions;
 - RPC-only submission and server-derived group positions;
@@ -161,6 +194,7 @@ Production contract 35 now supports:
 
 Still partial or planned:
 
+- production error-delivery provider and alerting;
 - trustworthy privacy-reviewed signed-out invite context before signup (`UX-001`);
 - remaining unavailable/error/empty data consumers (`UX-002`);
 - other-player full profile and richer H2H;
@@ -194,7 +228,7 @@ Bonus competitions remain separate planned products. No bonus game is implemente
 - `DATA-005`, `REL-007` — production backend is deployed, but final authenticated production browser evidence remains under `TEST-001`;
 - `FUNC-002`, `DATA-004`, `OPS-002` — automatic submission, actual-tie workflow and administrator model;
 - `TEST-001` — partial as described above;
-- `OPS-003` — monitoring and final rollback readiness remain;
+- `OPS-003` — capture/smoke/rollback foundations are under review; provider delivery and rehearsal remain open;
 - `OPS-008`, `AUTH-001` — legacy environment and Turnstile/CAPTCHA work;
 - `A11Y-001`, `UX-001`, `UX-002`, `UX-003` — remaining experience/accessibility work;
 - `TYPE-001`, `PERF-001`, `PERF-002`, `SEC-001`, `DATA-007` — typing, performance and abuse controls;
@@ -212,21 +246,24 @@ Bonus competitions remain separate planned products. No bonus game is implemente
 - Golden Boot 25;
 - group-goals bands 40 / 30 / 20, tiered.
 
-The rollout changed no scoring value.
+The rollout and operational-assurance branch change no scoring value.
 
 ## Immediate order of work
 
-1. Merge the contract-35 production documentation reconciliation after checks pass.
-2. Add production error reporting, alert ownership and critical-journey monitoring.
-3. Resolve the approved production/non-production Turnstile and development CAPTCHA model; verify preview auth.
-4. Review leaked-password protection as a separate Auth change.
-5. Verify GitHub branch protection and required checks.
-6. Keep the legacy World Cup-sourced Netlify site under its separate owner workstream.
-7. Complete wider reference integrity; keep PR #76 and migration 36 separate until reviewed.
-8. Define the administrator authorization model and browser result-management path.
-9. Add controlled authenticated production browser smoke without damaging retained user predictions.
-10. Complete manual screen-reader review and the full tournament dress rehearsal.
-11. Replace provisional tournament data only from authoritative sources when available.
+1. Complete PR #92 validation and preview smoke without enabling external delivery.
+2. Approve the production error-reporting provider, privacy/retention boundary and alert recipients.
+3. Enable and verify reporting in non-production before any production configuration.
+4. Merge/deploy the assurance foundation and run both anonymous production smoke commands.
+5. Rehearse a compatible Netlify application rollback while production Supabase remains unchanged.
+6. Resolve the approved production/non-production Turnstile and development CAPTCHA model; verify preview auth.
+7. Review leaked-password protection as a separate Auth change.
+8. Verify GitHub branch protection and required checks.
+9. Keep the legacy World Cup-sourced Netlify site under its separate owner workstream.
+10. Complete wider reference integrity; keep PR #76 and migration 36 separate until reviewed.
+11. Define the administrator authorization model and browser result-management path.
+12. Add controlled authenticated production browser smoke without damaging retained user predictions.
+13. Complete manual screen-reader review and the full tournament dress rehearsal.
+14. Replace provisional tournament data only from authoritative sources when available.
 
 ## Documentation authority
 
@@ -240,4 +277,4 @@ Use sources in this order:
 6. historical audits;
 7. roadmap/TODO for future intent only.
 
-Do not claim contract 36, preview-auth verification or tournament-launch readiness until the corresponding evidence gates pass.
+Do not claim production error delivery, contract 36, preview-auth verification or tournament-launch readiness until the corresponding evidence gates pass.
