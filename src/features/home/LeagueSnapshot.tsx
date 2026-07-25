@@ -5,6 +5,7 @@ import h from './home.module.css'
 
 export type LeagueSnapshotProps = {
   league: LeagueStanding | null
+  available?: boolean
   onOpen: (leagueId: string) => void
   onCreate: () => void
 }
@@ -12,9 +13,32 @@ export type LeagueSnapshotProps = {
 /**
  * The Home league snapshot (design-system §6): the user's best league — name,
  * their position of N, gap to the top — tapping into the league detail. With no
- * leagues it becomes a quiet "create a league" prompt. Presentational.
+ * leagues it becomes a quiet create prompt. A failed league read is rendered as
+ * unavailable instead, so it can never masquerade as an empty account. Existing
+ * presentational callers default to a successful read.
  */
-export function LeagueSnapshot({ league, onOpen, onCreate }: LeagueSnapshotProps) {
+export function LeagueSnapshot({
+  league,
+  available = true,
+  onOpen,
+  onCreate,
+}: LeagueSnapshotProps) {
+  if (!available) {
+    return (
+      <div className={h.snapshotEmpty} role="status">
+        <span className={h.snapshotIcon}>
+          <UsersIcon size={20} />
+        </span>
+        <span className={h.snapshotBody}>
+          <span className={h.snapshotTitle}>League data unavailable</span>
+          <span className={h.snapshotSub}>
+            Your leagues are still saved. Open the League tab or try again shortly.
+          </span>
+        </span>
+      </div>
+    )
+  }
+
   if (!league) {
     return (
       <button type="button" className={h.snapshotEmpty} onClick={onCreate}>
