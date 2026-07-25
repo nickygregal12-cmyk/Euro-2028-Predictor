@@ -10,6 +10,7 @@
 | Latest recovery/audit reconciliation | [`2026-07-25-production-backup-and-repeat-audit.md`](reconciliations/2026-07-25-production-backup-and-repeat-audit.md) |
 | Route accessibility reconciliation | [`2026-07-25-browser-route-accessibility.md`](reconciliations/2026-07-25-browser-route-accessibility.md) |
 | Private league browser reconciliation | [`2026-07-25-private-league-invite-browser.md`](reconciliations/2026-07-25-private-league-invite-browser.md) |
+| Pending invite boundary | [`2026-07-25-pending-invite-render-boundary.md`](reconciliations/2026-07-25-pending-invite-render-boundary.md) |
 | Production release state | [`2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md) |
 | Application/database deploy gate | [`2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md) |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
@@ -50,12 +51,14 @@ Current workflows provide:
 - signup, email confirmation and password-recovery journeys;
 - retained keyboard skip-link, route-focus and live-region evidence;
 - a two-account private league create, invite-preview, join and refreshed-member journey;
+- signed-out invite persistence through signup confirmation, first-use Welcome and authenticated join;
 - cleanup of disposable browser data without backup retention.
 
 Recent evidence includes:
 
 - PR #78: CI and Browser E2E passed before merge, retaining route-accessibility behaviour;
-- PR #79: CI run 374 and Browser E2E run 107 passed on the private-league invite/join head;
+- PR #79: final CI and Browser E2E passed before merge, retaining the private-league invite/join lifecycle;
+- PR #80 implementation head `e0010def1d794eefa26b926f23349beaad2cf7e3`: CI run 384 and Browser E2E run 116 passed before documentation reconciliation;
 - draft PR #76: CI, Database parity and Browser E2E pass, but migration 36 remains outside current authority.
 
 These are repository/disposable-environment results. They do not prove production schema compatibility, real SMTP/Turnstile configuration, production browser smoke behaviour, a real screen-reader experience or recovery.
@@ -164,7 +167,7 @@ A verified archive is stronger than prepared tooling but is not proven recovery 
 ### Implemented scope
 
 - authentication, signup/login, password recovery, moderation and confirmed sign-out;
-- first-use welcome gate;
+- first-use welcome gate, including pending-invite continuation;
 - group score predictions, Jokers, predicted tables, manual ties and best-third ranking;
 - Golden Boot and derived group-goals prediction;
 - Review/manual submission UI;
@@ -179,7 +182,7 @@ A verified archive is stronger than prepared tooling but is not proven recovery 
 
 ### Partial or planned
 
-- trustworthy signed-out invite context and removal of the pending-join render mutation (`UX-001`);
+- trustworthy, privacy-reviewed signed-out invite context before signup (`UX-001`);
 - other-player full profile and richer H2H;
 - expanded Match Centre phases;
 - browser result administration and an admin authorization model;
@@ -198,7 +201,8 @@ Status:
 
 - `A11Y-002`, `SEC-002` and `HYGIENE-001` are resolved;
 - `A11Y-001` is partially resolved: desktop/mobile keyboard and DOM announcement proof exists, but manual screen-reader review remains;
-- `TEST-001` is substantially resolved for disposable browser coverage, including private league create/invite/join; result administration, manual assistive-technology review and compatible-production smoke remain open.
+- `UX-001` is partially improved: render-time invite mutation is removed and confirmation/Welcome continuation is browser-proven; anonymous pre-auth league context remains open;
+- `TEST-001` is substantially resolved for disposable browser coverage, including private league create/invite/join and signed-out confirmation continuation; result administration, manual assistive-technology review and compatible-production smoke remain open.
 
 ## Current finding positions
 
@@ -219,7 +223,8 @@ Status:
 - `AUTH-001`: non-production Turnstile/CAPTCHA pairing unverified.
 - `TYPE-001`: strict TypeScript/generated DB types open.
 - `SEC-001`, `DATA-007`: abuse and atomic rate-limit work open.
-- `UX-001`, `UX-002`, `UX-003`: invite context, data-state and other-profile work open.
+- `UX-001`: anonymous pre-auth league context remains open after the render-boundary repair.
+- `UX-002`, `UX-003`: data-state and other-profile work open.
 - `PERF-001`, `PERF-002`: profiling/measurement open.
 - `SEO-001`, `SEO-002`: soft 404 and metadata scope open.
 - `REPO-001`, `DOC-002`, `DOC-003`, `CODE-001`, `HYGIENE-002`: maintenance/policy work open.
@@ -237,7 +242,7 @@ Status:
 - Golden Boot 25;
 - group-goals bands 40 / 30 / 20, tiered.
 
-No audit, backup, accessibility or browser-test change altered scoring.
+No audit, backup, accessibility, invite or browser-test change altered scoring.
 
 ## Immediate order of work
 
@@ -252,7 +257,7 @@ No audit, backup, accessibility or browser-test change altered scoring.
 9. Apply migrations 21–35 only after explicit approval.
 10. Run post-verification, advisors and authenticated production smoke journeys.
 11. Change production contract 20 to 35 only after every check passes.
-12. Continue `DATA-003`, Turnstile, legacy-environment, branch-protection, admin and signed-out invite work as separate controlled workstreams.
+12. Continue `DATA-003`, Turnstile, legacy-environment, branch-protection, admin and anonymous invite-context work as separate controlled workstreams.
 
 ## Documentation authority
 
