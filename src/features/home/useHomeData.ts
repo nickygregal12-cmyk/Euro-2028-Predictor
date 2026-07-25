@@ -43,15 +43,18 @@ export type TodaySection =
   | { kind: 'next'; dateISO: string; fixtures: TodayFixture[] }
   | { kind: 'none' }
 
+export type HomeDataSource = 'leaderboard' | 'scoreEvents' | 'leagues' | 'catchUp'
+
 export type HomeModel = {
   phase: HomePhase
   displayName: string | null
-  // Stat strip (during)
-  totalPoints: number
-  pointsToday: number
+  // Stat strip (during). Null means the source was unavailable, never zero.
+  totalPoints: number | null
+  pointsToday: number | null
   rank: number | null
-  entryCount: number
+  entryCount: number | null
   bestLeague: LeagueStanding | null
+  unavailable: HomeDataSource[]
   // Today card
   today: TodaySection
   // Catch-up
@@ -62,7 +65,7 @@ export type HomeModel = {
   groupsTotal: number
   submitted: boolean
   champion: MatchTeam | null
-  hasAnyLeague: boolean
+  hasAnyLeague: boolean | null
   lockAt: string | null
   startsOn: string | null
 }
@@ -73,11 +76,10 @@ export type HomeState =
   | { status: 'ready'; model: HomeModel }
 
 /**
- * Fetches and assembles the phase-aware Home model. The during-tournament data
- * (leaderboard, leagues, score events, last-seen) is fetched only once results
- * exist — so the pre-tournament Home works before the scoring/leagues migrations
- * — and each of those fetches fails soft to an empty value, so Home always
- * renders. Pure shaping is delegated to the domain (homeDashboard.ts).
+ * Fetches and assembles the phase-aware Home model. Core tournament and entry
+ * data remains a hard requirement. During-tournament dashboard sources may fail
+ * independently, but their unavailable state is preserved explicitly rather
+ * than being converted into zero points, zero entries or no leagues.
  */
 export function useHomeData(): HomeState {
   const { userId, displayName } = useAuth()
@@ -165,7 +167,11 @@ export function useHomeData(): HomeState {
     } else {
       const nextDate = sorted.find((m) => m.matchDate > today)?.matchDate
       todaySection = nextDate
-        ? { kind: 'next', dateISO: nextDate, fixtures: sorted.filter((m) => m.matchDate === nextDate).map(toFixture) }
+        ? {
+            kind: 'next',
+            dateISO: nextDate,
+            fixtures: sorted.filter((m) => m.matchDate === nextDate).map(toFixture),
+          }
         : { kind: 'none' }
     }
 
@@ -177,6 +183,7 @@ export function useHomeData(): HomeState {
       rank: null,
       entryCount: 0,
       bestLeague: null,
+      unavailable: [],
       today: todaySection,
       catchUp: null,
       entryPercent: status.overallPercent,
@@ -189,70 +196,108 @@ export function useHomeData(): HomeState {
       startsOn: td.tournament.startsOn,
     }
 
-    // Pre-tournament phases need none of the scored/league data.
+    // Pre-tournament phases do not render scored dashboard statistics.
     if (phase !== 'during') {
       setState({ status: 'ready', model: baseModel })
       return
     }
 
-    // --- during-tournament data (each fails soft) ----------------------------
+    // --- during-tournament data (independent availability) -------------------
     async function loadDuring(): Promise<HomeModel> {
       const matchDateById = new Map(td.matches.map((m) => [m.id, m.matchDate]))
+      const unavailable = new Set<HomeDataSource>()
 
-      const leaderboard = await fetchLeaderboard(tournamentId!).catch(() => [])
-      const ranked = rankLeaderboard(leaderboard)
-      const you = ranked.find((r) => r.isYou)
-      const totalPoints = you?.totalPoints ?? 0
-      const preResults = ranked.every((r) => r.rank === null)
-      const rank = preResults ? null : (you?.rank ?? null)
+      let totalPoints: number | null = null
+      let rank: number | null = null
+      let entryCount: number | null = null
+      try {
+        const ranked = rankLeaderboard(await fetchLeaderboard(tournamentId!))
+        const you = ranked.find((row) => row.isYou)
+        totalPoints = you?.totalPoints ?? 0
+        entryCount = ranked.length
+        const preResults = ranked.every((row) => row.rank === null)
+        rank = preResults ? null : (you?.rank ?? null)
+      } catch {
+        unavailable.add('leaderboard')
+      }
 
-      const events = await fetchMyScoreEventPoints().catch(() => [])
-      const todaysPoints = pointsToday(events, matchDateById, today)
+      let todaysPoints: number | null = null
+      try {
+        const events = await fetchMyScoreEventPoints()
+        todaysPoints = pointsToday(events, matchDateById, today)
+      } catch {
+        unavailable.add('scoreEvents')
+      }
 
-      const leagues = await fetchMyLeagues(tournamentId!).catch(() => [])
-      const standings: LeagueStanding[] = []
-      for (const lg of leagues) {
+      let bestLeague: LeagueStanding | null = null
+      let hasAnyLeague: boolean | null = null
+      try {
+        const leagues = await fetchMyLeagues(tournamentId!)
+        hasAnyLeague = leagues.length > 0
+        const standings: LeagueStanding[] = []
+        let memberReadFailed = false
+
+        for (const league of leagues) {
+          try {
+            const members = await fetchLeagueMembers(league.id)
+            const rankedMembers = rankLeaderboard(members)
+            const meInLeague = rankedMembers.find((member) => member.isYou)
+            const topPoints = rankedMembers.reduce(
+              (max, member) => Math.max(max, member.totalPoints),
+              0,
+            )
+            const lastActivityMs = members.reduce(
+              (max, member) => Math.max(max, Date.parse(member.joinedAt) || 0),
+              0,
+            )
+            standings.push({
+              id: league.id,
+              name: league.name,
+              memberCount: league.memberCount,
+              rank: meInLeague?.rank ?? null,
+              gapToTop: meInLeague ? topPoints - meInLeague.totalPoints : null,
+              lastActivityMs,
+            })
+          } catch {
+            memberReadFailed = true
+          }
+        }
+
+        if (memberReadFailed) unavailable.add('leagues')
+        bestLeague = selectBestLeague(standings)
+      } catch {
+        unavailable.add('leagues')
+      }
+
+      let catchUp: CatchUp | null = null
+      if (totalPoints === null) {
+        unavailable.add('catchUp')
+      } else {
         try {
-          const members = await fetchLeagueMembers(lg.id)
-          const rankedMembers = rankLeaderboard(members)
-          const meInLeague = rankedMembers.find((m) => m.isYou)
-          const topPoints = rankedMembers.reduce((max, m) => Math.max(max, m.totalPoints), 0)
-          const lastActivityMs = members.reduce(
-            (max, m) => Math.max(max, Date.parse(m.joinedAt) || 0),
-            0,
-          )
-          standings.push({
-            id: lg.id,
-            name: lg.name,
-            memberCount: lg.memberCount,
-            rank: meInLeague?.rank ?? null,
-            gapToTop: meInLeague ? topPoints - meInLeague.totalPoints : null,
-            lastActivityMs,
+          const seen = await fetchLastSeen(userId!)
+          catchUp = catchUpSummary({
+            lastSeenAt: seen.lastSeenAt,
+            lastSeenPoints: seen.lastSeenPoints,
+            currentPoints: totalPoints,
           })
+          // Snapshot for next time after reading the previous value. A failed
+          // best-effort update must not erase the successfully loaded snapshot.
+          void updateLastSeen(userId!, totalPoints).catch(() => undefined)
         } catch {
-          // skip a league we couldn't rank
+          unavailable.add('catchUp')
         }
       }
-      const bestLeague = selectBestLeague(standings)
-
-      const seen = await fetchLastSeen(userId!)
-      const catchUp = catchUpSummary({
-        lastSeenAt: seen.lastSeenAt,
-        lastSeenPoints: seen.lastSeenPoints,
-        currentPoints: totalPoints,
-      })
-      // Snapshot for next time (best-effort). Do this AFTER reading the old value.
-      void updateLastSeen(userId!, totalPoints)
 
       return {
         ...baseModel,
         totalPoints,
         pointsToday: todaysPoints,
         rank,
-        entryCount: ranked.length,
+        entryCount,
         bestLeague,
         catchUp,
-        hasAnyLeague: leagues.length > 0,
+        hasAnyLeague,
+        unavailable: [...unavailable],
       }
     }
 
