@@ -3,9 +3,9 @@
 // security-definer functions in 20260719180000_add_leagues.sql so the
 // profiles/entries RLS stays tight; this module never selects those tables.
 //
-// Wrappers throw on error (like the other service wrappers); callers that must
-// keep working before the migration is applied catch and fail soft (e.g. the
-// League hub treats a missing get_my_leagues as "no leagues yet").
+// Wrappers throw on error (like the other service wrappers). Callers decide
+// whether a failed read is fatal or independently unavailable, but must never
+// convert an unavailable league source into a successful empty account.
 
 import { supabase } from './client'
 
