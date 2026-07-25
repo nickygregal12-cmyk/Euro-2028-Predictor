@@ -1,6 +1,9 @@
 name: SEC-002 inventory
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - agent/safe-user-facing-errors
