@@ -26,17 +26,45 @@
 - [x] Verify metadata, security headers, SPA routes, assets and anonymous browser journeys.
 - [x] Verify no development Supabase endpoint/browser request in production.
 - [x] Keep migration 36 and PR #76 outside the rollout.
+- [x] Merge the complete production documentation reconciliation through PR #90.
 
 Completed evidence: [`quality/reconciliations/2026-07-25-contract-35-production-promotion.md`](quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
 
-## 1. Production operations and monitoring — next hard gate
+## 1. Production operations and monitoring — current hard gate
 
-- [ ] Select and configure production error reporting.
-- [ ] Assign alert ownership and escalation path.
+### Assurance foundation — issue #91 / PR #92
+
+- [x] Add a single provider-neutral client-error boundary.
+- [x] Capture React render, startup, global error and unhandled-rejection failures.
+- [x] Redact emails, credentials, URL queries, local paths and raw database errors.
+- [x] Ensure a reporter failure cannot prevent application startup/use.
+- [x] Emit non-secret release identity at `/release.json`.
+- [x] Add a fail-closed anonymous HTTP production smoke command.
+- [x] Add an isolated anonymous Playwright production smoke command.
+- [x] Document the contract-35 application rollback decision tree.
+- [ ] Require final CI and Browser E2E on PR #92.
+- [ ] Verify deploy-preview release identity reports `deploy-preview`, contract 35 and development Supabase.
+- [ ] Run both smoke commands against the approved preview with explicit non-production flags.
+- [ ] Merge and deploy only after the preview evidence passes.
+- [ ] Run both anonymous smoke commands against the resulting production deployment.
+
+### Monitoring delivery and ownership
+
+- [ ] Select and approve a production error-reporting provider.
+- [ ] Approve data-processing terms, data location and retention duration.
+- [ ] Assign primary and backup alert recipients plus escalation path.
+- [ ] Configure and verify a non-production reporter project first.
+- [ ] Review required CSP/network changes before enabling delivery.
+- [ ] Verify redaction using synthetic non-sensitive events.
+- [ ] Enable production reporting only through a separate reviewed configuration action.
 - [ ] Define critical-journey availability checks for login, entry loading, saves, submission, leagues and Match Centre.
 - [ ] Define database health/advisor review cadence.
 - [ ] Define production incident severity and communication rules.
+
+### Rollback and recovery operations
+
 - [ ] Rehearse a compatible Netlify application rollback while keeping production Supabase unchanged.
+- [ ] Require release identity, headers, auth routing and environment-isolation smoke after rollback.
 - [ ] Schedule periodic backup creation, off-site verification and disposable restore rehearsal.
 - [ ] Record recovery artifact retention/expiry and secure plaintext cleanup policy.
 
@@ -125,10 +153,12 @@ Completed evidence: [`quality/reconciliations/2026-07-25-contract-35-production-
 - [x] Private league create/invite/join browser journey.
 - [x] Route titles, live announcements, main focus and skip navigation.
 - [x] Pending-invite continuation through signup confirmation and Welcome.
-- [x] Anonymous production route, title, header, asset and environment smoke.
+- [x] One-off anonymous production route, title, header, asset and environment verification.
+- [x] Repository HTTP/browser production-smoke harness authored in PR #92.
 
 ### Remaining
 
+- [ ] Pass the committed smoke harness against preview and production.
 - [ ] Complete manual screen-reader review for `A11Y-001`.
 - [ ] Add result-administration journey after implementation.
 - [ ] Add controlled authenticated production mutation smoke.
@@ -194,3 +224,4 @@ Sweepstake builder remains non-launch-blocking. Fan Duels direct challenges rema
 - [x] Node `22.22.2` alignment.
 - [x] Accepted encrypted off-device production recovery artifact and clean restore proof.
 - [x] Contract-35 production database rollout and application promotion.
+- [x] Provider-neutral release identity, redacting capture and production-smoke foundation authored.

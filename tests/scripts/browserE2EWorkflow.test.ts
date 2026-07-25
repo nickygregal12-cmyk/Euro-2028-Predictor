@@ -17,25 +17,35 @@ const forbiddenHostedRefs = [
   'gcfdwobpnanjchcnvdco',
 ]
 
-const browserHarness = `${workflow}\n${globalSetup}\n${localFixtures}`
+const [authenticatedWorkflow, previewWorkflow = ''] = workflow.split(
+  '\n  deploy-preview-smoke:',
+)
+const authenticatedBrowserHarness =
+  `${authenticatedWorkflow}\n${globalSetup}\n${localFixtures}`
 
 describe('authenticated browser E2E workflow', () => {
   it('uses a disposable local Supabase rebuild and Playwright Chromium', () => {
-    expect(workflow).toContain('supabase start')
-    expect(workflow).toContain('supabase db reset --local')
-    expect(workflow).toContain('supabase stop --no-backup')
-    expect(workflow).toContain('playwright install --with-deps chromium')
-    expect(workflow).toContain('npm run test:e2e')
-    expect(workflow).toContain('playwright-report')
+    expect(authenticatedWorkflow).toContain('supabase start')
+    expect(authenticatedWorkflow).toContain('supabase db reset --local')
+    expect(authenticatedWorkflow).toContain('supabase stop --no-backup')
+    expect(authenticatedWorkflow).toContain(
+      'playwright install --with-deps chromium',
+    )
+    expect(authenticatedWorkflow).toContain('npm run test:e2e')
+    expect(authenticatedWorkflow).toContain('playwright-report')
   })
 
   it('contains no hosted Supabase project reference', () => {
-    for (const ref of forbiddenHostedRefs) expect(browserHarness).not.toContain(ref)
+    for (const ref of forbiddenHostedRefs) {
+      expect(authenticatedBrowserHarness).not.toContain(ref)
+    }
   })
 
   it('guards admin fixtures to standard HTTP loopback Supabase', () => {
     expect(localFixtures).toContain("parsed.protocol !== 'http:'")
-    expect(localFixtures).toContain("['127.0.0.1', 'localhost'].includes(parsed.hostname)")
+    expect(localFixtures).toContain(
+      "['127.0.0.1', 'localhost'].includes(parsed.hostname)",
+    )
     expect(localFixtures).toContain("LOCAL_SUPABASE_PORT = '54321'")
     expect(localFixtures).toContain('parsed.port !== LOCAL_SUPABASE_PORT')
   })
@@ -45,6 +55,36 @@ describe('authenticated browser E2E workflow', () => {
     expect(packageJson.scripts['test:e2e']).toBe('playwright test')
     expect(packageJson.scripts['test:e2e:install']).toBe(
       'playwright install --with-deps chromium',
+    )
+  })
+})
+
+describe('deploy-preview browser smoke workflow', () => {
+  it('waits for the exact PR head and development environment identity', () => {
+    expect(previewWorkflow).toContain(
+      'deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app',
+    )
+    expect(previewWorkflow).toContain(
+      'EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}',
+    )
+    expect(previewWorkflow).toContain(
+      'EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem',
+    )
+    expect(previewWorkflow).toContain(
+      "release.environment === 'deploy-preview'",
+    )
+    expect(previewWorkflow).toContain('release.applicationContract === 35')
+    expect(previewWorkflow).toContain('release.hostedContract === 35')
+  })
+
+  it('runs both read-only smoke entry points', () => {
+    expect(previewWorkflow).toContain('npm run smoke:production')
+    expect(previewWorkflow).toContain('npm run smoke:production:browser')
+    expect(packageJson.scripts['smoke:production']).toBe(
+      'node scripts/production-smoke.mjs',
+    )
+    expect(packageJson.scripts['smoke:production:browser']).toBe(
+      'playwright test --config=playwright.production.config.ts',
     )
   })
 })

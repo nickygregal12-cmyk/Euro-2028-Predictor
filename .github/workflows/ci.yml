@@ -32,6 +32,17 @@ jobs:
       - name: Lint
         run: npm run lint
       - name: Test
-        run: npm run test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test 2>&1 | tee /tmp/euro28-vitest.log
+      - name: Upload test failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vitest-failure-log
+          path: /tmp/euro28-vitest.log
+          if-no-files-found: error
+          retention-days: 7
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high

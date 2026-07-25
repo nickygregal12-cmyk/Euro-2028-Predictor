@@ -2,7 +2,8 @@
 
 **Current production reconciliation:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
 **Latest formal pre-rollout audit:** [`audits/2026-07-25-repeat-verification-audit.md`](audits/2026-07-25-repeat-verification-audit.md) (`2026-07-25R`)  
-**Recovery acceptance:** [`reconciliations/2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md)
+**Recovery acceptance:** [`reconciliations/2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md)  
+**Operational-assurance work:** issue #91 / PR #92 — repository foundation under review
 
 This register retains every original finding ID. Historical audits remain immutable. Current `main`, executable tests and verified hosted evidence override older classifications.
 
@@ -30,6 +31,7 @@ Resolved or superseded IDs now include `OPS-001`, `OPS-004`, `OPS-005`, `OPS-006
 | Resolved | `REL-003` — pending-write settlement is deployed and the production submission-settlement smoke passed. |
 | Improved | `DATA-005`, `REL-007`, `TEST-001` — compatible production backend is present and anonymous production smoke passed; controlled authenticated production browser evidence remains. |
 | Improved | `OPS-003` — accepted recovery proof and controlled production execution are complete; monitoring, alert ownership, periodic rehearsal and final rollback readiness remain. |
+| In progress | PR #92 adds a provider-neutral redacting error boundary, generated release identity, repeatable anonymous HTTP/browser smoke and an executable rollback decision tree. External delivery, hosted verification and rollback rehearsal are not yet complete. |
 
 ## Critical
 
@@ -59,8 +61,8 @@ Resolved or superseded IDs now include `OPS-001`, `OPS-004`, `OPS-005`, `OPS-006
 | `REL-004` | Compound bracket writes are non-atomic | **Resolved** | Atomic complete-snapshot RPC is deployed; rollback-only authenticated production smoke passed. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker; draft PR #76 is not authority. |
 | `OPS-002` | No version-controlled administrator model/control-room boundary | **Open** | No approved admin authorization model or browser result-admin page exists. |
-| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — production anonymous smoke added** | Disposable Playwright covers auth, predictions, saves, conflicts, locks, signup/recovery, private leagues and accessibility transitions. Production metadata/headers/routes/environment isolation passed anonymously. Browser result administration, manual screen-reader review and controlled authenticated production mutation journeys remain. |
-| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Recovery and production execution complete; monitoring/rollback work open** | Accepted backup/restore evidence and the controlled contract-35 rollout passed. Close only after monitoring, alert ownership, periodic rehearsal and final launch rollback readiness are proven. |
+| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — durable anonymous production harness in progress** | Disposable Playwright covers auth, predictions, saves, conflicts, locks, signup/recovery, private leagues and accessibility transitions. The accepted production baseline passed one-off metadata/header/route/environment checks. PR #92 adds committed HTTP/browser smoke; browser result administration, manual screen-reader review and controlled authenticated production mutation journeys remain. |
+| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Recovery/execution complete; operational-assurance foundation in progress** | Accepted backup/restore evidence and the controlled contract-35 rollout passed. PR #92 adds redacting capture, release identity, smoke automation and rollback procedure. Close only after approved external reporting, alert ownership, hosted smoke, periodic recovery rehearsal and application rollback evidence. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 
 ## Medium
@@ -77,9 +79,9 @@ Resolved or superseded IDs now include `OPS-001`, `OPS-004`, `OPS-005`, `OPS-006
 | `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | **Partially resolved** | Route titles, live region, main focus, skip navigation and browser keyboard evidence exist. Manual screen-reader review remains. |
 | `A11Y-002` | League options menu semantics do not match behaviour | **Resolved by PR #41** | Disclosure semantics, native buttons, Escape close/focus restoration and tests are present. |
 | `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | **Open** | Generate DB types, validate critical RPC payloads and enable strictness incrementally. |
-| `DOC-001` | Documentation is not consistently authoritative | **Resolved; reopened documentation drift corrected by this reconciliation** | The production-promotion reconciliation updates every active authority source. Reopen on future verified drift. |
+| `DOC-001` | Documentation is not consistently authoritative | **Resolved; reopened documentation drift corrected by contract-35 reconciliation** | The production-promotion reconciliation updated every active authority source. Reopen on future verified drift. |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open** | Threat-model enumeration and minimum-cohort/rate-limit behaviour. |
-| `SEC-002` | Raw internal errors can reach users | **Resolved by PR #71** | Central safe mapper prevents infrastructure text reaching current UI surfaces. |
+| `SEC-002` | Raw internal errors can reach users | **Resolved by PR #71** | Central safe mapper prevents infrastructure text reaching current UI surfaces. PR #92 additionally prevents raw client-observability envelopes from carrying known sensitive classes. |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** | Serialize per user/action or use an atomic database primitive. |
 | `UX-002` | Unavailable data is conflated with empty data | **Partially resolved — four primary surfaces corrected** | Audit remaining remote-read consumers and remove or rule out false-empty states. |
 | `PERF-002` | Scoring recomputes the whole tournament | **Open / accepted pending measurement** | Profile target-capacity cost before deciding whether to optimize. |
@@ -114,4 +116,5 @@ Resolved or superseded IDs now include `OPS-001`, `OPS-004`, `OPS-005`, `OPS-006
 - Repository/development fixes remain open when the actual production risk remains.
 - A production schema capability may be closed from exact hosted verification and smoke evidence even when broader browser assurance remains under `TEST-001`.
 - Prepared tooling or an encrypted artifact alone does not prove recovery; accepted clean restore, verification and custody evidence are required.
+- A capture boundary without external delivery and alert ownership is not production monitoring.
 - Historical audits are evidence of their date. Update current classification through a new reconciliation, not by rewriting the audit.

@@ -2,6 +2,7 @@
 
 **Latest production reconciliation:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
 **Current hosted state:** [`current-status.md`](current-status.md)  
+**Operational-assurance work:** issue #91 / PR #92 — repository foundation under review  
 **Latest formal pre-rollout audit:** [`audits/2026-07-25-repeat-verification-audit.md`](audits/2026-07-25-repeat-verification-audit.md) (`2026-07-25R`)  
 **Identifier repair:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
 
@@ -64,7 +65,7 @@ This baseline prevents silent feature loss and scope import. Update it whenever 
 | `SAFE-013` | Production/development environment separation | Implemented and production-hosted | Production uses production Supabase; non-production contexts use development Supabase |
 | `SAFE-054` | Application/schema compatibility gate | Implemented | Production, repository and Netlify are aligned at contract 35; future divergence remains fail-closed |
 
-Safe user-facing error mapping is implemented under preserved safeguard `SAFE-039`; it is recorded in the continuity register rather than adding a sixtieth compact row.
+Safe user-facing error mapping and the provider-neutral redacting client-error boundary are governed by preserved safeguard `SAFE-039`; it is recorded in the continuity register rather than adding another compact row.
 
 ## Leagues, social and viewing
 
@@ -91,10 +92,10 @@ Safe user-facing error mapping is implemented under preserved safeguard `SAFE-03
 | `SAFE-025` | Application CI | Implemented | Install, build, lint, tests and dependency audit |
 | `SAFE-026` | Disposable database integration CI | Implemented | Migration rebuild, lint, pgTAP and differential parity |
 | `SAFE-055` | Provider submission/clear regression tests | Implemented | Not a substitute for all production browser evidence |
-| `SAFE-027` | Browser E2E | Implemented for disposable Supabase; anonymous production smoke added | Auth, predictions, saves, conflicts, locks, signup, recovery, private leagues and route accessibility covered; result-admin/manual screen-reader/authenticated production mutation journeys remain |
-| `FEAT-042` | Monitoring and alerting | Not verified/present | Open operations work |
+| `SAFE-027` | Browser E2E | Implemented for disposable Supabase; durable anonymous production harness under review | Auth, predictions, saves, conflicts, locks, signup, recovery, private leagues and route accessibility covered; PR #92 adds isolated HTTP/browser production smoke; result-admin/manual screen-reader/authenticated production mutation journeys remain |
+| `FEAT-042` | Monitoring and alerting | Partial repository capability | PR #92 adds redacting capture, release identity and smoke automation; no external provider, alert delivery or hosted production evidence yet |
 | `SAFE-033` | Verified backup and restore | Implemented and accepted | Encrypted off-device artifact, corrected clean restore and forward rehearsal passed |
-| `SAFE-031` | Safe application rollback | Documented/partial | Contract-35 compatible release is recorded; periodic rollback rehearsal and final launch readiness remain |
+| `SAFE-031` | Safe application rollback | Repository procedure implemented; hosted rehearsal pending | Contract-35 compatible release and decision tree are recorded; no production rollback rehearsal yet |
 | `SAFE-029` | Automatic production deploy | Implemented by Netlify/Git | Production currently serves the approved contract-35 deploy; future incompatible builds remain blocked |
 
 Current route-accessibility implementation includes route titles, live announcements, main-content focus and skip navigation. League options use disclosure semantics. Manual screen-reader review remains open under `A11Y-001` and `TEST-001`.
@@ -189,6 +190,8 @@ The contract-35 production evidence point records:
 
 Development and production both have exactly 35 canonical migration-history rows. Netlify production and non-production contexts all declare contract 35 while retaining their required Supabase environment separation.
 
+PR #92 adds generated release identity and isolated anonymous production-smoke entry points. These remain repository capabilities until their deploy-preview and production executions are recorded.
+
 ## Safeguard regression rules
 
 A future change must not silently:
@@ -203,6 +206,8 @@ A future change must not silently:
 - blend predicted and real bracket state;
 - point production or previews at the wrong Supabase environment;
 - deploy code requiring an unverified database capability;
+- report raw credentials, email addresses, prediction payloads or database errors through client observability;
+- describe capture without provider delivery/alerts as production monitoring;
 - change scoring values without updating rules, TypeScript, SQL and tests;
 - treat roadmap or gallery content as implemented;
 - classify an encrypted but unrestored backup as proven recovery.
