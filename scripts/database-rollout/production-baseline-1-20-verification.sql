@@ -153,8 +153,18 @@ fn as (
       and exists(select 1 from pol where tablename = 'score_events' and policyname = 'own score_events readable')
       and exists(select 1 from fn where proname = 'recompute_tournament_scores' and args = 'p_tournament_id uuid')
       and exists(select 1 from fn where proname = 'recompute_all_scores' and args = '')
-      and exists(select 1 from trg where tgname = 'recompute_scores_on_result' and table_name = 'matches'),
-      'Score-event table, aggregate view, scorer functions and result trigger'),
+      and exists(select 1 from trg where tgname = 'recompute_scores_on_result' and table_name = 'matches')
+      and not has_table_privilege('anon', 'public.entry_totals', 'SELECT')
+      and not has_table_privilege('authenticated', 'public.entry_totals', 'SELECT')
+      and has_table_privilege('service_role', 'public.entry_totals', 'SELECT')
+      and not exists (
+        select 1
+        from information_schema.role_table_grants
+        where table_schema = 'public'
+          and table_name = 'entry_totals'
+          and grantee in ('anon', 'authenticated')
+      ),
+      'Score-event table, aggregate view, source-equivalent view ACL, scorer functions and result trigger'),
 
     (10, '20260720140000_fix_recompute_trigger',
       exists(

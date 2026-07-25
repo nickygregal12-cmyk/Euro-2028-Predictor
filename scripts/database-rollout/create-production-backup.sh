@@ -16,6 +16,7 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd -P)"
 readonly INVENTORY_SQL="${SCRIPT_DIR}/production-backup-inventory.sql"
 readonly MANAGED_CUSTOMIZATIONS_SQL="${SCRIPT_DIR}/managed-schema-customizations.sql"
+readonly PREPARE_RESTORE_TARGET_SQL="${SCRIPT_DIR}/prepare-disposable-restore-target.sql"
 
 fail() {
   printf 'ERROR: %s\n' "$*" >&2
@@ -37,6 +38,7 @@ require_command python3
 require_command docker
 require_file "${INVENTORY_SQL}"
 require_file "${MANAGED_CUSTOMIZATIONS_SQL}"
+require_file "${PREPARE_RESTORE_TARGET_SQL}"
 
 [[ -n "${PRODUCTION_DB_URL:-}" ]] || fail \
   'Set PRODUCTION_DB_URL to the verified production Postgres connection string.'
@@ -151,8 +153,11 @@ printf 'Capturing managed Auth/Storage schema drift evidence...\n'
 
 cp "${MANAGED_CUSTOMIZATIONS_SQL}" \
   "${TEMP_DIR}/managed-schema-customizations.sql"
+cp "${PREPARE_RESTORE_TARGET_SQL}" \
+  "${TEMP_DIR}/prepare-disposable-restore-target.sql"
 
-# Retain the exact verification scripts associated with this repository commit.
+# Retain the exact restore helper and verification scripts associated with this
+# repository commit.
 cp "${REPO_ROOT}/scripts/database-rollout/production-baseline-1-20-verification.sql" \
   "${TEMP_DIR}/verification/"
 cp "${REPO_ROOT}/scripts/database-rollout/production-preflight.sql" \
@@ -188,6 +193,7 @@ manifest = {
         "copy it off the working machine",
         "record custody and retention",
         "restore it to a disposable Supabase-compatible target",
+        "verify source-equivalent restored object privileges",
         "verify Auth signup trigger and critical application data",
     ],
     "database_state": state,

@@ -2,6 +2,7 @@
 
 **Current audit:** `2026-07-25R`  
 **Evidence:** [`audits/2026-07-25-repeat-verification-audit.md`](audits/2026-07-25-repeat-verification-audit.md)  
+**Latest restore reconciliation:** [`reconciliations/2026-07-25-disposable-restore-privilege-reconciliation.md`](reconciliations/2026-07-25-disposable-restore-privilege-reconciliation.md)
 **Recovery/audit reconciliation:** [`reconciliations/2026-07-25-production-backup-and-repeat-audit.md`](reconciliations/2026-07-25-production-backup-and-repeat-audit.md)  
 **Private league browser evidence:** [`reconciliations/2026-07-25-private-league-invite-browser.md`](reconciliations/2026-07-25-private-league-invite-browser.md)  
 **Pending invite boundary:** [`reconciliations/2026-07-25-pending-invite-render-boundary.md`](reconciliations/2026-07-25-pending-invite-render-boundary.md)  
@@ -41,7 +42,7 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | Improved by PR #79 | `TEST-001` — a disposable two-account browser journey proves private league creation, invite preview, join, refreshed membership and cleanup. |
 | Improved by PR #80 | `UX-001` / `TEST-001` — pending invite storage moved out of render; signup confirmation, one-time Welcome, authenticated preview and join continuation are browser-proven. Anonymous pre-auth league context remains open. |
 | Improved by PRs #81, #82, #83 and #85 | `UX-002` — Home, the League hub, own Profile and Match Centre league-scope discovery now preserve loading/error/unavailable distinctions instead of inventing zero points, no leagues, an empty points history or a missing scope. Remaining consumers still require review. |
-| Improved | `OPS-003` — a fresh checksum-verified encrypted off-device production artifact exists; retrieval and disposable restore proof remain absent. |
+| Substantially improved | `OPS-003` — off-device retrieval, integrity, disposable restore, Auth/profile/Storage verification, history repair and migrations 21–35 passed. A target-default privilege mismatch was found and reconciled without production impact. Final acceptance remains blocked pending one clean replay with the corrected restore procedure. |
 | Corrected | Development migration history is exactly 35 canonical rows, not partial/tool-generated. |
 | Reverified | Production migration 1–20 baseline and exact source fingerprints passed read-only checks on 25 July. |
 
@@ -74,7 +75,7 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker; draft PR #76 is not yet authority. |
 | `OPS-002` | No version-controlled administrator model/control-room boundary | **Open** | No approved admin authorization model or browser result-admin page exists. |
 | `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — substantial disposable coverage** | Playwright covers auth, routes, score save/clear, submission barriers, conflicts, atomic bracket, lock rejection, signup/recovery, keyboard/live-region transitions, private league create/invite/join and signed-out confirmation/Welcome invite continuation. Result administration, manual screen-reader review and compatible-production smoke remain open. |
-| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — encrypted off-device artifact exists; restore proof absent** | Fresh roles/schema/data bundle, critical-table checks, plaintext checksums, encryption/decryption and encrypted checksum passed; off-device copy owner-confirmed. Close only after retrieval, checksum verification, disposable restore, Auth trigger/data verification, recovery acceptance and monitoring/rollback controls appropriate to launch. |
+| `OPS-003` | Release, monitoring and recovery controls are incomplete | **Substantially evidenced — corrected clean replay and acceptance pending** | Off-device retrieval, encrypted/plaintext integrity, disposable restore, Auth/profile/Storage checks, history repair and migrations 21–35 passed. The first restore inherited browser access to `entry_totals`; production was not exposed and the disposable ACL was reconciled successfully. Require one empty-target replay using the reviewed pre-schema default-privilege correction, strengthened ACL verifiers, clean advisors, retained evidence and explicit recovery acceptance before production rollout. Monitoring and final launch rollback controls remain open. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 
 ## Medium

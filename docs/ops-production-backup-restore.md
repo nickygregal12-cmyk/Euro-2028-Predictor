@@ -55,24 +55,47 @@ No credential, raw Auth record, archive passphrase, encrypted checksum value or 
 
 Issue #32 originally described 7-Zip AES-256 as the default. The artifact actually created used OpenSSL AES-256-CBC with PBKDF2. Recovery acceptance must explicitly accept the executed method or require a replacement artifact; do not silently describe it as 7-Zip evidence.
 
-## Evidence still required
+## Evidence completed and remaining
 
-The artifact is not qualifying recovery evidence until all of the following pass:
+The off-device artifact was retrieved on 25 July 2026 and passed:
 
-1. retrieve the encrypted archive from the off-device custody location;
-2. verify the encrypted archive checksum after retrieval;
-3. decrypt into a restricted temporary directory on a trusted machine;
-4. verify every plaintext checksum from `SHA256SUMS`;
-5. restore roles, schema, data and managed customization to an approved disposable Supabase-compatible target;
-6. verify source counts and all rollout fingerprints;
-7. verify all Auth users and profiles without exposing their contents;
-8. verify `on_auth_user_created -> public.handle_new_user()`;
-9. create/remove one disposable test Auth user and prove profile creation;
-10. verify Storage state;
-11. preferably rehearse the exact history repair and migrations 21–35;
-12. retain a non-secret evidence record and cleanup confirmation.
+1. encrypted checksum verification after retrieval;
+2. restricted decryption;
+3. gzip and archive-path safety checks;
+4. every plaintext checksum;
+5. production project and repository provenance checks;
+6. disposable baseline restore;
+7. source-count and rollout-fingerprint comparison;
+8. Auth/profile presence and signup-trigger verification;
+9. rollback-only signup/profile creation;
+10. migration-history repair for 1–20;
+11. dry run and successful application of migrations 21–35;
+12. all committed post-rollout checks;
+13. zero pending migrations.
 
-A local or encrypted archive that has not been restored does not prove recovery.
+The first logical restore also exposed a restore-procedure defect. The disposable
+target's default table privileges granted `anon` and `authenticated` direct
+access to `public.entry_totals` while the source production object grants neither
+role access. Production itself was checked read-only and was not exposed.
+
+The disposable target was manually reconciled to the source ACL. All committed
+checks, fingerprints, migration history and hosted advisors then passed, with no
+security-advisor errors.
+
+Remaining before recovery acceptance:
+
+1. merge the reviewed restore-helper and verifier correction;
+2. repeat a clean disposable restore from an empty target;
+3. run `prepare-disposable-restore-target.sql` after roles and before schema;
+4. require the baseline verifier to reject any restored client access to
+   `entry_totals`;
+5. migrate the clean replay through 21–35;
+6. require the post-rollout verifier and security advisors to pass without any
+   manual ACL reconciliation;
+7. retain final non-secret evidence and cleanup confirmation.
+
+The manually reconciled rehearsal proves the payload and migrations. A final
+clean replay is required to prove the corrected restore procedure end to end.
 
 ## What qualifies as recovery evidence
 
@@ -88,7 +111,7 @@ All of the following are required:
 8. verified off-machine copy with custody and retention record;
 9. checksum verification after retrieval;
 10. successful disposable restore;
-11. Auth, critical public data, trigger and fingerprint verification;
+11. Auth, critical public data, trigger, source-equivalent object privileges and fingerprint verification;
 12. preferably successful forward migration rehearsal.
 
 A Netlify rollback is not a database rollback.
@@ -128,7 +151,7 @@ The script must:
 - create roles, schema and COPY-format data dumps;
 - require `auth.users` and `public.profiles`;
 - capture Auth/Storage drift evidence;
-- include managed customization and verifier files;
+- include managed customization, restore-target preparation and verifier files;
 - generate manifest/provenance and recursive checksums;
 - set owner-only permissions;
 - never migrate, reset, seed or upload a project.
@@ -182,6 +205,7 @@ Before restoring, re-confirm:
 - target database version;
 - operator and start time;
 - target contains no required data;
+- target `public` schema contains no user tables or views;
 - the production and development references are not being used.
 
 ## Baseline restore sequence
@@ -201,6 +225,11 @@ psql "$RESTORE_DB_URL" \
 psql "$RESTORE_DB_URL" \
   --single-transaction \
   --variable ON_ERROR_STOP=1 \
+  --file prepare-disposable-restore-target.sql
+
+psql "$RESTORE_DB_URL" \
+  --single-transaction \
+  --variable ON_ERROR_STOP=1 \
   --file schema.sql
 
 psql "$RESTORE_DB_URL" \
@@ -215,6 +244,11 @@ psql "$RESTORE_DB_URL" \
   --file managed-schema-customizations.sql
 ```
 
+`prepare-disposable-restore-target.sql` is mandatory for a new hosted Supabase
+target. It temporarily removes inherited target defaults before object creation,
+allowing the dump's explicit object grants and revocations to recreate the source
+ACL. `schema.sql` restores the source project's own default privileges.
+
 Review `auth-storage-diff.sql`. Apply only statements proven to be genuine source customizations not recreated elsewhere.
 
 Stop on the first failure. Preserve non-secret output and do not skip objects.
@@ -223,14 +257,22 @@ Stop on the first failure. Preserve non-secret output and do not skip objects.
 
 Against the restored target:
 
-1. run `verification/production-baseline-1-20-verification.sql` and require all twenty checks true;
-2. run `verification/production-preflight.sql` and require the exact source invariants/fingerprints;
-3. compare source counts with the captured inventory;
-4. verify Auth users and profiles exist without exposing rows;
-5. verify `on_auth_user_created` exists and calls `public.handle_new_user()`;
-6. prove signup/profile creation with a disposable test user;
-7. confirm Storage is empty unless source inventory says otherwise;
-8. confirm the baseline lacks both contract-35 RPCs.
+1. run `verification/production-baseline-1-20-verification.sql`;
+2. require all twenty structural checks true;
+3. specifically require migration 9 to prove:
+   - no `anon` access to `public.entry_totals`;
+   - no `authenticated` access to `public.entry_totals`;
+   - retained `service_role` access;
+   - no direct browser-role grant rows on the view;
+4. run `verification/production-preflight.sql` and require the exact source
+   invariants/fingerprints;
+5. compare source counts with the captured inventory;
+6. verify Auth users and profiles exist without exposing rows;
+7. verify `on_auth_user_created` exists and calls
+   `public.handle_new_user()`;
+8. prove signup/profile creation with a disposable test user;
+9. confirm Storage is empty unless source inventory says otherwise;
+10. confirm the baseline lacks both contract-35 RPCs.
 
 Required fingerprints:
 
@@ -244,15 +286,18 @@ A SQL import without these checks is not a proven restore.
 
 For highest confidence on the restored disposable target:
 
-1. prove migration 1–20 structural effects;
+1. prove migration 1–20 structural effects and restored view ACLs;
 2. apply the exact metadata-only history repair for 1–20;
 3. require `supabase db push --dry-run` to show 21–35 only;
 4. apply migrations 21–35;
-5. run `verification/post-rollout-verification.sql` and require every object, privilege and data check true;
-6. run security advisors;
-7. run authenticated bracket, submission-settlement and score-clear smoke tests.
+5. run `verification/post-rollout-verification.sql`;
+6. require every object, privilege, function ACL and data check true, including
+   source-equivalent `entry_totals` privileges;
+7. run security advisors and require no unexplained security error;
+8. run authenticated bracket, submission-settlement and score-clear smoke tests.
 
-This rehearsal does not authorize production. It proves the backup can be restored and migrated through the intended release path.
+This rehearsal does not authorize production. It proves the backup can be
+restored and migrated through the intended release path.
 
 ## Recovery acceptance record
 
@@ -265,7 +310,7 @@ A qualifying record should include:
 - encrypted artifact checksum and custody reference;
 - explicitly accepted encryption method;
 - restore target and database version;
-- restore tool versions and commands;
+- restore helper/verifier repository commit, tool versions and commands;
 - baseline and preflight outputs;
 - Auth trigger/signup proof;
 - optional forward-rollout proof;
@@ -277,13 +322,17 @@ Do not include secrets, raw Auth data or private backup URLs.
 
 At 25 July 2026:
 
-- backup tooling/runbook: prepared;
-- fresh production source bundle: **created and plaintext checksums verified**;
-- encrypted archive: **created, locally decrypted and checksum verified**;
-- off-device copy: **owner-confirmed**;
-- off-device retrieval proof: **not performed**;
-- disposable restore: **not performed**;
-- recovery acceptance: **not granted**;
+- backup tooling/source bundle: **passed**;
+- encrypted off-device custody and retrieval: **passed**;
+- plaintext integrity and provenance: **passed**;
+- disposable baseline restore: **passed**;
+- Auth/profile/Storage/fingerprint checks: **passed**;
+- history repair and migrations 21–35 rehearsal: **passed**;
+- post-rollout verifier and zero-pending check: **passed**;
+- initial restore ACL drift: **identified and manually reconciled**;
+- security-advisor errors after reconciliation: **zero**;
+- corrected clean restore replay: **not yet performed**;
+- recovery acceptance: **blocked pending clean replay**;
 - production migration window: **blocked**.
 
 ## Related documents
@@ -294,5 +343,6 @@ At 25 July 2026:
 - `docs/ops-pending-migrations.md`
 - `docs/quality/reconciliations/2026-07-25-production-backup-and-repeat-audit.md`
 - `scripts/database-rollout/create-production-backup.sh`
+- `scripts/database-rollout/prepare-disposable-restore-target.sql`
 - `scripts/database-rollout/production-backup-inventory.sql`
 - `scripts/database-rollout/managed-schema-customizations.sql`
