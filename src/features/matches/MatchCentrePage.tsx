@@ -30,7 +30,13 @@ const ROUND_LABEL: Record<string, string> = {
   sf: 'Semi-final',
   final: 'Final',
 }
-const STAGE_UP: Record<string, KnockoutStage> = { r16: 'R16', qf: 'QF', sf: 'SF', final: 'FINAL', champion: 'CHAMPION' }
+const STAGE_UP: Record<string, KnockoutStage> = {
+  r16: 'R16',
+  qf: 'QF',
+  sf: 'SF',
+  final: 'FINAL',
+  champion: 'CHAMPION',
+}
 
 // Your predicted furthest stage for each participant of a knockout tie (null if
 // your bracket didn't place that team), upper-cased for the domain. Both the
@@ -41,9 +47,16 @@ function koStagesFor(
   match: { homeTeamId: string | null; awayTeamId: string | null },
   progression: Record<string, ProgressionStage>,
 ): { homeStage: KnockoutStage | null; awayStage: KnockoutStage | null } {
-  const up = (id: string | null): KnockoutStage | null => (id && progression[id] ? STAGE_UP[progression[id]] : null)
+  const up = (id: string | null): KnockoutStage | null =>
+    id && progression[id] ? STAGE_UP[progression[id]] : null
   return { homeStage: up(match.homeTeamId), awayStage: up(match.awayTeamId) }
 }
+
+type LeagueScopeRow = { id: string; name: string }
+type LeagueScopesState =
+  | { status: 'loading'; rows: LeagueScopeRow[] }
+  | { status: 'ready'; rows: LeagueScopeRow[] }
+  | { status: 'unavailable'; rows: LeagueScopeRow[]; message: string }
 
 export function MatchCentrePage() {
   const { matchRef } = useParams<{ matchRef: string }>()
@@ -52,42 +65,86 @@ export function MatchCentrePage() {
   const data = useTournamentData()
   const preds = usePredictions()
 
-  const [leagues, setLeagues] = useState<{ id: string; name: string }[]>([])
+  const [leagueScopes, setLeagueScopes] = useState<LeagueScopesState>({
+    status: 'loading',
+    rows: [],
+  })
+  const [leagueReloadKey, setLeagueReloadKey] = useState(0)
   const [scope, setScope] = useState<MatchScope>({ type: 'overall' })
-  const [said, setSaid] = useState<MatchSaid>({ revealed: false, predicted: 0, total: 0 })
+  const [said, setSaid] = useState<MatchSaid>({
+    revealed: false,
+    predicted: 0,
+    total: 0,
+  })
   const [saidLoading, setSaidLoading] = useState(true)
   const [saidError, setSaidError] = useState<string | null>(null)
-  const [consequence, setConsequence] = useState<{ casualties: number; example: string | null } | null>(null)
+  const [consequence, setConsequence] = useState<{
+    casualties: number
+    example: string | null
+  } | null>(null)
 
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
 
   // Load the user's leagues for the scope switcher; pre-select ?league=<id>.
+  // A failed read remains explicitly unavailable and must never masquerade as a
+  // successful no-leagues account or silently swallow a requested league scope.
   useEffect(() => {
     if (!tournamentId) return
     let active = true
+    setLeagueScopes({ status: 'loading', rows: [] })
+
     fetchMyLeagues(tournamentId)
-      .then((ls) => {
+      .then((leagues) => {
         if (!active) return
-        const mapped = ls.map((l) => ({ id: l.id, name: l.name }))
-        setLeagues(mapped)
-        const pre = searchParams.get('league')
-        const match = pre ? mapped.find((l) => l.id === pre) : null
-        if (match) setScope({ type: 'league', id: match.id, name: match.name })
+        const mapped = leagues.map((league) => ({ id: league.id, name: league.name }))
+        setLeagueScopes({ status: 'ready', rows: mapped })
+        const requestedId = searchParams.get('league')
+        const requested = requestedId
+          ? mapped.find((league) => league.id === requestedId)
+          : null
+        setScope((current) => {
+          if (requested) {
+            return { type: 'league', id: requested.id, name: requested.name }
+          }
+          if (
+            current.type === 'league' &&
+            !mapped.some((league) => league.id === current.id)
+          ) {
+            return { type: 'overall' }
+          }
+          return current
+        })
       })
-      .catch(() => {
-        if (active) setLeagues([])
+      .catch((error) => {
+        if (!active) return
+        setLeagueScopes({
+          status: 'unavailable',
+          rows: [],
+          message: userFacingError(
+            error,
+            'Could not load your league scopes. Please try again.',
+          ),
+        })
+        setScope({ type: 'overall' })
       })
+
     return () => {
       active = false
     }
-  }, [tournamentId, searchParams])
+  }, [tournamentId, searchParams, leagueReloadKey])
 
-  const match = data.status === 'ready' ? data.data.matches.find((m) => m.matchRef === matchRef) : undefined
+  const match =
+    data.status === 'ready'
+      ? data.data.matches.find((candidate) => candidate.matchRef === matchRef)
+      : undefined
 
   const teamsById = useMemo(
-    () => (data.status === 'ready' ? new Map(data.data.teams.map((t) => [t.id, t])) : new Map()),
+    () =>
+      data.status === 'ready'
+        ? new Map(data.data.teams.map((team) => [team.id, team]))
+        : new Map(),
     [data],
-  );
+  )
 
   // The said-block fetch: overall distribution OR league picks, shaped via the
   // domain. Reveal-gating lives in the RPCs (counts pre-lock; picks post-lock).
@@ -97,26 +154,67 @@ export function MatchCentrePage() {
     setSaidLoading(true)
     setSaidError(null)
     setConsequence(null)
-    const result = match.homeScore !== null && match.awayScore !== null ? { home: match.homeScore, away: match.awayScore } : null
-    const actualWinner: 'home' | 'away' | null = result ? (result.home > result.away ? 'home' : result.away > result.home ? 'away' : null) : null
+    const result =
+      match.homeScore !== null && match.awayScore !== null
+        ? { home: match.homeScore, away: match.awayScore }
+        : null
+    const actualWinner: 'home' | 'away' | null = result
+      ? result.home > result.away
+        ? 'home'
+        : result.away > result.home
+          ? 'away'
+          : null
+      : null
     const isGroup = match.round === 'group'
     const yourPick = isGroup ? preds.getPrediction(match.id) : null
 
     const run = async () => {
       try {
         if (scope.type === 'overall') {
-          const d = await fetchMatchDistribution(match.id)
+          const distribution = await fetchMatchDistribution(match.id)
           if (!active) return
-          if (!d.locked) {
-            setSaid({ revealed: false, predicted: d.predictedCount, total: d.totalEntries })
-          } else if (d.kind === 'group') {
-            const yp = yourPick && yourPick.homeScore !== null && yourPick.awayScore !== null ? { homeScore: yourPick.homeScore, awayScore: yourPick.awayScore } : null
-            const { bars, total } = groupDistribution(d.buckets, yp, result)
+          if (!distribution.locked) {
+            setSaid({
+              revealed: false,
+              predicted: distribution.predictedCount,
+              total: distribution.totalEntries,
+            })
+          } else if (distribution.kind === 'group') {
+            const picked =
+              yourPick &&
+              yourPick.homeScore !== null &&
+              yourPick.awayScore !== null
+                ? {
+                    homeScore: yourPick.homeScore,
+                    awayScore: yourPick.awayScore,
+                  }
+                : null
+            const { bars, total } = groupDistribution(
+              distribution.buckets,
+              picked,
+              result,
+            )
             setSaid({ revealed: true, kind: 'overall-group', bars, total })
           } else {
-            const { homeStage, awayStage } = koStagesFor(match, preds.bracketProgression)
-            const youBacked = koStake(homeStage, awayStage, match.round, actualWinner).backed
-            const split = koSplit({ homeCount: d.homeCount, awayCount: d.awayCount, totalEntries: d.totalEntries }, youBacked, actualWinner)
+            const { homeStage, awayStage } = koStagesFor(
+              match,
+              preds.bracketProgression,
+            )
+            const youBacked = koStake(
+              homeStage,
+              awayStage,
+              match.round,
+              actualWinner,
+            ).backed
+            const split = koSplit(
+              {
+                homeCount: distribution.homeCount,
+                awayCount: distribution.awayCount,
+                totalEntries: distribution.totalEntries,
+              },
+              youBacked,
+              actualWinner,
+            )
             setSaid({
               revealed: true,
               kind: 'overall-ko',
@@ -126,14 +224,26 @@ export function MatchCentrePage() {
             })
           }
         } else {
-          const p = await fetchLeagueMatchPicks(scope.id, match.id)
+          const picks = await fetchLeagueMatchPicks(scope.id, match.id)
           if (!active) return
-          if (!p.locked) {
-            setSaid({ revealed: false, predicted: p.predictedCount, total: p.totalMembers })
-          } else if (p.kind === 'group') {
-            setSaid({ revealed: true, kind: 'league-group', rows: orderLeagueGroupPicks(p.groupPicks, result) })
+          if (!picks.locked) {
+            setSaid({
+              revealed: false,
+              predicted: picks.predictedCount,
+              total: picks.totalMembers,
+            })
+          } else if (picks.kind === 'group') {
+            setSaid({
+              revealed: true,
+              kind: 'league-group',
+              rows: orderLeagueGroupPicks(picks.groupPicks, result),
+            })
           } else {
-            const rows = orderLeagueKoPicks(p.koPicks, match.round, actualWinner)
+            const rows = orderLeagueKoPicks(
+              picks.koPicks,
+              match.round,
+              actualWinner,
+            )
             setSaid({
               revealed: true,
               kind: 'league-ko',
@@ -144,8 +254,12 @@ export function MatchCentrePage() {
             if (result) setConsequence(koLeagueCasualties(rows, true))
           }
         }
-      } catch (err) {
-        if (active) setSaidError(userFacingError(err, 'Could not load predictions. Please try again.'))
+      } catch (error) {
+        if (active) {
+          setSaidError(
+            userFacingError(error, 'Could not load predictions. Please try again.'),
+          )
+        }
       } finally {
         if (active) setSaidLoading(false)
       }
@@ -159,7 +273,11 @@ export function MatchCentrePage() {
   if (data.status === 'error') {
     return (
       <div className={s.page}>
-        <EmptyState icon={<CalendarIcon size={22} />} title="Couldn't load this match" description={data.message} />
+        <EmptyState
+          icon={<CalendarIcon size={22} />}
+          title="Couldn't load this match"
+          description={data.message}
+        />
         <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
           Back to Home
         </Button>
@@ -172,7 +290,11 @@ export function MatchCentrePage() {
   if (!match) {
     return (
       <div className={s.page}>
-        <EmptyState icon={<CalendarIcon size={22} />} title="Match not found" description={`No fixture matches "${matchRef}".`} />
+        <EmptyState
+          icon={<CalendarIcon size={22} />}
+          title="Match not found"
+          description={`No fixture matches "${matchRef}".`}
+        />
         <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
           Back to Home
         </Button>
@@ -181,44 +303,74 @@ export function MatchCentrePage() {
   }
 
   const td = data.data
-  const home = { name: teamsById.get(match.homeTeamId ?? '')?.name ?? 'TBC', countryCode: '' }
-  const away = { name: teamsById.get(match.awayTeamId ?? '')?.name ?? 'TBC', countryCode: '' }
-  const result = match.homeScore !== null && match.awayScore !== null ? { home: match.homeScore, away: match.awayScore } : null
-  const actualWinner: 'home' | 'away' | null = result ? (result.home > result.away ? 'home' : result.away > result.home ? 'away' : null) : null
+  const home = {
+    name: teamsById.get(match.homeTeamId ?? '')?.name ?? 'TBC',
+    countryCode: '',
+  }
+  const away = {
+    name: teamsById.get(match.awayTeamId ?? '')?.name ?? 'TBC',
+    countryCode: '',
+  }
+  const result =
+    match.homeScore !== null && match.awayScore !== null
+      ? { home: match.homeScore, away: match.awayScore }
+      : null
+  const actualWinner: 'home' | 'away' | null = result
+    ? result.home > result.away
+      ? 'home'
+      : result.away > result.home
+        ? 'away'
+        : null
+    : null
   const temporal = matchTemporalState(match)
 
-  const stageLabel = match.round === 'group' ? `Group ${td.groups.find((g) => g.id === match.groupId)?.letter ?? ''}`.trim() : (ROUND_LABEL[match.round] ?? 'Knockout')
-  const stateLabel = temporal === 'after' ? 'Full time' : temporal === 'during' ? 'Live' : 'Upcoming'
+  const stageLabel =
+    match.round === 'group'
+      ? `Group ${td.groups.find((group) => group.id === match.groupId)?.letter ?? ''}`.trim()
+      : (ROUND_LABEL[match.round] ?? 'Knockout')
+  const stateLabel =
+    temporal === 'after' ? 'Full time' : temporal === 'during' ? 'Live' : 'Upcoming'
   const eyebrow = `${stageLabel} · ${stateLabel}`
 
   // Your stake + this-match score events.
   let stakeProp: Parameters<typeof MatchCentreScreen>[0]['stake']
   const events: ScoreEvent[] = []
   if (match.round === 'group') {
-    const p = preds.getPrediction(match.id)
-    const pick = p.homeScore !== null && p.awayScore !== null ? { homeScore: p.homeScore, awayScore: p.awayScore, joker: p.joker } : null
-    const gs = groupStake(pick, result)
-    stakeProp = { kind: 'group', stake: gs }
-    if (result && pick && gs.points !== null) {
+    const prediction = preds.getPrediction(match.id)
+    const pick =
+      prediction.homeScore !== null && prediction.awayScore !== null
+        ? {
+            homeScore: prediction.homeScore,
+            awayScore: prediction.awayScore,
+            joker: prediction.joker,
+          }
+        : null
+    const stake = groupStake(pick, result)
+    stakeProp = { kind: 'group', stake }
+    if (result && pick && stake.points !== null) {
       events.push({
         id: `mc-${match.id}`,
         category: 'group_matches',
-        explanation: `${home.name} ${result.home}–${result.away} ${away.name} · ${gs.outcome === 'unknown' ? 'wrong' : gs.outcome === 'exact' ? 'exact score' : gs.outcome === 'correct' ? 'correct result' : 'wrong'}`,
-        points: gs.points,
+        explanation: `${home.name} ${result.home}–${result.away} ${away.name} · ${stake.outcome === 'unknown' ? 'wrong' : stake.outcome === 'exact' ? 'exact score' : stake.outcome === 'correct' ? 'correct result' : 'wrong'}`,
+        points: stake.points,
         joker: pick.joker || undefined,
       })
     }
   } else {
-    const { homeStage, awayStage } = koStagesFor(match, preds.bracketProgression)
-    const ks = koStake(homeStage, awayStage, match.round, actualWinner)
-    const teamName = ks.backed === 'home' ? home.name : ks.backed === 'away' ? away.name : null
-    stakeProp = { kind: 'knockout', stake: ks, teamName }
-    if (result && ks.correct === true && ks.points) {
+    const { homeStage, awayStage } = koStagesFor(
+      match,
+      preds.bracketProgression,
+    )
+    const stake = koStake(homeStage, awayStage, match.round, actualWinner)
+    const teamName =
+      stake.backed === 'home' ? home.name : stake.backed === 'away' ? away.name : null
+    stakeProp = { kind: 'knockout', stake, teamName }
+    if (result && stake.correct === true && stake.points) {
       events.push({
         id: `mc-${match.id}`,
         category: 'knockout',
         explanation: `${teamName} · through to the ${ROUND_LABEL[match.round === 'r16' ? 'qf' : match.round === 'qf' ? 'sf' : match.round === 'sf' ? 'final' : 'final'] ?? 'next round'}`,
-        points: ks.points,
+        points: stake.points,
       })
     }
   }
@@ -233,11 +385,20 @@ export function MatchCentrePage() {
       temporalState={temporal}
       result={result}
       koDetail={null}
-      countdownLabel={temporal === 'before' ? `Kick-off ${new Date(match.kickoffAt ?? match.matchDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}` : null}
+      countdownLabel={
+        temporal === 'before'
+          ? `Kick-off ${new Date(match.kickoffAt ?? match.matchDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
+          : null
+      }
       liveMinute={null}
       stake={stakeProp}
       scope={scope}
-      leagues={leagues}
+      leagues={leagueScopes.rows}
+      leagueScopesStatus={leagueScopes.status}
+      leagueScopesMessage={
+        leagueScopes.status === 'unavailable' ? leagueScopes.message : null
+      }
+      onRetryLeagueScopes={() => setLeagueReloadKey((key) => key + 1)}
       onScopeChange={setScope}
       said={said}
       saidLoading={saidLoading}
