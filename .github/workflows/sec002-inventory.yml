@@ -26,14 +26,14 @@ jobs:
           {
             echo '# SEC-002 raw error inventory'
             echo
-            echo '## Direct message/property use'
+            echo '## Direct internal-message use'
             echo '```text'
-            rg -n --glob '!node_modules/**' --glob '!dist/**' --glob '!docs/**' '(error|err|cause)\??\.message|instanceof Error|String\((error|err|cause)\)|set[A-Za-z]*Error\(|message:\s*(error|err|cause)' src tests e2e || true
+            grep -RInE --include='*.ts' --include='*.tsx' '(error|err|cause)(\?|)\.message|instanceof Error|String\((error|err|cause)\)|set[A-Za-z]*Error\(' src tests e2e || true
             echo '```'
             echo
-            echo '## User-visible error/status rendering candidates'
+            echo '## User-visible rendering candidates'
             echo '```text'
-            rg -n --glob '!node_modules/**' --glob '!dist/**' --glob '!docs/**' 'role=["'"']alert|status === ["'"']error|errorMessage|errorText|saveError|authError|submitError|setMessage\(' src tests e2e || true
+            grep -RInE --include='*.ts' --include='*.tsx' 'role="alert"|role='"'"'alert'"'"'|status === "error"|status === '"'"'error'"'"'|errorMessage|errorText|saveError|authError|submitError|setMessage\(' src tests e2e || true
             echo '```'
           } > docs/sec002-inventory.tmp.md
       - name: Commit inventory
