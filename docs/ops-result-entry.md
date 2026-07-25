@@ -1,37 +1,40 @@
 # Ops runbook — Confirming and correcting match results
 
-This runbook describes the repository result contract introduced by migrations 28–32. It is not permission to apply migrations or enter results in a hosted project.
+This runbook describes the production result contract introduced by migrations 28–32. The functions are live in development and production at contract 35. This document does not grant authority to enter or change a result.
 
-## Hosted status — 24 July 2026
+## Hosted status — 25 July 2026
 
 | Environment | Result-lifecycle position |
 | --- | --- |
-| Development `iouzoutneyjpugbbtdem` | Migrations 28–32 are applied and verified. Confirm/correct/clear, immutable revisions, serialized scoring and winner propagation were rehearsed; temporary evidence rows were removed afterward. |
-| Production `vkfnsqdyhvtwyqkisxhk` | Still on the original twenty-migration shape. No authoritative result-lifecycle functions/columns are live and no stored legacy result exists. |
+| Development `iouzoutneyjpugbbtdem` | Migrations 28–32 are applied and verified. Confirm/correct/clear, immutable revisions, serialized scoring and winner propagation are available. |
+| Production `vkfnsqdyhvtwyqkisxhk` | Migrations 28–32 are applied within the exact 35-version chain. The 63-check verifier and rollback-only service-role confirm/clear smoke passed. No real result, revision, score event or rank-history row is currently stored. |
 
-No browser administrator result-entry interface or version-controlled admin role exists. Result RPCs are service-role-only in the later repository chain.
-
-Do not use the functions below in production until migrations 21–35 have been applied and verified through `docs/ops-hosted-migration-rollout.md`.
+No browser administrator result-entry interface or version-controlled admin role exists. Result RPCs are service-role-only. A database owner or service-role operator may use them only during an explicitly authorized operation with a verified source and retained evidence.
 
 ## Absolute rules
 
 - Never update score, method, shootout, winner, state or version columns directly.
 - Never disable result-boundary or propagation triggers.
-- Never guess whether a legacy knockout score occurred in regulation, extra time or penalties.
+- Never guess whether a knockout score occurred in regulation, extra time or penalties.
 - Corrections and clears require a meaningful reason.
 - A failed preflight or constraint is a stop condition.
 - Clear confirmed downstream results before changing an upstream winner.
 - Use an exact tournament ID and match reference; never rely on “latest tournament” ordering.
+- Verify the result against an authoritative source before writing.
+- Do not use production for training, rehearsal or speculative entry.
+- Retain operator, source, reason, time, function result and post-verification without secrets.
 
 ## Supported server functions
 
-After the complete required migration chain is live, the only supported result write paths are:
+The only supported result write paths are:
 
 - `public.confirm_match_result(...)`
 - `public.correct_match_result(...)`
 - `public.clear_match_result(...)`
 
-They are denied to `PUBLIC`, `anon` and `authenticated`, and are intended for `service_role` through a future server-side administrator adapter. A database owner may call them only during an explicitly authorized interim operation.
+They are denied to `PUBLIC`, `anon` and `authenticated` and granted only to `service_role`. A future server-side administrator adapter must call these functions rather than direct table writes.
+
+Direct `service_role` access to `public.match_result_revisions` is intentionally denied. Revision creation occurs only inside the protected lifecycle functions. Investigation of revision rows requires a separately authorized database-owner path.
 
 ## Result model
 
@@ -48,6 +51,21 @@ A match stores:
 
 For penalties, the public football score remains tied at 120 minutes. Shootout kicks are separate and `winner_team_id` drives progression/champion scoring.
 
+## Pre-operation verification
+
+Before any production result write:
+
+1. confirm explicit operator authorization;
+2. confirm production project identity `vkfnsqdyhvtwyqkisxhk`;
+3. confirm the exact tournament and match reference;
+4. confirm home/away participants;
+5. confirm current `result_state` and `result_version`;
+6. confirm the official source and match completion method;
+7. inspect downstream confirmed/corrected results before changing an upstream match;
+8. capture a read-only pre-operation snapshot;
+9. prepare the post-operation verification query;
+10. stop if any identity, source or dependency is ambiguous.
+
 ## Find and verify the match
 
 ```sql
@@ -60,6 +78,7 @@ select
   m.away_team_id,
   at.name as away_team,
   m.result_state,
+  m.result_method,
   m.result_version
 from public.matches m
 left join public.teams ht on ht.id = m.home_team_id
@@ -96,7 +115,7 @@ select public.confirm_match_result(
   p_away_90 => 1::smallint,
   p_home_120 => 2::smallint,
   p_away_120 => 1::smallint,
-  p_reason => 'Verified after extra time'
+  p_reason => 'Verified against the official extra-time result'
 );
 ```
 
@@ -114,7 +133,7 @@ select public.confirm_match_result(
   p_away_120 => 1::smallint,
   p_home_penalties => 5::smallint,
   p_away_penalties => 4::smallint,
-  p_reason => 'Verified shootout result'
+  p_reason => 'Verified against the official shootout result'
 );
 ```
 
@@ -172,7 +191,7 @@ from public.matches
 where id = '<MATCH_UUID>'::uuid;
 ```
 
-A privileged investigator may inspect revisions:
+A separately authorized database owner may inspect revisions:
 
 ```sql
 select revision, action, reason, recorded_at, previous_result, new_result
@@ -187,11 +206,22 @@ Also verify:
 - no unrelated fixture changed;
 - expected `score_events` were rederived;
 - leaderboard totals and rank history are coherent;
-- result and revision versions advanced exactly once.
+- result and revision versions advanced exactly once;
+- the function action/reason/source were recorded in the operational change record.
 
-## Current repository/development behavior
+## Rollback and correction policy
 
-Implemented and verified:
+Do not attempt direct SQL rollback of a confirmed result. Use the protected lifecycle:
+
+- wrong but completed result → `correct_match_result`;
+- result should not remain authoritative → `clear_match_result`;
+- upstream correction blocked by downstream result → clear downstream in reverse order, correct upstream, reconfirm forward in order.
+
+A failed function call should leave the transaction unchanged. Stop and inspect rather than weakening a constraint.
+
+## Current implemented behaviour
+
+Implemented and production-hosted:
 
 - result confirmation, correction and clear;
 - immutable revisions;
@@ -199,20 +229,21 @@ Implemented and verified:
 - penalty-decided champion scoring;
 - real winner propagation through QF, SF and final;
 - protection against changing an upstream winner beneath a confirmed downstream result;
-- exact service-role-only result-function privileges.
+- exact service-role-only result-function privileges;
+- direct revision-table denial;
+- rollback-only production result lifecycle smoke.
 
 Not yet implemented/live:
 
-- production rollout of migrations 21–35;
 - automatic real R16 population from completed groups;
-- browser/server administrator adapter;
+- browser/server administrator adapter and authorization model;
 - automatic data-feed ingestion;
 - automatic repair of legacy scores.
 
 ## Related documents
 
 - `docs/quality/current-status.md`
-- `docs/quality/audits/2026-07-23-live-environment-audit.md`
+- `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`
 - `docs/ops-pending-migrations.md`
 - `docs/ops-hosted-migration-rollout.md`
 - `docs/ops-admin-bootstrap.md`
