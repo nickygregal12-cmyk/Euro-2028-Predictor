@@ -15,7 +15,11 @@ import { fetchLeaderboard } from '../../services/supabase/leaderboard'
 import { fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchMyScoreEvents } from '../../services/supabase/scoring'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
-import { ProfileScreen, type ProfileFullStats } from './ProfileScreen'
+import {
+  ProfileScreen,
+  type ProfileDataAvailability,
+  type ProfileFullStats,
+} from './ProfileScreen'
 import type { MatchTeam } from '../../design-system'
 import s from '../shared.module.css'
 
@@ -32,8 +36,9 @@ type State =
       status: 'ready'
       champion: MatchTeam | null
       stats: ProfileFullStats
-      events: ScoreEvent[]
-      leaguesCount: number
+      events: ScoreEvent[] | null
+      leaguesCount: number | null
+      availability: ProfileDataAvailability
       locked: boolean
     }
 
@@ -70,45 +75,77 @@ export function ProfilePage() {
     )
 
     // Exact / accuracy from the user's own resulted group predictions (domain
-    // scorer — same rules as score_events).
+    // scorer — same rules as score_events). These local values remain available
+    // even when an independent remote profile source fails.
     const kinds: OutcomeKind[] = []
-    for (const m of td.matches) {
-      if (m.round !== 'group' || m.homeScore === null || m.awayScore === null) continue
-      const scored = scoreOneMatch(preds.getPrediction(m.id), { home: m.homeScore, away: m.awayScore })
+    for (const match of td.matches) {
+      if (
+        match.round !== 'group' ||
+        match.homeScore === null ||
+        match.awayScore === null
+      ) {
+        continue
+      }
+      const scored = scoreOneMatch(preds.getPrediction(match.id), {
+        home: match.homeScore,
+        away: match.awayScore,
+      })
       if (scored) kinds.push(scored.kind)
     }
     const derived = profileStats(kinds)
 
-    Promise.all([
-      fetchLeaderboard(tournamentId).catch(() => []),
-      fetchMyLeagues(tournamentId).catch(() => []),
-      fetchMyScoreEvents().catch(() => [] as ScoreEvent[]),
-    ])
-      .then(([leaderboard, leagues, events]) => {
-        if (!active) return
-        const ranked = rankLeaderboard(leaderboard)
-        const you = ranked.find((r) => r.isYou)
-        const preResults = ranked.every((r) => r.rank === null)
-        setState({
-          status: 'ready',
-          champion: bracket.champion ?? null,
-          stats: {
-            ...derived,
-            totalPoints: you?.totalPoints ?? 0,
-            rank: preResults ? null : (you?.rank ?? null),
-          },
-          events,
-          leaguesCount: leagues.length,
-          locked,
-        })
+    async function loadProfile(): Promise<Extract<State, { status: 'ready' }>> {
+      const [leaderboardResult, leaguesResult, eventsResult] = await Promise.allSettled([
+        fetchLeaderboard(tournamentId!),
+        fetchMyLeagues(tournamentId!),
+        fetchMyScoreEvents(),
+      ])
+
+      const availability: ProfileDataAvailability = {
+        leaderboard: leaderboardResult.status === 'fulfilled',
+        leagues: leaguesResult.status === 'fulfilled',
+        scoreEvents: eventsResult.status === 'fulfilled',
+      }
+
+      let totalPoints: number | null = null
+      let rank: number | null = null
+      if (leaderboardResult.status === 'fulfilled') {
+        const ranked = rankLeaderboard(leaderboardResult.value)
+        const you = ranked.find((row) => row.isYou)
+        const preResults = ranked.every((row) => row.rank === null)
+        totalPoints = you?.totalPoints ?? 0
+        rank = preResults ? null : (you?.rank ?? null)
+      }
+
+      return {
+        status: 'ready',
+        champion: bracket.champion ?? null,
+        stats: {
+          ...derived,
+          totalPoints,
+          rank,
+        },
+        events: eventsResult.status === 'fulfilled' ? eventsResult.value : null,
+        leaguesCount:
+          leaguesResult.status === 'fulfilled' ? leaguesResult.value.length : null,
+        availability,
+        locked,
+      }
+    }
+
+    loadProfile()
+      .then((nextState) => {
+        if (active) setState(nextState)
       })
-      .catch((e) => {
-        if (active)
+      .catch((error) => {
+        if (active) {
           setState({
             status: 'error',
-            message: userFacingError(e, 'Could not load your profile. Please try again.'),
+            message: userFacingError(error, 'Could not load your profile. Please try again.'),
           })
+        }
       })
+
     return () => {
       active = false
     }
@@ -131,7 +168,7 @@ export function ProfilePage() {
         <Alert variant="error" title="Couldn't load your profile">
           {state.message}
           <div style={{ marginTop: 10 }}>
-            <Button variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
+            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
               Retry
             </Button>
           </div>
@@ -168,6 +205,7 @@ export function ProfilePage() {
         }}
         stats={state.stats}
         events={state.events}
+        availability={state.availability}
         locked={state.locked}
         onViewEntry={() => navigate('/predict/review')}
       />
