@@ -6,6 +6,7 @@ const expectedSupabaseRef =
   process.env.EURO28_SMOKE_EXPECTED_SUPABASE_REF ?? productionSupabaseRef
 const expectedEnvironment =
   process.env.EURO28_SMOKE_EXPECTED_CONTEXT ?? 'production'
+const expectedCommit = process.env.EURO28_SMOKE_EXPECTED_COMMIT ?? ''
 
 const expectedSupabaseHost = `${expectedSupabaseRef}.supabase.co`
 const developmentSupabaseHost = `${developmentSupabaseRef}.supabase.co`
@@ -48,6 +49,10 @@ test('anonymous production routes and environment isolation', async ({
     hostedContract: 35,
     supabaseProjectRef: expectedSupabaseRef,
   })
+
+  if (expectedCommit) {
+    expect(release.commit).toBe(expectedCommit)
+  }
 
   await page.goto('/auth/login', { waitUntil: 'domcontentloaded' })
   await expect(
