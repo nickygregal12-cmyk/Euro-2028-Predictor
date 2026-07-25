@@ -25,6 +25,8 @@ import s from '../shared.module.css'
 // so no endpoint exposes another user's stats or predictions yet. The
 // presentational ProfileScreen already covers the other-player + pre-lock-hidden
 // states (see /dev/components) for when that lands.
+export type ProfileDataSource = 'leaderboard' | 'leagues' | 'events'
+
 type State =
   | { status: 'loading' }
   | { status: 'error'; message: string }
@@ -33,7 +35,8 @@ type State =
       champion: MatchTeam | null
       stats: ProfileFullStats
       events: ScoreEvent[]
-      leaguesCount: number
+      leaguesCount: number | null
+      unavailable: ProfileDataSource[]
       locked: boolean
     }
 
@@ -70,44 +73,85 @@ export function ProfilePage() {
     )
 
     // Exact / accuracy from the user's own resulted group predictions (domain
-    // scorer — same rules as score_events).
+    // scorer — same rules as score_events). This remains available even when a
+    // separate remote leaderboard, league or score-event request fails.
     const kinds: OutcomeKind[] = []
-    for (const m of td.matches) {
-      if (m.round !== 'group' || m.homeScore === null || m.awayScore === null) continue
-      const scored = scoreOneMatch(preds.getPrediction(m.id), { home: m.homeScore, away: m.awayScore })
+    for (const match of td.matches) {
+      if (
+        match.round !== 'group' ||
+        match.homeScore === null ||
+        match.awayScore === null
+      ) {
+        continue
+      }
+      const scored = scoreOneMatch(preds.getPrediction(match.id), {
+        home: match.homeScore,
+        away: match.awayScore,
+      })
       if (scored) kinds.push(scored.kind)
     }
     const derived = profileStats(kinds)
 
-    Promise.all([
-      fetchLeaderboard(tournamentId).catch(() => []),
-      fetchMyLeagues(tournamentId).catch(() => []),
-      fetchMyScoreEvents().catch(() => [] as ScoreEvent[]),
+    Promise.allSettled([
+      fetchLeaderboard(tournamentId),
+      fetchMyLeagues(tournamentId),
+      fetchMyScoreEvents(),
     ])
-      .then(([leaderboard, leagues, events]) => {
+      .then(([leaderboardRead, leaguesRead, eventsRead]) => {
         if (!active) return
-        const ranked = rankLeaderboard(leaderboard)
-        const you = ranked.find((r) => r.isYou)
-        const preResults = ranked.every((r) => r.rank === null)
+
+        const unavailable: ProfileDataSource[] = []
+        let totalPoints: number | null = null
+        let rank: number | null = null
+        let leaguesCount: number | null = null
+        let events: ScoreEvent[] = []
+
+        if (leaderboardRead.status === 'fulfilled') {
+          const ranked = rankLeaderboard(leaderboardRead.value)
+          const you = ranked.find((row) => row.isYou)
+          const preResults = ranked.every((row) => row.rank === null)
+          totalPoints = you?.totalPoints ?? 0
+          rank = preResults ? null : (you?.rank ?? null)
+        } else {
+          unavailable.push('leaderboard')
+        }
+
+        if (leaguesRead.status === 'fulfilled') {
+          leaguesCount = leaguesRead.value.length
+        } else {
+          unavailable.push('leagues')
+        }
+
+        if (eventsRead.status === 'fulfilled') {
+          events = eventsRead.value
+        } else {
+          unavailable.push('events')
+        }
+
         setState({
           status: 'ready',
           champion: bracket.champion ?? null,
           stats: {
             ...derived,
-            totalPoints: you?.totalPoints ?? 0,
-            rank: preResults ? null : (you?.rank ?? null),
+            totalPoints,
+            rank,
           },
           events,
-          leaguesCount: leagues.length,
+          leaguesCount,
+          unavailable,
           locked,
         })
       })
-      .catch((e) => {
-        if (active)
+      .catch((error) => {
+        if (active) {
           setState({
             status: 'error',
-            message: userFacingError(e, 'Could not load your profile. Please try again.'),
+            message: userFacingError(
+              error,
+              'Could not load your profile. Please try again.',
+            ),
           })
+        }
       })
     return () => {
       active = false
@@ -131,7 +175,7 @@ export function ProfilePage() {
         <Alert variant="error" title="Couldn't load your profile">
           {state.message}
           <div style={{ marginTop: 10 }}>
-            <Button variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
+            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
               Retry
             </Button>
           </div>
@@ -154,9 +198,19 @@ export function ProfilePage() {
     )
   }
 
+  const leaderboardAvailable = !state.unavailable.includes('leaderboard')
+  const leaguesAvailable = !state.unavailable.includes('leagues')
+  const eventsAvailable = !state.unavailable.includes('events')
+
   return (
     <div className={s.page}>
       {header}
+      {state.unavailable.length > 0 && (
+        <Alert variant="warning" title="Some profile data is unavailable">
+          Your predictions and locally derived accuracy are unaffected. Missing figures will
+          return when the connection recovers.
+        </Alert>
+      )}
       <ProfileScreen
         kind="full"
         header={{
@@ -168,6 +222,11 @@ export function ProfilePage() {
         }}
         stats={state.stats}
         events={state.events}
+        availability={{
+          leaderboard: leaderboardAvailable,
+          leagues: leaguesAvailable,
+          events: eventsAvailable,
+        }}
         locked={state.locked}
         onViewEntry={() => navigate('/predict/review')}
       />
