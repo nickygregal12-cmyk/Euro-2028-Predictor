@@ -19,7 +19,9 @@ const forbiddenHostedRefs = [
   'gcfdwobpnanjchcnvdco',
 ]
 
-const authHarness = `${workflow}\n${authConfig}\n${localMail}\n${authJourney}`
+const [authenticatedWorkflow] = workflow.split('\n  deploy-preview-smoke:')
+const authHarness =
+  `${authenticatedWorkflow}\n${authConfig}\n${localMail}\n${authJourney}`
 
 describe('authentication recovery browser E2E', () => {
   it('runs separately with development auto-login disabled', () => {
@@ -30,18 +32,22 @@ describe('authentication recovery browser E2E', () => {
     expect(packageJson.scripts['test:e2e:auth']).toBe(
       'playwright test --config=playwright.auth.config.ts',
     )
-    expect(workflow).toContain('npm run test:e2e:auth')
+    expect(authenticatedWorkflow).toContain('npm run test:e2e:auth')
   })
 
   it('uses only the disposable local Supabase Mailpit service', () => {
-    expect(workflow).toContain('E2E_MAIL_URL')
+    expect(authenticatedWorkflow).toContain('E2E_MAIL_URL')
     expect(localMail).toContain("LOCAL_MAIL_PORT = '54324'")
     expect(localMail).toContain("parsed.protocol !== 'http:'")
-    expect(localMail).toContain("['127.0.0.1', 'localhost'].includes(parsed.hostname)")
+    expect(localMail).toContain(
+      "['127.0.0.1', 'localhost'].includes(parsed.hostname)",
+    )
     expect(localMail).toContain('parsed.port !== LOCAL_MAIL_PORT')
     expect(localMail).toContain('/api/v1/messages?limit=100')
     expect(localMail).toContain('/api/v1/message/${encodeURIComponent(id)}')
-    for (const ref of forbiddenHostedRefs) expect(authHarness).not.toContain(ref)
+    for (const ref of forbiddenHostedRefs) {
+      expect(authHarness).not.toContain(ref)
+    }
   })
 
   it('enables confirmation and redirects only on local test origins', () => {
