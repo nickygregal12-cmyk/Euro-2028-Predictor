@@ -194,9 +194,10 @@ Do not run additional history repair against development. Migration 36 remains d
 - [x] Run Browser E2E as a path-scoped PR workflow.
 - [x] Implement route titles, live announcements, main focus and skip navigation.
 - [x] Replace league-options ARIA menu mismatch with disclosure semantics (`A11Y-002`).
-- [ ] Add private league invitation/join browser journey.
+- [x] Add private league creation/invitation/join browser journey.
+- [x] Add retained keyboard and route-announcement browser evidence (`A11Y-001`).
+- [ ] Complete manual screen-reader review for `A11Y-001`.
 - [ ] Add result-administration journey after implementation.
-- [ ] Add retained keyboard and screen-reader-oriented browser/manual evidence (`A11Y-001`).
 - [ ] Add production error reporting, alert ownership and critical-journey monitoring.
 - [ ] Periodically repeat backup/restore/application rollback rehearsals.
 
@@ -209,7 +210,7 @@ After integrity/recovery gates:
 - [ ] Expand Match Centre pre/live/post/admin states.
 - [ ] Add account/privacy/contact-admin surfaces.
 - [ ] Add post-lock prediction trends.
-- [ ] Improve trustworthy invite preview before auth.
+- [ ] Improve trustworthy invite preview before auth and remove render-time pending-join mutation.
 - [ ] Preserve unavailable/error/empty distinctions.
 - [ ] Complete mobile physics/friction pass.
 
@@ -260,4 +261,4 @@ Sweepstake builder remains non-launch-blocking. Fan Duels direct challenges rema
 - [x] Fail-closed application/database deployment contract.
 - [x] Node `22.22.2` alignment.
 - [x] Fresh encrypted off-device production source artifact created.
-- [x] `2026-07-25R` full repeat audit and authority-document reconciliation prepared.
+- [x] `2026-07-25R` full repeat audit and authority-document reconciliation merged.
