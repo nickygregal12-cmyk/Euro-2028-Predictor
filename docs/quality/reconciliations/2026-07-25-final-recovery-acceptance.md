@@ -4,7 +4,8 @@
 **Scope:** Production logical-backup recovery proof and migrations 21–35 rehearsal.  
 **Production impact:** None. Production remained at declared database contract 20.  
 **Repository authority:** `main` commit `6c3eeff04d1063400b86dae2e214f36af74452f1`.  
-**Final clean replay project:** `cxbkesisqnhbmvltzujp` in `eu-west-2`.
+**Final clean replay project:** `cxbkesisqnhbmvltzujp` in `eu-west-2`.  
+**Final clean replay status:** Paused after final evidence capture and verification.
 
 ## Owner acceptance
 
@@ -52,6 +53,20 @@ The following non-secret local evidence directories were produced:
 The directories are retained under the operator's restricted
 `Documents/euro28-restore-evidence` location. They are not committed because
 they may contain operational database output and machine-specific paths.
+
+## Hosted cleanup
+
+After the final state, advisors and rollback-only smoke evidence were captured:
+
+- final clean replay project `cxbkesisqnhbmvltzujp` was paused;
+- preceding diagnostic replay project `eckuehkcmkhuhmsfxtxu` remained paused;
+- production `vkfnsqdyhvtwyqkisxhk` remained active, healthy and unchanged;
+- no disposable project was repointed into any Netlify context;
+- no development or production database write was performed as part of cleanup.
+
+The paused projects may be removed later through a separate owner-approved
+cleanup action after the retained evidence and plaintext-retention decision are
+confirmed.
 
 ## Verified results
 
