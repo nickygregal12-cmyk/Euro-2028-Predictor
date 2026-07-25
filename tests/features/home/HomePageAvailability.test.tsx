@@ -8,13 +8,9 @@ const mocks = vi.hoisted(() => ({
   state: null as unknown,
 }))
 
-vi.mock('../../../src/features/home/useHomeData', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../../../src/features/home/useHomeData')>()
-  return {
-    ...original,
-    useHomeData: () => mocks.state,
-  }
-})
+vi.mock('../../../src/features/home/useHomeData', () => ({
+  useHomeData: () => mocks.state,
+}))
 
 vi.mock('../../../src/features/share/useShareModel', () => ({
   useShareModel: () => ({ model: null, variants: [] }),
