@@ -117,7 +117,10 @@ if (!completeSupabaseUrls.has(expectedSupabaseUrl)) {
   stop(`Expected Supabase endpoint ${expectedSupabaseUrl} was not found.`)
 }
 
-if (completeSupabaseUrls.has(developmentSupabaseUrl)) {
+if (
+  expectedSupabaseRef !== DEVELOPMENT_SUPABASE_REF &&
+  completeSupabaseUrls.has(developmentSupabaseUrl)
+) {
   stop('The complete development Supabase endpoint is present in the bundle.')
 }
 
