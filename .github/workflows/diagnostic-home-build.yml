@@ -1,9 +1,14 @@
 name: Diagnostic Home build
 
 on:
-  push:
+  pull_request:
     branches:
-      - fix/home-data-availability
+      - main
+    paths:
+      - src/features/home/**
+      - src/services/supabase/profile.ts
+      - tests/features/home/**
+      - .github/workflows/diagnostic-home-build.yml
 
 permissions:
   contents: read
