@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import {
   createContext,
   useContext,
@@ -63,7 +64,7 @@ export function TournamentDataProvider({ children }: { children: ReactNode }) {
         if (stateRef.current.status !== 'ready') {
           setState({
             status: 'error',
-            message: err instanceof Error ? err.message : 'Failed to load',
+            message: userFacingError(err, 'Could not load tournament data. Please try again.'),
           })
         }
       })

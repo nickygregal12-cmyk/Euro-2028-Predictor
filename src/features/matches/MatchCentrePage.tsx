@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { EmptyState, Button } from '../../design-system'
@@ -144,7 +145,7 @@ export function MatchCentrePage() {
           }
         }
       } catch (err) {
-        if (active) setSaidError((err as { message?: string })?.message ?? 'Could not load predictions.')
+        if (active) setSaidError(userFacingError(err, 'Could not load predictions. Please try again.'))
       } finally {
         if (active) setSaidLoading(false)
       }

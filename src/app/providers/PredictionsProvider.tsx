@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import {
   createContext,
   useContext,
@@ -738,7 +739,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       setSubmittedAt(when)
       return { ok: true }
     } catch (e) {
-      return { ok: false, message: e instanceof Error ? e.message : 'Submission failed.' }
+      return { ok: false, message: userFacingError(e, 'Submission failed. Please try again.') }
     } finally {
       submittingRef.current = false
       setSubmitting(false)

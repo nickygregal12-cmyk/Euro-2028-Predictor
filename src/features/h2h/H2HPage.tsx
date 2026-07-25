@@ -1,3 +1,4 @@
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Alert, Skeleton, type MatchTeam } from '../../design-system'
@@ -141,7 +142,7 @@ export function H2HPage() {
         if (active)
           setState({
             status: 'error',
-            message: e instanceof Error ? e.message : 'Head-to-head is unavailable.',
+            message: userFacingError(e, 'Head-to-head is unavailable. Please try again.'),
           })
       })
     return () => {
