@@ -18,15 +18,21 @@ export function HomePage() {
   const navigate = useNavigate()
   const state = useHomeData()
 
-  // Share card (design-system §6). Brag numbers only during the tournament.
+  // Share card (design-system §6). Brag numbers only during the tournament and
+  // only when their source is available; null must never become a false zero.
   const hm = state.status === 'ready' ? state.model : null
   const brag =
-    hm && hm.phase === 'during' ? { points: hm.totalPoints, rank: hm.rank, total: hm.entryCount } : null
+    hm &&
+    hm.phase === 'during' &&
+    hm.totalPoints !== null &&
+    hm.entryCount !== null
+      ? { points: hm.totalPoints, rank: hm.rank, total: hm.entryCount }
+      : null
   const share = useShareModel({ brag })
   const [shareOpen, setShareOpen] = useState(false)
   const [shareDefault, setShareDefault] = useState<ShareVariant>('tease')
-  const openShare = (v: ShareVariant) => {
-    setShareDefault(v)
+  const openShare = (variant: ShareVariant) => {
+    setShareDefault(variant)
     setShareOpen(true)
   }
 
@@ -62,14 +68,28 @@ export function HomePage() {
     )
   }
 
-  const m = state.model
+  const model = state.model
   const canShare = share.model !== null && share.variants.length > 0
   return (
     <div className={s.page}>
       {header}
-      {m.phase === 'during' && <DuringLayout m={m} navigate={navigate} onShare={canShare ? openShare : undefined} />}
-      {m.phase === 'preSubmitted' && <PreSubmittedLayout m={m} navigate={navigate} onShare={canShare ? openShare : undefined} />}
-      {m.phase === 'preIncomplete' && <PreIncompleteLayout m={m} navigate={navigate} />}
+      {model.phase === 'during' && (
+        <DuringLayout
+          m={model}
+          navigate={navigate}
+          onShare={canShare ? openShare : undefined}
+        />
+      )}
+      {model.phase === 'preSubmitted' && (
+        <PreSubmittedLayout
+          m={model}
+          navigate={navigate}
+          onShare={canShare ? openShare : undefined}
+        />
+      )}
+      {model.phase === 'preIncomplete' && (
+        <PreIncompleteLayout m={model} navigate={navigate} />
+      )}
       {share.model && (
         <ShareSheet
           open={shareOpen}
@@ -85,9 +105,25 @@ export function HomePage() {
 
 type Nav = ReturnType<typeof useNavigate>
 
-function DuringLayout({ m, navigate, onShare }: { m: HomeModel; navigate: Nav; onShare?: (v: ShareVariant) => void }) {
+function DuringLayout({
+  m,
+  navigate,
+  onShare,
+}: {
+  m: HomeModel
+  navigate: Nav
+  onShare?: (variant: ShareVariant) => void
+}) {
+  const leagueDataAvailable = !m.unavailable.includes('leagues')
+
   return (
     <>
+      {m.unavailable.length > 0 && (
+        <Alert variant="warning" title="Some dashboard data is unavailable">
+          Your saved predictions are unaffected. Missing figures will return when the
+          connection recovers.
+        </Alert>
+      )}
       {onShare && (
         <Button variant="secondary" fullWidth onClick={() => onShare('brag')}>
           <span className={h.shareBtn}>
@@ -102,15 +138,19 @@ function DuringLayout({ m, navigate, onShare }: { m: HomeModel; navigate: Nav; o
         entryCount={m.entryCount}
         bestLeagueRank={m.bestLeague?.rank ?? null}
         hasLeague={m.hasAnyLeague}
+        leagueDataAvailable={leagueDataAvailable}
         onPoints={() => navigate('/profile')}
         onToday={() => navigate('/profile')}
         onRank={() => navigate('/league/overall')}
-        onLeague={() => (m.bestLeague ? navigate(`/league/${m.bestLeague.id}`) : navigate('/league'))}
+        onLeague={() =>
+          m.bestLeague ? navigate(`/league/${m.bestLeague.id}`) : navigate('/league')
+        }
       />
       <TodayCard section={m.today} onOpenMatch={(ref) => navigate(`/match/${ref}`)} />
       {m.catchUp && <CatchUpLine catchUp={m.catchUp} />}
       <LeagueSnapshot
         league={m.bestLeague}
+        available={leagueDataAvailable}
         onOpen={(id) => navigate(`/league/${id}`)}
         onCreate={() => navigate('/league')}
       />
@@ -118,8 +158,20 @@ function DuringLayout({ m, navigate, onShare }: { m: HomeModel; navigate: Nav; o
   )
 }
 
-function PreSubmittedLayout({ m, navigate, onShare }: { m: HomeModel; navigate: Nav; onShare?: (v: ShareVariant) => void }) {
-  const days = m.lockAt ? daysUntil(m.lockAt.slice(0, 10)) : m.startsOn ? daysUntil(m.startsOn) : null
+function PreSubmittedLayout({
+  m,
+  navigate,
+  onShare,
+}: {
+  m: HomeModel
+  navigate: Nav
+  onShare?: (variant: ShareVariant) => void
+}) {
+  const days = m.lockAt
+    ? daysUntil(m.lockAt.slice(0, 10))
+    : m.startsOn
+      ? daysUntil(m.startsOn)
+      : null
   return (
     <>
       <div className={h.submittedBanner}>
@@ -183,7 +235,8 @@ function PreIncompleteLayout({ m, navigate }: { m: HomeModel; navigate: Nav }) {
           <p className={s.sub}>
             Predictions lock when the tournament kicks off
             {days > 0 ? ` — in ${days} day${days === 1 ? '' : 's'}` : ''} (
-            {formatLongDate(m.startsOn)}). The server enforces the lock; this countdown is a reminder.
+            {formatLongDate(m.startsOn)}). The server enforces the lock; this countdown is a
+            reminder.
           </p>
         ) : (
           <p className={s.sub}>Kickoff date to be confirmed.</p>
