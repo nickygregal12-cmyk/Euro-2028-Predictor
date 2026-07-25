@@ -17,17 +17,15 @@ import {
 import { fetchLeaderboard } from '../../services/supabase/leaderboard'
 import { fetchLeagueMembers, fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchMyScoreEventPoints } from '../../services/supabase/scoring'
-import { fetchLastSeen, updateLastSeen } from '../../services/supabase/profile'
+import { fetchLastSeenRead, updateLastSeen } from '../../services/supabase/profile'
 import { computeHubStatus } from '../predict/hubStatus'
 import { buildBracketPipeline } from '../bracket'
 import { todayISO } from '../../app/time'
 
-// A fixture shown in the Today card. `live` stays false until a live-score data
-// source exists (Phase 3) — there's no minute/live flag in the schema yet.
 export type TodayFixture = {
   matchId: string
   matchRef: string
-  group: string // group letter, or '' for knockout
+  group: string
   matchday: number | null
   home: MatchTeam
   away: MatchTeam
@@ -48,18 +46,14 @@ export type HomeDataSource = 'leaderboard' | 'scoreEvents' | 'leagues' | 'catchU
 export type HomeModel = {
   phase: HomePhase
   displayName: string | null
-  // Stat strip (during). Null means the source was unavailable, never zero.
   totalPoints: number | null
   pointsToday: number | null
   rank: number | null
   entryCount: number | null
   bestLeague: LeagueStanding | null
   unavailable: HomeDataSource[]
-  // Today card
   today: TodaySection
-  // Catch-up
   catchUp: CatchUp | null
-  // Pre-tournament
   entryPercent: number
   groupsPredicted: number
   groupsTotal: number
@@ -103,37 +97,36 @@ export function useHomeData(): HomeState {
     setState({ status: 'loading' })
 
     const td = data.data
-    const teamsById = new Map(td.teams.map((t) => [t.id, t]))
-    const letterByGroupId = new Map(td.groups.map((g) => [g.id, g.letter]))
+    const teamsById = new Map(td.teams.map((team) => [team.id, team]))
+    const letterByGroupId = new Map(td.groups.map((group) => [group.id, group.letter]))
     const teamOf = (id: string | null): MatchTeam => ({
       name: id ? (teamsById.get(id)?.name ?? 'TBC') : 'TBC',
       countryCode: '',
     })
-    const toFixture = (m: (typeof td.matches)[number]): TodayFixture => {
-      const p = preds.getPrediction(m.id)
+    const toFixture = (match: (typeof td.matches)[number]): TodayFixture => {
+      const prediction = preds.getPrediction(match.id)
       return {
-        matchId: m.id,
-        matchRef: m.matchRef,
-        group: m.groupId ? (letterByGroupId.get(m.groupId) ?? '') : '',
-        matchday: m.matchday,
-        home: teamOf(m.homeTeamId),
-        away: teamOf(m.awayTeamId),
-        kickoffAt: m.kickoffAt,
-        matchDate: m.matchDate,
+        matchId: match.id,
+        matchRef: match.matchRef,
+        group: match.groupId ? (letterByGroupId.get(match.groupId) ?? '') : '',
+        matchday: match.matchday,
+        home: teamOf(match.homeTeamId),
+        away: teamOf(match.awayTeamId),
+        kickoffAt: match.kickoffAt,
+        matchDate: match.matchDate,
         prediction:
-          p.homeScore !== null && p.awayScore !== null
-            ? { home: p.homeScore, away: p.awayScore }
+          prediction.homeScore !== null && prediction.awayScore !== null
+            ? { home: prediction.homeScore, away: prediction.awayScore }
             : null,
         result:
-          m.homeScore !== null && m.awayScore !== null
-            ? { home: m.homeScore, away: m.awayScore }
+          match.homeScore !== null && match.awayScore !== null
+            ? { home: match.homeScore, away: match.awayScore }
             : null,
         live: false,
       }
     }
 
-    // --- synchronous shaping (no DB) -----------------------------------------
-    const hasResults = td.matches.some((m) => m.homeScore !== null)
+    const hasResults = td.matches.some((match) => match.homeScore !== null)
     const submitted = preds.submittedAt !== null
     const phase = homePhase({ hasResults, submitted })
 
@@ -151,7 +144,6 @@ export function useHomeData(): HomeState {
       preds.bracketProgression,
     )
 
-    // Today's fixtures, or the next matchday if none today.
     const today = todayISO()
     const sorted = [...td.matches].sort(
       (a, b) =>
@@ -159,18 +151,18 @@ export function useHomeData(): HomeState {
         (a.kickoffAt ?? '').localeCompare(b.kickoffAt ?? '') ||
         a.matchRef.localeCompare(b.matchRef),
     )
-    const todays = sorted.filter((m) => m.matchDate === today)
+    const todays = sorted.filter((match) => match.matchDate === today)
     let todaySection: TodaySection
     if (todays.length > 0) {
       const fixtures = todays.map(toFixture)
-      todaySection = { kind: 'today', fixtures, anyLive: fixtures.some((f) => f.live) }
+      todaySection = { kind: 'today', fixtures, anyLive: fixtures.some((fixture) => fixture.live) }
     } else {
-      const nextDate = sorted.find((m) => m.matchDate > today)?.matchDate
+      const nextDate = sorted.find((match) => match.matchDate > today)?.matchDate
       todaySection = nextDate
         ? {
             kind: 'next',
             dateISO: nextDate,
-            fixtures: sorted.filter((m) => m.matchDate === nextDate).map(toFixture),
+            fixtures: sorted.filter((match) => match.matchDate === nextDate).map(toFixture),
           }
         : { kind: 'none' }
     }
@@ -196,15 +188,13 @@ export function useHomeData(): HomeState {
       startsOn: td.tournament.startsOn,
     }
 
-    // Pre-tournament phases do not render scored dashboard statistics.
     if (phase !== 'during') {
       setState({ status: 'ready', model: baseModel })
       return
     }
 
-    // --- during-tournament data (independent availability) -------------------
     async function loadDuring(): Promise<HomeModel> {
-      const matchDateById = new Map(td.matches.map((m) => [m.id, m.matchDate]))
+      const matchDateById = new Map(td.matches.map((match) => [match.id, match.matchDate]))
       const unavailable = new Set<HomeDataSource>()
 
       let totalPoints: number | null = null
@@ -273,18 +263,16 @@ export function useHomeData(): HomeState {
       if (totalPoints === null) {
         unavailable.add('catchUp')
       } else {
-        try {
-          const seen = await fetchLastSeen(userId!)
+        const seen = await fetchLastSeenRead(userId!)
+        if (!seen.available) {
+          unavailable.add('catchUp')
+        } else {
           catchUp = catchUpSummary({
-            lastSeenAt: seen.lastSeenAt,
-            lastSeenPoints: seen.lastSeenPoints,
+            lastSeenAt: seen.value.lastSeenAt,
+            lastSeenPoints: seen.value.lastSeenPoints,
             currentPoints: totalPoints,
           })
-          // Snapshot for next time after reading the previous value. A failed
-          // best-effort update must not erase the successfully loaded snapshot.
-          void updateLastSeen(userId!, totalPoints).catch(() => undefined)
-        } catch {
-          unavailable.add('catchUp')
+          void updateLastSeen(userId!, totalPoints)
         }
       }
 
@@ -305,11 +293,14 @@ export function useHomeData(): HomeState {
       .then((model) => {
         if (active) setState({ status: 'ready', model })
       })
-      .catch((e) => {
+      .catch((error) => {
         if (active)
           setState({
             status: 'error',
-            message: userFacingError(e, 'Could not load your dashboard. Please try again.'),
+            message: userFacingError(
+              error,
+              'Could not load your dashboard. Please try again.',
+            ),
           })
       })
 
