@@ -25,8 +25,19 @@ export function JoinLandingPage() {
   const navigate = useNavigate()
   const [state, setState] = useState<State>({ status: 'loading' })
   const [joining, setJoining] = useState(false)
+  const [storedPendingCode, setStoredPendingCode] = useState<string | null>(null)
 
   const authed = Boolean(userId)
+
+  // Storage is an external side effect. Persist the invite only after React has
+  // committed the signed-out landing state, then allow the signup redirect.
+  // Tracking the exact code prevents a route-param change from redirecting before
+  // the new value has replaced the old pending invite.
+  useEffect(() => {
+    if (loading || authed || !code) return
+    setPendingJoin(code)
+    setStoredPendingCode(code)
+  }, [authed, code, loading])
 
   useEffect(() => {
     if (!authed || !code) return
@@ -53,9 +64,11 @@ export function JoinLandingPage() {
 
   if (loading) return <AuthSplash />
 
-  // Signed out: remember the code and route through sign-up.
+  // Signed out: wait until the code has been committed to storage before routing
+  // through sign-up. This avoids render-time mutation and guarantees that the
+  // auth gate can resume the exact deep link after confirmation or login.
   if (!authed) {
-    if (code) setPendingJoin(code)
+    if (code && storedPendingCode !== code) return <AuthSplash />
     return <Navigate to="/auth/signup" replace />
   }
 
