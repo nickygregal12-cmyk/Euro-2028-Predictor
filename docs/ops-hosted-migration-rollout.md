@@ -46,7 +46,7 @@ Current ready production deploy:
 - production Supabase `vkfnsqdyhvtwyqkisxhk`;
 - both required contract-35 RPCs absent.
 
-Current audited repository `main` is `bd509101dd1d21a9882f6c40bef9676986215919`. Draft PR #76 proposes contract 36 and is not part of this window.
+Current audited repository `main` is `f872a28b27a5b8025803415ad1671d836dcde5d3`. Draft PR #76 proposes contract 36 and is not part of this window.
 
 ## Current evidence
 
@@ -64,7 +64,14 @@ Verified before the future window:
 - production remains on Free-plan recovery constraints;
 - non-production Netlify contexts use development Supabase;
 - the contract gate prevents further incompatible production release;
-- a fresh encrypted off-device source artifact exists, but disposable restore proof is absent.
+- the encrypted off-device source artifact was retrieved and verified;
+- disposable baseline restore, history repair and migrations 21–35 passed;
+- the first logical restore inherited incorrect browser grants on
+  `public.entry_totals`;
+- production was read-only verified not to have that exposure;
+- the disposable ACL was reconciled and all checks/advisors passed;
+- production remains blocked pending one clean replay with the corrected
+  pre-schema default-privilege procedure.
 
 Current source rollout guards:
 
@@ -119,30 +126,39 @@ Stop on any identity, contract or source ambiguity.
 
 Follow `docs/ops-production-backup-restore.md`.
 
-### Current completed source work
+Completed on 25 July 2026:
 
-The 25 July artifact has:
+- off-device retrieval and encrypted checksum proof;
+- restricted decryption and plaintext checksum proof;
+- complete disposable baseline restore;
+- source counts, Auth/profile, Storage and signup-trigger checks;
+- migration-history repair for 1–20;
+- exact dry run and successful migration of 21–35;
+- committed post-rollout verification;
+- zero pending migrations;
+- hosted advisor review.
 
-- roles/schema/data dumps;
-- critical Auth/profile table checks;
-- plaintext checksum verification;
-- encrypted archive decrypt/checksum verification;
-- owner-confirmed off-device copy.
+The first restore revealed that the new hosted target's default table privileges
+could grant browser roles access while `schema.sql` was creating objects.
+`public.entry_totals` therefore differed from production until manually
+reconciled. Production itself remained unchanged and did not expose the view.
 
-### Required remaining work
+Required remaining work:
 
-1. Retrieve the off-device artifact through the custody path.
-2. Verify its encrypted checksum after retrieval.
-3. Decrypt into a restricted temporary directory.
-4. Verify all plaintext checksums.
-5. Restore to `eckuehkcmkhuhmsfxtxu` or another approved disposable target.
-6. Run the baseline and source preflight there.
-7. Verify counts, fingerprints, Auth users/profiles, Storage and signup trigger.
-8. Preferably rehearse history repair and migrations 21–35.
-9. Retain non-secret evidence and cleanup confirmation.
-10. Obtain explicit recovery acceptance, including acceptance of the actual OpenSSL AES-256-CBC/PBKDF2 encryption method or create a replacement artifact using an approved alternative.
+1. merge the reviewed restore procedure/verifier correction;
+2. start again from an empty approved disposable target;
+3. run `prepare-disposable-restore-target.sql` after `roles.sql` and before
+   `schema.sql`;
+4. require baseline migration 9 to prove source-equivalent `entry_totals` ACLs;
+5. repeat history repair and migrations 21–35;
+6. require post-rollout privilege checks and security advisors to pass without
+   manual reconciliation;
+7. retain non-secret evidence and cleanup confirmation;
+8. obtain explicit recovery acceptance, including acceptance of the actual
+   OpenSSL AES-256-CBC/PBKDF2 encryption method.
 
-Do not proceed to production history repair until recovery acceptance exists.
+Do not proceed to production history repair until this clean replay and recovery
+acceptance exist.
 
 ## Phase 3 — immediate production preflight
 
@@ -262,6 +278,8 @@ scripts/database-rollout/post-rollout-verification.sql
 Require every object, privilege, function ACL and data check true, including:
 
 - private resolver and browser boundaries;
+- source-equivalent `entry_totals` ACLs with no anonymous or authenticated
+  direct access;
 - denied direct entry/group-position/progression/deletion writes;
 - exact authenticated/service allowlists and zero anonymous application execution;
 - both required client RPCs;

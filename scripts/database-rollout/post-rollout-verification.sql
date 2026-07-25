@@ -145,6 +145,19 @@ with submitted_all as (
       as anon_private_schema_denied,
     not has_schema_privilege('authenticated', 'predictor_internal', 'USAGE')
       as auth_private_schema_denied,
+    not has_table_privilege('anon', 'public.entry_totals', 'SELECT')
+      as anon_entry_totals_select_denied,
+    not has_table_privilege('authenticated', 'public.entry_totals', 'SELECT')
+      as auth_entry_totals_select_denied,
+    has_table_privilege('service_role', 'public.entry_totals', 'SELECT')
+      as service_entry_totals_select_allowed,
+    not exists (
+      select 1
+      from information_schema.role_table_grants
+      where table_schema = 'public'
+        and table_name = 'entry_totals'
+        and grantee in ('anon', 'authenticated')
+    ) as entry_totals_client_direct_grants_absent,
     not has_table_privilege('authenticated', 'public.entries', 'UPDATE')
       as auth_entry_update_denied,
     not has_table_privilege('authenticated', 'public.entries', 'DELETE')
@@ -355,6 +368,10 @@ select jsonb_build_object(
     and object_checks.result_columns_exist
     and privilege_checks.anon_private_schema_denied
     and privilege_checks.auth_private_schema_denied
+    and privilege_checks.anon_entry_totals_select_denied
+    and privilege_checks.auth_entry_totals_select_denied
+    and privilege_checks.service_entry_totals_select_allowed
+    and privilege_checks.entry_totals_client_direct_grants_absent
     and privilege_checks.auth_entry_update_denied
     and privilege_checks.auth_entry_delete_denied
     and privilege_checks.auth_match_prediction_delete_denied

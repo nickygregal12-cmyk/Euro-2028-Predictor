@@ -7,7 +7,8 @@
 | Field | Current value |
 | --- | --- |
 | Latest formal audit | [`2026-07-25-repeat-verification-audit.md`](audits/2026-07-25-repeat-verification-audit.md), designation `2026-07-25R` |
-| Latest recovery/audit reconciliation | [`2026-07-25-production-backup-and-repeat-audit.md`](reconciliations/2026-07-25-production-backup-and-repeat-audit.md) |
+| Latest recovery/restore reconciliation | [`2026-07-25-disposable-restore-privilege-reconciliation.md`](reconciliations/2026-07-25-disposable-restore-privilege-reconciliation.md) |
+| Preceding recovery/audit reconciliation | [`2026-07-25-production-backup-and-repeat-audit.md`](reconciliations/2026-07-25-production-backup-and-repeat-audit.md) |
 | Route accessibility reconciliation | [`2026-07-25-browser-route-accessibility.md`](reconciliations/2026-07-25-browser-route-accessibility.md) |
 | Private league browser reconciliation | [`2026-07-25-private-league-invite-browser.md`](reconciliations/2026-07-25-private-league-invite-browser.md) |
 | Pending invite boundary | [`2026-07-25-pending-invite-render-boundary.md`](reconciliations/2026-07-25-pending-invite-render-boundary.md) |
@@ -26,7 +27,7 @@
 | Repository migration count | 35 |
 | Development Supabase | `iouzoutneyjpugbbtdem` — schema and canonical history aligned through 35 |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — migration 1–20 effects, no tracked history, contract-35 RPCs absent |
-| Disposable restore target | `eckuehkcmkhuhmsfxtxu` — owner-confirmed disposable; restore not yet performed |
+| Disposable restore target | `eckuehkcmkhuhmsfxtxu` — restore, history repair and migrations 21–35 passed; source-ACL reconciliation passed; corrected clean replay pending |
 
 ## Executive verdicts
 
@@ -37,8 +38,8 @@
 | Automatic production promotion | **Correctly blocked.** Repository contract 35 cannot replace production while production declares contract 20. |
 | Development database | **Current through migration 35.** Physical schema, canonical history, ACLs and application-schema diff are aligned. |
 | Production preflight | **Passed read-only on 25 July.** Structural checks and all three rollout fingerprints match. |
-| Recovery readiness | **Partially evidenced.** A checksum-verified encrypted off-device artifact exists; retrieval and disposable restore proof do not. |
-| Production migration readiness | **Blocked.** Successful disposable restore and recovery acceptance remain mandatory before history repair or migrations 21–35. |
+| Recovery readiness | **Substantially evidenced, not yet accepted.** Off-device retrieval, integrity, restore, Auth/profile checks and forward migration rehearsal passed. A restore-default privilege defect was identified and reconciled; one clean replay using the corrected procedure remains mandatory. |
+| Production migration readiness | **Blocked.** Production remains unchanged. A clean corrected restore replay, final recovery acceptance, fresh production preflights and explicit owner approval remain mandatory. |
 | Migration 36 | **Draft only.** PR #76 remains unmerged and outside the production contract. |
 | Real scored competition | **Not launch-ready.** Production integrity rollout, admin journeys, monitoring, recovery proof, official data and dress rehearsal remain incomplete. |
 
@@ -154,21 +155,44 @@ Migration 36 exists only in draft PR #76. It is not development or production au
 
 ## Production backup and recovery status — `OPS-003`
 
-A fresh logical bundle was created on 25 July 2026. Operator-observed evidence confirms separate roles/schema/data dumps, `auth.users` and `public.profiles`, supporting provenance, owner-only permissions, plaintext checksums, AES-256 encryption, successful decryption, encrypted checksum and an off-device copy.
+The 25 July production bundle has now passed:
 
-Still required before recovery qualifies:
+- browser-based retrieval from off-device custody;
+- encrypted checksum verification after retrieval;
+- restricted decryption and archive-safety checks;
+- all plaintext checksums and source provenance;
+- disposable roles/schema/data/Auth-trigger restore;
+- exact source-count and rollout-fingerprint comparison;
+- Auth/profile presence and rollback-only signup/profile creation;
+- empty Storage verification;
+- structural proof and metadata-only repair for migrations 1–20;
+- a 21–35-only dry run;
+- successful application of migrations 21–35;
+- all committed post-rollout checks;
+- zero pending migrations.
 
-1. retrieve the off-device copy;
-2. verify its encrypted checksum;
-3. decrypt into a restricted temporary directory;
-4. reverify all plaintext checksums;
-5. restore to `eckuehkcmkhuhmsfxtxu` or another approved disposable target;
-6. verify counts, fingerprints, Auth users/profiles and Storage state;
-7. verify and smoke-test `on_auth_user_created -> public.handle_new_user()`;
-8. preferably rehearse history repair and migrations 21–35;
-9. retain non-secret recovery evidence and cleanup confirmation.
+The first logical restore revealed that the fresh hosted target's default table
+privileges granted `anon` and `authenticated` direct access to
+`public.entry_totals`, despite production granting neither role access.
+Production was verified read-only and was not exposed.
 
-A verified archive is stronger than prepared tooling but is not proven recovery until restore succeeds.
+The disposable target was reconciled to the production ACL. After
+reconciliation:
+
+- anonymous and authenticated direct access was denied;
+- service-role access remained;
+- migration history remained exactly 1–35;
+- all post-rollout checks and fingerprints still passed;
+- no migrations remained pending;
+- the Supabase security advisor reported no errors.
+
+Recovery acceptance is still blocked until the corrected repository procedure
+is merged and one clean disposable replay passes without manual ACL repair.
+That replay must run
+`prepare-disposable-restore-target.sql` after `roles.sql` and before
+`schema.sql`, then pass both strengthened ACL verifiers and hosted advisors.
+
+Production remains unchanged at contract 20.
 
 ## Feature and safeguard status
 
@@ -224,7 +248,7 @@ Status:
 - `FUNC-001`, `REL-001`, `DATA-005`, `REL-003`, `REL-004`, `REL-007`: production closure pending.
 - `DATA-004`, `DATA-006`, `OPS-002`: open.
 - `TEST-001`: partial; remaining gaps are result administration, manual assistive-technology review and production smoke.
-- `OPS-003`: partial; encrypted artifact exists, restore proof absent.
+- `OPS-003`: substantially evidenced; restore and forward migration passed, but final acceptance remains blocked pending one clean replay with the corrected default-privilege procedure.
 
 ### Other open controls
 
@@ -256,18 +280,29 @@ No audit, backup, accessibility, invite or browser-test change altered scoring.
 
 ## Immediate order of work
 
-1. Regain access to and retrieve the encrypted backup from off-device custody.
-2. Verify encrypted and plaintext checksums after retrieval.
-3. Restore to `eckuehkcmkhuhmsfxtxu` and verify data, Auth/profile state, Storage and signup trigger.
-4. Preferably rehearse the exact 1–20 history repair and migrations 21–35 on the restored target.
-5. Retain reviewed non-secret recovery evidence and cleanup confirmation.
-6. Only then approve a production migration window and named operator/recovery owner.
-7. Rerun both production preflights immediately before history repair.
-8. Repair only migrations 1–20 metadata and require a 21–35-only dry run.
-9. Apply migrations 21–35 only after explicit approval.
-10. Run post-verification, advisors and authenticated production smoke journeys.
-11. Change production contract 20 to 35 only after every check passes.
-12. Continue the remaining `UX-002` consumer audit, `DATA-003`, Turnstile, legacy-environment, branch-protection, admin and anonymous invite-context work as separate controlled workstreams.
+1. Review and merge the restore-default privilege correction.
+2. Return the approved disposable target to a confirmed empty state.
+3. Restore using the corrected sequence:
+   `roles.sql` → `prepare-disposable-restore-target.sql` →
+   `schema.sql` → `data.sql` → managed Auth customization.
+4. Require the strengthened baseline verifier, source counts, fingerprints,
+   Auth/profile signup proof and Storage checks to pass.
+5. Repeat the exact 1–20 metadata repair and 21–35-only dry run.
+6. Apply migrations 21–35 and require the strengthened post-rollout verifier,
+   zero pending migrations and no unexplained security-advisor error.
+7. Retain non-secret clean-replay evidence and cleanup confirmation.
+8. Obtain explicit recovery acceptance and named operator/recovery-owner
+   approval.
+9. Rerun both production preflights immediately before any production history
+   repair.
+10. Repair only migrations 1–20 metadata and require a 21–35-only production
+    dry run.
+11. Apply migrations 21–35 only after explicit approval.
+12. Run production post-verification, advisors and authenticated smoke journeys.
+13. Change production contract 20 to 35 only after every production check
+    passes.
+14. Continue `UX-002`, `DATA-003`, Turnstile, legacy-environment,
+    branch-protection, admin and anonymous invite-context work separately.
 
 ## Documentation authority
 
