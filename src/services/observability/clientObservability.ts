@@ -52,11 +52,14 @@ export function normaliseClientError(
   componentStack?: string | null,
 ): SafeClientError {
   const error = value instanceof Error ? value : new Error(toSafeString(value))
+  const containsDatabaseDetail = DATABASE_ERROR_PATTERN.test(error.message)
 
   return {
     name: sanitiseText(error.name || 'Error', 80),
-    message: sanitiseErrorMessage(error.message),
-    stack: sanitiseStack(error.stack),
+    message: containsDatabaseDetail
+      ? 'A database operation failed.'
+      : sanitiseText(error.message || 'Unexpected client error.', 500),
+    stack: containsDatabaseDetail ? null : sanitiseStack(error.stack),
     componentStack: sanitiseStack(componentStack),
   }
 }
@@ -121,14 +124,6 @@ export function installGlobalErrorCapture(): () => void {
     window.removeEventListener('error', handleError)
     window.removeEventListener('unhandledrejection', handleRejection)
   }
-}
-
-function sanitiseErrorMessage(value: string): string {
-  if (DATABASE_ERROR_PATTERN.test(value)) {
-    return 'A database operation failed.'
-  }
-
-  return sanitiseText(value || 'Unexpected client error.', 500)
 }
 
 function sanitiseStack(value?: string | null): string | null {
