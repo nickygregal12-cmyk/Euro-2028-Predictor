@@ -15,23 +15,23 @@ This register retains every original finding ID. Historical audits remain immuta
 | --- | ---: | ---: | ---: |
 | Critical | 6 | 1 | 5 |
 | High | 16 | 3 | 13 |
-| Medium | 19 | 7 | 12 |
+| Medium | 19 | 8 | 11 |
 | Low | 16 | 7 | 9 |
-| **Total** | **57** | **18** | **39** |
+| **Total** | **57** | **19** | **38** |
 
-Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `OPS-007`, `A11Y-002`, `A11Y-003`, `SEC-002`, `UX-004`, `REL-002`, `REL-005`, `REL-006`, `REPO-002`, `HYGIENE-001`, `DOC-004`, `DOC-005`, `TEST-002`, `TEST-003` and `DOC-006`.
+Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `OPS-007`, `A11Y-002`, `A11Y-003`, `SEC-002`, `UX-004`, `REL-002`, `REL-005`, `REL-006`, `REPO-002`, `HYGIENE-001`, `DOC-001`, `DOC-004`, `DOC-005`, `TEST-002`, `TEST-003` and `DOC-006`.
 
-`DOC-001` is reopened/in progress because `2026-07-25R` found live authority-document drift. This audit branch repairs the drift, but final resolution requires the documentation PR to pass and merge.
+`DOC-001` was resolved by PR #77 after the `2026-07-25R` reconciliation passed CI, Markdown/identifier controls and a ready Netlify preview, then merged into `main`.
 
-## Movement at `2026-07-25R`
+## Movement at and after `2026-07-25R`
 
 | Change | Detail |
 | --- | --- |
-| Reopened / in progress | `DOC-001` — live authority documents retained stale rollout fingerprints, development-history, recovery and implementation classifications. Repaired in the audit branch; merge/validation pending. |
+| Resolved after audit | `DOC-001` — PR #77 reconciled stale rollout fingerprints, development-history, recovery and implementation classifications and merged after current documentation controls passed. |
 | Resolved | `A11Y-002` — league options now use disclosure semantics with native buttons, `aria-expanded`, Escape close and focus restoration. |
 | Resolved | `SEC-002` — centralized safe error mapping prevents raw database, RPC and network details reaching users. |
 | Resolved | `HYGIENE-001` — the unused Vite scaffold asset was removed; final implementation head passed CI and Browser E2E. |
-| Improved | `A11Y-001` — route titles, live announcements, focus management and skip navigation exist; browser assistive-technology evidence remains open. |
+| Improved in PR #78 | `A11Y-001` — authenticated Browser E2E now retains keyboard skip-link, semantic navigation, route-title, main-focus and live-region evidence; manual screen-reader review remains open. |
 | Improved | `OPS-003` — a fresh checksum-verified encrypted off-device production artifact exists; retrieval and disposable restore proof remain absent. |
 | Corrected | Development migration history is exactly 35 canonical rows, not partial/tool-generated. |
 | Reverified | Production migration 1–20 baseline and exact source fingerprints passed read-only checks on 25 July. |
@@ -64,7 +64,7 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | `REL-004` | Compound bracket writes are non-atomic | **Open production; client deployed/backend absent** | Atomic snapshot RPC and stale-version rollback pass on development. Production lacks the RPC. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker; draft PR #76 is not yet authority. |
 | `OPS-002` | No version-controlled administrator model/control-room boundary | **Open** | No approved admin authorization model or browser result-admin page exists. |
-| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — substantial disposable coverage** | Playwright covers auth, routes, score save/clear, submission barriers, conflicts, atomic bracket, lock rejection, signup and recovery. Private invite/join, result administration, browser accessibility and production smoke remain open. |
+| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — substantial disposable coverage** | Playwright covers auth, routes, score save/clear, submission barriers, conflicts, atomic bracket, lock rejection, signup, recovery and retained keyboard/live-region route transitions. Private invite/join, result administration, manual screen-reader review and production smoke remain open. |
 | `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — encrypted off-device artifact exists; restore proof absent** | Fresh roles/schema/data bundle, critical-table checks, plaintext checksums, encryption/decryption and encrypted checksum passed; off-device copy owner-confirmed. Close only after retrieval, checksum verification, disposable restore, Auth trigger/data verification, recovery acceptance and monitoring/rollback controls appropriate to launch. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 
@@ -79,10 +79,10 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | `REL-007` | Stale device can delete a newer bracket pick | **Open production; implemented repository/development** | Snapshot versions contain the risk on development; production rollout and multi-device browser verification remain. |
 | `PERF-001` | League summary requests scale linearly/serially | **Open** | Remove/contain serial per-league requests and profile representative load. |
 | `UX-001` | Invite context is hidden behind generic signup | **Open** | Show trustworthy invite preview before auth and remove render-time storage mutation. |
-| `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | **Partially resolved — implementation present, browser/manual proof open** | Route titles, live region, main-content focus and skip navigation exist. Add keyboard and screen-reader-oriented browser/manual evidence. |
+| `A11Y-001` | SPA navigation lacks complete assistive-technology transitions | **Partially resolved — authenticated browser proof present; manual screen-reader review open** | Route titles, polite live region, main-content focus, skip navigation and retained desktop/mobile keyboard journeys are present. Close only after a manual screen-reader journey confirms useful, timely and non-duplicative announcements. |
 | `A11Y-002` | League options menu semantics do not match behavior | **Resolved by PR #41** | Simpler disclosure semantics, native buttons, Escape close/focus restoration and focused tests are present. Reopen on semantic regression. |
 | `TYPE-001` | Hand-written casts and non-strict TypeScript can hide schema drift | **Open** | Generate DB types, validate critical RPC payloads and enable strictness incrementally. |
-| `DOC-001` | Documentation is not consistently authoritative | **In progress — reopened by `2026-07-25R`** | This audit branch corrects stale fingerprints, migration history, recovery and finding classifications. Resolve after the documentation PR passes and merges; reopen on future verified authority drift. |
+| `DOC-001` | Documentation is not consistently authoritative | **Resolved by PR #77** | `2026-07-25R` corrected stale fingerprints, migration history, recovery and finding classifications; CI, documentation controls and preview passed before merge. Reopen on future verified authority drift. |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open** | Threat-model enumeration and minimum-cohort/rate-limit behavior at intended scale. |
 | `SEC-002` | Raw internal errors can reach users | **Resolved by PR #71** | Central safe mapper returns stable network/session/permission/conflict/rate-limit/generic copy and current call surfaces/tests use it. Reopen if raw infrastructure text returns. |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** | Serialize per user/action or use an atomic database primitive. |
@@ -118,9 +118,3 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 - Keep original IDs when the same defect regresses or broadens.
 - Repository/development fixes remain open when the actual production risk remains.
 - Prepared tooling, an encrypted artifact or an approved method does not prove recovery without restore evidence.
-- `Resolved` requires implementation, validation and current-environment evidence appropriate to the finding.
-- `Superseded` must name the active replacement.
-- Do not silently remove uncertain or accepted risks.
-- GitHub Issues own implementation work; this register records risk state.
-- Update this register after every material integrity, deployment, security, operations or audit change.
-- Severity, status and evidence definitions live in [`README.md`](README.md).
