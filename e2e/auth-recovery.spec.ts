@@ -172,19 +172,23 @@ test.describe('authentication and recovery', () => {
 
       const confirmationLink = await waitForAuthLink(EMAIL, 'signup')
       await page.goto(confirmationLink)
-      await expect(page).toHaveURL((url) => url.pathname === `/join/${INVITE_CODE}`, {
-        timeout: 20_000,
-      })
-      await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
-      await expect(page.getByText('Owner: E2E Tester', { exact: true })).toBeVisible()
-
-      await page.getByRole('button', { name: 'Join league', exact: true }).click()
       await expect(page).toHaveURL((url) => url.pathname === '/welcome', { timeout: 20_000 })
       await expect(page.getByRole('heading', { name: `Welcome, ${DISPLAY_NAME}` })).toBeVisible()
 
-      await page.getByRole('button', { name: /Start with Group A/ }).click()
-      await expect(page).toHaveURL((url) => url.pathname === '/predict/groups/A')
+      await page
+        .getByRole('button', { name: 'Continue to league invite →', exact: true })
+        .click()
+      await expect(page).toHaveURL((url) => url.pathname === `/join/${INVITE_CODE}`)
+      await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
+      await expect(page.getByText('Owner: E2E Tester', { exact: true })).toBeVisible()
       await waitForWelcomeStamp()
+
+      await page.getByRole('button', { name: 'Join league', exact: true }).click()
+      await expect(page).toHaveURL((url) => url.pathname === `/league/${inviteLeagueId}`, {
+        timeout: 20_000,
+      })
+      await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
+      await expect(page.getByText('2 members', { exact: true })).toBeVisible()
 
       await signOut(page)
       await logIn(page, OLD_PASSWORD)
