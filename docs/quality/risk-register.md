@@ -5,6 +5,10 @@
 **Recovery/audit reconciliation:** [`reconciliations/2026-07-25-production-backup-and-repeat-audit.md`](reconciliations/2026-07-25-production-backup-and-repeat-audit.md)  
 **Private league browser evidence:** [`reconciliations/2026-07-25-private-league-invite-browser.md`](reconciliations/2026-07-25-private-league-invite-browser.md)  
 **Pending invite boundary:** [`reconciliations/2026-07-25-pending-invite-render-boundary.md`](reconciliations/2026-07-25-pending-invite-render-boundary.md)  
+**Home availability:** [`reconciliations/2026-07-25-home-data-availability.md`](reconciliations/2026-07-25-home-data-availability.md)  
+**League hub availability:** [`reconciliations/2026-07-25-league-hub-data-availability.md`](reconciliations/2026-07-25-league-hub-data-availability.md)  
+**Profile availability:** [`reconciliations/2026-07-25-profile-data-availability.md`](reconciliations/2026-07-25-profile-data-availability.md)  
+**Match Centre league-scope availability:** [`reconciliations/2026-07-25-match-centre-league-scope-availability.md`](reconciliations/2026-07-25-match-centre-league-scope-availability.md)  
 **Preceding audit:** [`audits/2026-07-24-repeat-verification-audit.md`](audits/2026-07-24-repeat-verification-audit.md) (`2026-07-24R`)  
 **Production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)  
 **Deployment gate:** [`reconciliations/2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md)
@@ -36,6 +40,7 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | Improved by PR #78 | `A11Y-001` — authenticated Browser E2E retains keyboard skip-link, semantic navigation, route-title, main-focus and live-region evidence; manual screen-reader review remains open. |
 | Improved by PR #79 | `TEST-001` — a disposable two-account browser journey proves private league creation, invite preview, join, refreshed membership and cleanup. |
 | Improved by PR #80 | `UX-001` / `TEST-001` — pending invite storage moved out of render; signup confirmation, one-time Welcome, authenticated preview and join continuation are browser-proven. Anonymous pre-auth league context remains open. |
+| Improved by PRs #81, #82, #83 and #85 | `UX-002` — Home, the League hub, own Profile and Match Centre league-scope discovery now preserve loading/error/unavailable distinctions instead of inventing zero points, no leagues, an empty points history or a missing scope. Remaining consumers still require review. |
 | Improved | `OPS-003` — a fresh checksum-verified encrypted off-device production artifact exists; retrieval and disposable restore proof remain absent. |
 | Corrected | Development migration history is exactly 35 canonical rows, not partial/tool-generated. |
 | Reverified | Production migration 1–20 baseline and exact source fingerprints passed read-only checks on 25 July. |
@@ -90,7 +95,7 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open** | Threat-model enumeration and minimum-cohort/rate-limit behavior at intended scale. |
 | `SEC-002` | Raw internal errors can reach users | **Resolved by PR #71** | Central safe mapper returns stable network/session/permission/conflict/rate-limit/generic copy and current call surfaces/tests use it. Reopen if raw infrastructure text returns. |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** | Serialize per user/action or use an atomic database primitive. |
-| `UX-002` | Unavailable data is conflated with empty data | **Open** | Preserve loading/error/unavailable distinctions through home and related reads. |
+| `UX-002` | Unavailable data is conflated with empty data | **Partially resolved — four primary surfaces corrected** | PRs #81, #82, #83 and #85 preserve source availability across Home, League hub, own Profile and Match Centre league-scope discovery, with focused tests and passing CI/Browser E2E. Close only after remaining remote-read consumers are audited and equivalent false-empty states are removed or explicitly ruled out. |
 | `PERF-002` | Scoring recomputes the whole tournament | **Open / accepted pending measurement** | Profile target-capacity cost before deciding whether to optimize. |
 | `DOC-004` | Quality governance charter is absent | **Resolved** | `docs/quality/README.md` is present and defines authority, workflow, evidence, status and prohibited-content rules. |
 | `DOC-005` | Live feature baseline lost stable identifiers | **Resolved by PR #50** | Current rows carry stable primary IDs and all archived IDs have explicit dispositions. |
