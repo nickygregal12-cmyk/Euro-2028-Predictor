@@ -68,27 +68,41 @@ export async function markWelcomedNow(userId: string): Promise<void> {
 
 export type LastSeen = { lastSeenAt: string | null; lastSeenPoints: number | null }
 
+export type LastSeenRead =
+  | { available: true; value: LastSeen }
+  | { available: false; value: null }
+
 /**
- * The user's last-seen snapshot (for Home's catch-up line). Best-effort: the
- * columns are a follow-up migration (20260720150000_add_last_seen.sql), so a DB
- * without it just reads as "no snapshot" (catch-up stays hidden) rather than
- * erroring — the same fail-soft pattern as tournaments.lock_at.
+ * Availability-preserving last-seen read for screens that must distinguish a
+ * missing snapshot from an unavailable remote source.
  */
-export async function fetchLastSeen(userId: string): Promise<LastSeen> {
+export async function fetchLastSeenRead(userId: string): Promise<LastSeenRead> {
   try {
     const { data, error } = await supabase
       .from('profiles')
       .select('last_seen_at, last_seen_points')
       .eq('id', userId)
       .maybeSingle()
-    if (error || !data) return { lastSeenAt: null, lastSeenPoints: null }
+    if (error || !data) return { available: false, value: null }
     return {
-      lastSeenAt: (data as { last_seen_at: string | null }).last_seen_at ?? null,
-      lastSeenPoints: (data as { last_seen_points: number | null }).last_seen_points ?? null,
+      available: true,
+      value: {
+        lastSeenAt: (data as { last_seen_at: string | null }).last_seen_at ?? null,
+        lastSeenPoints: (data as { last_seen_points: number | null }).last_seen_points ?? null,
+      },
     }
   } catch {
-    return { lastSeenAt: null, lastSeenPoints: null }
+    return { available: false, value: null }
   }
+}
+
+/**
+ * Compatibility wrapper for callers where last-seen data is purely optional.
+ * Home uses `fetchLastSeenRead` so it can report source unavailability honestly.
+ */
+export async function fetchLastSeen(userId: string): Promise<LastSeen> {
+  const read = await fetchLastSeenRead(userId)
+  return read.available ? read.value : { lastSeenAt: null, lastSeenPoints: null }
 }
 
 /**
