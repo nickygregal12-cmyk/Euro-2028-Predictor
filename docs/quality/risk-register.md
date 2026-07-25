@@ -3,6 +3,7 @@
 **Current audit:** `2026-07-25R`  
 **Evidence:** [`audits/2026-07-25-repeat-verification-audit.md`](audits/2026-07-25-repeat-verification-audit.md)  
 **Recovery/audit reconciliation:** [`reconciliations/2026-07-25-production-backup-and-repeat-audit.md`](reconciliations/2026-07-25-production-backup-and-repeat-audit.md)  
+**Private league browser evidence:** [`reconciliations/2026-07-25-private-league-invite-browser.md`](reconciliations/2026-07-25-private-league-invite-browser.md)  
 **Preceding audit:** [`audits/2026-07-24-repeat-verification-audit.md`](audits/2026-07-24-repeat-verification-audit.md) (`2026-07-24R`)  
 **Production release:** [`reconciliations/2026-07-24-post-merge-production-release-state.md`](reconciliations/2026-07-24-post-merge-production-release-state.md)  
 **Deployment gate:** [`reconciliations/2026-07-24-app-schema-deployment-gate.md`](reconciliations/2026-07-24-app-schema-deployment-gate.md)
@@ -31,7 +32,8 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | Resolved | `A11Y-002` — league options now use disclosure semantics with native buttons, `aria-expanded`, Escape close and focus restoration. |
 | Resolved | `SEC-002` — centralized safe error mapping prevents raw database, RPC and network details reaching users. |
 | Resolved | `HYGIENE-001` — the unused Vite scaffold asset was removed; final implementation head passed CI and Browser E2E. |
-| Improved in PR #78 | `A11Y-001` — authenticated Browser E2E now retains keyboard skip-link, semantic navigation, route-title, main-focus and live-region evidence; manual screen-reader review remains open. |
+| Improved by PR #78 | `A11Y-001` — authenticated Browser E2E retains keyboard skip-link, semantic navigation, route-title, main-focus and live-region evidence; manual screen-reader review remains open. |
+| Improved by PR #79 | `TEST-001` — a disposable two-account browser journey proves private league creation, invite preview, join, refreshed membership and cleanup. |
 | Improved | `OPS-003` — a fresh checksum-verified encrypted off-device production artifact exists; retrieval and disposable restore proof remain absent. |
 | Corrected | Development migration history is exactly 35 canonical rows, not partial/tool-generated. |
 | Reverified | Production migration 1–20 baseline and exact source fingerprints passed read-only checks on 25 July. |
@@ -64,7 +66,7 @@ Resolved or superseded IDs currently include `OPS-001`, `OPS-004`, `OPS-005`, `O
 | `REL-004` | Compound bracket writes are non-atomic | **Open production; client deployed/backend absent** | Atomic snapshot RPC and stale-version rollback pass on development. Production lacks the RPC. |
 | `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **Open** | Wider reference immutability remains a launch blocker; draft PR #76 is not yet authority. |
 | `OPS-002` | No version-controlled administrator model/control-room boundary | **Open** | No approved admin authorization model or browser result-admin page exists. |
-| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — substantial disposable coverage** | Playwright covers auth, routes, score save/clear, submission barriers, conflicts, atomic bracket, lock rejection, signup, recovery and retained keyboard/live-region route transitions. Private invite/join, result administration, manual screen-reader review and production smoke remain open. |
+| `TEST-001` | Critical database/browser rules lack executable integration assurance | **Partially resolved — substantial disposable coverage** | Playwright covers auth, routes, score save/clear, submission barriers, conflicts, atomic bracket, lock rejection, signup/recovery, keyboard/live-region transitions and a two-account private league create/invite/join lifecycle. Result administration, manual screen-reader review and compatible-production smoke remain open. |
 | `OPS-003` | Release, monitoring and recovery controls are incomplete | **Partially resolved — encrypted off-device artifact exists; restore proof absent** | Fresh roles/schema/data bundle, critical-table checks, plaintext checksums, encryption/decryption and encrypted checksum passed; off-device copy owner-confirmed. Close only after retrieval, checksum verification, disposable restore, Auth trigger/data verification, recovery acceptance and monitoring/rollback controls appropriate to launch. |
 | `OPS-005` | Production may contain an untracked admin role column | **Superseded by `OPS-002`** | Read-only production inspection confirmed the column does not exist. |
 
