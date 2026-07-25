@@ -13,3 +13,12 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+declare const __EURO28_RELEASE__: {
+  readonly environment: string
+  readonly commit: string
+  readonly deployId: string
+  readonly applicationContract: number
+  readonly hostedContract: number | null
+  readonly supabaseProjectRef: string | null
+}
