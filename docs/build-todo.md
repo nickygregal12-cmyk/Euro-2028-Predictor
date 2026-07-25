@@ -196,6 +196,7 @@ Do not run additional history repair against development. Migration 36 remains d
 - [x] Replace league-options ARIA menu mismatch with disclosure semantics (`A11Y-002`).
 - [x] Add private league creation/invitation/join browser journey.
 - [x] Add retained keyboard and route-announcement browser evidence (`A11Y-001`).
+- [x] Move pending invite persistence out of render and prove signup-confirmation/Welcome continuation (`UX-001`).
 - [ ] Complete manual screen-reader review for `A11Y-001`.
 - [ ] Add result-administration journey after implementation.
 - [ ] Add production error reporting, alert ownership and critical-journey monitoring.
@@ -210,7 +211,7 @@ After integrity/recovery gates:
 - [ ] Expand Match Centre pre/live/post/admin states.
 - [ ] Add account/privacy/contact-admin surfaces.
 - [ ] Add post-lock prediction trends.
-- [ ] Improve trustworthy invite preview before auth and remove render-time pending-join mutation.
+- [ ] Add a privacy-reviewed trustworthy invite preview before auth.
 - [ ] Preserve unavailable/error/empty distinctions.
 - [ ] Complete mobile physics/friction pass.
 
