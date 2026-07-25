@@ -15,6 +15,7 @@ const expectedEnvironment =
 const expectedSupabaseRef =
   process.env.EURO28_SMOKE_EXPECTED_SUPABASE_REF ||
   PRODUCTION_SUPABASE_REF
+const expectedCommit = process.env.EURO28_SMOKE_EXPECTED_COMMIT || ''
 
 if (origin !== PRODUCTION_ORIGIN && !allowNonProduction) {
   stop(
@@ -58,6 +59,10 @@ assertEqual(
   expectedSupabaseRef,
   'Supabase project reference',
 )
+
+if (expectedCommit) {
+  assertEqual(release.commit, expectedCommit, 'release commit')
+}
 
 if (expectedEnvironment === 'production') {
   assertNotEqual(release.commit, 'local', 'production commit identity')
