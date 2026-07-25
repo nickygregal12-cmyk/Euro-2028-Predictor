@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Navigate, useNavigate } from 'react-router'
+import { getPendingJoin } from '../leagues/pendingJoin'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthSplash } from '../auth/AuthSplash'
 import { WelcomeScreen } from './WelcomeScreen'
@@ -13,6 +14,10 @@ import { WelcomeScreen } from './WelcomeScreen'
  * optimistically in memory, so the CTA navigates instantly even before the write
  * lands; the write itself is idempotent (keeps the first-seen timestamp).
  *
+ * A first-time visitor who arrived through a league invite still sees this one-
+ * time orientation. Its primary CTA then resumes the pending deep link instead
+ * of silently sending them to Group A. JoinLandingPage consumes the stored code.
+ *
  * A user who has already been welcomed but lands here (bookmark / direct nav) is
  * bounced to Home — the screen is never shown twice.
  */
@@ -21,10 +26,13 @@ export function WelcomePage() {
   const { displayName, welcomeStatus, markWelcomed } = useAuth()
 
   // Capture whether the screen was actually needed on arrival, before our own
-  // markWelcomed() flips the status to 'seen'.
+  // markWelcomed() flips the status to 'seen'. Capture the pending invite at the
+  // same boundary so CTA behavior stays stable while the page is mounted.
   const neededOnArrival = useRef<boolean | null>(null)
+  const pendingJoinOnArrival = useRef<string | null>(null)
   if (neededOnArrival.current === null && welcomeStatus !== 'loading') {
     neededOnArrival.current = welcomeStatus === 'needed'
+    pendingJoinOnArrival.current = getPendingJoin()
   }
 
   useEffect(() => {
@@ -34,10 +42,15 @@ export function WelcomePage() {
   if (neededOnArrival.current === null) return <AuthSplash />
   if (neededOnArrival.current === false) return <Navigate to="/" replace />
 
+  const pendingJoin = pendingJoinOnArrival.current
+
   return (
     <WelcomeScreen
       displayName={displayName}
-      onStart={() => navigate('/predict/groups/A')}
+      startLabel={pendingJoin ? 'Continue to league invite →' : undefined}
+      onStart={() =>
+        navigate(pendingJoin ? `/join/${pendingJoin}` : '/predict/groups/A')
+      }
       onScoring={() => navigate('/more/scoring')}
     />
   )
