@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType } from 'react'
+import { useState, type ComponentType } from 'react'
 import { useNavigate } from 'react-router'
 import { Alert, Button, ConfirmModal, Skeleton, TeamFlag } from '../../design-system'
 import {
@@ -26,8 +26,8 @@ import {
   TOTAL_GOALS_BANDS,
 } from '../../domain/tournament/scoringConfig'
 import { GoldenBootPicker, type GoldenBootPlayer } from './GoldenBootPicker'
+import { useGoldenBootPlayerSearch } from './useGoldenBootPlayerSearch'
 import { ConflictBanner } from './ConflictBanner'
-import { searchPlayers } from '../../services/supabase/bonus'
 import { daysUntil, formatLongDate } from '../../app/time'
 import s from '../shared.module.css'
 import r from './review.module.css'
@@ -47,8 +47,6 @@ export function ReviewPage() {
   // Golden-boot search state (hooks must run before any early return).
   const [shareOpen, setShareOpen] = useState(false)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<GoldenBootPlayer[]>([])
-  const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<GoldenBootPlayer | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -57,25 +55,7 @@ export function ReviewPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
-
-  useEffect(() => {
-    const q = query.trim()
-    if (!q || !tournamentId) {
-      setResults([])
-      setSearching(false)
-      return
-    }
-    setSearching(true)
-    const timer = setTimeout(() => {
-      searchPlayers(tournamentId, q)
-        .then((players) =>
-          setResults(players.map((p) => ({ id: p.id, name: p.name }))),
-        )
-        .catch(() => setResults([])) // squads/table not present yet → empty
-        .finally(() => setSearching(false))
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [query, tournamentId])
+  const goldenBootSearch = useGoldenBootPlayerSearch(tournamentId, query)
 
   if (data.status === 'error') {
     return (
@@ -189,7 +169,6 @@ export function ReviewPage() {
   function chooseGoldenBoot(player: GoldenBootPlayer) {
     setSelected(player)
     setQuery('')
-    setResults([])
     preds.setGoldenBoot(player.id)
   }
 
@@ -283,12 +262,16 @@ export function ReviewPage() {
           points={GOLDEN_BOOT_POINTS}
           query={query}
           onQueryChange={setQuery}
-          results={results}
+          results={goldenBootSearch.results}
           selected={selected}
           onSelect={chooseGoldenBoot}
           onClear={clearGoldenBoot}
           emptyNote={SQUADS_PENDING}
-          loading={searching}
+          loading={goldenBootSearch.status === 'loading'}
+          unavailableMessage={
+            goldenBootSearch.status === 'unavailable' ? goldenBootSearch.message : null
+          }
+          onRetry={goldenBootSearch.retry}
         />
         {preds.goldenBootSaveStatus === 'error' && (
           <Alert variant="error" title="Golden Boot pick not saved">
