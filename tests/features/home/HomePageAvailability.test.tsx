@@ -68,8 +68,10 @@ describe('HomePage partial availability', () => {
       'Some dashboard data is unavailable',
     )
     expect(screen.getByText('Points unavailable')).toBeVisible()
-    expect(screen.getByText('No matches scheduled.')).toBeVisible()
-    expect(screen.queryByRole('button', { name: /Share your standing/ })).not.toBeInTheDocument()
+    expect(screen.getByText('No fixtures scheduled.')).toBeVisible()
+    expect(
+      screen.queryByRole('button', { name: /Share your standing/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('does not show an availability warning for loaded zero values', () => {
