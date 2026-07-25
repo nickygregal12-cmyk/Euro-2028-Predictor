@@ -1,4 +1,4 @@
-import { TextInput } from '../../design-system'
+import { Alert, Button, TextInput } from '../../design-system'
 import { CloseIcon } from '../../design-system/icons'
 import s from './awards.module.css'
 
@@ -12,10 +12,12 @@ export type GoldenBootPickerProps = {
   selected: GoldenBootPlayer | null
   onSelect: (p: GoldenBootPlayer) => void
   onClear: () => void
-  // Shown when there are no results to offer (squads not confirmed yet). The
-  // search UI is final; only its data is pending (scoring-rules §4).
+  // Shown only after a successful search returns no players. Unavailable search
+  // data has its own explicit warning and retry path.
   emptyNote: string
   loading?: boolean
+  unavailableMessage?: string | null
+  onRetry?: () => void
 }
 
 /**
@@ -34,6 +36,8 @@ export function GoldenBootPicker({
   onClear,
   emptyNote,
   loading,
+  unavailableMessage,
+  onRetry,
 }: GoldenBootPickerProps) {
   return (
     <div className={s.award}>
@@ -67,6 +71,17 @@ export function GoldenBootPicker({
           />
           {loading ? (
             <p className={s.note}>Searching…</p>
+          ) : unavailableMessage ? (
+            <Alert variant="warning" title="Player search unavailable">
+              {unavailableMessage}
+              {onRetry ? (
+                <div style={{ marginTop: 10 }}>
+                  <Button variant="secondary" onClick={onRetry}>
+                    Retry player search
+                  </Button>
+                </div>
+              ) : null}
+            </Alert>
           ) : results.length > 0 ? (
             <ul className={s.results}>
               {results.map((p) => (
