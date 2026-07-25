@@ -2,11 +2,25 @@
 
 A mobile-first Euro 2028 football predictor web app built with React 19, TypeScript, Vite, Supabase (Postgres, Auth, RLS and RPCs) and Netlify.
 
-## Current warning
+## Current production position
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-Production Netlify automatically published commit `a403b0796853453cb4115aea55729aced192a6ca` after PR #20 merged, while production Supabase still has the original 20-migration schema. The live client calls both `replace_predicted_progression` and `delete_match_prediction`; read-only production verification confirms neither RPC exists. Bracket persistence and persisted score clearing are therefore incompatible with the live backend. Hosted development has rehearsed migrations 21–35, but that does not make production compatible. Do not apply hosted migrations or change production configuration without the reviewed runbook, recovery evidence and explicit approval.
+Production application and database are now aligned at **contract 35**:
+
+- production Supabase migration history contains exactly migrations 1–35;
+- both client-required RPCs are present;
+- the exact 63-check production verifier passed before and after rollback-only smoke tests;
+- Netlify production declares contract 35 and serves deploy `6a652c3d3416d26d595ae2ef`;
+- the live deploy was built from approved `main` commit `902a37aa6c50c967f8080d751147a5733b251fe3`;
+- live metadata, security headers, SPA routes, assets and signed-out browser journeys passed;
+- production uses production Supabase and made no development-Supabase browser request.
+
+The completed rollout is recorded in [`2026-07-25-contract-35-production-promotion.md`](docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
+
+This does **not** mean the product is tournament-launch-ready. Monitoring, administrator journeys, Turnstile/Auth configuration, official Euro 2028 data, dress rehearsal and other open controls remain.
+
+Migration 36 remains outside `main` in draft PR #76 and was not applied.
 
 ## Setup
 
@@ -25,7 +39,7 @@ Copy `.env.example` to `.env.local` and use development Supabase values only. Ne
 ```text
 src/
   app/            # app shell, routing, providers
-  design-system/  # shared UI primitives and tokens-driven components
+  design-system/  # shared UI primitives and token-driven components
   dev/            # dev-only component gallery
   domain/
     tournament/   # pure tournament rules and calculations
@@ -39,7 +53,7 @@ tests/
   features/ services/ scripts/ app/
 supabase/
   migrations/     # append-only repository migration chain
-  tests/          # local pgTAP behavior and permission tests
+  tests/          # local pgTAP behaviour and permission tests
   seed.sql
   prod-baseline.sql
 scripts/
@@ -47,16 +61,16 @@ scripts/
   database-parity/
   database-rollout/
 docs/
-  quality/        # audits, risk register, reconciliation and live status
+  quality/        # audits, risk register, reconciliations and live status
 ```
 
 ## Domain and database principles
 
-Tournament rules are implemented first as pure functions under `src/domain/tournament/`. Components render domain results rather than inventing standings, scoring or bracket behavior.
+Tournament rules are implemented first as pure functions under `src/domain/tournament/`. Components render domain results rather than inventing standings, scoring or bracket behaviour.
 
 The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. The database-parity workflow rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-In the latest 35-migration repository chain, the database is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing and exact function execution boundaries. Those controls are not considered deployed until the target hosted schema is inspected, migrated and verified.
+The production contract-35 database is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing and exact function execution boundaries.
 
 ## Scoring
 
@@ -81,11 +95,11 @@ Database parity CI runs:
 - TypeScript/PostgreSQL differential parity;
 - clean teardown.
 
-A dedicated Browser E2E gate rebuilds disposable local Supabase and runs authenticated desktop/mobile journeys for score persistence and protected clearing, submission settlement and conflicts, atomic bracket conflicts, post-lock rejection, signup confirmation and password recovery. Invitation/join, administrator and production smoke journeys remain open.
+Browser E2E covers disposable authenticated desktop/mobile journeys for score persistence and protected clearing, submission settlement and conflicts, atomic bracket conflicts, post-lock rejection, private-league invitation/join, signup confirmation and password recovery. Anonymous production smoke now covers auth routes, protected-route gates, not-found recovery, metadata, headers and environment isolation. Authenticated production mutation journeys and browser result administration remain open.
 
-## Repository and hosted-development implementation
+## Current implemented production contract
 
-The repository and hosted development have executable or live verification for:
+Production and repository contract 35 support:
 
 - canonical predicted group ordering, including recursive head-to-head handling and unresolved ties;
 - exact manual same-group and best-third decisions;
@@ -100,18 +114,15 @@ The repository and hosted development have executable or live verification for:
 - pending-write settlement before manual submission;
 - version-safe persisted score clearing with derived-position invalidation;
 - zero anonymous public-function execution;
-- exact authenticated/service function allowlists and owner-only future defaults;
-- fixed search paths for previously mutable helpers.
-
-Migrations 21–35 are verified on hosted development and remain pending on production. Production must receive the complete chain in strict timestamp order; migrations 33, 34 or 35 must not be applied alone.
+- exact authenticated/service function allowlists and owner-only future defaults.
 
 ## Documentation authority
 
 | Question | Source |
 | --- | --- |
 | Current implementation, hosted status, blockers and next action | `docs/quality/current-status.md` |
-| Current production release evidence | `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md` |
-| Latest formal audit | `docs/quality/audits/2026-07-23-live-environment-audit.md` |
+| Completed production contract-35 release evidence | `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md` |
+| Latest formal audit before rollout | `docs/quality/audits/2026-07-25-repeat-verification-audit.md` |
 | Agent, Git and database discipline | `AGENTS.md`; `CLAUDE.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Migration inventory and hosted applied state | `docs/ops-pending-migrations.md` |
@@ -121,6 +132,6 @@ Migrations 21–35 are verified on hosted development and remain pending on prod
 | Interface and design system | `docs/design-system.md` |
 | Competition boundaries | `docs/competition-structure.md` |
 | Future product sequence | `docs/roadmap.md`; `docs/build-todo.md` |
-| Operations runbooks | `docs/ops-*.md` |
+| Operations records and repeatable procedures | `docs/ops-*.md` |
 
-Dated audits are retained as historical evidence. Roadmap and TODO documents describe intent and sequencing, not proof that a feature or migration is live.
+Dated audits and reconciliations remain historical evidence. Roadmap and TODO documents describe future intent and sequencing, not proof that a feature or migration is live.
