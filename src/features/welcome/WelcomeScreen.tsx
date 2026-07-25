@@ -7,6 +7,7 @@ export type WelcomeScreenProps = {
   displayName: string | null
   onStart: () => void
   onScoring: () => void
+  startLabel?: string
 }
 
 function Step({ icon, gold, title, body }: { icon: ReactNode; gold?: boolean; title: string; body: string }) {
@@ -25,10 +26,15 @@ function Step({ icon, gold, title, body }: { icon: ReactNode; gold?: boolean; ti
 
 /**
  * The one-time orientation screen (design-system §6). Presentational only —
- * display name + two callbacks come from the caller; the seen-tracking and
+ * display name, CTA copy and callbacks come from the caller; seen-tracking and
  * navigation live in WelcomePage. Single screen, no carousel.
  */
-export function WelcomeScreen({ displayName, onStart, onScoring }: WelcomeScreenProps) {
+export function WelcomeScreen({
+  displayName,
+  onStart,
+  onScoring,
+  startLabel = 'Start with Group A →',
+}: WelcomeScreenProps) {
   return (
     <div className={w.screen}>
       <div className={w.inner}>
@@ -56,7 +62,7 @@ export function WelcomeScreen({ displayName, onStart, onScoring }: WelcomeScreen
         </div>
 
         <Button variant="primary" fullWidth onClick={onStart}>
-          Start with Group A →
+          {startLabel}
         </Button>
         <button type="button" className={w.scoringLink} onClick={onScoring}>
           How the scoring works →
