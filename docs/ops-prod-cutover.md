@@ -1,84 +1,118 @@
 # Ops record — Production Supabase cutover
 
-This is a historical record of the separate production Supabase project created on 22 July 2026. It is **not** a reusable migration script.
+This is the historical and current record of the separate production Supabase project created on 22 July 2026 and advanced to contract 35 on 25 July 2026. It is **not** a reusable migration script.
 
-## Current verified environment position — 24 July 2026
+## Current verified environment position — 25 July 2026
 
 | Component | Verified position |
 | --- | --- |
 | Production domains | `euro28predictor.com` and `euro28predictor.netlify.app` |
-| Production application-code baseline | `a403b0796853453cb4115aea55729aced192a6ca` — introduced the current bracket and score-clear RPC dependencies |
-| Netlify release commits | May advance on docs-only merges without executable application changes. Verify the current deploy live before any operation. First verified docs-only descendant: `83e071c2`, deploy `6a62c93afeb9b400086e1e3f`. |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk`; original 20-migration semantic shape; no migration-history table |
-| Development Supabase | `iouzoutneyjpugbbtdem`; migrations 21–35 applied and verified |
-| Repository shape | 35 migrations |
-| Production pending chain | migrations 21–35, fifteen files |
+| Approved/deployed source | `902a37aa6c50c967f8080d751147a5733b251fe3` |
+| Current production deploy | `6a652c3d3416d26d595ae2ef` |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk`; exactly migrations 1–35; contract 35 |
+| Development Supabase | `iouzoutneyjpugbbtdem`; exactly migrations 1–35; contract 35 |
+| Repository shape | 35 migrations; contract 35 |
+| Production pending chain through 35 | none |
+| Draft migration 36 | PR #76 only; unmerged and unapplied |
 
-Production remains connected to production Supabase. Preserve that boundary in every release and incident.
+Production remains connected only to production Supabase. Preserve that boundary in every release and incident.
 
 ## Release identity rule
 
-A Netlify production release hash is not always an application-code change. Documentation-only merges can produce later release commits with identical built application files.
+A Netlify production release hash is not always an application-code change. Documentation-only merges can produce later releases with equivalent executable files.
 
 For compatibility and rollback decisions, record both:
 
 1. the current Netlify release/deploy, verified live;
-2. the last executable application-code baseline relevant to the database schema.
+2. the executable application baseline relevant to the database schema.
 
-Do not treat one release hash as permanently current. Compare the current release diff with baseline `a403b079` before deciding whether the executable client changed.
+The verified contract-35 pair is source `902a37aa...`, deploy `6a652c3d3416d26d595ae2ef`, production database contract 35.
 
-## Critical release mismatch
+Do not treat one release hash as permanently current. Compare executable/configuration changes and the deployment contract before deciding compatibility.
 
-The executable production client calls:
+## Contract-35 production promotion
+
+The former mismatch is resolved. Production now contains:
 
 - `replace_predicted_progression(...)` for atomic bracket persistence;
-- `delete_match_prediction(...)` for persisted score clearing.
+- `delete_match_prediction(...)` for protected persisted score clearing;
+- RPC-only submission and server-derived group positions;
+- authoritative result lifecycle and immutable revisions;
+- serialized scoring recomputation;
+- full predicted-bracket replay and real winner propagation;
+- exact authenticated/service function allowlists and zero anonymous application execution.
 
-Read-only production inspection confirms neither RPC exists. Production also retains old direct authenticated progression and match-prediction delete privileges and broad owner `ALL` policies.
+The production migration history contains exactly 35 canonical rows. The final dry run reported no pending migration.
 
-Expected effects:
+The committed production verifier returned exactly 63 passing checks before and after rollback-only smoke operations. Source counts, submitted timestamp and all three rollout fingerprints remained unchanged. Exactly 24 derived positions were created and no result, revision, score-event or rank-history data was invented.
 
-- bracket edits fail rather than persist atomically;
-- clearing a stored score reaches a save error and reload can restore the old row;
-- the client does not fall back to unsafe direct writes.
+## Live application verification
 
-A later docs-only Netlify release does not change this verdict unless its diff modifies executable/configuration files.
+Netlify production declares contract 35 and serves the approved commit. Read-only live verification passed:
 
-Do not apply migrations ad hoc from this document. Follow:
+- production and immutable deploy roots returned HTTP 200 and matching HTML;
+- metadata, canonical URL and React root were correct;
+- CSP, HSTS and committed security headers were present;
+- tested SPA paths and initial assets were healthy;
+- production used production Supabase;
+- the complete development Supabase endpoint was absent;
+- no browser request targeted development or an unexpected Supabase host;
+- anonymous login, signup, reset, protected-route and not-found journeys passed.
 
-- `docs/ops-hosted-migration-rollout.md`;
-- `docs/ops-pending-migrations.md`;
-- `docs/quality/current-status.md`;
-- `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`.
+No form was submitted and no production data was changed during the live-site checks.
 
-## Current production data snapshot
+## Current production data evidence point
 
-Post-deploy read-only verification found:
+The completed rollout recorded:
 
-| Object | Count |
+| Object | Verified value |
 | --- | ---: |
-| Profiles | 4 |
-| Entries | 4 |
+| Auth users | 1 |
+| Profiles | 1 |
+| Entries | 1 |
 | Submitted entries | 1 |
 | Match predictions | 36 |
 | Tie resolutions | 2 |
 | Progression rows | 8 |
-| Matches with stored scores | 0 |
+| Derived group positions | 24 |
+| Stored/non-scheduled results | 0 |
+| Result revisions | 0 |
+| Score events | 0 |
+| Rank history | 0 |
 
-The earlier audit recorded three profiles and entries. The current count of four is live user data; no row was changed during verification.
+The submitted timestamp was `2026-07-21T21:51:49.639442+00:00`. Fingerprints were `320cf25d...`, `a4dcf183...` and `0d7bc491...`.
+
+These values are rollout evidence, not permanent business limits. Legitimate future users and predictions may change counts.
 
 ## What the 22 July cutover established
 
 The original cutover:
 
-- created a production Supabase project separate from development;
-- manually applied the then-current twenty migration files;
+- created production Supabase separately from development;
+- manually applied the then-current twenty migration effects;
 - created the initial Euro 2028 reference dataset;
 - connected production Netlify to production Supabase;
 - configured public Auth/CAPTCHA-related environment values;
-- switched the public domains to the production backend.
+- switched public domains to the production backend.
 
-The original inventory ended at `20260722120000_write_integrity.sql`. Migrations 21–35 were added later and are not applied to production.
+The original inventory ended at `20260722120000_write_integrity.sql` and did not create canonical migration history.
+
+## What the 25 July rollout established
+
+The controlled contract-35 operation:
+
+- accepted a verified encrypted backup and corrected clean restore;
+- proved the original migration 1–20 effects;
+- recorded exactly versions 1–20 through metadata-only repair;
+- dry-ran and applied exactly migrations 21–35;
+- verified exact 35-row history and zero pending migrations;
+- ran the 63-check verifier and advisors;
+- passed rollback-only authenticated/service database smoke checks;
+- changed only the production Netlify contract declaration from 20 to 35;
+- published the exact approved commit;
+- verified the live production application and environment isolation.
+
+The full record is `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`.
 
 ## Correction to the historical admin record
 
@@ -86,79 +120,80 @@ A previous version said an admin bootstrap grant had run. Direct inspection conf
 
 - no version-controlled administrator model was created;
 - the claimed update did not establish the documented admin state;
-- the issue is tracked under `OPS-002`;
+- the issue remains tracked under `OPS-002`;
 - `docs/ops-admin-bootstrap.md` prohibits the obsolete SQL.
-
-## Hosted development rehearsal addendum
-
-The controlled 23–24 July rehearsal applied migrations 21–35, replayed the normalized production entry, regenerated 24 predicted positions, resolved the R16 and full bracket, rehearsed results and winner propagation, verified exact function allowlists, and proved version-safe score clearing. Temporary evidence changes were removed afterward.
-
-This is rehearsal evidence only. It does not authorize or imply production rollout.
 
 ## Absolute environment boundary
 
 - Production domains/deploys remain connected to production Supabase.
 - Development Supabase is never a production fallback.
-- Missing production RPCs must not be replaced by old direct-table client writes.
-- Application rollback restores a release whose **executable code** is compatible with the current production schema; a docs-only release hash alone does not prove or disprove compatibility.
-- Repairing variables uses last-known-good **production** values only.
-- Migration/data failure stops the rollout; it never triggers reset, improvised repair SQL or cross-environment swapping.
+- Protected RPCs must not be replaced by direct-table client writes.
+- Application rollback restores a release whose executable code is compatible with the current production schema.
+- Repairing variables uses last-known-good production values only.
+- Migration/data failure stops the rollout; it never triggers reset, improvised SQL or cross-environment swapping.
+- Non-production Netlify contexts remain connected to development Supabase.
 
-## Current Netlify concerns
+## Current Netlify position
 
-Production Supabase values are scoped to `all` deploy contexts. Production-project previews and branch deploys may therefore access production Supabase (`OPS-007`).
+The current production Netlify project is correctly isolated:
 
-Merging to `main` can also automatically change the production release identity before a database rollout. Every merge affecting executable database-dependent paths must include an explicit app/schema compatibility decision.
+| Context | Supabase | Contract |
+| --- | --- | ---: |
+| production | production | 35 |
+| deploy-preview | development | 35 |
+| branch-deploy | development | 35 |
+| dev | development | 35 |
 
-## Future production rollout gate
+Merging to `main` can change production release identity. Every executable change affecting database-dependent paths must include an explicit compatibility decision even though the current pair is aligned.
 
-Before migrations 21–35 are applied:
+The separate legacy `euro28-predictor-dev.netlify.app` site remains outside this workstream under `OPS-008`.
 
-1. verify the current Netlify release/deploy live;
-2. compare its executable/configuration diff with application-code baseline `a403b079`;
-3. retain verified backup/recovery evidence;
-4. rerun both production preflights;
-5. prove the submitted entry still matches the rehearsed timestamp/fingerprints;
-6. apply the exact 1–20 migration-history repair only while every baseline check remains true;
-7. require `supabase db push --dry-run` to show migrations 21–35 only;
-8. review failure/recovery decisions and obtain explicit approval;
-9. apply migrations 21–35 in timestamp order;
-10. run the exact verifier and security advisors;
-11. verify bracket save/reload, immediate final-edit submission, score clear/reload/conflict/lock behavior and critical reads;
-12. record the compatible application-code baseline, current release and database schema pair.
+## Future production migration gate
+
+For migration 36 or later:
+
+1. verify current Netlify release/deploy and executable diff;
+2. verify the repository contract and exact migration set;
+3. create and accept fresh recovery evidence appropriate to the change;
+4. run read-only production preflights;
+5. require a dry run listing only approved pending migrations;
+6. obtain explicit owner approval;
+7. apply migrations in timestamp order;
+8. run exact post-verification, advisors and required smoke checks;
+9. update the production Netlify contract only after database verification passes;
+10. publish and verify the exact compatible release/schema pair;
+11. update all current authority documents.
 
 ## Application rollback
 
 A safe application rollback:
 
-1. identifies a known-good executable application baseline compatible with the current schema;
-2. selects a Netlify release containing that executable baseline;
+1. identifies a known-good executable application baseline compatible with production contract 35;
+2. selects a Netlify release containing that baseline;
 3. restores it through Netlify;
 4. leaves production Supabase URL/key unchanged;
-5. verifies auth, reads and critical writes against production;
+5. verifies Auth, reads and critical writes against production;
 6. records release commit, executable baseline, operator, reason and checks.
 
 Rollback is incomplete until application/database compatibility is demonstrated.
 
 ## Database incidents
 
-Until backup/restore is verified and rehearsed:
+The accepted backup/restore proof establishes recovery evidence, but restoration is still a deliberate incident decision:
 
-- do not claim database rollback capability;
-- stop and investigate on migration or integrity failure;
 - do not reset production;
+- stop and investigate on migration or integrity failure;
 - do not rewrite submitted entries without a reviewed remediation plan;
-- document the exact migration boundary and preserved evidence.
+- document the exact migration boundary and preserved evidence;
+- use the accepted/repeated recovery procedure only with explicit incident approval.
 
 ## Related documents
 
 - `docs/quality/current-status.md`
-- `docs/quality/reconciliations/2026-07-24-post-merge-production-release-state.md`
-- `docs/quality/audits/2026-07-23-live-environment-audit.md`
-- `docs/quality/reconciliations/2026-07-23-hosted-migration-rehearsal.md`
-- `docs/quality/reconciliations/2026-07-24-function-privilege-hardening.md`
-- `docs/quality/reconciliations/2026-07-24-score-clearing.md`
+- `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`
+- `docs/quality/reconciliations/2026-07-25-final-recovery-acceptance.md`
 - `docs/ops-hosted-migration-rollout.md`
 - `docs/ops-pending-migrations.md`
+- `docs/ops-production-backup-restore.md`
 - `docs/ops-admin-bootstrap.md`
 - `docs/quality/risk-register.md`
