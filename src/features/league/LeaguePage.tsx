@@ -24,14 +24,20 @@ type State =
   | { status: 'error'; message: string }
   | { status: 'ready'; overall: OverallSummary }
 
+type LeaguesState =
+  | { status: 'loading' }
+  | { status: 'unavailable'; message: string }
+  | { status: 'ready'; rows: LeagueSummary[] }
+
 export function LeaguePage() {
   const navigate = useNavigate()
   const data = useTournamentData()
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
 
   const [state, setState] = useState<State>({ status: 'loading' })
-  const [leagues, setLeagues] = useState<LeagueSummary[]>([])
+  const [leaguesState, setLeaguesState] = useState<LeaguesState>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
+  const [leaguesReloadKey, setLeaguesReloadKey] = useState(0)
   const [creating, setCreating] = useState(false)
   const [joining, setJoining] = useState(false)
 
@@ -40,14 +46,12 @@ export function LeaguePage() {
     let active = true
     setState({ status: 'loading' })
 
-    // Overall summary is required; the leagues list fails soft (so the tab still
-    // works before the leagues migration is applied).
     fetchLeaderboard(tournamentId)
       .then((rows) => {
         if (!active) return
         const ranked = rankLeaderboard(rows)
-        const preResults = ranked.every((r) => r.rank === null)
-        const you = ranked.find((r) => r.isYou)
+        const preResults = ranked.every((row) => row.rank === null)
+        const you = ranked.find((row) => row.isYou)
         setState({
           status: 'ready',
           overall: {
@@ -57,26 +61,42 @@ export function LeaguePage() {
           },
         })
       })
-      .catch((e) => {
-        if (active)
+      .catch((error) => {
+        if (active) {
           setState({
             status: 'error',
-            message: userFacingError(e, 'Could not load standings. Please try again.'),
+            message: userFacingError(error, 'Could not load standings. Please try again.'),
           })
-      })
-
-    fetchMyLeagues(tournamentId)
-      .then((rows) => {
-        if (active) setLeagues(rows)
-      })
-      .catch(() => {
-        if (active) setLeagues([]) // migration not applied yet — no leagues to show
+        }
       })
 
     return () => {
       active = false
     }
   }, [tournamentId, reloadKey])
+
+  useEffect(() => {
+    if (!tournamentId) return
+    let active = true
+    setLeaguesState({ status: 'loading' })
+
+    fetchMyLeagues(tournamentId)
+      .then((rows) => {
+        if (active) setLeaguesState({ status: 'ready', rows })
+      })
+      .catch((error) => {
+        if (active) {
+          setLeaguesState({
+            status: 'unavailable',
+            message: userFacingError(error, 'Could not load your leagues. Please try again.'),
+          })
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [tournamentId, leaguesReloadKey])
 
   const header = (
     <div className={s.header}>
@@ -116,7 +136,7 @@ export function LeaguePage() {
         <Alert variant="error" title="Couldn't load standings">
           {state.message}
           <div style={{ marginTop: 10 }}>
-            <Button variant="secondary" onClick={() => setReloadKey((k) => k + 1)}>
+            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
               Retry
             </Button>
           </div>
@@ -146,13 +166,31 @@ export function LeaguePage() {
                 : `${overall.entryCount} ${overall.entryCount === 1 ? 'entry' : 'entries'}`}
           </span>
         </span>
-        {overall.yourRank !== null && <span className={h.overallRank}>{ordinal(overall.yourRank)}</span>}
+        {overall.yourRank !== null && (
+          <span className={h.overallRank}>{ordinal(overall.yourRank)}</span>
+        )}
         <ChevronRightIcon size={18} className={h.chev} />
       </button>
 
-      {/* My leagues. */}
+      {/* My leagues. A failed read must never masquerade as a successful empty account. */}
       <p className={h.sectionLabel}>Your leagues</p>
-      {leagues.length === 0 ? (
+      {leaguesState.status === 'loading' ? (
+        <div className={s.card}>
+          <Skeleton lines={3} />
+        </div>
+      ) : leaguesState.status === 'unavailable' ? (
+        <Alert variant="warning" title="Couldn't load your leagues">
+          {leaguesState.message}
+          <div style={{ marginTop: 10 }}>
+            <Button
+              variant="secondary"
+              onClick={() => setLeaguesReloadKey((key) => key + 1)}
+            >
+              Retry leagues
+            </Button>
+          </div>
+        </Alert>
+      ) : leaguesState.rows.length === 0 ? (
         <EmptyState
           icon={<UsersIcon size={22} />}
           title="No leagues yet"
@@ -160,14 +198,14 @@ export function LeaguePage() {
         />
       ) : (
         <div className={h.leagueList}>
-          {leagues.map((lg) => (
+          {leaguesState.rows.map((league) => (
             <MyLeagueCard
-              key={lg.id}
-              name={lg.name}
-              memberCount={lg.memberCount}
-              isOwner={lg.isOwner}
+              key={league.id}
+              name={league.name}
+              memberCount={league.memberCount}
+              isOwner={league.isOwner}
               rank={null}
-              onOpen={() => navigate(`/league/${lg.id}`)}
+              onOpen={() => navigate(`/league/${league.id}`)}
             />
           ))}
         </div>
