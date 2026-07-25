@@ -1,4 +1,11 @@
-import { initialsOf, StatCard, TeamFlag, Button, type MatchTeam } from '../../design-system'
+import {
+  Alert,
+  initialsOf,
+  StatCard,
+  TeamFlag,
+  Button,
+  type MatchTeam,
+} from '../../design-system'
 import { ChevronRightIcon, LockIcon, UsersIcon } from '../../design-system/icons'
 import { PointsBreakdown } from '../scoring/PointsBreakdown'
 import { ordinal } from '../league/ordinal'
@@ -14,17 +21,35 @@ export type ProfileHeaderData = {
   champion: MatchTeam | null
   // Tombstone treatment: dimmed flag + struck-through name once knocked out.
   championEliminated: boolean
-  leaguesCount: number
+  // Null means the league source was unavailable, never a successful zero.
+  leaguesCount: number | null
 }
 
-export type ProfileFullStats = ProfileStats & { totalPoints: number; rank: number | null }
+export type ProfileFullStats = ProfileStats & {
+  // Null means the leaderboard source was unavailable, never a false zero.
+  totalPoints: number | null
+  rank: number | null
+}
+
+export type ProfileDataAvailability = {
+  leaderboard: boolean
+  leagues: boolean
+  scoreEvents: boolean
+}
+
+const ALL_AVAILABLE: ProfileDataAvailability = {
+  leaderboard: true,
+  leagues: true,
+  scoreEvents: true,
+}
 
 export type ProfileScreenProps =
   | {
       kind: 'full'
       header: ProfileHeaderData
       stats: ProfileFullStats
-      events: ScoreEvent[]
+      events: ScoreEvent[] | null
+      availability?: ProfileDataAvailability
       // The view-full-entry row is post-lock only (reveal rule); this flips it on.
       locked: boolean
       onViewEntry?: () => void
@@ -41,8 +66,9 @@ export type ProfileScreenProps =
       lockDateLabel: string
     }
 
-function leaguesLine(n: number): string {
-  return `${n} league${n === 1 ? '' : 's'}`
+function leaguesLine(count: number | null): string {
+  if (count === null) return 'Leagues unavailable'
+  return `${count} league${count === 1 ? '' : 's'}`
 }
 
 /**
@@ -50,6 +76,10 @@ function leaguesLine(n: number): string {
  * stat grid, the reused Points breakdown card, and the post-lock view-full-entry
  * row — or, for another player pre-lock, the reveal-gated hidden state. All data
  * and callbacks come from the caller.
+ *
+ * Remote-source availability is explicit. Missing leaderboard, league or score-
+ * event data must never be rendered as zero points, no leagues or an empty points
+ * breakdown.
  */
 export function ProfileScreen(props: ProfileScreenProps) {
   if (props.kind === 'hidden') {
@@ -78,9 +108,27 @@ export function ProfileScreen(props: ProfileScreenProps) {
     )
   }
 
-  const { header, stats, events, locked, onViewEntry, onH2H, onEdit } = props
+  const {
+    header,
+    stats,
+    events,
+    availability = ALL_AVAILABLE,
+    locked,
+    onViewEntry,
+    onH2H,
+    onEdit,
+  } = props
+  const partiallyUnavailable = Object.values(availability).some((available) => !available)
+
   return (
     <>
+      {partiallyUnavailable && (
+        <Alert variant="warning" title="Some profile data is unavailable">
+          Your saved entry and scored points are unaffected. Missing figures will return when the
+          connection recovers.
+        </Alert>
+      )}
+
       {/* Identity header */}
       <div className={p.headerCard}>
         <span className={p.avatar} aria-hidden="true">
@@ -122,8 +170,17 @@ export function ProfileScreen(props: ProfileScreenProps) {
 
       {/* Stat grid — four up */}
       <div className={p.statGrid}>
-        <StatCard label="Points" value={stats.totalPoints} />
-        <StatCard label="Overall rank" value={stats.rank === null ? '–' : ordinal(stats.rank)} accent />
+        <StatCard
+          label={availability.leaderboard ? 'Points' : 'Points unavailable'}
+          value={availability.leaderboard ? (stats.totalPoints ?? 0) : '–'}
+        />
+        <StatCard
+          label={availability.leaderboard ? 'Overall rank' : 'Rank unavailable'}
+          value={
+            availability.leaderboard && stats.rank !== null ? ordinal(stats.rank) : '–'
+          }
+          accent
+        />
         <StatCard label="Exact scores" value={stats.exactScores} />
         <StatCard
           label="Accuracy"
@@ -134,7 +191,11 @@ export function ProfileScreen(props: ProfileScreenProps) {
       {/* Points breakdown card (reuses the existing component) */}
       <div className={p.breakdownCard}>
         <span className={s.eyebrow}>Points breakdown</span>
-        <PointsBreakdown events={events} defaultExpanded />
+        {availability.scoreEvents && events !== null ? (
+          <PointsBreakdown events={events} defaultExpanded />
+        ) : (
+          <p className={s.sub}>Points breakdown unavailable. Your scored points are unchanged.</p>
+        )}
       </div>
 
       {/* View full entry — post-lock only (reveal rule) */}
