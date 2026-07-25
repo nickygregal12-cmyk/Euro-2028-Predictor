@@ -35,13 +35,19 @@ describe('client observability redaction', () => {
     expect(safe.message).toContain('[redacted-email]')
   })
 
-  it('does not transmit raw database errors', () => {
-    const safe = normaliseClientError(
-      new Error('duplicate key value violates unique constraint profiles_pkey'),
+  it('does not transmit raw database errors or their stack detail', () => {
+    const error = new Error(
+      'duplicate key value violates unique constraint profiles_pkey',
     )
+    error.stack =
+      'Error: duplicate key value violates unique constraint profiles_pkey\n' +
+      '    at savePrediction (src/service.ts:10:2)'
+
+    const safe = normaliseClientError(error)
 
     expect(safe.message).toBe('A database operation failed.')
     expect(safe.message).not.toContain('profiles_pkey')
+    expect(safe.stack).toBeNull()
   })
 })
 
