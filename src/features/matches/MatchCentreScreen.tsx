@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TeamFlag, Alert, initialsOf } from '../../design-system'
+import { TeamFlag, Alert, Button, initialsOf } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { PointsBreakdown } from '../scoring/PointsBreakdown'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
@@ -14,14 +14,28 @@ import type {
 } from '../../domain/tournament/matchCentre'
 import s from './MatchCentre.module.css'
 
-export type MatchScope = { type: 'overall' } | { type: 'league'; id: string; name: string }
+export type MatchScope =
+  | { type: 'overall' }
+  | { type: 'league'; id: string; name: string }
 
 export type MatchSaid =
   | { revealed: false; predicted: number; total: number }
   | { revealed: true; kind: 'overall-group'; bars: ScorelineBar[]; total: number }
-  | { revealed: true; kind: 'overall-ko'; homeName: string; awayName: string; split: KoSplit }
+  | {
+      revealed: true
+      kind: 'overall-ko'
+      homeName: string
+      awayName: string
+      split: KoSplit
+    }
   | { revealed: true; kind: 'league-group'; rows: LeagueGroupPickRow[] }
-  | { revealed: true; kind: 'league-ko'; homeName: string; awayName: string; rows: LeagueKoPickRow[] }
+  | {
+      revealed: true
+      kind: 'league-ko'
+      homeName: string
+      awayName: string
+      rows: LeagueKoPickRow[]
+    }
 
 export type MatchCentreScreenProps = {
   eyebrow: string
@@ -39,6 +53,9 @@ export type MatchCentreScreenProps = {
     | { kind: 'knockout'; stake: KoStake; teamName: string | null }
   scope: MatchScope
   leagues: { id: string; name: string }[]
+  leagueScopesStatus?: 'loading' | 'ready' | 'unavailable'
+  leagueScopesMessage?: string | null
+  onRetryLeagueScopes?: () => void
   onScopeChange?: (scope: MatchScope) => void
   said: MatchSaid
   saidLoading?: boolean
@@ -49,7 +66,11 @@ export type MatchCentreScreenProps = {
 }
 
 function JokerPill({ paid }: { paid: boolean }) {
-  return <span className={paid ? s.jokerPaid : s.jokerBurned}>{paid ? 'Joker 2×' : 'Joker +0'}</span>
+  return (
+    <span className={paid ? s.jokerPaid : s.jokerBurned}>
+      {paid ? 'Joker 2×' : 'Joker +0'}
+    </span>
+  )
 }
 
 function MemberRow({
@@ -64,7 +85,9 @@ function MemberRow({
   outcome: 'exact' | 'correct' | 'wrong' | 'neutral' | 'good' | 'bad'
 }) {
   return (
-    <li className={`${s.memberRow} ${isYou ? s.memberYou : ''} ${s[`o_${outcome}`] ?? ''}`}>
+    <li
+      className={`${s.memberRow} ${isYou ? s.memberYou : ''} ${s[`o_${outcome}`] ?? ''}`}
+    >
       <span className={s.avatar} aria-hidden="true">
         {initialsOf(name)}
       </span>
@@ -78,7 +101,13 @@ function MemberRow({
 }
 
 // Collapse a long member list to the notable rows + a "show all" toggle.
-function CollapsibleList({ count, children }: { count: number; children: React.ReactNode[] }) {
+function CollapsibleList({
+  count,
+  children,
+}: {
+  count: number
+  children: React.ReactNode[]
+}) {
   const [open, setOpen] = useState(false)
   const LIMIT = 6
   const shown = open ? children : children.slice(0, LIMIT)
@@ -86,7 +115,7 @@ function CollapsibleList({ count, children }: { count: number; children: React.R
     <>
       <ul className={s.memberList}>{shown}</ul>
       {count > LIMIT ? (
-        <button type="button" className={s.showAll} onClick={() => setOpen((v) => !v)}>
+        <button type="button" className={s.showAll} onClick={() => setOpen((value) => !value)}>
           {open ? 'Show fewer' : `Show all ${count} members`}
         </button>
       ) : null}
@@ -95,20 +124,26 @@ function CollapsibleList({ count, children }: { count: number; children: React.R
 }
 
 function ScorelineBars({ bars, total }: { bars: ScorelineBar[]; total: number }) {
-  const max = Math.max(1, ...bars.map((b) => b.count))
+  const max = Math.max(1, ...bars.map((bar) => bar.count))
   return (
     <div className={s.bars}>
-      {bars.map((b) => (
-        <div key={`${b.homeScore}-${b.awayScore}`} className={`${s.bar} ${s[`o_${b.outcome}`] ?? ''}`}>
+      {bars.map((bar) => (
+        <div
+          key={`${bar.homeScore}-${bar.awayScore}`}
+          className={`${s.bar} ${s[`o_${bar.outcome}`] ?? ''}`}
+        >
           <span className={s.barLabel}>
-            {b.homeScore}–{b.awayScore}
+            {bar.homeScore}–{bar.awayScore}
           </span>
           <span className={s.barTrack}>
-            <span className={s.barFill} style={{ width: `${(b.count / max) * 100}%` }} />
+            <span
+              className={s.barFill}
+              style={{ width: `${(bar.count / max) * 100}%` }}
+            />
           </span>
           <span className={s.barCount}>
-            {b.count}
-            {b.isYou ? <span className={s.youTag}> · you</span> : null}
+            {bar.count}
+            {bar.isYou ? <span className={s.youTag}> · you</span> : null}
           </span>
         </div>
       ))}
@@ -117,7 +152,15 @@ function ScorelineBars({ bars, total }: { bars: ScorelineBar[]; total: number })
   )
 }
 
-function KoSplitBar({ split, homeName, awayName }: { split: KoSplit; homeName: string; awayName: string }) {
+function KoSplitBar({
+  split,
+  homeName,
+  awayName,
+}: {
+  split: KoSplit
+  homeName: string
+  awayName: string
+}) {
   const total = Math.max(1, split.homeCount + split.awayCount)
   const homePct = (split.homeCount / total) * 100
   const won = (side: 'home' | 'away') => split.actualWinner === side
@@ -134,8 +177,14 @@ function KoSplitBar({ split, homeName, awayName }: { split: KoSplit; homeName: s
         </span>
       </div>
       <div className={s.splitTrack}>
-        <span className={`${s.splitHome} ${won('home') ? s.splitWon : ''}`} style={{ width: `${homePct}%` }} />
-        <span className={`${s.splitAway} ${won('away') ? s.splitWon : ''}`} style={{ width: `${100 - homePct}%` }} />
+        <span
+          className={`${s.splitHome} ${won('home') ? s.splitWon : ''}`}
+          style={{ width: `${homePct}%` }}
+        />
+        <span
+          className={`${s.splitAway} ${won('away') ? s.splitWon : ''}`}
+          style={{ width: `${100 - homePct}%` }}
+        />
       </div>
       <div className={s.splitCounts}>
         <span>{split.homeCount} had them through</span>
@@ -145,13 +194,16 @@ function KoSplitBar({ split, homeName, awayName }: { split: KoSplit; homeName: s
   )
 }
 
-function outcomeTag(o: 'exact' | 'correct' | 'wrong' | 'unknown'): 'exact' | 'correct' | 'wrong' | 'neutral' {
-  return o === 'unknown' ? 'neutral' : o
+function outcomeTag(
+  outcome: 'exact' | 'correct' | 'wrong' | 'unknown',
+): 'exact' | 'correct' | 'wrong' | 'neutral' {
+  return outcome === 'unknown' ? 'neutral' : outcome
 }
 
 export function MatchCentreScreen(props: MatchCentreScreenProps) {
   const { home, away, result, temporalState } = props
   const live = temporalState === 'during'
+  const leagueScopesStatus = props.leagueScopesStatus ?? 'ready'
 
   return (
     <div className={s.page}>
@@ -159,29 +211,50 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         <button type="button" className={s.back} onClick={props.onBack}>
           <ChevronLeftIcon size={16} /> Back
         </button>
-        {props.leagues.length > 0 ? (
+        {leagueScopesStatus === 'ready' && props.leagues.length > 0 ? (
           <select
             className={s.scope}
             aria-label="Prediction scope"
             value={props.scope.type === 'league' ? props.scope.id : 'overall'}
-            onChange={(e) => {
-              const v = e.target.value
-              if (v === 'overall') props.onScopeChange?.({ type: 'overall' })
-              else {
-                const l = props.leagues.find((x) => x.id === v)
-                if (l) props.onScopeChange?.({ type: 'league', id: l.id, name: l.name })
+            onChange={(event) => {
+              const value = event.target.value
+              if (value === 'overall') {
+                props.onScopeChange?.({ type: 'overall' })
+              } else {
+                const league = props.leagues.find((candidate) => candidate.id === value)
+                if (league) {
+                  props.onScopeChange?.({
+                    type: 'league',
+                    id: league.id,
+                    name: league.name,
+                  })
+                }
               }
             }}
           >
             <option value="overall">Overall</option>
-            {props.leagues.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
+            {props.leagues.map((league) => (
+              <option key={league.id} value={league.id}>
+                {league.name}
               </option>
             ))}
           </select>
         ) : null}
       </div>
+
+      {leagueScopesStatus === 'unavailable' ? (
+        <Alert variant="warning" title="League scopes unavailable">
+          {props.leagueScopesMessage ??
+            'Overall predictions are still available. Your leagues remain saved.'}
+          {props.onRetryLeagueScopes ? (
+            <div style={{ marginTop: 10 }}>
+              <Button variant="secondary" onClick={props.onRetryLeagueScopes}>
+                Retry league scopes
+              </Button>
+            </div>
+          ) : null}
+        </Alert>
+      ) : null}
 
       {/* Header + score hero */}
       <p className={s.eyebrow}>{props.eyebrow}</p>
@@ -202,7 +275,9 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
           ) : (
             <span className={s.vs}>vs</span>
           )}
-          {live && props.liveMinute ? <span className={s.minute}>{props.liveMinute}</span> : null}
+          {live && props.liveMinute ? (
+            <span className={s.minute}>{props.liveMinute}</span>
+          ) : null}
         </div>
         <div className={s.heroSide}>
           <TeamFlag countryCode={away.countryCode} label={away.name} size="champion" />
@@ -214,7 +289,12 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         <p className={s.countdown}>{props.countdownLabel}</p>
       ) : null}
       <p className={s.venue}>
-        <TeamFlag countryCode={props.venueCountryCode} label={props.venue} size="venue" /> {props.venue}
+        <TeamFlag
+          countryCode={props.venueCountryCode}
+          label={props.venue}
+          size="venue"
+        />{' '}
+        {props.venue}
       </p>
 
       {/* Your stake */}
@@ -227,9 +307,13 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
               <strong>
                 {props.stake.stake.pick.homeScore}–{props.stake.stake.pick.awayScore}
               </strong>
-              {props.stake.stake.pick.joker ? <JokerPill paid={props.stake.stake.outcome !== 'wrong'} /> : null}
+              {props.stake.stake.pick.joker ? (
+                <JokerPill paid={props.stake.stake.outcome !== 'wrong'} />
+              ) : null}
               {props.stake.stake.points !== null ? (
-                <span className={`${s.pointsPill} ${s[`o_${outcomeTag(props.stake.stake.outcome)}`] ?? ''}`}>
+                <span
+                  className={`${s.pointsPill} ${s[`o_${outcomeTag(props.stake.stake.outcome)}`] ?? ''}`}
+                >
                   +{props.stake.stake.points}
                 </span>
               ) : null}
@@ -240,11 +324,19 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         ) : props.stake.teamName ? (
           <p className={s.stakeLine}>
             You had <strong>{props.stake.teamName}</strong> through
-            {props.stake.stake.correct === true ? <span className={`${s.pointsPill} ${s.o_correct}`}>✓ +{props.stake.stake.points}</span> : null}
-            {props.stake.stake.correct === false ? <span className={`${s.pointsPill} ${s.o_wrong}`}>✗</span> : null}
+            {props.stake.stake.correct === true ? (
+              <span className={`${s.pointsPill} ${s.o_correct}`}>
+                ✓ +{props.stake.stake.points}
+              </span>
+            ) : null}
+            {props.stake.stake.correct === false ? (
+              <span className={`${s.pointsPill} ${s.o_wrong}`}>✗</span>
+            ) : null}
           </p>
         ) : (
-          <p className={s.stakeMuted}>You had neither of these teams reaching this stage.</p>
+          <p className={s.stakeMuted}>
+            You had neither of these teams reaching this stage.
+          </p>
         )}
       </section>
 
@@ -259,28 +351,34 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
           <p className={s.stakeMuted}>Loading…</p>
         ) : !props.said.revealed ? (
           <p className={s.stakeMuted}>
-            {props.said.predicted} of {props.said.total} have predicted this match. Everyone&rsquo;s picks
-            reveal once entries lock.
+            {props.said.predicted} of {props.said.total} have predicted this match.
+            Everyone&rsquo;s picks reveal once entries lock.
           </p>
         ) : props.said.kind === 'overall-group' ? (
           <ScorelineBars bars={props.said.bars} total={props.said.total} />
         ) : props.said.kind === 'overall-ko' ? (
-          <KoSplitBar split={props.said.split} homeName={props.said.homeName} awayName={props.said.awayName} />
+          <KoSplitBar
+            split={props.said.split}
+            homeName={props.said.homeName}
+            awayName={props.said.awayName}
+          />
         ) : props.said.kind === 'league-group' ? (
           <CollapsibleList count={props.said.rows.length}>
-            {props.said.rows.map((r) => (
+            {props.said.rows.map((row) => (
               <MemberRow
-                key={r.displayName + (r.isYou ? '-you' : '')}
-                name={r.displayName}
-                isYou={r.isYou}
-                outcome={outcomeTag(r.outcome)}
+                key={row.displayName + (row.isYou ? '-you' : '')}
+                name={row.displayName}
+                isYou={row.isYou}
+                outcome={outcomeTag(row.outcome)}
                 right={
                   <>
                     <span className={s.pick}>
-                      {r.homeScore}–{r.awayScore}
+                      {row.homeScore}–{row.awayScore}
                     </span>
-                    {r.joker ? <JokerPill paid={r.outcome !== 'wrong'} /> : null}
-                    {r.points !== null ? <span className={s.rowPts}>+{r.points}</span> : null}
+                    {row.joker ? <JokerPill paid={row.outcome !== 'wrong'} /> : null}
+                    {row.points !== null ? (
+                      <span className={s.rowPts}>+{row.points}</span>
+                    ) : null}
                   </>
                 }
               />
@@ -288,20 +386,27 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
           </CollapsibleList>
         ) : (
           <CollapsibleList count={props.said.rows.length}>
-            {props.said.rows.map((r) => {
+            {props.said.rows.map((row) => {
               const said = props.said as Extract<MatchSaid, { kind: 'league-ko' }>
-              const team = r.backed === 'home' ? said.homeName : r.backed === 'away' ? said.awayName : null
-              const oc = r.backed === null ? 'neutral' : r.correct ? 'good' : 'bad'
+              const team =
+                row.backed === 'home'
+                  ? said.homeName
+                  : row.backed === 'away'
+                    ? said.awayName
+                    : null
+              const outcome =
+                row.backed === null ? 'neutral' : row.correct ? 'good' : 'bad'
               return (
                 <MemberRow
-                  key={r.displayName + (r.isYou ? '-you' : '')}
-                  name={r.displayName}
-                  isYou={r.isYou}
-                  outcome={oc}
+                  key={row.displayName + (row.isYou ? '-you' : '')}
+                  name={row.displayName}
+                  isYou={row.isYou}
+                  outcome={outcome}
                   right={
                     team ? (
                       <span className={s.pick}>
-                        Had {team} {r.correct === true ? '✓' : r.correct === false ? '✗' : ''}
+                        Had {team}{' '}
+                        {row.correct === true ? '✓' : row.correct === false ? '✗' : ''}
                       </span>
                     ) : (
                       <span className={s.stakeMuted}>neither</span>
@@ -315,12 +420,15 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
       </section>
 
       {/* What it changed (after only) */}
-      {temporalState === 'after' && props.consequence && props.consequence.casualties > 0 ? (
+      {temporalState === 'after' &&
+      props.consequence &&
+      props.consequence.casualties > 0 ? (
         <section className={s.card}>
           <h2 className={s.cardTitle}>What it changed</h2>
           <p className={s.stakeLine}>
-            {props.consequence.casualties} in {props.scope.type === 'league' ? 'your league' : 'the field'} lose a
-            pick here
+            {props.consequence.casualties} in{' '}
+            {props.scope.type === 'league' ? 'your league' : 'the field'} lose a pick
+            here
             {props.consequence.example ? <> — incl. {props.consequence.example}</> : null}.
           </p>
         </section>
