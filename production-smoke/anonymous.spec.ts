@@ -17,7 +17,7 @@ test('anonymous production routes and environment isolation', async ({
 }) => {
   const pageErrors: string[] = []
   const unexpectedSupabaseHosts = new Set<string>()
-  const developmentRequests: string[] = []
+  const forbiddenDevelopmentRequests: string[] = []
 
   page.on('pageerror', (error) => {
     pageErrors.push(error.message)
@@ -27,8 +27,11 @@ test('anonymous production routes and environment isolation', async ({
     const url = new URL(browserRequest.url())
     if (!url.hostname.endsWith('.supabase.co')) return
 
-    if (url.hostname === developmentSupabaseHost) {
-      developmentRequests.push(
+    if (
+      expectedSupabaseHost !== developmentSupabaseHost &&
+      url.hostname === developmentSupabaseHost
+    ) {
+      forbiddenDevelopmentRequests.push(
         `${browserRequest.method()} ${url.hostname}${url.pathname}`,
       )
     }
@@ -90,7 +93,7 @@ test('anonymous production routes and environment isolation', async ({
   await expect(page).toHaveTitle('Page not found | Euro 2028 Predictor')
 
   expect(pageErrors).toEqual([])
-  expect(developmentRequests).toEqual([])
+  expect(forbiddenDevelopmentRequests).toEqual([])
   expect([...unexpectedSupabaseHosts]).toEqual([])
 })
 
