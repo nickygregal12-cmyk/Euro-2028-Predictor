@@ -3,208 +3,138 @@
 **Status date:** 25 July 2026  
 **Purpose:** Near-term execution checklist. [`quality/current-status.md`](quality/current-status.md) is authoritative for current facts; [`roadmap.md`](roadmap.md) holds wider product sequencing.
 
-## 0. Production compatibility incident — stop-the-line gate
+## 0. Contract-35 production compatibility — complete
 
-- [x] Freeze ordinary production promotion in repository guidance/runbooks.
-- [x] Confirm production application/Supabase mismatch at bracket and score-clear RPC boundaries.
-- [x] Verify production lacks both `replace_predicted_progression` and `delete_match_prediction`.
-- [x] Verify production retains old direct progression and match-prediction delete privileges.
+- [x] Freeze ordinary promotion while production application/database were incompatible.
+- [x] Verify the missing atomic-bracket and score-clear RPC boundaries.
 - [x] Rehearse migrations 21–35 on hosted development using production-shaped data.
 - [x] Prove production migration 1–20 structural effects.
-- [x] Prepare exact 1–20 metadata-only history repair.
-- [x] Commit fail-closed production preflight and post-rollout verification.
-- [x] Add fail-closed backup creation tooling/checksums/restore runbook.
-- [x] Add application/database contract 35 and keep production at contract 20.
-- [x] Align development physical schema and canonical migration history through 35.
-- [x] Rerun production baseline and source preflight on 25 July; require exact fingerprints.
-- [x] Create fresh production roles/schema/data bundle.
-- [x] Verify `auth.users`, `public.profiles`, permissions and all plaintext checksums.
-- [x] Encrypt the source artifact and verify decryption/encrypted checksum.
-- [x] Copy encrypted artifact/checksum off the working Mac.
-- [ ] Retrieve the off-device artifact through the custody path.
-- [ ] Verify encrypted and plaintext checksums after retrieval.
-- [ ] Restore it to disposable project `eckuehkcmkhuhmsfxtxu`.
-- [ ] Verify baseline/source counts, fingerprints, Auth users/profiles, Storage and signup trigger.
-- [ ] Preferably rehearse 1–20 history repair and migrations 21–35 on the restored target.
-- [ ] Record/accept the actual encryption method and complete recovery acceptance.
-- [ ] Name/approve the production migration window and recovery decision owner.
-- [ ] Freeze production writes/deployments for the approved window and refetch release identity.
-- [ ] Rerun both production preflights immediately before history repair.
-- [ ] Apply the prepared 1–20 metadata-only repair.
-- [ ] Require `db push --dry-run` to show migrations 21–35 only.
-- [ ] Obtain explicit approval and apply migrations 21–35 in strict order.
-- [ ] Run post-verification, advisors and authenticated production smoke journeys.
-- [ ] Change production contract 20 → 35 only after every database/application check passes.
-- [ ] Publish and record the exact compatible release/schema pair.
+- [x] Prepare and verify the exact 1–20 metadata-only history repair.
+- [x] Create and verify an encrypted off-device production backup.
+- [x] Complete corrected empty-target restore and forward migration rehearsal.
+- [x] Accept the executed OpenSSL AES-256-CBC/PBKDF2 recovery artifact.
+- [x] Rerun production preflights and preserve source fingerprints.
+- [x] Repair production history for exactly migrations 1–20.
+- [x] Require the production dry run to show exactly migrations 21–35.
+- [x] Apply migrations 21–35 in timestamp order.
+- [x] Verify exactly 35 migration-history rows and zero pending migrations.
+- [x] Pass all 63 production post-rollout checks.
+- [x] Pass rollback-only atomic bracket, submission and result-lifecycle smoke checks.
+- [x] Change only production `EURO28_DEPLOYED_DB_CONTRACT` from 20 to 35.
+- [x] Publish approved commit `902a37aa6c50c967f8080d751147a5733b251fe3`.
+- [x] Verify production deploy `6a652c3d3416d26d595ae2ef`.
+- [x] Verify metadata, security headers, SPA routes, assets and anonymous browser journeys.
+- [x] Verify no development Supabase endpoint/browser request in production.
+- [x] Keep migration 36 and PR #76 outside the rollout.
 
-Do **not** point production at development Supabase, add direct-table fallbacks, apply migrations 33–35 alone, include draft migration 36 or lift the production contract early.
+Completed evidence: [`quality/reconciliations/2026-07-25-contract-35-production-promotion.md`](quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
 
-## 1. Netlify environment and deployment controls
+## 1. Production operations and monitoring — next hard gate
+
+- [ ] Select and configure production error reporting.
+- [ ] Assign alert ownership and escalation path.
+- [ ] Define critical-journey availability checks for login, entry loading, saves, submission, leagues and Match Centre.
+- [ ] Define database health/advisor review cadence.
+- [ ] Define production incident severity and communication rules.
+- [ ] Rehearse a compatible Netlify application rollback while keeping production Supabase unchanged.
+- [ ] Schedule periodic backup creation, off-site verification and disposable restore rehearsal.
+- [ ] Record recovery artifact retention/expiry and secure plaintext cleanup policy.
+
+## 2. Netlify, Auth and repository controls
+
+### Environment/deployment controls
 
 - [x] Scope production Supabase values to production context.
 - [x] Point deploy-preview, branch-deploy and dev at development Supabase.
-- [x] Add a fail-closed environment-context prebuild guard.
-- [x] Add contract-version and migration-count deployment guard.
-- [x] Set non-production contract to 35.
-- [x] Keep production contract at 20 until rollout verification passes.
-- [x] Verify current ready production deploy and context matrix.
-- [x] Confirm PR #76 contract-36 preview failure is expected while preview declares 35.
-- [ ] Recheck Turnstile domain/context behavior after dashboard configuration.
-- [ ] Confirm/retire separately maintained legacy Netlify environment through issue #27.
-- [ ] Confirm GitHub branch-protection/required-check enforcement through issue #33.
-
-## 2. Development migration rehearsal — complete through contract 35
-
-- [x] Apply migrations 21–35 in timestamp order.
-- [x] Clone/reconstruct normalized production entry by stable references.
-- [x] Regenerate 24 group positions and all eight R16 fixtures.
-- [x] Replay complete predicted bracket and validate submission.
-- [x] Rehearse result confirm/correct/clear and winner propagation.
-- [x] Rehearse atomic bracket stale-snapshot rejection.
-- [x] Verify exact function allowlists/search paths/advisor delta.
-- [x] Verify version-safe score deletion, invalidation, idempotency and lock refusal.
-- [x] Restore development to expected clean mirror.
-- [x] Align migration history to exactly 35 canonical records.
-- [x] Require empty final application-schema diff.
-- [x] Pass migration rebuild, lint, pgTAP and TypeScript/PostgreSQL parity.
-
-Do not run additional history repair against development. Migration 36 remains draft PR work.
-
-## 3. Hosted security and Auth configuration
-
-### Function/database privileges
-
-- [x] Revoke anonymous/browser execution from internal helpers in repository/development.
-- [x] Restrict trigger/signup/maintenance functions.
-- [x] Restrict scoring, rank and result administration to service role.
-- [x] Preserve exact authenticated application RPC allowlist.
-- [x] Add protected prediction-delete RPC to allowlists.
-- [x] Fix mutable helper search paths and close future defaults.
-- [ ] Apply complete migrations 21–35 to production through controlled rollout.
-- [ ] Verify exact production ACL/advisor result.
+- [x] Add fail-closed environment-context and deployment-contract guards.
+- [x] Align production, preview, branch and dev declarations at contract 35 while preserving Supabase isolation.
+- [x] Verify current production deploy and exact source commit.
+- [ ] Confirm GitHub branch-protection and required-check enforcement through issue #33.
+- [ ] Confirm/retire the separately maintained legacy Netlify environment through issue #27.
 
 ### Auth/abuse configuration
 
-- [ ] Configure/verify matching non-production Turnstile and development Supabase CAPTCHA pair.
+- [ ] Configure and verify matching non-production Turnstile/development Supabase CAPTCHA pairing.
 - [ ] Verify preview login, signup and recovery plus production regression.
 - [ ] Review and approve leaked-password protection.
-- [ ] Enable and verify signup/reset behavior if approved.
+- [ ] Enable and verify leaked-password protection if approved.
 - [ ] Replace count-then-insert rate limiting with atomic serialization.
 - [ ] Complete invite/aggregate disclosure and abuse review.
 
-## 4. Production backup and restore evidence
+## 3. Production database and reliability assurance
 
-### Source artifact — complete
+### Completed production contract
 
-- [x] Create roles, schema and COPY-format data dumps.
-- [x] Confirm `auth.users` and `public.profiles`.
-- [x] Capture inventory, tool versions, repository commit and migration list.
-- [x] Include Auth/Storage drift and signup-trigger restore statement.
-- [x] Apply owner-only permissions.
-- [x] Generate/verify recursive plaintext checksums.
-- [x] Encrypt artifact using OpenSSL AES-256-CBC/PBKDF2.
-- [x] Verify decryptability and encrypted checksum.
-- [x] Copy encrypted archive/checksum off the Mac.
+- [x] RPC-only submission and server-derived positions.
+- [x] Authoritative result lifecycle, revisions and serialized scoring.
+- [x] Predicted bracket replay and real winner propagation.
+- [x] Atomic complete-bracket replacement.
+- [x] Version-safe score deletion and derived-position invalidation.
+- [x] Exact function allowlists and zero anonymous application execution.
+- [x] Production migration history exactly 1–35.
 
-### Recovery proof — pending
+### Remaining browser assurance
 
-- [ ] Explicitly accept executed encryption method or create replacement artifact.
-- [ ] Retrieve artifact from off-device custody.
-- [ ] Verify encrypted checksum after retrieval.
-- [ ] Decrypt into restricted temporary location and verify plaintext checksums.
-- [ ] Restore roles/schema/data/managed Auth trigger to disposable target.
-- [ ] Run baseline 1–20 verifier and production preflight against restore.
-- [ ] Verify Auth users/profiles, Storage and signup/profile trigger behavior.
-- [ ] Preferably forward-rehearse history repair plus migrations 21–35.
-- [ ] Retain non-secret recovery record and cleanup confirmation.
+- [ ] Design a controlled authenticated production smoke account/data strategy that cannot damage retained user predictions.
+- [ ] Browser-verify persisted score clear/reload, restore, stale conflict and post-lock refusal in production.
+- [ ] Browser-verify multi-device bracket conflict/recovery in production.
+- [ ] Browser-verify immediate final-edit submission settlement in production.
+- [ ] Record production browser evidence and decide final closure of `DATA-005`, `REL-007` and remaining `TEST-001` scope.
 
-## 5. Production rollout verification
-
-- [x] Prove current submitted production source shape and fingerprints.
-- [x] Prove migration 1–20 structural effects.
-- [x] Confirm production history table is absent.
-- [x] Confirm both client-required RPCs are absent.
-- [x] Prepare exact history repair, dry-run expectations and failure rules.
-- [ ] Complete recovery acceptance.
-- [ ] Review fresh preflight/history/dry-run output.
-- [ ] Apply only after explicit approval.
-- [ ] Run post-rollout verifier and security advisors.
-- [ ] Run bracket save/reload, submission settlement and score clear/reload/conflict/lock smoke checks.
-- [ ] Update production contract to 35 only after all checks pass.
-- [ ] Verify approved production deployment becomes current.
-
-## 6. Original Predictor reliability
-
-### Completed repository/disposable work
-
-- [x] `REL-002` — prevent late reads overwriting newer state.
-- [x] `REL-003` — settle pending score/tie/bracket/Golden Boot/delete writes before submission.
-- [x] `REL-004` — atomic complete-bracket snapshot RPC in contract 35.
-- [x] `REL-005` — refresh stale open pages on genuine foreground return.
-- [x] `REL-006` — idempotent concurrent first entry creation.
-- [x] `REL-007` — versioned complete-snapshot conflict protection in repository/development.
-- [x] `DATA-005` — version-safe persisted score deletion in repository/development.
-- [x] Add disposable browser journeys for final edits, failures, conflicts, score clearing and lock rejection.
-- [x] Map raw infrastructure failures to stable safe user-facing copy (`SEC-002`).
-
-### Production closure pending
-
-- [ ] Apply migrations 21–35.
-- [ ] Browser-verify final-edit submission settlement in production.
-- [ ] Browser-verify bracket snapshot conflict behavior in production.
-- [ ] Browser-verify score clear/reload, restore, stale conflict and post-lock refusal.
-- [ ] Close production-dependent reliability findings only after evidence passes.
-
-## 7. Tournament/reference integrity
+## 4. Tournament/reference integrity
 
 - [ ] Complete wider same-tournament/reference immutability work (`DATA-003`/`DATA-006`).
-- [ ] Review draft PR #76; do not merge solely because its CI is green.
-- [ ] Keep migration 36 outside production contract-35 rollout.
+- [ ] Review draft PR #76 on its own merits; do not merge solely because CI is green.
+- [ ] Keep migration 36 outside production until separately rehearsed and approved.
+- [ ] Update deployment contract deliberately if migration 36 is merged.
 - [ ] Implement transactional real R16 population from confirmed group standings.
 - [ ] Use canonical group/best-third rules.
-- [ ] Define/save authoritative actual tie decisions for unresolved standings.
-- [ ] Fail closed at best-third boundary.
+- [ ] Define and save authoritative actual tie decisions for unresolved standings.
+- [ ] Fail closed at the best-third boundary.
 - [ ] Never overwrite participants beneath confirmed downstream results.
-- [ ] Add exhaustive pgTAP/correction coverage.
+- [ ] Add exhaustive pgTAP and correction coverage.
 
-## 8. Submission automation and reminders
+## 5. Submission automation and reminders
 
 - [ ] Implement automatic valid-entry submission at lock.
 - [ ] Record manual versus automatic submission.
 - [ ] Keep incomplete entries out of standings.
 - [ ] Add 48-hour and 24-hour reminders after SMTP/Auth verification.
-- [ ] Test exact lock boundary.
-- [ ] Replace provisional `lock_at` with official opening kickoff when confirmed.
+- [ ] Test the exact lock boundary.
+- [ ] Replace provisional `lock_at` with the official opening kickoff when confirmed.
 
-## 9. Result administration
+## 6. Result administration
 
-- [ ] Define version-controlled admin authorization model.
+- [ ] Define a version-controlled administrator authorization model.
 - [ ] Do not rely on nonexistent `profiles.role` without migration/tests.
 - [ ] Add server-side/browser administration for confirm, correct and clear.
-- [ ] Require reasons and expose revision history.
+- [ ] Require correction/clear reasons and expose revision history safely.
 - [ ] Cover regulation, extra time, penalties and correction propagation.
 - [ ] Keep result RPCs unavailable to ordinary browser roles.
+- [ ] Add result-administration Browser E2E after implementation.
 
-## 10. Browser E2E, accessibility and operations
+## 7. Browser E2E and accessibility
+
+### Completed
 
 - [x] Dedicated Playwright/Chromium gate against disposable Supabase.
-- [x] Cover signup confirmation, password recovery, welcome, full entry, ties, bracket and submission.
-- [x] Cover save failure, optimistic conflicts, score clear/reload and post-lock rejection.
-- [x] Run authenticated/signed-out phone-width journeys.
-- [x] Run Browser E2E as a path-scoped PR workflow.
-- [x] Implement route titles, live announcements, main focus and skip navigation.
-- [x] Replace league-options ARIA menu mismatch with disclosure semantics (`A11Y-002`).
-- [x] Add private league creation/invitation/join browser journey.
-- [x] Add retained keyboard and route-announcement browser evidence (`A11Y-001`).
-- [x] Move pending invite persistence out of render and prove signup-confirmation/Welcome continuation (`UX-001`).
+- [x] Signup confirmation, password recovery and welcome journeys.
+- [x] Complete entry, ties, bracket, submission, failures, conflicts and lock rejection.
+- [x] Score clear/reload and protected deletion in disposable Browser E2E.
+- [x] Desktop and phone-width authenticated/signed-out journeys.
+- [x] Private league create/invite/join browser journey.
+- [x] Route titles, live announcements, main focus and skip navigation.
+- [x] Pending-invite continuation through signup confirmation and Welcome.
+- [x] Anonymous production route, title, header, asset and environment smoke.
+
+### Remaining
+
 - [ ] Complete manual screen-reader review for `A11Y-001`.
 - [ ] Add result-administration journey after implementation.
-- [ ] Add production error reporting, alert ownership and critical-journey monitoring.
-- [ ] Periodically repeat backup/restore/application rollback rehearsals.
+- [ ] Add controlled authenticated production mutation smoke.
+- [ ] Preserve unavailable/error/empty distinctions across remaining remote-read consumers.
 
-## 11. Core experience follow-ups
-
-After integrity/recovery gates:
+## 8. Core experience follow-ups
 
 - [ ] Complete other-player profile states and richer H2H.
 - [ ] Add rank graph and bracket-health-versus-real.
@@ -212,10 +142,10 @@ After integrity/recovery gates:
 - [ ] Add account/privacy/contact-admin surfaces.
 - [ ] Add post-lock prediction trends.
 - [ ] Add a privacy-reviewed trustworthy invite preview before auth.
-- [ ] Preserve unavailable/error/empty distinctions.
 - [ ] Complete mobile physics/friction pass.
+- [ ] Run a final design-system consistency pass.
 
-## 12. Architecture, typing and performance
+## 9. Architecture, typing and performance
 
 - [ ] Generate Supabase database types.
 - [ ] Enable TypeScript strictness incrementally around critical RPC/domain boundaries.
@@ -226,7 +156,7 @@ After integrity/recovery gates:
 - [ ] Select licence and changelog policy.
 - [ ] Replace package version `0.0.0` through an approved release-version policy.
 
-## 13. Bonus games — after core gates
+## 10. Bonus games — after core gates
 
 - [ ] Build optional competition framework with isolated scoring/league boundaries.
 - [ ] Complete rules/design/build/test for KO Predictor.
@@ -235,15 +165,16 @@ After integrity/recovery gates:
 
 Sweepstake builder remains non-launch-blocking. Fan Duels direct challenges remain superseded unless explicitly reopened.
 
-## 14. Official data and final readiness
+## 11. Official data and final readiness
 
 - [ ] Reverify official Euro 2028 regulations and best-third allocation.
 - [ ] Load official qualifiers/draw assignments safely.
 - [ ] Replace provisional dates, times and lock instant.
 - [ ] Verify venue/team/player source metadata.
-- [ ] Run complete multi-game dress rehearsal through the final.
+- [ ] Run a complete multi-game dress rehearsal through the final.
 - [ ] Run final security, accessibility, performance and documentation sweeps.
 - [ ] Remove provisional/internal labels from public UI.
+- [ ] Confirm monitoring, rollback and recovery ownership before tournament launch.
 
 ## Completed foundations
 
@@ -253,13 +184,13 @@ Sweepstake builder remains non-launch-blocking. Fan Duels direct challenges rema
 - [x] Scoring authority alignment.
 - [x] Application CI, disposable database parity and substantial Browser E2E.
 - [x] Canonical predicted group ordering.
-- [x] RPC-only submission and server-derived positions in contract 35.
-- [x] Authoritative result lifecycle and bracket replay in contract 35.
-- [x] Atomic bracket persistence and version-safe score clearing in contract 35.
-- [x] Exact function allowlists and closed future defaults in contract 35.
-- [x] Hosted development schema/history aligned through 35.
+- [x] Production RPC-only submission and server-derived positions.
+- [x] Production authoritative result lifecycle and bracket replay.
+- [x] Production atomic bracket persistence and version-safe score clearing.
+- [x] Production exact function allowlists and closed future defaults.
+- [x] Development and production schema/history aligned through 35.
 - [x] Netlify production/non-production Supabase isolation.
 - [x] Fail-closed application/database deployment contract.
 - [x] Node `22.22.2` alignment.
-- [x] Fresh encrypted off-device production source artifact created.
-- [x] `2026-07-25R` full repeat audit and authority-document reconciliation merged.
+- [x] Accepted encrypted off-device production recovery artifact and clean restore proof.
+- [x] Contract-35 production database rollout and application promotion.
