@@ -21,7 +21,7 @@ describe('SEC-002 user-facing error boundary', () => {
   it.each(USER_VISIBLE_SURFACES)('%s does not render an unknown error message directly', (path) => {
     const source = readFileSync(path, 'utf8')
 
-    expect(source).not.toMatch(/\b(?:error|err|e)\s+instanceof\s+Error\s*\?\s*\1?\.message/)
+    expect(source).not.toMatch(/instanceof\s+Error\s*\?[^:\n]*\.message/)
     expect(source).not.toMatch(/\(err\s+as\s+\{\s*message\??:/)
     expect(source).not.toMatch(/\b(?:error|err|e)\??\.message\b/)
     expect(source).toContain('userFacingError')
