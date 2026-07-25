@@ -1,0 +1,59 @@
+name: SEC-002 doc reconciliation
+
+on:
+  push:
+    branches: [docs/sec002-authority-reconciliation]
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/sec002-authority-reconciliation
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+      - name: Reconcile authority documents
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected text in {path}: {old}')
+              p.write_text(text.replace(old, new))
+
+          replace('docs/build-todo.md', '**Status date:** 24 July 2026', '**Status date:** 25 July 2026')
+          replace('docs/build-todo.md', '- [ ] Map raw database/network failures to stable user-facing errors.', '- [x] **`SEC-002`** — map raw database/network failures to stable user-facing errors.\n  - [x] Route identified user-visible error surfaces through one shared safe-message mapper.\n  - [x] Prevent PostgreSQL/PostgREST details, constraint names, SQL fragments, RLS text and arbitrary exception messages reaching users.\n  - [x] Preserve stable network, session, rate-limit, permission and conflict guidance.\n  - [x] Add focused mapper tests and a source-boundary regression.\n  - [x] PR #71 passed CI, Browser E2E and a ready Netlify preview before merge.')
+
+          replace('docs/quality/current-status.md', '| Foreground refresh | [`2026-07-24-foreground-refresh.md`](reconciliations/2026-07-24-foreground-refresh.md) |', '| Foreground refresh | [`2026-07-24-foreground-refresh.md`](reconciliations/2026-07-24-foreground-refresh.md) |\n| Safe user-facing errors | [`2026-07-25-safe-user-facing-errors.md`](reconciliations/2026-07-25-safe-user-facing-errors.md) |')
+          replace('docs/quality/current-status.md', '| Issue #49 / PR #50 | **Resolved on `main`.** PR #50 merged as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`; issue #49 closed automatically. Final head `f191a988e5cf18d773846c4d58b8f5d8becdd1c9` passed CI run 217. |', '| Issue #49 / PR #50 | **Resolved on `main`.** PR #50 merged as `2bfe5d6b06519cf26929ba49a57b5a5861644e14`; issue #49 closed automatically. Final head `f191a988e5cf18d773846c4d58b8f5d8becdd1c9` passed CI run 217. |\n| `SEC-002` / PR #71 | **Resolved on `main`.** Shared safe-message mapping covers identified submission, tournament, league, match-centre, dashboard, profile, H2H and standings surfaces. CI run `30135618430`, Browser E2E run `30135618409` and the ready preview passed before merge `1a52f6239083f5dfa6690cb638ac32183f53a1c7`. |')
+
+          replace('docs/quality/risk-register.md', '**Foreground refresh:** [`reconciliations/2026-07-24-foreground-refresh.md`](reconciliations/2026-07-24-foreground-refresh.md)', '**Foreground refresh:** [`reconciliations/2026-07-24-foreground-refresh.md`](reconciliations/2026-07-24-foreground-refresh.md)  \n**Safe user-facing errors:** [`reconciliations/2026-07-25-safe-user-facing-errors.md`](reconciliations/2026-07-25-safe-user-facing-errors.md)')
+          replace('docs/quality/risk-register.md', '| Medium | 19 | 6 | 13 |', '| Medium | 19 | 7 | 12 |')
+          replace('docs/quality/risk-register.md', '| **Total** | **57** | **16** | **41** |', '| **Total** | **57** | **17** | **40** |')
+          replace('docs/quality/risk-register.md', '`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003`, `DOC-006`, `REL-002`, `REL-005`, `REL-006` and `UX-004` are resolved.', '`OPS-001`, `OPS-004`, `OPS-007`, `A11Y-003`, `REPO-002`, `DOC-004`, `DOC-005`, `TEST-002`, `DOC-001`, `TEST-003`, `DOC-006`, `REL-002`, `REL-005`, `REL-006`, `SEC-002` and `UX-004` are resolved.')
+          replace('docs/quality/risk-register.md', '| Resolved | PR #68 merged as `4b1c4d4ae4f944687a28f431b60698c110b83586`; final CI run `30133656106`, Browser E2E run `30133656077` and the ready Netlify preview passed. This resolves `REL-005`. |', '| Resolved | PR #68 merged as `4b1c4d4ae4f944687a28f431b60698c110b83586`; final CI run `30133656106`, Browser E2E run `30133656077` and the ready Netlify preview passed. This resolves `REL-005`. |\n| Resolved | PR #71 merged as `1a52f6239083f5dfa6690cb638ac32183f53a1c7`; CI run `30135618430`, Browser E2E run `30135618409` and the ready Netlify preview passed. This resolves `SEC-002`. |')
+          replace('docs/quality/risk-register.md', '| `SEC-002` | Raw internal errors can reach users | Open | Map database/network failures to stable safe messages. |', '| `SEC-002` | Raw internal errors can reach users | **Resolved by PR #71** | Identified user-visible database, RPC and network failures now pass through the shared safe-message mapper; focused leak tests, a source-boundary regression, full CI, Browser E2E and the ready preview passed before merge. Reopen if arbitrary internal error text is rendered to users. |')
+
+          Path('.github/workflows/sec002-doc-reconcile.yml').unlink()
+      - name: Validate documentation and repository gates
+        run: |
+          npm ci
+          npm run build
+          npm run lint
+          npm test -- --run
+      - name: Commit reconciliation
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add docs .github/workflows/sec002-doc-reconcile.yml
+          git commit -m 'Close SEC-002 in authority documents'
+          git push origin HEAD:docs/sec002-authority-reconciliation
