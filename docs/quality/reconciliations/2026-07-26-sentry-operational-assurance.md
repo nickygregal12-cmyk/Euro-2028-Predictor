@@ -2,7 +2,7 @@
 
 **Date:** 26 July 2026  
 **Scope:** issue #91 continuation after merged PR #92.  
-**Status:** repository implementation under review; provider delivery remains disabled.
+**Status:** repository implementation validated; deploy-preview Sentry verification configured; production delivery remains disabled.
 
 ## Purpose
 
@@ -46,7 +46,7 @@ The SDK is configured with `sendDefaultPii: false`, no automatic breadcrumbs and
 
 ## Deployment boundary
 
-No Sentry DSN or API token is committed. No Netlify environment variable is changed by this repository branch. Production delivery remains disabled unless the owner separately configures production-scoped variables after non-production verification.
+No Sentry DSN or API token is committed. On 26 July 2026, the public browser DSN, SDK enable flag and synthetic verification flag were configured in Netlify for the `deploy-preview` context and `builds` scope only. Production-scoped Sentry variables remain unset.
 
 The Sentry browser DSN is an ingestion address intended for client use. Administrative Sentry API tokens remain prohibited from the client and repository. A future source-map upload step would require a separately scoped build secret and approval.
 
@@ -62,27 +62,25 @@ The new workflow runs only after a push to `main` or an explicit manual dispatch
 
 It performs no login, form submission, account creation or prediction mutation.
 
-## Validation required before merge
+## Validation completed
 
-- CI build/type-check, Oxlint, complete Vitest suite and dependency audit;
-- Browser E2E disposable 35-migration rebuild and authenticated journeys;
-- exact-head Netlify deploy-preview HTTP and browser smoke;
-- review that no migration, SQL, scoring or stored-data change is present;
-- review CSP host scope, SDK defaults and privacy-boundary tests;
-- one Sentry deploy-preview event plus one trace inspected in the Sentry project.
+- CI run 462 passed build/type-check, Oxlint, the complete Vitest suite and production dependency audit;
+- Browser E2E run 176 passed the disposable 35-migration rebuild, authenticated journeys, signup and password recovery;
+- exact-head Netlify deploy-preview HTTP and browser smoke passed;
+- no migration, SQL, scoring or stored-data change is present;
+- CSP host scope, SDK defaults and privacy-boundary tests passed repository review.
 
-## Required hosted follow-up
+## Remaining hosted verification
 
-1. create or select the dedicated Sentry React project;
-2. approve access, data region, processing terms and retention;
-3. enable default data scrubbing and IP scrubbing;
-4. configure the DSN, enable flag and synthetic-event flag for deploy previews only;
-5. inspect the controlled error event and page-load/navigation trace field by field;
-6. verify blocked or invalid Sentry delivery cannot affect application use;
-7. remove the preview synthetic-event flag;
-8. approve production configuration separately;
-9. after merge, retain the automatic production-smoke run and controlled production-event evidence;
-10. update current status, risk register, feature baseline, build TODO and issue #91.
+1. allow the new exact-head deploy preview to build with the deploy-preview-only Sentry variables;
+2. confirm the controlled synthetic error appears in Sentry;
+3. confirm one controlled page-load/navigation trace appears;
+4. inspect the event and trace field by field for prohibited data;
+5. verify blocked or invalid Sentry delivery cannot affect application use;
+6. remove `VITE_SENTRY_VERIFICATION_EVENT` from deploy previews after evidence is retained;
+7. approve production configuration separately;
+8. after merge, retain the automatic production-smoke run and controlled production-event evidence;
+9. update current status, risk register, feature baseline, build TODO and issue #91.
 
 ## Explicit exclusions
 
