@@ -50,6 +50,7 @@ export function MatchCentreScenarioPreview() {
     stake: {
       kind: 'group',
       stake: {
+        kind: 'group',
         pick: { homeScore: 1, awayScore: 1, joker: false },
         outcome: header.result ? 'correct' : 'unknown',
         points: header.result ? 3 : null,
