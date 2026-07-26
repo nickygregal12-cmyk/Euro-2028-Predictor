@@ -28,7 +28,7 @@ const ALLOWED_ERROR_TAGS = new Set([
 ])
 
 interface SanitizableSentryEvent {
-  tags?: Record<string, string | number | boolean | undefined>
+  tags?: Record<string, unknown>
   contexts?: Record<string, unknown>
   user?: unknown
   request?: unknown
