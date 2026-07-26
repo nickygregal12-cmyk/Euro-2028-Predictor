@@ -1,10 +1,13 @@
 import { ChoiceSheet } from '../../design-system'
-import type { MatchScope } from './MatchCentreScreen'
+
+type MatchCentreScope =
+  | { type: 'overall' }
+  | { type: 'league'; id: string; name: string }
 
 type MatchCentreScopeChoiceProps = {
-  scope: MatchScope
+  scope: MatchCentreScope
   leagues: { id: string; name: string }[]
-  onScopeChange?: ((scope: MatchScope) => void) | undefined
+  onScopeChange?: (scope: MatchCentreScope) => void
 }
 
 /**
