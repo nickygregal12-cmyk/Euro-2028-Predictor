@@ -1,6 +1,6 @@
 import type { Group, Match, Team } from '../../services/supabase/tournamentData'
 import { adaptRepositoryMatchToCentre } from './matchCentreRepositoryAdapter'
-import { bridgeMatchCentreToLegacyScreen } from './matchCentreLegacyBridge'
+import { bridgeExternalMatchToLegacyHeader } from './matchCentreLegacyBridge'
 
 const ROUND_LABEL: Record<Match['round'], string> = {
   group: 'Group',
@@ -18,7 +18,7 @@ export type MatchCentrePageModelInput = {
   fetchedAt?: string
 }
 
-export type MatchCentrePageModel = ReturnType<typeof bridgeMatchCentreToLegacyScreen> & {
+export type MatchCentrePageModel = ReturnType<typeof bridgeExternalMatchToLegacyHeader> & {
   eyebrow: string
   countdownLabel: string | null
   venueCountryCodeInput: string
@@ -54,7 +54,7 @@ export function createMatchCentrePageModel(
     now: input.now,
     fetchedAt: input.fetchedAt,
   })
-  const screen = bridgeMatchCentreToLegacyScreen(viewModel)
+  const screen = bridgeExternalMatchToLegacyHeader(viewModel.external)
 
   return {
     ...screen,
