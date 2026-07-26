@@ -120,7 +120,7 @@ jobs:
       - name: Wait for exact Netlify deploy preview
         shell: bash
         env:
-          PREVIEW_ORIGIN: https://deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app
+          PREVIEW_ORIGIN: https://deploy-preview-${{ github.event.pull_request.number }}--euro28-predictor-dev.netlify.app
           EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
           EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem
         run: |
