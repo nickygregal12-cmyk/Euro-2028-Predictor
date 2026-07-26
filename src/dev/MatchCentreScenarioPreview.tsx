@@ -57,7 +57,6 @@ export function MatchCentreScenarioPreview() {
       leagues={[]}
       said={{ revealed: false, predicted: 8, total: 12 }}
       scoreEvents={[]}
-      onBack={() => window.history.back()}
     />
   )
 }
