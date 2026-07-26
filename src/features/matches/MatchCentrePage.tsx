@@ -11,8 +11,8 @@ import { venueCountryCode } from '../predict/venues'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
+import { createMatchCentrePageModel } from '../../domain/tournament/matchCentrePageModel'
 import {
-  matchTemporalState,
   groupStake,
   koStake,
   groupDistribution,
@@ -303,18 +303,12 @@ export function MatchCentrePage() {
   }
 
   const td = data.data
-  const home = {
-    name: teamsById.get(match.homeTeamId ?? '')?.name ?? 'TBC',
-    countryCode: '',
-  }
-  const away = {
-    name: teamsById.get(match.awayTeamId ?? '')?.name ?? 'TBC',
-    countryCode: '',
-  }
-  const result =
-    match.homeScore !== null && match.awayScore !== null
-      ? { home: match.homeScore, away: match.awayScore }
-      : null
+  const pageModel = createMatchCentrePageModel({
+    match,
+    teams: td.teams,
+    groups: td.groups,
+  })
+  const { home, away, result, temporalState: temporal } = pageModel
   const actualWinner: 'home' | 'away' | null = result
     ? result.home > result.away
       ? 'home'
@@ -322,15 +316,6 @@ export function MatchCentrePage() {
         ? 'away'
         : null
     : null
-  const temporal = matchTemporalState(match)
-
-  const stageLabel =
-    match.round === 'group'
-      ? `Group ${td.groups.find((group) => group.id === match.groupId)?.letter ?? ''}`.trim()
-      : (ROUND_LABEL[match.round] ?? 'Knockout')
-  const stateLabel =
-    temporal === 'after' ? 'Full time' : temporal === 'during' ? 'Live' : 'Upcoming'
-  const eyebrow = `${stageLabel} · ${stateLabel}`
 
   // Your stake + this-match score events.
   let stakeProp: Parameters<typeof MatchCentreScreen>[0]['stake']
@@ -377,20 +362,18 @@ export function MatchCentrePage() {
 
   return (
     <MatchCentreScreen
-      eyebrow={eyebrow}
+      eyebrow={pageModel.eyebrow}
       venue={match.venue}
-      venueCountryCode={venueCountryCode(match.venue)}
+      venueCountryCode={venueCountryCode(pageModel.venueCountryCodeInput)}
       home={home}
       away={away}
       temporalState={temporal}
+      statusPresentation={pageModel.statusPresentation}
+      matchSource={pageModel.matchSource}
       result={result}
       koDetail={null}
-      countdownLabel={
-        temporal === 'before'
-          ? `Kick-off ${new Date(match.kickoffAt ?? match.matchDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`
-          : null
-      }
-      liveMinute={null}
+      countdownLabel={pageModel.countdownLabel}
+      liveMinute={pageModel.liveMinute}
       stake={stakeProp}
       scope={scope}
       leagues={leagueScopes.rows}

@@ -3,6 +3,8 @@ import { TeamFlag, Alert, Button, initialsOf } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { PointsBreakdown } from '../scoring/PointsBreakdown'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
+import type { MatchSourceMetadata } from '../../domain/tournament/matchCentreContract'
+import type { MatchCentreStatusPresentation } from '../../domain/tournament/matchCentrePresentation'
 import type {
   MatchTemporalState,
   GroupStake,
@@ -12,6 +14,8 @@ import type {
   LeagueGroupPickRow,
   LeagueKoPickRow,
 } from '../../domain/tournament/matchCentre'
+import { MatchCentreDataNotice } from './MatchCentreDataNotice'
+import { MatchCentreScopeChoice } from './MatchCentreScopeChoice'
 import s from './MatchCentre.module.css'
 
 export type MatchScope =
@@ -44,6 +48,8 @@ export type MatchCentreScreenProps = {
   home: { name: string; countryCode: string }
   away: { name: string; countryCode: string }
   temporalState: MatchTemporalState
+  statusPresentation?: MatchCentreStatusPresentation
+  matchSource?: MatchSourceMetadata
   result: { home: number; away: number } | null
   koDetail?: string | null
   countdownLabel?: string | null
@@ -202,7 +208,7 @@ function outcomeTag(
 
 export function MatchCentreScreen(props: MatchCentreScreenProps) {
   const { home, away, result, temporalState } = props
-  const live = temporalState === 'during'
+  const live = props.statusPresentation?.isLive ?? temporalState === 'during'
   const leagueScopesStatus = props.leagueScopesStatus ?? 'ready'
 
   return (
@@ -212,33 +218,11 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
           <ChevronLeftIcon size={16} /> Back
         </button>
         {leagueScopesStatus === 'ready' && props.leagues.length > 0 ? (
-          <select
-            className={s.scope}
-            aria-label="Prediction scope"
-            value={props.scope.type === 'league' ? props.scope.id : 'overall'}
-            onChange={(event) => {
-              const value = event.target.value
-              if (value === 'overall') {
-                props.onScopeChange?.({ type: 'overall' })
-              } else {
-                const league = props.leagues.find((candidate) => candidate.id === value)
-                if (league) {
-                  props.onScopeChange?.({
-                    type: 'league',
-                    id: league.id,
-                    name: league.name,
-                  })
-                }
-              }
-            }}
-          >
-            <option value="overall">Overall</option>
-            {props.leagues.map((league) => (
-              <option key={league.id} value={league.id}>
-                {league.name}
-              </option>
-            ))}
-          </select>
+          <MatchCentreScopeChoice
+            scope={props.scope}
+            leagues={props.leagues}
+            onScopeChange={props.onScopeChange}
+          />
         ) : null}
       </div>
 
@@ -256,6 +240,10 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         </Alert>
       ) : null}
 
+      {props.statusPresentation && props.matchSource ? (
+        <MatchCentreDataNotice status={props.statusPresentation} source={props.matchSource} />
+      ) : null}
+
       {/* Header + score hero */}
       <p className={s.eyebrow}>{props.eyebrow}</p>
       <div className={`${s.hero} ${live ? s.heroLive : ''}`}>
@@ -270,7 +258,7 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
             </span>
           ) : live ? (
             <span className={s.liveTag}>
-              <span className={s.dot} /> Live
+              <span className={s.dot} /> {props.statusPresentation?.label ?? 'Live'}
             </span>
           ) : (
             <span className={s.vs}>vs</span>
