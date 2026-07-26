@@ -1,25 +1,31 @@
 # Euro 2028 Predictor — Current Roadmap
 
-**Status date:** 25 July 2026  
+**Status date:** 26 July 2026  
 **Authority:** Future product sequence only. For current implementation and hosted state, use `docs/quality/current-status.md`.
 
-The previous long-form roadmap predates the repository integrity work and hosted inspection. Its detail remains in Git history but is not the current work order.
+The previous long-form roadmap predates the repository integrity and hosted contract work. Its detail remains in Git history but is not the current execution order.
 
 ## Current position
 
-The application is live at `euro28predictor.com` and `euro28predictor.netlify.app`.
+The repository is at contract 36:
 
-Repository, development and production are aligned at contract 35. The completed production pair is:
+- migration 36 is merged through PR #76;
+- the repository contains exactly 36 migrations;
+- disposable CI, database parity and Browser E2E passed;
+- PR #101 merged the contract-36 repository reconciliation;
+- issue #72 (`DATA-003`) is closed as repository implementation complete.
 
-- source commit `902a37aa6c50c967f8080d751147a5733b251fe3`;
-- Netlify deploy `6a652c3d3416d26d595ae2ef`;
-- production Supabase `vkfnsqdyhvtwyqkisxhk`;
-- exactly migrations 1–35;
-- zero pending migrations through 35.
+Hosted environments remain at their last verified contract-35 evidence point:
 
-The former bracket/score-clear RPC mismatch is resolved. The production verifier, rollback-only database smoke and anonymous live application checks passed. Migration 36 remains draft-only in PR #76.
+- development Supabase `iouzoutneyjpugbbtdem` — contract 35;
+- final-target Supabase `vkfnsqdyhvtwyqkisxhk` — contract 35;
+- final-target Netlify declaration — contract 35.
 
-Completed contract-35 capabilities include:
+The Netlify context historically named `production` is the controlled final-target environment. It is not supporting a live Euro 2028 tournament.
+
+The application/schema compatibility gate is working correctly: contract-36 application builds must not deploy against a contract-35 hosted database.
+
+Completed foundations include:
 
 - canonical TypeScript/PostgreSQL predicted group ordering;
 - manual group and best-third tie decisions;
@@ -32,62 +38,84 @@ Completed contract-35 capabilities include:
 - manual-submission settlement across prediction write keys;
 - version-safe persisted score clearing and derived-position invalidation;
 - accepted encrypted backup and corrected clean restore proof;
-- compatible production application/database promotion.
+- contract-36 same-tournament/reference integrity in the repository.
 
-The roadmap now starts with operational readiness rather than compatibility recovery.
-
-## Stage 0 — Contract-35 production recovery and promotion: complete
+## Stage 0 — Contract-35 hosted baseline: complete
 
 Completed on 25 July 2026:
 
 1. accepted encrypted off-device backup and clean restore proof;
-2. proved production migration 1–20 effects;
-3. repaired exactly versions 1–20 as metadata;
-4. dry-ran and applied exactly migrations 21–35;
-5. passed the 63-check verifier, advisors and rollback-only smoke;
-6. verified zero pending migrations and unchanged source fingerprints;
-7. changed only production Netlify contract 20 → 35;
-8. published the approved source commit;
-9. verified metadata, security headers, routes, assets and environment isolation;
-10. kept migration 36 and PR #76 outside the operation.
+2. proved and repaired the hosted migration-history baseline where required;
+3. applied and verified migrations through 35;
+4. passed the 63-check verifier and rollback-only smoke;
+5. verified application/database compatibility and environment isolation;
+6. preserved the final-target environment as a controlled, non-live tournament target.
 
 Historical evidence is recorded in `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`.
 
-## Stage 1 — Production operations and security configuration
+## Stage 1 — Contract-36 development alignment and preview restoration
 
-1. Add production error reporting and alert ownership.
-2. Define critical-journey monitoring and database health/advisor review cadence.
-3. Rehearse a compatible Netlify application rollback without changing production Supabase.
-4. Schedule periodic fresh backups, off-site verification and disposable restore rehearsal.
-5. Verify GitHub branch protection and required checks.
-6. Resolve the separate legacy `euro28-predictor-dev` owner decision.
-7. Approve and verify the production/non-production Turnstile and development CAPTCHA model.
-8. Review leaked-password protection as a separate Auth change.
-9. Retain the app/schema compatibility gate for every future migration.
+1. Inspect development Supabase read-only.
+2. Require a dry run showing only migration 36.
+3. Apply migration 36 to development and verify all six guarded relationship areas.
+4. Update preview/branch/dev contract declarations to 36 only after database verification.
+5. Restore exact-head deploy previews on the current `euro28predictor` Netlify project.
+6. Update release-identity smoke expectations to contract 36.
+7. Verify HTTP/browser smoke and development-Supabase isolation.
+8. Never use the legacy `euro28-predictor-dev` World Cup deployment as a preview target.
 
-## Stage 2 — Close remaining Original Predictor assurance gaps
+## Stage 2 — Final-target contract-36 upgrade
 
-1. Design a safe authenticated production smoke strategy that cannot damage retained user predictions.
-2. Verify production score clear/reload, restore, stale conflict and post-lock refusal in a browser.
-3. Verify production multi-device bracket conflict/recovery.
-4. Verify immediate final-edit submission settlement in production.
-5. Decide final closure of `DATA-005`, `REL-007` and remaining `TEST-001` scope from evidence.
-6. Finish wider same-tournament and immutable fixture/source constraints.
+After development and preview evidence are accepted:
+
+1. inspect final-target state read-only;
+2. preserve recoverable pre-change evidence;
+3. require a dry run showing only migration 36;
+4. obtain explicit owner approval;
+5. apply and verify migration 36;
+6. change the final-target Netlify declaration from 35 to 36;
+7. verify release identity, security headers, routes, assets and environment isolation;
+8. record a dated final-target reconciliation.
+
+No final-target contract lift occurs merely to unblock a build.
+
+## Stage 3 — Production operations and security configuration
+
+1. Approve monitoring retention, privacy and alert recipients.
+2. Verify non-production Sentry delivery with synthetic non-sensitive events.
+3. Enable final-target reporting only through a separate reviewed configuration action.
+4. Define critical-journey monitoring and database health/advisor review cadence.
+5. Rehearse a compatible Netlify application rollback without changing final-target Supabase.
+6. Schedule periodic fresh backups, off-site verification and disposable restore rehearsal.
+7. Verify GitHub branch protection and required checks.
+8. Resolve the separate legacy `euro28-predictor-dev` owner decision.
+9. Approve and verify the production/non-production Turnstile and development CAPTCHA model.
+10. Review leaked-password protection as a separate Auth change.
+
+## Stage 4 — Complete Original Predictor assurance gaps
+
+1. Design a safe authenticated final-target smoke strategy that cannot damage retained predictions.
+2. Verify score clear/reload, restore, stale conflict and post-lock refusal in a browser.
+3. Verify multi-device bracket conflict/recovery.
+4. Verify immediate final-edit submission settlement.
+5. Repair frontend knockout-result consumption so Match Centre and H2H use authoritative winner/method/extra-time/penalty data.
+6. Decide final closure of `DATA-005`, `REL-007` and remaining `TEST-001` scope from evidence.
 7. Implement automatic valid-entry submission at deadline.
 8. Add reminder emails after Auth/SMTP verification.
 
-## Stage 3 — Complete real tournament progression and administration
+## Stage 5 — Complete real tournament progression and administration
 
-1. Populate the real Round of 16 transactionally from confirmed standings, authoritative best-third ranking and saved actual tie decisions.
-2. Fail closed at unresolved fourth/fifth best-third boundaries.
-3. Never overwrite a confirmed downstream result.
-4. Define a version-controlled administrator authorization model.
-5. Add an authenticated server-side/browser result-entry route or controlled adapter.
-6. Add correction/clear UI, revision history and mandatory reason capture.
-7. Add team/fixture assignment controls for the official draw and play-offs.
-8. Review PR #76/migration 36 separately; do not treat prior green CI as production approval.
+1. Define a version-controlled administrator authorization and assignment model.
+2. Treat draft PR #102 as a read-only UI/access foundation until server-authorized writes exist.
+3. Add independently authorized result confirm/correct/clear functions for browser administration.
+4. Add mandatory correction/clear reasons and safe revision-history access.
+5. Add desktop/mobile Browser E2E for administrator journeys.
+6. Populate the real Round of 16 transactionally from confirmed standings, authoritative best-third ranking and saved actual tie decisions.
+7. Fail closed at unresolved fourth/fifth best-third boundaries.
+8. Never overwrite a confirmed downstream result.
+9. Add team/fixture assignment controls for the official draw and play-offs.
 
-## Stage 4 — Browser E2E, accessibility and operational rehearsal
+## Stage 6 — Browser E2E, accessibility and operational rehearsal
 
 Retain and extend Browser E2E for:
 
@@ -97,29 +125,32 @@ Retain and extend Browser E2E for:
 - immediate final-edit submission, save failure and conflict paths;
 - persisted score clear/reload, restore, stale conflict and post-lock refusal;
 - private league create/join/invite;
+- regulation, extra-time and penalty result display;
 - result confirm/correct/clear through the approved admin boundary;
 - scoring/rank changes;
 - production-like mobile and accessibility transitions.
 
 Complete manual screen-reader review. Run a seeded full tournament rehearsal through pre-tournament, group days, end of groups, every knockout round and final completion. Rehearse backup, restore, application rollback and incident handling rather than documenting them only.
 
-## Stage 5 — Core experience expansion
+## Stage 7 — Core experience expansion
 
-After operations/integrity gates:
+After operations and integrity gates:
 
 - complete other-player profiles and richer H2H;
-- rank-over-time and bracket-health views;
-- expanded Match Centre and tournament states;
-- account/privacy/contact-admin surfaces;
-- post-lock prediction trends;
-- privacy-reviewed trustworthy invite context before auth;
-- remaining unavailable/error/empty data-state repairs;
-- mobile physics, accessibility and funnel improvements;
-- final design-system consistency pass.
+- add rank-over-time and bracket-health views;
+- expand Match Centre and tournament states;
+- add account/privacy/contact-admin surfaces;
+- add post-lock prediction trends;
+- improve trustworthy invite context before auth;
+- finish unavailable/error/empty-state repairs;
+- complete mobile physics, accessibility and funnel improvements;
+- complete the final design-system consistency pass;
+- generate Supabase types and increase TypeScript strictness around critical boundaries;
+- profile league and scoring performance at representative scale.
 
 The first phone viewport remains focused on rank and leagues. Groups remain primary until the real R16 is ready. Original Predictor and bonus modes remain visually and logically separate.
 
-## Stage 6 — Bonus games launch scope
+## Stage 8 — Bonus games launch scope
 
 The established launch-scope games remain:
 
@@ -138,7 +169,7 @@ Before implementation:
 
 The Sweepstake builder remains non-launch-blocking.
 
-## Stage 7 — Official data and launch readiness
+## Stage 9 — Official data and launch readiness
 
 Before public tournament launch:
 
@@ -161,7 +192,8 @@ Before public tournament launch:
 - Protected RPCs are never replaced by unsafe direct-table fallbacks.
 - Public function execution is closed by default; every browser/service RPC requires an explicit reviewed grant.
 - No hosted migration without explicit approval and evidence.
-- No production-to-development rollback.
+- No final-target-to-development rollback.
 - No contract lift before the target database is migrated and verified.
+- No current-project use of the legacy World Cup Netlify site.
 - No feature is implemented because it appears only in a roadmap or gallery.
 - Future official facts remain provisional until verified from UEFA or another authoritative source.
