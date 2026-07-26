@@ -11,6 +11,8 @@
 # The CSP allow-list is deliberately tight but MUST permit everything the app
 # actually loads, or real functionality breaks:
 #   - Supabase (REST + Auth + Realtime): https + wss to *.supabase.co (connect-src)
+#   - Sentry error envelopes only: approved cloud ingest hosts (connect-src);
+#     no replay, tracing, user identity or automatic breadcrumbs are enabled.
 #   - Cloudflare Turnstile: the loader script + the widget iframe
 #     (challenges.cloudflare.com in script-src and frame-src)
 #   - Fonts are self-hosted (bundled woff2, same-origin) — no external font
@@ -21,7 +23,7 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src https://challenges.cloudflare.com; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; frame-src https://challenges.cloudflare.com; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
