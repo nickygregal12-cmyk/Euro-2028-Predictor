@@ -8,6 +8,9 @@ interface ImportMetaEnv {
   readonly VITE_DEV_AUTOLOGIN?: string
   readonly VITE_DEV_USER_EMAIL?: string
   readonly VITE_DEV_USER_PASSWORD?: string
+  // Optional privacy-restricted Sentry transport. Configure per Netlify context.
+  readonly VITE_SENTRY_ENABLED?: string
+  readonly VITE_SENTRY_DSN?: string
 }
 
 interface ImportMeta {
