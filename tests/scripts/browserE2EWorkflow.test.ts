@@ -15,6 +15,10 @@ const productionSmoke = readFileSync(
   resolve(root, 'scripts/production-smoke.mjs'),
   'utf8',
 )
+const anonymousBrowserSmoke = readFileSync(
+  resolve(root, 'production-smoke/anonymous.spec.ts'),
+  'utf8',
+)
 const globalSetup = readFileSync(resolve(root, 'e2e/global-setup.ts'), 'utf8')
 const localFixtures = readFileSync(
   resolve(root, 'e2e/local-supabase.ts'),
@@ -114,9 +118,13 @@ describe('deploy-preview browser smoke workflow', () => {
 })
 
 describe('target-specific production smoke contracts', () => {
-  it('requires an explicit contract instead of a shared hardcoded value', () => {
-    expect(productionSmoke).toContain('EURO28_SMOKE_EXPECTED_CONTRACT')
-    expect(productionSmoke).toContain('parseExpectedContract')
+  it('requires an explicit contract in both smoke implementations', () => {
+    for (const smokeSource of [productionSmoke, anonymousBrowserSmoke]) {
+      expect(smokeSource).toContain('EURO28_SMOKE_EXPECTED_CONTRACT')
+      expect(smokeSource).toContain('parseExpectedContract')
+      expect(smokeSource).not.toContain('applicationContract: 35')
+      expect(smokeSource).not.toContain('hostedContract: 35')
+    }
     expect(productionSmoke).not.toContain('const APPLICATION_CONTRACT')
   })
 
