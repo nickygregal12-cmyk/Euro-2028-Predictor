@@ -1,8 +1,6 @@
 import { supabase } from './client'
-import {
-  metadataAllowsAdminCapability,
-  type AdminCapability,
-} from './adminCapabilities'
+import { metadataAllowsAdminCapability } from './adminCapabilities'
+import type { AdminCapability } from './adminCapabilities'
 
 export type { AdminCapability } from './adminCapabilities'
 
