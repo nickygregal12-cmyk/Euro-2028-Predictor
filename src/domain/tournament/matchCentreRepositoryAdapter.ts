@@ -47,6 +47,10 @@ function kickoffFor(match: Match): string {
   return `${match.matchDate}T00:00:00.000Z`
 }
 
+function teamName(team: Team | undefined, source: string): string {
+  return team?.name ?? (source || 'TBC')
+}
+
 function mergePredictor(input?: Partial<PredictorMatchData>): PredictorMatchData {
   return {
     ...EMPTY_PREDICTOR,
@@ -84,12 +88,12 @@ export function adaptRepositoryMatchToCentre(
       referee: null,
       home: {
         id: input.match.homeTeamId,
-        name: homeTeam?.name ?? input.match.homeSource || 'TBC',
+        name: teamName(homeTeam, input.match.homeSource),
         countryCode: null,
       },
       away: {
         id: input.match.awayTeamId,
-        name: awayTeam?.name ?? input.match.awaySource || 'TBC',
+        name: teamName(awayTeam, input.match.awaySource),
         countryCode: null,
       },
       score: hasResult
