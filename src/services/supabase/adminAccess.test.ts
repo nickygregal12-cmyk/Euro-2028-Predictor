@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { metadataAllowsAdminCapability } from './adminAccess'
+import { metadataAllowsAdminCapability } from './adminCapabilities'
 
 describe('metadataAllowsAdminCapability', () => {
   it('allows a super administrator for every capability', () => {
