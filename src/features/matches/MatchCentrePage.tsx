@@ -22,6 +22,7 @@ import {
   koLeagueCasualties,
 } from '../../domain/tournament/matchCentre'
 import { MatchCentreScreen, type MatchScope, type MatchSaid } from './MatchCentreScreen'
+import { useMatchCentreBackNavigation } from './useMatchCentreBackNavigation'
 import s from '../shared.module.css'
 
 const ROUND_LABEL: Record<string, string> = {
@@ -61,6 +62,7 @@ type LeagueScopesState =
 export function MatchCentrePage() {
   const { matchRef } = useParams<{ matchRef: string }>()
   const navigate = useNavigate()
+  const onBack = useMatchCentreBackNavigation()
   const [searchParams] = useSearchParams()
   const data = useTournamentData()
   const preds = usePredictions()
@@ -389,7 +391,7 @@ export function MatchCentrePage() {
       saidError={saidError}
       consequence={consequence}
       scoreEvents={events}
-      onBack={() => navigate(-1)}
+      onBack={onBack}
     />
   )
 }
