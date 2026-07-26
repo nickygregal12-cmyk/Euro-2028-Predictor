@@ -1,3 +1,4 @@
+import './instrument'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/fonts.css'
@@ -10,10 +11,8 @@ import {
   installGlobalErrorCapture,
   reportClientError,
 } from './services/observability/clientObservability'
-import { configureSentryReporterFromEnvironment } from './services/observability/sentryReporter'
 import { initDevAuth } from './services/supabase/devAutoLogin'
 
-configureSentryReporterFromEnvironment()
 installGlobalErrorCapture()
 
 // Dev auto-login runs before the first render (docs/auth-plan.md §1). In a
@@ -22,7 +21,24 @@ installGlobalErrorCapture()
 // (fail-closed). In dev it silently signs in as the seeded dev user.
 initDevAuth()
   .then(() => {
-    createRoot(document.getElementById('root')!).render(
+    const rootElement = document.getElementById('root')!
+    const reportReactError = (
+      error: unknown,
+      errorInfo: { componentStack?: string | null },
+    ) => {
+      reportClientError(
+        error,
+        'react',
+        window.location.pathname,
+        errorInfo.componentStack ?? null,
+      )
+    }
+
+    createRoot(rootElement, {
+      onCaughtError: reportReactError,
+      onUncaughtError: reportReactError,
+      onRecoverableError: reportReactError,
+    }).render(
       <StrictMode>
         <ApplicationErrorBoundary>
           <App />
