@@ -17,15 +17,15 @@ The environment named `production` is the final-target environment. It is not su
 
 - [x] Merge migration 36 through PR #76.
 - [x] Update `config/deployment-contract.json` to 36.
-- [x] Identify stale authority documents that still describe migration 36 as draft.
-- [x] Start dated reconciliation through PR #101.
-- [x] Update README, current status, migration inventory and risk classification.
-- [ ] Confirm the exact CI result on the merged migration-36 commit or PR #101 head.
-- [ ] Confirm disposable migration rebuild, database lint and pgTAP pass with all 36 migrations.
-- [ ] Confirm TypeScript/PostgreSQL parity remains green.
-- [ ] Audit migration 36 against every issue #72 acceptance criterion.
-- [ ] Identify any concrete residual `DATA-006` scope rather than retaining a generic finding.
-- [ ] Close or narrow issue #72 after evidence is recorded.
+- [x] Identify and correct authority documents that described migration 36 as draft.
+- [x] Confirm application CI passed on the final PR #76 head.
+- [x] Confirm disposable migration rebuild, database lint, pgTAP and parity passed.
+- [x] Confirm Browser E2E passed.
+- [x] Audit migration 36 against issue #72 acceptance criteria.
+- [x] Record the DATA-003 acceptance reassessment.
+- [ ] Merge PR #101.
+- [ ] Close issue #72 as repository implementation complete after PR #101 merges.
+- [ ] Create or retain only a precise `DATA-006` finding if a concrete uncovered relationship is demonstrated.
 
 ## 2. Development Supabase contract-36 upgrade
 
@@ -59,7 +59,7 @@ The environment named `production` is the final-target environment. It is not su
 ## 4. Operations, monitoring and environment controls
 
 - [x] Add provider-neutral client-error capture and release identity.
-- [x] Integrate Sentry React SDK with production reporting disabled.
+- [x] Integrate Sentry React SDK with final-target reporting disabled.
 - [x] Add repeatable anonymous HTTP/browser smoke tooling.
 - [ ] Approve retention, privacy and alert recipients before final-target reporting.
 - [ ] Verify non-production reporting with synthetic non-sensitive events.
