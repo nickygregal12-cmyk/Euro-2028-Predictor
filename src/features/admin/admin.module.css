@@ -1,3 +1,37 @@
+.controlRoom {
+  width: 100%;
+}
+
+.adminNav {
+  display: flex;
+  gap: 0.5rem;
+  width: min(100% - 2rem, 72rem);
+  margin: 1rem auto 0;
+  padding: 0.35rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  background: var(--surface-raised);
+}
+
+.adminNavLink,
+.adminNavActive {
+  flex: 1;
+  min-height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.adminNavActive {
+  background: var(--surface);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12);
+}
+
 .intro {
   margin: 0.5rem 0 0;
   color: var(--text-secondary);
@@ -64,6 +98,11 @@
 }
 
 @media (max-width: 42rem) {
+  .adminNav {
+    width: calc(100% - 1rem);
+    margin-top: 0.5rem;
+  }
+
   .summaryGrid {
     grid-template-columns: 1fr;
   }
