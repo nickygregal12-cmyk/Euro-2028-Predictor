@@ -97,13 +97,72 @@
   color: var(--text-secondary);
 }
 
+.entryPanel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: var(--surface);
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.scoreGrid label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.scoreGrid input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.65rem;
+  padding: 0 0.75rem;
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 600;
+}
+
+.validation,
+.preview {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem;
+  border-radius: 0.75rem;
+  background: var(--surface-raised);
+}
+
+.validation ul {
+  margin: 0.25rem 0 0;
+  padding-left: 1.2rem;
+}
+
+.preview small {
+  color: var(--text-secondary);
+}
+
 @media (max-width: 42rem) {
   .adminNav {
     width: calc(100% - 1rem);
     margin-top: 0.5rem;
   }
 
-  .summaryGrid {
+  .summaryGrid,
+  .scoreGrid {
     grid-template-columns: 1fr;
   }
 
