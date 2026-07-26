@@ -4,7 +4,7 @@ import type { MatchScope } from './MatchCentreScreen'
 type MatchCentreScopeChoiceProps = {
   scope: MatchScope
   leagues: { id: string; name: string }[]
-  onScopeChange?: (scope: MatchScope) => void
+  onScopeChange: ((scope: MatchScope) => void) | undefined
 }
 
 /**
