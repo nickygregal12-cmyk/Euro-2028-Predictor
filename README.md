@@ -2,23 +2,27 @@
 
 A mobile-first Euro 2028 football predictor web app built with React 19, TypeScript, Vite, Supabase (Postgres, Auth, RLS and RPCs) and Netlify.
 
-## Current environment position
+## Current position
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-The repository now targets **contract 36** after migration `20260725010000_authoritative_reference_integrity.sql` merged through PR #76.
+The repository is now at **contract 36**:
 
-The two hosted databases remain deliberately separate from repository authority until they are individually verified and upgraded:
+- migration `20260725010000_authoritative_reference_integrity.sql` is merged on `main`;
+- `config/deployment-contract.json` declares contract 36;
+- CI, Database parity and Browser E2E passed on the final PR #76 head;
+- migration 36 adds fail-closed same-tournament/reference guards for authoritative competition data.
 
-- development Supabase currently remains at the last verified contract-35 baseline;
-- the final-target Supabase environment, historically labelled `production`, currently remains at the last verified contract-35 baseline;
-- the final-target environment is not serving a live tournament and is approximately two years ahead of Euro 2028;
-- neither hosted database should be described as contract 36 until its migration history and schema effects are verified;
-- repository contract 36 must not be downgraded merely because a hosted environment has not yet been upgraded.
+The hosted databases remain at their last verified **contract-35** evidence point until deliberately upgraded:
 
-The completed contract-35 final-target rollout is recorded in [`2026-07-25-contract-35-production-promotion.md`](docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md). That document remains historical evidence for the verified contract-35 baseline.
+- development Supabase: `iouzoutneyjpugbbtdem`;
+- final-target Supabase: `vkfnsqdyhvtwyqkisxhk`.
 
-This does **not** mean the product is tournament-launch-ready. Monitoring ownership, administrator journeys, Turnstile/Auth configuration, official Euro 2028 data, dress rehearsal and other open controls remain.
+The Netlify/Supabase context historically named `production` is the intended final-target environment. It is not supporting a live Euro 2028 tournament. It must still remain isolated and controlled because it preserves the intended final configuration and retained verification data.
+
+The current contract-36 reconciliation is recorded in [`2026-07-26-contract-36-repository-reconciliation.md`](docs/quality/reconciliations/2026-07-26-contract-36-repository-reconciliation.md). The accepted hosted contract-35 baseline remains recorded in [`2026-07-25-contract-35-production-promotion.md`](docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
+
+This does **not** mean the product is tournament-launch-ready. Official Euro 2028 data, administrator journeys, monitoring ownership, Auth/CAPTCHA configuration, accessibility review and a full dress rehearsal remain.
 
 ## Setup
 
@@ -30,7 +34,7 @@ npm run lint
 npm run build
 ```
 
-Copy `.env.example` to `.env.local` and use development Supabase values only. Never point local development, deploy previews or branch deploys at the final-target Supabase environment.
+Copy `.env.example` to `.env.local` and use development Supabase values only. Never point local development, deploy previews or branch deploys at the final-target Supabase project.
 
 ## Project structure
 
@@ -66,11 +70,9 @@ docs/
 
 Tournament rules are implemented first as pure functions under `src/domain/tournament/`. Components render domain results rather than inventing standings, scoring or bracket behaviour.
 
-The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. The database-parity workflow rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
+The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. Database parity rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-Repository contract 36 is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing, exact function execution boundaries and the additional authoritative-reference integrity constraints introduced by migration 36.
-
-Hosted environments become authoritative for contract 36 only after their own migration history, schema effects and verification evidence are recorded.
+Repository contract 36 is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing, function execution boundaries and authoritative same-tournament reference integrity.
 
 ## Scoring
 
@@ -89,13 +91,13 @@ Application CI runs:
 Database parity CI runs:
 
 - disposable local Supabase start;
-- full migration rebuild through repository contract 36;
+- full migration rebuild through contract 36;
 - database lint;
 - all pgTAP suites, including function privilege allowlists;
 - TypeScript/PostgreSQL differential parity;
 - clean teardown.
 
-Browser E2E covers disposable authenticated desktop/mobile journeys for score persistence and protected clearing, submission settlement and conflicts, atomic bracket conflicts, post-lock rejection, private-league invitation/join, signup confirmation and password recovery. Match Centre lifecycle coverage includes scheduled, provisional, live, full-time, stale and unavailable-data states. Anonymous hosted-environment smoke covers auth routes, protected-route gates, not-found recovery, metadata, headers and environment isolation. Browser result administration remains open.
+Browser E2E covers disposable authenticated desktop/mobile journeys for score persistence and protected clearing, submission settlement and conflicts, atomic bracket conflicts, post-lock rejection, private-league invitation/join, signup confirmation, password recovery and Match Centre lifecycle/navigation.
 
 ## Current implemented repository contract
 
@@ -115,18 +117,15 @@ Repository contract 36 supports:
 - version-safe persisted score clearing with derived-position invalidation;
 - zero anonymous public-function execution;
 - exact authenticated/service function allowlists and owner-only future defaults;
-- authoritative same-tournament reference checks introduced by migration 36.
-
-The development and final-target hosted environments remain on their last verified contract-35 baseline until separately reconciled.
+- authoritative reference integrity for group-team, match, player, result revision, Golden Boot and score-event relationships.
 
 ## Documentation authority
 
 | Question | Source |
 | --- | --- |
 | Current implementation, hosted status, blockers and next action | `docs/quality/current-status.md` |
-| Contract-36 reconciliation work | `docs/quality/reconciliations/2026-07-26-contract-36-repository-reconciliation.md` |
-| Completed final-target contract-35 release evidence | `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md` |
-| Latest formal audit before contract-35 rollout | `docs/quality/audits/2026-07-25-repeat-verification-audit.md` |
+| Contract-36 repository reconciliation | `docs/quality/reconciliations/2026-07-26-contract-36-repository-reconciliation.md` |
+| Accepted hosted contract-35 evidence | `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md` |
 | Agent, Git and database discipline | `AGENTS.md`; `CLAUDE.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Migration inventory and hosted applied state | `docs/ops-pending-migrations.md` |
