@@ -22,8 +22,7 @@ The environment historically named `production` is the intended final database/a
 | Area | Verdict |
 | --- | --- |
 | Repository development | **Safe to continue controlled development at contract 36.** Migration 36 is merged and repository-authoritative. |
-| Migration 36 implementation | **Implemented in the repository.** It adds fail-closed tournament/reference integrity guards. |
-| Migration 36 evidence | **Repository CI evidence must be confirmed and hosted development verification remains outstanding.** |
+| Migration 36 implementation | **Implemented and repository-verified.** CI, Database parity and Browser E2E all passed on the final PR #76 head. |
 | Development hosted database | **Last verified at contract 35.** Inspect read-only, dry-run and apply migration 36 before declaring alignment. |
 | Final-target database/application | **Last verified as a compatible contract-35 pair.** It may be upgraded later after accepted development evidence. |
 | Tournament launch readiness | **Not ready.** Official data, administration, monitoring ownership, accessibility review and dress rehearsal remain incomplete. |
@@ -43,13 +42,19 @@ Migration 36 closes remaining authoritative reference gaps for:
 
 The migration is additive and fail-closed. It checks existing data before installing guards, uses private trigger functions with fixed search paths, and revokes browser-role execution of those functions.
 
-This is repository implementation evidence. It is not proof that either hosted database has migration 36 applied.
+Successful final-head workflow evidence for PR #76:
+
+- CI run 366;
+- Database parity run 112;
+- Browser E2E run 103.
+
+This proves repository/disposable implementation. It is not proof that either hosted database has migration 36 applied.
 
 ## Hosted environment position
 
 | Context | Supabase project | Last verified DB contract | Current action |
 | --- | --- | ---: | --- |
-| local/disposable | local | rebuilt from repository chain | Confirm migration-36 CI/database-parity evidence |
+| local/disposable | local | 36 | Verified by Database parity |
 | deploy-preview / branch / dev | development `iouzoutneyjpugbbtdem` | 35 | Inspect, dry-run, apply and verify 36 |
 | final-target Netlify context (`production`) | final-target `vkfnsqdyhvtwyqkisxhk` | 35 | Leave unchanged until development evidence is accepted |
 
@@ -73,13 +78,11 @@ This does not yet establish full operational monitoring. Alert ownership, retent
 Current repository evidence includes:
 
 - guarded build/type-check, lint, Vitest and dependency audit;
-- disposable Supabase rebuild and database-parity workflow;
+- disposable Supabase rebuild and database-parity workflow through migration 36;
 - authenticated Playwright coverage for predictions, submission, conflicts, locks, leagues and auth journeys;
 - Match Centre lifecycle and navigation browser coverage;
 - anonymous release/environment smoke tooling;
 - Sentry client integration with reporting kept disabled in the final-target environment.
-
-The migration-36 reconciliation must still record the exact CI/database-parity result on the merged commit or this reconciliation PR head.
 
 ## Feature and safeguard status
 
@@ -109,10 +112,10 @@ Still partial or planned:
 
 ## Current finding positions
 
-### Implemented in repository; hosted closure pending
+### Implemented in repository; hosted rollout pending
 
-- `DATA-003` — migration 36 implements the identified same-tournament/reference guards. Close only after acceptance criteria and hosted development evidence are reconciled.
-- `DATA-006` — fixture/source mutability needs reassessment against migration 36; any scope not covered must be stated precisely rather than retaining a generic claim.
+- `DATA-003` — repository implementation and required workflows are complete. Close after reconciliation, with hosted rollout tracked separately.
+- `DATA-006` — no concrete residual gap has yet been established beyond migration 36. Any continuing finding must name an exact uncovered table/column relationship.
 
 ### Still open or partial
 
@@ -139,14 +142,13 @@ Migration 36 does not change scoring.
 
 ## Immediate order of work
 
-1. Confirm CI and database-parity results for contract 36.
-2. Complete the issue #72 acceptance-criteria audit and classify `DATA-003`/`DATA-006` precisely.
-3. Inspect development Supabase read-only.
-4. Require a development dry run showing only migration 36.
-5. Apply and verify migration 36 in development.
-6. Verify deploy-preview release identity and application behaviour at contract 36.
-7. Prepare, but do not automatically execute, the final-target contract-36 upgrade.
-8. Continue with the administrator authorization/result-management workstream after contract alignment.
+1. Complete issue #72 disposition and merge this documentation reconciliation.
+2. Inspect development Supabase read-only.
+3. Require a development dry run showing only migration 36.
+4. Apply and verify migration 36 in development.
+5. Verify deploy-preview release identity and application behaviour at contract 36.
+6. Prepare, but do not automatically execute, the final-target contract-36 upgrade.
+7. Continue with the administrator authorization/result-management workstream after contract alignment.
 
 ## Documentation authority
 
