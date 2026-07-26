@@ -1,0 +1,127 @@
+.trigger {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--tx);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.trigger:focus-visible,
+.option:focus-visible,
+.sheet:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.chevron {
+  color: var(--tx2);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--scrim);
+}
+
+.sheet {
+  width: 100%;
+  max-height: min(78dvh, 640px);
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-4) max(var(--sp-4), env(safe-area-inset-bottom));
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.18);
+}
+
+.handle {
+  width: 42px;
+  height: 4px;
+  margin: 0 auto var(--sp-3);
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.title {
+  margin: 0 0 var(--sp-3);
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.options {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.option {
+  display: flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: transparent;
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.option:hover {
+  background: var(--surface-2, var(--card));
+}
+
+.selected {
+  border-color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 10%, var(--card));
+}
+
+.check {
+  min-width: 20px;
+  color: var(--acc);
+  font-weight: 700;
+  text-align: right;
+}
+
+@media (min-width: 720px) {
+  .overlay {
+    align-items: center;
+    padding: var(--sp-4);
+  }
+
+  .sheet {
+    width: min(420px, 100%);
+    border-bottom: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    padding-bottom: var(--sp-4);
+  }
+
+  .handle {
+    display: none;
+  }
+}
