@@ -1,3 +1,4 @@
+import './instrument'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/fonts.css'
@@ -20,7 +21,24 @@ installGlobalErrorCapture()
 // (fail-closed). In dev it silently signs in as the seeded dev user.
 initDevAuth()
   .then(() => {
-    createRoot(document.getElementById('root')!).render(
+    const rootElement = document.getElementById('root')!
+    const reportReactError = (
+      error: unknown,
+      errorInfo: { componentStack?: string | null },
+    ) => {
+      reportClientError(
+        error,
+        'react',
+        window.location.pathname,
+        errorInfo.componentStack ?? null,
+      )
+    }
+
+    createRoot(rootElement, {
+      onCaughtError: reportReactError,
+      onUncaughtError: reportReactError,
+      onRecoverableError: reportReactError,
+    }).render(
       <StrictMode>
         <ApplicationErrorBoundary>
           <App />
