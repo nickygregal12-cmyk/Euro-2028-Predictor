@@ -1,0 +1,75 @@
+.intro {
+  margin: 0.5rem 0 0;
+  color: var(--text-secondary);
+  max-width: 44rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.metric {
+  display: block;
+  margin-top: 0.5rem;
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  line-height: 1;
+}
+
+.sectionHeading,
+.fixtureRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sectionTitle {
+  margin: 0.25rem 0 0;
+  font-size: 1.25rem;
+}
+
+.count,
+.status {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.fixtureList {
+  display: grid;
+  gap: 0;
+  margin-top: 1rem;
+}
+
+.fixtureRow {
+  min-height: 3.75rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.fixtureMeta {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.muted {
+  margin: 1rem 0 0;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 42rem) {
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .fixtureRow {
+    align-items: flex-start;
+    padding: 0.9rem 0;
+  }
+}
