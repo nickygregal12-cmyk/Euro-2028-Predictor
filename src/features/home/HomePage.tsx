@@ -11,11 +11,13 @@ import { useHomeData, type HomeModel } from './useHomeData'
 import { ShareSheet } from '../share/ShareSheet'
 import { useShareModel } from '../share/useShareModel'
 import type { ShareVariant } from '../share/shareModel'
+import { useOpenMatchCentre } from '../matches/useOpenMatchCentre'
 import s from '../shared.module.css'
 import h from './home.module.css'
 
 export function HomePage() {
   const navigate = useNavigate()
+  const openMatchCentre = useOpenMatchCentre()
   const state = useHomeData()
 
   // Share card (design-system §6). Brag numbers only during the tournament and
@@ -77,6 +79,7 @@ export function HomePage() {
         <DuringLayout
           m={model}
           navigate={navigate}
+          onOpenMatch={openMatchCentre}
           onShare={canShare ? openShare : undefined}
         />
       )}
@@ -108,10 +111,12 @@ type Nav = ReturnType<typeof useNavigate>
 function DuringLayout({
   m,
   navigate,
+  onOpenMatch,
   onShare,
 }: {
   m: HomeModel
   navigate: Nav
+  onOpenMatch: (matchRef: string) => void
   onShare?: (variant: ShareVariant) => void
 }) {
   const leagueDataAvailable = !m.unavailable.includes('leagues')
@@ -146,7 +151,7 @@ function DuringLayout({
           m.bestLeague ? navigate(`/league/${m.bestLeague.id}`) : navigate('/league')
         }
       />
-      <TodayCard section={m.today} onOpenMatch={(ref) => navigate(`/match/${ref}`)} />
+      <TodayCard section={m.today} onOpenMatch={onOpenMatch} />
       {m.catchUp && <CatchUpLine catchUp={m.catchUp} />}
       <LeagueSnapshot
         league={m.bestLeague}
