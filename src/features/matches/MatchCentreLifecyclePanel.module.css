@@ -1,0 +1,50 @@
+.panel {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.heading,
+.summary {
+  margin: 0;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.summary {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+.live {
+  border-color: color-mix(in srgb, var(--cyn) 55%, var(--line));
+  background: color-mix(in srgb, var(--cyn) 7%, var(--card));
+}
+
+.warning {
+  border-color: color-mix(in srgb, var(--amb) 55%, var(--line));
+  background: color-mix(in srgb, var(--amb) 8%, var(--card));
+}
+
+.danger {
+  border-color: color-mix(in srgb, var(--red) 55%, var(--line));
+  background: color-mix(in srgb, var(--red) 7%, var(--card));
+}
+
+.success {
+  border-color: color-mix(in srgb, var(--grn) 55%, var(--line));
+  background: color-mix(in srgb, var(--grn) 7%, var(--card));
+}
+
+.neutral {
+  border-color: var(--line);
+}

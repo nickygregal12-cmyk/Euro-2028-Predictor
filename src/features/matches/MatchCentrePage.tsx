@@ -368,6 +368,7 @@ export function MatchCentrePage() {
       home={home}
       away={away}
       temporalState={temporal}
+      lifecycleContent={pageModel.lifecycleContent}
       statusPresentation={pageModel.statusPresentation}
       matchSource={pageModel.matchSource}
       result={result}

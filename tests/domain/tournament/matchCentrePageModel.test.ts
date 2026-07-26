@@ -41,6 +41,8 @@ describe('createMatchCentrePageModel', () => {
     expect(model.statusPresentation.label).toBe('Upcoming')
     expect(model.eyebrow).toBe('Group A · Upcoming')
     expect(model.liveMinute).toBeNull()
+    expect(model.lifecycleContent.heading).toBe('Match preview')
+    expect(model.lifecycleContent.showMatchImpact).toBe(false)
   })
 
   it('maps a completed repository result to the existing after state', () => {
@@ -55,6 +57,11 @@ describe('createMatchCentrePageModel', () => {
     expect(model.result).toEqual({ home: 2, away: 1 })
     expect(model.statusPresentation.label).toBe('Full-time')
     expect(model.countdownLabel).toBeNull()
+    expect(model.lifecycleContent).toMatchObject({
+      heading: 'Match complete',
+      emphasis: 'success',
+      showMatchImpact: true,
+    })
   })
 
   it('uses unresolved knockout source labels instead of inventing teams', () => {
@@ -89,5 +96,6 @@ describe('createMatchCentrePageModel', () => {
     expect(model.statusPresentation.label).toBe('Starting soon')
     expect(model.matchSource.dataQuality).toBe('provisional')
     expect(model.countdownLabel).toMatch(/^Kick-off /)
+    expect(model.lifecycleContent.heading).toBe('Starting soon')
   })
 })
