@@ -27,7 +27,7 @@ export function ChoiceSheet({ label, value, options, onChange, disabled = false 
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
-  const selected = options.find((option) => option.value === value) ?? options[0]
+  const selected = options.find((option) => option.value === value) ?? options.at(0)
 
   useEffect(() => {
     if (!open) return
@@ -43,13 +43,16 @@ export function ChoiceSheet({ label, value, options, onChange, disabled = false 
         return
       }
       if (event.key !== 'Tab') return
+
       const items = Array.from(node?.querySelectorAll<HTMLElement>(FOCUSABLE) ?? [])
-      if (items.length === 0) {
+      const first = items.at(0)
+      const last = items.at(-1)
+
+      if (!first || !last) {
         event.preventDefault()
         return
       }
-      const first = items[0]
-      const last = items[items.length - 1]
+
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault()
         last.focus()
