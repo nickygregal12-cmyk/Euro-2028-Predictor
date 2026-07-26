@@ -2,7 +2,7 @@
 
 **Date:** 26 July 2026  
 **Scope:** issue #91 continuation after merged PR #92.  
-**Status:** repository implementation validated; deploy-preview Sentry verification configured; production delivery remains disabled.
+**Status:** repository implementation and deploy-preview delivery verified; synthetic verification disabled; production delivery remains disabled.
 
 ## Purpose
 
@@ -46,7 +46,7 @@ The SDK is configured with `sendDefaultPii: false`, no automatic breadcrumbs and
 
 ## Deployment boundary
 
-No Sentry DSN or API token is committed. On 26 July 2026, the public browser DSN, SDK enable flag and synthetic verification flag were configured in Netlify for the `deploy-preview` context and `builds` scope only. Production-scoped Sentry variables remain unset.
+No Sentry DSN or API token is committed. On 26 July 2026, the public browser DSN and SDK enable flag were configured in Netlify for the `deploy-preview` context and `builds` scope only. The one-time synthetic verification flag was enabled for evidence collection, then set back to `false` immediately after receipt was confirmed. Production-scoped Sentry variables remain unset.
 
 The Sentry browser DSN is an ingestion address intended for client use. Administrative Sentry API tokens remain prohibited from the client and repository. A future source-map upload step would require a separately scoped build secret and approval.
 
@@ -67,20 +67,21 @@ It performs no login, form submission, account creation or prediction mutation.
 - CI run 462 passed build/type-check, Oxlint, the complete Vitest suite and production dependency audit;
 - Browser E2E run 176 passed the disposable 35-migration rebuild, authenticated journeys, signup and password recovery;
 - exact-head Netlify deploy-preview HTTP and browser smoke passed;
+- CI run 463 passed again after deploy-preview Sentry configuration was recorded;
+- the controlled Sentry issue `Synthetic Sentry SDK verification event.` was received from the exact-head deploy preview;
+- the stored stack resolved only to the minified production bundle because source-map upload is intentionally not part of PR #93;
 - no migration, SQL, scoring or stored-data change is present;
 - CSP host scope, SDK defaults and privacy-boundary tests passed repository review.
 
 ## Remaining hosted verification
 
-1. allow the new exact-head deploy preview to build with the deploy-preview-only Sentry variables;
-2. confirm the controlled synthetic error appears in Sentry;
-3. confirm one controlled page-load/navigation trace appears;
-4. inspect the event and trace field by field for prohibited data;
-5. verify blocked or invalid Sentry delivery cannot affect application use;
-6. remove `VITE_SENTRY_VERIFICATION_EVENT` from deploy previews after evidence is retained;
-7. approve production configuration separately;
-8. after merge, retain the automatic production-smoke run and controlled production-event evidence;
-9. update current status, risk register, feature baseline, build TODO and issue #91.
+1. confirm one controlled page-load/navigation trace appears in Sentry;
+2. inspect the event and trace field by field for prohibited data;
+3. verify the fresh preview built with `VITE_SENTRY_VERIFICATION_EVENT=false` emits no repeat synthetic issue;
+4. review the preview Lighthouse performance variance before promotion;
+5. approve production configuration separately;
+6. after merge, retain the automatic production-smoke run and controlled production-event evidence;
+7. update current status, risk register, feature baseline, build TODO and issue #91.
 
 ## Explicit exclusions
 
