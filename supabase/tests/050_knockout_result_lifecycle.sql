@@ -149,22 +149,43 @@ insert into public.matches (
     '2028-07-01',
     '2028-07-01 20:00:00+00',
     'Lifecycle Stadium'
-  ),
-  (
-    '10000000-0000-0000-0000-000000000404',
-    '10000000-0000-0000-0000-000000000101',
-    'R16-FOREIGN',
-    'r16',
-    null,
-    null,
-    'W-A',
-    'RU-B',
-    '10000000-0000-0000-0000-000000000311',
-    '10000000-0000-0000-0000-000000000302',
-    '2028-06-25',
-    '2028-06-25 20:00:00+00',
-    'Lifecycle Stadium'
   );
+
+select is(
+  pg_temp.capture_sqlstate($sql$
+    insert into public.matches (
+      id,
+      tournament_id,
+      match_ref,
+      round,
+      group_id,
+      matchday,
+      home_source,
+      away_source,
+      home_team_id,
+      away_team_id,
+      match_date,
+      kickoff_at,
+      venue
+    ) values (
+      '10000000-0000-0000-0000-000000000404',
+      '10000000-0000-0000-0000-000000000101',
+      'R16-FOREIGN',
+      'r16',
+      null,
+      null,
+      'W-A',
+      'RU-B',
+      '10000000-0000-0000-0000-000000000311',
+      '10000000-0000-0000-0000-000000000302',
+      '2028-06-25',
+      '2028-06-25 20:00:00+00',
+      'Lifecycle Stadium'
+    )
+  $sql$),
+  '23514',
+  'cross-tournament participants are rejected when the fixture is written'
+);
 
 insert into public.entries (
   id,
@@ -338,19 +359,6 @@ select is(
   $sql$),
   '23514',
   'penalties require a tied 120-minute score'
-);
-
-select is(
-  pg_temp.capture_sqlstate($sql$
-    select public.confirm_match_result(
-      '10000000-0000-0000-0000-000000000404',
-      'regulation',
-      1::smallint,
-      0::smallint
-    )
-  $sql$),
-  '23514',
-  'a result cannot confirm participants from another tournament'
 );
 
 select is(
@@ -687,10 +695,17 @@ select is(
   'extra time preserves both score checkpoints and derives the winner'
 );
 
+-- Return the fixture to a pending state so this assertion specifically exercises
+-- the negative-score constraint rather than the confirmed-result lifecycle guard.
+select public.clear_match_result(
+  '10000000-0000-0000-0000-000000000403',
+  'prepare negative-score validation'
+);
+
 select is(
   pg_temp.capture_sqlstate($sql$
     select public.confirm_match_result(
-      '10000000-0000-0000-0000-000000000404',
+      '10000000-0000-0000-0000-000000000403',
       'regulation',
       (-1)::smallint,
       0::smallint
