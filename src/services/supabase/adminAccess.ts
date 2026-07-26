@@ -25,5 +25,5 @@ export async function hasTournamentAdminAccess(
   // must never be used for authorisation.
   const { data, error } = await supabase.auth.getUser()
   if (error || !data.user) return false
-  return metadataAllowsAdminCapability(data.user.app_metadata, capability)
+  return metadataAllowsAdminCapability(data.user.app_metadata as AdminMetadata, capability)
 }
