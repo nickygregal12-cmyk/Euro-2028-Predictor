@@ -15,6 +15,7 @@ import type {
   LeagueKoPickRow,
 } from '../../domain/tournament/matchCentre'
 import { MatchCentreDataNotice } from './MatchCentreDataNotice'
+import { MatchCentreScopeChoice } from './MatchCentreScopeChoice'
 import s from './MatchCentre.module.css'
 
 export type MatchScope =
@@ -217,33 +218,11 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
           <ChevronLeftIcon size={16} /> Back
         </button>
         {leagueScopesStatus === 'ready' && props.leagues.length > 0 ? (
-          <select
-            className={s.scope}
-            aria-label="Prediction scope"
-            value={props.scope.type === 'league' ? props.scope.id : 'overall'}
-            onChange={(event) => {
-              const value = event.target.value
-              if (value === 'overall') {
-                props.onScopeChange?.({ type: 'overall' })
-              } else {
-                const league = props.leagues.find((candidate) => candidate.id === value)
-                if (league) {
-                  props.onScopeChange?.({
-                    type: 'league',
-                    id: league.id,
-                    name: league.name,
-                  })
-                }
-              }
-            }}
-          >
-            <option value="overall">Overall</option>
-            {props.leagues.map((league) => (
-              <option key={league.id} value={league.id}>
-                {league.name}
-              </option>
-            ))}
-          </select>
+          <MatchCentreScopeChoice
+            scope={props.scope}
+            leagues={props.leagues}
+            onScopeChange={props.onScopeChange}
+          />
         ) : null}
       </div>
 
