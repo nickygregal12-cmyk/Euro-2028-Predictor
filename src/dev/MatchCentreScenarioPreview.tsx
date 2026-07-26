@@ -1,5 +1,8 @@
 import { useParams } from 'react-router'
-import { MATCH_CENTRE_SCENARIOS, type MatchCentreScenarioName } from '../domain/tournament/matchCentreScenarios'
+import {
+  MATCH_CENTRE_SCENARIOS,
+  type MatchCentreScenarioName,
+} from '../domain/tournament/matchCentreScenarios'
 import { bridgeExternalMatchToLegacyHeader } from '../domain/tournament/matchCentreLegacyBridge'
 import { matchCentreLifecycleContent } from '../domain/tournament/matchCentreLifecycleContent'
 import { MatchCentreScreen } from '../features/matches/MatchCentreScreen'
@@ -54,7 +57,7 @@ export function MatchCentreScenarioPreview() {
       leagues={[]}
       said={{ revealed: false, predicted: 8, total: 12 }}
       scoreEvents={[]}
-      onBack={() => history.back()}
+      onBack={() => window.history.back()}
     />
   )
 }
