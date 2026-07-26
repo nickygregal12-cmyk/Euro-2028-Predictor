@@ -1,0 +1,26 @@
+name: Export canonical migrations
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/export-canonical-migrations.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify canonical migration count
+        run: test "$(find supabase/migrations -maxdepth 1 -type f -name '*.sql' | wc -l)" -eq 36
+      - name: Package canonical database sources
+        run: tar -czf canonical-database-sources.tar.gz supabase/migrations supabase/seed.sql supabase/config.toml
+      - name: Upload canonical database sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: canonical-database-sources
+          path: canonical-database-sources.tar.gz
+          if-no-files-found: error
+          retention-days: 1
