@@ -1,6 +1,10 @@
 import type { Group, Match, Team } from '../../services/supabase/tournamentData'
 import { adaptRepositoryMatchToCentre } from './matchCentreRepositoryAdapter'
 import { bridgeExternalMatchToLegacyHeader } from './matchCentreLegacyBridge'
+import {
+  matchCentreLifecycleContent,
+  type MatchCentreLifecycleContent,
+} from './matchCentreLifecycleContent'
 
 const ROUND_LABEL: Record<Match['round'], string> = {
   group: 'Group',
@@ -22,6 +26,7 @@ export type MatchCentrePageModel = ReturnType<typeof bridgeExternalMatchToLegacy
   eyebrow: string
   countdownLabel: string | null
   venueCountryCodeInput: string
+  lifecycleContent: MatchCentreLifecycleContent
 }
 
 function stageLabel(match: Match, groups: Group[]): string {
@@ -62,5 +67,6 @@ export function createMatchCentrePageModel(
     countdownLabel:
       screen.temporalState === 'before' ? kickoffLabel(viewModel.external.kickoffAt) : null,
     venueCountryCodeInput: viewModel.external.venue ?? input.match.venue,
+    lifecycleContent: matchCentreLifecycleContent(viewModel.external.lifecycle),
   }
 }
