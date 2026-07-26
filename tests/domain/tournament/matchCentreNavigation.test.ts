@@ -13,7 +13,7 @@ describe('Match Centre navigation', () => {
         hash: '#matchday-1',
       }),
     ).toEqual({
-      pathname: '/matches/M%2001',
+      pathname: '/match/M%2001',
       state: {
         returnTo: {
           pathname: '/groups',
