@@ -43,7 +43,7 @@ describe('MatchCentreScreen league scope availability', () => {
     )
 
     expect(screen.queryByText('League scopes unavailable')).not.toBeInTheDocument()
-    expect(screen.queryByRole('combobox', { name: 'Prediction scope' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Overall' })).not.toBeInTheDocument()
     expect(screen.getByText('What everyone said')).toBeVisible()
   })
 
@@ -62,7 +62,7 @@ describe('MatchCentreScreen league scope availability', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('League scopes unavailable')
     expect(screen.getByText('What everyone said')).toBeVisible()
     expect(screen.getByText(/1 of 2 have predicted this match/)).toBeVisible()
-    expect(screen.queryByRole('combobox', { name: 'Prediction scope' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Overall' })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry league scopes' }))
     expect(retry).toHaveBeenCalledTimes(1)
@@ -78,8 +78,11 @@ describe('MatchCentreScreen league scope availability', () => {
       />,
     )
 
-    const selector = screen.getByRole('combobox', { name: 'Prediction scope' })
+    const selector = screen.getByRole('button', { name: 'Overall' })
     expect(selector).toBeVisible()
-    expect(screen.getByRole('option', { name: 'Weekend League' })).toBeInTheDocument()
+
+    fireEvent.click(selector)
+    expect(screen.getByRole('dialog', { name: 'Prediction scope' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Weekend League' })).toBeInTheDocument()
   })
 })
