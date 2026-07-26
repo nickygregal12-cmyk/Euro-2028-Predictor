@@ -1,105 +1,163 @@
 # Sentry operational-assurance implementation
 
 **Date:** 26 July 2026  
-**Scope:** issue #91 continuation after merged PR #92.  
-**Status:** repository and deploy-preview delivery verified; production Sentry configuration approved and enabled; fresh production verification in progress.
+**Scope:** issue #91 continuation after merged PRs #92 and #93.  
+**Status:** production Sentry delivery and privacy-safe tracing verified; alert/retention ownership and actual rollback promotion rehearsal remain open.
 
 ## Purpose
 
-Continue the contract-35 operational-assurance work without changing database schema, tournament rules or retained user data.
+Complete privacy-safe client observability for the contract-35 production application without changing database schema, tournament rules or retained user data.
 
-PR #92 established safe release identity, a provider-neutral client-error boundary, redaction, failure isolation and anonymous smoke commands. PR #93 added the official Sentry React SDK behind that boundary and a durable post-merge production smoke workflow while preserving the original privacy and approval gates.
+PR #92 established safe release identity, a provider-neutral client-error boundary, redaction, failure isolation and anonymous smoke commands. PR #93 added the official Sentry React SDK behind that boundary and a durable post-merge production smoke workflow.
 
-## Repository changes
+## Implemented boundary
 
-- install and pin `@sentry/react`;
-- initialise Sentry from `src/instrument.ts` before application startup;
-- use React 19 root error hooks while preserving the existing recovery screen;
-- retain the provider-neutral reporter as the only error-delivery entrypoint;
-- require explicit `VITE_SENTRY_ENABLED=true` and a valid browser DSN before SDK initialisation;
-- reject non-HTTPS, credential-bearing, non-numeric-project or non-approved ingest DSNs;
-- enable browser page-load/navigation tracing with production sampling at 10%;
-- disable default integrations, automatic breadcrumbs, fetch/XHR tracing, trace propagation, resource spans, Replay, logs and profiling;
-- drop any SDK error event that did not originate from the controlled pre-sanitised reporter;
-- reduce traces to controlled route categories without child spans or request/user data;
-- add focused DSN, SDK-adapter, event-boundary and tracing-boundary tests;
-- permit only approved Sentry cloud ingest hosts in CSP `connect-src`;
-- add a `main`-push GitHub workflow that waits for the exact Netlify production commit and runs both anonymous production smoke commands;
-- document staged deploy-preview verification and the separate production approval gate.
+- `@sentry/react` is pinned and initialised before application startup;
+- React 19 caught, uncaught and recoverable errors pass through the provider-neutral reporter;
+- Sentry requires explicit enablement and a valid approved cloud browser DSN;
+- application errors are normalised before provider code receives them;
+- browser tracing is limited to page-load and navigation timing;
+- transaction names are reduced to controlled route categories;
+- default integrations, automatic breadcrumbs, fetch/XHR tracing, trace propagation, resource child spans, Replay, logs and profiling are disabled;
+- SDK error events not marked as controlled pre-sanitised Euro 2028 events are dropped;
+- reporter failures cannot prevent startup or normal application use;
+- CSP permits only approved Sentry cloud ingestion hosts.
 
 ## Privacy boundary
 
-The SDK adapter does not receive raw application errors. It receives the output of `normaliseClientError`, which redacts email addresses, credentials, URL queries/fragments, local paths and database details before provider code runs.
+The SDK adapter receives only the output of `normaliseClientError`, which removes email addresses, credentials, URL queries/fragments, local paths and raw database details before provider delivery.
 
-Controlled error events contain only:
+Controlled error events may contain only:
 
 - controlled source and route category;
 - safe release identity;
 - redacted error name, message and stack;
 - application and hosted contract identity;
 - Supabase project reference;
-- minimum Sentry SDK metadata required for ingestion and grouping.
+- minimum Sentry SDK metadata needed for processing and grouping.
 
-Browser tracing is limited to page-load/navigation timing. Transaction names are replaced with controlled route categories, child spans are removed and fetch/XHR instrumentation plus trace propagation are disabled.
+Sentry must not receive:
 
-The SDK is configured with `sendDefaultPii: false`, no automatic breadcrumbs and no default integrations. It must not send user identity, IP address, request URL, cookies, authorization data, predictions, brackets, leagues, results, Auth payloads or raw database errors.
+- user identity, email address or IP address;
+- full request URLs, query strings or fragments;
+- cookies, authorization headers, access tokens or refresh tokens;
+- predictions, brackets, leagues, results or Auth payloads;
+- raw PostgreSQL or PostgREST detail;
+- DOM interaction history or Replay data.
 
-## Deployment boundary
+## Netlify configuration
 
-No Sentry DSN or API token is committed. On 26 July 2026, the public browser DSN and SDK enable flag were first configured in Netlify for the `deploy-preview` context and `builds` scope only. The one-time preview synthetic verification flag was enabled for evidence collection, then set back to `false` immediately after receipt was confirmed.
+No Sentry API token is committed or exposed to browser code.
 
-After explicit owner approval, Netlify production build variables were configured with only:
+Deploy previews use build-scoped:
+
+- `VITE_SENTRY_ENABLED=true`;
+- the approved public browser DSN;
+- `VITE_SENTRY_VERIFICATION_EVENT=false` after the one-time verification event was received.
+
+After explicit owner approval, production uses build-scoped:
 
 - `VITE_SENTRY_ENABLED=true`;
 - the approved public browser DSN.
 
-`VITE_SENTRY_VERIFICATION_EVENT` remains disabled and is not enabled for production. Replay, logging, profiling, automatic breadcrumbs, fetch/XHR tracing, trace propagation and source-map upload remain disabled.
+`VITE_SENTRY_VERIFICATION_EVENT` is not configured for production. Replay, logging, profiling, automatic breadcrumbs, fetch/XHR tracing, trace propagation and source-map upload remain disabled.
 
-The Sentry browser DSN is an ingestion address intended for client use. Administrative Sentry API tokens remain prohibited from the client and repository. A future source-map upload step would require a separately scoped build secret and approval.
+Production Supabase remains `vkfnsqdyhvtwyqkisxhk`; non-production contexts remain on development Supabase `iouzoutneyjpugbbtdem`. No Supabase variable or database contract changed as part of Sentry enablement.
 
-## Production-smoke boundary
+## Hosted evidence
 
-The workflow runs only after a push to `main` or an explicit manual dispatch. It:
+### Deploy-preview verification
 
-1. waits until `https://euro28predictor.com/release.json` reports the exact GitHub commit;
-2. requires production context, contract 35 and production Supabase;
-3. runs the committed HTTP smoke;
-4. runs the anonymous Chromium smoke;
-5. retains failure diagnostics for 14 days.
+- the controlled issue `Synthetic Sentry SDK verification event.` was received from the exact-head deploy preview;
+- the stored preview event was manually inspected and confirmed to contain no User, Request or Breadcrumbs data;
+- the one-time verification flag was disabled;
+- the subsequent preview emitted no repeat synthetic issue and passed HTTP/browser smoke;
+- Lighthouse recovered to performance 96, accessibility 100, best practices 100 and SEO 100.
 
-It performs no login, form submission, account creation or prediction mutation.
+### Production activation
+
+- PR #93 was squash-merged as `da83fff5805a11164eed14c339e56fe2e3c08446`;
+- production Sentry activation was recorded by documentation-only commit `87a09056f8392d6b3d58604726e97e07cfc7a555`;
+- Netlify production deploy `6a65ca6f00d3210008154d07` is ready and serves that exact commit;
+- deploy context is production on branch `main`;
+- plugin processing succeeded;
+- secret scanning found no matches across 527 files;
+- Lighthouse reported performance 96, accessibility 100, best practices 100 and SEO 100;
+- production remains application/database contract 35.
+
+### Production Sentry trace
+
+Manual provider inspection confirmed a production trace with:
+
+- environment `production`;
+- release `87a09056f839…`;
+- trace root category `auth`;
+- operation `pageload`;
+- exactly one span;
+- root duration approximately 284 ms;
+- no full URL as the transaction name;
+- no fetch/XHR or resource child spans;
+- no visible User, Request or Breadcrumbs data;
+- no visible email, IP address or query-string data.
+
+This is accepted evidence that controlled production page-load tracing is working within the approved privacy boundary.
 
 ## Validation completed
 
 - CI run 464 passed build/type-check, Oxlint, the complete Vitest suite and production dependency audit;
 - Browser E2E run 178 passed the disposable 35-migration rebuild, authenticated journeys, signup and password recovery;
-- exact-head Netlify deploy-preview HTTP and browser smoke passed;
-- the controlled Sentry issue `Synthetic Sentry SDK verification event.` was received from the exact-head deploy preview;
-- the stored preview event was confirmed to contain no User, Request or Breadcrumbs data;
-- the one-time verification flag was disabled and the subsequent preview passed again;
-- PR #93 was squash-merged as `da83fff5805a11164eed14c339e56fe2e3c08446`;
-- the immediate production deployment for that merge was ready and matched the exact commit;
-- no migration, SQL, scoring or stored-data change is present;
-- CSP host scope, SDK defaults and privacy-boundary tests passed repository review.
+- exact-head deploy-preview HTTP and browser smoke passed;
+- production deployment identity and environment isolation were verified;
+- controlled preview error delivery and production trace delivery were manually inspected;
+- no migration, SQL, RLS, function, scoring, tournament-rule or retained-data change occurred.
 
-## Remaining hosted verification
+## Operational policy pending owner completion
 
-1. allow the fresh production deployment to complete with the approved production-only Sentry variables;
-2. retain the automatic exact-commit production HTTP and browser smoke result;
-3. confirm controlled production page-load/navigation traces appear in Sentry;
-4. inspect production trace fields for prohibited data and confirm route-category naming;
-5. confirm one naturally occurring or separately controlled production error is delivered through the sanitised reporter boundary without user/request/breadcrumb data;
-6. confirm application use remains unaffected if Sentry delivery is blocked or rate-limited;
-7. record Sentry retention, server-side scrubbing, backup alert recipient and escalation policy;
-8. rehearse and retain application rollback evidence;
-9. update current status, risk register, feature baseline, build TODO and issue #91.
+Recommended initial policy:
 
-## Explicit exclusions
+- primary alert owner: repository owner `nickygregal12-cmyk`;
+- backup alert recipient: **not yet named — owner input required**;
+- Sentry event retention: use the shortest practical project/account retention offered, target 30 days where configurable;
+- server-side default data scrubbing and IP-address scrubbing must remain enabled;
+- public issue sharing must remain disabled;
+- severity 1: site unavailable, startup failure or widespread auth failure — investigate immediately;
+- severity 2: repeated route-affecting client error — investigate within one working day;
+- severity 3: isolated non-blocking error — review during routine maintenance;
+- no alert may automatically modify data, apply migrations, reset Supabase or switch environments.
 
-- no production synthetic verification event flag;
+The exact retained duration and named backup recipient must be recorded from the Sentry account settings before issue #91 can be fully closed.
+
+## Rollback position
+
+The rollback decision tree and compatible previous production deploy evidence exist. A real promotion rehearsal has **not** been performed because the available automation cannot republish an older Netlify deploy and restore the current deploy safely as one controlled transaction.
+
+A future owner-approved rehearsal must:
+
+1. identify a known compatible contract-35 deploy;
+2. confirm its immutable deploy URL, release identity and production Supabase reference;
+3. publish that deploy without changing any Supabase variable;
+4. run release-identity, security-header, SPA-route and anonymous browser smoke;
+5. republish the current approved deploy;
+6. rerun the same smoke checks;
+7. retain deploy IDs, timestamps and results.
+
+Application rollback must never point production at development Supabase and must not alter database migrations or retained data.
+
+## Remaining closure items for issue #91
+
+1. record the actual Sentry retention setting and confirm server-side/IP scrubbing;
+2. name one backup alert recipient and record the escalation route;
+3. retain the push-triggered Production Smoke conclusion where accessible;
+4. perform the owner-approved Netlify rollback promotion rehearsal;
+5. reconcile `current-status.md`, `risk-register.md`, `feature-baseline.md` and `build-todo.md` after those final controls are evidenced.
+
+## Explicit exclusions preserved
+
 - no Sentry API auth token or source-map upload;
-- no Replay, logging or profiling;
+- no Session Replay, logging or profiling;
+- no automatic breadcrumbs;
 - no fetch/XHR spans or distributed trace headers;
+- no production synthetic verification flag;
 - no production user or permanent test account;
 - no production mutation;
 - no migration 36 or PR #76 change;
