@@ -5,6 +5,7 @@ import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
+import { RequireAdmin } from './features/admin/RequireAdmin'
 
 // Route-level components are code-split (React.lazy) so each screen ships as its
 // own chunk, keeping the initial bundle small. The gates, providers and shell
@@ -31,6 +32,7 @@ const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').
 const WelcomePage = lazy(() => import('./features/welcome/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
+const AdminResultsPage = lazy(() => import('./features/admin/AdminResultsPage').then((m) => ({ default: m.AdminResultsPage })))
 const NotFoundPage = lazy(() => import('./features/notfound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 // Development-only previews are referenced inside statically-false
@@ -105,6 +107,10 @@ export default function App() {
                         PointsBreakdown). Kept as a redirect so old links resolve. */}
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                     <Route path="/more/scoring" element={<ScoringRulesPage />} />
+
+                    <Route element={<RequireAdmin />}>
+                      <Route path="/admin/results" element={<AdminResultsPage />} />
+                    </Route>
                   </Route>
                 </Route>
               </Route>
