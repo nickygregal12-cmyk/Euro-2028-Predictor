@@ -18,11 +18,22 @@ jobs:
           node-version: 22.22.2
           cache: npm
       - run: npm ci
-      - name: Print compiler failure only
+      - name: Capture compiler output
+        id: build
         shell: bash
         run: |
           set +e
-          npm run build > /tmp/sentry-build.log 2>&1
+          npm run build > sentry-build.log 2>&1
           status=$?
-          tail -n 80 /tmp/sentry-build.log
-          exit "$status"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload compiler output
+        uses: actions/upload-artifact@v4
+        with:
+          name: sentry-build-diagnostic
+          path: sentry-build.log
+          if-no-files-found: error
+          retention-days: 1
+      - name: Preserve build result
+        if: steps.build.outputs.status != '0'
+        run: exit 1
