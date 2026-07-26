@@ -3,10 +3,30 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const root = resolve(import.meta.dirname, '../..')
-const workflow = readFileSync(resolve(root, '.github/workflows/browser-e2e.yml'), 'utf8')
+const workflow = readFileSync(
+  resolve(root, '.github/workflows/browser-e2e.yml'),
+  'utf8',
+)
+const productionWorkflow = readFileSync(
+  resolve(root, '.github/workflows/production-smoke.yml'),
+  'utf8',
+)
+const productionSmoke = readFileSync(
+  resolve(root, 'scripts/production-smoke.mjs'),
+  'utf8',
+)
+const anonymousBrowserSmoke = readFileSync(
+  resolve(root, 'production-smoke/anonymous.spec.ts'),
+  'utf8',
+)
 const globalSetup = readFileSync(resolve(root, 'e2e/global-setup.ts'), 'utf8')
-const localFixtures = readFileSync(resolve(root, 'e2e/local-supabase.ts'), 'utf8')
-const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
+const localFixtures = readFileSync(
+  resolve(root, 'e2e/local-supabase.ts'),
+  'utf8',
+)
+const packageJson = JSON.parse(
+  readFileSync(resolve(root, 'package.json'), 'utf8'),
+) as {
   scripts: Record<string, string>
   devDependencies: Record<string, string>
 }
@@ -70,11 +90,19 @@ describe('deploy-preview browser smoke workflow', () => {
     expect(previewWorkflow).toContain(
       'EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem',
     )
+    expect(previewWorkflow).toContain("EXPECTED_CONTRACT: '36'")
     expect(previewWorkflow).toContain(
       "release.environment === 'deploy-preview'",
     )
-    expect(previewWorkflow).toContain('release.applicationContract === 35')
-    expect(previewWorkflow).toContain('release.hostedContract === 35')
+    expect(previewWorkflow).toContain(
+      'release.applicationContract === expectedContract',
+    )
+    expect(previewWorkflow).toContain(
+      'release.hostedContract === expectedContract',
+    )
+    expect(previewWorkflow).toContain(
+      'EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT',
+    )
   })
 
   it('runs both read-only smoke entry points', () => {
@@ -85,6 +113,31 @@ describe('deploy-preview browser smoke workflow', () => {
     )
     expect(packageJson.scripts['smoke:production:browser']).toBe(
       'playwright test --config=playwright.production.config.ts',
+    )
+  })
+})
+
+describe('target-specific production smoke contracts', () => {
+  it('requires an explicit contract in both smoke implementations', () => {
+    for (const smokeSource of [productionSmoke, anonymousBrowserSmoke]) {
+      expect(smokeSource).toContain('EURO28_SMOKE_EXPECTED_CONTRACT')
+      expect(smokeSource).toContain('parseExpectedContract')
+      expect(smokeSource).not.toContain('applicationContract: 35')
+      expect(smokeSource).not.toContain('hostedContract: 35')
+    }
+    expect(productionSmoke).not.toContain('const APPLICATION_CONTRACT')
+  })
+
+  it('keeps the retained final target at contract 35 without requiring an undeployable main commit', () => {
+    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '35'")
+    expect(productionWorkflow).toContain(
+      'Verify retained compatible Netlify production release',
+    )
+    expect(productionWorkflow).not.toContain(
+      'EXPECTED_COMMIT: ${{ github.sha }}',
+    )
+    expect(productionWorkflow).toContain(
+      'EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT',
     )
   })
 })

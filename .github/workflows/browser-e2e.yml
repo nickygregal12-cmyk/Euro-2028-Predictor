@@ -123,6 +123,7 @@ jobs:
           PREVIEW_ORIGIN: https://deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app
           EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
           EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem
+          EXPECTED_CONTRACT: '36'
         run: |
           set -euo pipefail
 
@@ -142,12 +143,14 @@ jobs:
           const release = JSON.parse(
             fs.readFileSync('/tmp/euro28-preview-release.json', 'utf8'),
           )
+          const expectedContract = Number(process.env.EXPECTED_CONTRACT)
 
           const valid =
+            Number.isInteger(expectedContract) &&
             release.environment === 'deploy-preview' &&
             release.commit === process.env.EXPECTED_COMMIT &&
-            release.applicationContract === 35 &&
-            release.hostedContract === 35 &&
+            release.applicationContract === expectedContract &&
+            release.hostedContract === expectedContract &&
             release.supabaseProjectRef === process.env.EXPECTED_SUPABASE_REF
 
           process.exit(valid ? 0 : 1)
@@ -173,6 +176,7 @@ jobs:
             echo 'EURO28_SMOKE_EXPECTED_CONTEXT=deploy-preview'
             echo "EURO28_SMOKE_EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF"
             echo "EURO28_SMOKE_EXPECTED_COMMIT=$EXPECTED_COMMIT"
+            echo "EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT"
           } >> "$GITHUB_ENV"
 
       - name: Run deploy-preview HTTP smoke

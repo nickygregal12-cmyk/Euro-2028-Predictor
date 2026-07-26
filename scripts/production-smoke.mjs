@@ -3,7 +3,6 @@ import process from 'node:process'
 const PRODUCTION_ORIGIN = 'https://euro28predictor.com'
 const PRODUCTION_SUPABASE_REF = 'vkfnsqdyhvtwyqkisxhk'
 const DEVELOPMENT_SUPABASE_REF = 'iouzoutneyjpugbbtdem'
-const APPLICATION_CONTRACT = 35
 
 const origin = normaliseOrigin(
   process.env.EURO28_SMOKE_ORIGIN || PRODUCTION_ORIGIN,
@@ -16,6 +15,9 @@ const expectedSupabaseRef =
   process.env.EURO28_SMOKE_EXPECTED_SUPABASE_REF ||
   PRODUCTION_SUPABASE_REF
 const expectedCommit = process.env.EURO28_SMOKE_EXPECTED_COMMIT || ''
+const expectedContract = parseExpectedContract(
+  process.env.EURO28_SMOKE_EXPECTED_CONTRACT,
+)
 
 if (origin !== PRODUCTION_ORIGIN && !allowNonProduction) {
   stop(
@@ -41,12 +43,12 @@ try {
 
 assertEqual(
   release.applicationContract,
-  APPLICATION_CONTRACT,
+  expectedContract,
   'application contract',
 )
 assertEqual(
   release.hostedContract,
-  APPLICATION_CONTRACT,
+  expectedContract,
   'hosted contract',
 )
 assertEqual(
@@ -200,7 +202,7 @@ function verifySecurityHeaders(headers) {
 }
 
 function discoverAssets(html) {
-  return [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/g)]
+  return [...html.matchAll(/(?:src|href)="(\/assets\/[^\"]+\.(?:js|css))"/g)]
     .map((match) => match[1])
     .filter((value, index, values) => values.indexOf(value) === index)
     .sort()
@@ -222,6 +224,21 @@ function normaliseOrigin(value) {
   }
 
   return url.origin
+}
+
+function parseExpectedContract(value) {
+  if (!value || !/^[1-9]\d*$/.test(value)) {
+    stop(
+      'EURO28_SMOKE_EXPECTED_CONTRACT must be an explicit positive integer.',
+    )
+  }
+
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed)) {
+    stop('EURO28_SMOKE_EXPECTED_CONTRACT is outside the safe integer range.')
+  }
+
+  return parsed
 }
 
 function assertEqual(actual, expected, label) {

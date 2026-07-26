@@ -1,81 +1,88 @@
 # Euro 2028 Predictor — Current Risk Register
 
-**Current control-plane reconciliation:** [`reconciliations/2026-07-26-contract-36-control-plane-repair.md`](reconciliations/2026-07-26-contract-36-control-plane-repair.md)  
-**Repository contract reconciliation:** [`reconciliations/2026-07-26-contract-36-repository-reconciliation.md`](reconciliations/2026-07-26-contract-36-repository-reconciliation.md)  
+**Latest development reconciliation:** [`reconciliations/2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md)  
 **Last verified final-target reconciliation:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
+**Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
 **Recovery acceptance:** [`reconciliations/2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md)
 
-This register retains existing finding IDs. Current `main`, executable tests and verified hosted evidence override older classifications. The environment historically named production is the final-target environment and is not supporting a live tournament.
+Current `main`, executable tests and verified hosted evidence override older classifications. Production is the controlled final target, not an active tournament.
 
 ## Contract-36 movement
 
-| ID | Previous position | Current position |
-| --- | --- | --- |
-| `DATA-003` | Migration 36 described as draft/outside authority | **Repository implementation verified and issue #72 closed; hosted rollout remains separate** |
-| `DATA-006` | Generic wider fixture/source immutability gap | **No concrete residual gap currently established; retain only if an exact uncovered relationship is identified** |
-| `DOC-001` | Documentation authority contained contract-35/draft-migration instructions | **Resolved by the contract-36 control-plane repair; reopen on future drift** |
-| `OPS-006` | Final-target application/database aligned at 35 | **Contract-35 final-target pair remains valid; repository is at 36 and deployment remains fail-closed until hosted upgrades occur** |
+| ID | Current position |
+| --- | --- |
+| `DATA-003` | **Repository and development hosted implementation verified.** Six relationship groups are guarded; final-target rollout is tracked under `OPS-006`. |
+| `DATA-006` | **No concrete residual defect established.** Reopen only with an exact uncovered relationship. |
+| `DOC-001` | **Resolved.** Current agent/status/risk/roadmap/migration authority is reconciled. |
+| `OPS-006` | **Narrowed to final-target divergence.** Repository/development/previews are 36; final target remains compatible 35 and fail-closed. |
+| `TEST-001` | **Reduced.** Hosted development migration and exact-head preview smoke are complete; other critical journeys remain. |
 
 ## Critical
 
 | ID | Finding | Current status | Required closure |
 | --- | --- | --- | --- |
-| `OPS-006` | Application/database contract divergence | **Open alignment work; safely fail-closed** | Upgrade development first, restore exact-head contract-36 preview smoke, then upgrade the final target only after accepted evidence and explicit approval. |
+| `OPS-006` | Final-target application/database contract remains 35 while repository/development are 36 | **Open; safely fail-closed** | Read-only final-target preparation, recoverable evidence, explicit owner approval, migration/verification, production declaration 36, exact-head deployment and smoke. |
 | `DATA-001` | Predicted group positions can be forged or drift | **Resolved** | Reopen on regression. |
-| `SECURITY-001` | Server-owned group-position inputs can be written by browser roles | **Resolved** | Reopen on regression. |
+| `SECURITY-001` | Browser roles can write server-owned position inputs | **Resolved** | Reopen on regression. |
 | `SECURITY-002` | Submission boundary can be bypassed | **Resolved** | Reopen on regression. |
-| `DATA-002` | Knockout result winner/method lacks authority | **Resolved in the database** | Reopen on database regression; frontend authoritative-winner consumption is tracked separately under experience/testing work. |
-| `OPS-001` | Environment rollback crosses database boundaries | **Resolved** | Preserve environment isolation. |
+| `DATA-002` | Knockout winner/method lacks database authority | **Resolved in database** | Frontend authoritative consumption remains separately open. |
+| `OPS-001` | Environment rollback crosses database boundaries | **Resolved** | Preserve isolation. |
 
 ## High
 
 | ID | Finding | Current status | Evidence / required closure |
 | --- | --- | --- | --- |
-| `DATA-003` | Same-tournament/reference constraints are incomplete | **Repository implementation verified; hosted rollout pending** | Migration 36 guards six identified relationship groups. CI run 366, Database parity run 112 and Browser E2E run 103 passed. Issue #72 is closed. |
-| `DATA-006` | Fixture/source relationships are mutable or insufficiently constrained | **No proven residual defect** | Do not retain as a broad duplicate. Reopen or narrow only with exact table/column evidence. |
-| `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Implement server-side scheduling and exact lock-boundary tests. |
-| `DATA-004` | Actual tie resolution can depend on non-authoritative fallback behaviour | **Open** | Define authoritative actual-tie workflow when regulations/data are available. |
-| `DATA-005` | Clearing incomplete scores lacks complete final-target browser proof | **Backend implemented; browser evidence pending** | Complete controlled clear/reload/conflict/lock verification. |
-| `OPS-002` | No approved complete administrator model/control room | **Open; UI foundation in draft PR #102 only** | Add independently authorized RPC boundaries, bootstrap/assignment evidence, audit history and browser E2E before enabling writes. |
-| `TEST-001` | Critical browser/database rules lack complete end-to-end evidence | **Partial** | Hosted migration-36 evidence, contract-36 preview smoke, result administration, knockout penalty-winner UI coverage, controlled authenticated mutation smoke and manual screen-reader review remain. |
-| `OPS-003` | Monitoring/recovery operations are incomplete | **Partial** | Sentry integration exists, but final-target delivery, alert ownership, retention and periodic rehearsal remain. |
+| `DATA-003` | Same-tournament/reference constraints incomplete | **Resolved in repository and development** | Exact 36-history, six private guards, privilege revocations and rollback-only valid/invalid hosted tests passed. Final-target promotion is `OPS-006`. |
+| `DATA-006` | Wider fixture/source relationships insufficiently constrained | **No proven residual defect** | Do not retain as a broad duplicate. |
+| `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Server scheduler and exact lock-boundary tests. |
+| `DATA-004` | Actual tie resolution can use non-authoritative fallback | **Open** | Define authoritative workflow when official regulations/data are available. |
+| `DATA-005` | Score clearing lacks complete final-target browser proof | **Backend implemented; final-target evidence pending** | Controlled clear/reload/conflict/lock verification. |
+| `OPS-002` | No complete approved administrator model/control room | **Open; PR #102 is foundation only** | Authorized RPC boundaries, bootstrap/assignment evidence, audit history and Browser E2E. |
+| `TEST-001` | Critical rules lack complete end-to-end evidence | **Partial** | Result admin, authoritative penalty-winner UI, final-target controlled mutations and manual screen-reader review remain. |
+| `OPS-003` | Production observability operations incomplete | **Partial; delivery verified** | Sentry production trace delivery and privacy boundary are verified. Record actual retention, server-side/IP scrubbing, backup alert recipient/escalation, durable push-smoke evidence and rollback promotion rehearsal. |
 
 ## Medium
 
 | ID | Finding | Current status |
 | --- | --- | --- |
-| `AUTH-001` | Turnstile/CAPTCHA contexts are not fully verified | **Open** |
-| `OPS-008` | Legacy public development site remains | **Open — separate workstream; never use as current preview target** |
-| `REL-007` | Stale device can delete a newer bracket pick | **Implementation present; final controlled browser evidence pending** |
-| `PERF-001` | League summary requests may scale serially | **Open** |
-| `PERF-002` | Scoring recomputes the whole tournament | **Open pending measurement** |
+| `AUTH-001` | Turnstile/CAPTCHA contexts not fully verified | **Open** |
+| `OPS-008` | Legacy public development site remains | **Open — separate workstream; never use as current preview** |
+| `REL-007` | Stale device can delete a newer bracket pick | **Implementation present; final-target browser evidence pending** |
+| `DB-001` | `public.enforce_joker_rules` has mutable search path | **Open advisor finding** |
+| `DB-002` | Authenticated `SECURITY DEFINER` allowlist needs continued review | **Open assurance finding; many grants are intentional application RPCs** |
+| `DB-003` | Several foreign keys lack supporting indexes | **Open pending representative query evidence** |
+| `AUTH-002` | Leaked-password protection disabled | **Open decision** |
+| `PERF-001` | League summaries may scale serially | **Open** |
+| `PERF-002` | Scoring recomputes whole tournament | **Open pending measurement** |
 | `TYPE-001` | Hand-written types/casts can hide schema drift | **Open** |
-| `A11Y-001` | Assistive-technology review is incomplete | **Partial** |
-| `UX-001` | Trustworthy invite context before auth is incomplete | **Partial** |
+| `A11Y-001` | Assistive-technology review incomplete | **Partial** |
+| `UX-001` | Trustworthy invite context before auth incomplete | **Partial** |
 | `UX-002` | Unavailable and empty data can be conflated | **Partial** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
-| `DOC-001` | Documentation authority can drift | **Resolved by current repair; reopen on contradiction** |
+| `DOC-001` | Documentation authority can drift | **Resolved; reopen on contradiction** |
 
 ## Low
 
 | ID | Finding | Status |
 | --- | --- | --- |
 | `HYGIENE-002` | Some pure modules may be test/reference-only | **Open; verify before deletion** |
-| `CODE-001` | Large orchestration files are coordination hotspots | **Open** |
+| `CODE-001` | Large orchestration files are hotspots | **Open** |
 | `SEO-001` | SPA fallback produces soft 404s | **Open** |
-| `SEO-002` | Metadata is largely global | **Open** |
-| `UX-003` | Other-player profile action remains incomplete | **Open** |
-| `DATA-008` | Score values have no practical database maximum | **Open** |
+| `SEO-002` | Metadata largely global | **Open** |
+| `UX-003` | Other-player profile action incomplete | **Open** |
+| `DATA-008` | Scores have no practical database maximum | **Open** |
 | `DOC-002` | Package version remains `0.0.0` | **Open** |
-| `DOC-003` | Component gallery is large and partly historical | **Open; development-only** |
-| `REPO-001` | Licence and changelog policy are absent | **Partial** |
+| `DOC-003` | Component gallery large/partly historical | **Open; development-only** |
+| `REPO-001` | Licence/changelog policy absent | **Partial** |
 
 ## Register rules
 
-- A repository migration is implemented when merged into `main`; hosted closure requires hosted evidence when the finding is specifically hosted.
-- Do not call a final-target risk closed merely because the database is not live. Preserve controls for the intended final environment.
-- Do not retain broad findings when the concrete defect has been implemented; rewrite residual scope precisely.
-- Current hosted contract-35 evidence remains valid until superseded by a dated contract-36 reconciliation.
-- The deployment guard blocking contract-36 code against a contract-35 hosted database is a working safeguard, not a defect to bypass.
+- Repository implementation, development-hosted verification and final-target verification are separate closure states.
+- Do not call a final-target risk closed because the tournament is not live.
+- Do not retain broad findings after the concrete defect is resolved.
+- The retained 35/35 final-target evidence stays valid until a dated 36/36 promotion replaces it.
+- A guard blocking incompatible deployment is a working safeguard, not a defect to bypass.
+- Sentry delivery is already active; do not describe it as disabled merely because policy/ownership items remain.
+- Advisor warnings require context; do not remove indexes or revoke intended RPC access without evidence.
 - Historical audits remain immutable.
