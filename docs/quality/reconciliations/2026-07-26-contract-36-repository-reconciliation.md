@@ -59,7 +59,7 @@ This confirms the application checks, disposable 36-migration rebuild/parity gat
 | Browser regression | Browser E2E succeeded | **Complete** |
 | Deployment contract update | Contract changed from 35 to 36 | **Complete** |
 | Avoid scoring/rule changes | Migration is limited to reference integrity | **Complete** |
-| Hosted development compatibility | PR #76 records zero invalid development preflight rows; hosted application remains to be executed/verified | **Implementation compatible; rollout pending** |
+| Hosted development compatibility | PR #76 records zero invalid development preflight rows; hosted execution remains pending | **Implementation compatible; rollout pending** |
 
 ## Guard inventory
 
@@ -82,7 +82,7 @@ Each trigger function:
 
 ## DATA-003 and DATA-006 classification
 
-`DATA-003` is implemented and verified at repository/disposable level. It should remain open only for the narrow hosted-development execution evidence, or be closed with hosted rollout tracked separately.
+`DATA-003` is implemented and verified at repository/disposable level. Issue #72 may close after this reconciliation merges. Development and final-target migration application are operational rollout tasks and remain explicitly tracked in `docs/build-todo.md` and `docs/ops-pending-migrations.md`.
 
 `DATA-006` must not continue as a generic duplicate of `DATA-003`. Any remaining fixture/source immutability concern must identify an exact table, column and unsupported mutation. No such residual defect has been established by this reconciliation.
 
@@ -108,6 +108,7 @@ Because the final-target environment is not live tournament production, this is 
 - `docs/build-todo.md`;
 - `docs/ops-pending-migrations.md`;
 - `docs/quality/risk-register.md`;
+- `docs/quality/investigations/2026-07-26-data-003-acceptance-reassessment.md`;
 - this dated reconciliation.
 
 ## Safety boundary
