@@ -9,6 +9,7 @@ import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import { matchTemporalState, groupStake, koStake } from '../../domain/tournament/matchCentre'
 import { groupByMatchday, groupByGroupLetter, currentGroupIndex } from '../../domain/tournament/matchesTab'
 import { MatchesScreen, type FilterKey, type FixtureRowVM, type MatchesGroupVM } from './MatchesScreen'
+import { useOpenMatchCentre } from './useOpenMatchCentre'
 import s from '../shared.module.css'
 
 const STAGE_UP: Record<string, KnockoutStage> = { r16: 'R16', qf: 'QF', sf: 'SF', final: 'FINAL', champion: 'CHAMPION' }
@@ -26,6 +27,7 @@ function dateLabel(m: Match): string {
 
 export function MatchesPage() {
   const navigate = useNavigate()
+  const openMatchCentre = useOpenMatchCentre()
   const data = useTournamentData()
   const preds = usePredictions()
   const [filter, setFilter] = useState<FilterKey>('all')
@@ -123,7 +125,7 @@ export function MatchesPage() {
       onFilter={setFilter}
       groups={built.vm}
       scrollToKey={built.scrollToKey}
-      onOpen={(ref) => navigate(`/match/${ref}`)}
+      onOpen={openMatchCentre}
       emptyMessage={filter === 'jokers' ? 'No jokers placed yet — place them on your group predictions.' : 'No fixtures yet.'}
     />
   )
