@@ -3,6 +3,8 @@ import { TeamFlag, Alert, Button, initialsOf } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { PointsBreakdown } from '../scoring/PointsBreakdown'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
+import type { MatchSourceMetadata } from '../../domain/tournament/matchCentreContract'
+import type { MatchCentreStatusPresentation } from '../../domain/tournament/matchCentrePresentation'
 import type {
   MatchTemporalState,
   GroupStake,
@@ -12,6 +14,7 @@ import type {
   LeagueGroupPickRow,
   LeagueKoPickRow,
 } from '../../domain/tournament/matchCentre'
+import { MatchCentreDataNotice } from './MatchCentreDataNotice'
 import s from './MatchCentre.module.css'
 
 export type MatchScope =
@@ -44,6 +47,8 @@ export type MatchCentreScreenProps = {
   home: { name: string; countryCode: string }
   away: { name: string; countryCode: string }
   temporalState: MatchTemporalState
+  statusPresentation?: MatchCentreStatusPresentation
+  matchSource?: MatchSourceMetadata
   result: { home: number; away: number } | null
   koDetail?: string | null
   countdownLabel?: string | null
@@ -202,7 +207,7 @@ function outcomeTag(
 
 export function MatchCentreScreen(props: MatchCentreScreenProps) {
   const { home, away, result, temporalState } = props
-  const live = temporalState === 'during'
+  const live = props.statusPresentation?.isLive ?? temporalState === 'during'
   const leagueScopesStatus = props.leagueScopesStatus ?? 'ready'
 
   return (
@@ -256,6 +261,10 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         </Alert>
       ) : null}
 
+      {props.statusPresentation && props.matchSource ? (
+        <MatchCentreDataNotice status={props.statusPresentation} source={props.matchSource} />
+      ) : null}
+
       {/* Header + score hero */}
       <p className={s.eyebrow}>{props.eyebrow}</p>
       <div className={`${s.hero} ${live ? s.heroLive : ''}`}>
@@ -270,7 +279,7 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
             </span>
           ) : live ? (
             <span className={s.liveTag}>
-              <span className={s.dot} /> Live
+              <span className={s.dot} /> {props.statusPresentation?.label ?? 'Live'}
             </span>
           ) : (
             <span className={s.vs}>vs</span>
