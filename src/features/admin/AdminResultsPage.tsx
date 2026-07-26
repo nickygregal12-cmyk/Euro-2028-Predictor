@@ -38,7 +38,7 @@ export function AdminResultsPage() {
   if (!summary) return <div className={s.page} />
 
   const teamName = (teamId: string | null, source: string) =>
-    (teamId ? summary.teamNames.get(teamId) : null) ?? source ?? 'TBC'
+    (teamId ? summary.teamNames.get(teamId) : null) ?? source
 
   return (
     <div className={s.page}>
