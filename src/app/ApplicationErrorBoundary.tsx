@@ -1,5 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { reportClientError } from '../services/observability/clientObservability'
+import { Component, type ReactNode } from 'react'
 
 interface ApplicationErrorBoundaryProps {
   readonly children: ReactNode
@@ -17,10 +16,6 @@ export class ApplicationErrorBoundary extends Component<
 
   public static getDerivedStateFromError(): ApplicationErrorBoundaryState {
     return { failed: true }
-  }
-
-  public componentDidCatch(error: Error, info: ErrorInfo): void {
-    reportClientError(error, 'react', window.location.pathname, info.componentStack)
   }
 
   public render() {
