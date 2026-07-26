@@ -8,67 +8,79 @@ A mobile-first Euro 2028 football predictor built with React 19, TypeScript, Vit
 
 Do not import rules or features from previous World Cup projects, old branches, prototypes or chats.
 
-## Current production status
+## Current repository and hosted status
 
-The former production application/database mismatch is resolved.
+The repository is at contract `36`:
 
-Current verified pair:
+- migration `20260725010000_authoritative_reference_integrity.sql` is merged through PR #76;
+- `config/deployment-contract.json` requires 36 migrations and contract 36;
+- disposable CI, Database parity and Browser E2E passed on the migration PR’s final head;
+- PR #101 merged the repository reconciliation;
+- issue #72 (`DATA-003`) is closed as repository implementation complete.
 
-- approved/deployed commit `902a37aa6c50c967f8080d751147a5733b251fe3`;
-- Netlify production deploy `6a652c3d3416d26d595ae2ef`;
-- production Supabase `vkfnsqdyhvtwyqkisxhk`;
-- repository, production database and Netlify contract `35`;
-- exactly 35 canonical production migration-history rows;
-- `replace_predicted_progression` and `delete_match_prediction` present;
-- 63/63 database verification checks passed;
-- rollback-only atomic bracket, submission and result-lifecycle smoke checks passed;
-- live metadata, security headers, SPA routes, assets and anonymous browser journeys passed;
-- no development Supabase endpoint or browser request was present.
+Hosted environments remain behind the repository:
 
-Read `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md` for the executed rollout.
+- development Supabase `iouzoutneyjpugbbtdem` is last verified at contract 35;
+- final-target Supabase `vkfnsqdyhvtwyqkisxhk` is last verified at contract 35;
+- the Netlify context historically named `production` is the controlled final-target environment, not an active Euro 2028 tournament;
+- the retained contract-35 application/database evidence remains valid until a dated contract-36 hosted reconciliation replaces it.
 
-Do not describe production as contract 20, missing migrations 21–35, lacking the two client RPCs or frozen by the compatibility gate.
+Do not describe migration 36 as draft or unmerged. Do not describe either hosted database as contract 36 until it has been inspected, migrated and verified.
 
-Migration 36 remains draft-only in PR #76. It was not applied and must remain outside production until separately reviewed, merged, rehearsed and approved.
+## Current hard gate
+
+The immediate workstream is hosted contract-36 alignment, beginning with development only:
+
+1. inspect development migration history and guarded relationships read-only;
+2. require a dry run showing only migration 36;
+3. apply and verify migration 36 in development;
+4. update preview/branch/dev contract declarations to 36;
+5. restore exact-head deploy-preview smoke on the current `euro28predictor` Netlify project;
+6. prepare the final-target upgrade separately and require explicit owner approval before any write.
+
+Never weaken either prebuild guard or change a hosted contract merely to make a build pass.
 
 ## Remaining operational and launch work
 
-The compatible production pair does not make the product tournament-launch-ready. Remaining work includes:
+A compatible repository/database contract does not make the product tournament-launch-ready. Remaining work includes:
 
-- production monitoring, alert ownership and incident response;
-- version-controlled administrator authorization and browser result administration;
+- server-authorized administrator capabilities and browser result workflows;
+- authoritative knockout winner/method/extra-time/penalty consumption in Match Centre and H2H;
+- real Round-of-16 population and actual unresolved-tie handling;
+- automatic valid-entry submission and reminders;
+- monitoring ownership, retention/privacy and incident response;
 - Turnstile/non-production CAPTCHA verification and leaked-password protection decision;
 - branch-protection verification;
 - official Euro 2028 teams, fixtures, regulations and lock instant;
 - full tournament dress rehearsal and manual screen-reader review;
-- periodic backup/restore and application-rollback rehearsal;
-- wider reference integrity work, including any future migration 36 rollout.
+- periodic backup/restore and application-rollback rehearsal.
 
 The accepted recovery artifact and corrected clean restore are proven. Recovery evidence does not remove the need for future backups, retention discipline, monitoring or final launch rollback rehearsal.
 
-Netlify non-production isolation is resolved: deploy previews, branch deploys and Netlify development use development Supabase; production uses production Supabase. All contexts declare contract 35 because both hosted databases are verified through migration 35.
+## Netlify and legacy-site boundaries
 
-Two separate hosted findings remain:
-
-- `OPS-008` / issue #27: `euro28-predictor-dev.netlify.app` is a public legacy deployment from `worldcup2026/euro28-development`, points at inactive staging project `gcfdwobpnanjchcnvdco`, enables time travel and runs health/observability/hourly-heartbeat functions. It is not a current Euro 2028 environment and must not be modified from this workstream.
-- `AUTH-001` / issue #28: the real Turnstile site key is inherited by non-production contexts, but development Supabase CAPTCHA configuration and the Cloudflare hostname allowlist remain unverified. Do not broaden hostname access or mix test/real keys and secrets.
+- The current repository’s Netlify project is `euro28predictor`.
+- Final-target Netlify uses final-target Supabase only.
+- Deploy previews, branch deploys and Netlify development use development Supabase only.
+- Exact-head preview smoke must use a deploy preview belonging to the current `euro28predictor` project.
+- `euro28-predictor-dev.netlify.app` is a legacy deployment from `worldcup2026/euro28-development` using inactive Supabase project `gcfdwobpnanjchcnvdco`.
+- Never use that legacy site as a current preview target or modify it from this repository workstream.
+- The real Turnstile site key reaches non-production contexts, but development Supabase CAPTCHA configuration and the Cloudflare hostname allowlist remain unverified.
+- Do not broaden `netlify.app` hostname access or mix unmatched test/real keys and secrets.
 
 ## Sources of truth
 
 | Topic | Document |
 | --- | --- |
 | Current implementation, hosted state and next action | `docs/quality/current-status.md` |
-| Completed production contract-35 promotion | `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md` |
-| Accepted production recovery proof | `docs/quality/reconciliations/2026-07-25-final-recovery-acceptance.md` |
-| Netlify environment isolation | `docs/quality/reconciliations/2026-07-24-netlify-environment-isolation.md` |
-| Legacy development and Turnstile evidence | `docs/quality/reconciliations/2026-07-24-legacy-development-site-and-turnstile.md` |
-| Production backup and restore procedure | `docs/ops-production-backup-restore.md` |
-| Latest formal pre-rollout audit | `docs/quality/audits/2026-07-25-repeat-verification-audit.md` |
+| Contract-36 control-plane reconciliation | `docs/quality/reconciliations/2026-07-26-contract-36-control-plane-repair.md` |
+| Repository contract-36 reconciliation | `docs/quality/reconciliations/2026-07-26-contract-36-repository-reconciliation.md` |
+| Retained final-target contract-35 evidence | `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md` |
+| Accepted recovery proof | `docs/quality/reconciliations/2026-07-25-final-recovery-acceptance.md` |
 | Agent/Git/database discipline | `AGENTS.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Feature/safeguard classifications | `docs/quality/feature-baseline.md` |
 | Hosted migration inventory | `docs/ops-pending-migrations.md` |
-| Completed rollout record/repeat procedure | `docs/ops-hosted-migration-rollout.md` |
 | Deployment contract | `config/deployment-contract.json` |
 | Scoring and entry validity | `docs/scoring-rules.md` |
 | Tournament facts | `docs/tournament-structure.md` |
@@ -91,14 +103,12 @@ Older audits and reconciliations remain evidence of the state at their date, not
 - Save errors and optimistic conflicts block submission.
 - Clearing either side of a complete score uses `delete_match_prediction(...)` on the serialized match key.
 - Prediction deletion must use the exact row version read; unknown or stale versions conflict rather than deleting unseen work.
-- Production Netlify context must use production Supabase; deploy-preview, branch-deploy and dev must use development Supabase.
-- Never weaken or bypass either Netlify prebuild guard to make a deploy pass.
+- Never weaken or bypass the Netlify environment or deployment-contract guards.
 - Adding a migration requires review and update of `config/deployment-contract.json` plus hosted migration planning.
-- Never use the legacy `euro28-predictor-dev` site for current testing or modify its World Cup repository/backend from this workstream.
-- Never authorise broad `netlify.app` Turnstile hostname access merely to cover previews.
 - Original Predictor and bonus games remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references and unknown official data.
+- Knockout UI and social calculations use authoritative `winner_team_id`/result-method data; they must not infer penalty winners from a tied public score.
 
 ## Scoring
 
@@ -111,28 +121,12 @@ Older audits and reconciliations remain evidence of the state at their date, not
 - Golden Boot 25;
 - group goals 40 / 30 / 20, tiered.
 
-Keep TypeScript, SQL and tests aligned. Automatic deadline submission is documented but unimplemented.
-
-## Verified production contract
-
-The production 35-migration chain verifies:
-
-- TypeScript/PostgreSQL group-order parity;
-- RPC-only submission and server-derived positions;
-- same-tournament and lock boundaries;
-- authoritative result lifecycle and revisions;
-- serialized scoring;
-- real winner propagation and predicted-bracket replay;
-- atomic complete-bracket replacement;
-- zero anonymous public-function execution;
-- exact authenticated/service allowlists and fixed helper search paths;
-- pending-write settlement before submission;
-- version-safe persisted score clearing with derived-position invalidation.
+Keep TypeScript, SQL and tests aligned. Automatic deadline submission is an approved target rule but remains unimplemented until server scheduling and exact-boundary tests exist.
 
 ## Required workflow
 
 1. Start from current `main` on a dedicated branch.
-2. Confirm target environment and current app/schema compatibility.
+2. Confirm the target environment and current app/schema compatibility.
 3. Keep each PR to one coherent concern.
 4. Run application checks:
 
@@ -146,28 +140,27 @@ npm audit --omit=dev --audit-level=high
 
 5. For database/tournament changes, also run the disposable Supabase rebuild, database lint, all pgTAP suites and TypeScript/PostgreSQL parity from `.github/workflows/database-parity.yml`.
 6. Update the deployment contract whenever migrations or required application RPCs change.
-7. Update current status, risk register, feature baseline, migration inventory and a dated reconciliation when hosted facts change.
-8. Use Netlify previews for visual review only after both prebuild guards pass. Auth journeys require separately verified Turnstile/Supabase CAPTCHA configuration.
+7. Update current status, risk register, feature baseline, migration inventory and a dated reconciliation when material facts change.
+8. Use Netlify previews only after both prebuild guards pass. Auth journeys require separately verified Turnstile/Supabase CAPTCHA configuration.
 
 ## Immediate order
 
-1. Reconcile and merge the contract-35 production documentation update.
-2. Add production error reporting, alert ownership and critical-journey monitoring.
-3. Resolve issue #28 through an approved production/non-production Turnstile model and verify preview auth.
-4. Review leaked-password protection as a separate Auth change.
-5. Resolve issue #27 only through a separate legacy-site owner decision.
-6. Verify branch protection and required checks.
-7. Complete wider reference-integrity work; keep PR #76 and migration 36 separate until reviewed.
-8. Implement the approved administrator model and browser result workflows.
-9. Add authenticated production browser smoke journeys without mutating retained real predictions unexpectedly.
-10. Complete manual screen-reader review and full tournament dress rehearsal.
-11. Replace provisional tournament data only from authoritative UEFA sources when available.
+1. Finish and merge the contract-36 control-plane documentation repair.
+2. Inspect and upgrade development Supabase to contract 36 with preserved evidence.
+3. Restore exact-head contract-36 deploy-preview smoke on the current Netlify project.
+4. Prepare but do not automatically execute the final-target contract-36 upgrade.
+5. Continue the server-authorized administrator/result-management workstream.
+6. Repair authoritative knockout-winner consumption in Match Centre and H2H.
+7. Implement real R16 population and actual tie decisions.
+8. Implement automatic valid-entry submission.
+9. Complete branch protection, Auth/CAPTCHA, monitoring ownership, accessibility and full rehearsal work.
+10. Replace provisional tournament data only from authoritative UEFA sources when available.
 
 ## Hard prohibitions
 
 - No direct push to `main`.
-- No production database mutation, remote reset or unreviewed repair SQL.
-- No production-to-development fallback.
+- No final-target database mutation, remote reset or unreviewed repair SQL.
+- No final-target-to-development fallback.
 - No direct-table fallback around protected RPCs.
 - No Netlify context crossing or prebuild-guard bypass.
 - No contract change before the target database is migrated and verified.

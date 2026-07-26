@@ -11,23 +11,22 @@
 - [x] Preserve environment isolation between development and final-target Supabase.
 - [x] Record recovery and contract-35 promotion evidence.
 
-The environment named `production` is the final-target environment. It is not supporting a live tournament, but its configuration and retained verification data remain controlled.
+The environment named `production` is the controlled final-target environment. It is not supporting a live tournament, but its configuration and retained verification data remain protected.
 
-## 1. Contract-36 repository reconciliation — current hard gate
+## 1. Contract-36 repository reconciliation — complete
 
 - [x] Merge migration 36 through PR #76.
 - [x] Update `config/deployment-contract.json` to 36.
-- [x] Identify and correct authority documents that described migration 36 as draft.
 - [x] Confirm application CI passed on the final PR #76 head.
 - [x] Confirm disposable migration rebuild, database lint, pgTAP and parity passed.
 - [x] Confirm Browser E2E passed.
 - [x] Audit migration 36 against issue #72 acceptance criteria.
-- [x] Record the DATA-003 acceptance reassessment.
-- [ ] Merge PR #101.
-- [ ] Close issue #72 as repository implementation complete after PR #101 merges.
-- [ ] Create or retain only a precise `DATA-006` finding if a concrete uncovered relationship is demonstrated.
+- [x] Merge PR #101.
+- [x] Close issue #72 as repository implementation complete.
+- [x] Resolve broad `DATA-006` wording unless a concrete uncovered relationship is demonstrated.
+- [x] Reconcile `AGENTS.md`, `CLAUDE.md`, current status, risk, feature baseline, TODO and roadmap with the contract-36 repository state.
 
-## 2. Development Supabase contract-36 upgrade
+## 2. Development Supabase contract-36 upgrade — current hard gate
 
 - [ ] Inspect development migration history read-only.
 - [ ] Inspect the six protected relationship areas for incompatible existing data.
@@ -42,9 +41,19 @@ The environment named `production` is the final-target environment. It is not su
 - [ ] Update preview/branch/dev deployment contract declarations to 36 only after database verification.
 - [ ] Record dated development evidence.
 
-## 3. Final-target contract-36 preparation
+## 3. Restore exact-head contract-36 deploy-preview smoke
 
-- [ ] Leave final-target Supabase and Netlify at contract 35 until development evidence is accepted.
+- [ ] Keep the preview target on the current `euro28predictor` Netlify project.
+- [ ] Do not use `euro28-predictor-dev.netlify.app`; it is the protected legacy World Cup deployment.
+- [ ] Ensure Netlify publishes a resolvable exact-head preview for pull requests.
+- [ ] Update release-identity expectations from contract 35 to contract 36 only after development verification.
+- [ ] Require development Supabase project `iouzoutneyjpugbbtdem` in preview metadata and browser requests.
+- [ ] Run HTTP smoke and browser smoke against the exact PR head.
+- [ ] Preserve fail-closed behaviour when the preview is missing, stale or points at the wrong environment.
+
+## 4. Final-target contract-36 preparation
+
+- [ ] Leave final-target Supabase and Netlify at contract 35 until development and preview evidence are accepted.
 - [ ] Inspect final-target migration/data state read-only.
 - [ ] Prepare recoverable pre-change evidence.
 - [ ] Require a dry run showing only migration 36.
@@ -56,7 +65,7 @@ The environment named `production` is the final-target environment. It is not su
 - [ ] Verify release identity, headers, routes, assets and environment isolation.
 - [ ] Record dated final-target reconciliation.
 
-## 4. Operations, monitoring and environment controls
+## 5. Operations, monitoring and environment controls
 
 - [x] Add provider-neutral client-error capture and release identity.
 - [x] Integrate Sentry React SDK with final-target reporting disabled.
@@ -68,18 +77,29 @@ The environment named `production` is the final-target environment. It is not su
 - [ ] Resolve Turnstile/development CAPTCHA pairing through issue #28.
 - [ ] Confirm or retire the legacy Netlify environment through issue #27.
 
-## 5. Result administration — next major functional workstream
+## 6. Result administration — next major functional workstream
 
-- [ ] Define a version-controlled administrator authorization model.
+- [ ] Define a version-controlled administrator authorization and assignment model.
 - [ ] Do not rely on a nonexistent `profiles.role` column.
-- [ ] Add server-side browser-safe administration for confirm, correct and clear.
+- [ ] Treat draft PR #102 as a read-only UI/access foundation only.
+- [ ] Remove any preview workflow dependency on the legacy Netlify site before PR #102 can merge.
+- [ ] Add independently authorized browser-safe functions for confirm, correct and clear.
 - [ ] Require reasons for correction and clearing.
 - [ ] Expose revision history safely.
 - [ ] Cover regulation, extra time, penalties and correction propagation.
-- [ ] Keep authoritative result RPCs unavailable to ordinary users.
+- [ ] Keep authoritative result functions unavailable to ordinary users.
 - [ ] Add desktop/mobile Browser E2E for result administration.
+- [ ] Record hosted admin assignment and access evidence before enabling writes.
 
-## 6. Tournament integrity and progression
+## 7. Authoritative knockout result consumption
+
+- [ ] Extend the tournament frontend read model with result state, result method, authoritative winner, 90-minute score, 120-minute score and penalties.
+- [ ] Make Match Centre use the authoritative winner rather than infer it from the public score.
+- [ ] Make H2H elimination and bracket comparisons use the authoritative winner.
+- [ ] Cover regulation, extra-time, penalty, corrected, cleared and unresolved knockout results.
+- [ ] Ensure a tied public score decided on penalties never produces `actualWinner = null` after confirmation.
+
+## 8. Tournament integrity and progression
 
 - [ ] Implement transactional real R16 population from confirmed group standings.
 - [ ] Use canonical group and best-third rules.
@@ -88,7 +108,7 @@ The environment named `production` is the final-target environment. It is not su
 - [ ] Never overwrite participants beneath confirmed downstream results.
 - [ ] Add correction and replay coverage.
 
-## 7. Submission automation
+## 9. Submission automation
 
 - [ ] Implement automatic valid-entry submission at lock.
 - [ ] Record manual versus automatic submission.
@@ -96,8 +116,9 @@ The environment named `production` is the final-target environment. It is not su
 - [ ] Add reminders only after SMTP/Auth verification.
 - [ ] Test the exact lock boundary.
 - [ ] Replace provisional lock time when official kickoff is confirmed.
+- [ ] Until implementation lands, label auto-submit in `docs/scoring-rules.md` as an approved target rule rather than current behaviour.
 
-## 8. Core experience follow-ups
+## 10. Core experience follow-ups
 
 - [ ] Complete other-player profile states and richer H2H.
 - [ ] Add rank graph and bracket-health-versus-real.
@@ -107,7 +128,7 @@ The environment named `production` is the final-target environment. It is not su
 - [ ] Complete unavailable/error/empty-state audit.
 - [ ] Complete phone interaction and design-system consistency passes.
 
-## 9. Accessibility, typing and performance
+## 11. Accessibility, typing and performance
 
 - [ ] Complete manual screen-reader review.
 - [ ] Generate Supabase database types.
@@ -117,7 +138,7 @@ The environment named `production` is the final-target environment. It is not su
 - [ ] Profile full-tournament scoring at the intended user cap.
 - [ ] Select licence, changelog and release-version policy.
 
-## 10. Bonus games — after core gates
+## 12. Bonus games — after core gates
 
 - [ ] Build optional competition framework with isolated scoring and league boundaries.
 - [ ] Complete KO Predictor rules, design, build and tests.
@@ -126,7 +147,7 @@ The environment named `production` is the final-target environment. It is not su
 
 Bonus games remain separate from the Original Predictor. Their appearance in roadmap or design files is not implementation evidence.
 
-## 11. Official data and final readiness
+## 13. Official data and final readiness
 
 - [ ] Reverify official Euro 2028 regulations and best-third allocation.
 - [ ] Load official qualifiers and draw assignments safely.
