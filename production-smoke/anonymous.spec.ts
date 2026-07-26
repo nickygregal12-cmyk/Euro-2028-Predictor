@@ -7,6 +7,9 @@ const expectedSupabaseRef =
 const expectedEnvironment =
   process.env.EURO28_SMOKE_EXPECTED_CONTEXT ?? 'production'
 const expectedCommit = process.env.EURO28_SMOKE_EXPECTED_COMMIT ?? ''
+const expectedContract = parseExpectedContract(
+  process.env.EURO28_SMOKE_EXPECTED_CONTRACT,
+)
 
 const expectedSupabaseHost = `${expectedSupabaseRef}.supabase.co`
 const developmentSupabaseHost = `${developmentSupabaseRef}.supabase.co`
@@ -48,8 +51,8 @@ test('anonymous production routes and environment isolation', async ({
   const release = (await releaseResponse.json()) as Record<string, unknown>
   expect(release).toMatchObject({
     environment: expectedEnvironment,
-    applicationContract: 35,
-    hostedContract: 35,
+    applicationContract: expectedContract,
+    hostedContract: expectedContract,
     supabaseProjectRef: expectedSupabaseRef,
   })
 
@@ -101,4 +104,21 @@ async function assertSignedOutGate(page: Page, pathname: string) {
   await page.goto(pathname, { waitUntil: 'domcontentloaded' })
   await expect(page).toHaveURL('/auth/login')
   await expect(page).toHaveTitle('Log in | Euro 2028 Predictor')
+}
+
+function parseExpectedContract(value: string | undefined): number {
+  if (!value || !/^[1-9]\d*$/.test(value)) {
+    throw new Error(
+      'EURO28_SMOKE_EXPECTED_CONTRACT must be an explicit positive integer.',
+    )
+  }
+
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(
+      'EURO28_SMOKE_EXPECTED_CONTRACT is outside the safe integer range.',
+    )
+  }
+
+  return parsed
 }
