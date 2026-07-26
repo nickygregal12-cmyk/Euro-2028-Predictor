@@ -30,6 +30,9 @@ export type { ToastProps, ToastVariant } from './Toast'
 export { Modal, ConfirmModal } from './Modal'
 export type { ModalProps, ConfirmModalProps } from './Modal'
 
+export { ChoiceSheet } from './ChoiceSheet'
+export type { ChoiceSheetProps, ChoiceSheetOption } from './ChoiceSheet'
+
 export { ProgressBar } from './ProgressBar'
 export type { ProgressBarProps } from './ProgressBar'
 
