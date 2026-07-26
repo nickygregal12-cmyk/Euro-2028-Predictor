@@ -28,7 +28,7 @@ export function matchCentreLocation(
   returnTo: MatchCentreReturnPath,
 ): MatchCentreLocation {
   return {
-    pathname: `/matches/${safeMatchRef(matchRef)}`,
+    pathname: `/match/${safeMatchRef(matchRef)}`,
     state: {
       returnTo: {
         pathname: returnTo.pathname || '/',
