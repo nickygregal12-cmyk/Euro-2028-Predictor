@@ -8,7 +8,7 @@ export function RequireAdmin() {
 
   useEffect(() => {
     let active = true
-    hasTournamentAdminAccess()
+    hasTournamentAdminAccess('results')
       .then((value) => {
         if (active) setAllowed(value)
       })
