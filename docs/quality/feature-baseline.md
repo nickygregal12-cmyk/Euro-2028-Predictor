@@ -124,7 +124,7 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 | `FEAT-011` | Consolidated into `SAFE-045` |
 | `FEAT-018`, `FEAT-019` | Consolidated into `FEAT-018` |
 | `FEAT-021` | Consolidated into `SAFE-006` |
-| `FEAT-022`–`FEAT-026` | Preserved scoring capabilities under `SAFE-034` |
+| `FEAT-022`, `FEAT-023`, `FEAT-024`, `FEAT-025`, `FEAT-026` | Preserved scoring capabilities under `SAFE-034` |
 | `FEAT-028`, `FEAT-030` | Consolidated into `FEAT-028` |
 | `FEAT-032`, `FEAT-033` | Consolidated into `FEAT-032` |
 | `FEAT-034` | Home dashboard preserved |
@@ -135,19 +135,19 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 | `PLAN-005` | Planned bonus hub |
 | `PLAN-006` | Planned shared KO store |
 | `PLAN-007` | Planned typed competition entries |
-| `SAFE-001`–`SAFE-004` | Domain, splitting, service and RLS safeguards preserved |
+| `SAFE-001`, `SAFE-002`, `SAFE-003`, `SAFE-004` | Domain, splitting, service and RLS safeguards preserved |
 | `SAFE-005` | Search-path safeguard; exact allowlists use `SAFE-053` |
-| `SAFE-006`–`SAFE-010`, `SAFE-012`, `SAFE-013`, `SAFE-025`–`SAFE-027`, `SAFE-029`, `SAFE-031`–`SAFE-033` | Retained primary rows |
+| `SAFE-006`, `SAFE-007`, `SAFE-008`, `SAFE-009`, `SAFE-010`, `SAFE-012`, `SAFE-013`, `SAFE-025`, `SAFE-026`, `SAFE-027`, `SAFE-029`, `SAFE-031`, `SAFE-032`, `SAFE-033` | Retained primary rows |
 | `SAFE-011` | Development-autologin safeguard preserved |
-| `SAFE-014`–`SAFE-017` | Security/privacy/migration safeguards preserved |
+| `SAFE-014`, `SAFE-015`, `SAFE-016`, `SAFE-017` | Security/privacy/migration safeguards preserved |
 | `SAFE-018` | Optimistic-save safeguard; strengthened by `SAFE-046`–`SAFE-048` |
-| `SAFE-019`–`SAFE-024` | Accessibility/state/refresh/type safeguards preserved |
+| `SAFE-019`, `SAFE-020`, `SAFE-021`, `SAFE-022`, `SAFE-023`, `SAFE-024` | Accessibility/state/refresh/type safeguards preserved |
 | `SAFE-028`, `SAFE-030` | Mobile and secret-scan safeguards preserved |
 | `SAFE-034` | Deterministic scoring safeguard preserved |
 | `SAFE-035` | Consolidated private-league lifecycle; confirmations remain mandatory |
 | `SAFE-036` | Competition separation preserved |
-| `SAFE-037`–`SAFE-040` | Entry/docs/safe-error/rate-limit safeguards preserved |
-| `SAFE-041`–`SAFE-044` | Runtime/navigation/score-bound/release safeguards preserved |
+| `SAFE-037`, `SAFE-038`, `SAFE-039`, `SAFE-040` | Entry/docs/safe-error/rate-limit safeguards preserved |
+| `SAFE-041`, `SAFE-042`, `SAFE-043`, `SAFE-044` | Runtime/navigation/score-bound/release safeguards preserved |
 
 ## New identifier register
 
