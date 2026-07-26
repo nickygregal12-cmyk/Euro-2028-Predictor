@@ -6,19 +6,19 @@ This is the live source of truth for repository migration count, hosted semantic
 
 | Environment | Repository/deployment contract | Hosted migration state | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | 36 | 36 authoritative migration files through `20260725010000` | **Contract 36 is repository authority** |
+| Repository `main` | 36 | 36 authoritative migration files through `20260725010000` | **Contract 36 repository-verified** |
 | Development Supabase `iouzoutneyjpugbbtdem` | last verified deployment declaration: 35 | last verified at exactly migrations 1–35 | **Migration 36 pending hosted verification/application** |
 | Final-target Supabase `vkfnsqdyhvtwyqkisxhk` | last verified Netlify declaration: 35 | last verified at exactly migrations 1–35 | **Migration 36 not yet approved or applied** |
 
-The Netlify context called `production` and the Supabase project historically called production are the final-target environment. They do not currently support a live tournament and are not serving real competition operations. They must still remain isolated and controlled because they preserve the intended final schema, configuration and retained test entry.
+The Netlify context called `production` and the Supabase project historically called production are the final-target environment. They do not currently support a live tournament and are not serving real competition operations. They must still remain isolated and controlled because they preserve the intended final schema, configuration and retained verification data.
 
-PR #76 merged migration 36 and changed `config/deployment-contract.json` to contract 36. Therefore, migration 36 is no longer a draft or future repository migration. The two hosted databases remain at their last verified contract-35 evidence point until separately inspected and deliberately upgraded.
+PR #76 merged migration 36 and changed `config/deployment-contract.json` to contract 36. Its final head passed CI run 366, Database parity run 112 and Browser E2E run 103. Therefore, migration 36 is repository-authoritative and verified in the disposable/test environment. The two hosted databases remain at their last verified contract-35 evidence point until separately inspected and deliberately upgraded.
 
 ## Contract-36 migration
 
 | # | Migration | Purpose | Repository | Development | Final target |
 | ---: | --- | --- | --- | --- | --- |
-| 36 | `20260725010000_authoritative_reference_integrity.sql` | Fail-closed tournament/reference scope enforcement for group-team assignments, match references, players, result revisions, Golden Boot selection and score-event references | Merged | Pending verification/application | Pending later approval |
+| 36 | `20260725010000_authoritative_reference_integrity.sql` | Fail-closed tournament/reference scope enforcement for group-team assignments, match references, players, result revisions, Golden Boot selection and score-event references | Merged and workflow-verified | Pending verification/application | Pending later approval |
 
 Migration 36:
 
@@ -44,15 +44,14 @@ These facts remain valid historical evidence. They must not be rewritten as cont
 
 ## Required development upgrade sequence
 
-1. Confirm repository CI and database-parity results for the merged migration-36 commit.
-2. Inspect development migration history and relevant rows read-only.
-3. Run a development dry run and require migration 36 to be the only pending migration.
-4. Confirm migration preflight queries find no incompatible existing data.
-5. Apply migration 36 to development only.
-6. Verify the migration-history row, six trigger functions, six triggers, privileges and same-tournament behaviour.
-7. Run database tests and application/browser regression evidence against development.
-8. Update development deployment declarations to 36 only when the hosted database is confirmed at 36.
-9. Record dated evidence.
+1. Inspect development migration history and relevant rows read-only.
+2. Run a development dry run and require migration 36 to be the only pending migration.
+3. Confirm migration preflight queries find no incompatible existing data.
+4. Apply migration 36 to development only.
+5. Verify the migration-history row, six trigger functions, six triggers, privileges and same-tournament behaviour.
+6. Run application/browser regression evidence against development.
+7. Update development deployment declarations to 36 only when the hosted database is confirmed at 36.
+8. Record dated evidence.
 
 ## Required final-target upgrade sequence
 
@@ -75,6 +74,7 @@ Do not mark migration 36 applied before its SQL executes. Do not repair migratio
 
 - `docs/quality/current-status.md`
 - `docs/quality/reconciliations/2026-07-26-contract-36-repository-reconciliation.md`
+- `docs/quality/investigations/2026-07-26-data-003-acceptance-reassessment.md`
 - `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`
 - `docs/ops-hosted-migration-rollout.md`
 - `config/deployment-contract.json`
