@@ -33,12 +33,14 @@ const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m)
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
 const NotFoundPage = lazy(() => import('./features/notfound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
-// The design-system gallery is DEV-ONLY. Referencing the dynamic import inside a
-// statically-false `import.meta.env.DEV` branch means the production build dead-
-// code-eliminates it entirely — the chunk is never emitted and the route never
-// registered. In dev it lazy-loads exactly as before.
+// Development-only previews are referenced inside statically-false
+// import.meta.env.DEV branches so production builds remove both routes and
+// chunks entirely.
 const ComponentsPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/ComponentsPreview').then((m) => ({ default: m.ComponentsPreview })))
+  : null
+const MatchCentreScenarioPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/MatchCentreScenarioPreview').then((m) => ({ default: m.MatchCentreScenarioPreview })))
   : null
 
 export default function App() {
@@ -48,10 +50,12 @@ export default function App() {
         <RouteAccessibility />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            {/* Dev-only design-system gallery, outside the app shell + providers.
-                Absent from production builds entirely (see above). */}
+            {/* Dev-only previews, outside the app shell + providers. */}
             {import.meta.env.DEV && ComponentsPreview ? (
               <Route path="/dev/components" element={<ComponentsPreview />} />
+            ) : null}
+            {import.meta.env.DEV && MatchCentreScenarioPreview ? (
+              <Route path="/dev/match-centre/:scenario" element={<MatchCentreScenarioPreview />} />
             ) : null}
 
             {/* AuthProvider wraps both the auth screens and the app so they share
