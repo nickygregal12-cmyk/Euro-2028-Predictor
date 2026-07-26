@@ -1,5 +1,5 @@
 import { EmptyState } from '../../design-system'
-import { UserIcon } from '../../design-system/icons'
+import { InfoIcon } from '../../design-system/icons'
 import s from '../shared.module.css'
 import a from './admin.module.css'
 
@@ -13,7 +13,7 @@ export function AdminUsersPage() {
       </div>
 
       <EmptyState
-        icon={<UserIcon size={22} />}
+        icon={<InfoIcon size={22} />}
         title="User controls are not enabled yet"
         description="Search, moderation, suspension and league membership tools will be added only after their server-side permissions and audit trail are in place."
       />
