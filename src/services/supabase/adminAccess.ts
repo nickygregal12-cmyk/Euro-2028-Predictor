@@ -4,6 +4,8 @@ import {
   type AdminCapability,
 } from './adminCapabilities'
 
+export type { AdminCapability } from './adminCapabilities'
+
 export async function hasTournamentAdminAccess(
   capability: AdminCapability = 'results',
 ): Promise<boolean> {
