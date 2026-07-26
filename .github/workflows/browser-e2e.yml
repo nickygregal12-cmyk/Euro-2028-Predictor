@@ -146,8 +146,8 @@ jobs:
           const valid =
             release.environment === 'deploy-preview' &&
             release.commit === process.env.EXPECTED_COMMIT &&
-            release.applicationContract === 35 &&
-            release.hostedContract === 35 &&
+            release.applicationContract === 36 &&
+            release.hostedContract === 36 &&
             release.supabaseProjectRef === process.env.EXPECTED_SUPABASE_REF
 
           process.exit(valid ? 0 : 1)
