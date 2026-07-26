@@ -1,12 +1,15 @@
-import { useMemo } from 'react'
-import { EmptyState } from '../../design-system'
+import { useMemo, useState } from 'react'
+import { Button, EmptyState } from '../../design-system'
 import { CalendarIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
+import type { Match } from '../../services/supabase/tournamentData'
+import { ResultEntryPanel } from './ResultEntryPanel'
 import s from '../shared.module.css'
 import a from './admin.module.css'
 
 export function AdminResultsPage() {
   const tournament = useTournamentData()
+  const [selected, setSelected] = useState<Match | null>(null)
 
   const summary = useMemo(() => {
     if (tournament.status !== 'ready') return null
@@ -14,11 +17,13 @@ export function AdminResultsPage() {
     const matches = tournament.data.matches
     const confirmed = matches.filter((match) => match.homeScore !== null && match.awayScore !== null)
     const awaiting = matches.filter((match) => match.homeScore === null || match.awayScore === null)
+    const teamNames = new Map(tournament.data.teams.map((team) => [team.id, team.name]))
 
     return {
       total: matches.length,
       confirmed: confirmed.length,
       awaiting,
+      teamNames,
     }
   }, [tournament])
 
@@ -32,12 +37,15 @@ export function AdminResultsPage() {
 
   if (!summary) return <div className={s.page} />
 
+  const teamName = (teamId: string | null, source: string) =>
+    (teamId ? summary.teamNames.get(teamId) : null) ?? source ?? 'TBC'
+
   return (
     <div className={s.page}>
       <div className={s.header}>
         <span className={s.eyebrow}>Admin control room</span>
         <h1 className={s.title}>Results Centre</h1>
-        <p className={a.intro}>Review the authoritative fixture queue. Confirm, correct and clear actions remain locked until their audited database RPCs are implemented.</p>
+        <p className={a.intro}>Review and validate match results. Saving remains unavailable in this build.</p>
       </div>
 
       <div className={a.summaryGrid} aria-label="Result status summary">
@@ -55,6 +63,15 @@ export function AdminResultsPage() {
         </div>
       </div>
 
+      {selected ? (
+        <ResultEntryPanel
+          match={selected}
+          homeName={teamName(selected.homeTeamId, selected.homeSource)}
+          awayName={teamName(selected.awayTeamId, selected.awaySource)}
+          onClose={() => setSelected(null)}
+        />
+      ) : null}
+
       <section className={s.card} aria-labelledby="awaiting-results-heading">
         <div className={a.sectionHeading}>
           <div>
@@ -71,10 +88,10 @@ export function AdminResultsPage() {
             {summary.awaiting.slice(0, 12).map((match) => (
               <div key={match.id} className={a.fixtureRow}>
                 <div>
-                  <strong>{match.matchRef}</strong>
-                  <span className={a.fixtureMeta}>{match.round === 'group' ? 'Group stage' : match.round.toUpperCase()}</span>
+                  <strong>{teamName(match.homeTeamId, match.homeSource)} vs {teamName(match.awayTeamId, match.awaySource)}</strong>
+                  <span className={a.fixtureMeta}>{match.matchRef} · {match.round === 'group' ? 'Group stage' : match.round.toUpperCase()}</span>
                 </div>
-                <span className={a.status}>Awaiting result</span>
+                <Button variant="secondary" onClick={() => setSelected(match)}>Enter result</Button>
               </div>
             ))}
           </div>
