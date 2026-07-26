@@ -37,7 +37,7 @@ export function AdminResultsPage() {
       <div className={s.header}>
         <span className={s.eyebrow}>Admin control room</span>
         <h1 className={s.title}>Results Centre</h1>
-        <p className={a.intro}>Review the authoritative fixture queue. Result editing remains locked until the server-side administrator contract is deployed.</p>
+        <p className={a.intro}>Review the authoritative fixture queue. Confirm, correct and clear actions remain locked until their audited database RPCs are implemented.</p>
       </div>
 
       <div className={a.summaryGrid} aria-label="Result status summary">
