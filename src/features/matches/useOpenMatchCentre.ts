@@ -13,13 +13,16 @@ export function useOpenMatchCentre() {
 
   return useCallback(
     (matchRef: string) => {
-      navigate(
-        matchCentreLocation(matchRef, {
-          pathname: location.pathname,
-          search: location.search,
-          hash: location.hash,
-        }),
-      )
+      const destination = matchCentreLocation(matchRef, {
+        pathname: location.pathname,
+        search: location.search,
+        hash: location.hash,
+      })
+
+      // React Router accepts navigation state through NavigateOptions rather
+      // than as part of the `To` object. Keeping that boundary explicit ensures
+      // the Match Centre back action can restore the originating route.
+      navigate(destination.pathname, { state: destination.state })
     },
     [location.hash, location.pathname, location.search, navigate],
   )
