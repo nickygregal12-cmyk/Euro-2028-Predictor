@@ -2,6 +2,7 @@
 
 **Latest development reconciliation:** [`reconciliations/2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md)  
 **Last verified final-target baseline:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
+**Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
 **Current hosted state:** [`current-status.md`](current-status.md)  
 **Identifier repair:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
 
@@ -86,11 +87,11 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 | `FEAT-039` | Browser result administration | Not present on `main` | Draft PR #102 is foundation only |
 | `SAFE-032` | Administrator bootstrap/authorization | Not present | Hosted assignment model absent |
 | `SAFE-012` | Fake clock/simulation isolation | Partial development capability | Full rehearsal open |
-| `SAFE-025` | Application CI | Implemented | Build, lint, tests, audit; run 582 passed for PR #105 |
+| `SAFE-025` | Application CI | Implemented | Build, lint, tests, audit; run 584 passed for PR #105 |
 | `SAFE-026` | Disposable database integration CI | Implemented | Full 36 rebuild, lint, pgTAP and parity |
 | `SAFE-055` | Provider submission/clear regression tests | Implemented | Not all final-target browser evidence |
-| `SAFE-027` | Browser E2E and hosted preview smoke | Implemented for disposable and development preview | Run 271 passed authenticated, auth recovery, exact-head HTTP and anonymous browser smoke |
-| `FEAT-042` | Monitoring and alerting | Partial repository capability | Capture/identity/smoke exist; final delivery/ownership/retention absent |
+| `SAFE-027` | Browser E2E and hosted preview smoke | Implemented for disposable and development preview | Run 273 passed authenticated, auth recovery, exact-head HTTP and anonymous browser smoke |
+| `FEAT-042` | Monitoring and alerting | Partial hosted capability | Privacy-safe production Sentry delivery is verified; retention, server-side/IP scrubbing confirmation, backup recipient, escalation and rollback rehearsal remain |
 | `SAFE-033` | Verified backup/restore | Implemented and accepted | Encrypted artifact and clean restore proof |
 | `SAFE-031` | Safe application rollback | Procedure implemented; hosted rehearsal pending | Final-target rollback rehearsal remains |
 | `SAFE-029` | Automatic final-target deploy | Implemented but contract-gated | Retained production stays 35; contract-36 main is correctly blocked until final promotion |
@@ -175,7 +176,7 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 
 Current `main` has authenticated Original Predictor, league, H2H, match, profile and auth routes plus catch-all. Development-only routes remain gated. `/admin` exists only in draft PR #102.
 
-Development is verified with 36 canonical migrations. Final target retains 35 migrations and its previous evidence point: one submitted entry, 36 predictions, two tie decisions, eight progression rows, 24 derived positions and no invented result/revision/rank data.
+Development is verified with 36 canonical migrations. Final target retains 35 migrations and its prior dated evidence point; current final-target facts require fresh read-only verification before migration 36 approval.
 
 ## Safeguard regression rules
 
@@ -190,6 +191,7 @@ Do not silently:
 - cross Supabase/Netlify environments or use the legacy World Cup site;
 - deploy against an unverified database contract;
 - omit target contract from smoke commands;
+- disable or misdescribe approved Sentry production delivery;
 - expose sensitive observability data;
 - change scoring without rules/TypeScript/SQL/tests;
 - describe planned auto-submit or roadmap/gallery content as implemented;

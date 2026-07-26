@@ -15,6 +15,7 @@
 | Final-target Supabase | `vkfnsqdyhvtwyqkisxhk` — last verified contract 35 |
 | Final-target Netlify declaration | contract 35 |
 | Retained final-target evidence | [`2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md) |
+| Sentry production delivery | enabled and privacy-safe trace delivery verified |
 
 The environment historically named production is the intended final target. It is not supporting a live Euro 2028 tournament, but its configuration and retained verification data remain controlled.
 
@@ -25,9 +26,10 @@ The environment historically named production is the intended final target. It i
 | Repository development | **Safe to continue at contract 36.** |
 | Development database | **Verified at contract 36.** Exact history, guards, privileges and rollback-only behaviour checks passed. |
 | Deploy-preview gate | **Restored.** Exact-head 36/36 preview, HTTP smoke and anonymous browser smoke passed on the current Netlify project. |
-| Disposable authenticated browser | **Passed.** Browser E2E run 271 completed both authenticated and signup/recovery jobs. |
-| Standard CI | **Passed.** CI run 582 completed build, lint, Vitest and dependency audit. |
+| Disposable authenticated browser | **Passed.** Browser E2E run 273 completed both authenticated and preview-smoke jobs on the final PR #105 head. |
+| Standard CI | **Passed.** CI run 584 completed build, lint, Vitest and dependency audit on the final PR #105 head. |
 | Final-target database/application | **Retained compatible contract-35 pair.** No final-target change was made. |
+| Production observability | **Delivery verified; operating policy partial.** Sentry error/trace delivery is enabled through the approved privacy boundary; retention, backup recipient, alert escalation and rollback rehearsal remain. |
 | Tournament launch readiness | **Not ready.** Administration, result consumption, official data, operations ownership, accessibility and rehearsal remain incomplete. |
 
 ## Development contract-36 evidence
@@ -71,7 +73,7 @@ PR #105 uses:
 - security-header, SPA-route, asset and Supabase-isolation HTTP checks;
 - anonymous login/signup/reset, signed-out gate and not-found browser checks.
 
-Both smoke implementations now require an explicit `EURO28_SMOKE_EXPECTED_CONTRACT`. Preview workflows pass 36; production smoke passes 35 while the final target is intentionally retained.
+Both smoke implementations require an explicit `EURO28_SMOKE_EXPECTED_CONTRACT`. Preview workflows pass 36; production smoke passes 35 while the final target is intentionally retained.
 
 Because contract-36 `main` cannot deploy to a contract-35 final-target database, the current production smoke verifies the existing compatible 35/35 release rather than waiting for an intentionally blocked exact `main` commit. Exact-head production verification must return during final-target promotion.
 
@@ -79,7 +81,15 @@ The legacy `euro28-predictor-dev.netlify.app` site was not used or changed.
 
 ## Operational assurance
 
-Provider-neutral capture, release identity, Sentry SDK integration and read-only smoke tooling exist. External final-target reporting remains disabled. Alert ownership, retention/privacy, delivery and rehearsal remain open.
+Provider-neutral capture, release identity, the official Sentry React SDK and read-only smoke tooling are implemented. Production uses a build-scoped public DSN with `VITE_SENTRY_ENABLED=true`; production trace delivery was manually verified through the approved privacy boundary. Replay, logs, profiling, automatic user context, breadcrumbs, fetch/XHR tracing, trace propagation and source-map upload remain disabled.
+
+Open observability controls are:
+
+- actual Sentry retention setting;
+- confirmation of server-side/IP scrubbing settings;
+- named backup alert recipient and escalation path;
+- retained push-triggered smoke evidence where accessible;
+- owner-approved Netlify rollback promotion rehearsal.
 
 Supabase advisor observations remain separate work:
 
@@ -103,7 +113,8 @@ Implemented repository/development foundations include:
 - atomic bracket persistence and version-safe score clearing;
 - exact function allowlists;
 - contract-36 authoritative reference guards;
-- exact-head development preview assurance.
+- exact-head development preview assurance;
+- privacy-safe Sentry production delivery.
 
 Still partial/planned:
 
@@ -115,7 +126,7 @@ Still partial/planned:
 - other-player profile and richer H2H;
 - post-lock trends and bonus games;
 - official tournament data;
-- full accessibility, operations and tournament rehearsal.
+- monitoring policy completion, full accessibility and tournament rehearsal.
 
 ## Current finding positions
 
@@ -125,7 +136,8 @@ Still partial/planned:
 - `TEST-001` — hosted development migration and preview-smoke gaps are closed; result admin, penalty-winner UI, final-target controlled mutation and screen-reader evidence remain.
 - `DATA-005`, `REL-007` — backend implementation exists; final-target browser mutation evidence remains.
 - `FUNC-002`, `DATA-004`, `OPS-002` — automatic submission, actual ties and administrator model remain open.
-- `OPS-003`, `AUTH-001`, `OPS-008`, `A11Y-001`, typing/performance/abuse findings remain open or partial.
+- `OPS-003` — Sentry production delivery is verified; retention, backup alert ownership, escalation and rollback rehearsal remain.
+- `AUTH-001`, `OPS-008`, `A11Y-001`, typing/performance/abuse findings remain open or partial.
 
 ## Scoring status
 
@@ -149,7 +161,7 @@ Automatic valid-entry submission is approved target behaviour but not implemente
 4. Continue server-authorized administrator/result-management work.
 5. Repair authoritative knockout-result consumption in Match Centre and H2H.
 6. Implement real R16/actual tie decisions, then automatic submission.
-7. Complete Auth/CAPTCHA, branch protection, monitoring ownership, accessibility and rehearsal.
+7. Complete Auth/CAPTCHA, branch protection, monitoring policy, accessibility and rehearsal.
 
 ## Documentation authority
 

@@ -2,6 +2,7 @@
 
 **Latest development reconciliation:** [`reconciliations/2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md)  
 **Last verified final-target reconciliation:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
+**Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
 **Recovery acceptance:** [`reconciliations/2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md)
 
 Current `main`, executable tests and verified hosted evidence override older classifications. Production is the controlled final target, not an active tournament.
@@ -38,7 +39,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DATA-005` | Score clearing lacks complete final-target browser proof | **Backend implemented; final-target evidence pending** | Controlled clear/reload/conflict/lock verification. |
 | `OPS-002` | No complete approved administrator model/control room | **Open; PR #102 is foundation only** | Authorized RPC boundaries, bootstrap/assignment evidence, audit history and Browser E2E. |
 | `TEST-001` | Critical rules lack complete end-to-end evidence | **Partial** | Result admin, authoritative penalty-winner UI, final-target controlled mutations and manual screen-reader review remain. |
-| `OPS-003` | Monitoring/recovery operations incomplete | **Partial** | Final-target delivery, ownership, retention and periodic rehearsal. |
+| `OPS-003` | Production observability operations incomplete | **Partial; delivery verified** | Sentry production trace delivery and privacy boundary are verified. Record actual retention, server-side/IP scrubbing, backup alert recipient/escalation, durable push-smoke evidence and rollback promotion rehearsal. |
 
 ## Medium
 
@@ -48,7 +49,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `OPS-008` | Legacy public development site remains | **Open — separate workstream; never use as current preview** |
 | `REL-007` | Stale device can delete a newer bracket pick | **Implementation present; final-target browser evidence pending** |
 | `DB-001` | `public.enforce_joker_rules` has mutable search path | **Open advisor finding** |
-| `DB-002` | Authenticated `SECURITY DEFINER` allowlist needs continued review | **Open assurance finding; many grants may be intentional** |
+| `DB-002` | Authenticated `SECURITY DEFINER` allowlist needs continued review | **Open assurance finding; many grants are intentional application RPCs** |
 | `DB-003` | Several foreign keys lack supporting indexes | **Open pending representative query evidence** |
 | `AUTH-002` | Leaked-password protection disabled | **Open decision** |
 | `PERF-001` | League summaries may scale serially | **Open** |
@@ -82,5 +83,6 @@ Current `main`, executable tests and verified hosted evidence override older cla
 - Do not retain broad findings after the concrete defect is resolved.
 - The retained 35/35 final-target evidence stays valid until a dated 36/36 promotion replaces it.
 - A guard blocking incompatible deployment is a working safeguard, not a defect to bypass.
+- Sentry delivery is already active; do not describe it as disabled merely because policy/ownership items remain.
 - Advisor warnings require context; do not remove indexes or revoke intended RPC access without evidence.
 - Historical audits remain immutable.

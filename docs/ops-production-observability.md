@@ -1,6 +1,6 @@
 # Production observability and application rollback
 
-**Status:** provider-neutral controls implemented; third-party final-target delivery disabled pending approval.  
+**Status:** privacy-safe Sentry production delivery verified; operating policy and rollback rehearsal remain incomplete.  
 **Repository/development contract:** 36.  
 **Retained final-target contract:** 35.  
 **Primary owner:** `nickygregal12-cmyk`.  
@@ -10,16 +10,19 @@
 
 Implemented controls:
 
-- one client-error boundary under `src/services/observability/`;
+- provider-neutral client-error boundary under `src/services/observability/`;
 - React/startup/global error capture;
 - route categories rather than full URLs;
 - credential/email/query/local-path/database-error redaction;
 - reporter failure isolation;
+- official `@sentry/react` adapter;
 - generated non-secret `/release.json`;
-- fail-closed HTTP and browser smoke;
+- fail-closed HTTP/browser smoke;
 - explicit expected contract per smoke target.
 
-No final-target external reporter is enabled. Provider, terms, retention, access, alert destination and CSP/network changes require separate approval.
+Production Netlify currently provides a build-scoped public Sentry DSN and `VITE_SENTRY_ENABLED=true`. Production page-load tracing was manually verified through the approved privacy boundary. The synthetic verification-event flag is not configured for production.
+
+Replay, logging, profiling, automatic user context, automatic breadcrumbs, fetch/XHR tracing, distributed trace propagation, resource child spans and source-map upload remain disabled.
 
 ## Release identity
 
@@ -69,7 +72,7 @@ EURO28_SMOKE_EXPECTED_CONTRACT=35 \
 npm run smoke:production:browser
 ```
 
-Defaults still require:
+Defaults require:
 
 - origin `https://euro28predictor.com`;
 - environment `production`;
@@ -118,27 +121,33 @@ Use the same variables with `npm run smoke:production:browser`. Never use final-
 
 It deliberately does not require `github.sha` while production cannot accept contract-36 `main`. During final-target promotion, change the workflow to contract 36 and restore exact-head commit enforcement in the same reviewed batch.
 
-## Alert classes
+## Sentry privacy boundary
 
-After provider approval, alert only on actionable failures:
+Allowed event fields are limited to controlled source/route category, safe release identity, redacted error details and minimum Sentry processing metadata.
 
-1. origin unavailable/unexpected status;
-2. startup configuration failure;
-3. route-affecting render failure;
-4. repeated uncaught errors above threshold;
-5. auth-route load failure;
-6. wrong release/contract/Supabase identity;
-7. failed final-target deployment.
+Sentry must not receive:
 
-Alerts never trigger automatic migration, repair, reset or environment switch.
+- user identity, email address or IP address;
+- full request URLs, query strings or fragments;
+- cookies, authorization headers, access/refresh tokens;
+- prediction, bracket, league, result or Auth payloads;
+- raw PostgreSQL/PostgREST detail;
+- DOM interaction history or Replay data.
 
-## Privacy and retention
+`beforeSend` drops errors not marked as controlled Euro 2028 events. Transaction scrubbing removes user/request/breadcrumb data, replaces paths with route categories and removes child spans.
 
-Allowed fields: generated event ID/time, controlled source/route category, safe release identity and redacted error/component stack.
+## Remaining observability policy
 
-Prohibited: tokens/passwords/cookies/authorization/private keys; email/profile data; raw prediction/bracket/league/result payloads; connection strings; detailed database errors; full URLs with query/fragment; backup/Auth records.
+Production delivery is not the remaining gap. Complete these controls:
 
-Provider enablement must record account owner, processing terms/location, retention, access list, alert recipients, deletion/export process, CSP/network changes and preview/final verification.
+1. record the actual Sentry retention setting;
+2. confirm server-side default data scrubbing and IP-address scrubbing remain enabled;
+3. name one backup alert recipient;
+4. record escalation path and response windows;
+5. retain push-triggered production-smoke conclusions where accessible;
+6. perform the owner-approved Netlify rollback promotion rehearsal.
+
+Alerts remain limited to actionable startup, availability, route-affecting error and deployment failures. No alert may automatically modify data, apply a migration, reset Supabase or switch environments.
 
 ## Application rollback decision tree
 
@@ -165,17 +174,8 @@ Run both final-target smoke commands with `EURO28_SMOKE_EXPECTED_CONTRACT=35` un
 
 Authenticated mutation checks require separate approval, a named test identity, before/after evidence and exact restoration.
 
-## Provider-enablement gate
+## Evidence
 
-Before final-target delivery:
-
-1. approve provider/account owner;
-2. approve fields/retention;
-3. configure non-production first;
-4. prove redaction and reporter-failure isolation;
-5. review CSP/network changes;
-6. verify synthetic safe alerts;
-7. approve final-target configuration separately;
-8. update current status, risk, feature baseline and reconciliation.
-
-Until then monitoring remains partial: capture, redaction, identity and smoke exist; external final-target delivery/alerts do not.
+- Sentry implementation and hosted production trace: `docs/quality/reconciliations/2026-07-26-sentry-operational-assurance.md`.
+- Contract-35 production baseline: `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`.
+- Contract-36 development/preview promotion: `docs/quality/reconciliations/2026-07-26-contract-36-development-promotion.md`.

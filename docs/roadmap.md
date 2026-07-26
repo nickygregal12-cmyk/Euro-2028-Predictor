@@ -5,9 +5,11 @@
 
 ## Current position
 
-Repository, development Supabase and all non-production Netlify contexts are verified at contract 36. The exact-head PR #105 preview passed release identity, HTTP smoke and anonymous browser smoke; CI run 582 and Browser E2E run 271 passed.
+Repository, development Supabase and all non-production Netlify contexts are verified at contract 36. The exact-head PR #105 preview passed release identity, HTTP smoke and anonymous browser smoke; CI run 584 and Browser E2E run 273 passed.
 
 The final-target Supabase and Netlify production context remain a compatible, controlled contract-35 pair. They are not supporting a live tournament and were not changed during development promotion.
+
+Privacy-safe Sentry production delivery is enabled and verified. Remaining observability work is operating policy, alert ownership and rollback rehearsal rather than provider activation.
 
 Completed foundations include:
 
@@ -19,7 +21,8 @@ Completed foundations include:
 - exact function allowlists;
 - accepted backup/restore proof;
 - contract-36 authoritative reference integrity in repository and development;
-- exact-head contract-36 preview assurance on the current Netlify project.
+- exact-head contract-36 preview assurance on the current Netlify project;
+- privacy-safe Sentry preview error and production trace delivery.
 
 ## Stage 0 — Contract-35 hosted baseline: complete
 
@@ -66,20 +69,21 @@ Current database gate:
 
 No final-target contract lift occurs merely to unblock a build.
 
-## Stage 3 — Production operations and security configuration
+## Stage 3 — Operations and security configuration
 
-1. Review/fix `enforce_joker_rules` search path.
-2. Review authenticated `SECURITY DEFINER` allowlist.
-3. Evaluate missing FK indexes using representative queries.
-4. Decide leaked-password protection.
-5. Approve monitoring retention, privacy and alert recipients.
-6. Verify non-production Sentry delivery with synthetic safe events.
-7. Enable final-target reporting only by separate review.
-8. Define critical-journey and database advisor cadence.
-9. Rehearse compatible application rollback without changing Supabase.
-10. Schedule fresh backups/off-site verification/disposable restore rehearsal.
-11. Verify branch protection and required checks.
-12. Resolve legacy environment and Turnstile/CAPTCHA decisions.
+1. Record the actual Sentry retention duration.
+2. Confirm server-side default data scrubbing and IP-address scrubbing.
+3. Name a backup alert recipient and escalation path.
+4. Retain push-triggered production-smoke conclusions where accessible.
+5. Perform the owner-approved Netlify rollback promotion rehearsal.
+6. Review/fix `enforce_joker_rules` search path.
+7. Review authenticated `SECURITY DEFINER` allowlist.
+8. Evaluate missing foreign-key indexes using representative queries.
+9. Decide leaked-password protection.
+10. Define critical-journey and database advisor cadence.
+11. Schedule fresh backups/off-site verification/disposable restore rehearsal.
+12. Verify branch protection and required checks.
+13. Resolve legacy environment and Turnstile/CAPTCHA decisions.
 
 ## Stage 4 — Original Predictor assurance gaps
 
@@ -154,7 +158,7 @@ Before public launch:
 - reverify regulations/best-third allocation;
 - verify Auth/SMTP/redirect/CAPTCHA dashboards;
 - verify runtime contexts and branch protection;
-- enable monitoring ownership;
+- complete monitoring ownership;
 - repeat recovery/rollback rehearsal;
 - run security, accessibility, performance and full-competition rehearsal;
 - remove provisional/internal public labels.
@@ -173,5 +177,6 @@ Before public launch:
 - No contract lift before database verification.
 - No current-project use of the legacy World Cup site.
 - Smoke commands declare the target contract explicitly.
+- Approved Sentry production delivery must not be silently disabled or misclassified.
 - Roadmap/gallery content is not implementation evidence.
 - Future official facts remain provisional until authoritative verification.

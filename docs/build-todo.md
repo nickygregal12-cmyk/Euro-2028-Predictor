@@ -43,7 +43,7 @@ The Netlify context named `production` is the controlled final target, not an ac
 - [x] Make smoke contract expectations explicit per target.
 - [x] Prove exact PR head, 36/36 release identity and development Supabase ref.
 - [x] Pass HTTP smoke and anonymous browser smoke.
-- [x] Pass standard CI run 582 and both Browser E2E jobs in run 271.
+- [x] Pass standard CI run 584 and both Browser E2E jobs in run 273.
 - [x] Record dated development promotion evidence.
 
 ## 4. Final-target contract-36 preparation — current database gate
@@ -66,15 +66,19 @@ The Netlify context named `production` is the controlled final target, not an ac
 ## 5. Operations, monitoring and environment controls
 
 - [x] Add provider-neutral client-error capture and release identity.
-- [x] Integrate Sentry React SDK with final-target reporting disabled.
+- [x] Integrate the official Sentry React SDK.
+- [x] Verify privacy-safe deploy-preview error delivery and production trace delivery.
+- [x] Keep Replay, logs, profiling, automatic user context, breadcrumbs, fetch/XHR tracing, trace propagation and source maps disabled.
 - [x] Add target-specific anonymous HTTP/browser smoke tooling.
+- [ ] Record the actual Sentry retention setting.
+- [ ] Confirm server-side/IP scrubbing settings.
+- [ ] Name a backup alert recipient and escalation path.
+- [ ] Retain push-triggered production-smoke evidence where accessible.
+- [ ] Perform the owner-approved Netlify rollback promotion rehearsal.
 - [ ] Fix or formally accept the mutable search path on `public.enforce_joker_rules`.
 - [ ] Review authenticated `SECURITY DEFINER` functions against the intended allowlist.
 - [ ] Review missing foreign-key indexes with representative query evidence.
 - [ ] Decide leaked-password protection.
-- [ ] Approve retention, privacy and alert recipients before final-target reporting.
-- [ ] Verify non-production reporting with synthetic non-sensitive events.
-- [ ] Rehearse a compatible static application rollback.
 - [ ] Confirm branch protection/required checks through issue #33.
 - [ ] Resolve Turnstile/development CAPTCHA through issue #28.
 - [ ] Confirm or retire the legacy environment through issue #27.
