@@ -10,8 +10,10 @@ import {
   installGlobalErrorCapture,
   reportClientError,
 } from './services/observability/clientObservability'
+import { configureSentryReporterFromEnvironment } from './services/observability/sentryReporter'
 import { initDevAuth } from './services/supabase/devAutoLogin'
 
+configureSentryReporterFromEnvironment()
 installGlobalErrorCapture()
 
 // Dev auto-login runs before the first render (docs/auth-plan.md §1). In a
