@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ClientErrorEvent } from '../src/services/observability/clientObservability'
 import {
   createSentryClientErrorReporter,
   parseSentryDsn,
+  sanitiseSentryErrorEvent,
+  sanitiseSentryTransaction,
 } from '../src/services/observability/sentryReporter'
 
 const safeEvent: ClientErrorEvent = {
@@ -28,13 +30,18 @@ const safeEvent: ClientErrorEvent = {
   },
 }
 
+afterEach(() => {
+  window.history.replaceState({}, '', '/')
+  vi.restoreAllMocks()
+})
+
 describe('Sentry DSN validation', () => {
-  it('builds an envelope endpoint from an approved cloud DSN', () => {
+  it('accepts an approved public cloud DSN', () => {
     expect(
       parseSentryDsn('https://public-key@o123.ingest.sentry.io/456'),
     ).toEqual({
-      envelopeUrl:
-        'https://o123.ingest.sentry.io/api/456/envelope/?sentry_key=public-key&sentry_version=7&sentry_client=euro28-predictor%2F1.0',
+      dsn: 'https://public-key@o123.ingest.sentry.io/456',
+      ingestOrigin: 'https://o123.ingest.sentry.io',
     })
   })
 
@@ -48,53 +55,82 @@ describe('Sentry DSN validation', () => {
   })
 })
 
-describe('Sentry client reporter', () => {
-  it('sends only the controlled pre-sanitised envelope', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-    } as Response)
-    const reporter = createSentryClientErrorReporter(
-      'https://public-key@o123.ingest.sentry.io/456',
-      fetchMock,
-    )
+describe('Sentry React SDK reporter', () => {
+  it('passes only the pre-sanitised error and controlled event to capture', () => {
+    const capture = vi.fn()
+    const reporter = createSentryClientErrorReporter(capture)
 
-    await reporter(safeEvent)
+    reporter(safeEvent)
 
-    expect(fetchMock).toHaveBeenCalledOnce()
-    const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit]
-    expect(url).toContain('o123.ingest.sentry.io/api/456/envelope/')
-    expect(options.credentials).toBe('omit')
-    expect(options.referrerPolicy).toBe('no-referrer')
-
-    const envelopeLines = String(options.body).split('\n')
-    expect(envelopeLines).toHaveLength(3)
-    const payload = JSON.parse(envelopeLines[2]) as Record<string, unknown>
-    const serialized = JSON.stringify(payload)
-
-    expect(payload).not.toHaveProperty('user')
-    expect(payload).not.toHaveProperty('request')
-    expect(payload).not.toHaveProperty('breadcrumbs')
-    expect(serialized).not.toContain('person@example.com')
-    expect(serialized).not.toContain('Bearer ')
-    expect(serialized).not.toContain('?token=')
-    expect(serialized).toContain('A safe redacted failure occurred.')
-    expect(serialized).toContain('deploy-preview')
-    expect(serialized).toContain('predictor')
+    expect(capture).toHaveBeenCalledOnce()
+    const [error, event] = capture.mock.calls[0] as [Error, ClientErrorEvent]
+    expect(error.name).toBe('Error')
+    expect(error.message).toBe('A safe redacted failure occurred.')
+    expect(error.stack).toContain('[redacted-local-path]')
+    expect(event).toBe(safeEvent)
   })
 
-  it('rejects unsuccessful provider responses for outer failure isolation', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 429,
-    } as Response)
-    const reporter = createSentryClientErrorReporter(
-      'https://public-key@o123.ingest.sentry.io/456',
-      fetchMock,
-    )
+  it('drops any SDK error event not marked as controlled', () => {
+    expect(
+      sanitiseSentryErrorEvent({
+        tags: { route_category: 'predictor' },
+      }),
+    ).toBeNull()
+  })
 
-    await expect(reporter(safeEvent)).rejects.toThrow(
-      'Sentry delivery failed with HTTP 429.',
-    )
+  it('removes unsafe SDK fields from a controlled error event', () => {
+    const event = {
+      tags: {
+        euro28_controlled_event: 'true',
+        route_category: 'predictor',
+        unsafe_tag: 'person@example.com',
+      },
+      contexts: {
+        trace: { trace_id: 'safe' },
+        euro28_release: { commit: 'abcdef' },
+        browser: { name: 'private-browser-context' },
+      },
+      user: { email: 'person@example.com' },
+      request: { url: 'https://example.com/?token=secret' },
+      breadcrumbs: [{ message: 'private interaction' }],
+      extra: {
+        redacted_component_stack: '[redacted-local-path]',
+        private_payload: 'secret',
+      },
+    }
+
+    expect(sanitiseSentryErrorEvent(event)).toBe(event)
+    expect(event).not.toHaveProperty('user')
+    expect(event).not.toHaveProperty('request')
+    expect(event).not.toHaveProperty('breadcrumbs')
+    expect(event.tags).not.toHaveProperty('unsafe_tag')
+    expect(event.contexts).not.toHaveProperty('browser')
+    expect(event.extra).not.toHaveProperty('private_payload')
+  })
+
+  it('reduces tracing to a controlled route category without child spans', () => {
+    window.history.replaceState({}, '', '/predict/groups/A?token=secret')
+    const transaction = {
+      transaction: '/predict/groups/A?token=secret',
+      spans: [{ description: 'https://example.com/?token=secret' }],
+      user: { email: 'person@example.com' },
+      request: { url: 'https://example.com/?token=secret' },
+      breadcrumbs: [{ message: 'private interaction' }],
+      contexts: {
+        trace: { trace_id: 'safe' },
+        browser: { name: 'private-browser-context' },
+      },
+      tags: { unsafe_tag: 'secret' },
+    }
+
+    expect(sanitiseSentryTransaction(transaction)).toBe(transaction)
+    expect(transaction.transaction).toBe('predictor')
+    expect(transaction.spans).toEqual([])
+    expect(transaction).not.toHaveProperty('user')
+    expect(transaction).not.toHaveProperty('request')
+    expect(transaction.contexts).toEqual({ trace: { trace_id: 'safe' } })
+    expect(transaction.tags).toMatchObject({ route_category: 'predictor' })
+    expect(JSON.stringify(transaction)).not.toContain('?token=secret')
+    expect(JSON.stringify(transaction)).not.toContain('person@example.com')
   })
 })
