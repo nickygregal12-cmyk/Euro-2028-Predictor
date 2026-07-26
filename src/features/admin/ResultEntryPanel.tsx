@@ -28,7 +28,7 @@ export function ResultEntryPanel({ match, homeName, awayName, onClose }: Props) 
   const [preview, setPreview] = useState<string | null>(null)
 
   function set<K extends keyof ResultEntryDraft>(key: K, value: ResultEntryDraft[K]) {
-    setDraft((current) => ({ ...current, [key]: value }))
+    setDraft((current) => ({ ...current, [key]: value }) as ResultEntryDraft)
     setErrors([])
     setPreview(null)
   }
