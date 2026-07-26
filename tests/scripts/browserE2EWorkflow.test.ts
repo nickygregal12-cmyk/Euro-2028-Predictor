@@ -62,7 +62,7 @@ describe('authenticated browser E2E workflow', () => {
 describe('deploy-preview browser smoke workflow', () => {
   it('waits for the exact PR head and development environment identity', () => {
     expect(previewWorkflow).toContain(
-      'deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app',
+      'deploy-preview-${{ github.event.pull_request.number }}--euro28-predictor-dev.netlify.app',
     )
     expect(previewWorkflow).toContain(
       'EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}',
