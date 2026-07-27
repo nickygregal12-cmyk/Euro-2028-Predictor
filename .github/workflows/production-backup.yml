@@ -1,0 +1,280 @@
+# Production backup — Euro 2028 Predictor
+#
+# MANUAL TRIGGER ONLY (workflow_dispatch). Never add push or schedule triggers.
+#
+# READ-ONLY against production: every production connection in this workflow is
+# a pg_dump/Supabase-CLI dump or a read-only inventory SELECT. The workflow
+# contains no statement that writes to the production database and none may be
+# added.
+#
+# The uploaded artifact is age-ENCRYPTED to the owner's recipient public key
+# (BACKUP_AGE_PUBLIC_KEY). The plaintext dump is restore-verified against a
+# disposable local Supabase inside the same job and shredded before upload,
+# because this repository is public and workflow artifacts are downloadable.
+# The age PRIVATE key is held offline by the owner and must never appear in
+# this repository, this workflow, CI logs or CI secrets. Decryption is an
+# offline, owner-only act.
+name: Production backup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-backup
+  cancel-in-progress: false
+
+jobs:
+  backup-restore-verify-encrypt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+      EXPECTED_MIGRATION_COUNT: '36'
+      EXPECTED_LATEST_MIGRATION_VERSION: '20260725010000'
+      EXPECTED_LATEST_MIGRATION_NAME: authoritative_reference_integrity
+      BACKUP_WORK_DIR: /tmp/production-backup
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+    steps:
+      - name: Preflight required secrets
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        run: |
+          missing=0
+          if [ -z "${SUPABASE_PROD_DB_URL}" ]; then
+            echo 'ERROR: repository secret SUPABASE_PROD_DB_URL is not set.'
+            echo 'Create it from the Supabase dashboard connection string of the production project before running this workflow.'
+            missing=1
+          fi
+          if [ -z "${BACKUP_AGE_PUBLIC_KEY}" ]; then
+            echo 'ERROR: repository secret BACKUP_AGE_PUBLIC_KEY is not set.'
+            echo 'Create it with an age recipient public key (age1...). Keep the matching private key offline, never on GitHub.'
+            missing=1
+          fi
+          [ "${missing}" -eq 0 ] || exit 1
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *)
+              echo "ERROR: SUPABASE_PROD_DB_URL does not reference the expected production project ${EXPECTED_PROJECT_REF}."
+              exit 1
+              ;;
+          esac
+          case "${BACKUP_AGE_PUBLIC_KEY}" in
+            age1*) ;;
+            *)
+              echo 'ERROR: BACKUP_AGE_PUBLIC_KEY is not an age recipient public key (it must start with age1).'
+              exit 1
+              ;;
+          esac
+
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Install age and PostgreSQL 17 client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Dump production database (read-only)
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        run: |
+          umask 077
+          mkdir -p "${BACKUP_WORK_DIR}/bundle/verification"
+          date -u +'%Y%m%dT%H%M%SZ' > "${BACKUP_WORK_DIR}/capture-timestamp.txt"
+          printf '%s\n' "${GITHUB_SHA}" > "${BACKUP_WORK_DIR}/bundle/repository-commit.txt"
+          printf '%s\n' "${EXPECTED_PROJECT_REF}" > "${BACKUP_WORK_DIR}/bundle/project-ref.txt"
+          git ls-files 'supabase/migrations/*.sql' | sort > "${BACKUP_WORK_DIR}/bundle/migration-files.txt"
+          supabase --version > "${BACKUP_WORK_DIR}/bundle/supabase-cli-version.txt"
+          pg_dump --version > "${BACKUP_WORK_DIR}/bundle/pg-dump-version.txt"
+
+          echo 'Capturing read-only source inventory (retained in the encrypted bundle only)...'
+          psql "${SUPABASE_PROD_DB_URL}" -X -v ON_ERROR_STOP=1 -A -t \
+            -f scripts/database-rollout/production-backup-inventory.sql \
+            > "${BACKUP_WORK_DIR}/bundle/database-state.json"
+          [ -s "${BACKUP_WORK_DIR}/bundle/database-state.json" ] || {
+            echo 'ERROR: source inventory was empty.'
+            exit 1
+          }
+
+          echo 'Dumping database roles...'
+          supabase db dump \
+            --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BACKUP_WORK_DIR}/bundle/roles.sql" \
+            --role-only
+
+          echo 'Dumping database schema...'
+          supabase db dump \
+            --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BACKUP_WORK_DIR}/bundle/schema.sql"
+
+          echo 'Dumping database data with COPY statements (includes the auth schema data path)...'
+          supabase db dump \
+            --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BACKUP_WORK_DIR}/bundle/data.sql" \
+            --use-copy \
+            --data-only \
+            -x storage.buckets_vectors \
+            -x storage.vector_indexes
+
+          echo 'Dumping canonical migration history with pg_dump...'
+          pg_dump \
+            --dbname "${SUPABASE_PROD_DB_URL}" \
+            --schema supabase_migrations \
+            --no-owner \
+            --no-privileges \
+            --file "${BACKUP_WORK_DIR}/bundle/migration-history.sql"
+
+          for required_dump in roles.sql schema.sql data.sql migration-history.sql; do
+            [ -s "${BACKUP_WORK_DIR}/bundle/${required_dump}" ] || {
+              echo "ERROR: dump is empty: ${required_dump}"
+              exit 1
+            }
+          done
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?auth"?\."?users"?' "${BACKUP_WORK_DIR}/bundle/data.sql" || {
+            echo 'ERROR: data.sql does not contain auth.users. Do not treat this as a complete backup.'
+            exit 1
+          }
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?public"?\."?profiles"?' "${BACKUP_WORK_DIR}/bundle/data.sql" || {
+            echo 'ERROR: data.sql does not contain public.profiles. Do not treat this as a complete backup.'
+            exit 1
+          }
+
+          cp scripts/database-rollout/managed-schema-customizations.sql "${BACKUP_WORK_DIR}/bundle/"
+          cp scripts/database-rollout/prepare-disposable-restore-target.sql "${BACKUP_WORK_DIR}/bundle/"
+          cp scripts/database-rollout/production-baseline-1-20-verification.sql "${BACKUP_WORK_DIR}/bundle/verification/"
+          cp scripts/database-rollout/production-preflight.sql "${BACKUP_WORK_DIR}/bundle/verification/"
+          cp scripts/database-rollout/post-rollout-verification.sql "${BACKUP_WORK_DIR}/bundle/verification/"
+          cp scripts/database-rollout/restore-rehearsal-verification.sql "${BACKUP_WORK_DIR}/bundle/verification/"
+
+          (
+            cd "${BACKUP_WORK_DIR}/bundle"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Prepare empty disposable restore target
+        run: |
+          # Local disposable target only. Clears anything `supabase start`
+          # created (applied migrations, seed rows) so the production dump can
+          # restore into an empty target, mirroring the documented restore
+          # sequence in docs/ops-production-backup-restore.md.
+          psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          drop schema if exists predictor_internal cascade;
+          drop schema if exists public cascade;
+          create schema public;
+          grant usage on schema public to anon, authenticated, service_role;
+          alter default privileges for role postgres in schema public
+            revoke all on tables from anon, authenticated;
+          drop schema if exists supabase_migrations cascade;
+          truncate table auth.users cascade;
+          delete from storage.objects;
+          delete from storage.buckets;
+          commit;
+          SQL
+
+      - name: Restore plaintext dump into disposable target
+        run: |
+          cd "${BACKUP_WORK_DIR}/bundle"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file roles.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file schema.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --command 'SET session_replication_role = replica' \
+            --file data.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file managed-schema-customizations.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file migration-history.sql
+
+      - name: Verify restored copy (counts only, no row contents)
+        run: |
+          psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 -A -t \
+            -v expected_migration_count="${EXPECTED_MIGRATION_COUNT}" \
+            -v expected_latest_version="${EXPECTED_LATEST_MIGRATION_VERSION}" \
+            -v expected_latest_name="${EXPECTED_LATEST_MIGRATION_NAME}" \
+            -f scripts/database-rollout/restore-rehearsal-verification.sql \
+            > "${BACKUP_WORK_DIR}/restore-rehearsal-counts.json"
+          echo 'Restore rehearsal verification (counts only):'
+          cat "${BACKUP_WORK_DIR}/restore-rehearsal-counts.json"
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup
+
+      - name: Encrypt bundle to the owner age public key
+        env:
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        run: |
+          umask 077
+          cd "${BACKUP_WORK_DIR}"
+          mkdir -p artifact
+          captured_at="$(cat capture-timestamp.txt)"
+          bundle_tar="euro28-prod-${captured_at}.backup.tar.gz"
+          tar -C bundle -czf "${bundle_tar}" .
+          stat -c '%s' "${bundle_tar}" > plaintext-size-bytes.txt
+          age -r "${BACKUP_AGE_PUBLIC_KEY}" -o "artifact/${bundle_tar}.age" "${bundle_tar}"
+          stat -c '%s' "artifact/${bundle_tar}.age" > encrypted-size-bytes.txt
+          echo 'Shredding plaintext dump files before the artifact step...'
+          find bundle -type f -exec shred -u {} +
+          rm -rf bundle
+          shred -u "${bundle_tar}"
+
+      - name: Refuse any non-encrypted upload candidate
+        run: |
+          cd "${BACKUP_WORK_DIR}"
+          if [ -e bundle ]; then
+            echo 'ERROR: plaintext bundle directory still exists; refusing to upload.'
+            exit 1
+          fi
+          non_age="$(find artifact -type f ! -name '*.backup.tar.gz.age')"
+          if [ -n "${non_age}" ]; then
+            echo 'ERROR: a non-encrypted file is staged for upload:'
+            printf '%s\n' "${non_age}"
+            exit 1
+          fi
+          encrypted_count="$(find artifact -type f -name '*.backup.tar.gz.age' | wc -l)"
+          if [ "${encrypted_count}" -ne 1 ]; then
+            echo "ERROR: expected exactly one encrypted artifact, found ${encrypted_count}."
+            exit 1
+          fi
+
+      - name: Upload encrypted backup artifact (7-day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-backup-encrypted
+          path: /tmp/production-backup/artifact/*.backup.tar.gz.age
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Write job summary (no personal data)
+        run: |
+          cd "${BACKUP_WORK_DIR}"
+          captured_at="$(cat capture-timestamp.txt)"
+          restored_count="$(jq -r '.restored_migration_history.count' restore-rehearsal-counts.json)"
+          {
+            echo '## Production backup'
+            echo ''
+            echo "- Captured at (UTC): ${captured_at}"
+            echo "- Plaintext bundle size (bytes): $(cat plaintext-size-bytes.txt)"
+            echo "- Encrypted artifact size (bytes): $(cat encrypted-size-bytes.txt)"
+            echo "- Restored migration-history count: ${restored_count}"
+            echo '- Artifact retention: 7 days. Download it promptly and store it off GitHub.'
+            echo ''
+            echo '### Restore rehearsal (disposable local Supabase, counts only)'
+            echo ''
+            echo '```json'
+            cat restore-rehearsal-counts.json
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"

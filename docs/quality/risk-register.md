@@ -3,7 +3,8 @@
 **Latest development reconciliation:** [`reconciliations/2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md)  
 **Last verified final-target reconciliation:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
 **Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
-**Recovery acceptance:** [`reconciliations/2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md)
+**Recovery acceptance:** [`reconciliations/2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md)  
+**Recovery exception:** [`reconciliations/2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md) — open until the first successful run of the manual `Production backup` workflow ([`reconciliations/2026-07-XX-production-backup-workflow.md`](reconciliations/2026-07-XX-production-backup-workflow.md))
 
 Current `main`, executable tests and verified hosted evidence override older classifications. Production is the controlled final target, not an active tournament.
 
@@ -21,7 +22,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 
 | ID | Finding | Current status | Required closure |
 | --- | --- | --- | --- |
-| `OPS-006` | Final-target application/database contract remains 35 while repository/development are 36 | **Open; safely fail-closed** | Read-only final-target preparation, recoverable evidence, explicit owner approval, migration/verification, production declaration 36, exact-head deployment and smoke. |
+| `OPS-006` | Final-target application/database contract remains 35 while repository/development are 36 | **Open; safely fail-closed** | Read-only final-target preparation, recoverable evidence (recovery exception open — fresh encrypted backup and disposable restore rehearsal via the manual `Production backup` GitHub Actions workflow, first successful run pending), explicit owner approval, migration/verification, production declaration 36, exact-head deployment and smoke. |
 | `DATA-001` | Predicted group positions can be forged or drift | **Resolved** | Reopen on regression. |
 | `SECURITY-001` | Browser roles can write server-owned position inputs | **Resolved** | Reopen on regression. |
 | `SECURITY-002` | Submission boundary can be bypassed | **Resolved** | Reopen on regression. |
