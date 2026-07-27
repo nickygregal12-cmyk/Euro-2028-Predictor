@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Modal, TextInput, Button, Alert } from '../../design-system'
 import { createLeague, type CreatedLeague } from '../../services/supabase/leagues'
-import { friendlyLeagueError } from './leagueErrors'
+import { userFacingError } from '../../shared/errors/userFacingError'
+import { leagueCapacityError } from './leagueErrors'
 import { InvitePanel } from './InvitePanel'
 import s from './leagueForms.module.css'
 
@@ -55,7 +56,10 @@ export function CreateLeagueModal({ open, onClose, tournamentId, onView }: Creat
       const league = await createLeague(tournamentId, trimmed)
       setCreated(league)
     } catch (e) {
-      setError(friendlyLeagueError(e))
+      setError(
+        leagueCapacityError(e) ??
+          userFacingError(e, 'Could not create the league. Try again.'),
+      )
     } finally {
       setSubmitting(false)
     }
