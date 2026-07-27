@@ -1,6 +1,6 @@
 {
-  "contractVersion": 42,
-  "requiredMigrationCount": 42,
+  "contractVersion": 43,
+  "requiredMigrationCount": 43,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -13,7 +13,8 @@
     "public.admin_resolve_actual_third_place_tie(uuid,uuid[],text)",
     "public.admin_clear_actual_third_place_tie(uuid,text)",
     "public.process_due_entry_submissions(timestamp with time zone)",
-    "public.get_entry_submission_status(uuid)"
+    "public.get_entry_submission_status(uuid)",
+    "public.get_leaderboard(uuid,integer,text)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 42 places explicit server-side bounds on overall standings, user league lists, league members, match-pick comparisons and rival-entry payloads at the intended operating caps."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 43 replaces the contract-42 capped overall standings RPC with server-ranked keyset pagination and independent current-user position context; all other contract-42 read bounds remain unchanged."
 }
