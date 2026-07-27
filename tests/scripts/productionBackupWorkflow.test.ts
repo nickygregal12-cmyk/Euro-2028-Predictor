@@ -46,6 +46,10 @@ describe('production backup workflow', () => {
   it('rehearses a disposable local restore before encryption', () => {
     expect(workflow).toContain('supabase start')
     expect(workflow).toContain('supabase stop --no-backup')
+    expect(workflow).toContain('version: 2.109.1')
+    expect(workflow).toContain(
+      'auth.custom_oauth_providers.custom_claims_allowlist',
+    )
     expect(workflow).toContain('restore-rehearsal-verification.sql')
     expect(workflow).toContain(
       'truncate table storage.objects, storage.buckets cascade;',

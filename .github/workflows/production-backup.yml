@@ -76,7 +76,10 @@ jobs:
 
       - uses: supabase/setup-cli@v2
         with:
-          version: 2.84.2
+          # Includes GoTrue v2.192.0, whose local auth schema contains
+          # auth.custom_oauth_providers.custom_claims_allowlist. Keep the
+          # disposable restore target compatible with hosted auth data.
+          version: 2.109.1
           github-token: ${{ github.token }}
 
       - name: Install age and PostgreSQL 17 client tools
