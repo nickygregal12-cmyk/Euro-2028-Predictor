@@ -1,9 +1,13 @@
 {
-  "contractVersion": 36,
-  "requiredMigrationCount": 36,
+  "contractVersion": 38,
+  "requiredMigrationCount": 38,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
-    "public.delete_match_prediction(uuid,uuid,integer)"
+    "public.delete_match_prediction(uuid,uuid,integer)",
+    "public.admin_confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)",
+    "public.admin_correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)",
+    "public.admin_clear_match_result(uuid,text)",
+    "public.admin_match_result_revisions(uuid)"
   ],
   "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version."
 }
