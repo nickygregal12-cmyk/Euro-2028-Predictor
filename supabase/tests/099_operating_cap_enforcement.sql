@@ -14,6 +14,33 @@ exception when others then
 end;
 $$;
 
+-- The canonical database seed has no users. Create two normal baseline users
+-- through the real cap/profile triggers so league create/join behaviour can be
+-- tested without relying on ordering from another rollback-scoped test.
+insert into auth.users (
+  id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values
+  (
+    '43000000-0000-0000-0000-000000000101',
+    'operating-cap-owner@example.test',
+    'authenticated',
+    'authenticated',
+    '{}'::jsonb,
+    '{"display_name":"Operating Cap Owner"}'::jsonb,
+    now(),
+    now()
+  ),
+  (
+    '43000000-0000-0000-0000-000000000102',
+    'operating-cap-member@example.test',
+    'authenticated',
+    'authenticated',
+    '{}'::jsonb,
+    '{"display_name":"Operating Cap Member"}'::jsonb,
+    now(),
+    now()
+  );
+
 select set_config(
   'test.cap_initial_users',
   (select count(*)::integer::text from auth.users),
@@ -31,12 +58,12 @@ select set_config(
 );
 select set_config(
   'test.cap_owner_id',
-  (select id::text from public.profiles order by id limit 1),
+  '43000000-0000-0000-0000-000000000101',
   true
 );
 select set_config(
   'test.cap_member_id',
-  (select id::text from public.profiles order by id offset 1 limit 1),
+  '43000000-0000-0000-0000-000000000102',
   true
 );
 
