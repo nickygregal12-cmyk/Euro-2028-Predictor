@@ -40,10 +40,14 @@ insert into expected_service_functions (signature) values
   ('recompute_tournament_scores(uuid)');
 
 insert into expected_authenticated_functions (signature) values
+  ('admin_actual_third_place_tie_revisions(uuid)'),
+  ('admin_actual_third_place_tie_status(uuid)'),
+  ('admin_clear_actual_third_place_tie(uuid,text)'),
   ('admin_clear_match_result(uuid,text)'),
   ('admin_confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
   ('admin_correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
-  ('admin_match_result_revisions(uuid)');
+  ('admin_match_result_revisions(uuid)'),
+  ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
 create temporary view public_function_privileges as
 select
