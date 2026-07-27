@@ -216,7 +216,7 @@ test.describe('Admin result workflow', () => {
       await expect(penaltiesDialog).toContainText('5–4')
       await penaltiesDialog.getByRole('button', { name: 'Cancel' }).click()
     } finally {
-      await clearPreparedKnockoutFixture(fixture.id)
+      await clearPreparedKnockoutFixture(fixture)
     }
   })
 
