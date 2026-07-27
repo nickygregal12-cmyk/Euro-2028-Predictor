@@ -45,16 +45,35 @@ Delivered through PRs #122, #124 and #126:
 
 Exit met: the complete tournament can be run repeatedly in development with deterministic database and browser evidence and no manual database repair.
 
-## Stage 3 — Original Predictor integrity and scale: current
+## Stage 3A — Automatic valid-entry recovery at lock: complete
 
-1. Add automatic submission at lock only for complete entries that pass the existing authoritative validator.
-2. Record and surface automatic-submission success/failure without bypassing version or ownership rules.
-3. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
-4. Bound leaderboard, standing, H2H and comparison reads.
-5. Test profiles, leagues, score recomputation and summaries at representative user/league caps.
-6. Repair completion, loading, empty and error states exposed by those scale journeys.
+Delivered through PR #128 and contract 41:
 
-Exit: valid entries cannot be stranded at lock, public reads remain bounded, and core Original Predictor surfaces remain correct and responsive at the intended caps.
+- database-owned one-minute scheduler using Supabase Cron;
+- server-only processor that reuses the existing authoritative submission validator;
+- complete valid entries automatically submitted at the real post-lock processing time;
+- incomplete or invalid entries left unsubmitted with a safe validator reason;
+- immutable per-entry/per-lock automatic outcome history;
+- owner-only manual, automatic, pending and failed status RPC;
+- Review-page success/failure state without changing the existing manual submit flow;
+- transaction-local after-lock refresh limited to derived group positions;
+- no relaxation of user-owned prediction locks, version checks or ownership rules;
+- 28 database lifecycle assertions and authenticated complete/incomplete browser journeys;
+- clean rebuild from 41 canonical migrations.
+
+Exit met: a complete saved entry cannot be stranded solely because its owner forgot to press Submit, while invalid entries remain safely excluded and auditable.
+
+## Stage 3B — Original Predictor bounded reads and scale: current
+
+1. Inventory every leaderboard, standing, H2H and comparison RPC/query with its current limit, sort keys and response shape.
+2. Add explicit bounds and stable pagination where reads can grow with users, leagues or fixtures.
+3. Seed representative volumes at the intended 250-user / 20-league development caps.
+4. Capture query plans, response sizes and score-recomputation timings.
+5. Test profiles, leagues, scoring summaries and comparison surfaces at those caps.
+6. Repair completion, loading, empty and error states exposed by the scale journeys.
+7. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+
+Exit: public reads remain bounded and core Original Predictor surfaces remain correct and responsive at the intended caps.
 
 ## Stage 4 — Core product experience
 
