@@ -18,7 +18,7 @@
 - **Documented/planned:** intent exists without working implementation.
 - **Not present:** no current implementation evidence.
 
-Repository, both hosted Supabase projects and every Netlify context are contract 38. Production is locked after the verified milestone release.
+Repository, development Supabase and non-production Netlify contexts are contract 43; production Supabase and Netlify production remain deliberately locked at contract 38 after the verified milestone release. See `current-status.md` for the live contract position.
 
 ## Original Predictor and core application
 

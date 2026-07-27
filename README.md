@@ -6,12 +6,12 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-The repository, development and production environments are now aligned at **contract 38**:
+The repository and development environments are at **contract 43**; production is deliberately locked at **contract 38**:
 
-- `config/deployment-contract.json` declares contract 38 and requires 38 canonical migrations;
-- both hosted Supabase projects have the exact canonical history through `20260727080159`;
-- every Netlify context declares contract 38 while retaining development/production isolation;
-- the administrator foundation and browser-authorised result RPC boundaries are merged.
+- `config/deployment-contract.json` declares contract 43 and requires 43 canonical migrations;
+- development Supabase has the canonical history through `20260727183900_bounded_overall_leaderboard`;
+- non-production Netlify contexts declare contract 43; production declares 38, retaining development/production isolation;
+- administrator result control, the full tournament lifecycle, automatic valid-entry submission, bounded reads and paginated overall standings are merged (PRs #120–#134).
 
 Production deploy `6a67560deb88202a74108c37` passed exact-release HTTP smoke and is locked after the milestone. Normal work continues against development Supabase `iouzoutneyjpugbbtdem`; production Supabase `vkfnsqdyhvtwyqkisxhk` is promoted only at deliberate milestones.
 
@@ -67,7 +67,7 @@ Tournament rules are implemented first as pure functions under `src/domain/tourn
 
 The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. Database parity rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-Repository contract 38 is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing, function execution boundaries, authoritative same-tournament reference integrity and administrator result authorization/revision projection.
+The repository contract (declared in `config/deployment-contract.json`) is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing, function execution boundaries, authoritative same-tournament reference integrity, administrator result and qualification authorization, automatic valid-entry submission and bounded/paginated read models.
 
 ## Scoring
 
@@ -86,7 +86,7 @@ Application CI runs:
 Database parity CI runs:
 
 - disposable local Supabase start;
-- full migration rebuild through contract 38;
+- full migration rebuild through the current repository contract;
 - database lint;
 - all pgTAP suites, including function privilege allowlists;
 - TypeScript/PostgreSQL differential parity;
@@ -96,7 +96,7 @@ Browser E2E covers disposable authenticated desktop/mobile journeys for score pe
 
 ## Current implemented repository contract
 
-Repository contract 38 supports:
+Repository contract 43 supports:
 
 - canonical predicted group ordering, including recursive head-to-head handling and unresolved ties;
 - exact manual same-group and best-third decisions;
@@ -112,8 +112,12 @@ Repository contract 38 supports:
 - version-safe persisted score clearing with derived-position invalidation;
 - zero anonymous public-function execution;
 - exact authenticated/service function allowlists and owner-only future defaults;
-- authoritative reference integrity for group-team, match, player, result revision, Golden Boot and score-event relationships.
-- browser-authorised administrator result confirmation, correction, clearing and revision access with capability enforcement.
+- authoritative reference integrity for group-team, match, player, result revision, Golden Boot and score-event relationships;
+- browser-authorised administrator result confirmation, correction, clearing and revision access with capability enforcement;
+- server-owned actual Round-of-16 population and authorised third-place qualification-boundary resolution with immutable revisions;
+- database-scheduled automatic submission of complete valid entries at lock with owner-visible outcomes;
+- bounded league, member, pick-comparison and rival-entry reads;
+- server-ranked keyset pagination for overall standings with current-user position context.
 
 ## Documentation authority
 

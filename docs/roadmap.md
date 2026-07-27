@@ -79,6 +79,19 @@ Delivered through PR #131 and contract 42:
 
 Exit met: current Original Predictor standings and comparison payloads cannot grow beyond the intended operating bounds.
 
+## Stage 3B2 — Paginated overall standings: complete
+
+Delivered through PR #134 and contract 43:
+
+- the contract-42 capped overall standings RPC replaced by server-ranked keyset pagination;
+- 50 rows by default, 100 maximum, deterministic opaque cursors;
+- independent current-user position context;
+- all other contract-42 read bounds unchanged;
+- database (`099_paginated_overall_leaderboard`) and browser (`e2e/overall-standings.spec.ts`) proof;
+- production left at contract 38.
+
+Exit met: overall standings pages are bounded and deterministic at any submitted-entry volume.
+
 ## Stage 3C — Cap enforcement and representative scale evidence: current
 
 1. Define and enforce the documented 250-user and 20-league operating caps at authoritative write boundaries, including concurrent signup/create/join behaviour.

@@ -1,6 +1,6 @@
-# Authentication Plan (deferred — build later)
+# Authentication Plan (implemented — one polish item open)
 
-Auth screens are deliberately deferred. This doc defines how development proceeds without them, and exactly what gets built when auth lands. The core principle: **defer the UI, not the plumbing.**
+Auth is built and live: every Phase 1 and Phase 2 item below is shipped except the final auth-resilience polish batch (§3, last checkbox). The doc is retained because its checklists map directly to the shipped code and its dev-approach section still describes the active dev auto-login mechanism. The core principle held: **defer the UI, not the plumbing.**
 
 ---
 
