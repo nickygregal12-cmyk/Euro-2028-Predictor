@@ -209,6 +209,8 @@ insert into auto_submission_clock values (
   date_trunc('second', now())
 );
 
+grant select on auto_submission_clock to authenticated;
+
 update public.tournaments
   set lock_at = (select lock_at from auto_submission_clock)
   where name = 'UEFA Euro 2028';
