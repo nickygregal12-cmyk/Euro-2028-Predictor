@@ -37,6 +37,13 @@ select set_config(
   true
 );
 
+-- This rollback-only fixture deliberately seeds one row beyond the public
+-- operating limits to prove the contract-42 response bounds. Disable only the
+-- two new cap triggers while creating that synthetic excess data; all integrity,
+-- profile, scoring and ownership triggers remain active.
+alter table auth.users disable trigger enforce_public_user_limit;
+alter table public.leagues disable trigger enforce_total_league_limit;
+
 update public.tournaments tournament
 set lock_at = now() + interval '1 day'
 where tournament.id = current_setting('test.bounded_tournament_id')::uuid;
@@ -122,6 +129,9 @@ select
   'member',
   now() + make_interval(secs => fixture.number)
 from generate_series(2, 251) as fixture(number);
+
+alter table auth.users enable trigger enforce_public_user_limit;
+alter table public.leagues enable trigger enforce_total_league_limit;
 
 insert into public.match_predictions (
   entry_id, match_id, home_score, away_score, joker, version
