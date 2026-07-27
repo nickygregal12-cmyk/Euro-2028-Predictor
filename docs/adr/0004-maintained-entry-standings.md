@@ -1,6 +1,6 @@
 # ADR 0004 — Maintained entry standings
 
-- **Status:** Accepted direction
+- **Status:** Accepted direction — the maintained table does not yet exist; note that the pagination and one-row current-user consequences below shipped independently at contract 43 (`20260727183900_bounded_overall_leaderboard.sql`) against the derived query
 - **Date:** 27 July 2026
 
 ## Context

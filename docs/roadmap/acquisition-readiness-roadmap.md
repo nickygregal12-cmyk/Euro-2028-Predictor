@@ -16,9 +16,9 @@ The platform should progress in this order:
 
 Feature work may continue only where it does not bypass a hard gate or deepen a known critical hot path.
 
-## Phase 1 — administrator operations
+## Phase 1 — administrator operations: complete in development
 
-**Current evidence:** the admin migration versions are reconciled and the protected-route/capability/RPC foundation is merged on `main`. Mutation UI acceptance and authorised/unauthorised Browser E2E remain open.
+**Current evidence:** the full mutation UI, review step, revision history and authorised/unauthorised desktop/mobile Browser E2E are merged (PRs #120, #126); pgTAP enumerates the `admin_*` functions and proves denial for ordinary users; the operations runbooks reflect the browser workflow. Production carries the workflow only at a later milestone.
 
 ### Outcomes
 
@@ -35,12 +35,14 @@ Feature work may continue only where it does not bypass a hard gate or deepen a 
 - pgTAP enumerates every `admin_*` function and proves denial for a normal authenticated user.
 - Operations runbook reflects the browser workflow.
 
-## Phase 2 — background operations
+## Phase 2 — background operations: partially complete
+
+**Current evidence:** the `pg_cron` job tier is established and complete valid entries auto-submit at lock with immutable, idempotent outcomes (contract 41, PR #128). Scoring/reconciliation jobs and the email items remain.
 
 ### Outcomes
 
-- Job/scheduler capability established.
-- Complete valid entries auto-submit at lock.
+- Job/scheduler capability established *(delivered)*.
+- Complete valid entries auto-submit at lock *(delivered)*.
 - Scoring jobs can be queued and retried safely.
 - Reconciliation and maintenance jobs exist.
 - Email-provider decision, processor record and initial lifecycle messages completed.
@@ -56,9 +58,9 @@ Feature work may continue only where it does not bypass a hard gate or deepen a 
 ### Outcomes
 
 - Maintained `entry_standings` model.
-- Paginated global leaderboard.
-- One-row current-user standing for the home screen.
-- League reads avoid global score aggregation.
+- Paginated global leaderboard *(delivered — contract 43, PR #134)*.
+- One-row current-user standing for the home screen *(delivered — contract 43)*.
+- League reads avoid global score aggregation *(in flight — draft PR #138, contracts 45–46)*.
 - Incremental asynchronous scoring.
 - Batched prediction persistence and action-level rate limiting.
 - Reference-data cache and strict tournament scoping.
@@ -75,8 +77,8 @@ Feature work may continue only where it does not bypass a hard gate or deepen a 
 ### Outcomes
 
 - Official teams, fixtures, players and authoritative regulations loaded.
-- Actual knockout winner/method/extra-time/penalty consumption complete.
-- Actual tie-resolution workflow complete.
+- Actual knockout winner/method/extra-time/penalty consumption complete *(delivered — PR #124)*.
+- Actual tie-resolution workflow complete *(delivered for the third-place qualification boundary — PR #126; fully unresolved group ties stay deferred under `DEC-001`)*.
 - Live result and standing refresh available.
 - Match-centre prediction distributions are materialised and small-sample safe.
 - Named operations ownership, escalation and rollback procedures complete.
@@ -90,7 +92,7 @@ Feature work may continue only where it does not bypass a hard gate or deepen a 
 
 ## Phase 5 — launch assurance
 
-**Current evidence:** the manual encrypted production-backup workflow (T024-equivalent) is merged. Its first-run reconciliation record remains incomplete and must not be claimed from repository evidence alone.
+**Current evidence:** the manual encrypted production-backup workflow (T024-equivalent) is merged and first-run verified — green run `30264080847`, disposable restore passed, off-GitHub encrypted custody (`docs/quality/reconciliations/2026-07-27-production-backup-workflow.md`).
 
 ### Outcomes
 
@@ -126,9 +128,9 @@ These do not override operational, scalability or launch-assurance gates.
 
 | Audit item | Roadmap phase |
 | --- | --- |
-| C-4 admin application | Phase 1 |
-| H-6 background jobs / auto-submit | Phase 2 |
-| C-1 bounded leaderboard | Phase 3 |
+| C-4 admin application | Phase 1 — delivered |
+| H-6 background jobs / auto-submit | Phase 2 — delivered |
+| C-1 bounded leaderboard | Phase 3 — delivered (load evidence remains) |
 | C-2 maintained standings | Phase 3 |
 | C-3 asynchronous incremental scoring | Phase 3 |
 | H-1 batched prediction saves | Phase 3 |

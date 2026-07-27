@@ -16,25 +16,25 @@
 
 | ID | Risk | Impact | Required mitigation | Status |
 | --- | --- | --- | --- | --- |
-| ACQ-R01 | Unbounded global leaderboard and client-side ranking can make the home/default route unusable at scale. | Loss of service and oversized disclosure payload. | Bounded paginated RPCs, one-row current-user standing and removal of browser use of the unbounded endpoint. | Open |
+| ACQ-R01 | Unbounded global leaderboard and client-side ranking can make the home/default route unusable at scale. | Loss of service and oversized disclosure payload. | Bounded paginated RPCs, one-row current-user standing and removal of browser use of the unbounded endpoint. | In progress — bounded reads (contract 42, PR #131) and server-ranked keyset pagination with a current-user position row (contract 43, PR #134) are merged and development-hosted; representative load evidence remains before Mitigated |
 | ACQ-R02 | Browser standings reads aggregate the scoring table through a derived totals view. | Database saturation and timeouts as score events grow. | Maintained `entry_standings`, indexed reads and reconciliation against a derived oracle. | Open |
 | ACQ-R03 | A result write synchronously recomputes the whole tournament. | Long transactions, WAL/table bloat and peak-time operational failure. | Queue result scoring, process incrementally in bounded batches, retain full recomputation for repair/parity. | Open |
-| ACQ-R04 | Routine result operations lack a fully accepted least-privilege browser workflow on current `main`. | Human error or credential exposure during live operations. | Protected administrator interface, server-side capability checks, revision history and audit evidence. | In progress — migration versions reconciled and the admin foundation is merged; mutation UI/E2E acceptance remains |
+| ACQ-R04 | Routine result operations lack a fully accepted least-privilege browser workflow on current `main`. | Human error or credential exposure during live operations. | Protected administrator interface, server-side capability checks, revision history and audit evidence. | Mitigated in development — full mutation UI with review step, revision history and authorised/unauthorised Browser E2E merged (PRs #120, #126); production carries the workflow only at a later milestone |
 
 ## High risks
 
 | ID | Risk | Required mitigation | Status |
 | --- | --- | --- | --- |
-| ACQ-R05 | Complete entries may remain unsubmitted at lock and score zero. | Idempotent auto-submit job using authoritative completeness rules; user notification. | Open |
+| ACQ-R05 | Complete entries may remain unsubmitted at lock and score zero. | Idempotent auto-submit job using authoritative completeness rules; user notification. | In progress — idempotent database-scheduled auto-submit with immutable outcomes merged (contract 41, PR #128) and development-hosted; user notification/email remains |
 | ACQ-R06 | Prediction persistence uses many row-level requests and rate-limit events. | Batched transactional save RPC and action-level limiting. | Open |
 | ACQ-R07 | Reference data is repeatedly fetched and one query is not explicitly tournament-scoped. | Client/edge cache, tournament filter and fail-closed lock data. | Open |
 | ACQ-R08 | TypeScript strictness and schema-generated types are not enforced. | Enable strict mode; generate and freshness-check database types. | Open |
 | ACQ-R09 | Password, breach screening and anti-bot controls are insufficiently fail-closed for launch. | Stronger floor, leaked-password protection and mandatory production Turnstile validation. | Open |
 | ACQ-R10 | League invite generation/probing can support enumeration. | Cryptographic longer codes, preview throttling, reduced disclosure and code rotation. | Open |
-| ACQ-R11 | No accepted background-job tier supports scoring, submission, reconciliation and lifecycle work. | Establish `pg_cron`/Edge Function responsibilities with idempotency and observability. | Open |
+| ACQ-R11 | No accepted background-job tier supports scoring, submission, reconciliation and lifecycle work. | Establish `pg_cron`/Edge Function responsibilities with idempotency and observability. | In progress — a `pg_cron` tier is established and carries the idempotent submission job (contract 41); scoring, reconciliation and lifecycle jobs plus failure observability remain |
 | ACQ-R12 | No product analytics supports funnel or retention decisions. | Privacy-conscious event taxonomy, approved provider, CSP/DPIA and core dashboards. | Open |
 | ACQ-R13 | Large-scale behaviour at lock and result peaks is not evidenced. | Representative seeded load tests, connection-pool budget and rehearsed thresholds. | Open |
-| ACQ-R14 | Critical admin/result, penalty-winner and accessibility journeys lack complete end-to-end evidence. | Browser E2E, pgTAP privilege enumeration, axe automation and manual assistive-technology review. | Open — static admin privilege enumeration is present; the critical browser/accessibility journeys remain |
+| ACQ-R14 | Critical admin/result, penalty-winner and accessibility journeys lack complete end-to-end evidence. | Browser E2E, pgTAP privilege enumeration, axe automation and manual assistive-technology review. | In progress — admin/result and penalty-winner browser journeys shipped (PRs #120, #124); axe automation and manual assistive-technology review remain |
 
 ## Medium risks
 
@@ -65,9 +65,12 @@ Critical and high risks are hard launch gates unless the owner records an explic
 
 ## Completed repository foundations
 
-- Manual encrypted, restore-rehearsed production-backup workflow merged (T024-equivalent); the dated first-run record is still incomplete.
+- Manual encrypted, restore-rehearsed production-backup workflow merged and first-run verified (green run `30264080847`, disposable restore passed, off-GitHub encrypted custody — `reconciliations/2026-07-27-production-backup-workflow.md`).
 - Administrator migrations reconciled to the exact canonical hosted-development versions.
-- Protected administrator routes, capability parsing and browser-authorised result RPC foundation merged.
+- Protected administrator routes with the complete result and qualification mutation workflow, revision history and Browser E2E merged (PRs #120, #126).
+- Contracts 39–44 merged and development-hosted: actual Round-of-16 population, third-place boundary resolution, automatic valid-entry submission, bounded reads, paginated overall standings and operating-cap enforcement.
+
+No `ACQ` row yet covers operating-cap enforcement (contract 44); its scale-evidence residual is tracked under `ACQ-R13`.
 
 ## Reconciliation references
 

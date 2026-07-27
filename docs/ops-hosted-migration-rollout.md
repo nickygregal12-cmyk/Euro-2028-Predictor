@@ -123,7 +123,7 @@ Production already contained migration 1–20 structural effects without canonic
 
 The repair changed migration metadata only. Source counts, timestamp and fingerprints remained unchanged.
 
-Production history is now canonical through migration 35. Do not repair it again without a separately proven metadata defect.
+Production history was canonical through migration 35 at the close of this record (since advanced to 38 by the contract-38 milestone). Do not repair it again without a separately proven metadata defect.
 
 ## Phase 5 — migrations 21–35: completed
 
@@ -234,7 +234,9 @@ Keep or restore a known-compatible production deploy. Do not point production at
 
 Keep the previous ready deploy and investigate without changing the verified database or weakening guards.
 
-## Procedure for migration 36 or later
+## Procedure for future production migrations
+
+(As written at the close of this record for "migration 36 or later"; migrations 36–38 have since shipped to production and 39–44 to development. `AGENTS.md` → Production milestones is the current authority; this list matches it.)
 
 1. review and merge the migration through normal CI/database/browser gates;
 2. update the repository deployment contract deliberately;
@@ -252,13 +254,13 @@ Keep the previous ready deploy and investigate without changing the verified dat
 
 ## Separate follow-up work
 
-Do not mix into a future database window:
+Do not mix into a future database window (items marked delivered have since shipped as their own reviewed scopes):
 
 - unrelated migration 36 product decisions;
 - Turnstile context configuration;
 - legacy Netlify site action;
 - leaked-password protection;
 - branch protection;
-- automatic real R16 population unless it is the reviewed migration scope;
-- browser administration UI;
+- automatic real R16 population *(delivered — migration 39, PR #122)*;
+- browser administration UI *(delivered — PRs #120 and #126)*;
 - bonus games or design changes.

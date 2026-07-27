@@ -2,9 +2,10 @@
 
 ## Current model
 
-Result administration is implemented at contract 38. Authorization is stored
-only in Supabase Auth `app_metadata` (`auth.users.raw_app_meta_data`), which an
-ordinary user cannot edit.
+Result administration was introduced at contracts 37–38 and extended at
+contract 40 with actual third-place qualification-boundary resolution.
+Authorization is stored only in Supabase Auth `app_metadata`
+(`auth.users.raw_app_meta_data`), which an ordinary user cannot edit.
 
 The result capability is:
 
@@ -21,10 +22,12 @@ only `admin_capabilities: ["results"]`.
 `profiles.role` does not exist and must never be used. `user_metadata` /
 `raw_user_meta_data` is user-editable and must never authorize an administrator.
 
-The browser route check is convenience only. Each
-`admin_*_match_result` database function independently reads the signed-in
+The browser route check is convenience only. Each `admin_*_match_result` and
+`admin_*_third_place_tie*` database function independently reads the signed-in
 user's server-owned JWT `app_metadata`, requires the `results` capability, and
-rejects anonymous or ordinary authenticated callers.
+rejects anonymous or ordinary authenticated callers. (The client capability
+parser also recognises `users`, `leagues` and `tournament` for future surfaces;
+`results` is the only capability any shipped RPC enforces today.)
 
 ## Assignment boundary
 
