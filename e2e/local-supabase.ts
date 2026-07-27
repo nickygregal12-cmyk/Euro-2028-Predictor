@@ -30,6 +30,37 @@ export function createLocalAdmin() {
   })
 }
 
+/** Adjust only the disposable local stack through the service-role-only RPC. */
+export async function setLocalOperatingLimits(
+  publicUserLimit: number,
+  totalLeagueLimit: number,
+): Promise<void> {
+  const { error } = await createLocalAdmin().rpc('set_operating_limits', {
+    p_public_user_limit: publicUserLimit,
+    p_total_league_limit: totalLeagueLimit,
+  })
+  if (error) throw error
+}
+
+export async function localOperatingCounts(): Promise<{
+  users: number
+  leagues: number
+}> {
+  const admin = createLocalAdmin()
+  const { data: users, error: usersError } = await admin.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  })
+  if (usersError) throw usersError
+
+  const { count: leagues, error: leaguesError } = await admin
+    .from('leagues')
+    .select('id', { count: 'exact', head: true })
+  if (leaguesError) throw leaguesError
+
+  return { users: users.users.length, leagues: leagues ?? 0 }
+}
+
 async function e2eUserId(): Promise<string> {
   const admin = createLocalAdmin()
   const email = process.env.E2E_USER_EMAIL?.trim() || DEFAULT_E2E_EMAIL
