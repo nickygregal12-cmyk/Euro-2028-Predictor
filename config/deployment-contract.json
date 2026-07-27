@@ -1,6 +1,6 @@
 {
-  "contractVersion": 41,
-  "requiredMigrationCount": 41,
+  "contractVersion": 42,
+  "requiredMigrationCount": 42,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -13,7 +13,8 @@
     "public.admin_resolve_actual_third_place_tie(uuid,uuid[],text)",
     "public.admin_clear_actual_third_place_tie(uuid,text)",
     "public.process_due_entry_submissions(timestamp with time zone)",
-    "public.get_entry_submission_status(uuid)"
+    "public.get_entry_submission_status(uuid)",
+    "public.get_leaderboard(uuid,integer,text)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 41 adds database-scheduled automatic submission of complete valid entries at lock with immutable owner-visible outcomes."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 42 removes the unbounded overall leaderboard RPC and replaces it with server-ranked, keyset-paginated pages and current-user position context."
 }
