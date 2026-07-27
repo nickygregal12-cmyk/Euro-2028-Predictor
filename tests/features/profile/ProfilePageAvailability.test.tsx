@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProfilePage } from '../../../src/features/profile/ProfilePage'
 
 const mocks = vi.hoisted(() => ({
-  fetchLeaderboard: vi.fn(),
+  fetchLeaderboardPage: vi.fn(),
   fetchMyLeagues: vi.fn(),
   fetchMyScoreEvents: vi.fn(),
 }))
@@ -47,7 +47,7 @@ vi.mock('../../../src/features/bracket', () => ({
 }))
 
 vi.mock('../../../src/services/supabase/leaderboard', () => ({
-  fetchLeaderboard: mocks.fetchLeaderboard,
+  fetchLeaderboardPage: mocks.fetchLeaderboardPage,
 }))
 
 vi.mock('../../../src/services/supabase/leagues', () => ({
@@ -70,13 +70,36 @@ async function waitForProfile() {
   await waitFor(() => expect(screen.getByText('Profile Tester')).toBeVisible())
 }
 
+function leaderboardPage() {
+  return {
+    rows: [
+      {
+        displayName: 'Profile Tester',
+        totalPoints: 12,
+        rank: 1,
+        tied: false,
+        position: 1,
+        isYou: true,
+      },
+    ],
+    totalCount: 2,
+    pageSize: 1,
+    hasMore: true,
+    nextCursor: 'cursor',
+    you: {
+      displayName: 'Profile Tester',
+      totalPoints: 12,
+      rank: 1,
+      tied: false,
+      position: 1,
+    },
+  }
+}
+
 describe('ProfilePage remote source availability', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.fetchLeaderboard.mockResolvedValue([
-      { displayName: 'Profile Tester', totalPoints: 12, isYou: true },
-      { displayName: 'Rival', totalPoints: 8, isYou: false },
-    ])
+    mocks.fetchLeaderboardPage.mockResolvedValue(leaderboardPage())
     mocks.fetchMyLeagues.mockResolvedValue([])
     mocks.fetchMyScoreEvents.mockResolvedValue([
       {
@@ -89,7 +112,7 @@ describe('ProfilePage remote source availability', () => {
   })
 
   it('preserves locally derived accuracy when the leaderboard is unavailable', async () => {
-    mocks.fetchLeaderboard.mockRejectedValueOnce(new Error('leaderboard offline'))
+    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('leaderboard offline'))
 
     renderPage()
     await waitForProfile()

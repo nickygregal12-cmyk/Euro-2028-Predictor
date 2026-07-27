@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LeaguePage } from '../../../src/features/league/LeaguePage'
 
 const mocks = vi.hoisted(() => ({
-  fetchLeaderboard: vi.fn(),
+  fetchLeaderboardPage: vi.fn(),
   fetchMyLeagues: vi.fn(),
 }))
 
@@ -18,7 +18,7 @@ vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
 }))
 
 vi.mock('../../../src/services/supabase/leaderboard', () => ({
-  fetchLeaderboard: mocks.fetchLeaderboard,
+  fetchLeaderboardPage: mocks.fetchLeaderboardPage,
 }))
 
 vi.mock('../../../src/services/supabase/leagues', () => ({
@@ -33,6 +33,32 @@ vi.mock('../../../src/features/leagues/JoinLeagueModal', () => ({
   JoinLeagueModal: () => null,
 }))
 
+function leaderboardPage() {
+  return {
+    rows: [
+      {
+        displayName: 'Dashboard Tester',
+        totalPoints: 12,
+        rank: 1,
+        tied: false,
+        position: 1,
+        isYou: true,
+      },
+    ],
+    totalCount: 2,
+    pageSize: 1,
+    hasMore: true,
+    nextCursor: 'cursor',
+    you: {
+      displayName: 'Dashboard Tester',
+      totalPoints: 12,
+      rank: 1,
+      tied: false,
+      position: 1,
+    },
+  }
+}
+
 function renderPage() {
   render(
     <MemoryRouter>
@@ -44,10 +70,7 @@ function renderPage() {
 describe('LeaguePage data availability', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.fetchLeaderboard.mockResolvedValue([
-      { displayName: 'Dashboard Tester', totalPoints: 12, isYou: true },
-      { displayName: 'League Rival', totalPoints: 8, isYou: false },
-    ])
+    mocks.fetchLeaderboardPage.mockResolvedValue(leaderboardPage())
     mocks.fetchMyLeagues.mockResolvedValue([])
   })
 
@@ -57,6 +80,7 @@ describe('LeaguePage data availability', () => {
     expect(await screen.findByText('No leagues yet')).toBeVisible()
     expect(screen.queryByText("Couldn't load your leagues")).not.toBeInTheDocument()
     expect(mocks.fetchMyLeagues).toHaveBeenCalledWith('tournament-1')
+    expect(mocks.fetchLeaderboardPage).toHaveBeenCalledWith('tournament-1', { limit: 1 })
   })
 
   it('keeps the standings summary visible when the league list is unavailable', async () => {
@@ -91,16 +115,16 @@ describe('LeaguePage data availability', () => {
 
     expect(await screen.findByText('Weekend League')).toBeVisible()
     expect(mocks.fetchMyLeagues).toHaveBeenCalledTimes(2)
-    expect(mocks.fetchLeaderboard).toHaveBeenCalledTimes(1)
+    expect(mocks.fetchLeaderboardPage).toHaveBeenCalledTimes(1)
   })
 
   it('retains the existing hard error when overall standings are unavailable', async () => {
-    mocks.fetchLeaderboard.mockRejectedValueOnce(new Error('standings offline'))
+    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('standings offline'))
 
     renderPage()
 
     expect(await screen.findByText("Couldn't load standings")).toBeVisible()
     expect(screen.queryByText('No leagues yet')).not.toBeInTheDocument()
-    await waitFor(() => expect(mocks.fetchLeaderboard).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mocks.fetchLeaderboardPage).toHaveBeenCalledTimes(1))
   })
 })

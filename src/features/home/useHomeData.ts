@@ -14,7 +14,7 @@ import {
   type HomePhase,
   type LeagueStanding,
 } from '../../domain/tournament/homeDashboard'
-import { fetchLeaderboard } from '../../services/supabase/leaderboard'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { fetchLeagueMembers, fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchMyScoreEventPoints } from '../../services/supabase/scoring'
 import { fetchLastSeenRead, updateLastSeen } from '../../services/supabase/profile'
@@ -69,12 +69,6 @@ export type HomeState =
   | { status: 'error'; message: string }
   | { status: 'ready'; model: HomeModel }
 
-/**
- * Fetches and assembles the phase-aware Home model. Core tournament and entry
- * data remains a hard requirement. During-tournament dashboard sources may fail
- * independently, but their unavailable state is preserved explicitly rather
- * than being converted into zero points, zero entries or no leagues.
- */
 export function useHomeData(): HomeState {
   const { userId, displayName } = useAuth()
   const data = useTournamentData()
@@ -201,12 +195,11 @@ export function useHomeData(): HomeState {
       let rank: number | null = null
       let entryCount: number | null = null
       try {
-        const ranked = rankLeaderboard(await fetchLeaderboard(tournamentId!))
-        const you = ranked.find((row) => row.isYou)
-        totalPoints = you?.totalPoints ?? 0
-        entryCount = ranked.length
-        const preResults = ranked.every((row) => row.rank === null)
-        rank = preResults ? null : (you?.rank ?? null)
+        const page = await fetchLeaderboardPage(tournamentId!, { limit: 1 })
+        const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
+        totalPoints = page.you?.totalPoints ?? 0
+        entryCount = page.totalCount
+        rank = preResults ? null : (page.you?.rank ?? null)
       } catch {
         unavailable.add('leaderboard')
       }

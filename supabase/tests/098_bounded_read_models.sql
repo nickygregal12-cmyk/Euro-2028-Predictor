@@ -1,6 +1,6 @@
 begin;
 
-select plan(17);
+select plan(14);
 
 create or replace function pg_temp.capture_sqlstate(p_sql text)
 returns text
@@ -169,21 +169,9 @@ where tournament.id = current_setting('test.bounded_tournament_id')::uuid;
 select set_config('request.jwt.claim.sub', md5('bounded-user-1')::uuid::text, true);
 set local role authenticated;
 
-select is(
-  (select count(*) from public.get_leaderboard(current_setting('test.bounded_tournament_id')::uuid)),
-  250::bigint,
-  'overall standings return at most 250 submitted entries'
-);
-select is(
-  (select max(total_points) from public.get_leaderboard(current_setting('test.bounded_tournament_id')::uuid)),
-  999,
-  'overall standings retain the highest-scoring entry'
-);
-select is(
-  (select min(total_points) from public.get_leaderboard(current_setting('test.bounded_tournament_id')::uuid)),
-  750,
-  'overall standings order before limiting and exclude the 251st score'
-);
+-- Overall leaderboard pagination and ordering are covered comprehensively by
+-- 099_paginated_overall_leaderboard.sql. This fixture retains the independent
+-- bounds for user league lists, private league members/picks and rival payloads.
 select is(
   (select count(*) from public.get_my_leagues(current_setting('test.bounded_tournament_id')::uuid)),
   20::bigint,
@@ -281,12 +269,24 @@ select is(
   'all bounded security-definer reads use an immutable empty search path'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.get_leaderboard(uuid)', 'execute')
-  and has_function_privilege('service_role', 'public.get_leaderboard(uuid)', 'execute'),
-  'authenticated and service roles retain the established read access'
+  has_function_privilege(
+    'authenticated',
+    'public.get_leaderboard(uuid,integer,text)',
+    'execute'
+  )
+  and has_function_privilege(
+    'service_role',
+    'public.get_leaderboard(uuid,integer,text)',
+    'execute'
+  ),
+  'authenticated and service roles retain paginated leaderboard access'
 );
 select ok(
-  not has_function_privilege('anon', 'public.get_leaderboard(uuid)', 'execute'),
+  not has_function_privilege(
+    'anon',
+    'public.get_leaderboard(uuid,integer,text)',
+    'execute'
+  ),
   'anonymous callers do not gain leaderboard access'
 );
 
