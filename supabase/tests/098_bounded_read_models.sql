@@ -1,6 +1,6 @@
 begin;
 
-select plan(14);
+select plan(12);
 
 create or replace function pg_temp.capture_sqlstate(p_sql text)
 returns text
@@ -177,9 +177,9 @@ where tournament.id = current_setting('test.bounded_tournament_id')::uuid;
 select set_config('request.jwt.claim.sub', md5('bounded-user-1')::uuid::text, true);
 set local role authenticated;
 
--- Overall leaderboard pagination and ordering are covered comprehensively by
--- 099_paginated_overall_leaderboard.sql. This fixture retains the independent
--- bounds for user league lists, private league members/picks and rival payloads.
+-- Overall and private-league standings pagination now have dedicated traversal
+-- fixtures. This file retains independent user-league-list, match-pick and rival
+-- payload bounds from contract 42.
 select is(
   (select count(*) from public.get_my_leagues(current_setting('test.bounded_tournament_id')::uuid)),
   20::bigint,
@@ -189,16 +189,6 @@ select is(
   (select max(name) from public.get_my_leagues(current_setting('test.bounded_tournament_id')::uuid)),
   'Bounded League 020',
   'the user league list preserves deterministic creation order before limiting'
-);
-select is(
-  (select count(*) from public.get_league_members(md5('bounded-league-1')::uuid)),
-  250::bigint,
-  'league standings return at most 250 members'
-);
-select is(
-  (select min(total_points) from public.get_league_members(md5('bounded-league-1')::uuid)),
-  750,
-  'league standings keep the top 250 scores when excess data exists'
 );
 select is(
   jsonb_array_length(
@@ -304,12 +294,12 @@ set local role authenticated;
 select is(
   pg_temp.capture_sqlstate(
     format(
-      'select * from public.get_league_members(%L::uuid)',
+      'select public.get_league_members(%L::uuid, 50, null)',
       md5('bounded-league-1')::uuid
     )
   ),
   '42501',
-  'a non-member still cannot read bounded league standings'
+  'a non-member still cannot read paginated league standings'
 );
 
 select * from finish();
