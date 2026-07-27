@@ -6,10 +6,9 @@ Live source of truth for repository migration count, hosted state and pending ro
 
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| Repository PR #126 | 40 | 40 canonical files through `20260727163339` | merge after final exact-head gates |
-| Repository `main` | 39 | 39 canonical files through `20260727150621` | contract 40 not yet merged |
+| Repository | 40 | 40 canonical files through `20260727163339` | none in development |
 | Development Supabase `iouzoutneyjpugbbtdem` | 40 | exactly 40 canonical versions through `20260727163339` | verification only |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 40 | development Supabase | exact-head PR preview verification |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 40 | development Supabase | none |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | 38 | exactly 38 canonical versions through `20260727080159` | migrations 39–40 deferred to a later approved milestone |
 | Netlify `production` | 38 | production Supabase; verified milestone deploy is locked | no change approved |
 
@@ -47,6 +46,7 @@ Contract 38 production promotion is closed. Migrations 39–40 are not emergency
 
 - `docs/quality/current-status.md`
 - `docs/roadmap.md`
+- PRs #122, #124 and #126
 - `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md`
 - `docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`
 - `docs/quality/reconciliations/2026-07-27-production-backup-workflow.md`
