@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapEntrySubmissionStatus } from '../../src/services/supabase/predictions'
+import { mapEntrySubmissionStatus } from '../../src/services/supabase/entrySubmissionStatusModel'
 
 describe('entry submission status parsing', () => {
   it('maps an automatic submission outcome', () => {
