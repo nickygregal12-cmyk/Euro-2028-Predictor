@@ -8,10 +8,9 @@ import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildBracketPipeline } from '../bracket'
 import { scoreOneMatch } from '../predict/matchScoring'
-import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
 import { profileStats, type OutcomeKind } from '../../domain/tournament/profileStats'
 import { isEntryLocked } from '../../domain/tournament/entryLock'
-import { fetchLeaderboard } from '../../services/supabase/leaderboard'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchMyScoreEvents } from '../../services/supabase/scoring'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
@@ -19,12 +18,6 @@ import { ProfileScreen, type ProfileFullStats } from './ProfileScreen'
 import type { MatchTeam } from '../../design-system'
 import s from '../shared.module.css'
 
-// Own profile (via More tab — design-system §6). Viewing ANOTHER player's
-// profile is deliberately not wired here: it needs the reveal-after-lock RLS /
-// a co-membership, post-lock security-definer read (roadmap Phase 2, unbuilt),
-// so no endpoint exposes another user's stats or predictions yet. The
-// presentational ProfileScreen already covers the other-player + pre-lock-hidden
-// states (see /dev/components) for when that lands.
 export type ProfileDataSource = 'leaderboard' | 'leagues' | 'events'
 
 type State =
@@ -72,9 +65,6 @@ export function ProfilePage() {
       preds.bracketProgression,
     )
 
-    // Exact / accuracy from the user's own resulted group predictions (domain
-    // scorer — same rules as score_events). This remains available even when a
-    // separate remote leaderboard, league or score-event request fails.
     const kinds: OutcomeKind[] = []
     for (const match of td.matches) {
       if (
@@ -93,7 +83,7 @@ export function ProfilePage() {
     const derived = profileStats(kinds)
 
     Promise.allSettled([
-      fetchLeaderboard(tournamentId),
+      fetchLeaderboardPage(tournamentId, { limit: 1 }),
       fetchMyLeagues(tournamentId),
       fetchMyScoreEvents(),
     ])
@@ -107,11 +97,10 @@ export function ProfilePage() {
         let events: ScoreEvent[] = []
 
         if (leaderboardRead.status === 'fulfilled') {
-          const ranked = rankLeaderboard(leaderboardRead.value)
-          const you = ranked.find((row) => row.isYou)
-          const preResults = ranked.every((row) => row.rank === null)
-          totalPoints = you?.totalPoints ?? 0
-          rank = preResults ? null : (you?.rank ?? null)
+          const page = leaderboardRead.value
+          const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
+          totalPoints = page.you?.totalPoints ?? 0
+          rank = preResults ? null : (page.you?.rank ?? null)
         } else {
           unavailable.push('leaderboard')
         }
