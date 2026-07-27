@@ -1,6 +1,6 @@
 {
-  "contractVersion": 45,
-  "requiredMigrationCount": 45,
+  "contractVersion": 46,
+  "requiredMigrationCount": 46,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -20,5 +20,5 @@
     "public.get_public_capacity()",
     "public.set_operating_limits(integer,integer)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 45 retains contract-44 rollout enforcement, paginates private-league standings with independent caller context, and separates owner-only transfer-candidate search from the standings payload. Development and non-production promotion require clean-room database, browser and performance evidence; production remains locked at contract 38."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 45 paginates private-league standings and separates owner-only transfer-candidate search; contract 46 adds latest league activity to the existing lightweight league summary so Home preserves its rank/activity selection without full member payloads. Development and non-production promotion require clean-room database, browser and performance evidence; production remains locked at contract 38."
 }
