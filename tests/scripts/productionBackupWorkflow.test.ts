@@ -47,6 +47,10 @@ describe('production backup workflow', () => {
     expect(workflow).toContain('supabase start')
     expect(workflow).toContain('supabase stop --no-backup')
     expect(workflow).toContain('restore-rehearsal-verification.sql')
+    expect(workflow).toContain(
+      'truncate table storage.objects, storage.buckets cascade;',
+    )
+    expect(workflow).not.toMatch(/delete from storage\.(objects|buckets)/)
     expect(workflow.indexOf('supabase start')).toBeLessThan(
       workflow.indexOf('age -r'),
     )
