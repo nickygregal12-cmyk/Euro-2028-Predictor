@@ -1,13 +1,25 @@
 // Query wrappers for private leagues (Original Predictor only —
-// docs/competition-structure.md §1). Every read/write goes through the
-// security-definer functions in 20260719180000_add_leagues.sql so the
-// profiles/entries RLS stays tight; this module never selects those tables.
+// docs/competition-structure.md §1). Every read/write goes through protected
+// database functions so profiles, entries and membership tables remain closed.
 //
-// Wrappers throw on error (like the other service wrappers). Callers decide
-// whether a failed read is fatal or independently unavailable, but must never
-// convert an unavailable league source into a successful empty account.
+// Wrappers throw on error. Callers decide whether a failed read is fatal or an
+// independently unavailable source, but must never convert failure into a
+// successful empty account or league.
 
 import { supabase } from './client'
+import {
+  mapLeagueMemberPage,
+  mapTransferCandidates,
+  type LeagueMemberPage,
+  type TransferCandidate,
+} from './leagueMembersModel'
+
+export type {
+  LeagueMember,
+  LeagueMemberPage,
+  LeagueMemberYou,
+  TransferCandidate,
+} from './leagueMembersModel'
 
 export type CreatedLeague = { id: string; name: string; inviteCode: string }
 
@@ -38,15 +50,9 @@ export type LeagueHeader = {
   ownerName: string
 }
 
-export type LeagueMember = {
-  userId: string
-  displayName: string
-  totalPoints: number
-  isYou: boolean
-  isOwner: boolean
-  hasEntry: boolean
-  predictedCount: number
-  joinedAt: string
+export type LeagueMemberPageOptions = {
+  limit?: number
+  after?: string | null
 }
 
 /** Create a league and return its id, name and freshly-minted invite code. */
@@ -116,20 +122,33 @@ export async function fetchLeague(leagueId: string): Promise<LeagueHeader> {
   }
 }
 
-/** Member rows for a league the caller belongs to (name + points; ranked in the domain). */
-export async function fetchLeagueMembers(leagueId: string): Promise<LeagueMember[]> {
-  const { data, error } = await supabase.rpc('get_league_members', { p_league_id: leagueId })
+/** Fetch one server-ranked private-league standings page. */
+export async function fetchLeagueMembersPage(
+  leagueId: string,
+  options: LeagueMemberPageOptions = {},
+): Promise<LeagueMemberPage> {
+  const { data, error } = await supabase.rpc('get_league_members', {
+    p_league_id: leagueId,
+    p_limit: options.limit ?? 50,
+    p_after: options.after ?? null,
+  })
   if (error) throw error
-  return (data ?? []).map((r: Record<string, unknown>) => ({
-    userId: r.user_id as string,
-    displayName: r.display_name as string,
-    totalPoints: r.total_points as number,
-    isYou: r.is_you as boolean,
-    isOwner: r.is_owner as boolean,
-    hasEntry: r.has_entry as boolean,
-    predictedCount: r.predicted_count as number,
-    joinedAt: r.joined_at as string,
-  }))
+  return mapLeagueMemberPage(data)
+}
+
+/** Owner-only candidate search, independent of the standings page payload. */
+export async function searchLeagueTransferCandidates(
+  leagueId: string,
+  query = '',
+  limit = 20,
+): Promise<TransferCandidate[]> {
+  const { data, error } = await supabase.rpc('search_league_transfer_candidates', {
+    p_league_id: leagueId,
+    p_query: query,
+    p_limit: limit,
+  })
+  if (error) throw error
+  return mapTransferCandidates(data ?? [])
 }
 
 /** Leave a league. The server refuses if the caller is the owner. */
