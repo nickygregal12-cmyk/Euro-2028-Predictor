@@ -182,8 +182,9 @@ jobs:
             revoke all on tables from anon, authenticated;
           drop schema if exists supabase_migrations cascade;
           truncate table auth.users cascade;
-          delete from storage.objects;
-          delete from storage.buckets;
+          -- Local-only cleanup. TRUNCATE avoids Storage's protect_delete()
+          -- row trigger while clearing the disposable restore target.
+          truncate table storage.objects, storage.buckets cascade;
           commit;
           SQL
 
