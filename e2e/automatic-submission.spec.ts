@@ -39,7 +39,9 @@ test('complete and incomplete entries expose truthful automatic outcomes', async
   desktopOnly(testInfo)
   test.setTimeout(180_000)
 
-  const fixture = await prepareAutomaticSubmissionFixture(testInfo.project.name)
+  const fixture = await prepareAutomaticSubmissionFixture(
+    `${testInfo.project.name}-retry-${testInfo.retry}`,
+  )
   try {
     await loginAs(page, fixture.complete.email, fixture.complete.password)
     await page.goto('/predict/review')
@@ -50,20 +52,20 @@ test('complete and incomplete entries expose truthful automatic outcomes', async
       page.getByRole('heading', { name: 'Review and submit' }),
     ).toBeVisible()
     await expect(
-      page.getByRole('alert').filter({ hasText: 'Entry submitted automatically' }),
-    ).toContainText('No prediction was changed', { timeout: 15_000 })
+      page.getByText('Entry submitted automatically', { exact: true }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/No prediction was changed/)).toBeVisible()
 
     await loginAs(page, fixture.incomplete.email, fixture.incomplete.password)
     await page.goto('/predict/review')
     await expect(page).toHaveURL((url) => url.pathname === '/predict/review', {
       timeout: 15_000,
     })
-    const failed = page
-      .getByRole('alert')
-      .filter({ hasText: 'Entry was not submitted automatically' })
-    await expect(failed).toBeVisible({ timeout: 15_000 })
-    await expect(failed).toContainText('remains unsubmitted')
-    await expect(failed).toContainText(/Group [A-F]/)
+    await expect(
+      page.getByText('Entry was not submitted automatically', { exact: true }),
+    ).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/remains unsubmitted/)).toBeVisible()
+    await expect(page.getByText(/Group [A-F]/)).toBeVisible()
   } finally {
     await restoreAutomaticSubmissionFixture(fixture)
   }
