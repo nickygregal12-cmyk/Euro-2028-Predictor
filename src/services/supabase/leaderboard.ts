@@ -1,29 +1,30 @@
-// Overall leaderboard query wrapper. Reading every submitted entry's display
-// name + total is done through the `get_leaderboard` security-definer function
-// (see 20260719170000_lock_and_leaderboard.sql) so the profiles/entries RLS
-// stays tight — this module never selects those tables directly.
+// Overall leaderboard query wrapper. The server owns ordering, ranks, page
+// bounds and current-user context through the paginated `get_leaderboard` RPC.
+// This module never selects profiles, entries or score events directly.
 
 import { supabase } from './client'
+import {
+  mapLeaderboardPage,
+  type LeaderboardPage,
+} from './leaderboardModel'
 
-export type LeaderboardRow = {
-  displayName: string
-  totalPoints: number
-  isYou: boolean
+export type { LeaderboardPage, LeaderboardRow, LeaderboardYou } from './leaderboardModel'
+
+export type LeaderboardPageOptions = {
+  limit?: number
+  after?: string | null
 }
 
-/**
- * All submitted entries for a tournament, with display name, total points (0
- * until scoring lands) and whether the row is the current user's. Ranking is
- * applied in the pure domain (rankLeaderboard).
- */
-export async function fetchLeaderboard(tournamentId: string): Promise<LeaderboardRow[]> {
+/** Fetch one server-ranked leaderboard page. Page sizes are clamped by Postgres. */
+export async function fetchLeaderboardPage(
+  tournamentId: string,
+  options: LeaderboardPageOptions = {},
+): Promise<LeaderboardPage> {
   const { data, error } = await supabase.rpc('get_leaderboard', {
     p_tournament_id: tournamentId,
+    p_limit: options.limit ?? 50,
+    p_after: options.after ?? null,
   })
   if (error) throw error
-  return (data ?? []).map((r: { display_name: string; total_points: number; is_you: boolean }) => ({
-    displayName: r.display_name,
-    totalPoints: r.total_points,
-    isYou: r.is_you,
-  }))
+  return mapLeaderboardPage(data)
 }
