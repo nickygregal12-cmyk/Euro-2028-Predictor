@@ -5,10 +5,9 @@ import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
+import { RequireAdmin } from './features/admin/RequireAdmin'
+import { AdminLayout } from './features/admin/AdminLayout'
 
-// Route-level components are code-split (React.lazy) so each screen ships as its
-// own chunk, keeping the initial bundle small. The gates, providers and shell
-// stay eager (they decide what renders); only the leaf screens are lazy.
 const LoginPage = lazy(() => import('./features/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
 const SignUpPage = lazy(() => import('./features/auth/SignUpPage').then((m) => ({ default: m.SignUpPage })))
 const ResetRequestPage = lazy(() => import('./features/auth/ResetRequestPage').then((m) => ({ default: m.ResetRequestPage })))
@@ -31,11 +30,9 @@ const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').
 const WelcomePage = lazy(() => import('./features/welcome/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
+const AdminResultsPage = lazy(() => import('./features/admin/AdminResultsPage').then((m) => ({ default: m.AdminResultsPage })))
 const NotFoundPage = lazy(() => import('./features/notfound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
-// Development-only previews are referenced inside statically-false
-// import.meta.env.DEV branches so production builds remove both routes and
-// chunks entirely.
 const ComponentsPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/ComponentsPreview').then((m) => ({ default: m.ComponentsPreview })))
   : null
@@ -50,7 +47,6 @@ export default function App() {
         <RouteAccessibility />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            {/* Dev-only previews, outside the app shell + providers. */}
             {import.meta.env.DEV && ComponentsPreview ? (
               <Route path="/dev/components" element={<ComponentsPreview />} />
             ) : null}
@@ -58,32 +54,19 @@ export default function App() {
               <Route path="/dev/match-centre/:scenario" element={<MatchCentreScenarioPreview />} />
             ) : null}
 
-            {/* AuthProvider wraps both the auth screens and the app so they share
-                one session; the gates decide which the visitor sees. */}
             <Route element={<AuthLayout />}>
-              {/* Signed-out only: log in / sign up / request a password reset. */}
               <Route element={<RedirectIfAuthed />}>
                 <Route path="/auth/login" element={<LoginPage />} />
                 <Route path="/auth/signup" element={<SignUpPage />} />
                 <Route path="/auth/reset" element={<ResetRequestPage />} />
               </Route>
 
-              {/* Set-a-new-password lands here from the email link, which carries a
-                  recovery session — so it sits OUTSIDE the gates (RedirectIfAuthed
-                  would bounce that session to Home) and handles its own states. */}
               <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
-
-              {/* Invite deep link — handles both signed-in and signed-out itself,
-                  so it sits outside the gates (survives the logged-out case). */}
               <Route path="/join/:code" element={<JoinLandingPage />} />
 
-              {/* Signed-in only: tournament data + predictions → shell → screens. */}
               <Route element={<RequireAuth />}>
-                {/* /welcome sits above the welcome gate (no shell): a first-time
-                    user is routed here once, before Home. */}
                 <Route path="/welcome" element={<WelcomePage />} />
 
-                {/* Everything else is gated on having seen /welcome. */}
                 <Route element={<RequireWelcome />}>
                   <Route element={<AppShell />}>
                     <Route path="/" element={<HomePage />} />
@@ -101,16 +84,20 @@ export default function App() {
                     <Route path="/match/:matchRef" element={<MatchCentrePage />} />
                     <Route path="/more" element={<MorePage />} />
                     <Route path="/profile" element={<ProfilePage />} />
-                    {/* /more/points consolidated into Profile (which embeds the same
-                        PointsBreakdown). Kept as a redirect so old links resolve. */}
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                     <Route path="/more/scoring" element={<ScoringRulesPage />} />
+
+                    <Route element={<RequireAdmin />}>
+                      <Route path="/admin" element={<Navigate to="/admin/results" replace />} />
+                      <Route element={<AdminLayout />}>
+                        <Route path="/admin/results" element={<AdminResultsPage />} />
+                      </Route>
+                    </Route>
                   </Route>
                 </Route>
               </Route>
             </Route>
 
-            {/* Unknown routes get a real recovery view (not a silent redirect). */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
