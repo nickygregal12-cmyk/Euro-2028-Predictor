@@ -310,13 +310,12 @@ select is(
   'the incomplete entry receives an invalid audit outcome'
 );
 
-select like(
+select ok(
   (
     select failure_message
     from public.entry_automatic_submission_outcomes
     where entry_id = '23000000-0000-0000-0000-000000000102'
-  ),
-  'Group %',
+  ) like 'Group %',
   'the invalid outcome records the authoritative validation reason'
 );
 
@@ -394,11 +393,12 @@ select is(
   'automatic_submission_failed',
   'the incomplete entry owner sees the failed automatic outcome'
 );
-select like(
-  public.get_entry_submission_status(
-    '23000000-0000-0000-0000-000000000102'
-  ) ->> 'failureMessage',
-  'Group %',
+select ok(
+  (
+    public.get_entry_submission_status(
+      '23000000-0000-0000-0000-000000000102'
+    ) ->> 'failureMessage'
+  ) like 'Group %',
   'the owner sees the safe validator explanation'
 );
 reset role;
@@ -462,13 +462,12 @@ select is(
   'the automatic submission processor is scheduled every minute'
 );
 
-select like(
+select ok(
   (
     select command
     from cron.job
     where jobname = 'euro28-auto-submit-due-entries'
-  ),
-  '%process_due_entry_submissions%',
+  ) like '%process_due_entry_submissions%',
   'the cron job calls the server-owned processor'
 );
 
