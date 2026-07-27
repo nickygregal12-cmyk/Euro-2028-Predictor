@@ -1,7 +1,7 @@
-import { userFacingError } from '../../shared/errors/userFacingError'
 import { useState } from 'react'
 import { Modal, TextInput, Button, Alert } from '../../design-system'
 import { createLeague, type CreatedLeague } from '../../services/supabase/leagues'
+import { friendlyLeagueError } from './leagueErrors'
 import { InvitePanel } from './InvitePanel'
 import s from './leagueForms.module.css'
 
@@ -55,7 +55,7 @@ export function CreateLeagueModal({ open, onClose, tournamentId, onView }: Creat
       const league = await createLeague(tournamentId, trimmed)
       setCreated(league)
     } catch (e) {
-      setError(userFacingError(e, 'Could not create the league. Try again.'))
+      setError(friendlyLeagueError(e))
     } finally {
       setSubmitting(false)
     }
@@ -68,7 +68,14 @@ export function CreateLeagueModal({ open, onClose, tournamentId, onView }: Creat
         onClose={close}
         title="League created"
         footer={
-          <Button fullWidth onClick={() => { const id = created.id; reset(); onView(id) }}>
+          <Button
+            fullWidth
+            onClick={() => {
+              const id = created.id
+              reset()
+              onView(id)
+            }}
+          >
             View league
           </Button>
         }
