@@ -6,6 +6,7 @@ import {
   type MatchLifecycleState,
   type PredictorMatchData,
 } from './matchCentreContract'
+import { authoritativeMatchScore, hasAuthoritativeResult } from './authoritativeMatchResult'
 
 export type RepositoryMatchAdapterInput = {
   match: Match
@@ -26,7 +27,7 @@ const EMPTY_PREDICTOR: PredictorMatchData = {
 }
 
 function repositoryLifecycle(match: Match, now: string): MatchLifecycleState {
-  if (match.homeScore !== null && match.awayScore !== null) return 'FULL_TIME'
+  if (hasAuthoritativeResult(match)) return 'FULL_TIME'
   if (!match.kickoffAt) return 'SCHEDULED'
 
   const kickoffMs = Date.parse(match.kickoffAt)
@@ -74,7 +75,7 @@ export function adaptRepositoryMatchToCentre(
   const awayTeam = input.match.awayTeamId
     ? teamsById.get(input.match.awayTeamId)
     : undefined
-  const hasResult = input.match.homeScore !== null && input.match.awayScore !== null
+  const result = authoritativeMatchScore(input.match)
   const lifecycle = repositoryLifecycle(input.match, now)
 
   return {
@@ -96,8 +97,15 @@ export function adaptRepositoryMatchToCentre(
         name: teamName(awayTeam, input.match.awaySource),
         countryCode: null,
       },
-      score: hasResult
-        ? { home: input.match.homeScore as number, away: input.match.awayScore as number }
+      score: result
+        ? {
+            home: result.home,
+            away: result.away,
+            homeExtraTime: input.match.homeScore120 ?? null,
+            awayExtraTime: input.match.awayScore120 ?? null,
+            homePenalties: input.match.homePenalties ?? null,
+            awayPenalties: input.match.awayPenalties ?? null,
+          }
         : null,
       events: [],
       lineups: { home: null, away: null },
