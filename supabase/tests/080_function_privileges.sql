@@ -1,6 +1,13 @@
 begin;
 
-select plan(18);
+select plan(19);
+
+create temporary table expected_anon_functions (
+  signature text primary key
+) on commit drop;
+
+insert into expected_anon_functions (signature) values
+  ('get_public_capacity()');
 
 create temporary table expected_authenticated_functions (
   signature text primary key
@@ -18,6 +25,7 @@ insert into expected_authenticated_functions (signature) values
   ('get_league_preview(text)'),
   ('get_match_prediction_distribution(uuid)'),
   ('get_my_leagues(uuid)'),
+  ('get_public_capacity()'),
   ('get_rival_entry(uuid,uuid)'),
   ('join_league(text)'),
   ('leave_league(uuid)'),
@@ -41,7 +49,8 @@ insert into expected_service_functions (signature) values
   ('correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
   ('process_due_entry_submissions(timestamp with time zone)'),
   ('recompute_all_scores()'),
-  ('recompute_tournament_scores(uuid)');
+  ('recompute_tournament_scores(uuid)'),
+  ('set_operating_limits(integer,integer)');
 
 insert into expected_authenticated_functions (signature) values
   ('admin_actual_third_place_tie_revisions(uuid)'),
@@ -65,9 +74,25 @@ join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public';
 
 select is(
-  (select count(*)::integer from public_function_privileges where anon_exec),
+  (
+    select count(*)::integer
+    from expected_anon_functions expected
+    left join public_function_privileges actual using (signature)
+    where not coalesce(actual.anon_exec, false)
+  ),
   0,
-  'anon cannot execute any public application function'
+  'the anonymous RPC allowlist has no missing function'
+);
+
+select is(
+  (
+    select count(*)::integer
+    from public_function_privileges actual
+    left join expected_anon_functions expected using (signature)
+    where actual.anon_exec and expected.signature is null
+  ),
+  0,
+  'anonymous users cannot execute outside the aggregate capacity allowlist'
 );
 
 select is(
