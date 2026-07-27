@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { GlobeIcon, ChevronRightIcon, PlusIcon, UsersIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
-import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
-import { fetchLeaderboard } from '../../services/supabase/leaderboard'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { fetchMyLeagues, type LeagueSummary } from '../../services/supabase/leagues'
 import { MyLeagueCard } from '../leagues/MyLeagueCard'
 import { CreateLeagueModal } from '../leagues/CreateLeagueModal'
@@ -46,17 +45,17 @@ export function LeaguePage() {
     let active = true
     setState({ status: 'loading' })
 
-    fetchLeaderboard(tournamentId)
-      .then((rows) => {
+    // The hub needs only the total count and current-user context. A one-row
+    // page keeps this summary bounded even when the tournament reaches its cap.
+    fetchLeaderboardPage(tournamentId, { limit: 1 })
+      .then((page) => {
         if (!active) return
-        const ranked = rankLeaderboard(rows)
-        const preResults = ranked.every((row) => row.rank === null)
-        const you = ranked.find((row) => row.isYou)
+        const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
         setState({
           status: 'ready',
           overall: {
-            entryCount: ranked.length,
-            yourRank: preResults ? null : (you?.rank ?? null),
+            entryCount: page.totalCount,
+            yourRank: preResults ? null : (page.you?.rank ?? null),
             preResults,
           },
         })
