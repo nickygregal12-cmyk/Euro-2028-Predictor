@@ -1,8 +1,7 @@
 # Production observability and application rollback
 
 **Status:** privacy-safe Sentry production delivery verified; operating policy and rollback rehearsal remain incomplete.  
-**Repository/development contract:** 38.
-**Retained final-target contract:** 36.
+**Repository/development/production contract:** 38.
 **Primary owner:** `nickygregal12-cmyk`.  
 **Scope:** client failures, release identity, anonymous read-only smoke and static-application rollback. This runbook authorizes no database write.
 
@@ -42,9 +41,9 @@ Current target identities:
 | Target | Environment | App/hosted contract | Supabase |
 | --- | --- | ---: | --- |
 | Development preview | `deploy-preview` | 38/38 | `iouzoutneyjpugbbtdem` |
-| Retained final target | `production` | 36/36 | `vkfnsqdyhvtwyqkisxhk` |
+| Production milestone | `production` | 38/38 | `vkfnsqdyhvtwyqkisxhk` |
 
-Preview requires the exact PR head. Production currently verifies the retained compatible release rather than the current `main` commit, because the deployment guard intentionally blocks contract-38 code from a contract-36 final-target database. Restore exact-head production verification during the controlled 36→38 promotion.
+Preview requires the exact PR head. Production smoke is manual milestone-only and requires the exact selected `main` head.
 
 ## Required smoke contract
 
@@ -54,21 +53,23 @@ Both smoke implementations require:
 EURO28_SMOKE_EXPECTED_CONTRACT=<positive-integer>
 ```
 
-The command fails closed if this value is missing or invalid. Do not add a shared hardcoded contract: preview and final target intentionally differ until final-target promotion.
+The command fails closed if this value is missing or invalid. Keep the expectation explicit even while both targets are contract 38.
 
 ## Anonymous final-target smoke
 
 Read-only HTTP smoke:
 
 ```bash
-EURO28_SMOKE_EXPECTED_CONTRACT=36 \
+EURO28_SMOKE_EXPECTED_CONTRACT=38 \
+EURO28_SMOKE_EXPECTED_COMMIT="<approved-main-sha>" \
 npm run smoke:production
 ```
 
 Read-only browser smoke:
 
 ```bash
-EURO28_SMOKE_EXPECTED_CONTRACT=36 \
+EURO28_SMOKE_EXPECTED_CONTRACT=38 \
+EURO28_SMOKE_EXPECTED_COMMIT="<approved-main-sha>" \
 npm run smoke:production:browser
 ```
 
@@ -109,17 +110,17 @@ Use the same variables with `npm run smoke:production:browser`. Never use final-
 - anonymous browser smoke;
 - disposable authenticated and auth-recovery browser suites.
 
-### Retained final target
+### Production milestone
 
-`.github/workflows/production-smoke.yml` currently requires:
+`.github/workflows/production-smoke.yml` is manual-only and requires:
 
 - production environment;
-- contract 36/36;
+- contract 38/38;
 - final-target Supabase;
-- non-local release IDs;
+- the exact selected `github.sha`;
 - HTTP/browser smoke.
 
-It deliberately does not require `github.sha` while production cannot accept contract-38 `main`. During final-target promotion, change the workflow to contract 38 and restore exact-head commit enforcement in the same reviewed batch.
+It is not an ordinary pull-request gate. Run it after an approved production milestone is published.
 
 ## Sentry privacy boundary
 
@@ -144,7 +145,7 @@ Production delivery is not the remaining gap. Complete these controls:
 2. confirm server-side default data scrubbing and IP-address scrubbing remain enabled;
 3. name one backup alert recipient;
 4. record escalation path and response windows;
-5. retain push-triggered production-smoke conclusions where accessible;
+5. retain milestone production-smoke conclusions where accessible;
 6. perform the owner-approved Netlify rollback promotion rehearsal.
 
 Alerts remain limited to actionable startup, availability, route-affecting error and deployment failures. No alert may automatically modify data, apply a migration, reset Supabase or switch environments.
@@ -153,12 +154,12 @@ Alerts remain limited to actionable startup, availability, route-affecting error
 
 A Netlify rollback changes static files only, not Supabase schema/data.
 
-- **Static client regression while final-target database remains contract 36:** a compatible contract-36 application rollback may be appropriate.
+- **Static client regression while production remains contract 38:** a compatible contract-38 application rollback may be appropriate.
 - **Database/RLS/function/history/data incident:** stop and use database recovery/change control.
 - **Wrong Supabase or contract identity:** stop deployment/traffic and investigate; never point production at development.
 - **Auth/CAPTCHA incident:** use the separate Auth/Turnstile process.
 
-The verified contract-36 production database remains the current baseline. A contract-38 baseline replaces it only after release identity, CI and final-target smoke evidence are retained.
+The verified contract-38 production application/database pair is the current baseline.
 
 ### Pre-rollback
 
@@ -170,7 +171,7 @@ Use Netlify’s reviewed deploy restore/promote mechanism for the exact compatib
 
 ### Post-rollback
 
-Run both final-target smoke commands with `EURO28_SMOKE_EXPECTED_CONTRACT=36` unless a separately approved final-target contract change has occurred. Confirm intended deploy, headers, auth routes, signed-out gates, no development request and unchanged database history.
+Run both final-target smoke commands with `EURO28_SMOKE_EXPECTED_CONTRACT=38` and the exact candidate commit unless a separately approved contract change has occurred. Confirm intended deploy, headers, auth routes, signed-out gates, no development request and unchanged database history.
 
 Authenticated mutation checks require separate approval, a named test identity, before/after evidence and exact restoration.
 
@@ -179,3 +180,4 @@ Authenticated mutation checks require separate approval, a named test identity, 
 - Sentry implementation and hosted production trace: `docs/quality/reconciliations/2026-07-26-sentry-operational-assurance.md`.
 - Contract-35 production baseline: `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`.
 - Contract-36 development/preview promotion: `docs/quality/reconciliations/2026-07-26-contract-36-development-promotion.md`.
+- Contract-38 production promotion: `docs/quality/reconciliations/2026-07-27-contract-38-final-target-promotion.md`.

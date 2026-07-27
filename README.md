@@ -6,18 +6,16 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-The repository and development environment are now at **contract 38**:
+The repository, development and production environments are now aligned at **contract 38**:
 
 - `config/deployment-contract.json` declares contract 38 and requires 38 canonical migrations;
-- development Supabase has the exact canonical history through `20260727080159`;
-- non-production Netlify contexts declare contract 38;
+- both hosted Supabase projects have the exact canonical history through `20260727080159`;
+- every Netlify context declares contract 38 while retaining development/production isolation;
 - the administrator foundation and browser-authorised result RPC boundaries are merged.
 
-Production Supabase `vkfnsqdyhvtwyqkisxhk` is intentionally retained at **contract 36**, with exactly migrations `20260727075922` and `20260727080159` pending until a controlled promotion. Development Supabase is `iouzoutneyjpugbbtdem` and has nothing pending.
+Production deploy `6a67560deb88202a74108c37` passed exact-release HTTP smoke and is locked after the milestone. Normal work continues against development Supabase `iouzoutneyjpugbbtdem`; production Supabase `vkfnsqdyhvtwyqkisxhk` is promoted only at deliberate milestones.
 
-The Netlify/Supabase context historically named `production` is the intended final-target environment. It is not supporting a live Euro 2028 tournament. It must still remain isolated and controlled because it preserves the intended final configuration and retained verification data.
-
-The administrator migration reconciliation is recorded in [`2026-07-27-admin-migration-version-reconciliation.md`](docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md). The production 36→38 procedure is [`docs/ops-production-promotion-contract-38.md`](docs/ops-production-promotion-contract-38.md).
+The project now uses proportionate Development Mode gates: ordinary UI/docs use CI and targeted previews, feature/schema work adds relevant parity/E2E, and the full backup/approval/promotion sequence is reserved for production-risk work.
 
 This does **not** mean the product is tournament-launch-ready. Official Euro 2028 data, administrator journeys, monitoring ownership, Auth/CAPTCHA configuration, accessibility review and a full dress rehearsal remain.
 
@@ -122,8 +120,6 @@ Repository contract 38 supports:
 | Question | Source |
 | --- | --- |
 | Current implementation, hosted status, blockers and next action | `docs/quality/current-status.md` |
-| Contract-38 administrator reconciliation | `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md` |
-| Production 36→38 promotion procedure | `docs/ops-production-promotion-contract-38.md` |
 | Agent, Git and database discipline | `AGENTS.md`; `CLAUDE.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Migration inventory and hosted applied state | `docs/ops-pending-migrations.md` |
@@ -132,7 +128,7 @@ Repository contract 38 supports:
 | Architecture and tournament states | `docs/architecture-and-tournament-states.md` |
 | Interface and design system | `docs/design-system.md` |
 | Competition boundaries | `docs/competition-structure.md` |
-| Future product sequence | `docs/roadmap.md`; `docs/build-todo.md` |
+| Future product sequence | `docs/roadmap.md` |
 | Operations records and repeatable procedures | `docs/ops-*.md` |
 
 Dated audits and reconciliations remain historical evidence. Roadmap and TODO documents describe future intent and sequencing, not proof that a feature or migration is live.

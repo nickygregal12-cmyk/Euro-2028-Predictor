@@ -9,19 +9,19 @@ Live source of truth for repository migration count, hosted state and pending ro
 | Repository `main` | 38 | 38 canonical files through `20260727080159` | none |
 | Development Supabase `iouzoutneyjpugbbtdem` | 38 | exactly 38 canonical versions through `20260727080159` | none |
 | Netlify `dev`, `branch-deploy`, `deploy-preview` | 38 | development Supabase | none |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 36 | exactly 36 canonical versions through `20260725010000` | migrations 37–38 |
-| Netlify `production` | 36 | final-target Supabase | contract lift follows database verification |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 38 | exactly 38 canonical versions through `20260727080159` | none |
+| Netlify `production` | 38 | production Supabase; verified milestone deploy is locked | none |
 
-Production is a controlled final target, not an active tournament. Its contract must remain 36 until both pending migrations have been applied and verified.
+Production is a controlled future-tournament target, not an active tournament. Contract 38 promotion is complete.
 
-## Exact production pending inventory
+## Migration 37–38 hosted history
 
 | # | Canonical migration | Purpose | Development | Production |
 | ---: | --- | --- | --- | --- |
-| 37 | `20260727075922_admin_result_authorization.sql` | Browser-authorised administrator result confirmation, correction, clearing and revision access | Applied and verified | Pending |
-| 38 | `20260727080159_admin_result_revision_timestamp.sql` | Correct administrator result-revision timestamp projection | Applied and verified | Pending |
+| 37 | `20260727075922_admin_result_authorization.sql` | Browser-authorised administrator result confirmation, correction, clearing and revision access | Applied and verified | Applied and verified |
+| 38 | `20260727080159_admin_result_revision_timestamp.sql` | Correct administrator result-revision timestamp projection | Applied and verified | Applied and verified |
 
-No other repository migration is pending on production. Development has no pending migration.
+No repository migration is pending on either hosted project.
 
 The repository filenames match the exact canonical versions recorded in development. With one final LF stripped, their verified MD5 values are:
 
@@ -30,26 +30,15 @@ The repository filenames match the exact canonical versions recorded in developm
 
 Do not renumber, reapply under another timestamp, repair history, or alter either SQL file.
 
-## Promotion authority
+## Future rollout authority
 
-Use [`docs/ops-production-promotion-contract-38.md`](ops-production-promotion-contract-38.md) for the strict production 36→38 checklist.
-
-The promotion must require:
-
-1. a fresh green `Production backup` workflow run, with the encrypted artifact stored off GitHub, dated within 24 hours of the window;
-2. a read-only history check showing exactly versions 1–36;
-3. `supabase db push --dry-run` listing exactly `20260727075922` and `20260727080159`;
-4. explicit owner approval;
-5. application and verification of exactly those two canonical migrations;
-6. production Netlify contract 38 only after database verification;
-7. exact-head production smoke and a dated reconciliation.
-
-No backup, history mismatch, surplus dry-run migration, failed verification or missing owner approval means stop.
+Contract 38 promotion is closed. Future production migrations follow the milestone gate in `AGENTS.md`: current history, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope and full verification.
 
 ## Related evidence
 
 - `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md`
 - `docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`
-- `docs/quality/reconciliations/2026-07-XX-production-backup-workflow.md`
+- `docs/quality/reconciliations/2026-07-27-production-backup-workflow.md`
+- `docs/quality/reconciliations/2026-07-27-contract-38-final-target-promotion.md`
 - `docs/ops-production-backup-restore.md`
 - `config/deployment-contract.json`

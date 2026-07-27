@@ -1,5 +1,7 @@
 # Production promotion — contract 36 to 38
 
+> **Completed 27 July 2026.** Retained as historical operator evidence; do not reuse it as the current promotion checklist. Future production milestones follow `AGENTS.md`.
+
 **Target:** production Supabase `vkfnsqdyhvtwyqkisxhk` and Netlify `production`  
 **Scope:** exactly migrations `20260727075922` and `20260727080159`  
 **Authority:** operator checklist; every stop condition is mandatory

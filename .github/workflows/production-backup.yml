@@ -33,9 +33,9 @@ jobs:
 
     env:
       EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
-      EXPECTED_MIGRATION_COUNT: '36'
-      EXPECTED_LATEST_MIGRATION_VERSION: '20260725010000'
-      EXPECTED_LATEST_MIGRATION_NAME: authoritative_reference_integrity
+      EXPECTED_MIGRATION_COUNT: '38'
+      EXPECTED_LATEST_MIGRATION_VERSION: '20260727080159'
+      EXPECTED_LATEST_MIGRATION_NAME: admin_result_revision_timestamp
       BACKUP_WORK_DIR: /tmp/production-backup
       LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 

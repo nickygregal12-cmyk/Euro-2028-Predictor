@@ -1,25 +1,26 @@
 # Production backup and restore rehearsal
 
 **Status date:** 27 July 2026  
-**Scope:** Canonical recovery procedure, completed contract-35 evidence and the owner-triggered contract-36 backup workflow.  
+**Scope:** Canonical recovery procedure and the owner-triggered contract-38 backup workflow.
 **Authority:** This document prepares, records and verifies recovery evidence. It does not by itself authorize a production restore or future migration.
 
 ## Current verified position
 
 Production Supabase project `vkfnsqdyhvtwyqkisxhk` is on the Free plan. Automatic daily backups and PITR must not be assumed. Production recovery therefore relies on fresh logical exports, encrypted off-machine custody and proven disposable restores.
 
-The contract-35 rollout was completed with accepted recovery evidence. Migration 36 was subsequently applied to production on 27 July 2026 under an explicit owner-approved recovery exception: no fresh backup and restore rehearsal preceded that write. Until the exception is closed, no fresh recovery mechanism has been proven at contract 36.
+The recovery exception is closed. Green backup run `30264080847` restored and verified the contract-36 source before production advanced to contract 38; the encrypted artifact was downloaded and preserved off GitHub. The workflow now expects the current contract-38 head for future milestone backups.
 
 Latest records:
 
 - recovery acceptance (contract 35): `docs/quality/reconciliations/2026-07-25-final-recovery-acceptance.md`;
 - production execution (contract 35): `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`;
-- contract-36 promotion with open recovery exception: `docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`;
-- backup workflow record: `docs/quality/reconciliations/2026-07-XX-production-backup-workflow.md`.
+- contract-36 promotion exception: `docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`;
+- closed backup workflow record: `docs/quality/reconciliations/2026-07-27-production-backup-workflow.md`;
+- contract-38 promotion: `docs/quality/reconciliations/2026-07-27-contract-38-final-target-promotion.md`.
 
 ## GitHub Actions backup workflow (owner-triggered, no local machine)
 
-`.github/workflows/production-backup.yml` produces an encrypted, restore-verified logical backup of production entirely from the GitHub Actions UI. It exists to close the recovery exception recorded in the 27 July 2026 promotion reconciliation; that exception is closed only by this workflow's **first successful run**, not by the workflow merely existing.
+`.github/workflows/production-backup.yml` produces an encrypted, restore-verified logical backup of production entirely from GitHub Actions. It is manual-only and reserved for production milestones, destructive-risk work and periodic recovery verification.
 
 ### Required repository secrets
 
@@ -33,7 +34,7 @@ The workflow fails immediately, before any dump step, if either secret is missin
 ### What one run does
 
 1. dumps roles, schema and COPY-format data read-only — including the `auth.users` / `public.profiles` data path required by `create-production-backup.sh` — plus the `supabase_migrations` history via `pg_dump`;
-2. restores the plaintext dump into a disposable local Supabase inside the same job and verifies that the restored migration history has exactly 36 versions ending in `20260725010000` / `authoritative_reference_integrity`;
+2. restores the plaintext dump into a disposable local Supabase inside the same job and verifies that the restored migration history has exactly 38 versions ending in `20260727080159` / `admin_result_revision_timestamp`;
 3. prints inventory-equivalent counts from the restored copy (counts only — never emails, display names or row contents), then tears the disposable instance down;
 4. age-encrypts the bundle to `BACKUP_AGE_PUBLIC_KEY` as `euro28-prod-<UTC>.backup.tar.gz.age` and shreds every plaintext dump file before the artifact step;
 5. uploads only the encrypted file as a workflow artifact with 7-day retention, failing if any non-`.age` dump file would be uploaded;
@@ -338,9 +339,12 @@ At 25 July 2026:
 
 At 27 July 2026:
 
-- contract-36 production write executed under an explicit recovery exception: **exception open**;
-- owner-triggered encrypted backup workflow (`production-backup.yml`): **added; first successful run pending**;
-- the recovery exception closes only after that first successful run and the owner's off-GitHub artifact download.
+- green owner-triggered encrypted backup run `30264080847`: **passed**;
+- disposable restore and 36-version verification: **passed**;
+- owner off-GitHub encrypted custody and ZIP digest match: **passed**;
+- contract-36 recovery exception: **closed**;
+- contract-38 promotion and exact-release smoke: **passed**;
+- backup workflow baseline for future runs: **38 versions through `20260727080159`**.
 
 ## Related documents
 
