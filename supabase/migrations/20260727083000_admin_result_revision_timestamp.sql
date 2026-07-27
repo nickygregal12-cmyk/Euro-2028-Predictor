@@ -1,6 +1,8 @@
 begin;
 
-create or replace function public.admin_match_result_revisions(p_match_id uuid)
+drop function public.admin_match_result_revisions(uuid);
+
+create function public.admin_match_result_revisions(p_match_id uuid)
 returns table (
   revision integer,
   action text,
