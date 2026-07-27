@@ -1,6 +1,6 @@
 begin;
 
-select plan(27);
+select plan(28);
 
 create or replace function pg_temp.capture_sqlstate(p_sql text)
 returns text
@@ -182,8 +182,6 @@ select is(
   'normal pre-lock writes maintain all derived group positions'
 );
 
--- Remove only the derived rows while editing is still open. The automatic
--- processor must rebuild them after lock through its narrow server capability.
 delete from public.predicted_group_positions
 where entry_id = '23000000-0000-0000-0000-000000000101';
 
