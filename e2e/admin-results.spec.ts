@@ -1,8 +1,10 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import {
   clearPreparedKnockoutFixture,
+  clearPreparedThirdPlaceBoundaryTie,
   deleteOrdinaryUser,
   ensureMatchResultCleared,
+  prepareActualThirdPlaceBoundaryTie,
   prepareOrdinaryUser,
   prepareResolvedKnockoutFixture,
 } from './admin-results-local'
@@ -230,6 +232,62 @@ test.describe('Admin result workflow', () => {
       ).toBeVisible()
     } finally {
       await clearPreparedKnockoutFixture(fixture)
+    }
+  })
+
+  test('authorised admin resolves and clears an actual third-place boundary tie', async ({
+    page,
+  }, testInfo) => {
+    desktopOnly(testInfo)
+    const fixture = await prepareActualThirdPlaceBoundaryTie()
+    try {
+      await openAdminResults(page)
+      const panel = page.locator('section').filter({
+        has: page.getByRole('heading', { name: 'Best third-place boundary' }),
+      })
+      await expect(panel).toBeVisible()
+      await expect(panel).toContainText('An official order is required')
+      await expect(panel).toContainText('Team B3')
+      await expect(panel).toContainText('Team C3')
+
+      await panel.getByRole('button', { name: 'Move Team C3 up' }).click()
+      await panel
+        .getByLabel('Resolution reason')
+        .fill('Official fair-play order placed Team C3 first')
+      await panel.getByRole('button', { name: 'Review resolution' }).click()
+
+      const resolveDialog = page.getByRole('dialog', {
+        name: 'Review: Resolve third-place order',
+      })
+      await expect(resolveDialog).toContainText('Team C3')
+      await expect(resolveDialog).toContainText('qualifies')
+      await resolveDialog
+        .getByRole('button', { name: 'Save official order', exact: true })
+        .click()
+
+      await expect(panel).toContainText('The current official order is active', {
+        timeout: 15_000,
+      })
+      await expect(panel).toContainText('Revision 1 · resolve')
+
+      await panel
+        .getByLabel('Correction or clear reason')
+        .fill('Clear the browser-test official order')
+      await panel.getByRole('button', { name: 'Review clear' }).click()
+
+      const clearDialog = page.getByRole('dialog', {
+        name: 'Review: Clear third-place order',
+      })
+      await clearDialog
+        .getByRole('button', { name: 'Clear resolution', exact: true })
+        .click()
+
+      await expect(panel).toContainText('An official order is required', {
+        timeout: 15_000,
+      })
+      await expect(panel).toContainText('Revision 2 · clear')
+    } finally {
+      await clearPreparedThirdPlaceBoundaryTie(fixture)
     }
   })
 
