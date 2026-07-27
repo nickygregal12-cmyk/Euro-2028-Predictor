@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { GlobeIcon, ChevronRightIcon, PlusIcon, UsersIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
-import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
-import { fetchLeaderboard } from '../../services/supabase/leaderboard'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { fetchMyLeagues, type LeagueSummary } from '../../services/supabase/leagues'
 import { MyLeagueCard } from '../leagues/MyLeagueCard'
 import { CreateLeagueModal } from '../leagues/CreateLeagueModal'
@@ -14,9 +13,6 @@ import { ordinal } from './ordinal'
 import s from '../shared.module.css'
 import h from '../leagues/hub.module.css'
 
-// The League tab hub (Original Predictor only — competition-structure §1):
-// overall standings summary pinned first, then the user's private leagues, then
-// create/join actions (design-system §6).
 type OverallSummary = { entryCount: number; yourRank: number | null; preResults: boolean }
 
 type State =
@@ -46,17 +42,17 @@ export function LeaguePage() {
     let active = true
     setState({ status: 'loading' })
 
-    fetchLeaderboard(tournamentId)
-      .then((rows) => {
+    // The hub needs only total count and current-user context. Requesting a
+    // single row keeps the summary bounded even at the operating cap.
+    fetchLeaderboardPage(tournamentId, { limit: 1 })
+      .then((page) => {
         if (!active) return
-        const ranked = rankLeaderboard(rows)
-        const preResults = ranked.every((row) => row.rank === null)
-        const you = ranked.find((row) => row.isYou)
+        const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
         setState({
           status: 'ready',
           overall: {
-            entryCount: ranked.length,
-            yourRank: preResults ? null : (you?.rank ?? null),
+            entryCount: page.totalCount,
+            yourRank: preResults ? null : (page.you?.rank ?? null),
             preResults,
           },
         })
@@ -151,7 +147,6 @@ export function LeaguePage() {
     <div className={s.page}>
       {header}
 
-      {/* Overall standings summary — pinned first, taps into the full table. */}
       <button type="button" className={h.overallCard} onClick={() => navigate('/league/overall')}>
         <span className={h.globe}>
           <GlobeIcon size={22} />
@@ -172,7 +167,6 @@ export function LeaguePage() {
         <ChevronRightIcon size={18} className={h.chev} />
       </button>
 
-      {/* My leagues. A failed read must never masquerade as a successful empty account. */}
       <p className={h.sectionLabel}>Your leagues</p>
       {leaguesState.status === 'loading' ? (
         <div className={s.card}>
@@ -211,7 +205,6 @@ export function LeaguePage() {
         </div>
       )}
 
-      {/* Create / join. */}
       <div className={h.actions}>
         <Button fullWidth onClick={() => setCreating(true)}>
           <span className={h.actionBtnInner}>
