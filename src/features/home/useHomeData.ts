@@ -233,10 +233,7 @@ export function useHomeData(): HomeState {
               memberCount: league.memberCount,
               rank: meInLeague?.rank ?? null,
               gapToTop: meInLeague ? topPoints - meInLeague.totalPoints : null,
-              // Contract 45 removes the full member payload. This provisional
-              // value is replaced by the summary RPC's latest activity field
-              // before hosted promotion.
-              lastActivityMs: Date.parse(meInLeague?.joinedAt ?? '') || 0,
+              lastActivityMs: Date.parse(league.lastActivityAt ?? '') || 0,
             })
           } catch {
             memberReadFailed = true
