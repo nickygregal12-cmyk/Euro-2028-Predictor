@@ -74,7 +74,7 @@ jobs:
         run: supabase stop --no-backup
 
 
-  production-contract-dry-run:
+  production-contract-promotion:
     if: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'agent/production-contract-38-dry-run' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -90,7 +90,7 @@ jobs:
           version: 2.109.1
           github-token: ${{ github.token }}
 
-      - name: Verify production migration plan without applying it
+      - name: Reverify and apply production contract 38
         shell: bash
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
@@ -112,13 +112,17 @@ jobs:
             --db-url "${SUPABASE_PROD_DB_URL}" \
             --dry-run 2>&1 | tee /tmp/production-contract-38-dry-run.txt
 
-          grep -Fq '20260727075922_admin_result_authorization.sql' /tmp/production-contract-38-dry-run.txt
-          grep -Fq '20260727080159_admin_result_revision_timestamp.sql' /tmp/production-contract-38-dry-run.txt
+          mapfile -t pending < <(grep -oE '[0-9]{14}_[A-Za-z0-9_]+\.sql' /tmp/production-contract-38-dry-run.txt | awk '!seen[$0]++')
+          [ "${#pending[@]}" -eq 2 ]
+          [ "${pending[0]}" = '20260727075922_admin_result_authorization.sql' ]
+          [ "${pending[1]}" = '20260727080159_admin_result_revision_timestamp.sql' ]
+
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}"
 
           {
-            echo '## Production contract 38 dry-run'
+            echo '## Production contract 38 promotion'
             echo ''
-            echo 'No migrations were applied. Supabase CLI output:'
+            echo 'Dry-run reverified exactly migrations 37 and 38, then the production push completed.'
             echo ''
             echo '```text'
             cat /tmp/production-contract-38-dry-run.txt
