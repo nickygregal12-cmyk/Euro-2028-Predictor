@@ -27,7 +27,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 | Contract alignment | **Complete.** Repository, development, production and Netlify declarations are all at 38. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator foundation | **Implemented.** Protected routes, capability checks and authorised result RPCs are merged. |
-| Administrator result UI | **Partial.** Mutation forms, confirmation review and browser acceptance remain. |
+| Administrator result UI | **Implemented.** Confirm/correct/clear forms, explicit review, reason capture and safe revision history are covered by component and browser journeys. |
 | Tournament lifecycle | **Not yet proven end-to-end.** A full seeded simulation remains the next major gate. |
 | Launch readiness | **Not ready.** Official data, accessibility, operations, automatic submission and full rehearsal remain. |
 
@@ -41,14 +41,15 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - exact function execution allowlists;
 - protected administrator routes and capability parsing;
 - browser-authorised result confirm, correct, clear and revision RPCs;
+- responsive administrator result forms with regulation, extra-time and penalty handling;
+- pre-mutation review, required correction/clear reasons and immutable revision display;
+- authorised and unauthorised administrator browser journeys on desktop/mobile;
 - environment/deployment-contract guards;
 - CI, path-scoped Database parity and path-scoped Browser E2E;
 - production backup/restore rehearsal and exact-release smoke.
 
 ## Immediate product gaps
 
-- administrator result mutation forms and confirmation review;
-- authorised/unauthorised admin Browser E2E;
 - authoritative knockout winner/method/extra-time/penalty consumption in Match Centre and H2H;
 - real Round-of-16 population and actual unresolved-tie workflow;
 - automatic valid-entry submission and reminders;
@@ -70,13 +71,16 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 ## Current next batch
 
-**Admin Control Room completion and first full tournament lifecycle simulation**
+**First full tournament lifecycle simulation**
 
-1. Build result confirm/correct/clear forms with explicit review and reason capture.
-2. Add authorised and unauthorised desktop/mobile Browser E2E.
-3. Seed a complete tournament and simulate pre-tournament, locks, live matches, corrections, progression, scoring and completion.
-4. Record defects as product work, not new audit paperwork.
-5. Exit only when the lifecycle is repeatable and resettable in development without touching production.
+1. Seed a complete tournament and representative users/leagues.
+2. Simulate pre-tournament entry, locks and submission.
+3. Run group matches through standings, ties and best thirds.
+4. Populate and play the real knockout bracket.
+5. Exercise result correction, clearing, replay and scoring recomputation.
+6. Verify rank history, Match Centre, H2H and completion states.
+7. Record defects as product work and exit only when the lifecycle is repeatable
+   and resettable in development without touching production.
 
 ## Operational follow-ups
 
