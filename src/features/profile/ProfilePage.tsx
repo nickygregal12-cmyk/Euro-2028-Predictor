@@ -8,10 +8,9 @@ import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildBracketPipeline } from '../bracket'
 import { scoreOneMatch } from '../predict/matchScoring'
-import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
 import { profileStats, type OutcomeKind } from '../../domain/tournament/profileStats'
 import { isEntryLocked } from '../../domain/tournament/entryLock'
-import { fetchLeaderboard } from '../../services/supabase/leaderboard'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchMyScoreEvents } from '../../services/supabase/scoring'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
@@ -93,7 +92,7 @@ export function ProfilePage() {
     const derived = profileStats(kinds)
 
     Promise.allSettled([
-      fetchLeaderboard(tournamentId),
+      fetchLeaderboardPage(tournamentId, { limit: 1 }),
       fetchMyLeagues(tournamentId),
       fetchMyScoreEvents(),
     ])
@@ -107,11 +106,10 @@ export function ProfilePage() {
         let events: ScoreEvent[] = []
 
         if (leaderboardRead.status === 'fulfilled') {
-          const ranked = rankLeaderboard(leaderboardRead.value)
-          const you = ranked.find((row) => row.isYou)
-          const preResults = ranked.every((row) => row.rank === null)
-          totalPoints = you?.totalPoints ?? 0
-          rank = preResults ? null : (you?.rank ?? null)
+          const page = leaderboardRead.value
+          const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
+          totalPoints = page.you?.totalPoints ?? 0
+          rank = preResults ? null : (page.you?.rank ?? null)
         } else {
           unavailable.push('leaderboard')
         }
