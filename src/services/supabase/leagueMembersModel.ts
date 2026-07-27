@@ -104,8 +104,18 @@ function mapYou(value: unknown): LeagueMemberYou | null {
   const row = objectOf(value)
   const mapped = mapMember({ ...row, isYou: true })
   if (!mapped) return null
-  const { isYou: _isYou, ...you } = mapped
-  return you
+  return {
+    userId: mapped.userId,
+    displayName: mapped.displayName,
+    totalPoints: mapped.totalPoints,
+    rank: mapped.rank,
+    tied: mapped.tied,
+    position: mapped.position,
+    isOwner: mapped.isOwner,
+    hasEntry: mapped.hasEntry,
+    predictedCount: mapped.predictedCount,
+    joinedAt: mapped.joinedAt,
+  }
 }
 
 export function mapLeagueMemberPage(value: unknown): LeagueMemberPage {
