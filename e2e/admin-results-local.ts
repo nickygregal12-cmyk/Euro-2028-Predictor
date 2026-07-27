@@ -16,11 +16,25 @@ export type PreparedKnockoutFixture = {
   preparedGroupMatchIds: string[]
 }
 
+export type PreparedThirdPlaceBoundaryTie = {
+  preparedGroupMatchIds: string[]
+}
+
 type SeededTeam = {
   id: string
   name: string
   groupIndex: number
   slot: number
+}
+
+type PreparedGroupStage = {
+  target: {
+    id: string
+    matchRef: string
+    tournamentId: string
+  }
+  teamsById: Map<string, SeededTeam>
+  preparedGroupMatchIds: string[]
 }
 
 function parseSeededTeam(id: string, name: string): SeededTeam {
@@ -38,6 +52,7 @@ function parseSeededTeam(id: string, name: string): SeededTeam {
 function seededGroupScore(
   home: SeededTeam,
   away: SeededTeam,
+  boundaryTie = false,
 ): { home: number; away: number } {
   if (home.groupIndex !== away.groupIndex) {
     throw new Error(`Seeded group match crosses groups: ${home.name} v ${away.name}`)
@@ -47,7 +62,13 @@ function seededGroupScore(
   const loser = winner === home ? away : home
   const pair = [winner.slot, loser.slot].sort((a, b) => a - b).join('-')
   const winningGoals =
-    pair === '3-4' ? winner.groupIndex + 1 : pair === '1-3' ? 3 : 2
+    pair === '3-4'
+      ? boundaryTie && winner.groupIndex === 2
+        ? 2
+        : winner.groupIndex + 1
+      : pair === '1-3'
+        ? 3
+        : 2
 
   return winner === home
     ? { home: winningGoals, away: 0 }
@@ -133,7 +154,7 @@ async function clearPreparedGroupMatches(matchIds: string[]): Promise<void> {
   }
 }
 
-export async function prepareResolvedKnockoutFixture(): Promise<PreparedKnockoutFixture> {
+async function prepareGroupStage(boundaryTie: boolean): Promise<PreparedGroupStage> {
   const admin = createLocalAdmin()
   const { data: target, error: targetError } = await admin
     .from('matches')
@@ -142,7 +163,7 @@ export async function prepareResolvedKnockoutFixture(): Promise<PreparedKnockout
     .single()
   if (targetError) throw targetError
   if (target.result_state !== 'scheduled') {
-    throw new Error('The mobile admin fixture must still be scheduled.')
+    throw new Error('The admin E2E knockout fixture must still be scheduled.')
   }
 
   const { data: teams, error: teamsError } = await admin
@@ -182,7 +203,7 @@ export async function prepareResolvedKnockoutFixture(): Promise<PreparedKnockout
         throw new Error(`Seeded group match ${match.match_ref} references an unknown team.`)
       }
 
-      const score = seededGroupScore(home, away)
+      const score = seededGroupScore(home, away, boundaryTie)
       const { error } = await admin.rpc('confirm_match_result', {
         p_match_id: match.id,
         p_method: 'regulation',
@@ -192,24 +213,46 @@ export async function prepareResolvedKnockoutFixture(): Promise<PreparedKnockout
         p_away_120: null,
         p_home_penalties: null,
         p_away_penalties: null,
-        p_reason: 'E2E actual Round-of-16 preparation',
+        p_reason: boundaryTie
+          ? 'E2E actual third-place boundary preparation'
+          : 'E2E actual Round-of-16 preparation',
       })
       if (error) throw error
       preparedGroupMatchIds.push(match.id)
     }
 
+    return {
+      target: {
+        id: target.id,
+        matchRef: target.match_ref,
+        tournamentId: target.tournament_id,
+      },
+      teamsById,
+      preparedGroupMatchIds,
+    }
+  } catch (error) {
+    await clearPreparedGroupMatches(preparedGroupMatchIds)
+    throw error
+  }
+}
+
+export async function prepareResolvedKnockoutFixture(): Promise<PreparedKnockoutFixture> {
+  const prepared = await prepareGroupStage(false)
+  const admin = createLocalAdmin()
+
+  try {
     const { data: resolved, error: resolvedError } = await admin
       .from('matches')
       .select('id, match_ref, home_team_id, away_team_id')
-      .eq('id', target.id)
+      .eq('id', prepared.target.id)
       .single()
     if (resolvedError) throw resolvedError
     if (!resolved.home_team_id || !resolved.away_team_id) {
       throw new Error('Completing the group stage did not populate R16-1.')
     }
 
-    const home = teamsById.get(resolved.home_team_id)
-    const away = teamsById.get(resolved.away_team_id)
+    const home = prepared.teamsById.get(resolved.home_team_id)
+    const away = prepared.teamsById.get(resolved.away_team_id)
     if (!home || !away) {
       throw new Error('The populated R16-1 fixture references an unknown team.')
     }
@@ -219,10 +262,38 @@ export async function prepareResolvedKnockoutFixture(): Promise<PreparedKnockout
       matchRef: resolved.match_ref,
       homeName: home.name,
       awayName: away.name,
-      preparedGroupMatchIds,
+      preparedGroupMatchIds: prepared.preparedGroupMatchIds,
     }
   } catch (error) {
-    await clearPreparedGroupMatches(preparedGroupMatchIds)
+    await clearPreparedGroupMatches(prepared.preparedGroupMatchIds)
+    throw error
+  }
+}
+
+export async function prepareActualThirdPlaceBoundaryTie(): Promise<PreparedThirdPlaceBoundaryTie> {
+  const prepared = await prepareGroupStage(true)
+  const admin = createLocalAdmin()
+
+  try {
+    const { data: knockoutMatches, error } = await admin
+      .from('matches')
+      .select('home_team_id, away_team_id')
+      .eq('tournament_id', prepared.target.tournamentId)
+      .eq('round', 'r16')
+    if (error) throw error
+
+    const populatedSlots = (knockoutMatches ?? []).reduce(
+      (total, match) =>
+        total + Number(Boolean(match.home_team_id)) + Number(Boolean(match.away_team_id)),
+      0,
+    )
+    if (populatedSlots !== 0) {
+      throw new Error('The boundary-tie fixture unexpectedly populated the Round of 16.')
+    }
+
+    return { preparedGroupMatchIds: prepared.preparedGroupMatchIds }
+  } catch (error) {
+    await clearPreparedGroupMatches(prepared.preparedGroupMatchIds)
     throw error
   }
 }
@@ -231,5 +302,11 @@ export async function clearPreparedKnockoutFixture(
   fixture: PreparedKnockoutFixture,
 ): Promise<void> {
   await ensureMatchResultCleared(fixture.matchRef)
+  await clearPreparedGroupMatches(fixture.preparedGroupMatchIds)
+}
+
+export async function clearPreparedThirdPlaceBoundaryTie(
+  fixture: PreparedThirdPlaceBoundaryTie,
+): Promise<void> {
   await clearPreparedGroupMatches(fixture.preparedGroupMatchIds)
 }
