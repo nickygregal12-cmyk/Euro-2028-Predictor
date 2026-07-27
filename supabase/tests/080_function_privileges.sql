@@ -11,7 +11,7 @@ insert into expected_authenticated_functions (signature) values
   ('delete_league(uuid)'),
   ('delete_match_prediction(uuid,uuid,integer)'),
   ('get_entry_submission_status(uuid)'),
-  ('get_leaderboard(uuid)'),
+  ('get_leaderboard(uuid,integer,text)'),
   ('get_league(uuid)'),
   ('get_league_match_picks(uuid,uuid)'),
   ('get_league_members(uuid)'),
@@ -164,8 +164,12 @@ select ok(
 );
 
 select ok(
-  not has_function_privilege('anon', 'public.get_leaderboard(uuid)', 'execute'),
-  'anonymous users cannot call the leaderboard RPC'
+  not has_function_privilege(
+    'anon',
+    'public.get_leaderboard(uuid,integer,text)',
+    'execute'
+  ),
+  'anonymous users cannot call the paginated leaderboard RPC'
 );
 
 select ok(
