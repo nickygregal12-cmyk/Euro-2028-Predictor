@@ -16,5 +16,5 @@
     "public.get_entry_submission_status(uuid)",
     "public.get_leaderboard(uuid,integer,text)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 43 replaces the contract-42 capped overall standings RPC with server-ranked keyset pagination and independent current-user position context; all other contract-42 read bounds remain unchanged."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 43 replaces the contract-42 capped overall standings RPC with server-ranked keyset pagination: 50 rows by default, 100 maximum, deterministic opaque cursors and independent current-user position context. All other contract-42 read bounds remain unchanged."
 }
