@@ -18,7 +18,7 @@ const GroupPredictorPage = lazy(() => import('./features/predict/GroupPredictorP
 const ThirdPlacePage = lazy(() => import('./features/predict/ThirdPlacePage').then((m) => ({ default: m.ThirdPlacePage })))
 const BracketRound = lazy(() => import('./features/bracket').then((m) => ({ default: m.BracketRound })))
 const JokersPage = lazy(() => import('./features/predict/JokersPage').then((m) => ({ default: m.JokersPage })))
-const ReviewPage = lazy(() => import('./features/predict/ReviewPage').then((m) => ({ default: m.ReviewPage })))
+const ReviewWorkspacePage = lazy(() => import('./features/predict/ReviewWorkspacePage').then((m) => ({ default: m.ReviewWorkspacePage })))
 const LeaguePage = lazy(() => import('./features/league/LeaguePage').then((m) => ({ default: m.LeaguePage })))
 const OverallStandingsPage = lazy(() => import('./features/league/OverallStandingsPage').then((m) => ({ default: m.OverallStandingsPage })))
 const LeagueDetailPage = lazy(() => import('./features/leagues/LeagueDetailPage').then((m) => ({ default: m.LeagueDetailPage })))
@@ -76,7 +76,7 @@ export default function App() {
                     <Route path="/predict/third-place" element={<ThirdPlacePage />} />
                     <Route path="/predict/bracket" element={<BracketRound />} />
                     <Route path="/predict/jokers" element={<JokersPage />} />
-                    <Route path="/predict/review" element={<ReviewPage />} />
+                    <Route path="/predict/review" element={<ReviewWorkspacePage />} />
                     <Route path="/league" element={<LeaguePage />} />
                     <Route path="/league/overall" element={<OverallStandingsPage />} />
                     <Route path="/league/:id" element={<LeagueDetailPage />} />
