@@ -7,14 +7,13 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current `main` | `7872f39a9c41e2357ed32bac985ff83e88be2f56` |
-| Repository contract / migration count | 36 / 36 |
+| Current `main` | `15c94b478a2994e8deb015f7371568dcca19933d` |
+| Repository contract / migration count | 38 / 38 on this admin branch; current `main` remains 36 / 36 until merge |
 | Hosted-development reconciliation | [`2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md) |
-| Final-target preparation | [`2026-07-26-contract-36-final-target-preparation.md`](reconciliations/2026-07-26-contract-36-final-target-preparation.md) |
 | Final-target promotion | [`2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md) |
-| Development Supabase | `iouzoutneyjpugbbtdem` — verified contract 36 |
-| Non-production Netlify contexts | `dev`, `branch-deploy`, `deploy-preview` — contract 36 |
-| Final-target Supabase | `vkfnsqdyhvtwyqkisxhk` — verified contract 36 |
+| Development Supabase | `iouzoutneyjpugbbtdem` — verified contract 38 for this branch |
+| Non-production Netlify contexts | `dev`, `branch-deploy`, `deploy-preview` — contract 38 for this branch |
+| Final-target Supabase | `vkfnsqdyhvtwyqkisxhk` — verified contract 36; no admin migrations applied |
 | Final-target Netlify declaration | contract 36 |
 | Current production deploy | A fresh contract-36 production build and exact-head smoke remain to be verified |
 | Sentry production delivery | enabled and privacy-safe trace delivery verified |
@@ -25,32 +24,28 @@ The environment historically named production is the intended final target. It i
 
 | Area | Verdict |
 | --- | --- |
-| Repository development | **Safe to continue at contract 36.** |
-| Development database | **Verified at contract 36.** Exact history, guards, privileges and rollback-only behaviour checks passed. |
-| Final-target database | **Promoted and verified at contract 36.** Migration 36, reference guards, privileges and canonical history were verified. |
-| Netlify declarations | **All contexts declare contract 36.** Production still requires a fresh build and exact-head verification. |
-| Deploy-preview gate | **Restored and merged.** Exact-head 36/36 preview, HTTP smoke and anonymous browser smoke passed on PR #105. |
-| Disposable authenticated browser | **Passed.** Browser E2E run 274 completed disposable rebuild, authenticated journeys, signup/recovery and clean teardown. |
-| Standard CI | **Passed at the last recorded evidence point.** New branches must supply their own current checks. |
+| Repository development | **Safe to continue.** This branch advances the repository contract to 38 for protected administrator result operations. |
+| Development database | **Verified at contract 38 for this branch.** Browser-safe admin wrappers and revision history were applied and checked. |
+| Final-target database | **Remains contract 36.** No administrator migrations or production changes were applied. |
+| Netlify declarations | **Non-production contexts declare 38 for this branch; production remains 36.** |
+| Administrator foundation | **Implemented on this branch.** Protected routes, capability checks, read-only control room and authorised result RPC wrappers are present. |
+| Administrator result UI | **Partial.** Result mutation forms, confirmation review and browser E2E acceptance still remain. |
 | Recovery gate | **Exception open.** Contract 36 was promoted without completing the fresh logical backup, encrypted custody check and disposable restore rehearsal first. |
-| Production observability | **Delivery verified; operating policy partial.** Sentry delivery is enabled through the approved privacy boundary; retention, backup recipient, escalation and rollback rehearsal remain. |
-| Tournament launch readiness | **Not ready.** Administration acceptance, result consumption, scalability hot paths, background operations, official data, accessibility and rehearsal remain incomplete. |
+| Tournament launch readiness | **Not ready.** Administrator UI acceptance, result consumption, scalability hot paths, background operations, official data, accessibility and rehearsal remain incomplete. |
 
-## Contract-36 evidence
+## Contract evidence
 
-Development and final-target databases contain exactly 36 canonical migration versions through `20260725010000_authoritative_reference_integrity`. The migration SQL identity was reconciled to the repository version. Six private security-definer functions have fixed empty search paths and no browser-role execution; six intended validation triggers are installed and enabled; authoritative-reference integrity checks remained clean.
-
-The connected migration action initially recorded a generated execution timestamp. Migration metadata was reconciled to the repository canonical version only after schema objects and migration identity were verified.
+Current `main` and the final-target database remain at contract 36. This branch adds migrations 37 and 38 for development-only browser-authorised administrator result wrappers and the corrected result-revision timestamp projection. The existing authoritative result lifecycle remains the implementation underneath those wrappers; scoring values and result rules are unchanged.
 
 ## Hosted environment position
 
 | Context | Supabase | Declared contract | Position |
 | --- | --- | ---: | --- |
-| local/disposable | local | 36 | Full rebuild, lint, pgTAP and parity authority |
-| Netlify `dev` | development `iouzoutneyjpugbbtdem` | 36 | Aligned |
-| Netlify `branch-deploy` | development `iouzoutneyjpugbbtdem` | 36 | Aligned |
-| Netlify `deploy-preview` | development `iouzoutneyjpugbbtdem` | 36 | Aligned; exact-head smoke evidence exists for the contract-36 promotion path |
-| Netlify `production` | final target `vkfnsqdyhvtwyqkisxhk` | 36 | Contract declaration aligned; fresh production build and exact-head smoke still required |
+| local/disposable | local | 38 on branch | Full rebuild, lint, pgTAP and parity authority |
+| Netlify `dev` | development `iouzoutneyjpugbbtdem` | 38 | Branch-aligned |
+| Netlify `branch-deploy` | development `iouzoutneyjpugbbtdem` | 38 | Branch-aligned |
+| Netlify `deploy-preview` | development `iouzoutneyjpugbbtdem` | 38 | Branch-aligned |
+| Netlify `production` | final target `vkfnsqdyhvtwyqkisxhk` | 36 | Intentionally unchanged |
 
 The legacy `euro28-predictor-dev.netlify.app` site was not used or changed and should remain separately controlled or be decommissioned.
 
@@ -67,16 +62,9 @@ This exception remains open until evidence records:
 
 ## Operational assurance
 
-Provider-neutral capture, release identity, the official Sentry React SDK and read-only smoke tooling are implemented. Production uses a build-scoped public DSN with `VITE_SENTRY_ENABLED=true`; privacy-safe trace delivery was manually verified. Replay, logs, profiling, automatic user context, breadcrumbs, fetch/XHR tracing, trace propagation and source-map upload remain disabled.
+Provider-neutral capture, release identity, the official Sentry React SDK and read-only smoke tooling are implemented. Production uses a build-scoped public DSN with `VITE_SENTRY_ENABLED=true`; privacy-safe trace delivery was manually verified.
 
-Open observability controls:
-
-- actual Sentry retention setting;
-- confirmation of server-side/IP scrubbing settings;
-- named backup alert recipient and escalation path;
-- retained push-triggered smoke evidence where accessible;
-- owner-approved Netlify rollback promotion rehearsal;
-- job/queue health and delayed-scoring alert policy when background processing is introduced.
+Open operational controls include Sentry retention and escalation ownership, rollback rehearsal, and future job/queue health alerting when background processing is introduced.
 
 Supabase advisor observations remain separate controlled work:
 
@@ -88,13 +76,21 @@ Supabase advisor observations remain separate controlled work:
 
 ## Feature and safeguard status
 
-Implemented repository/development foundations include canonical predicted group ordering, manual tie decisions, RPC-only submission, authoritative results/revisions, serialized scoring, bracket replay/persistence, version-safe clearing, exact function allowlists, contract-36 reference guards, preview assurance and privacy-safe Sentry production delivery.
+Implemented on this branch:
+
+- protected `/admin`, `/admin/results` and `/admin/users` routes;
+- fail-closed `app_metadata` capability parsing;
+- `super_admin` and scoped result capability support;
+- read-only result status and awaiting-result queue;
+- browser-authorised confirm, correct, clear and revision-history RPCs;
+- immutable authoritative result lifecycle delegated to existing internal functions;
+- contract 38 development and preview alignment.
 
 Still partial or planned:
 
-- accepted browser administrator result operations on current `main`;
+- administrator result mutation forms and confirmation review;
+- browser E2E for confirm, correct, clear and unauthorised rejection;
 - authoritative frontend knockout winner/method/extra-time/penalty consumption;
-- actual R16 population and actual-tie workflow;
 - automatic submission and reminders;
 - bounded global leaderboard and current-user standing endpoints;
 - maintained standings and reconciliation;
@@ -104,10 +100,7 @@ Still partial or planned:
 - live results/standings refresh;
 - product analytics and lifecycle email;
 - stronger authentication and league-invite abuse controls;
-- other-player profile and richer H2H;
-- post-lock trends and bonus games;
-- official tournament data;
-- monitoring policy completion, GDPR self-service, full accessibility and tournament rehearsal.
+- official tournament data, GDPR self-service, full accessibility and tournament rehearsal.
 
 ## Acquisition audit reconciliation
 
@@ -122,18 +115,6 @@ Its accepted forward direction is documented in:
 
 Audit-derived critical and high items are launch gates unless implemented, verified and marked mitigated, or explicitly accepted by the owner with a dated residual-risk record.
 
-## Current finding positions
-
-- `DATA-003` — repository, development and final-target contract-36 implementation verified.
-- `DATA-006` — no concrete residual relationship defect established.
-- `OPS-006` — contract mismatch closed; deferred backup/restore evidence remains a separate recovery exception.
-- `TEST-001` — hosted development migration and preview smoke closed; accepted result-admin, penalty-winner UI, scalable scoring and screen-reader evidence remain.
-- `DATA-005`, `REL-007` — backend implementation exists; accepted browser mutation evidence remains.
-- `FUNC-002`, `DATA-004`, `OPS-002` — automatic submission, actual ties and accepted administrator operations remain open.
-- `OPS-003` — Sentry production delivery verified; retention, backup alert ownership, escalation and rollback rehearsal remain.
-- `AUTH-001`, `AUTH-002`, `OPS-008`, `A11Y-001`, typing, performance and abuse findings remain open or partial.
-- Acquisition risks `ACQ-R01` through `ACQ-R27` are tracked in the acquisition risk register.
-
 ## Scoring status
 
 No scoring values changed. Authority remains:
@@ -146,18 +127,17 @@ No scoring values changed. Authority remains:
 - Golden Boot 25;
 - group goals 40 / 30 / 20.
 
-Automatic valid-entry submission is approved target behaviour but not implemented. Asynchronous incremental scoring is an accepted architectural direction but is not implemented on `main`; the current authoritative scoring path remains unchanged until migrations and tests prove otherwise.
+Automatic valid-entry submission and asynchronous incremental scoring remain approved target behaviours but are not implemented by these administrator migrations.
 
 ## Immediate order
 
-1. Publish and verify a fresh production build from current `main` at contract 36.
-2. Complete and record the deferred backup, custody and disposable restore rehearsal.
-3. Complete and accept the protected administrator result workflow on a current-main branch.
-4. Repair authoritative knockout-result consumption in Match Centre and H2H.
-5. Establish background jobs and auto-submit before the lock workflow is considered complete.
-6. Implement the critical scalability sequence: maintained standings, bounded leaderboard reads and asynchronous incremental scoring.
-7. Run representative large-seed, lock-window and full-tournament rehearsals.
-8. Complete authentication, accessibility, privacy and repository launch-assurance gates.
+1. Complete and accept the administrator result mutation UI and browser E2E on this branch.
+2. Merge the administrator foundation after exact-head checks pass.
+3. Repair authoritative knockout-result consumption in Match Centre and H2H.
+4. Establish background jobs and auto-submit before the lock workflow is considered complete.
+5. Implement maintained standings, bounded leaderboard reads and asynchronous incremental scoring.
+6. Run representative large-seed, lock-window and full-tournament rehearsals.
+7. Complete authentication, accessibility, privacy and repository launch-assurance gates.
 
 ## Documentation authority
 
