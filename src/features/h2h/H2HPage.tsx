@@ -13,6 +13,10 @@ import {
   type EntryPredictions,
   type H2HActuals,
 } from '../../domain/tournament/h2h'
+import {
+  authoritativeMatchScore,
+  eliminatedKnockoutTeamId,
+} from '../../domain/tournament/authoritativeMatchResult'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import { fetchRivalEntry } from '../../services/supabase/h2h'
 import { H2HScreen, type H2HPlayerView, type H2HSplitView } from './H2HScreen'
@@ -56,19 +60,21 @@ export function H2HPage() {
     const resultsByMatch = new Map<string, { home: number; away: number }>()
     const playedByGroup = new Map<string, number>()
     for (const m of groupMatches) {
-      if (m.homeScore !== null && m.awayScore !== null) {
-        resultsByMatch.set(m.id, { home: m.homeScore, away: m.awayScore })
+      const result = authoritativeMatchScore(m)
+      if (result) {
+        resultsByMatch.set(m.id, result)
         if (m.groupId) playedByGroup.set(m.groupId, (playedByGroup.get(m.groupId) ?? 0) + 1)
       }
     }
     const undecidedGroupCount = td.groups.filter((g) => (playedByGroup.get(g.id) ?? 0) < 6).length
-    // Teams knocked out in the knockouts (loser of a resulted KO match). Empty
-    // pre-knockout; draws aren't decidable here (penalties not modelled).
+
+    // Knockout elimination is server-owned through winner_team_id. This remains
+    // correct when the displayed football score is level after extra time and a
+    // penalty shootout decides which team advances.
     const eliminatedTeamIds = new Set<string>()
     for (const m of td.matches) {
-      if (m.round === 'group' || m.homeScore === null || m.awayScore === null) continue
-      if (!m.homeTeamId || !m.awayTeamId || m.homeScore === m.awayScore) continue
-      eliminatedTeamIds.add(m.homeScore < m.awayScore ? m.homeTeamId : m.awayTeamId)
+      const eliminated = eliminatedKnockoutTeamId(m)
+      if (eliminated) eliminatedTeamIds.add(eliminated)
     }
     const actuals: H2HActuals = { resultsByMatch, undecidedGroupCount, eliminatedTeamIds }
 
