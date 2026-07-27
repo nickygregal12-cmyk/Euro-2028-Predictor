@@ -72,3 +72,55 @@ jobs:
       - name: Stop and delete disposable local data
         if: always()
         run: supabase stop --no-backup
+
+
+  production-contract-dry-run:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref_name == 'agent/production-contract-38-dry-run' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Verify production migration plan without applying it
+        shell: bash
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || {
+            echo 'ERROR: SUPABASE_PROD_DB_URL is not configured.'
+            exit 1
+          }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *)
+              echo "ERROR: production URL does not reference ${EXPECTED_PROJECT_REF}."
+              exit 1
+              ;;
+          esac
+
+          supabase db push \
+            --db-url "${SUPABASE_PROD_DB_URL}" \
+            --dry-run 2>&1 | tee /tmp/production-contract-38-dry-run.txt
+
+          grep -Fq '20260727075922_admin_result_authorization.sql' /tmp/production-contract-38-dry-run.txt
+          grep -Fq '20260727080159_admin_result_revision_timestamp.sql' /tmp/production-contract-38-dry-run.txt
+
+          {
+            echo '## Production contract 38 dry-run'
+            echo ''
+            echo 'No migrations were applied. Supabase CLI output:'
+            echo ''
+            echo '```text'
+            cat /tmp/production-contract-38-dry-run.txt
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
