@@ -27,6 +27,8 @@ export type Team = {
 }
 
 export type MatchRound = 'group' | 'r16' | 'qf' | 'sf' | 'final'
+export type MatchResultState = 'scheduled' | 'confirmed' | 'corrected'
+export type MatchResultMethod = 'regulation' | 'extra_time' | 'penalties'
 
 export type Match = {
   id: string
@@ -43,6 +45,19 @@ export type Match = {
   venue: string
   homeScore: number | null
   awayScore: number | null
+  // These fields already exist in the contract-38 matches table. They remain
+  // optional in the TypeScript shape so older isolated fixtures and visual
+  // previews can still construct a minimal Match while repository reads always
+  // populate the authoritative result lifecycle.
+  resultState?: MatchResultState
+  resultMethod?: MatchResultMethod | null
+  homeScore90?: number | null
+  awayScore90?: number | null
+  homeScore120?: number | null
+  awayScore120?: number | null
+  homePenalties?: number | null
+  awayPenalties?: number | null
+  winnerTeamId?: string | null
 }
 
 export type TournamentData = {
@@ -76,7 +91,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
     supabase
       .from('matches')
       .select(
-        'id, match_ref, round, group_id, matchday, home_source, away_source, home_team_id, away_team_id, match_date, kickoff_at, venue, home_score, away_score',
+        'id, match_ref, round, group_id, matchday, home_source, away_source, home_team_id, away_team_id, match_date, kickoff_at, venue, home_score, away_score, result_state, result_method, home_score_90, away_score_90, home_score_120, away_score_120, home_penalties, away_penalties, winner_team_id',
       )
       .eq('tournament_id', t.id)
       .order('match_date'),
@@ -130,6 +145,15 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       venue: m.venue,
       homeScore: m.home_score,
       awayScore: m.away_score,
+      resultState: m.result_state as MatchResultState,
+      resultMethod: m.result_method as MatchResultMethod | null,
+      homeScore90: m.home_score_90,
+      awayScore90: m.away_score_90,
+      homeScore120: m.home_score_120,
+      awayScore120: m.away_score_120,
+      homePenalties: m.home_penalties,
+      awayPenalties: m.away_penalties,
+      winnerTeamId: m.winner_team_id,
     })),
   }
 }

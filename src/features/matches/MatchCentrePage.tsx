@@ -13,6 +13,11 @@ import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
 import { createMatchCentrePageModel } from '../../domain/tournament/matchCentrePageModel'
 import {
+  authoritativeMatchScore,
+  authoritativeWinnerSide,
+  knockoutResultDetail,
+} from '../../domain/tournament/authoritativeMatchResult'
+import {
   groupStake,
   koStake,
   groupDistribution,
@@ -156,17 +161,8 @@ export function MatchCentrePage() {
     setSaidLoading(true)
     setSaidError(null)
     setConsequence(null)
-    const result =
-      match.homeScore !== null && match.awayScore !== null
-        ? { home: match.homeScore, away: match.awayScore }
-        : null
-    const actualWinner: 'home' | 'away' | null = result
-      ? result.home > result.away
-        ? 'home'
-        : result.away > result.home
-          ? 'away'
-          : null
-      : null
+    const result = authoritativeMatchScore(match)
+    const actualWinner = authoritativeWinnerSide(match)
     const isGroup = match.round === 'group'
     const yourPick = isGroup ? preds.getPrediction(match.id) : null
 
@@ -253,7 +249,7 @@ export function MatchCentrePage() {
               awayName: teamsById.get(match.awayTeamId ?? '')?.name ?? 'TBC',
               rows,
             })
-            if (result) setConsequence(koLeagueCasualties(rows, true))
+            if (actualWinner) setConsequence(koLeagueCasualties(rows, true))
           }
         }
       } catch (error) {
@@ -311,13 +307,7 @@ export function MatchCentrePage() {
     groups: td.groups,
   })
   const { home, away, result, temporalState: temporal } = pageModel
-  const actualWinner: 'home' | 'away' | null = result
-    ? result.home > result.away
-      ? 'home'
-      : result.away > result.home
-        ? 'away'
-        : null
-    : null
+  const actualWinner = authoritativeWinnerSide(match)
 
   // Your stake + this-match score events.
   let stakeProp: Parameters<typeof MatchCentreScreen>[0]['stake']
@@ -374,7 +364,7 @@ export function MatchCentrePage() {
       statusPresentation={pageModel.statusPresentation}
       matchSource={pageModel.matchSource}
       result={result}
-      koDetail={null}
+      koDetail={knockoutResultDetail(match, home.name, away.name)}
       countdownLabel={pageModel.countdownLabel}
       liveMinute={pageModel.liveMinute}
       stake={stakeProp}

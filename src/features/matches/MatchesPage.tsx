@@ -7,6 +7,10 @@ import { usePredictions } from '../../app/providers/PredictionsProvider'
 import type { Match } from '../../services/supabase/tournamentData'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import { matchTemporalState, groupStake, koStake } from '../../domain/tournament/matchCentre'
+import {
+  authoritativeMatchScore,
+  authoritativeWinnerSide,
+} from '../../domain/tournament/authoritativeMatchResult'
 import { groupByMatchday, groupByGroupLetter, currentGroupIndex } from '../../domain/tournament/matchesTab'
 import { MatchesScreen, type FilterKey, type FixtureRowVM, type MatchesGroupVM } from './MatchesScreen'
 import { useOpenMatchCentre } from './useOpenMatchCentre'
@@ -47,7 +51,7 @@ export function MatchesPage() {
       const home = { name: teamName.get(m.homeTeamId ?? '') ?? 'TBC', countryCode: '' }
       const away = { name: teamName.get(m.awayTeamId ?? '') ?? 'TBC', countryCode: '' }
       const state = matchTemporalState(m)
-      const result = m.homeScore !== null && m.awayScore !== null ? { home: m.homeScore, away: m.awayScore } : null
+      const result = authoritativeMatchScore(m)
 
       if (m.round === 'group') {
         const p = preds.getPrediction(m.id)
@@ -69,7 +73,7 @@ export function MatchesPage() {
         }
       }
 
-      const winner: 'home' | 'away' | null = result ? (result.home > result.away ? 'home' : result.away > result.home ? 'away' : null) : null
+      const winner = authoritativeWinnerSide(m)
       const hs = (m.homeTeamId && preds.bracketProgression[m.homeTeamId] ? STAGE_UP[preds.bracketProgression[m.homeTeamId]] : null) as KnockoutStage | null
       const as = (m.awayTeamId && preds.bracketProgression[m.awayTeamId] ? STAGE_UP[preds.bracketProgression[m.awayTeamId]] : null) as KnockoutStage | null
       const ks = koStake(hs, as, m.round, winner)

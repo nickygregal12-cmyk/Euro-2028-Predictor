@@ -209,7 +209,25 @@ test.describe('Admin result workflow', () => {
       })
       await expect(penaltiesDialog).toContainText('Penalties')
       await expect(penaltiesDialog).toContainText('5–4')
-      await penaltiesDialog.getByRole('button', { name: 'Cancel' }).click()
+      await penaltiesDialog
+        .getByRole('button', { name: 'Confirm result', exact: true })
+        .click()
+
+      await expect(
+        page.getByRole('status').filter({ hasText: 'Confirm result saved' }),
+      ).toBeVisible({ timeout: 15_000 })
+
+      await page.goto(`/match/${fixture.matchRef}`)
+      await expect(page).toHaveURL(
+        (url) => url.pathname === `/match/${fixture.matchRef}`,
+        { timeout: 15_000 },
+      )
+      await expect(page.getByText('2–2', { exact: true })).toBeVisible()
+      await expect(
+        page.getByText(`${fixture.homeName} won 5–4 on penalties`, {
+          exact: true,
+        }),
+      ).toBeVisible()
     } finally {
       await clearPreparedKnockoutFixture(fixture)
     }
