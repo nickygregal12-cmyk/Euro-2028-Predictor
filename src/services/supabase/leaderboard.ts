@@ -6,8 +6,6 @@ import { supabase } from './client'
 import {
   mapLeaderboardPage,
   type LeaderboardPage,
-  type LeaderboardRow,
-  type LeaderboardYou,
 } from './leaderboardModel'
 
 export type { LeaderboardPage, LeaderboardRow, LeaderboardYou } from './leaderboardModel'
