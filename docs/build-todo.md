@@ -43,25 +43,34 @@ The Netlify context named `production` is the controlled final target, not an ac
 - [x] Make smoke contract expectations explicit per target.
 - [x] Prove exact PR head, 36/36 release identity and development Supabase ref.
 - [x] Pass HTTP smoke and anonymous browser smoke.
-- [x] Pass standard CI run 584 and both Browser E2E jobs in run 273.
+- [x] Pass standard CI run 585 and both Browser E2E jobs in run 274.
 - [x] Record dated development promotion evidence.
+- [x] Merge PR #105 without moving the production deploy or contract.
 
-## 4. Final-target contract-36 preparation — current database gate
+## 4. Final-target contract-36 preparation — approval gate
 
 - [x] Leave final-target Supabase and production Netlify at contract 35 during development promotion.
-- [ ] Inspect final-target migration history and relevant data read-only.
-- [ ] Preserve recoverable pre-change evidence.
-- [ ] Establish migration 36 as the only canonical pending migration.
-- [ ] Run all six fail-closed preflight checks.
-- [ ] Prepare exact migration application, verification and rollback-safe smoke commands.
-- [ ] Review current Supabase security/performance advisor findings separately.
+- [x] Inspect final-target migration history and relevant data read-only.
+- [ ] Create and accept a fresh recoverable pre-change source bundle after the quiet window begins.
+- [x] Establish migration 36 as the only canonical pending migration.
+- [x] Run all six fail-closed preflight checks; each returned zero incompatible rows.
+- [x] Capture fresh counts, timestamps and non-sensitive fingerprints.
+- [x] Confirm current production deploy remains ready on the retained 35/35 pair.
+- [x] Prepare exact migration application, verification, failure and rollback-safe smoke commands.
+- [x] Review current Supabase security/performance advisor findings separately.
+- [ ] Rerun history, preflight, counts and fingerprints immediately before the write.
+- [ ] Require `supabase db push --dry-run` to list exactly migration 36.
 - [ ] Obtain explicit owner approval before any final-target SQL.
 - [ ] Apply migration 36 and verify exactly 36 canonical history versions.
 - [ ] Verify functions, triggers, privileges and rollback-only behaviour.
+- [ ] Require zero pending migrations after application.
 - [ ] Change production Netlify declaration to 36 only after database verification.
+- [ ] Restore exact-head production-smoke semantics at contract 36.
 - [ ] Require exact-head production deploy, release identity, HTTP/browser smoke and environment isolation.
-- [ ] Restore exact-head production-smoke semantics.
-- [ ] Record a dated final-target reconciliation.
+- [ ] Verify privacy-safe Sentry production tracing remains healthy.
+- [ ] Record a dated final-target promotion reconciliation.
+
+Preparation evidence: `docs/quality/reconciliations/2026-07-26-contract-36-final-target-preparation.md`.
 
 ## 5. Operations, monitoring and environment controls
 
