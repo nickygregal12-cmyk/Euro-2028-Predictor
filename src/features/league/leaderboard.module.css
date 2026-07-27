@@ -203,3 +203,33 @@
   color: var(--tx);
   text-align: right;
 }
+
+/* Pagination and current-user context -------------------------------------- */
+.yourPosition {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--acc) 45%, var(--line));
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.yourPositionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tx2);
+}
+
+.loadedCount {
+  margin: -2px 0 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx3);
+}
