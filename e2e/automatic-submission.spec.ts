@@ -65,7 +65,9 @@ test('complete and incomplete entries expose truthful automatic outcomes', async
       page.getByText('Entry was not submitted automatically', { exact: true }),
     ).toBeVisible({ timeout: 15_000 })
     await expect(page.getByText(/remains unsubmitted/)).toBeVisible()
-    await expect(page.getByText(/Group [A-F]/)).toBeVisible()
+    await expect(
+      page.getByText('Group predictions incomplete (0 of 36)', { exact: true }),
+    ).toBeVisible()
   } finally {
     await restoreAutomaticSubmissionFixture(fixture)
   }
