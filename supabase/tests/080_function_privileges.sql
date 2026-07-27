@@ -10,6 +10,7 @@ insert into expected_authenticated_functions (signature) values
   ('create_league(uuid,text)'),
   ('delete_league(uuid)'),
   ('delete_match_prediction(uuid,uuid,integer)'),
+  ('get_entry_submission_status(uuid)'),
   ('get_leaderboard(uuid)'),
   ('get_league(uuid)'),
   ('get_league_match_picks(uuid,uuid)'),
@@ -36,6 +37,7 @@ insert into expected_service_functions (signature) values
   ('clear_match_result(uuid,text)'),
   ('confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
   ('correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
+  ('process_due_entry_submissions(timestamp with time zone)'),
   ('recompute_all_scores()'),
   ('recompute_tournament_scores(uuid)');
 
