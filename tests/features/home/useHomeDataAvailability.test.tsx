@@ -7,7 +7,7 @@ import {
 } from '../../../src/features/home/useHomeData'
 
 const mocks = vi.hoisted(() => ({
-  fetchLeaderboard: vi.fn(),
+  fetchLeaderboardPage: vi.fn(),
   fetchMyScoreEventPoints: vi.fn(),
   fetchMyLeagues: vi.fn(),
   fetchLeagueMembers: vi.fn(),
@@ -75,7 +75,7 @@ vi.mock('../../../src/app/time', () => ({
 }))
 
 vi.mock('../../../src/services/supabase/leaderboard', () => ({
-  fetchLeaderboard: mocks.fetchLeaderboard,
+  fetchLeaderboardPage: mocks.fetchLeaderboardPage,
 }))
 
 vi.mock('../../../src/services/supabase/scoring', () => ({
@@ -108,14 +108,37 @@ async function renderModel(): Promise<HomeModel> {
   return currentState.model
 }
 
+function leaderboardPage() {
+  return {
+    rows: [
+      {
+        displayName: 'Dashboard Tester',
+        totalPoints: 12,
+        rank: 1,
+        tied: false,
+        position: 1,
+        isYou: true,
+      },
+    ],
+    totalCount: 2,
+    pageSize: 1,
+    hasMore: true,
+    nextCursor: 'cursor',
+    you: {
+      displayName: 'Dashboard Tester',
+      totalPoints: 12,
+      rank: 1,
+      tied: false,
+      position: 1,
+    },
+  }
+}
+
 describe('useHomeData source availability', () => {
   beforeEach(() => {
     currentState = null
     vi.clearAllMocks()
-    mocks.fetchLeaderboard.mockResolvedValue([
-      { displayName: 'Dashboard Tester', totalPoints: 12, isYou: true },
-      { displayName: 'League Rival', totalPoints: 8, isYou: false },
-    ])
+    mocks.fetchLeaderboardPage.mockResolvedValue(leaderboardPage())
     mocks.fetchMyScoreEventPoints.mockResolvedValue([
       { matchId: 'match-1', points: 5 },
     ])
@@ -129,7 +152,7 @@ describe('useHomeData source availability', () => {
   })
 
   it('preserves successful sources when the leaderboard is unavailable', async () => {
-    mocks.fetchLeaderboard.mockRejectedValueOnce(new Error('leaderboard offline'))
+    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('leaderboard offline'))
 
     const model = await renderModel()
 
