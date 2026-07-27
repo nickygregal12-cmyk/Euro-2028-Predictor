@@ -1,8 +1,8 @@
 # Production observability and application rollback
 
 **Status:** privacy-safe Sentry production delivery verified; operating policy and rollback rehearsal remain incomplete.  
-**Repository/development contract:** 36.  
-**Retained final-target contract:** 35.  
+**Repository/development contract:** 38.
+**Retained final-target contract:** 36.
 **Primary owner:** `nickygregal12-cmyk`.  
 **Scope:** client failures, release identity, anonymous read-only smoke and static-application rollback. This runbook authorizes no database write.
 
@@ -41,10 +41,10 @@ Current target identities:
 
 | Target | Environment | App/hosted contract | Supabase |
 | --- | --- | ---: | --- |
-| Development preview | `deploy-preview` | 36/36 | `iouzoutneyjpugbbtdem` |
-| Retained final target | `production` | 35/35 | `vkfnsqdyhvtwyqkisxhk` |
+| Development preview | `deploy-preview` | 38/38 | `iouzoutneyjpugbbtdem` |
+| Retained final target | `production` | 36/36 | `vkfnsqdyhvtwyqkisxhk` |
 
-Preview requires the exact PR head. Production currently verifies the retained compatible release rather than the current `main` commit, because the deployment guard intentionally blocks contract-36 code from a contract-35 final-target database. Restore exact-head production verification during final-target promotion.
+Preview requires the exact PR head. Production currently verifies the retained compatible release rather than the current `main` commit, because the deployment guard intentionally blocks contract-38 code from a contract-36 final-target database. Restore exact-head production verification during the controlled 36→38 promotion.
 
 ## Required smoke contract
 
@@ -61,14 +61,14 @@ The command fails closed if this value is missing or invalid. Do not add a share
 Read-only HTTP smoke:
 
 ```bash
-EURO28_SMOKE_EXPECTED_CONTRACT=35 \
+EURO28_SMOKE_EXPECTED_CONTRACT=36 \
 npm run smoke:production
 ```
 
 Read-only browser smoke:
 
 ```bash
-EURO28_SMOKE_EXPECTED_CONTRACT=35 \
+EURO28_SMOKE_EXPECTED_CONTRACT=36 \
 npm run smoke:production:browser
 ```
 
@@ -89,7 +89,7 @@ EURO28_SMOKE_ALLOW_NON_PRODUCTION=true \
 EURO28_SMOKE_EXPECTED_CONTEXT=deploy-preview \
 EURO28_SMOKE_EXPECTED_SUPABASE_REF=iouzoutneyjpugbbtdem \
 EURO28_SMOKE_EXPECTED_COMMIT="<exact-pr-head-sha>" \
-EURO28_SMOKE_EXPECTED_CONTRACT=36 \
+EURO28_SMOKE_EXPECTED_CONTRACT=38 \
 npm run smoke:production
 ```
 
@@ -103,7 +103,7 @@ Use the same variables with `npm run smoke:production:browser`. Never use final-
 
 - exact PR head;
 - `deploy-preview` environment;
-- contract 36/36;
+- contract 38/38;
 - development Supabase;
 - HTTP smoke;
 - anonymous browser smoke;
@@ -114,12 +114,12 @@ Use the same variables with `npm run smoke:production:browser`. Never use final-
 `.github/workflows/production-smoke.yml` currently requires:
 
 - production environment;
-- contract 35/35;
+- contract 36/36;
 - final-target Supabase;
 - non-local release IDs;
 - HTTP/browser smoke.
 
-It deliberately does not require `github.sha` while production cannot accept contract-36 `main`. During final-target promotion, change the workflow to contract 36 and restore exact-head commit enforcement in the same reviewed batch.
+It deliberately does not require `github.sha` while production cannot accept contract-38 `main`. During final-target promotion, change the workflow to contract 38 and restore exact-head commit enforcement in the same reviewed batch.
 
 ## Sentry privacy boundary
 
@@ -153,12 +153,12 @@ Alerts remain limited to actionable startup, availability, route-affecting error
 
 A Netlify rollback changes static files only, not Supabase schema/data.
 
-- **Static client regression while final-target database remains contract 35:** a compatible contract-35 application rollback may be appropriate.
+- **Static client regression while final-target database remains contract 36:** a compatible contract-36 application rollback may be appropriate.
 - **Database/RLS/function/history/data incident:** stop and use database recovery/change control.
 - **Wrong Supabase or contract identity:** stop deployment/traffic and investigate; never point production at development.
 - **Auth/CAPTCHA incident:** use the separate Auth/Turnstile process.
 
-The accepted contract-35 executable baseline remains documented in `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`. A later baseline replaces it only after release identity, CI and final-target smoke evidence are retained.
+The verified contract-36 production database remains the current baseline. A contract-38 baseline replaces it only after release identity, CI and final-target smoke evidence are retained.
 
 ### Pre-rollback
 
@@ -170,7 +170,7 @@ Use Netlify’s reviewed deploy restore/promote mechanism for the exact compatib
 
 ### Post-rollback
 
-Run both final-target smoke commands with `EURO28_SMOKE_EXPECTED_CONTRACT=35` unless a separately approved final-target contract change has occurred. Confirm intended deploy, headers, auth routes, signed-out gates, no development request and unchanged database history.
+Run both final-target smoke commands with `EURO28_SMOKE_EXPECTED_CONTRACT=36` unless a separately approved final-target contract change has occurred. Confirm intended deploy, headers, auth routes, signed-out gates, no development request and unchanged database history.
 
 Authenticated mutation checks require separate approval, a named test identity, before/after evidence and exact restoration.
 

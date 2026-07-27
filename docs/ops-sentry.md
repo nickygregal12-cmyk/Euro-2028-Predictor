@@ -73,7 +73,7 @@ The one-time synthetic preview event was already received and inspected. The ver
 Current preview release identity:
 
 - environment `deploy-preview`;
-- application/hosted contract 36;
+- application/hosted contract 38;
 - development Supabase `iouzoutneyjpugbbtdem`;
 - exact PR commit.
 
@@ -91,7 +91,7 @@ VITE_SENTRY_DSN=<approved public browser DSN>
 Current production release identity remains:
 
 - environment `production`;
-- application/hosted contract 35;
+- application/hosted contract 36;
 - final-target Supabase `vkfnsqdyhvtwyqkisxhk`.
 
 No Supabase variable or database contract changes as part of Sentry operations.
@@ -111,28 +111,28 @@ Production:
 - production deploy and release identity were verified;
 - a production `pageload` trace with controlled `auth` route category was inspected;
 - no full URL, fetch/XHR/resource child spans, User, Request, Breadcrumbs, email, IP or query-string data were visible;
-- application/database contract remained 35 and production Supabase remained isolated.
+- application/database contract remained 36 and production Supabase remained isolated.
 
 Authority: `docs/quality/reconciliations/2026-07-26-sentry-operational-assurance.md`.
 
 ## Production verification
 
-For the retained contract-35 target:
+For the retained contract-36 target:
 
 ```bash
-EURO28_SMOKE_EXPECTED_CONTRACT=35 npm run smoke:production
-EURO28_SMOKE_EXPECTED_CONTRACT=35 npm run smoke:production:browser
+EURO28_SMOKE_EXPECTED_CONTRACT=36 npm run smoke:production
+EURO28_SMOKE_EXPECTED_CONTRACT=36 npm run smoke:production:browser
 ```
 
 Confirm:
 
-1. `/release.json` reports production, contract 35 and final-target Supabase;
+1. `/release.json` reports production, contract 36 and final-target Supabase;
 2. security headers, routes and assets pass;
 3. no development Supabase request occurs;
 4. production Sentry remains enabled without a synthetic verification event;
 5. blocking/rate-limiting Sentry does not prevent application use.
 
-During final-target contract-36 promotion, update the target contract and restore exact-head production commit verification in the same reviewed batch.
+During final-target 36→38 promotion, update the target contract and restore exact-head production commit verification in the same reviewed batch.
 
 ## Remaining operating-policy work
 

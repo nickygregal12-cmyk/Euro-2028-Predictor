@@ -1,153 +1,55 @@
 # Hosted migration inventory and rollout status
 
-Live source of truth for repository migration count, hosted semantic state and rollout status.
+Live source of truth for repository migration count, hosted state and pending rollout scope.
 
 ## Current status — 27 July 2026
 
-| Environment | Deployment contract | Hosted migration state | Status |
+| Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| Repository `main` | 36 | 36 authoritative files through `20260725010000` | **Repository verified** |
-| Administrator branch | 38 | 38 authoritative files through `20260727080159` | **Branch verified after version reconciliation** |
-| Development Supabase `iouzoutneyjpugbbtdem` | 38 for dev/branch/preview | canonical administrator versions `20260727075922` and `20260727080159` applied after versions 1–36 | **Development verified at contract 38** |
-| Final-target Supabase `vkfnsqdyhvtwyqkisxhk` | production declaration 36 | exactly canonical versions 1–36; administrator migrations not applied | **Intentionally unchanged** |
+| Repository `main` | 38 | 38 canonical files through `20260727080159` | none |
+| Development Supabase `iouzoutneyjpugbbtdem` | 38 | exactly 38 canonical versions through `20260727080159` | none |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 38 | development Supabase | none |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 36 | exactly 36 canonical versions through `20260725010000` | migrations 37–38 |
+| Netlify `production` | 36 | final-target Supabase | contract lift follows database verification |
 
-The Netlify context and Supabase project historically named production are the controlled final target, not an active tournament. They remain isolated and protected.
+Production is a controlled final target, not an active tournament. Its contract must remain 36 until both pending migrations have been applied and verified.
 
-The migration-36 preparation and contract-35 evidence below are retained as dated
-operational history. Current final-target promotion authority is
-`docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`.
+## Exact production pending inventory
 
-## Migration 36
+| # | Canonical migration | Purpose | Development | Production |
+| ---: | --- | --- | --- | --- |
+| 37 | `20260727075922_admin_result_authorization.sql` | Browser-authorised administrator result confirmation, correction, clearing and revision access | Applied and verified | Pending |
+| 38 | `20260727080159_admin_result_revision_timestamp.sql` | Correct administrator result-revision timestamp projection | Applied and verified | Pending |
 
-| # | Migration | Purpose | Repository | Development | Final target |
-| ---: | --- | --- | --- | --- | --- |
-| 36 | `20260725010000_authoritative_reference_integrity.sql` | Fail-closed tournament/reference scope for group-team assignments, match references, players, result revisions, Golden Boot and score-event references | Merged/verified | Applied/verified | Sole pending migration; six preflight groups clean; fresh recovery evidence and approval required |
+No other repository migration is pending on production. Development has no pending migration.
 
-Migration 36:
-
-- refuses installation over incompatible rows;
-- validates same-tournament relationships without denormalised copied IDs;
-- protects `group_teams`, `matches`, `players`, `match_result_revisions`, `tournaments` and `score_events`;
-- uses private `predictor_internal` trigger functions with empty search paths;
-- revokes execution from `public`, `anon` and `authenticated`;
-- preserves legal same-tournament workflows.
-
-## Administrator branch migrations 37 and 38
-
-| # | Migration | Purpose | Repository branch | Development | Final target |
-| ---: | --- | --- | --- | --- | --- |
-| 37 | `20260727075922_admin_result_authorization.sql` | Browser-authorized administrator result confirmation, correction, clearing and revision access | Canonical after version reconciliation | Applied under exact canonical version | Not applied |
-| 38 | `20260727080159_admin_result_revision_timestamp.sql` | Correct administrator result-revision timestamp projection | Canonical after version reconciliation | Applied under exact canonical version | Not applied |
-
-The SQL identities were verified before the repository files were renamed. With one
-trailing LF stripped, their repository MD5 values exactly match the recorded
-development `applied_sql_md5` values:
+The repository filenames match the exact canonical versions recorded in development. With one final LF stripped, their verified MD5 values are:
 
 - migration 37: `3ee6879dd2a8d8607ae437ba56787853`;
 - migration 38: `b478b3eaadf0897e5985346075ca0a9e`.
 
-No hosted write, migration repair or duplicate SQL application is part of this
-reconciliation. See
-`docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md`.
+Do not renumber, reapply under another timestamp, repair history, or alter either SQL file.
 
-## Development promotion evidence
+## Promotion authority
 
-Development was promoted from canonical history 1–35 to exactly 1–36 after all six preflight counts returned zero. Post-change verification proved the exact history/version/name/hash, six private functions, six enabled triggers, browser-role execution revocations, legal same-tournament writes, rejection of all six cross-tournament classes and zero temporary verification rows.
+Use [`docs/ops-production-promotion-contract-38.md`](ops-production-promotion-contract-38.md) for the strict production 36→38 checklist.
 
-The connected migration action could not accept the repository timestamp and was blocked before SQL execution. The exact canonical SQL was applied transactionally through the database query channel, then the canonical history row was stored only after schema verification. This is not described as a Supabase CLI dry run.
+The promotion must require:
 
-Netlify non-production declarations were updated only after database verification:
+1. a fresh green `Production backup` workflow run, with the encrypted artifact stored off GitHub, dated within 24 hours of the window;
+2. a read-only history check showing exactly versions 1–36;
+3. `supabase db push --dry-run` listing exactly `20260727075922` and `20260727080159`;
+4. explicit owner approval;
+5. application and verification of exactly those two canonical migrations;
+6. production Netlify contract 38 only after database verification;
+7. exact-head production smoke and a dated reconciliation.
 
-- `dev`: 36;
-- `branch-deploy`: 36;
-- `deploy-preview`: 36;
-- `production`: remains 35.
+No backup, history mismatch, surplus dry-run migration, failed verification or missing owner approval means stop.
 
-Exact-head PR #105 preview, HTTP smoke, anonymous browser smoke and disposable authenticated Browser E2E passed. PR #105 merged without changing the production deploy pointer or contract.
+## Related evidence
 
-## Final-target read-only preparation
-
-Final-target inspection on 26 July established:
-
-- history count: 35;
-- first version: `20260719120000`;
-- latest version/name: `20260724003000` / `exact_function_execution_allowlist`;
-- migration-36 private functions installed: 0;
-- migration-36 triggers installed: 0;
-- migration 36 is the sole canonical repository migration not yet applied;
-- all six migration-36 incompatibility counts: 0;
-- production Netlify contract: 35;
-- production Supabase ref: `vkfnsqdyhvtwyqkisxhk`;
-- current production deploy: `6a6612da3628de000862baea`, ready;
-- no final-target write or Netlify mutation occurred.
-
-Retained-data snapshot:
-
-- one Auth user/profile and one submitted entry;
-- 36 predictions and four Jokers;
-- three tie-resolution rows;
-- eight progression rows;
-- 24 derived group-position rows;
-- zero score events, result revisions and rank-history rows.
-
-Current non-sensitive fingerprints:
-
-- match predictions: `0f8dd7807a87b2dced1678e026fcb7f5`;
-- tie resolutions: `d7315c50d02bf833e72bf2e57cf02e19`;
-- progression: `2d5df35a81a3c2a48f926517d1b001e0`;
-- group positions: `721fcb70165b1dd52892960fe22acb5b`.
-
-The 25 July recovery artifact predates a third tie-resolution row and later retained-data updates. It remains accepted historical recovery proof but is not the fresh source bundle required for the migration-36 write window.
-
-Full preparation: `docs/quality/reconciliations/2026-07-26-contract-36-final-target-preparation.md`.
-
-## Retained contract-35 final-target evidence
-
-The final target remains a compatible 35/35 pair:
-
-- migration history exactly 1–35;
-- 63-check verifier passed during contract-35 promotion;
-- rollback-only bracket, submission and result-lifecycle smoke passed;
-- deployed application/database contract 35;
-- production Supabase/environment isolation verified.
-
-Current data counts/fingerprints must be taken from the new preparation record, not assumed from the older promotion snapshot.
-
-## Required final-target sequence
-
-Completed preparation:
-
-1. inspect final-target history/data read-only;
-2. establish migration 36 as the only canonical pending migration;
-3. run the six fail-closed preflight checks;
-4. capture current counts, timestamps and fingerprints;
-5. inspect production deploy/contract/environment identity;
-6. prepare exact application, verification and failure-handling steps.
-
-Still required before SQL:
-
-7. create and accept a fresh source backup/restore record after the quiet window begins;
-8. rerun history, preflight, counts and fingerprints;
-9. require `supabase db push --dry-run` to list exactly migration 36;
-10. obtain explicit owner approval.
-
-Only after approval:
-
-11. apply migration 36;
-12. verify exact history, functions, triggers, privileges, rollback-only behaviour and zero pending migrations;
-13. update only the production Netlify declaration from 35 to 36;
-14. restore exact-head production-smoke semantics at contract 36;
-15. publish and verify the exact application/database pair;
-16. record dated final-target promotion evidence.
-
-Do not mark migration 36 applied before its SQL executes. Do not repair migration history without a separately proven metadata defect. Do not modify the final target merely to unblock a build.
-
-## Related documents
-
-- `docs/quality/current-status.md`
-- `docs/quality/reconciliations/2026-07-26-contract-36-final-target-preparation.md`
-- `docs/quality/reconciliations/2026-07-26-contract-36-development-promotion.md`
-- `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`
+- `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md`
+- `docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`
+- `docs/quality/reconciliations/2026-07-XX-production-backup-workflow.md`
 - `docs/ops-production-backup-restore.md`
-- `docs/ops-hosted-migration-rollout.md`
 - `config/deployment-contract.json`

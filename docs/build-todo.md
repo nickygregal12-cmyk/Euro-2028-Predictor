@@ -1,6 +1,6 @@
 # Euro 2028 Predictor — Current Build TODO
 
-**Status date:** 26 July 2026  
+**Status date:** 27 July 2026
 **Authority:** Near-term execution checklist. `docs/quality/current-status.md` is authoritative for facts.
 
 ## 0. Contract-35 hosted baseline — complete
@@ -47,30 +47,30 @@ The Netlify context named `production` is the controlled final target, not an ac
 - [x] Record dated development promotion evidence.
 - [x] Merge PR #105 without moving the production deploy or contract.
 
-## 4. Final-target contract-36 preparation — approval gate
+## 4. Final-target contract-38 promotion — approval gate
 
-- [x] Leave final-target Supabase and production Netlify at contract 35 during development promotion.
+- [x] Verify final-target Supabase and production Netlify at contract 36.
 - [x] Inspect final-target migration history and relevant data read-only.
-- [ ] Create and accept a fresh recoverable pre-change source bundle after the quiet window begins.
-- [x] Establish migration 36 as the only canonical pending migration.
+- [ ] Require a fresh green encrypted backup within 24 hours of the promotion window.
+- [x] Establish migrations 37–38 as the exact canonical pending inventory from the verified hosted facts.
 - [x] Run all six fail-closed preflight checks; each returned zero incompatible rows.
 - [x] Capture fresh counts, timestamps and non-sensitive fingerprints.
-- [x] Confirm current production deploy remains ready on the retained 35/35 pair.
+- [x] Confirm production remains intentionally retained at contract 36.
 - [x] Prepare exact migration application, verification, failure and rollback-safe smoke commands.
 - [x] Review current Supabase security/performance advisor findings separately.
 - [ ] Rerun history, preflight, counts and fingerprints immediately before the write.
-- [ ] Require `supabase db push --dry-run` to list exactly migration 36.
+- [ ] Require `supabase db push --dry-run` to list exactly migrations 37–38.
 - [ ] Obtain explicit owner approval before any final-target SQL.
-- [ ] Apply migration 36 and verify exactly 36 canonical history versions.
+- [ ] Apply migrations 37–38 and verify exactly 38 canonical history versions.
 - [ ] Verify functions, triggers, privileges and rollback-only behaviour.
 - [ ] Require zero pending migrations after application.
-- [ ] Change production Netlify declaration to 36 only after database verification.
-- [ ] Restore exact-head production-smoke semantics at contract 36.
+- [ ] Change production Netlify declaration to 38 only after database verification.
+- [ ] Restore exact-head production-smoke semantics at contract 38.
 - [ ] Require exact-head production deploy, release identity, HTTP/browser smoke and environment isolation.
 - [ ] Verify privacy-safe Sentry production tracing remains healthy.
 - [ ] Record a dated final-target promotion reconciliation.
 
-Preparation evidence: `docs/quality/reconciliations/2026-07-26-contract-36-final-target-preparation.md`.
+Promotion authority: `docs/ops-production-promotion-contract-38.md`.
 
 ## 5. Operations, monitoring and environment controls
 
@@ -92,13 +92,13 @@ Preparation evidence: `docs/quality/reconciliations/2026-07-26-contract-36-final
 - [ ] Resolve Turnstile/development CAPTCHA through issue #28.
 - [ ] Confirm or retire the legacy environment through issue #27.
 
-## 6. Result administration — next major functional workstream
+## 6. Result administration — foundation merged, acceptance work remains
 
-- [ ] Rebase/fix draft PR #102 onto current `main`, contract 36 and the current Netlify preview host.
-- [ ] Treat PR #102 as a read-only UI/access foundation until server-authorized writes exist.
-- [ ] Define a version-controlled administrator authorization and assignment model.
+- [x] Merge protected administrator routes, capability parsing and the read-only control-room foundation.
+- [x] Merge browser-authorised confirm/correct/clear/revision RPC boundaries.
+- [ ] Define and record the production administrator assignment model.
 - [ ] Do not rely on nonexistent `profiles.role`.
-- [ ] Add independently authorized browser-safe confirm/correct/clear functions.
+- [x] Add independently authorised browser-safe confirm/correct/clear functions.
 - [ ] Require reasons for correction and clearing.
 - [ ] Expose revision history safely.
 - [ ] Cover regulation, extra time, penalties and correction propagation.

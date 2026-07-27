@@ -1,7 +1,7 @@
 # Current feature and safeguard baseline
 
-**Latest development reconciliation:** [`reconciliations/2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md)  
-**Last verified final-target baseline:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
+**Latest development reconciliation:** [`reconciliations/2026-07-27-admin-migration-version-reconciliation.md`](reconciliations/2026-07-27-admin-migration-version-reconciliation.md)
+**Last verified final-target baseline:** [`reconciliations/2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md)
 **Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
 **Current hosted state:** [`current-status.md`](current-status.md)  
 **Identifier repair:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
@@ -10,15 +10,15 @@
 
 ## Classification rules
 
-- **Implemented and final-target-hosted:** working capability supported by the retained contract-35 final-target application/database pair.
-- **Implemented and development-hosted; final-target pending:** current repository and development/preview evidence support the capability at contract 36, while final-target promotion remains separate.
+- **Implemented and final-target-hosted:** working capability supported by the retained contract-36 final-target application/database pair.
+- **Implemented and development-hosted; final-target pending:** current repository and development/preview evidence support the capability at contract 38, while final-target promotion remains separate.
 - **Implemented with evidence gap:** hosted capability exists but a required browser/operational journey remains incomplete.
 - **Partial:** meaningful implementation exists but a required layer, route or journey is absent.
 - **UI prototype only:** presentation exists without an authoritative data path.
 - **Documented/planned:** intent exists without working implementation.
 - **Not present:** no current implementation evidence.
 
-Repository, development Supabase and non-production Netlify are contract 36. The final target remains contract 35.
+Repository, development Supabase and non-production Netlify are contract 38. The final target remains contract 36 with migrations 37–38 pending.
 
 ## Original Predictor and core application
 
@@ -48,7 +48,7 @@ Repository, development Supabase and non-production Netlify are contract 36. The
 | --- | --- | --- | --- |
 | `SAFE-007` | RPC-only submission | Implemented and final-target-hosted | Direct browser entry mutation denied |
 | `SAFE-045` | Server-derived predicted positions | Implemented and final-target-hosted | Derived/protected rows |
-| `SAFE-008` | Same-tournament and authoritative reference guards | Implemented and development-hosted; final-target pending | Migration 36 guards six relationship groups in development; final target remains contract 35 |
+| `SAFE-008` | Same-tournament and authoritative reference guards | Implemented and final-target-hosted | Migration 36 guards six relationship groups in development and the final target |
 | `SAFE-006` | Lock-time write rejection | Implemented and final-target-hosted | Final browser lock assurance remains |
 | `SAFE-009` | Full predicted bracket replay | Implemented and final-target-hosted | Validation/submission replay |
 | `SAFE-046` | Optimistic bracket conflict detection | Implemented and final-target-hosted | Atomic expected-version boundary |
@@ -57,11 +57,11 @@ Repository, development Supabase and non-production Netlify are contract 36. The
 | `SAFE-049` | Derived-position invalidation after clear | Implemented and final-target-hosted | Trigger path hosted |
 | `SAFE-050` | Authoritative result method/winner | Implemented and final-target-hosted | Database authority; frontend penalty consumption needs repair |
 | `SAFE-051` | Immutable result revision history | Implemented and final-target-hosted | Direct-access denial and verifier |
-| `SAFE-052` | Real knockout winner propagation | Implemented and final-target-hosted | Contract-35 functions/validation hosted |
+| `SAFE-052` | Real knockout winner propagation | Implemented and final-target-hosted | Contract-36 functions/validation hosted |
 | `SAFE-010` | Serialized score recomputation | Implemented and final-target-hosted | Result/scoring operations serialized |
 | `SAFE-053` | Exact function execution allowlists | Implemented and final-target-hosted | Zero anonymous application execution in verifier |
 | `SAFE-013` | Final-target/development isolation | Implemented and hosted | Production uses final-target; non-production uses development |
-| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Non-production 36/36 verified; final-target 35/35 retained; incompatible builds blocked |
+| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Non-production 38/38 verified; final-target 36/36 retained; incompatible builds blocked |
 
 Safe error mapping and redacting client-error capture remain governed by preserved `SAFE-039`.
 
@@ -69,7 +69,7 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 
 | ID | Capability | Current classification | Notes |
 | --- | --- | --- | --- |
-| `FEAT-027` | Overall standings | Implemented and final-target-hosted | Contract-35 scoring reads |
+| `FEAT-027` | Overall standings | Implemented and final-target-hosted | Contract-36 scoring reads |
 | `FEAT-028` | Private league lifecycle | Implemented and final-target-hosted | Abuse/security review remains |
 | `FEAT-029` | Invite deep links | Implemented and final-target-hosted | Pre-auth context weak |
 | `FEAT-049` | League detail/member rows | Implemented and final-target-hosted | Other-player destination incomplete |
@@ -83,18 +83,18 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 
 | ID | Capability/safeguard | Classification | Notes |
 | --- | --- | --- | --- |
-| `FEAT-040` | Result confirm/correct/clear server functions | Implemented and final-target-hosted | Service-role functions; browser admin absent on `main` |
-| `FEAT-039` | Browser result administration | Not present on `main` | Draft PR #102 is foundation only |
-| `SAFE-032` | Administrator bootstrap/authorization | Not present | Hosted assignment model absent |
+| `FEAT-040` | Result confirm/correct/clear server functions | Implemented and final-target-hosted | Authoritative service-role functions; contract-38 browser wrappers remain pending on production |
+| `FEAT-039` | Browser result administration | Partial on `main` | Protected routes, read-only control room and authorised RPC wrappers are merged; mutation UI/E2E remain |
+| `SAFE-032` | Administrator bootstrap/authorization | Partial | Fail-closed `app_metadata` capability model is implemented; hosted assignment/custody evidence remains |
 | `SAFE-012` | Fake clock/simulation isolation | Partial development capability | Full rehearsal open |
-| `SAFE-025` | Application CI | Implemented | Build, lint, tests, audit; run 584 passed for PR #105 |
-| `SAFE-026` | Disposable database integration CI | Implemented | Full 36 rebuild, lint, pgTAP and parity |
+| `SAFE-025` | Application CI | Implemented | Build, lint, tests and audit passed on the contract-38 administrator merge |
+| `SAFE-026` | Disposable database integration CI | Implemented | Full 38 rebuild, lint, pgTAP and parity |
 | `SAFE-055` | Provider submission/clear regression tests | Implemented | Not all final-target browser evidence |
-| `SAFE-027` | Browser E2E and hosted preview smoke | Implemented for disposable and development preview | Run 273 passed authenticated, auth recovery, exact-head HTTP and anonymous browser smoke |
+| `SAFE-027` | Browser E2E and hosted preview smoke | Implemented for disposable and development preview | Contract-38 authenticated, auth recovery, exact-head HTTP and anonymous browser smoke passed |
 | `FEAT-042` | Monitoring and alerting | Partial hosted capability | Privacy-safe production Sentry delivery is verified; retention, server-side/IP scrubbing confirmation, backup recipient, escalation and rollback rehearsal remain |
 | `SAFE-033` | Verified backup/restore | Implemented and accepted | Encrypted artifact and clean restore proof |
 | `SAFE-031` | Safe application rollback | Procedure implemented; hosted rehearsal pending | Final-target rollback rehearsal remains |
-| `SAFE-029` | Automatic final-target deploy | Implemented but contract-gated | Retained production stays 35; contract-36 main is correctly blocked until final promotion |
+| `SAFE-029` | Automatic final-target deploy | Implemented but contract-gated | Retained production stays 36; contract-38 main is correctly blocked until final promotion |
 
 Route titles, live announcements, main focus and skip navigation exist. Manual screen-reader review remains open.
 
@@ -174,9 +174,9 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 
 ## Current route and data baseline
 
-Current `main` has authenticated Original Predictor, league, H2H, match, profile and auth routes plus catch-all. Development-only routes remain gated. `/admin` exists only in draft PR #102.
+Current `main` has authenticated Original Predictor, league, H2H, match, profile and auth routes plus catch-all. Development-only routes remain gated. Protected administrator routes and the read-only control-room foundation are merged.
 
-Development is verified with 36 canonical migrations. Final target retains 35 migrations and its prior dated evidence point; current final-target facts require fresh read-only verification before migration 36 approval.
+Development is verified with 38 canonical migrations. The final target retains 36 migrations; exactly migrations 37–38 require controlled promotion.
 
 ## Safeguard regression rules
 

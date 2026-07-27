@@ -1,13 +1,13 @@
 # Euro 2028 Predictor — Current Roadmap
 
-**Status date:** 26 July 2026  
+**Status date:** 27 July 2026
 **Authority:** Future sequence only. Use `docs/quality/current-status.md` for current facts.
 
 ## Current position
 
-Repository, development Supabase and all non-production Netlify contexts are verified at contract 36. The exact-head PR #105 preview passed release identity, HTTP smoke and anonymous browser smoke; CI run 584 and Browser E2E run 273 passed.
+Repository, development Supabase and all non-production Netlify contexts are verified at contract 38. The administrator migration versions and foundation are merged with exact-head CI, Database parity, Browser E2E and preview smoke evidence.
 
-The final-target Supabase and Netlify production context remain a compatible, controlled contract-35 pair. They are not supporting a live tournament and were not changed during development promotion.
+The final-target Supabase and Netlify production context remain a compatible, controlled contract-36 pair, with exactly migrations 37–38 pending.
 
 Privacy-safe Sentry production delivery is enabled and verified. Remaining observability work is operating policy, alert ownership and rollback rehearsal rather than provider activation.
 
@@ -22,7 +22,8 @@ Completed foundations include:
 - accepted backup/restore proof;
 - contract-36 authoritative reference integrity in repository and development;
 - exact-head contract-36 preview assurance on the current Netlify project;
-- privacy-safe Sentry preview error and production trace delivery.
+- privacy-safe Sentry preview error and production trace delivery;
+- canonical administrator migration reconciliation and protected control-room foundation.
 
 ## Stage 0 — Contract-35 hosted baseline: complete
 
@@ -51,21 +52,9 @@ Completed 26 July 2026:
 
 Evidence: `docs/quality/reconciliations/2026-07-26-contract-36-development-promotion.md`.
 
-## Stage 2 — Final-target contract-36 promotion
+## Stage 2 — Final-target contract-38 promotion
 
-Current database gate:
-
-1. inspect final-target migration/data state read-only;
-2. preserve recoverable pre-change evidence;
-3. establish migration 36 as the only canonical pending migration;
-4. run all six fail-closed preflight checks;
-5. prepare exact application, verification and rollback-safe smoke commands;
-6. obtain explicit owner approval before any SQL;
-7. apply and verify migration 36;
-8. change production Netlify declaration to 36 only after database verification;
-9. require exact-head production deploy, release identity, security headers, routes, assets and browser smoke;
-10. restore exact-head production-smoke semantics;
-11. record a dated final-target reconciliation.
+Follow `docs/ops-production-promotion-contract-38.md`: require a fresh green encrypted backup within 24 hours, prove exactly migrations 37–38 pending, obtain explicit owner approval, apply and verify them, lift production to 38 only afterward, restore exact-head smoke and record a dated reconciliation.
 
 No final-target contract lift occurs merely to unblock a build.
 
@@ -98,9 +87,9 @@ No final-target contract lift occurs merely to unblock a build.
 
 ## Stage 5 — Real progression and administration
 
-1. Rebase/fix draft PR #102 against current `main`, contract 36 and current preview host.
-2. Define version-controlled administrator authorization/assignment.
-3. Add independently authorized result confirm/correct/clear browser functions.
+1. Complete the merged administrator foundation with mutation UI and confirmation review.
+2. Define and record production administrator assignment.
+3. Add accepted authorised/unauthorised result Browser E2E.
 4. Require reasons and expose revision history safely.
 5. Add desktop/mobile admin Browser E2E and hosted assignment proof.
 6. Populate real R16 transactionally from confirmed standings and saved actual tie decisions.
