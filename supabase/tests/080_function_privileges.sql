@@ -32,8 +32,13 @@ create temporary table expected_service_functions (
   signature text primary key
 ) on commit drop;
 
+-- Browser admin wrappers deliberately require an authenticated user JWT with
+-- server-controlled app_metadata. Background/service operations use the
+-- underlying authoritative result functions instead of bypassing that gate.
 insert into expected_service_functions (signature)
-select signature from expected_authenticated_functions;
+select signature
+from expected_authenticated_functions
+where signature not like 'admin\_%' escape '\';
 
 insert into expected_service_functions (signature) values
   ('capture_rank_history(uuid)'),
