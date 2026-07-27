@@ -18,6 +18,8 @@ Feature work may continue only where it does not bypass a hard gate or deepen a 
 
 ## Phase 1 — administrator operations
 
+**Current evidence:** the admin migration versions are reconciled and the protected-route/capability/RPC foundation is merged on `main`. Mutation UI acceptance and authorised/unauthorised Browser E2E remain open.
+
 ### Outcomes
 
 - Protected administrator routes and server-side capability enforcement.
@@ -87,6 +89,8 @@ Feature work may continue only where it does not bypass a hard gate or deepen a 
 - Official-data provenance and change control are documented.
 
 ## Phase 5 — launch assurance
+
+**Current evidence:** the manual encrypted production-backup workflow (T024-equivalent) is merged. Its first-run reconciliation record remains incomplete and must not be claimed from repository evidence alone.
 
 ### Outcomes
 

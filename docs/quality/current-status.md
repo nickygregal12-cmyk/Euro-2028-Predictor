@@ -7,15 +7,15 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current `main` | `15c94b478a2994e8deb015f7371568dcca19933d` |
-| Repository contract / migration count | 38 / 38 on this admin branch; current `main` remains 36 / 36 until merge |
-| Hosted-development reconciliation | [`2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md) |
+| Current `main` | `fa215d2ece6137f52934840c00189b36082d3136` |
+| Repository contract / migration count | 38 / 38 |
+| Hosted-development reconciliation | [`2026-07-27-admin-migration-version-reconciliation.md`](reconciliations/2026-07-27-admin-migration-version-reconciliation.md) |
 | Final-target promotion | [`2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md) |
-| Development Supabase | `iouzoutneyjpugbbtdem` — verified contract 38 for this branch |
-| Non-production Netlify contexts | `dev`, `branch-deploy`, `deploy-preview` — contract 38 for this branch |
-| Final-target Supabase | `vkfnsqdyhvtwyqkisxhk` — verified contract 36; no admin migrations applied |
+| Development Supabase | `iouzoutneyjpugbbtdem` — verified contract 38 with the canonical 38-version history |
+| Non-production Netlify contexts | `dev`, `branch-deploy`, `deploy-preview` — declared contract 38 |
+| Final-target Supabase | `vkfnsqdyhvtwyqkisxhk` — verified contract 36; migrations 37–38 pending |
 | Final-target Netlify declaration | contract 36 |
-| Current production deploy | A fresh contract-36 production build and exact-head smoke remain to be verified |
+| Production recovery | Manual `Production backup` workflow is merged; the first-run reconciliation record is still incomplete |
 | Sentry production delivery | enabled and privacy-safe trace delivery verified |
 
 The environment historically named production is the intended final target. It is not supporting a live Euro 2028 tournament, but its configuration and retained verification data remain controlled.
@@ -24,28 +24,28 @@ The environment historically named production is the intended final target. It i
 
 | Area | Verdict |
 | --- | --- |
-| Repository development | **Safe to continue.** This branch advances the repository contract to 38 for protected administrator result operations. |
-| Development database | **Verified at contract 38 for this branch.** Browser-safe admin wrappers and revision history were applied and checked. |
-| Final-target database | **Remains contract 36.** No administrator migrations or production changes were applied. |
-| Netlify declarations | **Non-production contexts declare 38 for this branch; production remains 36.** |
-| Administrator foundation | **Implemented on this branch.** Protected routes, capability checks, read-only control room and authorised result RPC wrappers are present. |
+| Repository development | **Safe to continue at contract 38.** The canonical 38-migration chain is merged. |
+| Development database | **Verified at contract 38.** Browser-safe admin wrappers and revision history are present under the exact repository versions. |
+| Final-target database | **Intentionally retained at contract 36.** Exactly migrations 37–38 are pending. |
+| Netlify declarations | **Non-production contexts declare 38; production remains 36 pending controlled promotion.** |
+| Administrator foundation | **Merged.** Protected routes, capability checks, read-only control room and authorised result RPC wrappers are present. |
 | Administrator result UI | **Partial.** Result mutation forms, confirmation review and browser E2E acceptance still remain. |
-| Recovery gate | **Exception open.** Contract 36 was promoted without completing the fresh logical backup, encrypted custody check and disposable restore rehearsal first. |
+| Recovery gate | **Workflow implemented; record incomplete.** Do not claim the July exception closed until the dated first-run record is finalized from retained evidence. |
 | Tournament launch readiness | **Not ready.** Administrator UI acceptance, result consumption, scalability hot paths, background operations, official data, accessibility and rehearsal remain incomplete. |
 
 ## Contract evidence
 
-Current `main` and the final-target database remain at contract 36. This branch adds migrations 37 and 38 for development-only browser-authorised administrator result wrappers and the corrected result-revision timestamp projection. The existing authoritative result lifecycle remains the implementation underneath those wrappers; scoring values and result rules are unchanged.
+Current `main`, development Supabase and non-production Netlify are aligned at contract 38. The final-target database and production declaration remain at contract 36, with exactly the canonical administrator migrations `20260727075922` and `20260727080159` pending. The existing authoritative result lifecycle remains the implementation underneath those wrappers; scoring values and result rules are unchanged.
 
 ## Hosted environment position
 
 | Context | Supabase | Declared contract | Position |
 | --- | --- | ---: | --- |
-| local/disposable | local | 38 on branch | Full rebuild, lint, pgTAP and parity authority |
-| Netlify `dev` | development `iouzoutneyjpugbbtdem` | 38 | Branch-aligned |
-| Netlify `branch-deploy` | development `iouzoutneyjpugbbtdem` | 38 | Branch-aligned |
-| Netlify `deploy-preview` | development `iouzoutneyjpugbbtdem` | 38 | Branch-aligned |
-| Netlify `production` | final target `vkfnsqdyhvtwyqkisxhk` | 36 | Intentionally unchanged |
+| local/disposable | local | 38 | Full rebuild, lint, pgTAP and parity authority |
+| Netlify `dev` | development `iouzoutneyjpugbbtdem` | 38 | Aligned |
+| Netlify `branch-deploy` | development `iouzoutneyjpugbbtdem` | 38 | Aligned |
+| Netlify `deploy-preview` | development `iouzoutneyjpugbbtdem` | 38 | Aligned |
+| Netlify `production` | final target `vkfnsqdyhvtwyqkisxhk` | 36 | Intentionally retained pending 36→38 promotion |
 
 The legacy `euro28-predictor-dev.netlify.app` site was not used or changed and should remain separately controlled or be decommissioned.
 
@@ -53,7 +53,7 @@ The legacy `euro28-predictor-dev.netlify.app` site was not used or changed and s
 
 The fresh logical backup and disposable restore rehearsal described by the promotion preparation were not completed before final-target contract-36 promotion. The owner explicitly accepted that exception.
 
-This exception remains open until evidence records:
+The manual backup workflow now exists. Its dated first-run record is still incomplete and therefore remains the documentary closure gate. Do not fill its placeholders without the retained run and custody evidence. Closure must record:
 
 - a fresh logical backup from the current final target;
 - encrypted custody and named ownership;
@@ -76,7 +76,7 @@ Supabase advisor observations remain separate controlled work:
 
 ## Feature and safeguard status
 
-Implemented on this branch:
+Implemented on current `main`:
 
 - protected `/admin`, `/admin/results` and `/admin/users` routes;
 - fail-closed `app_metadata` capability parsing;
@@ -84,7 +84,7 @@ Implemented on this branch:
 - read-only result status and awaiting-result queue;
 - browser-authorised confirm, correct, clear and revision-history RPCs;
 - immutable authoritative result lifecycle delegated to existing internal functions;
-- contract 38 development and preview alignment.
+- contract 38 repository, development and preview alignment.
 
 Still partial or planned:
 
@@ -131,13 +131,14 @@ Automatic valid-entry submission and asynchronous incremental scoring remain app
 
 ## Immediate order
 
-1. Complete and accept the administrator result mutation UI and browser E2E on this branch.
-2. Merge the administrator foundation after exact-head checks pass.
-3. Repair authoritative knockout-result consumption in Match Centre and H2H.
-4. Establish background jobs and auto-submit before the lock workflow is considered complete.
-5. Implement maintained standings, bounded leaderboard reads and asynchronous incremental scoring.
-6. Run representative large-seed, lock-window and full-tournament rehearsals.
-7. Complete authentication, accessibility, privacy and repository launch-assurance gates.
+1. Finalize the dated first-run backup record from retained evidence; never invent it.
+2. Execute the controlled production 36→38 promotion only under [`docs/ops-production-promotion-contract-38.md`](../ops-production-promotion-contract-38.md).
+3. Complete and accept the administrator result mutation UI and browser E2E.
+4. Repair authoritative knockout-result consumption in Match Centre and H2H.
+5. Establish background jobs and auto-submit before the lock workflow is considered complete.
+6. Implement maintained standings, bounded leaderboard reads and asynchronous incremental scoring.
+7. Run representative large-seed, lock-window and full-tournament rehearsals.
+8. Complete authentication, accessibility, privacy and repository launch-assurance gates.
 
 ## Documentation authority
 

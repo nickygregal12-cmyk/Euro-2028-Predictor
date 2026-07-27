@@ -10,45 +10,43 @@ Do not import rules or features from previous World Cup projects, old branches, 
 
 ## Current contract position
 
-Repository and development are verified at contract `36`:
+Repository and development are verified at contract `38`:
 
-- 36 canonical migrations through `20260725010000_authoritative_reference_integrity.sql`;
-- development Supabase `iouzoutneyjpugbbtdem` has exactly 36 migration-history versions;
-- migration-36 preflight, private-function, trigger, privilege and rollback-only behaviour checks passed;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` contexts declare 36 and use development Supabase;
-- PR #105 proved an exact-head 36/36 preview on the current `euro28predictor` project with HTTP and anonymous browser smoke.
+- 38 canonical migrations through `20260727080159_admin_result_revision_timestamp.sql`;
+- development Supabase `iouzoutneyjpugbbtdem` has exactly 38 canonical versions;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` contexts declare 38 and use development Supabase;
+- CI, Database parity and Browser E2E passed on the merged administrator foundation.
 
-The final target remains contract `35`:
+The final target remains contract `36`:
 
-- Supabase `vkfnsqdyhvtwyqkisxhk` is last verified through migration 35;
-- Netlify `production` remains declared at 35;
+- Supabase `vkfnsqdyhvtwyqkisxhk` is verified through migration 36;
+- Netlify `production` remains declared at 36;
+- migrations 37–38 are the exact pending inventory;
 - it is a controlled final target, not an active tournament;
 - no final-target SQL or environment change was made during development promotion.
 
-Read `docs/quality/reconciliations/2026-07-26-contract-36-development-promotion.md` for current evidence.
+Read `docs/quality/current-status.md` and `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md` for current evidence.
 
 ## Current hard gate
 
-The next database stage is final-target preparation only:
+The next database stage is the controlled production 36→38 promotion:
 
-1. inspect final-target state read-only;
-2. preserve recoverable pre-change evidence;
-3. prove migration 36 is the only canonical pending migration;
-4. run the six migration preflight checks;
-5. prepare exact application/verification/rollback-safe smoke commands;
-6. obtain explicit owner approval before any database write;
-7. apply/verify migration 36;
-8. change production Netlify to 36 only after database verification;
-9. require exact-head production release identity plus HTTP/browser smoke.
+1. require a fresh green encrypted backup within 24 hours;
+2. inspect final-target history read-only;
+3. prove migrations 37–38 are the only pending files;
+4. obtain explicit owner approval;
+5. apply and verify exactly those migrations;
+6. change production Netlify to 38 only after database verification;
+7. require exact-head production release identity plus HTTP/browser smoke.
 
 Never weaken prebuild guards or lift a hosted contract just to make a build pass.
 
 ## Smoke target split
 
-- Preview smoke requires contract 36, the exact PR head and development Supabase.
-- Production smoke currently requires the retained compatible 35/35 release and final-target Supabase.
+- Preview smoke requires contract 38, the exact PR head and development Supabase.
+- Production smoke currently requires the retained compatible contract-36 release and final-target Supabase.
 - Both smoke implementations require `EURO28_SMOKE_EXPECTED_CONTRACT`.
-- Production does not require the current `main` commit while the guard intentionally blocks contract-36 code from its contract-35 database.
+- Production does not require the current `main` commit while the guard intentionally blocks contract-38 code from its contract-36 database.
 - Restore exact-head production verification during final-target promotion.
 
 ## Remaining launch work
@@ -76,8 +74,8 @@ Never weaken prebuild guards or lift a hosted contract just to make a build pass
 | Topic | Document |
 | --- | --- |
 | Current implementation/hosted state | `docs/quality/current-status.md` |
-| Development contract-36 evidence | `docs/quality/reconciliations/2026-07-26-contract-36-development-promotion.md` |
-| Retained final-target contract-35 evidence | `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md` |
+| Contract-38 administrator evidence | `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md` |
+| Production 36→38 runbook | `docs/ops-production-promotion-contract-38.md` |
 | Agent/Git/database rules | `AGENTS.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Feature/safeguard classifications | `docs/quality/feature-baseline.md` |
@@ -130,9 +128,9 @@ Automatic deadline submission remains planned, not implemented.
 
 ## Immediate order
 
-1. Merge development contract-36 promotion evidence.
-2. Prepare final-target migration 36 read-only; do not write without explicit approval.
-3. Continue server-authorized administrator/result management.
+1. Finalize the dated backup first-run record from retained evidence.
+2. Prepare the controlled production 36→38 promotion; do not write without explicit approval.
+3. Complete server-authorized administrator/result management.
 4. Repair authoritative knockout-result consumption.
 5. Implement real R16/actual tie decisions.
 6. Implement automatic submission.

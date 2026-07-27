@@ -1,28 +1,28 @@
 # Euro 2028 Predictor — Current Risk Register
 
-**Latest development reconciliation:** [`reconciliations/2026-07-26-contract-36-development-promotion.md`](reconciliations/2026-07-26-contract-36-development-promotion.md)  
-**Last verified final-target reconciliation:** [`reconciliations/2026-07-25-contract-35-production-promotion.md`](reconciliations/2026-07-25-contract-35-production-promotion.md)  
+**Latest development reconciliation:** [`reconciliations/2026-07-27-admin-migration-version-reconciliation.md`](reconciliations/2026-07-27-admin-migration-version-reconciliation.md)
+**Last verified final-target reconciliation:** [`reconciliations/2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md)
 **Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
 **Recovery acceptance:** [`reconciliations/2026-07-25-final-recovery-acceptance.md`](reconciliations/2026-07-25-final-recovery-acceptance.md)  
-**Recovery exception:** [`reconciliations/2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md) — open until the first successful run of the manual `Production backup` workflow ([`reconciliations/2026-07-XX-production-backup-workflow.md`](reconciliations/2026-07-XX-production-backup-workflow.md))
+**Recovery exception:** [`reconciliations/2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md) — the manual `Production backup` workflow exists, but its dated first-run record remains incomplete ([`reconciliations/2026-07-XX-production-backup-workflow.md`](reconciliations/2026-07-XX-production-backup-workflow.md))
 
 Current `main`, executable tests and verified hosted evidence override older classifications. Production is the controlled final target, not an active tournament.
 
-## Contract-36 movement
+## Current contract movement
 
 | ID | Current position |
 | --- | --- |
 | `DATA-003` | **Repository and development hosted implementation verified.** Six relationship groups are guarded; final-target rollout is tracked under `OPS-006`. |
 | `DATA-006` | **No concrete residual defect established.** Reopen only with an exact uncovered relationship. |
 | `DOC-001` | **Resolved.** Current agent/status/risk/roadmap/migration authority is reconciled. |
-| `OPS-006` | **Narrowed to final-target divergence.** Repository/development/previews are 36; final target remains compatible 35 and fail-closed. |
+| `OPS-006` | **Narrowed to final-target divergence.** Repository/development/previews are 38; final target remains compatible at 36 and fail-closed. |
 | `TEST-001` | **Reduced.** Hosted development migration and exact-head preview smoke are complete; other critical journeys remain. |
 
 ## Critical
 
 | ID | Finding | Current status | Required closure |
 | --- | --- | --- | --- |
-| `OPS-006` | Final-target application/database contract remains 35 while repository/development are 36 | **Open; safely fail-closed** | Read-only final-target preparation, recoverable evidence (recovery exception open — fresh encrypted backup and disposable restore rehearsal via the manual `Production backup` GitHub Actions workflow, first successful run pending), explicit owner approval, migration/verification, production declaration 36, exact-head deployment and smoke. |
+| `OPS-006` | Production remains at contract 36 while repository and development are 38 | **Open; safely fail-closed** | Follow [`docs/ops-production-promotion-contract-38.md`](../ops-production-promotion-contract-38.md): require a fresh green `Production backup` run and off-GitHub encrypted artifact within 24 hours, explicit owner approval, controlled migrations 37–38, database verification, production declaration 38, exact-head deployment/smoke and a dated reconciliation. The workflow exists; cite a completed first run only after its reconciliation record is finalized. |
 | `DATA-001` | Predicted group positions can be forged or drift | **Resolved** | Reopen on regression. |
 | `SECURITY-001` | Browser roles can write server-owned position inputs | **Resolved** | Reopen on regression. |
 | `SECURITY-002` | Submission boundary can be bypassed | **Resolved** | Reopen on regression. |
@@ -38,7 +38,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Server scheduler and exact lock-boundary tests. |
 | `DATA-004` | Actual tie resolution can use non-authoritative fallback | **Open** | Define authoritative workflow when official regulations/data are available. |
 | `DATA-005` | Score clearing lacks complete final-target browser proof | **Backend implemented; final-target evidence pending** | Controlled clear/reload/conflict/lock verification. |
-| `OPS-002` | No complete approved administrator model/control room | **Open; PR #102 is foundation only** | Authorized RPC boundaries, bootstrap/assignment evidence, audit history and Browser E2E. |
+| `OPS-002` | Administrator control room is not yet complete | **Partial; foundation merged** | Mutation UI, bootstrap/assignment evidence, audit-history presentation and Browser E2E remain. |
 | `TEST-001` | Critical rules lack complete end-to-end evidence | **Partial** | Result admin, authoritative penalty-winner UI, final-target controlled mutations and manual screen-reader review remain. |
 | `OPS-003` | Production observability operations incomplete | **Partial; delivery verified** | Sentry production trace delivery and privacy boundary are verified. Record actual retention, server-side/IP scrubbing, backup alert recipient/escalation, durable push-smoke evidence and rollback promotion rehearsal. |
 
@@ -82,7 +82,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 - Repository implementation, development-hosted verification and final-target verification are separate closure states.
 - Do not call a final-target risk closed because the tournament is not live.
 - Do not retain broad findings after the concrete defect is resolved.
-- The retained 35/35 final-target evidence stays valid until a dated 36/36 promotion replaces it.
+- The verified contract-36 final-target database remains the production baseline until a dated 38/38 promotion replaces it.
 - A guard blocking incompatible deployment is a working safeguard, not a defect to bypass.
 - Sentry delivery is already active; do not describe it as disabled merely because policy/ownership items remain.
 - Advisor warnings require context; do not remove indexes or revoke intended RPC access without evidence.

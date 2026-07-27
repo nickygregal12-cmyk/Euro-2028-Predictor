@@ -19,7 +19,7 @@
 | ACQ-R01 | Unbounded global leaderboard and client-side ranking can make the home/default route unusable at scale. | Loss of service and oversized disclosure payload. | Bounded paginated RPCs, one-row current-user standing and removal of browser use of the unbounded endpoint. | Open |
 | ACQ-R02 | Browser standings reads aggregate the scoring table through a derived totals view. | Database saturation and timeouts as score events grow. | Maintained `entry_standings`, indexed reads and reconciliation against a derived oracle. | Open |
 | ACQ-R03 | A result write synchronously recomputes the whole tournament. | Long transactions, WAL/table bloat and peak-time operational failure. | Queue result scoring, process incrementally in bounded batches, retain full recomputation for repair/parity. | Open |
-| ACQ-R04 | Routine result operations lack a fully accepted least-privilege browser workflow on current `main`. | Human error or credential exposure during live operations. | Protected administrator interface, server-side capability checks, revision history and audit evidence. | In progress |
+| ACQ-R04 | Routine result operations lack a fully accepted least-privilege browser workflow on current `main`. | Human error or credential exposure during live operations. | Protected administrator interface, server-side capability checks, revision history and audit evidence. | In progress — migration versions reconciled and the admin foundation is merged; mutation UI/E2E acceptance remains |
 
 ## High risks
 
@@ -34,7 +34,7 @@
 | ACQ-R11 | No accepted background-job tier supports scoring, submission, reconciliation and lifecycle work. | Establish `pg_cron`/Edge Function responsibilities with idempotency and observability. | Open |
 | ACQ-R12 | No product analytics supports funnel or retention decisions. | Privacy-conscious event taxonomy, approved provider, CSP/DPIA and core dashboards. | Open |
 | ACQ-R13 | Large-scale behaviour at lock and result peaks is not evidenced. | Representative seeded load tests, connection-pool budget and rehearsed thresholds. | Open |
-| ACQ-R14 | Critical admin/result, penalty-winner and accessibility journeys lack complete end-to-end evidence. | Browser E2E, pgTAP privilege enumeration, axe automation and manual assistive-technology review. | Open |
+| ACQ-R14 | Critical admin/result, penalty-winner and accessibility journeys lack complete end-to-end evidence. | Browser E2E, pgTAP privilege enumeration, axe automation and manual assistive-technology review. | Open — static admin privilege enumeration is present; the critical browser/accessibility journeys remain |
 
 ## Medium risks
 
@@ -62,6 +62,12 @@
 ## Acceptance rule
 
 Critical and high risks are hard launch gates unless the owner records an explicit, dated acceptance with scope, expiry/review date and rollback or contingency position. A merged pull request without hosted or load evidence may move a risk to **In progress**, not **Mitigated**.
+
+## Completed repository foundations
+
+- Manual encrypted, restore-rehearsed production-backup workflow merged (T024-equivalent); the dated first-run record is still incomplete.
+- Administrator migrations reconciled to the exact canonical hosted-development versions.
+- Protected administrator routes, capability parsing and browser-authorised result RPC foundation merged.
 
 ## Reconciliation references
 
