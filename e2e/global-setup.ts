@@ -69,6 +69,9 @@ export default async function globalSetup() {
     email,
     password,
     email_confirm: true,
+    app_metadata: {
+      admin_capabilities: ['results'],
+    },
   })
   if (createError) throw createError
   if (!created.user) throw new Error('Local E2E user creation returned no user.')

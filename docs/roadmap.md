@@ -11,14 +11,15 @@
 - production locked for milestone-only promotion;
 - administrator authorization/RPC foundation merged.
 
-## Stage 1 — Admin Control Room completion
+## Stage 1 — Admin Control Room completion: complete
 
-1. Add result confirm, correct and clear forms.
-2. Require review before mutation and reasons for correction/clear.
-3. Present revision history safely.
-4. Cover regulation, extra time, penalties and unresolved states.
-5. Add authorised/unauthorised desktop and mobile Browser E2E.
-6. Define the production administrator assignment model without relying on `profiles.role`.
+- result confirm, correct and clear forms;
+- review before mutation and required reasons for correction/clear;
+- safe immutable revision history;
+- regulation, extra-time, penalty and unresolved-participant handling;
+- authorised/unauthorised desktop and mobile Browser E2E;
+- production assignment/revocation model based on server-owned Auth
+  `app_metadata`, never `profiles.role`.
 
 Exit: an authorised administrator can manage the full result lifecycle in development; ordinary users cannot.
 

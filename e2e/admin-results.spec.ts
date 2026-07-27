@@ -1,0 +1,241 @@
+import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import {
+  clearPreparedKnockoutFixture,
+  deleteOrdinaryUser,
+  ensureMatchResultCleared,
+  prepareOrdinaryUser,
+  prepareResolvedKnockoutFixture,
+} from './admin-results-local'
+
+function desktopOnly(testInfo: TestInfo) {
+  test.skip(
+    testInfo.project.name !== 'desktop-chromium',
+    'The stateful result lifecycle runs once; mobile has an independent form journey.',
+  )
+}
+
+function mobileOnly(testInfo: TestInfo) {
+  test.skip(
+    testInfo.project.name !== 'mobile-chromium',
+    'This journey verifies the phone layout once.',
+  )
+}
+
+async function openAdminResults(page: Page) {
+  await page.goto('/admin/results')
+  await expect(page).toHaveURL((url) => url.pathname === '/admin/results', {
+    timeout: 15_000,
+  })
+  await expect(
+    page.getByRole('heading', { name: 'Results Centre' }),
+  ).toBeVisible()
+}
+
+async function chooseGroupFixture(page: Page) {
+  await page.getByRole('button', { name: /^GA-1\b/ }).click()
+  const editor = page.getByRole('region', { name: /Team A1 v Team A2/ })
+  await expect(editor).toBeVisible()
+  return editor
+}
+
+async function loginAs(page: Page, email: string, password: string) {
+  await page.goto('/more')
+  await expect(page).toHaveURL((url) => url.pathname === '/more', {
+    timeout: 15_000,
+  })
+  await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Sign out?' })
+  await dialog.getByRole('button', { name: 'Sign out', exact: true }).click()
+  await expect(page).toHaveURL((url) => url.pathname === '/auth/login', {
+    timeout: 15_000,
+  })
+  await page.getByLabel('Email').fill(email)
+  await page.getByRole('textbox', { name: 'Password' }).fill(password)
+  await page.getByRole('button', { name: 'Log in', exact: true }).click()
+  await expect(page).toHaveURL((url) => url.pathname === '/', {
+    timeout: 15_000,
+  })
+}
+
+test.describe('Admin result workflow', () => {
+  test.describe.configure({ mode: 'serial', retries: 0 })
+
+  test('authorised admin reviews, confirms, corrects and clears a result', async ({
+    page,
+  }, testInfo) => {
+    desktopOnly(testInfo)
+    try {
+      await openAdminResults(page)
+      const editor = await chooseGroupFixture(page)
+
+      let mutationRequests = 0
+      page.on('request', (request) => {
+        if (
+          request.method() === 'POST' &&
+          /\/rest\/v1\/rpc\/admin_(confirm|correct|clear)_match_result/.test(
+            request.url(),
+          )
+        ) {
+          mutationRequests += 1
+        }
+      })
+
+      const regulation = editor.getByRole('group', { name: '90-minute score' })
+      await regulation.getByLabel('Team A1').fill('2')
+      await regulation.getByLabel('Team A2').fill('1')
+      await editor
+        .getByRole('button', { name: 'Review confirm result' })
+        .click()
+
+      const confirmDialog = page.getByRole('dialog', {
+        name: 'Review: Confirm result',
+      })
+      await expect(confirmDialog).toContainText('2–1')
+      expect(mutationRequests).toBe(0)
+      await confirmDialog
+        .getByRole('button', { name: 'Confirm result', exact: true })
+        .click()
+
+      await expect(page.getByRole('status')).toContainText(
+        'Confirm result saved',
+        { timeout: 15_000 },
+      )
+      await expect(editor).toContainText('Confirmed · revision 1')
+      await expect(page.getByText('Revision 1 · confirm')).toBeVisible()
+      expect(mutationRequests).toBe(1)
+
+      await editor
+        .getByRole('button', { name: 'Correct', exact: true })
+        .click()
+      await regulation.getByLabel('Team A2').fill('2')
+      await editor
+        .getByLabel('Reason')
+        .fill('Official score was entered incorrectly')
+      await editor
+        .getByRole('button', { name: 'Review correct result' })
+        .click()
+      const correctionDialog = page.getByRole('dialog', {
+        name: 'Review: Correct result',
+      })
+      await expect(correctionDialog).toContainText(
+        'Official score was entered incorrectly',
+      )
+      await correctionDialog
+        .getByRole('button', { name: 'Correct result', exact: true })
+        .click()
+
+      await expect(page.getByRole('status')).toContainText(
+        'Correct result saved',
+        { timeout: 15_000 },
+      )
+      await expect(editor).toContainText('Corrected · revision 2')
+      await expect(page.getByText('Revision 2 · correct')).toBeVisible()
+      await expect(
+        page.getByText('Official score was entered incorrectly'),
+      ).toBeVisible()
+      expect(mutationRequests).toBe(2)
+
+      await editor
+        .getByRole('button', { name: 'Clear', exact: true })
+        .click()
+      await editor
+        .getByLabel('Reason')
+        .fill('Result belonged to another fixture')
+      await editor
+        .getByRole('button', { name: 'Review clear result' })
+        .click()
+      const clearDialog = page.getByRole('dialog', {
+        name: 'Review: Clear result',
+      })
+      await expect(clearDialog).toContainText(
+        'remove the current authoritative result',
+      )
+      await clearDialog
+        .getByRole('button', { name: 'Clear result', exact: true })
+        .click()
+
+      await expect(page.getByRole('status')).toContainText(
+        'Clear result saved',
+        {
+          timeout: 15_000,
+        },
+      )
+      await expect(editor).toContainText('Awaiting result')
+      await expect(page.getByText('Revision 3 · clear')).toBeVisible()
+      expect(mutationRequests).toBe(3)
+    } finally {
+      await ensureMatchResultCleared()
+    }
+  })
+
+  test('authorised admin can use the result form on a phone viewport', async ({
+    page,
+  }, testInfo) => {
+    mobileOnly(testInfo)
+    const fixture = await prepareResolvedKnockoutFixture()
+    try {
+      await openAdminResults(page)
+      await page.getByRole('button', { name: new RegExp(`^${fixture.matchRef}\\b`) }).click()
+      const editor = page.getByRole('region', {
+        name: new RegExp(`${fixture.homeName} v ${fixture.awayName}`),
+      })
+      await expect(editor).toBeVisible()
+
+      await editor.getByLabel('Result method').selectOption('extra_time')
+      const regulation = editor.getByRole('group', { name: '90-minute score' })
+      const extraTime = editor.getByRole('group', { name: '120-minute score' })
+      await regulation.getByLabel(fixture.homeName).fill('1')
+      await regulation.getByLabel(fixture.awayName).fill('1')
+      await extraTime.getByLabel(fixture.homeName).fill('2')
+      await extraTime.getByLabel(fixture.awayName).fill('1')
+      await editor
+        .getByRole('button', { name: 'Review confirm result' })
+        .click()
+      const extraTimeDialog = page.getByRole('dialog', {
+        name: 'Review: Confirm result',
+      })
+      await expect(extraTimeDialog).toContainText('Extra time')
+      await extraTimeDialog.getByRole('button', { name: 'Cancel' }).click()
+
+      await editor.getByLabel('Result method').selectOption('penalties')
+      const shootoutExtraTime = editor.getByRole('group', {
+        name: '120-minute score',
+      })
+      const penalties = editor.getByRole('group', { name: 'Penalty shootout' })
+      await shootoutExtraTime.getByLabel(fixture.homeName).fill('2')
+      await shootoutExtraTime.getByLabel(fixture.awayName).fill('2')
+      await penalties.getByLabel(fixture.homeName).fill('5')
+      await penalties.getByLabel(fixture.awayName).fill('4')
+      await editor
+        .getByRole('button', { name: 'Review confirm result' })
+        .click()
+      const penaltiesDialog = page.getByRole('dialog', {
+        name: 'Review: Confirm result',
+      })
+      await expect(penaltiesDialog).toContainText('Penalties')
+      await expect(penaltiesDialog).toContainText('5–4')
+      await penaltiesDialog.getByRole('button', { name: 'Cancel' }).click()
+    } finally {
+      await clearPreparedKnockoutFixture(fixture.id)
+    }
+  })
+
+  test('ordinary authenticated users are denied the admin route', async ({
+    page,
+  }, testInfo) => {
+    const ordinary = await prepareOrdinaryUser(testInfo.project.name)
+    try {
+      await loginAs(page, ordinary.email, ordinary.password)
+      await page.goto('/admin/results')
+      await expect(page).toHaveURL((url) => url.pathname === '/', {
+        timeout: 15_000,
+      })
+      await expect(
+        page.getByRole('heading', { name: 'Results Centre' }),
+      ).toHaveCount(0)
+      await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+    } finally {
+      await deleteOrdinaryUser(ordinary.id)
+    }
+  })
+})
