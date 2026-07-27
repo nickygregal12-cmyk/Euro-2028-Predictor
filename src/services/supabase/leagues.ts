@@ -38,6 +38,7 @@ export type LeagueSummary = {
   memberCount: number
   isOwner: boolean
   ownerName: string
+  lastActivityAt: string | null
 }
 
 export type LeagueHeader = {
@@ -91,7 +92,7 @@ export async function joinLeague(code: string): Promise<{ id: string; name: stri
   return { id: row.id, name: row.name }
 }
 
-/** The caller's leagues for a tournament (hub list). */
+/** The caller's leagues for a tournament (hub list + activity tie-break). */
 export async function fetchMyLeagues(tournamentId: string): Promise<LeagueSummary[]> {
   const { data, error } = await supabase.rpc('get_my_leagues', { p_tournament_id: tournamentId })
   if (error) throw error
@@ -102,6 +103,7 @@ export async function fetchMyLeagues(tournamentId: string): Promise<LeagueSummar
     memberCount: r.member_count as number,
     isOwner: r.is_owner as boolean,
     ownerName: r.owner_name as string,
+    lastActivityAt: typeof r.last_activity_at === 'string' ? r.last_activity_at : null,
   }))
 }
 
