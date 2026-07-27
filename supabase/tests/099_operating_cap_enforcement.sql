@@ -14,9 +14,11 @@ exception when others then
 end;
 $$;
 
--- The canonical database seed has no users. Create two normal baseline users
--- through the real cap/profile triggers so league create/join behaviour can be
--- tested without relying on ordering from another rollback-scoped test.
+-- The canonical database seed has no users or leagues. Create two normal
+-- baseline users through the real cap/profile triggers, then one normal baseline
+-- league and owner membership. This makes both lower-limit checks exercise a
+-- valid configured value that is below current usage rather than the separate
+-- invalid-zero parameter boundary.
 insert into auth.users (
   id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
 ) values
@@ -42,16 +44,6 @@ insert into auth.users (
   );
 
 select set_config(
-  'test.cap_initial_users',
-  (select count(*)::integer::text from auth.users),
-  true
-);
-select set_config(
-  'test.cap_initial_leagues',
-  (select count(*)::integer::text from public.leagues),
-  true
-);
-select set_config(
   'test.cap_tournament_id',
   (select id::text from public.tournaments order by created_at, id limit 1),
   true
@@ -64,6 +56,38 @@ select set_config(
 select set_config(
   'test.cap_member_id',
   '43000000-0000-0000-0000-000000000102',
+  true
+);
+
+insert into public.leagues (
+  id,
+  tournament_id,
+  owner_id,
+  name,
+  invite_code
+) values (
+  '43000000-0000-0000-0000-000000000201',
+  current_setting('test.cap_tournament_id')::uuid,
+  current_setting('test.cap_owner_id')::uuid,
+  'Operating Cap Baseline League',
+  'CAPBAS'
+);
+
+insert into public.league_members (league_id, user_id, role)
+values (
+  '43000000-0000-0000-0000-000000000201',
+  current_setting('test.cap_owner_id')::uuid,
+  'owner'
+);
+
+select set_config(
+  'test.cap_initial_users',
+  (select count(*)::integer::text from auth.users),
+  true
+);
+select set_config(
+  'test.cap_initial_leagues',
+  (select count(*)::integer::text from public.leagues),
   true
 );
 
