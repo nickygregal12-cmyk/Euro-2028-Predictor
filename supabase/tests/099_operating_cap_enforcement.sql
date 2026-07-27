@@ -1,6 +1,6 @@
 begin;
 
-select plan(23);
+select plan(24);
 
 create or replace function pg_temp.capture_sqlstate(p_sql text)
 returns text
