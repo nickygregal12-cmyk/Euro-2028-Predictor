@@ -55,6 +55,25 @@ export async function deleteOrdinaryUser(userId: string): Promise<void> {
   if (error) throw error
 }
 
+export async function ensureMatchResultCleared(
+  matchRef = 'GA-1',
+): Promise<void> {
+  const admin = createLocalAdmin()
+  const { data: match, error: matchError } = await admin
+    .from('matches')
+    .select('id, result_state')
+    .eq('match_ref', matchRef)
+    .single()
+  if (matchError) throw matchError
+  if (match.result_state === 'scheduled') return
+
+  const { error: clearError } = await admin.rpc('clear_match_result', {
+    p_match_id: match.id,
+    p_reason: 'E2E cleanup after admin result lifecycle',
+  })
+  if (clearError) throw clearError
+}
+
 export async function prepareResolvedKnockoutFixture(): Promise<PreparedKnockoutFixture> {
   const admin = createLocalAdmin()
   const { data: match, error: matchError } = await admin

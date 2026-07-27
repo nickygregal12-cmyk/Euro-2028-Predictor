@@ -2,6 +2,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import {
   clearPreparedKnockoutFixture,
   deleteOrdinaryUser,
+  ensureMatchResultCleared,
   prepareOrdinaryUser,
   prepareResolvedKnockoutFixture,
 } from './admin-results-local'
@@ -63,93 +64,108 @@ test.describe('Admin result workflow', () => {
     page,
   }, testInfo) => {
     desktopOnly(testInfo)
-    await openAdminResults(page)
-    const editor = await chooseGroupFixture(page)
+    try {
+      await openAdminResults(page)
+      const editor = await chooseGroupFixture(page)
 
-    let mutationRequests = 0
-    page.on('request', (request) => {
-      if (
-        request.method() === 'POST' &&
-        /\/rest\/v1\/rpc\/admin_(confirm|correct|clear)_match_result/.test(
-          request.url(),
-        )
-      ) {
-        mutationRequests += 1
-      }
-    })
+      let mutationRequests = 0
+      page.on('request', (request) => {
+        if (
+          request.method() === 'POST' &&
+          /\/rest\/v1\/rpc\/admin_(confirm|correct|clear)_match_result/.test(
+            request.url(),
+          )
+        ) {
+          mutationRequests += 1
+        }
+      })
 
-    const regulation = editor.getByRole('group', { name: '90-minute score' })
-    await regulation.getByLabel('Team A1').fill('2')
-    await regulation.getByLabel('Team A2').fill('1')
-    await editor
-      .getByRole('button', { name: 'Review confirm result' })
-      .click()
+      const regulation = editor.getByRole('group', { name: '90-minute score' })
+      await regulation.getByLabel('Team A1').fill('2')
+      await regulation.getByLabel('Team A2').fill('1')
+      await editor
+        .getByRole('button', { name: 'Review confirm result' })
+        .click()
 
-    const confirmDialog = page.getByRole('dialog', {
-      name: 'Review: Confirm result',
-    })
-    await expect(confirmDialog).toContainText('2–1')
-    expect(mutationRequests).toBe(0)
-    await confirmDialog
-      .getByRole('button', { name: 'Confirm result', exact: true })
-      .click()
+      const confirmDialog = page.getByRole('dialog', {
+        name: 'Review: Confirm result',
+      })
+      await expect(confirmDialog).toContainText('2–1')
+      expect(mutationRequests).toBe(0)
+      await confirmDialog
+        .getByRole('button', { name: 'Confirm result', exact: true })
+        .click()
 
-    await expect(page.getByRole('status')).toContainText(
-      'Confirm result saved',
-      { timeout: 15_000 },
-    )
-    await expect(editor).toContainText('Confirmed · revision 1')
-    await expect(page.getByText('Revision 1 · confirm')).toBeVisible()
-    expect(mutationRequests).toBe(1)
+      await expect(page.getByRole('status')).toContainText(
+        'Confirm result saved',
+        { timeout: 15_000 },
+      )
+      await expect(editor).toContainText('Confirmed · revision 1')
+      await expect(page.getByText('Revision 1 · confirm')).toBeVisible()
+      expect(mutationRequests).toBe(1)
 
-    await editor.getByRole('button', { name: 'Correct' }).click()
-    await regulation.getByLabel('Team A2').fill('2')
-    await editor.getByLabel('Reason').fill('Official score was entered incorrectly')
-    await editor
-      .getByRole('button', { name: 'Review correct result' })
-      .click()
-    const correctionDialog = page.getByRole('dialog', {
-      name: 'Review: Correct result',
-    })
-    await expect(correctionDialog).toContainText(
-      'Official score was entered incorrectly',
-    )
-    await correctionDialog
-      .getByRole('button', { name: 'Correct result', exact: true })
-      .click()
+      await editor
+        .getByRole('button', { name: 'Correct', exact: true })
+        .click()
+      await regulation.getByLabel('Team A2').fill('2')
+      await editor
+        .getByLabel('Reason')
+        .fill('Official score was entered incorrectly')
+      await editor
+        .getByRole('button', { name: 'Review correct result' })
+        .click()
+      const correctionDialog = page.getByRole('dialog', {
+        name: 'Review: Correct result',
+      })
+      await expect(correctionDialog).toContainText(
+        'Official score was entered incorrectly',
+      )
+      await correctionDialog
+        .getByRole('button', { name: 'Correct result', exact: true })
+        .click()
 
-    await expect(page.getByRole('status')).toContainText(
-      'Correct result saved',
-      { timeout: 15_000 },
-    )
-    await expect(editor).toContainText('Corrected · revision 2')
-    await expect(page.getByText('Revision 2 · correct')).toBeVisible()
-    await expect(
-      page.getByText('Official score was entered incorrectly'),
-    ).toBeVisible()
-    expect(mutationRequests).toBe(2)
+      await expect(page.getByRole('status')).toContainText(
+        'Correct result saved',
+        { timeout: 15_000 },
+      )
+      await expect(editor).toContainText('Corrected · revision 2')
+      await expect(page.getByText('Revision 2 · correct')).toBeVisible()
+      await expect(
+        page.getByText('Official score was entered incorrectly'),
+      ).toBeVisible()
+      expect(mutationRequests).toBe(2)
 
-    await editor.getByRole('button', { name: 'Clear' }).click()
-    await editor.getByLabel('Reason').fill('Result belonged to another fixture')
-    await editor
-      .getByRole('button', { name: 'Review clear result' })
-      .click()
-    const clearDialog = page.getByRole('dialog', {
-      name: 'Review: Clear result',
-    })
-    await expect(clearDialog).toContainText(
-      'remove the current authoritative result',
-    )
-    await clearDialog
-      .getByRole('button', { name: 'Clear result', exact: true })
-      .click()
+      await editor
+        .getByRole('button', { name: 'Clear', exact: true })
+        .click()
+      await editor
+        .getByLabel('Reason')
+        .fill('Result belonged to another fixture')
+      await editor
+        .getByRole('button', { name: 'Review clear result' })
+        .click()
+      const clearDialog = page.getByRole('dialog', {
+        name: 'Review: Clear result',
+      })
+      await expect(clearDialog).toContainText(
+        'remove the current authoritative result',
+      )
+      await clearDialog
+        .getByRole('button', { name: 'Clear result', exact: true })
+        .click()
 
-    await expect(page.getByRole('status')).toContainText('Clear result saved', {
-      timeout: 15_000,
-    })
-    await expect(editor).toContainText('Awaiting result')
-    await expect(page.getByText('Revision 3 · clear')).toBeVisible()
-    expect(mutationRequests).toBe(3)
+      await expect(page.getByRole('status')).toContainText(
+        'Clear result saved',
+        {
+          timeout: 15_000,
+        },
+      )
+      await expect(editor).toContainText('Awaiting result')
+      await expect(page.getByText('Revision 3 · clear')).toBeVisible()
+      expect(mutationRequests).toBe(3)
+    } finally {
+      await ensureMatchResultCleared()
+    }
   })
 
   test('authorised admin can use the result form on a phone viewport', async ({
