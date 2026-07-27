@@ -123,7 +123,7 @@ jobs:
           PREVIEW_ORIGIN: https://deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app
           EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
           EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem
-          EXPECTED_CONTRACT: '36'
+          EXPECTED_CONTRACT: '38'
         run: |
           set -euo pipefail
 

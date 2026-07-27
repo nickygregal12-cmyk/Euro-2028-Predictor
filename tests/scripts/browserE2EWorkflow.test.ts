@@ -90,7 +90,7 @@ describe('deploy-preview browser smoke workflow', () => {
     expect(previewWorkflow).toContain(
       'EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem',
     )
-    expect(previewWorkflow).toContain("EXPECTED_CONTRACT: '36'")
+    expect(previewWorkflow).toContain("EXPECTED_CONTRACT: '38'")
     expect(previewWorkflow).toContain(
       "release.environment === 'deploy-preview'",
     )
