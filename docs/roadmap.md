@@ -15,45 +15,46 @@
 
 - result confirm, correct and clear forms;
 - review before mutation and required reasons for correction/clear;
-- safe immutable revision history;
+- safe immutable result revision history;
 - regulation, extra-time, penalty and unresolved-participant handling;
 - authorised/unauthorised desktop and mobile Browser E2E;
 - production assignment/revocation model based on server-owned Auth
   `app_metadata`, never `profiles.role`.
 
-Exit: an authorised administrator can manage the full result lifecycle in development; ordinary users cannot.
+Exit met: an authorised administrator can manage the full result lifecycle in development; ordinary users cannot.
 
-## Stage 2 — Full tournament lifecycle simulation: in progress
+## Stage 2 — Full tournament lifecycle simulation: complete
 
-Completed in PR #122:
+Delivered through PRs #122, #124 and #126:
 
 - seeded full 51-match tournament lifecycle with representative users and a league;
 - valid pre-tournament entries, predicted tables, brackets, lock and submission;
 - all 36 group results through standings and best-third qualification;
 - server-owned actual Round-of-16 population using the six-group allocation contract;
+- explicit authorised resolution when an actual third-place tie crosses fourth place;
+- exact tie-set validation, required reason, review and immutable qualification revisions;
+- group-result fingerprints that invalidate stale decisions;
 - all 15 knockout matches through regulation, extra time and penalties;
+- Match Centre, fixtures and H2H consumption of the authoritative knockout winner;
 - correction, clearing, downstream replay and scoring recomputation;
+- refusal and transactional rollback when a played R16 fixture would be rewritten;
 - rank-history checkpoints, champion scoring and immutable revisions;
-- clean rebuild from 39 canonical migrations in disposable local Supabase;
-- Browser E2E setup changed from manual R16 injection to real group completion.
+- clean rebuild from 40 canonical migrations in disposable local Supabase;
+- authenticated Browser E2E using real group completion rather than participant injection;
+- deterministic resolve, correct, clear and reset journeys with no production data.
 
-Remaining exit work:
+Exit met: the complete tournament can be run repeatedly in development with deterministic database and browser evidence and no manual database repair.
 
-1. Complete exact-head deploy-preview and authenticated Browser E2E for PR #122.
-2. Verify product-facing Match Centre, tournament, league and H2H states across lifecycle transitions.
-3. Implement explicit resolution when an actual third-place tie crosses the qualification boundary.
-4. Prove repeat/reset isolation remains clean after the product-facing journeys are added.
+## Stage 3 — Original Predictor integrity and scale: current
 
-Exit: the complete tournament can be run repeatedly in development with deterministic database and browser evidence and no manual database repair.
+1. Add automatic submission at lock only for complete entries that pass the existing authoritative validator.
+2. Record and surface automatic-submission success/failure without bypassing version or ownership rules.
+3. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+4. Bound leaderboard, standing, H2H and comparison reads.
+5. Test profiles, leagues, score recomputation and summaries at representative user/league caps.
+6. Repair completion, loading, empty and error states exposed by those scale journeys.
 
-## Stage 3 — Original Predictor integrity gaps
-
-- make Match Centre/H2H consume authoritative knockout winner and method data;
-- implement the actual unresolved third-place qualification-boundary workflow;
-- add automatic valid-entry submission;
-- add reminders after Auth/SMTP verification;
-- bound leaderboard and standing reads;
-- profile scoring and league summaries at representative scale.
+Exit: valid entries cannot be stranded at lock, public reads remain bounded, and core Original Predictor surfaces remain correct and responsive at the intended caps.
 
 ## Stage 4 — Core product experience
 
@@ -66,7 +67,7 @@ Exit: the complete tournament can be run repeatedly in development with determin
 
 ## Stage 5 — Bonus competitions
 
-Build only after the Original Predictor lifecycle is proven:
+Build only after the Original Predictor lifecycle and integrity/scale stage are proven:
 
 1. KO Predictor;
 2. Last Man Standing;
