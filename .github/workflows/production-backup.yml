@@ -204,7 +204,7 @@ jobs:
 
       - name: Verify restored copy (counts only, no row contents)
         run: |
-          psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 -A -t \
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t \
             -v expected_migration_count="${EXPECTED_MIGRATION_COUNT}" \
             -v expected_latest_version="${EXPECTED_LATEST_MIGRATION_VERSION}" \
             -v expected_latest_name="${EXPECTED_LATEST_MIGRATION_NAME}" \
