@@ -78,6 +78,9 @@ describe('production backup workflow', () => {
   })
 
   it('prints counts only from the restored copy', () => {
+    expect(workflow).toContain(
+      'psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t',
+    )
     expect(rehearsalVerification).toContain('counts only')
     expect(rehearsalVerification).not.toMatch(/select\s+email/i)
     expect(rehearsalVerification).not.toMatch(/display_name/i)
