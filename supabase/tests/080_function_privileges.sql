@@ -39,6 +39,12 @@ insert into expected_service_functions (signature) values
   ('recompute_all_scores()'),
   ('recompute_tournament_scores(uuid)');
 
+insert into expected_authenticated_functions (signature) values
+  ('admin_clear_match_result(uuid,text)'),
+  ('admin_confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
+  ('admin_correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
+  ('admin_match_result_revisions(uuid)');
+
 create temporary view public_function_privileges as
 select
   p.oid::regprocedure::text as signature,

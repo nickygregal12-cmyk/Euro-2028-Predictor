@@ -34,7 +34,7 @@ describe('application/database deployment contract guard', () => {
         run({
           NETLIFY: 'true',
           CONTEXT: context,
-          EURO28_DEPLOYED_DB_CONTRACT: '36',
+          EURO28_DEPLOYED_DB_CONTRACT: '38',
         }),
       ).not.toThrow()
     },

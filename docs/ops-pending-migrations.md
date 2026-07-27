@@ -2,15 +2,20 @@
 
 Live source of truth for repository migration count, hosted semantic state and rollout status.
 
-## Current status — 26 July 2026
+## Current status — 27 July 2026
 
 | Environment | Deployment contract | Hosted migration state | Status |
 | --- | ---: | --- | --- |
 | Repository `main` | 36 | 36 authoritative files through `20260725010000` | **Repository verified** |
-| Development Supabase `iouzoutneyjpugbbtdem` | 36 for dev/branch/preview | exactly canonical versions 1–36 | **Development verified** |
-| Final-target Supabase `vkfnsqdyhvtwyqkisxhk` | production declaration 35 | exactly canonical versions 1–35; migration 36 sole pending repository migration | **Read-only preflight passed; write not authorized** |
+| Administrator branch | 38 | 38 authoritative files through `20260727080159` | **Branch verified after version reconciliation** |
+| Development Supabase `iouzoutneyjpugbbtdem` | 38 for dev/branch/preview | canonical administrator versions `20260727075922` and `20260727080159` applied after versions 1–36 | **Development verified at contract 38** |
+| Final-target Supabase `vkfnsqdyhvtwyqkisxhk` | production declaration 36 | exactly canonical versions 1–36; administrator migrations not applied | **Intentionally unchanged** |
 
 The Netlify context and Supabase project historically named production are the controlled final target, not an active tournament. They remain isolated and protected.
+
+The migration-36 preparation and contract-35 evidence below are retained as dated
+operational history. Current final-target promotion authority is
+`docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`.
 
 ## Migration 36
 
@@ -26,6 +31,24 @@ Migration 36:
 - uses private `predictor_internal` trigger functions with empty search paths;
 - revokes execution from `public`, `anon` and `authenticated`;
 - preserves legal same-tournament workflows.
+
+## Administrator branch migrations 37 and 38
+
+| # | Migration | Purpose | Repository branch | Development | Final target |
+| ---: | --- | --- | --- | --- | --- |
+| 37 | `20260727075922_admin_result_authorization.sql` | Browser-authorized administrator result confirmation, correction, clearing and revision access | Canonical after version reconciliation | Applied under exact canonical version | Not applied |
+| 38 | `20260727080159_admin_result_revision_timestamp.sql` | Correct administrator result-revision timestamp projection | Canonical after version reconciliation | Applied under exact canonical version | Not applied |
+
+The SQL identities were verified before the repository files were renamed. With one
+trailing LF stripped, their repository MD5 values exactly match the recorded
+development `applied_sql_md5` values:
+
+- migration 37: `3ee6879dd2a8d8607ae437ba56787853`;
+- migration 38: `b478b3eaadf0897e5985346075ca0a9e`.
+
+No hosted write, migration repair or duplicate SQL application is part of this
+reconciliation. See
+`docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md`.
 
 ## Development promotion evidence
 
