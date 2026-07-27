@@ -2,7 +2,7 @@ import { supabase } from './client'
 import {
   mapEntrySubmissionStatus,
   type EntrySubmissionStatus,
-} from './predictions'
+} from './entrySubmissionStatusModel'
 
 /**
  * Reads an existing entry and its server-owned submission outcome without
