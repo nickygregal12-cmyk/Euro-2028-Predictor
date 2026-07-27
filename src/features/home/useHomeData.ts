@@ -14,7 +14,7 @@ import {
   type HomePhase,
   type LeagueStanding,
 } from '../../domain/tournament/homeDashboard'
-import { fetchLeaderboard } from '../../services/supabase/leaderboard'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { fetchLeagueMembers, fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchMyScoreEventPoints } from '../../services/supabase/scoring'
 import { fetchLastSeenRead, updateLastSeen } from '../../services/supabase/profile'
@@ -201,12 +201,11 @@ export function useHomeData(): HomeState {
       let rank: number | null = null
       let entryCount: number | null = null
       try {
-        const ranked = rankLeaderboard(await fetchLeaderboard(tournamentId!))
-        const you = ranked.find((row) => row.isYou)
-        totalPoints = you?.totalPoints ?? 0
-        entryCount = ranked.length
-        const preResults = ranked.every((row) => row.rank === null)
-        rank = preResults ? null : (you?.rank ?? null)
+        const page = await fetchLeaderboardPage(tournamentId!, { limit: 1 })
+        const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
+        totalPoints = page.you?.totalPoints ?? 0
+        entryCount = page.totalCount
+        rank = preResults ? null : (page.you?.rank ?? null)
       } catch {
         unavailable.add('leaderboard')
       }
