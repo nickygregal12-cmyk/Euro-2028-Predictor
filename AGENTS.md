@@ -16,17 +16,18 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository, development and production are aligned at contract `38`.
+Repository, development and non-production Netlify are at contract `42`; production remains deliberately locked at contract `38`.
 
-- canonical migration history contains exactly 38 versions through `20260727080159`;
-- development Supabase is `iouzoutneyjpugbbtdem`;
-- production Supabase is `vkfnsqdyhvtwyqkisxhk`;
-- every Netlify context declares contract 38 and keeps its assigned Supabase project;
+- canonical repository migration history contains exactly 42 versions through `20260727182300_bounded_read_models.sql`;
+- development Supabase is `iouzoutneyjpugbbtdem` and records the same 42 canonical versions;
+- production Supabase is `vkfnsqdyhvtwyqkisxhk` and remains at contract 38;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` declare contract 42 and use development Supabase;
+- Netlify `production` declares contract 38 and uses production Supabase;
 - production deploy `6a67560deb88202a74108c37` passed exact-release HTTP smoke on 27 July 2026;
 - production is locked after that milestone release, so normal development must not publish automatically;
 - encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
 
-Contract compatibility does not make the product tournament-ready. The next product batch is administrator result-management completion followed by a full tournament lifecycle simulation.
+Contract compatibility does not make the product tournament-ready. The current product batch is authoritative cap enforcement followed by representative query-plan, response-size and recomputation evidence at the intended 250-user / 20-league operating caps.
 
 ## Development operating mode
 
@@ -79,7 +80,7 @@ Rules:
 
 ## Scoring authority
 
-`docs/scoring-rules.md` is authoritative and must stay aligned with `src/domain/tournament/scoringConfig.ts`, SQL scoring logic and tests. Automatic deadline submission is planned, not implemented.
+`docs/scoring-rules.md` is authoritative and must stay aligned with `src/domain/tournament/scoringConfig.ts`, SQL scoring logic and tests. Automatic valid-entry submission at lock is implemented through contract 41 and must continue to reuse the authoritative validator rather than creating a second completeness rule.
 
 ## Verification commands
 
