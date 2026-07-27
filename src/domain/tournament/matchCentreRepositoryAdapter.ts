@@ -101,10 +101,22 @@ export function adaptRepositoryMatchToCentre(
         ? {
             home: result.home,
             away: result.away,
-            homeExtraTime: input.match.homeScore120 ?? null,
-            awayExtraTime: input.match.awayScore120 ?? null,
-            homePenalties: input.match.homePenalties ?? null,
-            awayPenalties: input.match.awayPenalties ?? null,
+            ...(input.match.homeScore120 !== null &&
+            input.match.homeScore120 !== undefined
+              ? { homeExtraTime: input.match.homeScore120 }
+              : {}),
+            ...(input.match.awayScore120 !== null &&
+            input.match.awayScore120 !== undefined
+              ? { awayExtraTime: input.match.awayScore120 }
+              : {}),
+            ...(input.match.homePenalties !== null &&
+            input.match.homePenalties !== undefined
+              ? { homePenalties: input.match.homePenalties }
+              : {}),
+            ...(input.match.awayPenalties !== null &&
+            input.match.awayPenalties !== undefined
+              ? { awayPenalties: input.match.awayPenalties }
+              : {}),
           }
         : null,
       events: [],
