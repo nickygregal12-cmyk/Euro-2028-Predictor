@@ -39,13 +39,11 @@ export async function signInWithPassword(
  * Sign up with email + password. The matching `profiles` row is created
  * SERVER-SIDE by the `on_auth_user_created` trigger (20260720190000), reading
  * the display name from the sign-up metadata below — so it works whether or not
- * sign-up returns a session (confirmation off or on), with no client insert to
- * race `auth.uid()` (the 2026-07-20 incident fix).
+ * sign-up returns a session, with no client insert to race `auth.uid()`.
  *
- * Returns whether email confirmation is pending: with confirmation OFF (current
- * dev setting) sign-up returns a session and `needsConfirmation` is false; if a
- * project enables confirmation, there's no session and the caller shows a
- * "check your email" state instead of treating it as a failure.
+ * Returns whether email confirmation is pending: projects with confirmation
+ * enabled return no session until the link is used; projects without it return
+ * a session immediately. The page supports both configurations.
  */
 export async function signUpWithPassword(params: {
   email: string
