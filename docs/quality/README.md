@@ -12,7 +12,7 @@ The quality system complements rather than replaces:
 - [`../../CLAUDE.md`](../../CLAUDE.md) — coding-agent session guidance.
 - [`current-status.md`](current-status.md) — the live implementation and operations status document.
 - [`../roadmap.md`](../roadmap.md) — future product sequence.
-- [`../build-todo.md`](../build-todo.md) — near-term execution checklist.
+- [`../build-todo.md`](../build-todo.md) — compatibility pointer to the status and roadmap; not a separate checklist.
 - [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md) — architecture and tournament-state contract.
 - [`../scoring-rules.md`](../scoring-rules.md) — approved Original Predictor scoring and entry-validity rules.
 - [`../tournament-structure.md`](../tournament-structure.md) — tournament facts and structural rules.

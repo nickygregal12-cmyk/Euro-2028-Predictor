@@ -91,10 +91,10 @@ VITE_SENTRY_DSN=<approved public browser DSN>
 Current production release identity remains:
 
 - environment `production`;
-- application/hosted contract 36;
+- application/hosted contract 38;
 - final-target Supabase `vkfnsqdyhvtwyqkisxhk`.
 
-No Supabase variable or database contract changes as part of Sentry operations.
+Sentry operations do not alter Supabase variables or the database contract.
 
 ## Verified hosted evidence
 
@@ -117,22 +117,24 @@ Authority: `docs/quality/reconciliations/2026-07-26-sentry-operational-assurance
 
 ## Production verification
 
-For the retained contract-36 target:
+For the contract-38 production milestone:
 
 ```bash
-EURO28_SMOKE_EXPECTED_CONTRACT=36 npm run smoke:production
-EURO28_SMOKE_EXPECTED_CONTRACT=36 npm run smoke:production:browser
+EURO28_SMOKE_EXPECTED_CONTRACT=38 \
+EURO28_SMOKE_EXPECTED_COMMIT="<approved-main-sha>" \
+npm run smoke:production
+EURO28_SMOKE_EXPECTED_CONTRACT=38 \
+EURO28_SMOKE_EXPECTED_COMMIT="<approved-main-sha>" \
+npm run smoke:production:browser
 ```
 
 Confirm:
 
-1. `/release.json` reports production, contract 36 and final-target Supabase;
+1. `/release.json` reports production, contract 38, the approved commit and production Supabase;
 2. security headers, routes and assets pass;
 3. no development Supabase request occurs;
 4. production Sentry remains enabled without a synthetic verification event;
 5. blocking/rate-limiting Sentry does not prevent application use.
-
-During final-target 36→38 promotion, update the target contract and restore exact-head production commit verification in the same reviewed batch.
 
 ## Remaining operating-policy work
 
@@ -143,7 +145,7 @@ The remaining gap is not provider delivery. Record:
 3. confirmation of IP-address scrubbing;
 4. one named backup alert recipient;
 5. escalation path and response windows;
-6. durable push-triggered Production Smoke evidence where accessible;
+6. durable milestone Production Smoke evidence where accessible;
 7. owner-approved Netlify rollback promotion rehearsal.
 
 Recommended severity model:

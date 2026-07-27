@@ -1,6 +1,4 @@
-# Production backup workflow — XX July 2026
-
-Replace `XX` in this file's name and title with the merge date when this record is finalized.
+# Production backup workflow — 27 July 2026
 
 ## Scope
 
@@ -24,7 +22,7 @@ This record reconciles the addition of an owner-triggered GitHub Actions workflo
 - both required secrets are present and the connection string is pinned to the production project;
 - roles, schema, data and migration-history dumps are non-empty, and `data.sql` visibly contains `auth.users` and `public.profiles`;
 - the plaintext dump actually restores into a disposable local Supabase;
-- the restored migration history lists exactly 36 versions ending in `20260725010000` / `authoritative_reference_integrity`;
+- for the first run, the restored migration history listed exactly 36 versions ending in `20260725010000` / `authoritative_reference_integrity`;
 - restored inventory-equivalent counts print to the job log and summary (counts only);
 - the plaintext dump is shredded before upload and only the age-encrypted artifact is uploaded — the job fails if any non-`.age` dump file would be uploaded.
 
@@ -34,13 +32,16 @@ This record reconciles the addition of an owner-triggered GitHub Actions workflo
 - The production connection string is consumed only as an environment variable by dump/inventory commands and is never echoed, logged or written to an uploaded plaintext file.
 - The repository is public, so only the encrypted artifact is uploaded; the age private key is held offline by the owner and appears nowhere in the repository, the workflow or CI.
 
-## Exception closure boundary
+## First-run record
 
-Merging the pull request that adds this workflow does **not** close the recovery exception recorded in `2026-07-27-contract-36-final-target-promotion.md`. That exception is closed only after the **first successful run** of the `Production backup` workflow — a green run whose encrypted artifact the owner has downloaded and stored off GitHub — is completed and recorded here. Until then the exception remains visible and open, and no fresh contract-36 recovery mechanism exists.
+- GitHub Actions run: `30264080847`, captured `20260727T120017Z`, completed successfully at `2026-07-27T12:03:58Z`;
+- source commit: `202da34ff256908fa63d98da5bc3c458a94f175b`;
+- restored migration history: 36 versions through `20260725010000` / `authoritative_reference_integrity`;
+- restored representative counts: one Auth user, one profile, one submitted entry, 36 match predictions, three tie resolutions and eight progression rows;
+- encrypted file: `euro28-prod-20260727T120017Z.backup.tar.gz.age`, 113,147 bytes;
+- GitHub artifact: `production-backup-encrypted`, artifact ID `8652151058`, ZIP size 113,388 bytes;
+- GitHub-recorded and independently downloaded ZIP SHA-256: `f27345d78dfe4b1651b892297176e61d9a7162b1cd041f7b87d964862ad309bc`;
+- owner custody: the encrypted file was downloaded, its ZIP digest matched GitHub, and it was preserved in private off-GitHub storage; the matching private key remains owner-controlled and outside GitHub;
+- exception closure: **closed** before the separately approved contract-38 production promotion.
 
-## First-run record (complete after the first successful run)
-
-- run identifier and UTC timestamp: _pending_;
-- plaintext/encrypted sizes and restored-migration count from the job summary: _pending_;
-- owner download and off-GitHub custody reference (no secrets): _pending_;
-- exception closure decision: _pending_.
+The workflow baseline is updated to contract 38 by the release-closure change after that promotion. Future runs must therefore restore exactly 38 versions through `20260727080159` / `admin_result_revision_timestamp`.

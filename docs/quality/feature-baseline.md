@@ -1,7 +1,7 @@
 # Current feature and safeguard baseline
 
 **Latest development reconciliation:** [`reconciliations/2026-07-27-admin-migration-version-reconciliation.md`](reconciliations/2026-07-27-admin-migration-version-reconciliation.md)
-**Last verified final-target baseline:** [`reconciliations/2026-07-27-contract-36-final-target-promotion.md`](reconciliations/2026-07-27-contract-36-final-target-promotion.md)
+**Last verified final-target baseline:** [`reconciliations/2026-07-27-contract-38-final-target-promotion.md`](reconciliations/2026-07-27-contract-38-final-target-promotion.md)
 **Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
 **Current hosted state:** [`current-status.md`](current-status.md)  
 **Identifier repair:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
@@ -10,15 +10,15 @@
 
 ## Classification rules
 
-- **Implemented and final-target-hosted:** working capability supported by the retained contract-36 final-target application/database pair.
-- **Implemented and development-hosted; final-target pending:** current repository and development/preview evidence support the capability at contract 38, while final-target promotion remains separate.
+- **Implemented and final-target-hosted:** working capability supported by the verified contract-38 production application/database pair.
+- **Implemented and development-hosted; final-target pending:** reserved for a future development-only capability that has not yet reached production.
 - **Implemented with evidence gap:** hosted capability exists but a required browser/operational journey remains incomplete.
 - **Partial:** meaningful implementation exists but a required layer, route or journey is absent.
 - **UI prototype only:** presentation exists without an authoritative data path.
 - **Documented/planned:** intent exists without working implementation.
 - **Not present:** no current implementation evidence.
 
-Repository, development Supabase and non-production Netlify are contract 38. The final target remains contract 36 with migrations 37–38 pending.
+Repository, both hosted Supabase projects and every Netlify context are contract 38. Production is locked after the verified milestone release.
 
 ## Original Predictor and core application
 
@@ -61,7 +61,7 @@ Repository, development Supabase and non-production Netlify are contract 38. The
 | `SAFE-010` | Serialized score recomputation | Implemented and final-target-hosted | Result/scoring operations serialized |
 | `SAFE-053` | Exact function execution allowlists | Implemented and final-target-hosted | Zero anonymous application execution in verifier |
 | `SAFE-013` | Final-target/development isolation | Implemented and hosted | Production uses final-target; non-production uses development |
-| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Non-production 38/38 verified; final-target 36/36 retained; incompatible builds blocked |
+| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Development and production 38/38 verified; incompatible builds blocked |
 
 Safe error mapping and redacting client-error capture remain governed by preserved `SAFE-039`.
 

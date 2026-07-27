@@ -1,6 +1,6 @@
 # Agent operating rules
 
-Read this file before changing the repository.
+Read this file and `docs/quality/current-status.md` before changing the repository.
 
 ## Authority order
 
@@ -9,107 +9,62 @@ Use evidence in this order:
 1. current `main` code, migrations and executable tests;
 2. verified hosted Netlify/Supabase evidence;
 3. `docs/quality/current-status.md`;
-4. the latest dated reconciliation or audit;
-5. older roadmap/TODO/audit documents for history or intent only.
+4. `docs/roadmap.md` for future sequence;
+5. dated reconciliations and older audits for historical evidence only.
 
 Never import features, scoring values or game rules from previous World Cup projects, old branches, prototypes, chats or similarly named modes.
 
-## Current repository and hosted boundary
+## Current baseline
 
-The repository, development Supabase and all current non-production Netlify contexts are verified at contract `38`.
+Repository, development and production are aligned at contract `38`.
 
-Repository/development facts:
+- canonical migration history contains exactly 38 versions through `20260727080159`;
+- development Supabase is `iouzoutneyjpugbbtdem`;
+- production Supabase is `vkfnsqdyhvtwyqkisxhk`;
+- every Netlify context declares contract 38 and keeps its assigned Supabase project;
+- production deploy `6a67560deb88202a74108c37` passed exact-release HTTP smoke on 27 July 2026;
+- production is locked after that milestone release, so normal development must not publish automatically;
+- encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
 
-- canonical administrator migrations `20260727075922` and `20260727080159` are merged;
-- `config/deployment-contract.json` requires contract 38 and exactly 38 migrations;
-- disposable CI, Database parity and Browser E2E verify the complete migration chain;
-- development Supabase `iouzoutneyjpugbbtdem` has exactly 38 canonical migration versions through `20260727080159`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` contexts declare contract 38 and use development Supabase only;
-- exact-head CI, Database parity, Browser E2E and preview smoke passed for the merged administrator foundation.
+Contract compatibility does not make the product tournament-ready. The next product batch is administrator result-management completion followed by a full tournament lifecycle simulation.
 
-Final-target facts remain separate:
+## Development operating mode
 
-- final-target Supabase `vkfnsqdyhvtwyqkisxhk` is verified at contract 36;
-- the Netlify `production` context remains declared at contract 36;
-- the environment historically named production is the intended final target, not an active Euro 2028 tournament;
-- migrations 37–38 remain pending until a separately approved 36→38 promotion replaces the baseline.
+The project is two years from the tournament and remains in active development. Use proportionate checks:
 
-Read `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md` for current hosted-development evidence and `docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md` for the retained final-target baseline.
+| Change | Required gate |
+| --- | --- |
+| Copy, documentation, styling or isolated UI | CI: build, lint, tests and production dependency audit. Add a preview/targeted UI test when appearance or interaction changes. |
+| Application feature or development schema | CI plus relevant unit/integration tests. Run Database parity for migrations/tournament database rules and Browser E2E for critical journeys. |
+| Production schema, auth, scoring, destructive work or milestone release | Fresh encrypted backup when data could be affected, dry-run/preflight, explicit owner approval, full verification and dated release evidence. |
 
-## Immediate contract-alignment gate
+Rules:
 
-Development alignment and the administrator foundation are complete. The next database stage is the controlled final-target 36→38 promotion:
-
-1. inspect final-target migration history and relevant rows read-only;
-2. preserve recoverable pre-change evidence;
-3. establish that migrations 37–38 are the only canonical pending migrations;
-4. require a fresh green encrypted backup within 24 hours;
-5. prepare exact application, verification and rollback-safe smoke commands;
-6. obtain explicit owner approval before any final-target database write;
-7. apply and verify migrations 37–38 only after approval;
-8. change the `production` Netlify declaration to 38 only after database verification;
-9. require exact-head production release identity plus HTTP/browser smoke;
-10. record a dated final-target reconciliation.
-
-Never weaken either prebuild guard, alter a contract merely to make a build pass, or deploy application code against an incompatible database.
-
-## Split smoke-target boundary
-
-Until the final target is promoted:
-
-- preview smoke explicitly requires contract 38 and the development Supabase project;
-- production smoke explicitly requires the retained contract-36 final-target release;
-- both smoke implementations require `EURO28_SMOKE_EXPECTED_CONTRACT` and fail closed when it is missing or invalid;
-- production smoke does not require the current `main` commit while the contract guard intentionally blocks that commit from production;
-- exact-head production verification must be restored during final-target promotion.
-
-## Remaining launch boundary
-
-Contract compatibility does not make the product tournament-launch-ready. Keep these separate:
-
-- administrator authorization and browser result management;
-- authoritative frontend consumption of knockout winner/method/extra-time/penalty data;
-- actual Round-of-16 population and unresolved actual-tie workflow;
-- automatic valid-entry submission and deadline reminders;
-- monitoring ownership, retention/privacy and incident response;
-- Turnstile/non-production CAPTCHA verification and leaked-password protection decision;
-- branch-protection verification;
-- official Euro 2028 teams, fixtures, regulations and lock instant;
-- full tournament dress rehearsal and manual assistive-technology review;
-- periodic backup/restore and application-rollback rehearsal.
-
-Prepared backup tooling is not recovery evidence. A Netlify rollback is not a database rollback.
-
-## Netlify and legacy environment boundary
-
-- The current repository deploys through Netlify project `euro28predictor`.
-- `production` uses final-target Supabase only.
-- `deploy-preview`, `branch-deploy` and `dev` use development Supabase only.
-- `scripts/validate-netlify-environment.mjs` and `scripts/validate-deployment-contract.mjs` must not be bypassed.
-- Exact-head preview smoke targets the current `euro28predictor` project.
-- `euro28-predictor-dev.netlify.app` is a legacy deployment sourced from `worldcup2026/euro28-development` and inactive Supabase project `gcfdwobpnanjchcnvdco`.
-- Never use or modify that legacy site from this workstream. Issue #27 owns the separate decision.
-- Development CAPTCHA/Turnstile configuration remains unverified under issue #28. Do not broaden `netlify.app` hostname access or mix unmatched keys/secrets.
+- production promotion is milestone-only;
+- development may advance ahead of production, but the difference must be stated once in `docs/quality/current-status.md`;
+- combine related schema work into coherent milestone migrations where practical;
+- do not require a backup, reconciliation record or production smoke for ordinary UI, documentation or application-only changes;
+- keep CI, Database parity and Browser E2E automated and path-scoped;
+- reserve the full backup/promotion/recovery sequence for production-risk work;
+- review this mode around six months before the tournament, or earlier when real users or valuable live data appear.
 
 ## Git discipline
 
 - Work from current `main` on a dedicated branch.
 - Keep one coherent concern per PR where practical.
 - Do not push directly to `main`.
-- Run relevant application, database and browser workflows before merge.
-- A Netlify build alone is not proof of database compatibility or authenticated journey health.
-- Record material decisions in repository documents rather than chat memory.
+- Run the checks required by the change class above.
+- Netlify build success is not database or authenticated-journey evidence.
+- Record current facts in `docs/quality/current-status.md`, not across multiple live status documents.
 
 ## Database discipline
 
 - Migrations are append-only after hosted application.
-- Repository, development and final-target migration states are separate facts.
 - Use disposable local Supabase for rebuilds, database lint, pgTAP and parity.
 - Hosted inspection defaults to read-only.
-- Never run a remote reset, destructive repair, unreviewed SQL or final-target mutation without explicit approval.
-- Development history is canonical through migration 38; final-target history is canonical through migration 36 until deliberately promoted.
+- Never run a remote reset, destructive repair, unreviewed SQL or production mutation without explicit approval.
 - Browser roles receive minimum privileges; internal trigger and maintenance helpers default to no Data API execution.
-- The database is authoritative for locks, submission, derived scoring inputs, results, progression and scoring integrity.
+- The database is authoritative for locks, submission, results, progression and scoring integrity.
 
 ## Architecture rules
 
@@ -120,15 +75,15 @@ Prepared backup tooling is not recovery evidence. A Netlify rollback is not a da
 - Original Predictor and bonus competitions remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references, unknown official data and incompatible schemas.
-- Knockout display/social views consume authoritative winner and result-method data; never infer a penalty winner from a tied public score.
+- Knockout display/social views consume authoritative winner and result-method data.
 
 ## Scoring authority
 
-`docs/scoring-rules.md` is authoritative and must stay aligned with `src/domain/tournament/scoringConfig.ts`, the SQL scorer and tests. Automatic deadline submission is an approved target rule, not an implemented capability.
+`docs/scoring-rules.md` is authoritative and must stay aligned with `src/domain/tournament/scoringConfig.ts`, SQL scoring logic and tests. Automatic deadline submission is planned, not implemented.
 
-## Required checks
+## Verification commands
 
-For normal application changes:
+Normal application checks:
 
 ```bash
 npm ci
@@ -138,10 +93,29 @@ npm run test
 npm audit --omit=dev --audit-level=high
 ```
 
-For migration/tournament database changes also run the disposable workflow represented by `.github/workflows/database-parity.yml`: full rebuild, database lint, all pgTAP suites, TypeScript/PostgreSQL parity and clean teardown.
+Migration/tournament database changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
 
-Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
+## Production milestones
+
+For a production database or release milestone:
+
+1. confirm the exact repository head, target project and current contract;
+2. create a fresh encrypted backup when the operation could affect stored data;
+3. prove the intended migration/release scope with dry-run or equivalent preflight;
+4. obtain explicit owner approval before the production write;
+5. apply only the approved scope;
+6. verify history, permissions, application contract and environment isolation;
+7. publish the exact approved build and run exact-head production smoke;
+8. lock production again when the milestone is complete;
+9. add one concise dated reconciliation.
+
+Never weaken an environment or deployment-contract guard merely to make a build pass.
 
 ## Documentation maintenance
 
-Update affected current-status, risk, feature-baseline, migration inventory, operational runbook and dated reconciliation files whenever material implementation or hosted facts change. Historical audits remain immutable.
+- `docs/quality/current-status.md` is the only live status authority.
+- `docs/roadmap.md` is the only live execution sequence.
+- `docs/build-todo.md` is a compatibility pointer, not a separate checklist.
+- Update risk, scoring, architecture or operational runbooks only when their subject changes.
+- Dated audits and reconciliations are immutable historical evidence.
+- Do not create a new status, audit or reconciliation document for routine development work.

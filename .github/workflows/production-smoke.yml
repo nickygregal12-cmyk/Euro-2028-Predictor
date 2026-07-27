@@ -1,9 +1,6 @@
 name: Production Smoke
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 permissions:
@@ -32,12 +29,13 @@ jobs:
       - name: Install Chromium and system dependencies
         run: npx playwright install --with-deps chromium
 
-      - name: Verify retained compatible Netlify production release
+      - name: Wait for the exact milestone production release
         shell: bash
         env:
           PRODUCTION_ORIGIN: https://euro28predictor.com
           EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
-          EXPECTED_CONTRACT: '35'
+          EXPECTED_CONTRACT: '38'
+          EXPECTED_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
 
@@ -65,6 +63,7 @@ jobs:
             release.applicationContract === expectedContract &&
             release.hostedContract === expectedContract &&
             release.supabaseProjectRef === process.env.EXPECTED_SUPABASE_REF &&
+            release.commit === process.env.EXPECTED_COMMIT &&
             release.commit !== 'local' &&
             release.deployId !== 'local'
 
@@ -76,12 +75,12 @@ jobs:
               fi
             fi
 
-            echo "Production is not the retained compatible release (attempt $attempt/120)."
+            echo "Production is not the expected milestone release (attempt $attempt/120)."
             sleep 5
           done
 
           if [ "$ready" != true ]; then
-            echo 'STOP: Netlify production did not retain the expected compatible release identity.' >&2
+            echo 'STOP: Netlify production did not publish the expected milestone release identity.' >&2
             cat /tmp/euro28-production-release.json 2>/dev/null || true
             exit 1
           fi
@@ -91,6 +90,7 @@ jobs:
             echo 'EURO28_SMOKE_EXPECTED_CONTEXT=production'
             echo "EURO28_SMOKE_EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF"
             echo "EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT"
+            echo "EURO28_SMOKE_EXPECTED_COMMIT=$EXPECTED_COMMIT"
           } >> "$GITHUB_ENV"
 
       - name: Run production HTTP smoke

@@ -128,16 +128,21 @@ describe('target-specific production smoke contracts', () => {
     expect(productionSmoke).not.toContain('const APPLICATION_CONTRACT')
   })
 
-  it('keeps the retained final target at contract 35 without requiring an undeployable main commit', () => {
-    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '35'")
+  it('keeps production smoke manual and exact-head at contract 38', () => {
+    expect(productionWorkflow).toContain('workflow_dispatch:')
+    expect(productionWorkflow).not.toMatch(/^\s+push:/m)
+    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '38'")
     expect(productionWorkflow).toContain(
-      'Verify retained compatible Netlify production release',
+      'Wait for the exact milestone production release',
     )
-    expect(productionWorkflow).not.toContain(
+    expect(productionWorkflow).toContain(
       'EXPECTED_COMMIT: ${{ github.sha }}',
     )
     expect(productionWorkflow).toContain(
       'EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT',
+    )
+    expect(productionWorkflow).toContain(
+      'EURO28_SMOKE_EXPECTED_COMMIT=$EXPECTED_COMMIT',
     )
   })
 })
