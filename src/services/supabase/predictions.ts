@@ -11,6 +11,22 @@ export type Entry = {
   submittedAt: string | null
 }
 
+export type EntrySubmissionState =
+  | 'pending'
+  | 'automatic_submission_pending'
+  | 'manually_submitted'
+  | 'automatically_submitted'
+  | 'automatic_submission_failed'
+
+export type EntrySubmissionStatus = {
+  state: EntrySubmissionState
+  lockAt: string | null
+  submittedAt: string | null
+  attemptedAt: string | null
+  failureCode: string | null
+  failureMessage: string | null
+}
+
 export type MatchPrediction = {
   matchId: string
   homeScore: number
@@ -21,6 +37,38 @@ export type MatchPrediction = {
 
 function mapEntry(row: { id: string; submitted_at: string | null }): Entry {
   return { id: row.id, submittedAt: row.submitted_at }
+}
+
+function objectOf(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function stringOrNull(value: unknown): string | null {
+  return typeof value === 'string' ? value : null
+}
+
+export function mapEntrySubmissionStatus(value: unknown): EntrySubmissionStatus {
+  const row = objectOf(value)
+  const rawState = stringOrNull(row.state)
+  const state: EntrySubmissionState =
+    rawState === 'pending' ||
+    rawState === 'automatic_submission_pending' ||
+    rawState === 'manually_submitted' ||
+    rawState === 'automatically_submitted' ||
+    rawState === 'automatic_submission_failed'
+      ? rawState
+      : 'pending'
+
+  return {
+    state,
+    lockAt: stringOrNull(row.lockAt),
+    submittedAt: stringOrNull(row.submittedAt),
+    attemptedAt: stringOrNull(row.attemptedAt),
+    failureCode: stringOrNull(row.failureCode),
+    failureMessage: stringOrNull(row.failureMessage),
+  }
 }
 
 /**
@@ -72,6 +120,22 @@ export async function submitEntry(entryId: string): Promise<string> {
   const { data, error } = await supabase.rpc('submit_entry', { p_entry_id: entryId })
   if (error) throw error
   return data as string
+}
+
+/**
+ * Reads the server-owned submission outcome for the authenticated entry owner.
+ * This distinguishes a deliberate manual submission from a complete entry that
+ * was recovered automatically at lock, and safely exposes the validator reason
+ * when an incomplete entry could not be submitted.
+ */
+export async function fetchEntrySubmissionStatus(
+  entryId: string,
+): Promise<EntrySubmissionStatus> {
+  const { data, error } = await supabase.rpc('get_entry_submission_status', {
+    p_entry_id: entryId,
+  })
+  if (error) throw error
+  return mapEntrySubmissionStatus(data)
 }
 
 export async function fetchMatchPredictions(entryId: string): Promise<MatchPrediction[]> {
