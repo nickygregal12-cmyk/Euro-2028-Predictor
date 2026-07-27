@@ -28,7 +28,10 @@ jobs:
           cd "$archive"
           npx vitest run tests/scripts/envFileHygiene.test.ts --reporter=verbose
       - name: Build
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/euro28-build.log
       - name: Lint
         run: npm run lint
       - name: Test
@@ -36,13 +39,13 @@ jobs:
         run: |
           set -o pipefail
           npm run test 2>&1 | tee /tmp/euro28-vitest.log
-      - name: Upload test failure diagnostics
+      - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: vitest-failure-log
-          path: /tmp/euro28-vitest.log
-          if-no-files-found: error
+          name: ci-failure-logs
+          path: /tmp/euro28-*.log
+          if-no-files-found: ignore
           retention-days: 7
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
