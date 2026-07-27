@@ -9,9 +9,9 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
+| Repository contract | 40 canonical migrations through `20260727163339_actual_third_place_resolution.sql` |
+| Delivery evidence | PRs #122, #124 and #126 complete the full tournament lifecycle stage |
 | Verified production release source | `0b956e8f553f06f5bdb72ce937acc6295a8c2451` |
-| Current `main` source | `df3b5b9d82a90a4826c10e3bf6957de6ab00a4ac` — contract 39 plus authoritative knockout-result product reads |
-| Active development PR | #126 — contract 40, canonical migration `20260727163339_actual_third_place_resolution.sql` |
 | Development Supabase | `iouzoutneyjpugbbtdem` — contract 40 applied and history-aligned |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — contract 38; unchanged |
 | Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 40 and use development Supabase; `production` remains 38 and uses production Supabase |
@@ -25,10 +25,10 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Controlled divergence.** Development and non-production Netlify are at 40; repository `main` is at 39 until PR #126 merges; production remains deliberately locked at 38. |
+| Contract alignment | **Controlled divergence.** Repository, development and non-production Netlify are at 40; production remains deliberately locked at 38. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven. |
-| Actual qualification control | **Implemented in PR #126.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |
+| Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |
 | Tournament database lifecycle | **Proven.** Deterministic 51-match and boundary-tie pgTAP journeys cover submission, groups, best thirds, actual R16 population, every knockout round, correction, clearing, replay, scoring, rank history and immutable audit history. |
 | Product-facing result lifecycle | **Proven.** Match Centre, fixtures and H2H consume the server-owned knockout winner, including level extra-time scores and penalty shootouts. |
 | Browser/reset lifecycle | **Proven.** Authenticated desktop/mobile journeys complete real group stages, confirm knockout results, resolve/clear an actual boundary tie and delete all disposable data. |
