@@ -30,7 +30,9 @@ create temporary table expected_service_functions (
 ) on commit drop;
 
 insert into expected_service_functions (signature)
-select signature from expected_authenticated_functions;
+select signature
+from expected_authenticated_functions
+where signature <> 'get_entry_submission_status(uuid)';
 
 insert into expected_service_functions (signature) values
   ('capture_rank_history(uuid)'),
