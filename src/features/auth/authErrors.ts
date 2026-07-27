@@ -5,9 +5,6 @@
 
 export type AuthAction = 'login' | 'signup' | 'reset' | 'update'
 
-// Supabase surfaces failures either as AuthError (with a `code` and HTTP
-// `status`) or, when the network is down, as a plain TypeError from fetch. We
-// read whatever fields are present without importing Supabase types.
 type MaybeError = {
   code?: unknown
   status?: unknown
@@ -25,8 +22,6 @@ function asText(value: unknown): string {
   return typeof value === 'string' ? value.toLowerCase() : ''
 }
 
-// A dropped connection shows up as a TypeError ("Failed to fetch" /
-// "NetworkError" / "Load failed") with no HTTP status.
 function isNetworkError(e: MaybeError): boolean {
   const message = asText(e.message)
   if (asText(e.name) === 'typeerror') return true
@@ -42,11 +37,7 @@ const NETWORK =
   "We couldn't reach the server. Check your connection and try again."
 const GENERIC = 'Something went wrong. Please try again.'
 
-/**
- * Turn any thrown auth error into a single friendly sentence. `action` tailors
- * the copy: the same "invalid credentials" code means different things on the
- * login and sign-up screens.
- */
+/** Turn any thrown auth error into one stable, safe sentence. */
 export function friendlyAuthError(error: unknown, action: AuthAction): string {
   const e = readError(error)
   if (isNetworkError(e)) return NETWORK
@@ -54,7 +45,6 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
   const code = asText(e.code)
   const message = asText(e.message)
 
-  // Existing account (sign-up).
   if (
     code === 'user_already_exists' ||
     code === 'email_exists' ||
@@ -64,8 +54,6 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     return 'An account with this email already exists. Try logging in instead.'
   }
 
-  // Wrong email/password — this copy only makes sense on login; on sign-up an
-  // "invalid credentials" code is anomalous, so fall through to generic.
   if (
     action === 'login' &&
     (code === 'invalid_credentials' || message.includes('invalid login credentials'))
@@ -73,19 +61,14 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     return "That email or password isn't right. Please try again."
   }
 
-  // Weak password (sign-up or setting a new one on reset) — Supabase enforces a
-  // minimum length.
   if (code === 'weak_password' || message.includes('password should be at least')) {
     return 'Please choose a longer password (at least 6 characters).'
   }
 
-  // Setting a new password (reset flow) to the same one it already is.
   if (code === 'same_password' || message.includes('should be different from the old')) {
     return 'Your new password must be different from your current one.'
   }
 
-  // The recovery session is gone: the reset link expired or was already used.
-  // Only meaningful when updating a password.
   if (
     action === 'update' &&
     (code === 'session_not_found' ||
@@ -96,28 +79,39 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     return 'Your reset link has expired or was already used. Please request a new one.'
   }
 
-  // Malformed email.
   if (code === 'validation_failed' && message.includes('email')) {
     return 'Please enter a valid email address.'
   }
 
-  // Display name rejected by the server moderation trigger (evasion of the
-  // client check). Don't echo which rule tripped.
   if (message.includes('display name not allowed')) {
     return 'That display name isn’t available. Please choose another.'
   }
 
-  // Too many attempts.
+  if (
+    action === 'signup' &&
+    (code === 'pt429' ||
+      message.includes('public registration is currently full') ||
+      message.includes('public_signup_full'))
+  ) {
+    return 'Registration is currently full. Contact admin.'
+  }
+
+  // Supabase Auth may deliberately wrap a trigger rejection as an unexpected
+  // database failure. The capacity preflight normally gives the exact full
+  // state; this fallback remains accurate without exposing or guessing internals.
+  if (
+    action === 'signup' &&
+    (code === 'unexpected_failure' ||
+      message.includes('database error saving new user') ||
+      message.includes('database error creating new user'))
+  ) {
+    return "We couldn't complete registration. Contact admin."
+  }
+
   if (code === 'over_request_rate_limit' || Number(e.status) === 429) {
     return 'Too many attempts. Please wait a moment and try again.'
   }
 
-  // A permission / no-session failure (e.g. a row-level-security rejection —
-  // the shape of the 2026-07-20 incident, when confirmation left sign-up with no
-  // session and the client profile insert was rejected). This is NOT an
-  // email-already-in-use case, so it must get its own accurate copy rather than
-  // the old fallback that guessed "email may already be in use". Profile
-  // creation is now a server-side trigger, so this is a defensive branch.
   if (
     code === '42501' ||
     code === 'insufficient_privilege' ||
@@ -127,8 +121,5 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     return "We couldn't finish setting up your account. Please try again."
   }
 
-  // Unknown failure: a plain generic message for BOTH actions. Deliberately no
-  // "the email may already be in use" hint — the genuine email-in-use case is
-  // handled explicitly above; guessing it here mislabels unrelated failures.
   return GENERIC
 }

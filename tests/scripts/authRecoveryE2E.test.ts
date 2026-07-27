@@ -8,6 +8,7 @@ const authConfig = readFileSync(resolve(root, 'playwright.auth.config.ts'), 'utf
 const defaultConfig = readFileSync(resolve(root, 'playwright.config.ts'), 'utf8')
 const localMail = readFileSync(resolve(root, 'e2e/local-mail.ts'), 'utf8')
 const authJourney = readFileSync(resolve(root, 'e2e/auth-recovery.spec.ts'), 'utf8')
+const capacityJourney = readFileSync(resolve(root, 'e2e/auth-capacity.spec.ts'), 'utf8')
 const supabaseConfig = readFileSync(resolve(root, 'supabase/config.toml'), 'utf8')
 const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>
@@ -21,12 +22,16 @@ const forbiddenHostedRefs = [
 
 const [authenticatedWorkflow] = workflow.split('\n  deploy-preview-smoke:')
 const authHarness =
-  `${authenticatedWorkflow}\n${authConfig}\n${localMail}\n${authJourney}`
+  `${authenticatedWorkflow}\n${authConfig}\n${localMail}\n${authJourney}\n${capacityJourney}`
 
 describe('authentication recovery browser E2E', () => {
-  it('runs separately with development auto-login disabled', () => {
-    expect(defaultConfig).toContain("testIgnore: 'auth-recovery.spec.ts'")
-    expect(authConfig).toContain("testMatch: 'auth-recovery.spec.ts'")
+  it('runs signed-out journeys separately with development auto-login disabled', () => {
+    expect(defaultConfig).toContain(
+      "testIgnore: ['auth-recovery.spec.ts', 'auth-capacity.spec.ts']",
+    )
+    expect(authConfig).toContain(
+      "testMatch: ['auth-recovery.spec.ts', 'auth-capacity.spec.ts']",
+    )
     expect(authConfig).toContain('VITE_DEV_AUTOLOGIN=false')
     expect(authConfig).not.toContain('globalSetup')
     expect(packageJson.scripts['test:e2e:auth']).toBe(
@@ -64,5 +69,8 @@ describe('authentication recovery browser E2E', () => {
     expect(authJourney).toContain("waitForAuthLink(EMAIL, 'recovery')")
     expect(authJourney).toContain('Password updated')
     expect(authJourney).toContain("That email or password isn't right")
+    expect(capacityJourney).toContain('Registration is currently full')
+    expect(capacityJourney).toContain('setLocalOperatingLimits(counts.users, 20)')
+    expect(capacityJourney).toContain('setLocalOperatingLimits(50, 20)')
   })
 })

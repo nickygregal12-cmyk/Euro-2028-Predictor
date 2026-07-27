@@ -1,7 +1,17 @@
-import { createLocalAdmin } from './local-supabase'
+import { createLocalAdmin, setLocalOperatingLimits } from './local-supabase'
 
 const PASSWORD = 'Standings-local-only-2028!'
 const USER_COUNT = 55
+const SCALE_USER_LIMIT = 250
+const DEFAULT_USER_LIMIT = 50
+const DEFAULT_LEAGUE_LIMIT = 20
+
+type CreatedStandingsUser = {
+  id: string
+  email: string
+  displayName: string
+  number: number
+}
 
 export type OverallStandingsFixture = {
   email: string
@@ -10,57 +20,96 @@ export type OverallStandingsFixture = {
   userIds: string[]
 }
 
-async function deleteUsers(userIds: string[]): Promise<void> {
-  const admin = createLocalAdmin()
-  for (const userId of userIds) {
-    const { error } = await admin.auth.admin.deleteUser(userId)
-    if (error) throw error
+function isRetryableAuthError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AuthRetryableFetchError'
+  )
+}
+
+async function wait(attempt: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, attempt * 250))
+}
+
+async function deleteUserWithRetry(userId: string): Promise<void> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const { error } = await createLocalAdmin().auth.admin.deleteUser(userId)
+    if (!error) return
+    lastError = error
+    if (!isRetryableAuthError(error) || attempt === 4) break
+    await wait(attempt)
   }
+  throw lastError
+}
+
+async function deleteUsers(userIds: string[]): Promise<void> {
+  for (const userId of userIds) await deleteUserWithRetry(userId)
+}
+
+async function createStandingsUser(
+  email: string,
+  displayName: string,
+  number: number,
+): Promise<CreatedStandingsUser> {
+  let lastError: unknown
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    const { data, error } = await createLocalAdmin().auth.admin.createUser({
+      email,
+      password: PASSWORD,
+      email_confirm: true,
+      user_metadata: { display_name: displayName },
+    })
+    if (!error && data.user) return { id: data.user.id, email, displayName, number }
+
+    lastError = error ?? new Error(`Standings user ${email} was not created.`)
+    if (!isRetryableAuthError(lastError) || attempt === 4) break
+    await wait(attempt)
+  }
+  throw lastError
 }
 
 export async function prepareOverallStandingsFixture(
   suffix: string,
 ): Promise<OverallStandingsFixture> {
+  await setLocalOperatingLimits(SCALE_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
+
   const admin = createLocalAdmin()
   const safeSuffix = suffix.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   const prefix = `standings-${safeSuffix}-`
+  const createdUsers: CreatedStandingsUser[] = []
 
-  const { data: listed, error: listError } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  })
-  if (listError) throw listError
+  try {
+    const { data: listed, error: listError } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    })
+    if (listError) throw listError
 
-  const retryUsers = listed.users.filter((user) => user.email?.startsWith(prefix))
-  if (retryUsers.length > 0) {
-    await deleteUsers(retryUsers.map((user) => user.id))
-  }
+    const retryUsers = listed.users.filter((user) => user.email?.startsWith(prefix))
+    if (retryUsers.length > 0) {
+      await deleteUsers(retryUsers.map((user) => user.id))
+    }
 
-  const { data: tournament, error: tournamentError } = await admin
-    .from('tournaments')
-    .select('id')
-    .limit(1)
-    .single()
-  if (tournamentError) throw tournamentError
+    const { data: tournament, error: tournamentError } = await admin
+      .from('tournaments')
+      .select('id')
+      .limit(1)
+      .single()
+    if (tournamentError) throw tournamentError
 
-  const createdUsers = await Promise.all(
-    Array.from({ length: USER_COUNT }, async (_, index) => {
+    // The database deliberately serialises Auth inserts to protect the final
+    // public slot. Create this disposable scale fixture serially rather than
+    // queuing 55 requests behind the same transaction lock.
+    for (let index = 0; index < USER_COUNT; index += 1) {
       const number = index + 1
       const displayName = `Scale Player ${String(number).padStart(3, '0')}`
       const email = `${prefix}${String(number).padStart(3, '0')}@euro28.local`
-      const { data, error } = await admin.auth.admin.createUser({
-        email,
-        password: PASSWORD,
-        email_confirm: true,
-        user_metadata: { display_name: displayName },
-      })
-      if (error) throw error
-      if (!data.user) throw new Error(`Standings user ${email} was not created.`)
-      return { id: data.user.id, email, displayName, number }
-    }),
-  )
+      createdUsers.push(await createStandingsUser(email, displayName, number))
+    }
 
-  try {
     const { error: profileError } = await admin.from('profiles').upsert(
       createdUsers.map((user) => ({
         id: user.id,
@@ -96,22 +145,30 @@ export async function prepareOverallStandingsFixture(
       }),
     )
     if (scoreError) throw scoreError
-  } catch (error) {
-    await deleteUsers(createdUsers.map((user) => user.id))
-    throw error
-  }
 
-  const current = createdUsers[USER_COUNT - 1]
-  return {
-    email: current.email,
-    password: PASSWORD,
-    displayName: current.displayName,
-    userIds: createdUsers.map((user) => user.id),
+    const current = createdUsers[USER_COUNT - 1]
+    return {
+      email: current.email,
+      password: PASSWORD,
+      displayName: current.displayName,
+      userIds: createdUsers.map((user) => user.id),
+    }
+  } catch (error) {
+    try {
+      await deleteUsers(createdUsers.map((user) => user.id))
+    } finally {
+      await setLocalOperatingLimits(DEFAULT_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
+    }
+    throw error
   }
 }
 
 export async function clearOverallStandingsFixture(
   fixture: OverallStandingsFixture,
 ): Promise<void> {
-  await deleteUsers(fixture.userIds)
+  try {
+    await deleteUsers(fixture.userIds)
+  } finally {
+    await setLocalOperatingLimits(DEFAULT_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
+  }
 }

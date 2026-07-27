@@ -1,6 +1,6 @@
 {
-  "contractVersion": 43,
-  "requiredMigrationCount": 43,
+  "contractVersion": 44,
+  "requiredMigrationCount": 44,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -14,7 +14,9 @@
     "public.admin_clear_actual_third_place_tie(uuid,text)",
     "public.process_due_entry_submissions(timestamp with time zone)",
     "public.get_entry_submission_status(uuid)",
-    "public.get_leaderboard(uuid,integer,text)"
+    "public.get_leaderboard(uuid,integer,text)",
+    "public.get_public_capacity()",
+    "public.set_operating_limits(integer,integer)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 43 replaces the contract-42 capped overall standings RPC with server-ranked keyset pagination: 50 rows by default, 100 maximum, deterministic opaque cursors and independent current-user position context. All other contract-42 read bounds remain unchanged."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 44 retains contract-43 server-ranked leaderboard pagination and adds transaction-serialized public rollout limits: 50 users and 20 total leagues until custom SMTP is explicitly verified. Development Supabase and the Netlify dev, branch-deploy and deploy-preview contexts are verified on contract 44; production Supabase and Netlify production remain locked at contract 38. Capacity is exposed only through an aggregate anonymous-safe read, while adjustments remain service-role-only."
 }

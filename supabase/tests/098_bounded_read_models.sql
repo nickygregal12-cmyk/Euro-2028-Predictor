@@ -37,6 +37,13 @@ select set_config(
   true
 );
 
+-- This rollback-only fixture deliberately seeds one row beyond the public
+-- operating limits to prove the independent contract-42 comparison bounds.
+-- Supabase owns auth.users, so transaction-local replica mode is safer than
+-- altering its trigger. Known-safe profile rows are inserted explicitly before
+-- ordinary trigger execution is restored.
+set local session_replication_role = replica;
+
 update public.tournaments tournament
 set lock_at = now() + interval '1 day'
 where tournament.id = current_setting('test.bounded_tournament_id')::uuid;
@@ -68,16 +75,15 @@ insert into auth.users (
   now()
 );
 
-update public.profiles profile
-set
-  display_name = format('Bounded Player %s', lpad(fixture.number::text, 3, '0')),
-  welcomed_at = now()
-from generate_series(1, 251) as fixture(number)
-where profile.id = md5('bounded-user-' || fixture.number)::uuid;
+insert into public.profiles (id, display_name, welcomed_at)
+select
+  md5('bounded-user-' || fixture.number)::uuid,
+  format('Bounded Player %s', lpad(fixture.number::text, 3, '0')),
+  now()
+from generate_series(1, 251) as fixture(number);
 
-update public.profiles profile
-set display_name = 'Bounded Outsider', welcomed_at = now()
-where profile.id = md5('bounded-outsider')::uuid;
+insert into public.profiles (id, display_name, welcomed_at)
+values (md5('bounded-outsider')::uuid, 'Bounded Outsider', now());
 
 insert into public.entries (id, user_id, tournament_id, submitted_at)
 select
@@ -122,6 +128,8 @@ select
   'member',
   now() + make_interval(secs => fixture.number)
 from generate_series(2, 251) as fixture(number);
+
+set local session_replication_role = origin;
 
 insert into public.match_predictions (
   entry_id, match_id, home_score, away_score, joker, version
