@@ -38,11 +38,11 @@ select set_config(
 );
 
 -- This rollback-only fixture deliberately seeds one row beyond the public
--- operating limits to prove the contract-42 response bounds. Disable only the
--- two new cap triggers while creating that synthetic excess data; all integrity,
--- profile, scoring and ownership triggers remain active.
-alter table auth.users disable trigger enforce_public_user_limit;
-alter table public.leagues disable trigger enforce_total_league_limit;
+-- operating limits to prove the contract-42 response bounds. Supabase owns the
+-- auth table, so use transaction-local replica mode rather than altering its
+-- triggers. Known-safe profiles are inserted explicitly before normal trigger
+-- execution is restored for the actual read-model assertions.
+set local session_replication_role = replica;
 
 update public.tournaments tournament
 set lock_at = now() + interval '1 day'
@@ -62,29 +62,12 @@ select
   now()
 from generate_series(1, 251) as fixture(number);
 
-insert into auth.users (
-  id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
-) values (
-  md5('bounded-outsider')::uuid,
-  'bounded-outsider@example.test',
-  'authenticated',
-  'authenticated',
-  '{}'::jsonb,
-  '{}'::jsonb,
-  now(),
+insert into public.profiles (id, display_name, welcomed_at)
+select
+  md5('bounded-user-' || fixture.number)::uuid,
+  format('Bounded Player %s', lpad(fixture.number::text, 3, '0')),
   now()
-);
-
-update public.profiles profile
-set
-  display_name = format('Bounded Player %s', lpad(fixture.number::text, 3, '0')),
-  welcomed_at = now()
-from generate_series(1, 251) as fixture(number)
-where profile.id = md5('bounded-user-' || fixture.number)::uuid;
-
-update public.profiles profile
-set display_name = 'Bounded Outsider', welcomed_at = now()
-where profile.id = md5('bounded-outsider')::uuid;
+from generate_series(1, 251) as fixture(number);
 
 insert into public.entries (id, user_id, tournament_id, submitted_at)
 select
@@ -130,8 +113,7 @@ select
   now() + make_interval(secs => fixture.number)
 from generate_series(2, 251) as fixture(number);
 
-alter table auth.users enable trigger enforce_public_user_limit;
-alter table public.leagues enable trigger enforce_total_league_limit;
+set local session_replication_role = origin;
 
 insert into public.match_predictions (
   entry_id, match_id, home_score, away_score, joker, version
