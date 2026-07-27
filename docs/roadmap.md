@@ -63,17 +63,33 @@ Delivered through PR #128 and contract 41:
 
 Exit met: a complete saved entry cannot be stranded solely because its owner forgot to press Submit, while invalid entries remain safely excluded and auditable.
 
-## Stage 3B — Original Predictor bounded reads and scale: current
+## Stage 3B — Original Predictor bounded reads: complete
 
-1. Inventory every leaderboard, standing, H2H and comparison RPC/query with its current limit, sort keys and response shape.
-2. Add explicit bounds and stable pagination where reads can grow with users, leagues or fixtures.
-3. Seed representative volumes at the intended 250-user / 20-league development caps.
-4. Capture query plans, response sizes and score-recomputation timings.
-5. Test profiles, leagues, scoring summaries and comparison surfaces at those caps.
+Delivered through PR #131 and contract 42:
+
+- overall submitted-entry standings ordered deterministically and capped at 250;
+- one user's league list capped at 20;
+- league standings and match-pick comparison payloads capped at 250 members/picks;
+- truthful total-member and predicted-member counts retained when detail payloads are capped;
+- rival-entry payload restricted to the fixed 36 group predictions and 24 tournament teams;
+- existing RPC signatures, ownership and co-membership rules preserved;
+- all five bounded security-definer reads moved to an empty immutable search path;
+- 17 excess-data database assertions using 251 users, 21 leagues and 251 league members;
+- clean rebuild from 42 canonical migrations with production left at contract 38.
+
+Exit met: current Original Predictor standings and comparison payloads cannot grow beyond the intended operating bounds.
+
+## Stage 3C — Cap enforcement and representative scale evidence: current
+
+1. Define and enforce the documented 250-user and 20-league operating caps at authoritative write boundaries, including concurrent signup/create/join behaviour.
+2. Seed representative volumes at those caps without weakening production isolation.
+3. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads.
+4. Measure score recomputation and rank-history capture at representative submitted-entry volume.
+5. Test the main profile, league and comparison surfaces against that data.
 6. Repair completion, loading, empty and error states exposed by the scale journeys.
 7. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
 
-Exit: public reads remain bounded and core Original Predictor surfaces remain correct and responsive at the intended caps.
+Exit: operating caps are enforced under concurrency, and core Original Predictor reads and recomputation remain correct and responsive at those caps.
 
 ## Stage 4 — Core product experience
 
