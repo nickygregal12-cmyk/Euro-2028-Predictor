@@ -73,6 +73,94 @@
   font-weight: 700;
 }
 
+.resultForm {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.field select,
+.field input {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.7rem;
+  background: var(--surface);
+  color: var(--text-primary);
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+}
+
+.scoreGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.primaryAction,
+.secondaryAction {
+  min-height: 2.75rem;
+  border-radius: 0.7rem;
+  padding: 0.65rem 1rem;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.primaryAction {
+  border: 1px solid transparent;
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+
+.secondaryAction {
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.primaryAction:disabled,
+.secondaryAction:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.reviewPanel {
+  margin-top: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.85rem;
+  background: var(--surface-raised);
+  padding: 1rem;
+}
+
+.reviewPanel p {
+  margin: 0.5rem 0 0;
+}
+
+.warningText,
+.statusMessage {
+  color: var(--text-secondary);
+}
+
+.actionRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.statusMessage {
+  margin: 1rem 0 0;
+}
+
 .fixtureList {
   display: grid;
   margin-top: 1rem;
@@ -94,7 +182,13 @@
     margin-top: 0.5rem;
   }
 
-  .summaryGrid {
+  .summaryGrid,
+  .scoreGrid {
     grid-template-columns: 1fr;
+  }
+
+  .actionRow {
+    align-items: stretch;
+    flex-direction: column-reverse;
   }
 }
