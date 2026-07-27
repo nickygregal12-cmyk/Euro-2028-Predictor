@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -6,6 +7,13 @@ const scriptPath = resolve(
   process.cwd(),
   'scripts/validate-deployment-contract.mjs',
 )
+const deploymentContract = JSON.parse(
+  readFileSync(
+    resolve(process.cwd(), 'config/deployment-contract.json'),
+    'utf8',
+  ),
+) as { contractVersion: number }
+const currentContract = String(deploymentContract.contractVersion)
 
 function run(overrides: NodeJS.ProcessEnv = {}) {
   return () =>
@@ -34,7 +42,7 @@ describe('application/database deployment contract guard', () => {
         run({
           NETLIFY: 'true',
           CONTEXT: context,
-          EURO28_DEPLOYED_DB_CONTRACT: '38',
+          EURO28_DEPLOYED_DB_CONTRACT: currentContract,
         }),
       ).not.toThrow()
     },

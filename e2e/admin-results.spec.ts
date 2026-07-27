@@ -96,10 +96,9 @@ test.describe('Admin result workflow', () => {
         .getByRole('button', { name: 'Confirm result', exact: true })
         .click()
 
-      await expect(page.getByRole('status')).toContainText(
-        'Confirm result saved',
-        { timeout: 15_000 },
-      )
+      await expect(
+        page.getByRole('status').filter({ hasText: 'Confirm result saved' }),
+      ).toBeVisible({ timeout: 15_000 })
       await expect(editor).toContainText('Confirmed · revision 1')
       await expect(page.getByText('Revision 1 · confirm')).toBeVisible()
       expect(mutationRequests).toBe(1)
@@ -124,10 +123,9 @@ test.describe('Admin result workflow', () => {
         .getByRole('button', { name: 'Correct result', exact: true })
         .click()
 
-      await expect(page.getByRole('status')).toContainText(
-        'Correct result saved',
-        { timeout: 15_000 },
-      )
+      await expect(
+        page.getByRole('status').filter({ hasText: 'Correct result saved' }),
+      ).toBeVisible({ timeout: 15_000 })
       await expect(editor).toContainText('Corrected · revision 2')
       await expect(page.getByText('Revision 2 · correct')).toBeVisible()
       await expect(
@@ -154,12 +152,9 @@ test.describe('Admin result workflow', () => {
         .getByRole('button', { name: 'Clear result', exact: true })
         .click()
 
-      await expect(page.getByRole('status')).toContainText(
-        'Clear result saved',
-        {
-          timeout: 15_000,
-        },
-      )
+      await expect(
+        page.getByRole('status').filter({ hasText: 'Clear result saved' }),
+      ).toBeVisible({ timeout: 15_000 })
       await expect(editor).toContainText('Awaiting result')
       await expect(page.getByText('Revision 3 · clear')).toBeVisible()
       expect(mutationRequests).toBe(3)
@@ -216,7 +211,7 @@ test.describe('Admin result workflow', () => {
       await expect(penaltiesDialog).toContainText('5–4')
       await penaltiesDialog.getByRole('button', { name: 'Cancel' }).click()
     } finally {
-      await clearPreparedKnockoutFixture(fixture.id)
+      await clearPreparedKnockoutFixture(fixture)
     }
   })
 

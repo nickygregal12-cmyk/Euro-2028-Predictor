@@ -90,7 +90,10 @@ describe('deploy-preview browser smoke workflow', () => {
     expect(previewWorkflow).toContain(
       'EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem',
     )
-    expect(previewWorkflow).toContain("EXPECTED_CONTRACT: '38'")
+    expect(previewWorkflow).toContain(
+      "require('./config/deployment-contract.json').contractVersion",
+    )
+    expect(previewWorkflow).not.toContain("EXPECTED_CONTRACT: '38'")
     expect(previewWorkflow).toContain(
       "release.environment === 'deploy-preview'",
     )

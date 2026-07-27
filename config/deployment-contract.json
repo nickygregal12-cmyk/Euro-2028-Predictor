@@ -1,6 +1,6 @@
 {
-  "contractVersion": 38,
-  "requiredMigrationCount": 38,
+  "contractVersion": 39,
+  "requiredMigrationCount": 39,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -9,5 +9,5 @@
     "public.admin_clear_match_result(uuid,text)",
     "public.admin_match_result_revisions(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 39 adds server-owned actual Round-of-16 population and replay."
 }

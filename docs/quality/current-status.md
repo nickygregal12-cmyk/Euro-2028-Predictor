@@ -9,40 +9,44 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Verified release source | `0b956e8f553f06f5bdb72ce937acc6295a8c2451` |
-| Repository contract | 38 canonical migrations through `20260727080159` |
-| Development Supabase | `iouzoutneyjpugbbtdem` — contract 38 |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — contract 38 |
-| Netlify contexts | all declare contract 38; development/production project isolation retained |
+| Verified production release source | `0b956e8f553f06f5bdb72ce937acc6295a8c2451` |
+| Active development PR | #122 — contract 39, canonical migration `20260727150621_actual_round_of_16_population.sql` |
+| Development Supabase | `iouzoutneyjpugbbtdem` — contract 39 applied and history-aligned |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — contract 38; unchanged |
+| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 39 and use development Supabase; `production` remains 38 and uses production Supabase |
 | Published production deploy | `6a67560deb88202a74108c37` — verified and locked |
 | Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |
 | Production smoke | exact commit, contract, routes/assets, security headers and Supabase isolation passed |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. It is locked after the contract-38 milestone so ordinary merges do not publish automatically.
+Production is a controlled future-tournament target, not an active Euro 2028 service. It remains locked at the contract-38 milestone. Contract 39 is development-only until a later production milestone receives explicit owner approval.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Complete.** Repository, development, production and Netlify declarations are all at 38. |
+| Contract alignment | **Controlled divergence.** Repository PR/development/preview are at 39; production remains deliberately locked at 38. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator foundation | **Implemented.** Protected routes, capability checks and authorised result RPCs are merged. |
 | Administrator result UI | **Implemented.** Confirm/correct/clear forms, explicit review, reason capture and safe revision history are covered by component and browser journeys. |
-| Tournament lifecycle | **Not yet proven end-to-end.** A full seeded simulation remains the next major gate. |
-| Launch readiness | **Not ready.** Official data, accessibility, operations, automatic submission and full rehearsal remain. |
+| Tournament database lifecycle | **Proven in a disposable environment.** A deterministic 51-match pgTAP journey covers submission, group completion, best thirds, actual R16 population, knockout propagation, corrections, clearing, replay, scoring, rank history and immutable revisions. |
+| Hosted/browser lifecycle | **In progress.** Exact-head preview and authenticated Browser E2E remain the final gates for PR #122. |
+| Launch readiness | **Not ready.** Official data, accessibility, operations, automatic submission and a later full product dress rehearsal remain. |
 
 ## Implemented foundation
 
 - canonical group ordering and explicit unresolved-tie handling;
 - RPC-only submission and server-derived positions;
 - authoritative result lifecycle, revisions and serialized scoring;
-- real winner propagation and predicted-bracket replay;
-- atomic bracket persistence and version-safe score clearing;
+- server-owned actual Round-of-16 population from completed group standings and best-third allocation;
+- guarded actual-bracket replay after upstream group corrections or clearing;
+- real winner propagation from the Round of 16 through the final;
+- predicted-bracket replay and atomic bracket persistence;
+- version-safe score clearing and immutable result revisions;
 - exact function execution allowlists;
 - protected administrator routes and capability parsing;
 - browser-authorised result confirm, correct, clear and revision RPCs;
 - responsive administrator result forms with regulation, extra-time and penalty handling;
-- pre-mutation review, required correction/clear reasons and immutable revision display;
+- pre-mutation review and required correction/clear reasons;
 - authorised and unauthorised administrator browser journeys on desktop/mobile;
 - environment/deployment-contract guards;
 - CI, path-scoped Database parity and path-scoped Browser E2E;
@@ -50,16 +54,16 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 
 ## Immediate product gaps
 
+- explicit administrator resolution for an actual cross-group third-place tie that reaches the qualification boundary;
 - authoritative knockout winner/method/extra-time/penalty consumption in Match Centre and H2H;
-- real Round-of-16 population and actual unresolved-tie workflow;
 - automatic valid-entry submission and reminders;
 - bounded leaderboard/standing reads and representative performance evidence;
 - official teams, fixtures, regulations and lock instant;
-- manual accessibility review and full tournament dress rehearsal.
+- manual accessibility review and a later full product dress rehearsal.
 
 ## Development mode
 
-The project now uses proportionate controls:
+The project uses proportionate controls:
 
 | Change class | Gate |
 | --- | --- |
@@ -71,16 +75,13 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 ## Current next batch
 
-**First full tournament lifecycle simulation**
+**Finish Stage 2 product-facing lifecycle verification**
 
-1. Seed a complete tournament and representative users/leagues.
-2. Simulate pre-tournament entry, locks and submission.
-3. Run group matches through standings, ties and best thirds.
-4. Populate and play the real knockout bracket.
-5. Exercise result correction, clearing, replay and scoring recomputation.
-6. Verify rank history, Match Centre, H2H and completion states.
-7. Record defects as product work and exit only when the lifecycle is repeatable
-   and resettable in development without touching production.
+1. Complete exact-head deploy-preview and authenticated Browser E2E for PR #122.
+2. Verify Match Centre, tournament, league and H2H states against the authoritative knockout result model.
+3. Add the actual unresolved third-place qualification-boundary workflow rather than silently inventing an order.
+4. Verify completion, empty, loading and error states after group and knockout transitions.
+5. Keep the deterministic disposable lifecycle resettable and production-isolated.
 
 ## Operational follow-ups
 
@@ -89,7 +90,7 @@ Production promotion is milestone-only. Development can advance ahead of product
 - name monitoring/backup alert ownership;
 - decide leaked-password protection and Turnstile configuration;
 - verify branch protection;
-- rehearse application rollback and later repeat backup restore against a contract-38 artifact.
+- rehearse application rollback and later repeat backup restore against the then-current production artifact.
 
 ## Documentation authority
 

@@ -123,9 +123,11 @@ jobs:
           PREVIEW_ORIGIN: https://deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app
           EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}
           EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem
-          EXPECTED_CONTRACT: '38'
         run: |
           set -euo pipefail
+
+          EXPECTED_CONTRACT="$(node -p "require('./config/deployment-contract.json').contractVersion")"
+          export EXPECTED_CONTRACT
 
           ready=false
           for attempt in $(seq 1 60); do
