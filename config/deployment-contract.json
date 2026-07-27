@@ -1,13 +1,17 @@
 {
-  "contractVersion": 39,
-  "requiredMigrationCount": 39,
+  "contractVersion": 40,
+  "requiredMigrationCount": 40,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
     "public.admin_confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)",
     "public.admin_correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)",
     "public.admin_clear_match_result(uuid,text)",
-    "public.admin_match_result_revisions(uuid)"
+    "public.admin_match_result_revisions(uuid)",
+    "public.admin_actual_third_place_tie_status(uuid)",
+    "public.admin_actual_third_place_tie_revisions(uuid)",
+    "public.admin_resolve_actual_third_place_tie(uuid,uuid[],text)",
+    "public.admin_clear_actual_third_place_tie(uuid,text)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 39 adds server-owned actual Round-of-16 population and replay."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 40 adds authorised actual third-place qualification-boundary resolution and immutable audit history."
 }

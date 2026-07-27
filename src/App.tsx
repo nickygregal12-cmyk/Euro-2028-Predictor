@@ -30,7 +30,7 @@ const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').
 const WelcomePage = lazy(() => import('./features/welcome/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
-const AdminResultsPage = lazy(() => import('./features/admin/AdminResultsPage').then((m) => ({ default: m.AdminResultsPage })))
+const AdminResultsWorkspacePage = lazy(() => import('./features/admin/AdminResultsWorkspacePage').then((m) => ({ default: m.AdminResultsWorkspacePage })))
 const AdminUsersPage = lazy(() => import('./features/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })))
 const NotFoundPage = lazy(() => import('./features/notfound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
@@ -91,7 +91,7 @@ export default function App() {
                     <Route element={<RequireAdmin />}>
                       <Route path="/admin" element={<Navigate to="/admin/results" replace />} />
                       <Route element={<AdminLayout />}>
-                        <Route path="/admin/results" element={<AdminResultsPage />} />
+                        <Route path="/admin/results" element={<AdminResultsWorkspacePage />} />
                         <Route path="/admin/users" element={<AdminUsersPage />} />
                       </Route>
                     </Route>
