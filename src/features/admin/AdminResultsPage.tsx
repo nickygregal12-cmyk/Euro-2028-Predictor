@@ -14,9 +14,12 @@ export function AdminResultsPage() {
     const matches = tournament.data.matches
     return {
       total: matches.length,
-      confirmed: matches.filter((match) => match.resultState === 'confirmed')
-        .length,
-      awaiting: matches.filter((match) => match.resultState !== 'confirmed'),
+      confirmed: matches.filter(
+        (match) => match.homeScore !== null && match.awayScore !== null,
+      ).length,
+      awaiting: matches.filter(
+        (match) => match.homeScore === null || match.awayScore === null,
+      ),
     }
   }, [tournament])
 
