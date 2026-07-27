@@ -7,6 +7,10 @@ create temporary table expected_authenticated_functions (
 ) on commit drop;
 
 insert into expected_authenticated_functions (signature) values
+  ('admin_clear_match_result(uuid,text)'),
+  ('admin_confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
+  ('admin_correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
+  ('admin_match_result_revisions(uuid)'),
   ('create_league(uuid,text)'),
   ('delete_league(uuid)'),
   ('delete_match_prediction(uuid,uuid,integer)'),
