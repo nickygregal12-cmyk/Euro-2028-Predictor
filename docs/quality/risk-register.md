@@ -15,7 +15,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DATA-003` | **Resolved and hosted.** Six relationship groups are guarded in development and production. |
 | `DATA-006` | **No concrete residual defect established.** Reopen only with an exact uncovered relationship. |
 | `DOC-001` | **Resolved.** Current agent/status/risk/roadmap/migration authority is reconciled. |
-| `OPS-006` | **Resolved.** Contract declarations are validated per context: repository, development and non-production Netlify at 43; production deliberately locked at 38 (controlled, documented divergence). |
+| `OPS-006` | **Resolved.** Contract declarations are validated per context: repository, development and non-production Netlify at 44; production deliberately locked at 38 (controlled, documented divergence). |
 | `TEST-001` | **Reduced.** Hosted development migration and exact-head preview smoke are complete; other critical journeys remain. |
 
 ## Critical

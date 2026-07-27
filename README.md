@@ -6,12 +6,12 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-The repository and development environments are at **contract 43**; production is deliberately locked at **contract 38**:
+The repository and development environments are at **contract 44**; production is deliberately locked at **contract 38**:
 
-- `config/deployment-contract.json` declares contract 43 and requires 43 canonical migrations;
-- development Supabase has the canonical history through `20260727183900_bounded_overall_leaderboard`;
-- non-production Netlify contexts declare contract 43; production declares 38, retaining development/production isolation;
-- administrator result control, the full tournament lifecycle, automatic valid-entry submission, bounded reads and paginated overall standings are merged (PRs #120–#134).
+- `config/deployment-contract.json` declares contract 44 and requires 44 canonical migrations;
+- development Supabase has the canonical history through `20260727191942_operating_cap_enforcement`;
+- non-production Netlify contexts declare contract 44; production declares 38, retaining development/production isolation;
+- administrator result control, the full tournament lifecycle, automatic valid-entry submission, bounded/paginated reads and operating-cap enforcement are merged (PRs #120–#136).
 
 Production deploy `6a67560deb88202a74108c37` passed exact-release HTTP smoke and is locked after the milestone. Normal work continues against development Supabase `iouzoutneyjpugbbtdem`; production Supabase `vkfnsqdyhvtwyqkisxhk` is promoted only at deliberate milestones.
 
@@ -96,7 +96,7 @@ Browser E2E covers disposable authenticated desktop/mobile journeys for score pe
 
 ## Current implemented repository contract
 
-Repository contract 43 supports:
+Repository contract 44 supports:
 
 - canonical predicted group ordering, including recursive head-to-head handling and unresolved ties;
 - exact manual same-group and best-third decisions;
@@ -117,7 +117,8 @@ Repository contract 43 supports:
 - server-owned actual Round-of-16 population and authorised third-place qualification-boundary resolution with immutable revisions;
 - database-scheduled automatic submission of complete valid entries at lock with owner-visible outcomes;
 - bounded league, member, pick-comparison and rival-entry reads;
-- server-ranked keyset pagination for overall standings with current-user position context.
+- server-ranked keyset pagination for overall standings with current-user position context;
+- transaction-serialised public-user and total-league operating limits with anonymous-safe capacity preflight.
 
 ## Documentation authority
 

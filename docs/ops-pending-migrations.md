@@ -6,15 +6,15 @@ Live source of truth for repository migration count, hosted state and pending ro
 
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| Repository | 43 | 43 canonical files through `20260727183900` | none in development |
-| Development Supabase `iouzoutneyjpugbbtdem` | 43 (+1 ahead) | the 43 canonical versions through `20260727183900`, plus `20260727191942_operating_cap_enforcement` applied from draft PR #135 | PR #135 must be rebased onto current `main` and renumbered to contract 44 before merge (`main` took contract 43 in PR #134) |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 43 | development Supabase; exact-head preview validated in PR #134 | none |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 38 | exactly 38 canonical versions through `20260727080159` | migrations 39–43 deferred to a later approved milestone |
+| Repository | 44 | 44 canonical files through `20260727191942` | draft PR #138 (contracts 45–46) not yet merged |
+| Development Supabase `iouzoutneyjpugbbtdem` | 44 | exactly 44 canonical versions through `20260727191942` | verification only |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 44 | development Supabase | none |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 38 | exactly 38 canonical versions through `20260727080159` | migrations 39–44 deferred to a later approved milestone |
 | Netlify `production` | 38 | production Supabase; verified milestone deploy is locked | no change approved |
 
-Production is a controlled future-tournament target, not an active tournament. Contracts 39–43 are intentionally development-only. Do not update the production database, production Netlify contract declaration or locked production release without explicit owner approval and the full milestone gate.
+Production is a controlled future-tournament target, not an active tournament. Contracts 39–44 are intentionally development-only. Do not update the production database, production Netlify contract declaration or locked production release without explicit owner approval and the full milestone gate.
 
-## Migration 37–43 hosted history
+## Migration 37–44 hosted history
 
 | # | Canonical migration | Purpose | Development | Production |
 | ---: | --- | --- | --- | --- |
@@ -25,13 +25,15 @@ Production is a controlled future-tournament target, not an active tournament. C
 | 41 | `20260727174658_automatic_entry_submission.sql` | Database-scheduled automatic submission of complete valid entries at lock with immutable owner-visible outcomes | Applied and verified | Not applied; later milestone only |
 | 42 | `20260727182300_bounded_read_models.sql` | Explicit server-side bounds for overall standings, user league lists, league member/pick comparisons and rival-entry payloads | Applied and verified | Not applied; later milestone only |
 | 43 | `20260727183900_bounded_overall_leaderboard.sql` | Server-ranked keyset pagination for overall standings (50 default / 100 maximum rows, deterministic cursors, current-user position context), replacing the contract-42 capped standings RPC | Applied and verified | Not applied; later milestone only |
+| 44 | `20260727191942_operating_cap_enforcement.sql` | Transaction-serialised public-user and total-league operating limits with `BEFORE INSERT` enforcement, anonymous-safe capacity RPC and service-role-only limit adjustment | Applied and verified | Not applied; later milestone only |
 
-The repository migration filenames for 39–43 match the exact canonical versions recorded by development Supabase. Do not renumber or reapply them under another timestamp. Development Supabase additionally records `20260727191942_operating_cap_enforcement` from draft PR #135, which is not yet in the repository chain; that PR must be rebased and renumbered to contract 44 before merge.
+The repository migration filenames for 39–44 match the exact canonical versions recorded by development Supabase. Do not renumber or reapply them under another timestamp.
 
-## Contract-43 development evidence
+## Contract-43/44 development evidence
 
 - PR #134 delivered contract 43 with the full 43-migration Database parity rebuild, pgTAP (including the 392-line `099_paginated_overall_leaderboard` suite), updated function-privilege assertions, browser standings journeys (`e2e/overall-standings.spec.ts`) and exact-head preview validation;
-- development Supabase records `20260727183900_bounded_overall_leaderboard` in its canonical history;
+- PR #136 delivered contract 44 with the 44-migration rebuild, the 387-line `100_operating_cap_enforcement` pgTAP lifecycle, capacity browser journeys (`e2e/auth-capacity.spec.ts`, `e2e/operating-cap.spec.ts`) and updated privilege assertions;
+- development Supabase records `20260727191942_operating_cap_enforcement` as its latest canonical migration;
 - production Supabase and Netlify production remain at contract 38.
 
 ## Contract-42 development evidence
@@ -53,13 +55,13 @@ The repository migration filenames for 39–43 match the exact canonical version
 
 ## Future rollout authority
 
-Contract 38 production promotion is closed. Migrations 39–43 are not emergency or launch-critical production changes. A future production promotion must follow the milestone gate in `AGENTS.md`: current hosted history, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope and full verification.
+Contract 38 production promotion is closed. Migrations 39–44 are not emergency or launch-critical production changes. A future production promotion must follow the milestone gate in `AGENTS.md`: current hosted history, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope and full verification.
 
 ## Related evidence
 
 - `docs/quality/current-status.md`
 - `docs/roadmap.md`
-- PRs #122, #124, #126, #128, #131 and #134
+- PRs #122, #124, #126, #128, #131, #134 and #136
 - `docs/quality/reconciliations/2026-07-27-admin-migration-version-reconciliation.md`
 - `docs/quality/reconciliations/2026-07-27-contract-36-final-target-promotion.md`
 - `docs/quality/reconciliations/2026-07-27-production-backup-workflow.md`

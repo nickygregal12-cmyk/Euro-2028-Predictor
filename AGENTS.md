@@ -16,12 +16,12 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository, development and non-production Netlify are at contract `43`; production remains deliberately locked at contract `38`.
+Repository, development and non-production Netlify are at contract `44`; production remains deliberately locked at contract `38`.
 
-- canonical repository migration history contains exactly 43 versions through `20260727183900_bounded_overall_leaderboard.sql`;
-- development Supabase is `iouzoutneyjpugbbtdem` and records those 43 canonical versions, plus `20260727191942_operating_cap_enforcement` applied ahead of the repository from draft PR #135 (which must be renumbered to contract 44 before merge, because `main` took contract 43 for pagination in PR #134);
+- canonical repository migration history contains exactly 44 versions through `20260727191942_operating_cap_enforcement.sql`;
+- development Supabase is `iouzoutneyjpugbbtdem` and records the same 44 canonical versions;
 - production Supabase is `vkfnsqdyhvtwyqkisxhk` and remains at contract 38;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` declare contract 43 and use development Supabase;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` declare contract 44 and use development Supabase;
 - Netlify `production` declares contract 38 and uses production Supabase;
 - production deploy `6a67560deb88202a74108c37` passed exact-release HTTP smoke on 27 July 2026;
 - production is locked after that milestone release, so normal development must not publish automatically;

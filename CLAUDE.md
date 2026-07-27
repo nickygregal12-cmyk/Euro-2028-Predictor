@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository and development are at contract 43; production is deliberately locked at contract 38.
+- Repository and development are at contract 44; production is deliberately locked at contract 38.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
 - Production milestone deploy `6a67560deb88202a74108c37` is verified and locked.
@@ -44,13 +44,12 @@ Ordinary development does not require production backup, production smoke or a n
 
 ## Current order
 
-1. Enforce the documented operating caps at authoritative write boundaries, including concurrency behaviour.
-2. Capture representative query-plan, response-size and recomputation evidence at the intended caps.
-3. Repair completion, loading, empty and error states exposed by those scale journeys.
-4. Continue core experience, accessibility and operational readiness.
-5. Add bonus competitions only after the Original Predictor lifecycle and scale stage are proven.
+1. Capture representative query-plan, response-size and recomputation evidence at the intended caps.
+2. Repair completion, loading, empty and error states exposed by those scale journeys.
+3. Continue core experience, accessibility and operational readiness.
+4. Add bonus competitions only after the Original Predictor lifecycle and scale stage are proven.
 
-Admin result control, the full tournament lifecycle simulation, authoritative knockout consumption and automatic valid-entry submission are complete (PRs #120–#128).
+Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, bounded/paginated reads and operating-cap enforcement are complete (PRs #120–#136).
 
 ## Hard boundaries
 
