@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   fetchLeaderboardPage: vi.fn(),
   fetchMyScoreEventPoints: vi.fn(),
   fetchMyLeagues: vi.fn(),
-  fetchLeagueMembers: vi.fn(),
+  fetchLeagueMembersPage: vi.fn(),
   fetchLastSeenRead: vi.fn(),
   updateLastSeen: vi.fn(),
 }))
@@ -84,7 +84,7 @@ vi.mock('../../../src/services/supabase/scoring', () => ({
 
 vi.mock('../../../src/services/supabase/leagues', () => ({
   fetchMyLeagues: mocks.fetchMyLeagues,
-  fetchLeagueMembers: mocks.fetchLeagueMembers,
+  fetchLeagueMembersPage: mocks.fetchLeagueMembersPage,
 }))
 
 vi.mock('../../../src/services/supabase/profile', () => ({
@@ -134,6 +134,42 @@ function leaderboardPage() {
   }
 }
 
+function privateLeaguePage(totalPoints = 10, rank = 1) {
+  return {
+    rows: [
+      {
+        userId: 'leader',
+        displayName: 'League leader',
+        totalPoints,
+        rank,
+        tied: false,
+        position: 1,
+        isYou: false,
+        isOwner: false,
+        hasEntry: true,
+        predictedCount: 36,
+        joinedAt: '2026-07-20T12:00:00.000Z',
+      },
+    ],
+    totalCount: 2,
+    pageSize: 1,
+    hasMore: true,
+    nextCursor: 'league-cursor',
+    you: {
+      userId: 'user-1',
+      displayName: 'Dashboard Tester',
+      totalPoints,
+      rank,
+      tied: false,
+      position: 1,
+      isOwner: false,
+      hasEntry: true,
+      predictedCount: 36,
+      joinedAt: '2026-07-18T12:00:00.000Z',
+    },
+  }
+}
+
 describe('useHomeData source availability', () => {
   beforeEach(() => {
     currentState = null
@@ -143,7 +179,7 @@ describe('useHomeData source availability', () => {
       { matchId: 'match-1', points: 5 },
     ])
     mocks.fetchMyLeagues.mockResolvedValue([])
-    mocks.fetchLeagueMembers.mockResolvedValue([])
+    mocks.fetchLeagueMembersPage.mockResolvedValue(privateLeaguePage())
     mocks.fetchLastSeenRead.mockResolvedValue({
       available: true,
       value: { lastSeenAt: null, lastSeenPoints: null },
@@ -188,6 +224,37 @@ describe('useHomeData source availability', () => {
     expect(model.unavailable).toContain('leagues')
     expect(model.totalPoints).toBe(12)
     expect(model.pointsToday).toBe(5)
+  })
+
+  it('uses the lightweight summary activity field to break equal-rank leagues', async () => {
+    mocks.fetchMyLeagues.mockResolvedValueOnce([
+      {
+        id: 'league-older',
+        name: 'Older league',
+        inviteCode: 'OLDER1',
+        memberCount: 2,
+        isOwner: false,
+        ownerName: 'Owner',
+        lastActivityAt: '2026-07-20T12:00:00.000Z',
+      },
+      {
+        id: 'league-newer',
+        name: 'Newer league',
+        inviteCode: 'NEWER1',
+        memberCount: 2,
+        isOwner: false,
+        ownerName: 'Owner',
+        lastActivityAt: '2026-07-25T12:00:00.000Z',
+      },
+    ])
+    mocks.fetchLeagueMembersPage.mockResolvedValue(privateLeaguePage(10, 1))
+
+    const model = await renderModel()
+
+    expect(model.bestLeague?.id).toBe('league-newer')
+    expect(mocks.fetchLeagueMembersPage).toHaveBeenCalledTimes(2)
+    expect(mocks.fetchLeagueMembersPage).toHaveBeenCalledWith('league-older', { limit: 1 })
+    expect(mocks.fetchLeagueMembersPage).toHaveBeenCalledWith('league-newer', { limit: 1 })
   })
 
   it('does not overwrite the catch-up snapshot after an unavailable read', async () => {
