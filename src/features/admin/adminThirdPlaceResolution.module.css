@@ -1,18 +1,20 @@
-.body {
-  display: grid;
-  gap: 1rem;
-  margin-top: 1rem;
+.scope {
+  width: 100%;
 }
 
-.orderList {
+.scope section > p {
+  margin: 0.75rem 0 0;
+}
+
+.scope ol[aria-label='Official third-place tie order'] {
   display: grid;
   gap: 0.55rem;
-  margin: 0;
+  margin: 1rem 0 0;
   padding: 0;
   list-style: none;
 }
 
-.orderList li {
+.scope ol[aria-label='Official third-place tie order'] > li {
   display: grid;
   grid-template-columns: 2rem minmax(0, 1fr) auto auto;
   align-items: center;
@@ -24,7 +26,7 @@
   background: var(--input-bg);
 }
 
-.position {
+.scope ol[aria-label='Official third-place tie order'] > li > span:first-child {
   display: grid;
   width: 2rem;
   height: 2rem;
@@ -35,42 +37,33 @@
   font-weight: 800;
 }
 
-.team {
+.scope ol[aria-label='Official third-place tie order'] > li > span:nth-child(2) {
   display: grid;
   gap: 0.2rem;
   min-width: 0;
 }
 
-.team small {
+.scope ol[aria-label='Official third-place tie order'] > li > span:nth-child(2) small {
   color: var(--tx2);
   font-size: 0.75rem;
 }
 
-.qualifies,
-.misses {
+.scope ol[aria-label='Official third-place tie order'] > li > span:nth-child(3) {
   border-radius: 999px;
+  background: color-mix(in srgb, var(--acc) 12%, transparent);
+  color: var(--tx2);
   padding: 0.3rem 0.55rem;
   font-size: 0.72rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
-.qualifies {
-  background: color-mix(in srgb, var(--acc) 16%, transparent);
-  color: var(--acc);
-}
-
-.misses {
-  background: color-mix(in srgb, var(--red) 12%, transparent);
-  color: var(--red);
-}
-
-.controls {
+.scope ol[aria-label='Official third-place tie order'] > li > span:last-child {
   display: flex;
   gap: 0.3rem;
 }
 
-.controls button {
+.scope ol[aria-label='Official third-place tie order'] button {
   width: 2.35rem;
   height: 2.35rem;
   border: 1px solid var(--line);
@@ -82,52 +75,46 @@
   cursor: pointer;
 }
 
-.controls button:disabled {
+.scope ol[aria-label='Official third-place tie order'] button:disabled {
   cursor: not-allowed;
   opacity: 0.35;
 }
 
-.controls button:focus-visible {
+.scope ol[aria-label='Official third-place tie order'] button:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
 }
 
-.actions {
+.scope ol[aria-label='Official third-place tie order'] + label {
+  margin-top: 1rem;
+}
+
+.scope ol[aria-label='Official third-place tie order'] + label + div {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
 }
 
-.history {
-  display: grid;
-  gap: 0.75rem;
+.scope section > div:last-of-type:not([role='dialog']) {
   margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--line);
-}
-
-.historyTitle {
-  margin: 0.25rem 0 0;
-  font-size: 1rem;
 }
 
 @media (max-width: 42rem) {
-  .orderList li {
+  .scope ol[aria-label='Official third-place tie order'] > li {
     grid-template-columns: 2rem minmax(0, 1fr) auto;
   }
 
-  .qualifies,
-  .misses {
+  .scope ol[aria-label='Official third-place tie order'] > li > span:nth-child(3) {
     grid-column: 2;
     justify-self: start;
   }
 
-  .controls {
+  .scope ol[aria-label='Official third-place tie order'] > li > span:last-child {
     grid-column: 3;
     grid-row: 1 / span 2;
   }
 
-  .actions {
+  .scope ol[aria-label='Official third-place tie order'] + label + div {
     grid-template-columns: 1fr;
   }
 }
