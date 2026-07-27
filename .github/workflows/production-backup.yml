@@ -97,7 +97,7 @@ jobs:
           printf '%s\n' "${EXPECTED_PROJECT_REF}" > "${BACKUP_WORK_DIR}/bundle/project-ref.txt"
           git ls-files 'supabase/migrations/*.sql' | sort > "${BACKUP_WORK_DIR}/bundle/migration-files.txt"
           supabase --version > "${BACKUP_WORK_DIR}/bundle/supabase-cli-version.txt"
-          pg_dump --version > "${BACKUP_WORK_DIR}/bundle/pg-dump-version.txt"
+          /usr/lib/postgresql/17/bin/pg_dump --version > "${BACKUP_WORK_DIR}/bundle/pg-dump-version.txt"
 
           echo 'Capturing read-only source inventory (retained in the encrypted bundle only)...'
           psql "${SUPABASE_PROD_DB_URL}" -X -v ON_ERROR_STOP=1 -A -t \
@@ -129,7 +129,7 @@ jobs:
             -x storage.vector_indexes
 
           echo 'Dumping canonical migration history with pg_dump...'
-          pg_dump \
+          /usr/lib/postgresql/17/bin/pg_dump \
             --dbname "${SUPABASE_PROD_DB_URL}" \
             --schema supabase_migrations \
             --no-owner \
