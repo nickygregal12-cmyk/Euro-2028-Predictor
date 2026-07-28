@@ -1,0 +1,110 @@
+name: Temporary contract 48 production smoke
+
+on:
+  push:
+    branches:
+      - temp/contract48-production-smoke
+    paths:
+      - .github/workflows/temp-contract48-production-smoke.yml
+  pull_request:
+    paths:
+      - .github/workflows/temp-contract48-production-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out exact production release
+        uses: actions/checkout@v4
+        with:
+          ref: 348b4c49a6f7a57eef69a875e3cae6d090a3abb2
+          fetch-depth: 1
+
+      - name: Verify exact smoke source
+        run: test "$(git rev-parse HEAD)" = "348b4c49a6f7a57eef69a875e3cae6d090a3abb2"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Verify exact live release identity
+        env:
+          PRODUCTION_ORIGIN: https://euro28predictor.com
+          EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
+          EXPECTED_CONTRACT: '48'
+          EXPECTED_COMMIT: 348b4c49a6f7a57eef69a875e3cae6d090a3abb2
+        run: |
+          set -euo pipefail
+          ready=false
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error --connect-timeout 10 --max-time 20 \
+              "$PRODUCTION_ORIGIN/release.json" \
+              --output production-release.json
+            then
+              if node - <<'NODE'
+          const fs = require('node:fs')
+          const release = JSON.parse(fs.readFileSync('production-release.json', 'utf8'))
+          const expectedContract = Number(process.env.EXPECTED_CONTRACT)
+          const valid =
+            release.environment === 'production' &&
+            release.applicationContract === expectedContract &&
+            release.hostedContract === expectedContract &&
+            release.supabaseProjectRef === process.env.EXPECTED_SUPABASE_REF &&
+            release.commit === process.env.EXPECTED_COMMIT &&
+            release.commit !== 'local' &&
+            release.deployId !== 'local'
+          if (!valid) console.log(JSON.stringify(release, null, 2))
+          process.exit(valid ? 0 : 1)
+          NODE
+              then
+                ready=true
+                break
+              fi
+            fi
+            echo "Production identity not ready (attempt $attempt/60)."
+            sleep 5
+          done
+          test "$ready" = true
+          cat production-release.json
+
+      - name: Run production HTTP smoke
+        env:
+          EURO28_SMOKE_ORIGIN: https://euro28predictor.com
+          EURO28_SMOKE_EXPECTED_CONTEXT: production
+          EURO28_SMOKE_EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
+          EURO28_SMOKE_EXPECTED_CONTRACT: '48'
+          EURO28_SMOKE_EXPECTED_COMMIT: 348b4c49a6f7a57eef69a875e3cae6d090a3abb2
+        run: npm run smoke:production
+
+      - name: Run production browser smoke
+        env:
+          EURO28_SMOKE_ORIGIN: https://euro28predictor.com
+          EURO28_SMOKE_EXPECTED_CONTEXT: production
+          EURO28_SMOKE_EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
+          EURO28_SMOKE_EXPECTED_CONTRACT: '48'
+          EURO28_SMOKE_EXPECTED_COMMIT: 348b4c49a6f7a57eef69a875e3cae6d090a3abb2
+        run: npm run smoke:production:browser
+
+      - name: Upload production smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract48-production-smoke
+          path: |
+            production-release.json
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 14
