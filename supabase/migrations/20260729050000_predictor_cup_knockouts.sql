@@ -180,7 +180,7 @@ returns table (
   exacts integer,
   corrects integer,
   scoreline_error integer,
-  position integer
+  group_rank integer
 )
 language sql
 stable
@@ -334,7 +334,7 @@ as $$
         (wm.points_for - wm.points_against) desc,
         wm.scoreline_error asc,
         wm.draw_number asc
-    )::integer as position
+    )::integer as group_rank
   from with_mini wm
 $$;
 
@@ -426,10 +426,10 @@ begin
   select count(*) into v_total from pg_temp.cup_gate_tables;
 
   update public.bonus_cup_members member
-    set group_position = gate.position::smallint,
+    set group_position = gate.group_rank::smallint,
         qualified_as = case
-          when gate.position = 1 then 'winner'
-          when gate.position = 2 and gate.group_size = 4 then 'runner_up'
+          when gate.group_rank = 1 then 'winner'
+          when gate.group_rank = 2 and gate.group_size = 4 then 'runner_up'
           else null
         end
     from pg_temp.cup_gate_tables gate
@@ -451,8 +451,8 @@ begin
     from (
       select gate.user_id
       from pg_temp.cup_gate_tables gate
-      where (gate.group_size = 4 and gate.position = 3)
-        or (gate.group_size = 3 and gate.position = 2)
+      where (gate.group_size = 4 and gate.group_rank = 3)
+        or (gate.group_size = 3 and gate.group_rank = 2)
       order by
         gate.table_points::numeric / (gate.group_size - 1) desc,
         gate.window_points desc,
