@@ -16,6 +16,10 @@ export type PrivateLeagueFixture = {
   ownerPassword: string
   ownerDisplayName: string
   candidateDisplayName: string
+  h2hRivalId: string
+  h2hRivalDisplayName: string
+  tournamentId: string
+  originalLockAt: string | null
   syntheticUserIds: string[]
 }
 
@@ -83,6 +87,8 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
   const leagueName = `PL Scale ${safeSuffix.slice(0, 20)}`
   const createdUsers: CreatedUser[] = []
   let leagueId: string | null = null
+  let tournamentId: string | null = null
+  let originalLockAt: string | null = null
 
   try {
     const { data: listed, error: listError } = await admin.auth.admin.listUsers({
@@ -100,10 +106,12 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
 
     const { data: tournament, error: tournamentError } = await admin
       .from('tournaments')
-      .select('id')
+      .select('id, lock_at')
       .limit(1)
       .single()
     if (tournamentError) throw tournamentError
+    tournamentId = tournament.id
+    originalLockAt = tournament.lock_at
 
     const { error: oldLeagueError } = await admin.from('leagues').delete().eq('invite_code', INVITE_CODE)
     if (oldLeagueError) throw oldLeagueError
@@ -187,8 +195,17 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
     )
     if (scoreError) throw scoreError
 
+    const lockedAt = new Date(Date.now() - 10_000).toISOString()
+    const { error: lockError } = await admin
+      .from('tournaments')
+      .update({ lock_at: lockedAt })
+      .eq('id', tournament.id)
+    if (lockError) throw lockError
+
     const candidate = createdUsers.find((user) => user.number === CANDIDATE_NUMBER)
     if (!candidate) throw new Error('Private-league ownership candidate is missing.')
+    const h2hRival = createdUsers[1]
+    if (!h2hRival) throw new Error('Private-league H2H rival is missing.')
 
     return {
       leagueId: league.id,
@@ -198,6 +215,10 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
       ownerPassword: PASSWORD,
       ownerDisplayName: owner.displayName,
       candidateDisplayName: candidate.displayName,
+      h2hRivalId: h2hRival.id,
+      h2hRivalDisplayName: h2hRival.displayName,
+      tournamentId: tournament.id,
+      originalLockAt: tournament.lock_at,
       syntheticUserIds: createdUsers.map((user) => user.id),
     }
   } catch (error) {
@@ -205,6 +226,13 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
       if (leagueId) await admin.from('leagues').delete().eq('id', leagueId)
       await deleteUsers(createdUsers.map((user) => user.id))
     } finally {
+      if (tournamentId) {
+        const { error: restoreError } = await admin
+          .from('tournaments')
+          .update({ lock_at: originalLockAt })
+          .eq('id', tournamentId)
+        if (restoreError) throw restoreError
+      }
       await setLocalOperatingLimits(DEFAULT_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
     }
     throw error
@@ -218,6 +246,11 @@ export async function clearPrivateLeagueFixture(fixture: PrivateLeagueFixture): 
     if (leagueError) throw leagueError
     await deleteUsers(fixture.syntheticUserIds)
   } finally {
+    const { error: restoreError } = await admin
+      .from('tournaments')
+      .update({ lock_at: fixture.originalLockAt })
+      .eq('id', fixture.tournamentId)
+    if (restoreError) throw restoreError
     await setLocalOperatingLimits(DEFAULT_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
   }
 }
