@@ -1,0 +1,182 @@
+name: Contract 55 Netlify production deploy
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/contract55-netlify-production-deploy.yml
+      - .netlify-contract55/proxy.enc.b64
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-and-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Check out deployment-control branch
+        uses: actions/checkout@v4
+
+      - name: Restore one-use deployment private key
+        id: key-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .deploy-key/private.pem
+          key: netlify-contract55-production-key-v1
+
+      - name: Prepare one-use deployment key pair
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') == ''
+        run: |
+          set -euo pipefail
+          mkdir -p .deploy-key .netlify-contract55
+          if [ ! -s .deploy-key/private.pem ]; then
+            openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 \
+              -out .deploy-key/private.pem
+          fi
+          chmod 600 .deploy-key/private.pem
+          openssl pkey -in .deploy-key/private.pem -pubout \
+            -out .netlify-contract55/public.pem
+
+      - name: Save one-use deployment private key
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') == '' && steps.key-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: .deploy-key/private.pem
+          key: netlify-contract55-production-key-v1
+
+      - name: Upload deployment public key
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: netlify-contract55-production-public-key
+          path: .netlify-contract55/public.pem
+          retention-days: 1
+
+      - name: Decode encrypted deployment proxy
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        run: |
+          set -euo pipefail
+          test -s .deploy-key/private.pem
+          test -s .netlify-contract55/key.enc.b64
+          test -s .netlify-contract55/proxy.enc.b64
+          base64 -d .netlify-contract55/key.enc.b64 > /tmp/key.enc
+          base64 -d .netlify-contract55/proxy.enc.b64 > /tmp/proxy.enc
+
+      - name: Decrypt short-lived Netlify proxy
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        run: |
+          set -euo pipefail
+          openssl pkeyutl -decrypt \
+            -inkey .deploy-key/private.pem \
+            -in /tmp/key.enc \
+            -out /tmp/aes-key.bin \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256
+          openssl enc -d -aes-256-cbc -pbkdf2 \
+            -in /tmp/proxy.enc \
+            -out /tmp/proxy-path.txt \
+            -pass file:/tmp/aes-key.bin
+          test -s /tmp/proxy-path.txt
+          echo "::add-mask::$(cat /tmp/proxy-path.txt)"
+
+      - name: Check out exact contract-55 release
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        uses: actions/checkout@v4
+        with:
+          ref: af5aa15a151f5c4236ba3f2756faab4b357f31ee
+          path: source
+          fetch-depth: 1
+
+      - name: Verify exact release source
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        working-directory: source
+        run: test "$(git rev-parse HEAD)" = "af5aa15a151f5c4236ba3f2756faab4b357f31ee"
+
+      - name: Deploy exact repository through Netlify
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        working-directory: source
+        run: |
+          set -euo pipefail
+          proxy_path="$(cat /tmp/proxy-path.txt)"
+          echo "::add-mask::$proxy_path"
+          npx -y @netlify/mcp@latest \
+            --site-id c69da01a-4650-43db-a1d2-b78b7f8e198a \
+            --proxy-path "$proxy_path" \
+            2>&1 | tee /tmp/netlify-contract55-deploy.log
+
+      - name: Verify exact public release identity
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        env:
+          ORIGIN: https://euro28predictor.com
+          EXPECTED_COMMIT: af5aa15a151f5c4236ba3f2756faab4b357f31ee
+          EXPECTED_CONTRACT: '55'
+          EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
+        run: |
+          set -euo pipefail
+          ready=false
+          for attempt in $(seq 1 120); do
+            if curl --fail --silent --show-error --location \
+              --connect-timeout 10 --max-time 30 \
+              "$ORIGIN/release.json" -o /tmp/contract55-public-release.json
+            then
+              if node - <<'NODE'
+          const fs = require('node:fs')
+          const release = JSON.parse(
+            fs.readFileSync('/tmp/contract55-public-release.json', 'utf8'),
+          )
+          const expectedContract = Number(process.env.EXPECTED_CONTRACT)
+          const valid =
+            release.environment === 'production' &&
+            release.applicationContract === expectedContract &&
+            release.hostedContract === expectedContract &&
+            release.supabaseProjectRef === process.env.EXPECTED_SUPABASE_REF &&
+            release.commit === process.env.EXPECTED_COMMIT &&
+            release.commit !== 'local' &&
+            release.deployId !== 'local'
+          process.exit(valid ? 0 : 1)
+          NODE
+              then
+                ready=true
+                break
+              fi
+            fi
+            echo "Contract-55 release identity not ready (attempt $attempt/120)."
+            sleep 5
+          done
+          cat /tmp/contract55-public-release.json 2>/dev/null || true
+          test "$ready" = true
+
+      - name: Install smoke dependencies
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        working-directory: source
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run production HTTP and Chromium smoke
+        if: hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        working-directory: source
+        env:
+          EURO28_SMOKE_ORIGIN: https://euro28predictor.com
+          EURO28_SMOKE_EXPECTED_CONTEXT: production
+          EURO28_SMOKE_EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
+          EURO28_SMOKE_EXPECTED_CONTRACT: '55'
+          EURO28_SMOKE_EXPECTED_COMMIT: af5aa15a151f5c4236ba3f2756faab4b357f31ee
+        run: |
+          npm run smoke:production
+          npm run smoke:production:browser
+
+      - name: Upload release evidence
+        if: always() && hashFiles('.netlify-contract55/proxy.enc.b64') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract55-netlify-production-release
+          path: |
+            /tmp/netlify-contract55-deploy.log
+            /tmp/contract55-public-release.json
+            source/playwright-report/
+            source/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
