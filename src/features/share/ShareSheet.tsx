@@ -99,7 +99,7 @@ export function ShareSheet({ open, onClose, model, variants, defaultVariant }: S
       }
     >
       {variants.length > 1 ? (
-        <div className={s.tabs} role="tablist" aria-label="Card style">
+        <div className={s.tabs} role="group" aria-label="Card style">
           {variants.map((v) => (
             <button
               key={v}
