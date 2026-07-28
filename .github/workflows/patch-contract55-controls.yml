@@ -1,0 +1,155 @@
+name: Patch contract 55 controls
+
+on:
+  push:
+    branches:
+      - release/align-contract55-controls
+    paths:
+      - .github/workflows/patch-contract55-controls.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/align-contract55-controls
+          fetch-depth: 0
+
+      - name: Align permanent controls and live status
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f'Missing expected text in {path}: {old!r}')
+              file.write_text(text.replace(old, new))
+
+          replace('.github/workflows/production-backup.yml', "EXPECTED_MIGRATION_COUNT: '48'", "EXPECTED_MIGRATION_COUNT: '55'")
+          replace('.github/workflows/production-backup.yml', "EXPECTED_LATEST_MIGRATION_VERSION: '20260728122500'", "EXPECTED_LATEST_MIGRATION_VERSION: '20260729030000'")
+          replace('.github/workflows/production-backup.yml', 'EXPECTED_LATEST_MIGRATION_NAME: h2h_rank_history', 'EXPECTED_LATEST_MIGRATION_NAME: predictor_cup_group_scoring')
+          replace('tests/scripts/productionBackupWorkflow.test.ts', 'restored migration history at the contract-48 head', 'restored migration history at the contract-55 head')
+          replace('tests/scripts/productionBackupWorkflow.test.ts', "EXPECTED_MIGRATION_COUNT: '48'", "EXPECTED_MIGRATION_COUNT: '55'")
+          replace('tests/scripts/productionBackupWorkflow.test.ts', "EXPECTED_LATEST_MIGRATION_VERSION: '20260728122500'", "EXPECTED_LATEST_MIGRATION_VERSION: '20260729030000'")
+          replace('tests/scripts/productionBackupWorkflow.test.ts', 'EXPECTED_LATEST_MIGRATION_NAME: h2h_rank_history', 'EXPECTED_LATEST_MIGRATION_NAME: predictor_cup_group_scoring')
+
+          replace(
+              'AGENTS.md',
+              "Repository is at contract `55`; development Supabase and non-production Netlify are at `54` pending contract 55's parity and hosted application; production database and application are intentionally aligned and locked at contract `48` (the H2H rank-history milestone, released 28 July 2026).",
+              'Repository, development Supabase, production Supabase and all Netlify contexts are aligned at contract `55`, the Bonus Games B2–B7b production milestone released on 28 July 2026.'
+          )
+          replace('AGENTS.md', '- development Supabase is `iouzoutneyjpugbbtdem` and records 54 canonical versions, with contract 55 pending hosted application;', '- development Supabase is `iouzoutneyjpugbbtdem` and records exactly 55 canonical versions;')
+          replace('AGENTS.md', '- production Supabase is `vkfnsqdyhvtwyqkisxhk` and holds 48 canonical versions through `20260728122500_h2h_rank_history.sql` per the dated contract-48 release record;', '- production Supabase is `vkfnsqdyhvtwyqkisxhk` and records exactly 55 canonical versions through `20260729030000_predictor_cup_group_scoring.sql`;')
+          replace('AGENTS.md', '- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and declare `EURO28_DEPLOYED_DB_CONTRACT=54`;', '- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and declare `EURO28_DEPLOYED_DB_CONTRACT=55`;')
+          replace('AGENTS.md', '- Netlify `production` declares contract 48 and uses production Supabase;', '- Netlify `production` declares contract 55 and uses production Supabase;')
+          replace('AGENTS.md', '- production remains milestone-locked and normal development must not publish or migrate it automatically;', '- production is re-locked at contract 55 and normal development must not publish or migrate it automatically;')
+          replace('AGENTS.md', '- encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.', '- a fresh encrypted pre-promotion backup and disposable restore rehearsal passed immediately before contracts 49–55 were applied.')
+          replace(
+              'AGENTS.md',
+              'Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member player profiles are delivered through contract 47; contract 48 delivers richer H2H rank history and bracket health (Stage 4B, production-released); contracts 49–55 add the Bonus Games platform and games (ADR-0010 B1–B7b: deny-all schema, hub with voluntary entry, shared knockout prediction store, KO Predictor scoring/standings, tournament-format Last Man Standing and Cup draw + read-derived group scoring per `docs/scoring-rules.md` §8); B7c (Cup knockouts) remains; the next product batch is the remaining Stage 4 core experience (Match Centre/tournament states, account/privacy/contact-admin, post-lock trends).',
+              'Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member profiles, richer H2H and the Bonus Games platform through B7b are production-released at contract 55; B7c (Cup knockouts) remains. The next product batch is the remaining Stage 4 core experience: Match Centre/tournament states, account/privacy/contact-admin and post-lock trends.'
+          )
+
+          replace('CLAUDE.md', "- Repository is at contract 55; development Supabase and non-production Netlify are at 54 pending contract 55's parity and hosted application.", '- Repository, development Supabase, production Supabase and all Netlify contexts are aligned at contract 55.')
+          replace('CLAUDE.md', '- Production Supabase and the published production application are aligned and locked at contract 48 (the H2H rank-history milestone).', '- Production Supabase and the published production application are aligned and locked at contract 55 (the Bonus Games B2–B7b milestone).')
+          replace('CLAUDE.md', '- Production deploy: contract-48 release from `main` (PR #145) — see `docs/quality/investigations/2026-07-28-contract-48-production-release.md`.', '- Production deploy: `6a68e4f9ee76002a26ffbee6` from commit `af5aa15a151f5c4236ba3f2756faab4b357f31ee`; exact release identity, HTTP smoke and Chromium smoke passed.')
+
+          status = Path('docs/quality/current-status.md')
+          text = status.read_text()
+          replacements = [
+              ('| Verified production release source | `348b4c49a6f7a57eef69a875e3cae6d090a3abb2` — contract-48 milestone |', '| Verified production release source | `af5aa15a151f5c4236ba3f2756faab4b357f31ee` — contract-55 Bonus Games milestone |'),
+              ('| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — **contract 48** through `20260728122500_h2h_rank_history.sql`; remains locked at the milestone |', '| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly **contract 55** through `20260729030000_predictor_cup_group_scoring.sql`; preserved-data and privilege checks passed |'),
+              ('| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 55 and use development Supabase; `production` declares 48 and uses production Supabase |', '| Netlify contexts | all four contexts declare 55; non-production uses development Supabase and production uses production Supabase |'),
+              ('| Published production deploy | `6a68c00aff68bef9b503a857`, ready, exact contract-48 release identity and anonymous Chromium smoke verified |', '| Published production deploy | `6a68e4f9ee76002a26ffbee6`, ready; exact contract-55 release identity, HTTP smoke and Chromium smoke passed |'),
+              ('| Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |', '| Production recovery | fresh encrypted contract-48 pre-promotion backup and disposable restore passed immediately before contracts 49–55; encrypted artifact retained |'),
+              ('| Production smoke | exact contract-48 release identity, HTTP smoke and Chromium browser smoke passed; PR #153 permanently aligns the manual workflow to this milestone |', '| Production smoke | exact contract-55 release identity, HTTP smoke and Chromium browser smoke passed; the manual workflow now requires the exact release commit |'),
+              ('Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 48. Contracts 49–55 are development-only and must not be promoted to production without a later approved milestone gate.', 'Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and re-locked at contract 55 after the approved Bonus Games milestone promotion.'),
+              ('| Contract alignment | **Intentionally split and internally aligned.** Repository branch, development Supabase and non-production Netlify are at contract 55; production database and application are aligned and locked at contract 48. Contracts 53–55 retain their canonical filenames and ordering after concurrent Bonus Games work. |', '| Contract alignment | **Aligned at 55.** Repository, development Supabase, production Supabase and every Netlify context use the same 55-migration contract. Contracts 49–55 retain their canonical filenames and ordering. |'),
+              ('| Bonus Games | **Development-delivered through B7b.** Platform, hub, shared knockout store, KO Predictor, tournament-format Last Man Standing, Predictor Cup draw/foundation and read-derived group scoring are represented by contracts 49–55. Predictor Cup knockouts remain B7c. |', '| Bonus Games | **Production-delivered through B7b.** Platform, hub, shared knockout store, KO Predictor, tournament-format Last Man Standing, Predictor Cup draw/foundation and read-derived group scoring are represented by contracts 49–55. Predictor Cup knockouts remain B7c. |'),
+              ('- production backup/restore rehearsal and contract-48 release publication/smoke.', '- production backup/restore rehearsal, contracts 49–55 migration promotion and exact contract-55 release smoke.'),
+              ('**Finish the contract-55 gate, then resume Stage 4 core experience**\n\n1. Complete PR #157 exact authenticated Browser E2E and contract-55 deploy-preview smoke, then merge.\n2. Merge PR #153 so the permanent manual Production Smoke workflow targets the verified contract-48 release.\n3. Continue Match Centre/tournament state resilience and fixture switching from current `main`.\n4. Follow with account/privacy/contact-admin and post-lock trends.\n5. Complete Predictor Cup B7c after the remaining Stage 4 core-experience tranche.\n6. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.', '**Resume Stage 4 core experience from the contract-55 production baseline**\n\n1. Continue Match Centre/tournament state resilience and fixture switching from current `main`.\n2. Follow with account/privacy/contact-admin and post-lock trends.\n3. Complete Predictor Cup B7c after the remaining Stage 4 core-experience tranche.\n4. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.'),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Missing current-status text: {old!r}')
+              text = text.replace(old, new)
+          status.write_text(text)
+
+          Path('docs/ops-pending-migrations.md').write_text('''# Hosted migration inventory and rollout status
+
+Live source of truth for repository migration count, hosted state and pending rollout scope.
+
+## Current status — 28 July 2026
+
+| Environment | Contract | Hosted migration state | Pending |
+| --- | ---: | --- | --- |
+| Repository | 55 | 55 canonical files through `20260729030000_predictor_cup_group_scoring.sql` | none |
+| Development Supabase `iouzoutneyjpugbbtdem` | 55 | exactly 55 canonical versions; history, grants and baseline data verified | none |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 55 | development Supabase; exact preview HTTP and Chromium smoke passed | none |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 55 | exactly 55 canonical versions; contracts 49–55 applied after encrypted backup, dry-run and preserved-data verification | none |
+| Netlify `production` | 55 | production Supabase; deploy `6a68e4f9ee76002a26ffbee6` from `af5aa15a151f5c4236ba3f2756faab4b357f31ee` | none |
+
+Production is re-locked at contract 55. Any later migration requires a new approved milestone gate; ordinary application development must not mutate production.
+
+## Contracts 45–55
+
+| # | Canonical migration | Purpose | Development | Production |
+| ---: | --- | --- | --- | --- |
+| 45 | `20260727214500_paginated_private_league_standings.sql` | Private-league keyset pagination and owner transfer search | verified | verified |
+| 46 | `20260727221000_private_league_summary_activity.sql` | Lightweight latest-activity summaries | verified | verified |
+| 47 | `20260728113000_other_player_profiles.sql` | Co-member-only bounded player profiles | verified | verified |
+| 48 | `20260728122500_h2h_rank_history.sql` | Bounded H2H rank history and hardened checkpoint capture | verified | verified |
+| 49 | `20260728150000_bonus_games_platform.sql` | Deny-all Bonus Games platform foundation | verified | verified |
+| 50 | `20260728170000_bonus_games_hub.sql` | Voluntary registration/withdrawal and Games hub | verified | verified |
+| 51 | `20260728190000_shared_knockout_prediction_store.sql` | Shared per-kickoff knockout prediction store | verified | verified |
+| 52 | `20260728210000_ko_predictor_scoring.sql` | KO Predictor scoring and standings | verified | verified |
+| 53 | `20260728230000_last_man_standing.sql` | Tournament-format Last Man Standing | verified | verified |
+| 54 | `20260729010000_predictor_cup_foundation.sql` | Predictor Cup draw, groups, members and fixtures | verified | verified |
+| 55 | `20260729030000_predictor_cup_group_scoring.sql` | Regulation-time Cup group scoring and tables | verified | verified |
+
+The migration versions match the exact canonical repository filenames. Do not renumber or reapply them under another timestamp.
+
+## Contract-55 production evidence
+
+- fresh encrypted production backup completed and restored into disposable local Supabase before mutation;
+- preflight found exactly seven pending canonical migrations, 49–55;
+- `supabase db push --dry-run` passed before application;
+- all seven migrations applied in canonical order;
+- production history contains exactly 55 versions through `20260729030000`;
+- existing production counts remained one Auth user, one profile, one entry, one league, 51 matches and 36 group predictions;
+- no synthetic Bonus Games entrants, selections, groups, members or fixtures were created;
+- security-definer search paths are empty; anonymous execution is denied; internal Cup/LMS helpers are not Data API callable;
+- production database lint passed;
+- deploy `6a68e4f9ee76002a26ffbee6` reports contract 55, production Supabase and exact commit `af5aa15a151f5c4236ba3f2756faab4b357f31ee`;
+- production HTTP and Chromium smoke passed.
+
+## Future rollout authority
+
+Future production promotions must follow `AGENTS.md`: exact target and current contract, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope, hosted verification and exact release smoke.
+
+## Related authority
+
+- `docs/quality/current-status.md`
+- `docs/roadmap.md`
+- `docs/ops-production-backup-restore.md`
+- `config/deployment-contract.json`
+''')
+          PY
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .github/workflows/production-backup.yml \
+            tests/scripts/productionBackupWorkflow.test.ts \
+            AGENTS.md CLAUDE.md \
+            docs/quality/current-status.md \
+            docs/ops-pending-migrations.md
+          git commit -m 'Align permanent controls and status at contract 55'
+          git push origin HEAD:release/align-contract55-controls
