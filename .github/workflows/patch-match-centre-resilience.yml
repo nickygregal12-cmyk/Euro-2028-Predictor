@@ -1,0 +1,150 @@
+name: Patch Match Centre resilience
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/patch-match-centre-resilience.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/match-centre-resilience
+          fetch-depth: 0
+
+      - name: Apply Match Centre resilience slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f'Missing expected text in {path}: {old!r}')
+              file.write_text(text.replace(old, new))
+
+          provider = 'src/app/providers/PredictionsProvider.tsx'
+          replace(
+              provider,
+              "type PredictionsContextValue = {\n  ready: boolean\n",
+              "export type PredictionsLoadStatus = 'idle' | 'loading' | 'ready' | 'error'\n\ntype PredictionsContextValue = {\n  ready: boolean\n  loadStatus: PredictionsLoadStatus\n  loadMessage: string | null\n  retryInitialLoad: () => void\n"
+          )
+          replace(
+              provider,
+              "  const [ready, setReady] = useState(false)\n",
+              "  const [ready, setReady] = useState(false)\n  const [loadStatus, setLoadStatus] = useState<PredictionsLoadStatus>('idle')\n  const [loadMessage, setLoadMessage] = useState<string | null>(null)\n  const [initialLoadNonce, setInitialLoadNonce] = useState(0)\n"
+          )
+          replace(
+              provider,
+              "    setReady(false)\n    clearDebounceTimers()",
+              "    setReady(false)\n    setLoadStatus(userId && tournamentId ? 'loading' : 'idle')\n    setLoadMessage(null)\n    clearDebounceTimers()"
+          )
+          replace(
+              provider,
+              "        setReady(true)\n\n        // These secondary reads remain fail-soft",
+              "        setReady(true)\n        setLoadStatus('ready')\n        setLoadMessage(null)\n\n        // These secondary reads remain fail-soft"
+          )
+          replace(
+              provider,
+              "      .catch(() => {\n        if (active) setReady(false)\n      })",
+              "      .catch((error: unknown) => {\n        if (!active) return\n        setReady(false)\n        setLoadStatus('error')\n        setLoadMessage(\n          userFacingError(error, 'Could not load your prediction entry. Please try again.'),\n        )\n      })"
+          )
+          replace(provider, "  }, [userId, tournamentId])", "  }, [userId, tournamentId, initialLoadNonce])")
+          replace(
+              provider,
+              "  const value: PredictionsContextValue = {\n    ready,\n",
+              "  const value: PredictionsContextValue = {\n    ready,\n    loadStatus,\n    loadMessage,\n    retryInitialLoad: () => setInitialLoadNonce((nonce) => nonce + 1),\n"
+          )
+
+          page = 'src/features/matches/MatchCentrePage.tsx'
+          replace(
+              page,
+              "import { createMatchCentrePageModel } from '../../domain/tournament/matchCentrePageModel'\n",
+              "import { createMatchCentrePageModel } from '../../domain/tournament/matchCentrePageModel'\nimport { adjacentMatchRefs } from '../../domain/tournament/matchNavigation'\n"
+          )
+          replace(
+              page,
+              "  const [saidError, setSaidError] = useState<string | null>(null)\n",
+              "  const [saidError, setSaidError] = useState<string | null>(null)\n  const [saidReloadKey, setSaidReloadKey] = useState(0)\n"
+          )
+          replace(
+              page,
+              "  const teamsById = useMemo(\n",
+              "  const adjacent = useMemo(\n    () =>\n      data.status === 'ready' && matchRef\n        ? adjacentMatchRefs(data.data.matches, matchRef)\n        : { previous: null, next: null },\n    [data, matchRef],\n  )\n\n  const teamsById = useMemo(\n"
+          )
+          replace(
+              page,
+              "  }, [match, scope, preds, teamsById])",
+              "  }, [match, scope, preds, teamsById, saidReloadKey])"
+          )
+          replace(
+              page,
+              "        <Button variant=\"secondary\" fullWidth onClick={() => navigate('/')}>\n          Back to Home\n        </Button>",
+              "        <Button variant=\"secondary\" fullWidth onClick={data.reload}>\n          Retry match data\n        </Button>\n        <Button variant=\"secondary\" fullWidth onClick={() => navigate('/')}>\n          Back to Home\n        </Button>"
+          )
+          replace(
+              page,
+              "  if (data.status !== 'ready' || !preds.ready) {\n    return <div className={s.page} />\n  }",
+              "  if (data.status !== 'ready') {\n    return (\n      <div className={s.page} role=\"status\" aria-live=\"polite\">\n        <p>Loading match…</p>\n      </div>\n    )\n  }\n  if (preds.loadStatus === 'error') {\n    return (\n      <div className={s.page}>\n        <EmptyState\n          icon={<CalendarIcon size={22} />}\n          title=\"Couldn't load your prediction context\"\n          description={preds.loadMessage ?? 'Your saved predictions remain safe.'}\n        />\n        <Button variant=\"secondary\" fullWidth onClick={preds.retryInitialLoad}>\n          Retry predictions\n        </Button>\n      </div>\n    )\n  }\n  if (!preds.ready) {\n    return (\n      <div className={s.page} role=\"status\" aria-live=\"polite\">\n        <p>Loading your prediction context…</p>\n      </div>\n    )\n  }"
+          )
+          replace(
+              page,
+              "  const td = data.data\n",
+              "  const navigateToMatch = (nextMatchRef: string) => {\n    const params = new URLSearchParams()\n    if (scope.type === 'league') params.set('league', scope.id)\n    const query = params.toString()\n    navigate(`/match/${nextMatchRef}${query ? `?${query}` : ''}`)\n  }\n\n  const td = data.data\n"
+          )
+          replace(
+              page,
+              "      saidError={saidError}\n",
+              "      saidError={saidError}\n      onRetrySaid={() => setSaidReloadKey((key) => key + 1)}\n      onPreviousMatch={\n        adjacent.previous ? () => navigateToMatch(adjacent.previous as string) : undefined\n      }\n      onNextMatch={adjacent.next ? () => navigateToMatch(adjacent.next as string) : undefined}\n"
+          )
+
+          screen = 'src/features/matches/MatchCentreScreen.tsx'
+          replace(
+              screen,
+              "  saidError?: string | null\n",
+              "  saidError?: string | null\n  onRetrySaid?: () => void\n  onPreviousMatch?: () => void\n  onNextMatch?: () => void\n"
+          )
+          replace(
+              screen,
+              "        {leagueScopesStatus === 'ready' && props.leagues.length > 0 ? (",
+              "        <nav className={s.matchNav} aria-label=\"Adjacent matches\">\n          <button\n            type=\"button\"\n            className={s.matchNavButton}\n            disabled={!props.onPreviousMatch}\n            onClick={props.onPreviousMatch}\n          >\n            Previous\n          </button>\n          <button\n            type=\"button\"\n            className={s.matchNavButton}\n            disabled={!props.onNextMatch}\n            onClick={props.onNextMatch}\n          >\n            Next\n          </button>\n        </nav>\n        {leagueScopesStatus === 'ready' && props.leagues.length > 0 ? ("
+          )
+          replace(
+              screen,
+              "            {props.saidError ? (\n              <Alert variant=\"error\">{props.saidError}</Alert>\n",
+              "            {props.saidError ? (\n              <Alert variant=\"error\">\n                {props.saidError}\n                {props.onRetrySaid ? (\n                  <div style={{ marginTop: 10 }}>\n                    <Button variant=\"secondary\" onClick={props.onRetrySaid}>\n                      Retry predictions\n                    </Button>\n                  </div>\n                ) : null}\n              </Alert>\n"
+          )
+          replace(
+              screen,
+              "              <p className={s.stakeMuted}>Loading…</p>",
+              "              <p className={s.stakeMuted} role=\"status\" aria-live=\"polite\">\n                Loading prediction context…\n              </p>"
+          )
+
+          css = Path('src/features/matches/MatchCentre.module.css')
+          css.write_text(
+              css.read_text().replace(
+                  ".topbar {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: var(--sp-2);\n}\n",
+                  ".topbar {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  flex-wrap: wrap;\n  gap: var(--sp-2);\n}\n\n.matchNav {\n  display: inline-flex;\n  gap: 6px;\n}\n\n.matchNavButton {\n  min-height: 34px;\n  padding: 6px 10px;\n  border: 1px solid var(--line);\n  border-radius: var(--radius-pill);\n  background: var(--chip);\n  color: var(--tx2);\n  cursor: pointer;\n  font-family: var(--font-display);\n  font-size: 12px;\n}\n\n.matchNavButton:disabled {\n  cursor: default;\n  opacity: 0.42;\n}\n\n.matchNavButton:focus-visible {\n  outline: 2px solid var(--acc);\n  outline-offset: 2px;\n}\n"
+              )
+          )
+          PY
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add src/app/providers/PredictionsProvider.tsx \
+            src/features/matches/MatchCentrePage.tsx \
+            src/features/matches/MatchCentreScreen.tsx \
+            src/features/matches/MatchCentre.module.css
+          git commit -m 'Add Match Centre loading retry and fixture switching'
+          git push origin HEAD:agent/match-centre-resilience
