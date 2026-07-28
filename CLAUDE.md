@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository and development Supabase are at contract 49; non-production Netlify declares 48 pending an owner environment update.
+- Repository and development Supabase are at contract 50; non-production Netlify declares 49 pending an owner environment update.
 - Production Supabase and the published production application are aligned and locked at contract 44.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
@@ -51,7 +51,7 @@ Ordinary development does not require production backup, production smoke or a n
 1. Build richer H2H with bounded rank-over-time and bracket health.
 2. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends.
 3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-4. Bonus Games platform foundation (ADR-0010 B1 domain, B2 deny-all schema, B3 Games hub with voluntary entry) is delivered through contract 49; the games themselves (B4+) wait until the Original Predictor core experience is proven.
+4. Bonus Games platform foundation (ADR-0010 B1 domain, B2 deny-all schema, B3 Games hub with voluntary entry, B4 shared knockout prediction store) is delivered through contract 50; game scoring and standings (B5+) wait until the Original Predictor core experience is proven.
 
 Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 

@@ -9,23 +9,23 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository contract | 49 canonical migrations through `20260728170000_bonus_games_hub.sql` |
+| Repository contract | 50 canonical migrations through `20260728190000_shared_knockout_prediction_store.sql` |
 | Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136, #138 and #141 cover the lifecycle, recovery, bounded/paginated reads, operating caps and Profile/H2H resilience; PR #143 adds secure other-player profiles |
 | Verified production release source | `515e794aa483a779c971e16a364fcbd243fa7ee6` |
-| Development Supabase | `iouzoutneyjpugbbtdem` — contract 49 applied 28 July 2026 with canonical history (49 versions through `20260728170000_bonus_games_hub`), verified deny-all bonus-table posture, hardened hub RPC grants and unchanged baseline data |
+| Development Supabase | `iouzoutneyjpugbbtdem` — contract 50 applied 28 July 2026 with canonical history (50 versions through `20260728190000_shared_knockout_prediction_store`), verified deny-all bonus-table posture, hardened bonus RPC grants and unchanged baseline data |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — **contract 44** applied 28 July 2026 after a fresh green backup (run `30337648499`); remains locked at the milestone |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 48 and require an owner `EURO28_DEPLOYED_DB_CONTRACT=49` update before the next non-production deploy; `production` declares 44 and uses production Supabase |
+| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 49 and require an owner `EURO28_DEPLOYED_DB_CONTRACT=50` update before the next non-production deploy; `production` declares 44 and uses production Supabase |
 | Published production deploy | `6a686e30f2f13c07f10e30d8` from `515e794aa483a779c971e16a364fcbd243fa7ee6` — contract 44, ready and manually verified signed-in |
 | Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |
 | Production smoke | contract-44 release identity and signed-in operation manually verified; the exact-head Production Smoke workflow remains an operational follow-up |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 44. Contracts 45–49 are development-only and must not be promoted to production without a later approved milestone gate.
+Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 44. Contracts 45–50 are development-only and must not be promoted to production without a later approved milestone gate.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Intentionally split.** Repository and development Supabase are at contract 49; non-production Netlify declares 48 pending an owner environment update; production database and application are aligned and locked at contract 44. |
+| Contract alignment | **Intentionally split.** Repository and development Supabase are at contract 50; non-production Netlify declares 49 pending an owner environment update; production database and application are aligned and locked at contract 44. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven; one owner-controlled production results administrator is assigned through server-owned Auth metadata. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |
@@ -110,8 +110,8 @@ Completed evidence:
 
 Current:
 
-1. The Bonus Games platform foundation is delivered under ADR-0010: B1 pure domain (`src/domain/competitions/`), B2 deny-all schema (contract 48) and B3 the Games hub (contract 49) — one bounded authenticated hub read, voluntary registration/withdrawal RPCs with audit entries and scored-history protection, and the More → Games surface consuming `resolveCompetitionStatus` with resilient loading, empty, error and retry states. pgTAP `103`/`104` and Database parity are green; both contracts are applied to development Supabase with verified posture and advisors. The games themselves (B4+) remain gated behind the Stage 4 core experience per `docs/roadmap.md` Stage 5.
-2. Owner follow-up: set `EURO28_DEPLOYED_DB_CONTRACT=49` on the non-production Netlify contexts before the next non-production deploy.
+1. The Bonus Games platform foundation is delivered under ADR-0010: B1 pure domain (`src/domain/competitions/`), B2 deny-all schema (contract 48), B3 the Games hub (contract 49) and B4 the shared knockout prediction store (contract 50) — one prediction per user per real knockout match with per-kickoff database locks, PT409 optimistic versions, entrant gating and the `/games/knockout` form (draw scorelines require a who-goes-through pick; decisive ones imply it). pgTAP `103`–`105` and Database parity are green; contracts 48–50 are applied to development Supabase with verified deny-all posture and hardened grants. The games' scoring and standings (B5+) remain gated behind the Stage 4 core experience per `docs/roadmap.md` Stage 5.
+2. Owner follow-up: set `EURO28_DEPLOYED_DB_CONTRACT=50` on the non-production Netlify contexts before the next non-production deploy.
 3. Begin richer H2H with rank-over-time and bracket health, reusing existing rank-history checkpoints and preserving co-member privacy.
 4. Continue through Match Centre/tournament states, account/privacy/contact-admin and post-lock trends, repairing resilient states and accessibility alongside each surface.
 5. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
