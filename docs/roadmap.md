@@ -9,7 +9,7 @@
 - encrypted backup and disposable restore verified;
 - production contract-38 release published and exact-head smoke passed;
 - production locked for milestone-only promotion;
-- administrator authorization/RPC foundation merged.
+- administrator authorisation/RPC foundation merged.
 
 ## Stage 1 — Admin Control Room completion: complete
 
@@ -21,7 +21,7 @@
 - production assignment/revocation model based on server-owned Auth
   `app_metadata`, never `profiles.role`.
 
-Exit met: an authorised administrator can manage the full result lifecycle in development; ordinary users cannot.
+Exit met: an authorised administrator can manage the full result lifecycle; ordinary users cannot. One owner-controlled production results administrator is assigned through the narrow `results` capability.
 
 ## Stage 2 — Full tournament lifecycle simulation: complete
 
@@ -75,7 +75,7 @@ Delivered through PR #131 and contract 42:
 - existing RPC signatures, ownership and co-membership rules preserved;
 - all five bounded security-definer reads moved to an empty immutable search path;
 - 17 excess-data database assertions using 251 users, 21 leagues and 251 league members;
-- clean rebuild from 42 canonical migrations with production left at contract 38.
+- clean rebuild from 42 canonical migrations; production remained at contract 38 at delivery time.
 
 Exit met: current Original Predictor standings and comparison payloads cannot grow beyond the intended operating bounds.
 
@@ -88,7 +88,7 @@ Delivered through PR #134 and contract 43:
 - independent current-user position context;
 - all other contract-42 read bounds unchanged;
 - database (`099_paginated_overall_leaderboard`) and browser (`e2e/overall-standings.spec.ts`) proof;
-- production left at contract 38.
+- production remained at contract 38 at delivery time.
 
 Exit met: overall standings pages are bounded and deterministic at any submitted-entry volume.
 
@@ -102,24 +102,32 @@ Delivered through PR #136 and contract 44:
 - an anonymous-safe aggregate capacity RPC and a service-role-only limit adjustment RPC;
 - full registration and league-cap states with contact-admin guidance;
 - a 24-assertion database lifecycle plus authenticated capacity browser journeys;
-- clean rebuild from 44 canonical migrations with production left at contract 38.
+- clean rebuild from 44 canonical migrations; production was subsequently promoted and released at contract 44.
 
 Exit met: the operating caps are enforced under concurrency at the authoritative write boundaries.
 
 ## Stage 3C2 — Representative scale evidence: current
 
-1. Seed representative volumes at the intended caps without weakening production isolation. *(First pass done via a rollback-only 250-entry fixture on development — no data retained.)*
-2. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads. *(Non-league tranche captured — `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`; league tranche in draft PR #138.)*
-3. Measure score recomputation and rank-history capture at representative submitted-entry volume. *(Measured: ~354 ms / ~4 ms at 250 entries with 12 results — same document; re-measure at full result volume.)*
-4. Test the main profile, league and comparison surfaces against that data.
-5. Repair completion, loading, empty and error states exposed by the scale journeys.
-6. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+Completed:
 
-Draft PR #138 (contracts 45–46: paginated private-league standings and ownership-candidate search) is in flight against this stage.
+1. Seed representative volumes without weakening production isolation. Rollback-only fixtures cover 250 submitted entries and a separate 250-member private league; no synthetic hosted data was retained.
+2. Capture non-league read and recomputation evidence — `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`.
+3. Capture private-league pagination, caller-context, owner-search and lightweight-summary evidence — `docs/quality/investigations/2026-07-28-stage-3c2-private-league-evidence.md`.
+4. Measure score recomputation and rank-history capture at representative submitted-entry volume: ~354 ms / ~4 ms at 250 entries with 12 results. Re-measure at full result volume during the dress rehearsal.
+5. Apply contracts 45–46 to development with canonical history and move non-production Netlify contexts to the matching contract; production remains locked at 44.
 
-Exit: core Original Predictor reads and recomputation remain correct and responsive at the operating caps, with recorded evidence.
+Current:
+
+1. Complete and merge draft PR #138 after CI, Database parity, Browser E2E and exact-head preview smoke are green.
+2. Test profile, H2H and comparison surfaces against representative data on desktop and phone.
+3. Repair completion, loading, empty, retry and error states exposed by those journeys.
+4. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+
+Exit: core Original Predictor reads and recomputation remain correct and responsive at the operating caps, and the main user-facing surfaces have complete resilient states with recorded evidence.
 
 ## Stage 4 — Core product experience
+
+Begin after the remaining Stage 3C2 surface/state pass:
 
 - complete other-player profiles and richer H2H;
 - add rank-over-time and bracket health;
