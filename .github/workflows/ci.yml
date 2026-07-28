@@ -45,7 +45,16 @@ jobs:
           shard_count=120
           for shard in $(seq 1 "$shard_count"); do
             echo "=== Vitest shard ${shard}/${shard_count} ===" | tee -a /tmp/euro28-vitest.log
-            npm run test -- --shard="${shard}/${shard_count}" --passWithNoTests 2>&1 | tee -a /tmp/euro28-vitest.log
+            if [ "$shard" -eq 95 ]; then
+              echo 'Files assigned to the high-memory shard:' | tee -a /tmp/euro28-vitest.log
+              npx vitest list --shard="${shard}/${shard_count}" 2>&1 | tee -a /tmp/euro28-vitest.log
+              NODE_OPTIONS=--max-old-space-size=6144 \
+                npm run test -- --shard="${shard}/${shard_count}" --passWithNoTests 2>&1 \
+                | tee -a /tmp/euro28-vitest.log
+            else
+              npm run test -- --shard="${shard}/${shard_count}" --passWithNoTests 2>&1 \
+                | tee -a /tmp/euro28-vitest.log
+            fi
           done
       - name: Upload failure diagnostics
         if: failure()
