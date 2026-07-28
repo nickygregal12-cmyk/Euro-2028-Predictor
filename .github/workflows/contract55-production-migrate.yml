@@ -72,10 +72,10 @@ jobs:
           from pathlib import Path
 
           expected = [
-              '20260728160000_bonus_games_platform.sql',
-              '20260728180000_bonus_games_hub.sql',
-              '20260728210000_shared_knockout_prediction_store.sql',
-              '20260728220000_ko_predictor_scoring.sql',
+              '20260728150000_bonus_games_platform.sql',
+              '20260728170000_bonus_games_hub.sql',
+              '20260728190000_shared_knockout_prediction_store.sql',
+              '20260728210000_ko_predictor_scoring.sql',
               '20260728230000_last_man_standing.sql',
               '20260729010000_predictor_cup_foundation.sql',
               '20260729030000_predictor_cup_group_scoring.sql',
