@@ -46,7 +46,7 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
     await page.reload()
 
     await expect(page.getByText(fixture.rivalDisplayName, { exact: true })).toBeVisible()
-    await expect(page.getByText(String(fixture.rivalPoints), { exact: true })).toBeVisible()
+    await expect(page.getByText(String(fixture.rivalPoints), { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Points', { exact: true })).toBeVisible()
     await expect(page.getByText('Overall rank', { exact: true })).toBeVisible()
     await expect(page.getByText('Group matches', { exact: true })).toBeVisible()
@@ -65,7 +65,7 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
     // H2H links back to the same secure profile rather than relying on browser history.
     await page.getByRole('button', { name: 'View player profile', exact: true }).click()
     await expect(page).toHaveURL((url) => url.pathname === `/profile/${fixture.rivalId}`)
-    await expect(page.getByText(String(fixture.rivalPoints), { exact: true })).toBeVisible()
+    await expect(page.getByText(String(fixture.rivalPoints), { exact: true }).first()).toBeVisible()
   } finally {
     await clearH2HSurfaceFixture(fixture)
   }
