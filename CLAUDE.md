@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development Supabase and non-production Netlify are at contract 46.
+- Repository, development Supabase and non-production Netlify are at contract 47.
 - Production Supabase and the published production application are aligned and locked at contract 44.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
@@ -27,11 +27,13 @@ Ordinary development does not require production backup, production smoke or a n
 - Tournament rules live under `src/domain/tournament/`.
 - Components render domain results rather than inventing rules.
 - Browser Supabase access goes through `src/services/supabase/`.
-- Database rules are authoritative for locks, submission, results, progression and scoring.
+- Keep pure response parsing/models separate from configured Supabase wrappers.
+- Database rules are authoritative for locks, submission, results, progression, scoring and profile reveal/access boundaries.
 - Original Predictor and bonus games remain separate.
 - Predicted and real brackets never blend.
 - Knockout UI consumes authoritative winner/result-method data.
-- Profile/H2H headline totals come from bounded server reads; browser domain logic derives only comparison statistics that are not already authoritative.
+- Profile/H2H headline totals and ranks come from bounded server reads; browser domain logic derives only comparison/accuracy views.
+- Other-player profiles remain limited to authenticated league co-members; overall standings are not a global profile directory.
 
 ## Scoring
 
@@ -46,14 +48,13 @@ Ordinary development does not require production backup, production smoke or a n
 
 ## Current order
 
-1. Complete and merge PR #141 after exact-head CI, authenticated Browser E2E and preview smoke.
-2. Start Stage 4 with other-player profile completion and the richer H2H layer.
-3. Add rank-over-time and bracket health.
-4. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends.
-5. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-6. Add bonus competitions only after the Original Predictor lifecycle and scale stage are proven.
+1. Complete and merge PR #143 after exact-head CI, Database parity, authenticated Browser E2E and preview smoke.
+2. Build richer H2H with bounded rank-over-time and bracket health.
+3. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends.
+4. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
+5. Add bonus competitions only after the Original Predictor lifecycle and core experience are proven.
 
-Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement and both 250-entry/member evidence tranches are complete. PR #141 closes the remaining Stage 3C2 Profile/H2H surface pass.
+Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 
 ## Hard boundaries
 
