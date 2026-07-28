@@ -316,7 +316,7 @@ begin
     from unique_exact_scores score
   ),
   bounded_only_you as (
-    select item
+    select priority, item
     from only_you_rows
     order by priority, item::text
     limit 6
@@ -400,7 +400,10 @@ begin
       ), '[]'::jsonb)
     ),
     'only_you', coalesce((
-      select jsonb_agg(unique_pick.item)
+      select jsonb_agg(
+        unique_pick.item
+        order by unique_pick.priority, unique_pick.item::text
+      )
       from bounded_only_you unique_pick
     ), '[]'::jsonb)
   ) into v_result;
