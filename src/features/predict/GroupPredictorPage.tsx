@@ -130,6 +130,7 @@ export function GroupPredictorPage() {
         </Alert>
       )}
 
+      <span className={s.eyebrow}>Predict · Step 1 of 5</span>
       <nav className={g.nav} aria-label="Group navigation">
         <button
           type="button"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, ConfirmModal, EmptyState, Skeleton } from '../../design-system'
+import { useNavigate } from 'react-router'
+import { Alert, Button, ConfirmModal, EmptyState, Skeleton } from '../../design-system'
 import { CheckIcon, AlertIcon, TrophyIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
@@ -43,6 +44,7 @@ type PendingPick = {
 }
 
 export function BracketRound() {
+  const navigate = useNavigate()
   const data = useTournamentData()
   const preds = usePredictions()
 
@@ -98,7 +100,7 @@ export function BracketRound() {
 
   const header = (
     <div className={s.header}>
-      <span className={s.eyebrow}>Predict</span>
+      <span className={s.eyebrow}>Predict · Step 3 of 5</span>
       <h1 className={s.title}>Knockout bracket</h1>
     </div>
   )
@@ -169,6 +171,13 @@ export function BracketRound() {
       {active === 'FINAL' && pipeline.champion && (
         <ChampionCard name={pipeline.champion.name} countryCode={pipeline.champion.countryCode} />
       )}
+
+      {pipeline.pickedCount === pipeline.total ? (
+        <div className={`${s.card} ${s.rowBetween}`}>
+          <span className={s.sub}>All {pipeline.total} winners picked</span>
+          <Button onClick={() => navigate('/predict/jokers')}>Next: Jokers</Button>
+        </div>
+      ) : null}
 
       <div className={b.ties}>
         {activeRound.ties.map((tie) => (
