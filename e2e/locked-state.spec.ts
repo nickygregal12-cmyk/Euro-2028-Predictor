@@ -33,8 +33,8 @@ async function expectAuthenticatedPath(page: Page, path: string) {
 }
 
 async function loginAs(page: Page, email: string, password: string) {
-  await page.goto('/more')
-  await expectAuthenticatedPath(page, '/more')
+  await page.goto('/account')
+  await expectAuthenticatedPath(page, '/account')
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
   const signOutDialog = page.getByRole('dialog', { name: 'Sign out?' })
   await expect(signOutDialog).toBeVisible()

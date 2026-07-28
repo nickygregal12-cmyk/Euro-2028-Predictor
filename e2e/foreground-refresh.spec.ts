@@ -17,7 +17,7 @@ function successfulPredictionWrite(response: Response): boolean {
 }
 
 async function loginAs(page: Page, email: string, password: string) {
-  await page.goto('/more')
+  await page.goto('/account')
   if (new URL(page.url()).pathname !== '/auth/login') {
     await page.getByRole('button', { name: 'Sign out', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Sign out?' })

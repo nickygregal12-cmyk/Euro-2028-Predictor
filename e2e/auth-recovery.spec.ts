@@ -128,7 +128,7 @@ async function logIn(page: Page, password: string): Promise<void> {
 }
 
 async function signOut(page: Page): Promise<void> {
-  await page.goto('/more')
+  await page.goto('/account')
   await expect(page.getByRole('heading', { name: 'More' })).toBeVisible()
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
 

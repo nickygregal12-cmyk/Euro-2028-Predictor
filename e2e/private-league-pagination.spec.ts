@@ -12,8 +12,8 @@ function desktopOnly(testInfo: TestInfo) {
 }
 
 async function loginAs(page: Page, email: string, password: string) {
-  await page.goto('/more')
-  await expect(page).toHaveURL((url) => url.pathname === '/more', {
+  await page.goto('/account')
+  await expect(page).toHaveURL((url) => url.pathname === '/account', {
     timeout: 15_000,
   })
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
