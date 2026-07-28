@@ -33,5 +33,5 @@
     "public.admin_draw_predictor_cup(uuid,text)",
     "public.get_my_cup(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 is the production-published H2H milestone. Contracts 49-52 add the Bonus Games platform and KO Predictor (ADR-0010 B2-B5); contract 53 adds tournament-format Last Man Standing (B6); contracts 54-55 add the Predictor Cup foundation and group-stage scoring (B7a-B7b). Development Supabase and non-production Netlify are aligned at contract 55; production remains locked at contract 48."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 55 is the production-published Bonus Games milestone. Contracts 49-52 add the Bonus Games platform and KO Predictor (ADR-0010 B2-B5); contract 53 adds tournament-format Last Man Standing (B6); contracts 54-55 add the Predictor Cup foundation and group-stage scoring (B7a-B7b). Repository, development Supabase, production Supabase and every Netlify context are aligned at contract 55."
 }
