@@ -1,0 +1,34 @@
+name: Match Centre E2E discovery
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/match-centre-e2e-discovery.yml
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inventory browser fixtures and Match Centre references
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p discovery
+          find e2e -type f -maxdepth 3 -print | sort > discovery/e2e-files.txt
+          grep -RniE "match centre|/match/|MatchCentre|matchRef" e2e \
+            > discovery/match-centre-references.txt || true
+          while IFS= read -r file; do
+            printf '\n===== %s =====\n' "$file"
+            sed -n '1,260p' "$file"
+          done < discovery/e2e-files.txt > discovery/e2e-sources.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: match-centre-e2e-discovery
+          path: discovery/
+          retention-days: 1
