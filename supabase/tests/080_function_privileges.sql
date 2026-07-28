@@ -69,6 +69,7 @@ insert into expected_authenticated_functions (signature) values
 -- Contract 51: the shared knockout prediction store.
 -- Contract 52: the bounded KO Predictor standings read.
 -- Contract 53: Last Man Standing picks and the bounded LMS read.
+-- Contract 54: the Predictor Cup foundation (the draw stays service-only).
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
@@ -78,7 +79,8 @@ insert into expected_authenticated_functions (signature) values
   ('get_my_knockout_predictions(uuid)'),
   ('get_ko_predictor_standings(uuid,integer,text)'),
   ('save_lms_selection(uuid,uuid,integer)'),
-  ('get_my_lms(uuid)');
+  ('get_my_lms(uuid)'),
+  ('get_my_cup(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
@@ -89,7 +91,9 @@ insert into expected_service_functions (signature) values
   ('get_my_knockout_predictions(uuid)'),
   ('get_ko_predictor_standings(uuid,integer,text)'),
   ('save_lms_selection(uuid,uuid,integer)'),
-  ('get_my_lms(uuid)');
+  ('get_my_lms(uuid)'),
+  ('get_my_cup(uuid)'),
+  ('admin_draw_predictor_cup(uuid,text)');
 
 create temporary view public_function_privileges as
 select

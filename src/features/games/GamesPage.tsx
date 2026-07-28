@@ -270,6 +270,11 @@ export function GamesPage() {
                     Play
                   </Button>
                 ) : null}
+                {game.competition.gameKey === 'predictor_cup' && game.entrant ? (
+                  <Button variant="secondary" onClick={() => navigate('/games/cup')}>
+                    My Cup
+                  </Button>
+                ) : null}
                 {canWithdraw ? (
                   <Button
                     variant="secondary"

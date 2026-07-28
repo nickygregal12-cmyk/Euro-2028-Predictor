@@ -166,7 +166,10 @@ Platform first, then each game as a thin ruleset (ADR-0010, accepted 28 July 202
 4. **B4 — shared knockout prediction store (delivered, development only):** contract 51 collects one knockout scoreline per user per real match — per-kickoff database locks, optimistic versions, entrant gating and the `/games/knockout` form (draws carry a who-goes-through pick, decisive scorelines imply it);
 5. **B5 — KO Predictor (delivered, development only):** contract 52 scores the shared store — Exact 5 / Result 3 / Through +2 (`docs/scoring-rules.md` §8) — inside the single advisory-locked result operation, with rolling-entry banking, a bounded server-ranked standings read and the `/games/ko-predictor` surface;
 6. **B6 — Last Man Standing (delivered, development only):** contract 53 implements the tournament format (`docs/scoring-rules.md` §8): window-deadline picks, team-once-per-competition, win-to-survive groups / advance-to-survive knockouts, wipeout-void, permanent elimination, with survival fully re-derived inside the single result operation and the `/games/lms` surface;
-7. **B7 — Predictor Cup.**
+7. **B7 — Predictor Cup (staged B7a–B7c):**
+   - **B7a — foundation (delivered, development only):** contract 54 adds dedicated cup groups/members/fixtures, the audited seed-reproducible close-and-draw operation (dynamic 3/4-player allocation, round robin with byes, neutral draw numbers, service-role only) and the bounded my-cup read with the `/games/cup` surface;
+   - **B7b — group-stage scoring:** per-window prediction points (raw 5/3/0 from the Original entry, no jokers), head-to-head results with walkover/void, tables with the §5.2 tie-breaks;
+   - **B7c — qualification and knockouts:** wildcards, seeded playoff with byes, Extra-Time Accuracy, Penalty Number lanes, champion and Golden Predictor.
 
 Each mode keeps its own entry, rules, scoring and standings; B5–B7 may never add a second registration, deadline, window or audit mechanism.
 
