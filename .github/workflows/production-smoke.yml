@@ -2,6 +2,11 @@ name: Production Smoke
 
 on:
   workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: Exact published production commit to verify
+        required: true
+        default: 348b4c49a6f7a57eef69a875e3cae6d090a3abb2
 
 permissions:
   contents: read
@@ -34,10 +39,15 @@ jobs:
         env:
           PRODUCTION_ORIGIN: https://euro28predictor.com
           EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
-          EXPECTED_CONTRACT: '44'
-          EXPECTED_COMMIT: ${{ github.sha }}
+          EXPECTED_CONTRACT: '48'
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           set -euo pipefail
+
+          if ! [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'STOP: expected_commit must be an exact 40-character Git SHA.' >&2
+            exit 1
+          fi
 
           ready=false
           for attempt in $(seq 1 120); do
