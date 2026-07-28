@@ -129,7 +129,7 @@ async function logIn(page: Page, password: string): Promise<void> {
 
 async function signOut(page: Page): Promise<void> {
   await page.goto('/account')
-  await expect(page.getByRole('heading', { name: 'More' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Account' })).toBeVisible()
   await page.getByRole('button', { name: 'Sign out', exact: true }).click()
 
   const dialog = page.getByRole('dialog', { name: /sign out/i })
