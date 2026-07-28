@@ -4,7 +4,6 @@ import type { MatchTeam } from '../../design-system'
 import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
-import { rankLeaderboard } from '../../domain/tournament/rankLeaderboard'
 import {
   catchUpSummary,
   homePhase,
@@ -15,7 +14,10 @@ import {
   type LeagueStanding,
 } from '../../domain/tournament/homeDashboard'
 import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
-import { fetchLeagueMembers, fetchMyLeagues } from '../../services/supabase/leagues'
+import {
+  fetchLeagueMembersPage,
+  fetchMyLeagues,
+} from '../../services/supabase/leagues'
 import { fetchMyScoreEventPoints } from '../../services/supabase/scoring'
 import { fetchLastSeenRead, updateLastSeen } from '../../services/supabase/profile'
 import { computeHubStatus } from '../predict/hubStatus'
@@ -222,24 +224,16 @@ export function useHomeData(): HomeState {
 
         for (const league of leagues) {
           try {
-            const members = await fetchLeagueMembers(league.id)
-            const rankedMembers = rankLeaderboard(members)
-            const meInLeague = rankedMembers.find((member) => member.isYou)
-            const topPoints = rankedMembers.reduce(
-              (max, member) => Math.max(max, member.totalPoints),
-              0,
-            )
-            const lastActivityMs = members.reduce(
-              (max, member) => Math.max(max, Date.parse(member.joinedAt) || 0),
-              0,
-            )
+            const page = await fetchLeagueMembersPage(league.id, { limit: 1 })
+            const meInLeague = page.you
+            const topPoints = page.rows[0]?.totalPoints ?? 0
             standings.push({
               id: league.id,
               name: league.name,
               memberCount: league.memberCount,
               rank: meInLeague?.rank ?? null,
               gapToTop: meInLeague ? topPoints - meInLeague.totalPoints : null,
-              lastActivityMs,
+              lastActivityMs: Date.parse(league.lastActivityAt ?? '') || 0,
             })
           } catch {
             memberReadFailed = true
@@ -276,32 +270,29 @@ export function useHomeData(): HomeState {
         rank,
         entryCount,
         bestLeague,
+        unavailable: [...unavailable],
         catchUp,
         hasAnyLeague,
-        unavailable: [...unavailable],
       }
     }
 
-    loadDuring()
+    void loadDuring()
       .then((model) => {
         if (active) setState({ status: 'ready', model })
       })
       .catch((error) => {
-        if (active)
+        if (active) {
           setState({
             status: 'error',
-            message: userFacingError(
-              error,
-              'Could not load your dashboard. Please try again.',
-            ),
+            message: userFacingError(error, 'Could not load Home. Please try again.'),
           })
+        }
       })
 
     return () => {
       active = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, tournamentId, userId, data.status])
+  }, [data, displayName, preds, ready, tournamentId, userId])
 
   return state
 }

@@ -68,6 +68,11 @@ export default defineConfig(({ command, mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './tests/setup.ts',
+      // CI invokes deterministic small shards in separate processes. Keep each
+      // shard serial as a second memory bound; local runs retain normal parallel
+      // worker selection for faster feedback.
+      maxWorkers: process.env.CI ? 1 : undefined,
+      fileParallelism: process.env.CI ? false : undefined,
       // Playwright owns the real-browser suite. Keeping it out of Vitest prevents
       // either runner from interpreting the other runner's test API.
       exclude: [...configDefaults.exclude, 'e2e/**', 'production-smoke/**'],

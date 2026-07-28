@@ -28,21 +28,35 @@ jobs:
           cd "$archive"
           npx vitest run tests/scripts/envFileHygiene.test.ts --reporter=verbose
       - name: Build
-        run: npm run build
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee /tmp/euro28-build.log
       - name: Lint
         run: npm run lint
       - name: Test
         shell: bash
         run: |
-          set -o pipefail
-          npm run test 2>&1 | tee /tmp/euro28-vitest.log
-      - name: Upload test failure diagnostics
+          set -euo pipefail
+          : > /tmp/euro28-vitest.log
+          test_files="$(mktemp)"
+          npx vitest list --filesOnly --static-parse > "$test_files"
+          test_count="$(wc -l < "$test_files" | tr -d ' ')"
+          echo "Running ${test_count} Vitest files in isolated processes." | tee -a /tmp/euro28-vitest.log
+          while IFS= read -r test_file; do
+            [ -n "$test_file" ] || continue
+            echo "=== ${test_file} ===" | tee -a /tmp/euro28-vitest.log
+            npm run test -- "$test_file" 2>&1 | tee -a /tmp/euro28-vitest.log
+          done < "$test_files"
+      - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: vitest-failure-log
-          path: /tmp/euro28-vitest.log
-          if-no-files-found: error
+          name: ci-failure-logs
+          path: |
+            /tmp/euro28-build.log
+            /tmp/euro28-vitest.log
+          if-no-files-found: warn
           retention-days: 7
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
