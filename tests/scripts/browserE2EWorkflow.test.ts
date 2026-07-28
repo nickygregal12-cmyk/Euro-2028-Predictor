@@ -131,15 +131,19 @@ describe('target-specific production smoke contracts', () => {
     expect(productionSmoke).not.toContain('const APPLICATION_CONTRACT')
   })
 
-  it('keeps production smoke manual and exact-head at contract 44', () => {
+  it('keeps production smoke manual and release-specific at contract 48', () => {
     expect(productionWorkflow).toContain('workflow_dispatch:')
     expect(productionWorkflow).not.toMatch(/^\s+push:/m)
-    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '44'")
+    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '48'")
     expect(productionWorkflow).toContain(
       'Wait for the exact milestone production release',
     )
+    expect(productionWorkflow).toContain('expected_commit:')
     expect(productionWorkflow).toContain(
-      'EXPECTED_COMMIT: ${{ github.sha }}',
+      'EXPECTED_COMMIT: ${{ inputs.expected_commit }}',
+    )
+    expect(productionWorkflow).toContain(
+      'expected_commit must be an exact 40-character Git SHA',
     )
     expect(productionWorkflow).toContain(
       'EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT',

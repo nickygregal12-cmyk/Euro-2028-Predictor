@@ -33,9 +33,9 @@ jobs:
 
     env:
       EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
-      EXPECTED_MIGRATION_COUNT: '44'
-      EXPECTED_LATEST_MIGRATION_VERSION: '20260727191942'
-      EXPECTED_LATEST_MIGRATION_NAME: operating_cap_enforcement
+      EXPECTED_MIGRATION_COUNT: '48'
+      EXPECTED_LATEST_MIGRATION_VERSION: '20260728122500'
+      EXPECTED_LATEST_MIGRATION_NAME: h2h_rank_history
       BACKUP_WORK_DIR: /tmp/production-backup
       LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
