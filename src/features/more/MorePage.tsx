@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Button, ConfirmModal } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import s from '../shared.module.css'
@@ -8,38 +6,7 @@ import m from './more.module.css'
 
 export function MorePage() {
   const navigate = useNavigate()
-  const { displayName, signOut } = useAuth()
-  const [signOutOpen, setSignOutOpen] = useState(false)
-  const [signingOut, setSigningOut] = useState(false)
-  const [signOutError, setSignOutError] = useState<string | null>(null)
-
-  function openSignOut() {
-    setSignOutError(null)
-    setSignOutOpen(true)
-  }
-
-  function closeSignOut() {
-    if (signingOut) return
-    setSignOutError(null)
-    setSignOutOpen(false)
-  }
-
-  async function handleSignOut() {
-    if (signingOut) return
-    setSigningOut(true)
-    setSignOutError(null)
-    try {
-      // A real sign-out: clears the session and the route gate returns to the
-      // log-in screen. (In a dev build with auto-login on, a full page reload
-      // will sign back in as the dev tester — see docs/auth-plan.md §1.)
-      await signOut()
-      setSignOutOpen(false)
-    } catch {
-      setSignOutError('We couldn’t sign you out. Check your connection and try again.')
-    } finally {
-      setSigningOut(false)
-    }
-  }
+  const { displayName } = useAuth()
 
   return (
     <div className={s.page}>
@@ -55,9 +22,13 @@ export function MorePage() {
         </div>
       </div>
 
-      {/* Theme switching lives in the top-nav app bar (design-system §6). */}
       <button type="button" className={m.linkRow} onClick={() => navigate('/profile')}>
         Profile
+        <ChevronRightIcon size={18} className={m.chev} />
+      </button>
+
+      <button type="button" className={m.linkRow} onClick={() => navigate('/account')}>
+        Account
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
 
@@ -70,25 +41,6 @@ export function MorePage() {
         How scoring works
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
-
-      <div className={s.card}>
-        <Button variant="destructive" fullWidth onClick={openSignOut}>
-          Sign out
-        </Button>
-      </div>
-
-      <ConfirmModal
-        open={signOutOpen}
-        onClose={closeSignOut}
-        onConfirm={handleSignOut}
-        title="Sign out?"
-        confirmLabel="Sign out"
-        destructive
-        loading={signingOut}
-      >
-        <p>You’ll need to sign in again to return to your predictions.</p>
-        {signOutError ? <p role="alert">{signOutError}</p> : null}
-      </ConfirmModal>
     </div>
   )
 }
