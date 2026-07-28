@@ -37,8 +37,13 @@ jobs:
       - name: Test
         shell: bash
         run: |
-          set -o pipefail
-          npm run test 2>&1 | tee /tmp/euro28-vitest.log
+          set -euo pipefail
+          : > /tmp/euro28-vitest.log
+          shard_count=30
+          for shard in $(seq 1 "$shard_count"); do
+            echo "=== Vitest shard ${shard}/${shard_count} ===" | tee -a /tmp/euro28-vitest.log
+            npm run test -- --shard="${shard}/${shard_count}" 2>&1 | tee -a /tmp/euro28-vitest.log
+          done
       - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
