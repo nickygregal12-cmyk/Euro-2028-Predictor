@@ -9,23 +9,23 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository contract | 56 canonical migrations through `20260729050000_predictor_cup_knockouts.sql` (contract 48 = H2H rank history; 49–56 = Bonus Games B2–B7c) |
+| Repository contract | 57 canonical migrations through `20260729070000_account_entry_controls.sql` (contract 48 = H2H rank history; 49–56 = Bonus Games B2–B7c; 57 = Account entry controls) |
 | Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136, #138 and #141 cover the lifecycle, recovery, bounded/paginated reads, operating caps and Profile/H2H resilience; PR #143 adds secure other-player profiles; PR #145 adds richer H2H rank history and bracket health; PR #150 adds contracts 49–52 for the Bonus Games platform and KO Predictor; PR #157 contains contracts 53–55 for Last Man Standing and Predictor Cup group-stage delivery; the Bonus Games branch adds contract 56 for Cup qualification and knockouts (B7c) |
 | Verified production release source | `af5aa15a151f5c4236ba3f2756faab4b357f31ee` — contract-55 Bonus Games milestone |
-| Development Supabase | `iouzoutneyjpugbbtdem` — contract 56 applied 28 July 2026 (56 canonical versions through `20260729050000_predictor_cup_knockouts.sql`; verified posture: hardened search paths, no anonymous execution, service-only Cup gate/settle) |
+| Development Supabase | `iouzoutneyjpugbbtdem` — contract 57 applied 28 July 2026 (57 canonical versions, verified posture); the KO Predictor, Last Man Standing and Predictor Cup competitions are published as seeded development data with their full window plans and real-fixture bundles |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly **contract 55** through `20260729030000_predictor_cup_group_scoring.sql`; preserved-data and privilege checks passed |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 55 and require an owner `EURO28_DEPLOYED_DB_CONTRACT=56` update (contract 56 is applied to development); `production` declares 55 and uses production Supabase |
+| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` require an owner `EURO28_DEPLOYED_DB_CONTRACT=57` update (contract 57 is applied to development); `production` declares 55 and uses production Supabase |
 | Published production deploy | `6a68e4f9ee76002a26ffbee6`, ready; exact contract-55 release identity, HTTP smoke and Chromium smoke passed |
 | Production recovery | fresh encrypted contract-48 pre-promotion backup and disposable restore passed immediately before contracts 49–55; encrypted artifact retained |
 | Production smoke | exact contract-55 release identity, HTTP smoke and Chromium browser smoke passed; the manual workflow now requires the exact release commit |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and re-locked at contract 55 after the approved Bonus Games milestone promotion. Contract 56 (Cup qualification and knockouts, B7c) is development-only and must not be promoted without a later approved milestone gate.
+Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and re-locked at contract 55 after the approved Bonus Games milestone promotion. Contracts 56–57 (Cup knockouts; Account entry controls) are development-only and must not be promoted without a later approved milestone gate.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Intentionally split.** Repository and development Supabase are at contract 56; non-production Netlify declares 55 pending the owner `EURO28_DEPLOYED_DB_CONTRACT=56` update; production database, application and Netlify context remain locked at the contract-55 milestone. |
+| Contract alignment | **Intentionally split.** Repository and development Supabase are at contract 57; non-production Netlify needs the owner `EURO28_DEPLOYED_DB_CONTRACT=57` update; production database, application and Netlify context remain locked at the contract-55 milestone. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven; one owner-controlled production results administrator is assigned through server-owned Auth metadata. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |

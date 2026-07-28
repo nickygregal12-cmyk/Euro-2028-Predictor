@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository and development Supabase are at contract 56 (Cup qualification and knockouts); non-production Netlify still declares 55 and needs the owner `EURO28_DEPLOYED_DB_CONTRACT=56` update.
+- Repository and development Supabase are at contract 57 (Account entry controls); non-production Netlify needs the owner `EURO28_DEPLOYED_DB_CONTRACT=57` update.
 - Production Supabase and the published production application are aligned and locked at contract 55 (the Bonus Games B2–B7b milestone).
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
