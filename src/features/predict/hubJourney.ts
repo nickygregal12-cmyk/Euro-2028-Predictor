@@ -170,7 +170,7 @@ export function buildPredictHubModel(
         ? { label: 'Finalise Group Standings', route: '/predict/third-place' }
         : status.bracket.picked < status.bracket.total
           ? { label: 'Pick your knockout winners', route: '/predict/bracket' }
-          : { label: 'Review and submit', route: '/predict/review' }
+          : { label: 'Review & submit', route: '/predict/review' }
 
   const hasAnyEntry = picksMade > 0 || jokerCount > 0
 
