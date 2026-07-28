@@ -275,6 +275,26 @@ export function GamesPage() {
         })
       )}
 
+      {state.games.some(
+        (game) =>
+          game.entrant !== null &&
+          (game.competition.gameKey === 'ko_predictor' ||
+            game.competition.gameKey === 'predictor_cup'),
+      ) ? (
+        <section className={`${s.card} ${g.gameCard}`}>
+          <h2 className={g.gameName}>Knockout predictions</h2>
+          <p className={g.tagline}>
+            One shared set of knockout scorelines, read by every game you’ve entered.
+            Each match locks at its own kickoff.
+          </p>
+          <div className={g.actions}>
+            <Button variant="secondary" onClick={() => navigate('/games/knockout')}>
+              Make knockout predictions
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
       <ConfirmModal
         open={withdrawTarget !== null}
         onClose={() => {

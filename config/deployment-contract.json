@@ -1,6 +1,6 @@
 {
-  "contractVersion": 49,
-  "requiredMigrationCount": 49,
+  "contractVersion": 50,
+  "requiredMigrationCount": 50,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -22,7 +22,10 @@
     "public.set_operating_limits(integer,integer)",
     "public.get_bonus_games(uuid)",
     "public.register_bonus_competition(uuid)",
-    "public.withdraw_bonus_competition(uuid)"
+    "public.withdraw_bonus_competition(uuid)",
+    "public.save_knockout_prediction(uuid,smallint,smallint,uuid,integer)",
+    "public.delete_knockout_prediction(uuid,integer)",
+    "public.get_my_knockout_predictions(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the deny-all Bonus Games platform schema (ADR-0010 B2). Contract 49 adds the Games hub slice (B3): one bounded authenticated hub read plus voluntary registration and withdrawal RPCs with audit entries; the platform tables stay deny-all. Development promotion follows Database parity; production remains locked at contract 44."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contracts 48-49 add the deny-all Bonus Games platform schema and the Games hub with voluntary entry (ADR-0010 B2-B3). Contract 50 adds the shared knockout prediction store (B4): one prediction per user per real knockout match with per-kickoff database locks, optimistic versions and entrant gating, read later by both the KO Predictor and the Predictor Cup. Development promotion follows Database parity; production remains locked at contract 44."
 }

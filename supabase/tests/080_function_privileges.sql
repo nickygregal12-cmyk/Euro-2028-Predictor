@@ -65,15 +65,22 @@ insert into expected_authenticated_functions (signature) values
   ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
 -- Contract 49: the Bonus Games hub read plus voluntary entry and withdrawal.
+-- Contract 50: the shared knockout prediction store.
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
-  ('withdraw_bonus_competition(uuid)');
+  ('withdraw_bonus_competition(uuid)'),
+  ('save_knockout_prediction(uuid,smallint,smallint,uuid,integer)'),
+  ('delete_knockout_prediction(uuid,integer)'),
+  ('get_my_knockout_predictions(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
-  ('withdraw_bonus_competition(uuid)');
+  ('withdraw_bonus_competition(uuid)'),
+  ('save_knockout_prediction(uuid,smallint,smallint,uuid,integer)'),
+  ('delete_knockout_prediction(uuid,integer)'),
+  ('get_my_knockout_predictions(uuid)');
 
 create temporary view public_function_privileges as
 select
