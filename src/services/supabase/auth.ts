@@ -93,13 +93,21 @@ export async function sendPasswordReset(email: string, captchaToken?: string): P
  * Set a new password for the currently-authenticated user. On the reset flow
  * this runs against the recovery session Supabase established from the email
  * link; it upgrades that into a normal session, so the user stays signed in.
- * Throws if there's no session (expired/!invalid link) — the page handles that.
+ * Throws if there's no session (expired/invalid link) — the page handles that.
  */
 export async function updatePassword(newPassword: string): Promise<void> {
   const { error } = await supabase.auth.updateUser({ password: newPassword })
   if (error) throw error
 }
 
+/** Request a signed-in email change. Supabase keeps the current address active
+ * until the new address is confirmed under the project's Auth policy. */
+export async function updateEmail(newEmail: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ email: newEmail.trim() })
+  if (error) throw error
+}
+
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut()
+  if (error) throw error
 }
