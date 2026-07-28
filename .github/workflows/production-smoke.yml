@@ -6,7 +6,6 @@ on:
       expected_commit:
         description: Exact published production commit to verify
         required: true
-        default: 348b4c49a6f7a57eef69a875e3cae6d090a3abb2
 
 permissions:
   contents: read
@@ -39,7 +38,7 @@ jobs:
         env:
           PRODUCTION_ORIGIN: https://euro28predictor.com
           EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
-          EXPECTED_CONTRACT: '48'
+          EXPECTED_CONTRACT: '55'
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           set -euo pipefail

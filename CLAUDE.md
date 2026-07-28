@@ -5,11 +5,11 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository is at contract 55; development Supabase and non-production Netlify are at 54 pending contract 55's parity and hosted application.
-- Production Supabase and the published production application are aligned and locked at contract 48 (the H2H rank-history milestone).
+- Repository, development Supabase, production Supabase and all Netlify contexts are aligned at contract 55.
+- Production Supabase and the published production application are aligned and locked at contract 55 (the Bonus Games B2–B7b milestone).
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- Production deploy: contract-48 release from `main` (PR #145) — see `docs/quality/investigations/2026-07-28-contract-48-production-release.md`.
+- Production deploy: `6a68e4f9ee76002a26ffbee6` from commit `af5aa15a151f5c4236ba3f2756faab4b357f31ee`; exact release identity, HTTP smoke and Chromium smoke passed.
 - Normal work happens against development; production promotion is milestone-only.
 
 Do not import rules or features from previous projects, old branches, prototypes or chats.
