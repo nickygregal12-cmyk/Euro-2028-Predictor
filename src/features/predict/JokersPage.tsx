@@ -64,7 +64,7 @@ export function JokersPage() {
   const header = (
     <>
       <div className={s.header}>
-        <span className={s.eyebrow}>Predict</span>
+        <span className={s.eyebrow}>Predict · Step 4 of 5</span>
         <h1 className={s.title}>Jokers</h1>
       </div>
       <div className={s.card}>
@@ -129,6 +129,13 @@ export function JokersPage() {
           </Button>
         </div>
       )}
+
+      <div className={`${s.card} ${s.rowBetween}`}>
+        <span className={s.sub}>Jokers are optional and stay movable</span>
+        <Button variant="secondary" onClick={() => navigate('/predict/review')}>
+          Next: Review and submit →
+        </Button>
+      </div>
     </div>
   )
 }

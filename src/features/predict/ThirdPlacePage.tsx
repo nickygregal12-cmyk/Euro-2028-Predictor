@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router'
 import {
   Alert,
+  Button,
   EmptyState,
   Skeleton,
   ThirdPlaceTable,
@@ -52,7 +53,7 @@ export function ThirdPlacePage() {
 
   const header = (
     <div className={s.header}>
-      <span className={s.eyebrow}>Predict</span>
+      <span className={s.eyebrow}>Predict · Step 2 of 5</span>
       <h1 className={s.title}>Finalise Group Standings</h1>
       <p className={s.sub}>
         Resolve any remaining group ties, review the best third-placed teams and
@@ -127,6 +128,20 @@ export function ThirdPlacePage() {
             completed.
           </Alert>
         )}
+      </div>
+
+      <div className={`${s.card} ${s.rowBetween}`}>
+        <span className={s.sub}>
+          {pipeline.rows && pipeline.pendingCount === 0
+            ? 'Standings confirmed'
+            : 'The bracket draws from these standings'}
+        </span>
+        <Button
+          variant={pipeline.rows && pipeline.pendingCount === 0 ? 'primary' : 'secondary'}
+          onClick={() => navigate('/predict/bracket')}
+        >
+          Next: Knockout bracket →
+        </Button>
       </div>
     </div>
   )

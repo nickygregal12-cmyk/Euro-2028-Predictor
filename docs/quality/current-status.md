@@ -72,6 +72,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - bounded Games hub registration/withdrawal, shared per-kickoff knockout prediction storage and server-ranked KO Predictor standings;
 - tournament-format Last Man Standing with one-use teams, deadline locking and result-correction-aware survivor resolution;
 - Predictor Cup deterministic group draw, dedicated groups/members/fixtures and read-derived regulation-time group scoring/tables;
+- the Predict hub hero + journey map: weighted 51-pick completion, lock countdown, champion anchor, a Continue deep-link to the first incomplete thing, a numbered stepper with tie-aware A–F quick-jump chips, step eyebrows and stage-boundary CTAs, and first-cut post-lock My-entry/spectator states;
 - exact function execution allowlists, empty security-definer search paths and closed direct-table access;
 - protected administrator routes and capability parsing;
 - a top-nav app bar on every signed-in screen with section context, theme toggle and avatar access to the user's profile;
@@ -105,9 +106,9 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 **Resume Stage 4 core experience from the contract-55 production baseline**
 
-1. Merge the Bonus Games branch's contract-56 B7c delivery (Cup qualification and knockouts) once its PR checks are green, and update non-production Netlify to declare 56.
+1. The contract-56 B7c delivery is merged (PR #164) and non-production Netlify declares 56; the Predict hub hero + journey map (design-system §6) is delivered on the working branch.
 2. Continue Match Centre/tournament state resilience and fixture switching from current `main`.
-3. Follow with account/privacy/contact-admin and post-lock trends.
+3. Follow with account/privacy/contact-admin and post-lock trends (including the richer post-lock My-entry hero and consensus page).
 4. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
 
 ## Operational follow-ups

@@ -187,7 +187,7 @@ export function ReviewPage() {
   return (
     <div className={s.page}>
       <div className={s.header}>
-        <span className={s.eyebrow}>Predict</span>
+        <span className={s.eyebrow}>Predict · Step 5 of 5</span>
         <h1 className={s.title}>Review and submit</h1>
       </div>
       <ConflictBanner />

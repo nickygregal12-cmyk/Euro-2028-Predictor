@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Alert, ConfirmModal, EmptyState, Skeleton } from '../../design-system'
+import { useNavigate } from 'react-router'
+import { Alert, Button, ConfirmModal, EmptyState, Skeleton } from '../../design-system'
 import { CheckIcon, AlertIcon, TrophyIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
@@ -43,6 +44,7 @@ type PendingPick = {
 }
 
 export function BracketRound() {
+  const navigate = useNavigate()
   const data = useTournamentData()
   const preds = usePredictions()
 
@@ -98,7 +100,7 @@ export function BracketRound() {
 
   const header = (
     <div className={s.header}>
-      <span className={s.eyebrow}>Predict</span>
+      <span className={s.eyebrow}>Predict · Step 3 of 5</span>
       <h1 className={s.title}>Knockout bracket</h1>
     </div>
   )
@@ -111,6 +113,11 @@ export function BracketRound() {
           icon={<TrophyIcon size={22} />}
           title="Finish the group stage first"
           description="Your bracket is drawn from your group predictions. Predict every group match and settle any ties, and the Round of 16 appears here."
+          action={
+            <Button onClick={() => navigate('/predict/groups/A')}>
+              Continue the groups
+            </Button>
+          }
         />
       </div>
     )
@@ -191,6 +198,20 @@ export function BracketRound() {
             />
           </div>
         ))}
+      </div>
+
+      <div className={`${s.card} ${s.rowBetween}`}>
+        <span className={s.sub}>
+          {pipeline.pickedCount === pipeline.total
+            ? `All ${pipeline.total} winners picked`
+            : `${pipeline.pickedCount} of ${pipeline.total} winners picked`}
+        </span>
+        <Button
+          variant={pipeline.pickedCount === pipeline.total ? 'primary' : 'secondary'}
+          onClick={() => navigate('/predict/jokers')}
+        >
+          Next: Jokers →
+        </Button>
       </div>
 
       <ConfirmModal

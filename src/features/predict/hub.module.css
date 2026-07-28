@@ -1,48 +1,154 @@
-.list {
+/* Predict hub — hero + journey map (design-system §6, decided 2026-07-22).
+   The hero carries the weighted completion, the lock countdown with real
+   visual weight, the champion anchor and the single Continue CTA; the journey
+   map is a numbered vertical stepper inside one card, steps joined by a rail,
+   with A–F quick-jump chips on the Groups step. */
+
+.hero {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.row {
+.heroPercent {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--tx);
+}
+
+.heroLabel {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+  text-align: right;
+}
+
+.championLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.championLine strong {
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.lockHero {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--tx2);
+}
+
+.continueWrap {
+  display: flex;
+  margin-top: 2px;
+}
+
+.continueWrap > * {
+  width: 100%;
+}
+
+.spectatorActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* --- Journey map ------------------------------------------------------- */
+
+.journeyCard {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.stepper {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.step {
+  position: relative;
+  padding: 6px 0;
+}
+
+/* The connecting rail between step chips. */
+.step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 15px;
+  top: 44px;
+  bottom: -6px;
+  width: 2px;
+  background: var(--line);
+}
+
+.stepRow {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) 18px;
+  grid-template-columns: 32px minmax(0, 1fr) 18px;
   align-items: center;
   gap: 12px;
   width: 100%;
   text-align: left;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  padding: 12px 14px;
+  background: none;
+  border: none;
+  padding: 4px 0;
   font-family: inherit;
   color: inherit;
   cursor: pointer;
 }
 
-.row:disabled {
+.stepRow:disabled {
   cursor: default;
   opacity: 0.55;
 }
 
-.chip {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: var(--chip);
+.stepChip {
+  position: relative;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  background: var(--chip);
 }
 
-.iconDone {
+.stepChipDone {
   color: var(--acc);
+  border: 1.5px solid var(--acc);
 }
-.iconAttention {
+
+.stepChipCurrent {
+  color: var(--acc);
+  border: 1.5px solid var(--acc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 18%, transparent);
+}
+
+.stepChipAttention {
   color: var(--amb);
+  border: 1.5px solid var(--amb);
 }
-.iconMuted {
+
+.stepChipMuted {
   color: var(--tx3);
+  border: 1px solid var(--line);
 }
 
 .body {
@@ -77,11 +183,39 @@
   justify-self: end;
 }
 
-.lockLine {
+/* --- A–F quick-jump chips (Groups step) -------------------------------- */
+
+.letterChips {
   display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 0 8px;
+  margin-left: 44px;
+}
+
+.letterChip {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-family: var(--font-body);
-  font-size: 12px;
-  color: var(--tx3);
+  justify-content: center;
+  gap: 2px;
+  background: var(--chip);
+  border: 1px solid var(--line);
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.letterChipDone {
+  color: var(--acc);
+  border-color: var(--acc);
+}
+
+.letterChipAttention {
+  color: var(--amb);
+  border-color: var(--amb);
 }
