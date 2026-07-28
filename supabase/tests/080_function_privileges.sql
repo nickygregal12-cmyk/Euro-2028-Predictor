@@ -64,6 +64,17 @@ insert into expected_authenticated_functions (signature) values
   ('admin_match_result_revisions(uuid)'),
   ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
+-- Contract 49: the Bonus Games hub read plus voluntary entry and withdrawal.
+insert into expected_authenticated_functions (signature) values
+  ('get_bonus_games(uuid)'),
+  ('register_bonus_competition(uuid)'),
+  ('withdraw_bonus_competition(uuid)');
+
+insert into expected_service_functions (signature) values
+  ('get_bonus_games(uuid)'),
+  ('register_bonus_competition(uuid)'),
+  ('withdraw_bonus_competition(uuid)');
+
 create temporary view public_function_privileges as
 select
   p.oid::regprocedure::text as signature,
