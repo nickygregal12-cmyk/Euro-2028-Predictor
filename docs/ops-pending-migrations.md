@@ -6,13 +6,13 @@ Live source of truth for repository migration count, hosted state and pending ro
 
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| Repository | 55 | 55 canonical files through `20260729030000_predictor_cup_group_scoring.sql` | none |
-| Development Supabase `iouzoutneyjpugbbtdem` | 55 | exactly 55 canonical versions; history, grants and baseline data verified | none |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 55 | development Supabase; exact preview HTTP and Chromium smoke passed | none |
+| Repository | 56 | 56 canonical files through `20260729050000_predictor_cup_knockouts.sql` | none |
+| Development Supabase `iouzoutneyjpugbbtdem` | 56 | exactly 56 canonical versions; history, grants and posture verified after the contract-56 application | none |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 55 | development Supabase; exact preview HTTP and Chromium smoke passed at 55 | owner `EURO28_DEPLOYED_DB_CONTRACT=56` update |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | 55 | exactly 55 canonical versions; contracts 49–55 applied after encrypted backup, dry-run and preserved-data verification | none |
 | Netlify `production` | 55 | production Supabase; deploy `6a68e4f9ee76002a26ffbee6` from `af5aa15a151f5c4236ba3f2756faab4b357f31ee` | none |
 
-Production is re-locked at contract 55. Any later migration requires a new approved milestone gate; ordinary application development must not mutate production.
+Production is re-locked at contract 55; contract 56 is development-only. Any later production migration requires a new approved milestone gate; ordinary application development must not mutate production.
 
 ## Contracts 45–55
 
@@ -29,6 +29,7 @@ Production is re-locked at contract 55. Any later migration requires a new appro
 | 53 | `20260728230000_last_man_standing.sql` | Tournament-format Last Man Standing | verified | verified |
 | 54 | `20260729010000_predictor_cup_foundation.sql` | Predictor Cup draw, groups, members and fixtures | verified | verified |
 | 55 | `20260729030000_predictor_cup_group_scoring.sql` | Regulation-time Cup group scoring and tables | verified | verified |
+| 56 | `20260729050000_predictor_cup_knockouts.sql` | Cup qualification, knockouts, Penalty Numbers and honours (B7c) | verified | not applied — awaits a later milestone gate |
 
 The migration versions match the exact canonical repository filenames. Do not renumber or reapply them under another timestamp.
 

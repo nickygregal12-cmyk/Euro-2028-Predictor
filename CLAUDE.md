@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development Supabase, production Supabase and all Netlify contexts are aligned at contract 55.
+- Repository and development Supabase are at contract 56 (Cup qualification and knockouts); non-production Netlify still declares 55 and needs the owner `EURO28_DEPLOYED_DB_CONTRACT=56` update.
 - Production Supabase and the published production application are aligned and locked at contract 55 (the Bonus Games B2–B7b milestone).
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
@@ -52,7 +52,7 @@ Ordinary development does not require production backup, production smoke or a n
 
 1. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends (richer H2H is delivered at contract 48).
 3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-4. Bonus Games platform, KO Predictor, Last Man Standing and the Cup through group-stage scoring (ADR-0010 B1–B7b) are built through contract 55; Cup knockouts (B7c) remain.
+4. The Bonus Games programme (ADR-0010 B1–B7c) is complete through contract 56: platform, KO Predictor, Last Man Standing and the full Predictor Cup including qualification, knockouts and honours.
 
 Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 

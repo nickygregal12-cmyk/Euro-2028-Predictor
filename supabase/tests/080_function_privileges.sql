@@ -70,6 +70,8 @@ insert into expected_authenticated_functions (signature) values
 -- Contract 52: the bounded KO Predictor standings read.
 -- Contract 53: Last Man Standing picks and the bounded LMS read.
 -- Contract 54: the Predictor Cup foundation (the draw stays service-only).
+-- Contract 56: the Cup Penalty Number submission (the qualification gate
+-- and round settle stay service-only).
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
@@ -80,7 +82,8 @@ insert into expected_authenticated_functions (signature) values
   ('get_ko_predictor_standings(uuid,integer,text)'),
   ('save_lms_selection(uuid,uuid,integer)'),
   ('get_my_lms(uuid)'),
-  ('get_my_cup(uuid)');
+  ('get_my_cup(uuid)'),
+  ('submit_cup_penalty_number(uuid,uuid,smallint,integer)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
@@ -93,7 +96,10 @@ insert into expected_service_functions (signature) values
   ('save_lms_selection(uuid,uuid,integer)'),
   ('get_my_lms(uuid)'),
   ('get_my_cup(uuid)'),
-  ('admin_draw_predictor_cup(uuid,text)');
+  ('submit_cup_penalty_number(uuid,uuid,smallint,integer)'),
+  ('admin_draw_predictor_cup(uuid,text)'),
+  ('admin_finalise_predictor_cup_groups(uuid)'),
+  ('admin_settle_predictor_cup_round(uuid,uuid)');
 
 create temporary view public_function_privileges as
 select

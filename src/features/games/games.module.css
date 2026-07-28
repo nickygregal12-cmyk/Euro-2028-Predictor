@@ -79,3 +79,23 @@
 .ownRow {
   font-weight: 700;
 }
+
+.penaltyInput {
+  width: calc(var(--tap-min) * 1.6);
+  height: var(--tap-min);
+  padding: 0 10px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 19px;
+  color: var(--tx);
+  background: var(--input-bg);
+  border: 1.5px solid var(--acc);
+  border-radius: var(--radius-input);
+  appearance: textfield;
+}
+
+.penaltyInput:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
