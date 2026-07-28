@@ -68,9 +68,11 @@ export default defineConfig(({ command, mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './tests/setup.ts',
-      // GitHub's hosted runner has a 4 GB V8 heap. Run test files serially in CI
-      // so the growing jsdom suite cannot exhaust it; local runs keep Vitest's
-      // normal parallel worker selection for faster feedback.
+      // The growing jsdom suite can retain transformed ESM state across files.
+      // CI uses Vitest's VM-fork pool with an explicit recycle threshold so a
+      // worker is replaced before it reaches Node's hosted-runner heap limit.
+      pool: process.env.CI ? 'vmForks' : undefined,
+      vmMemoryLimit: process.env.CI ? '1GB' : undefined,
       maxWorkers: process.env.CI ? 1 : undefined,
       fileParallelism: process.env.CI ? false : undefined,
       // Playwright owns the real-browser suite. Keeping it out of Vitest prevents
