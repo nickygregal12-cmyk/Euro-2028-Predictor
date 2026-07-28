@@ -33,12 +33,16 @@ function compareMatchRefs(left: string, right: string): number {
   return 0
 }
 
+const navigationTime = (kickoffAt: string | null): number => {
+  if (!kickoffAt) return Number.POSITIVE_INFINITY
+  const parsed = Date.parse(kickoffAt)
+  return Number.isFinite(parsed) ? parsed : Number.POSITIVE_INFINITY
+}
+
 export function orderMatchesForNavigation<T extends NavigableMatch>(matches: T[]): T[] {
   return [...matches].sort((left, right) => {
-    const leftTime = left.kickoffAt ? Date.parse(left.kickoffAt) : Number.POSITIVE_INFINITY
-    const rightTime = right.kickoffAt ? Date.parse(right.kickoffAt) : Number.POSITIVE_INFINITY
-
-    if (leftTime !== rightTime) return leftTime - rightTime
+    const timeDifference = navigationTime(left.kickoffAt) - navigationTime(right.kickoffAt)
+    if (timeDifference !== 0 && !Number.isNaN(timeDifference)) return timeDifference
     return compareMatchRefs(left.matchRef, right.matchRef)
   })
 }
@@ -55,4 +59,12 @@ export function adjacentMatchRefs(
     previous: index > 0 ? ordered[index - 1].matchRef : null,
     next: index < ordered.length - 1 ? ordered[index + 1].matchRef : null,
   }
+}
+
+export function matchCentreHref(matchRef: string, leagueId: string | null): string {
+  const path = `/match/${encodeURIComponent(matchRef)}`
+  if (!leagueId) return path
+
+  const query = new URLSearchParams({ league: leagueId }).toString()
+  return `${path}?${query}`
 }
