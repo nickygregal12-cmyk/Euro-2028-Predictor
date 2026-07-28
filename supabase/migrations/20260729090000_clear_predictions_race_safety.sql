@@ -1,10 +1,9 @@
 -- Euro 2028 Predictor — clear-predictions race safety
 --
 -- Contract 58. Redefine the contract-57 Account wipe so the caller's unlocked
--- Original Predictor entry row is deleted after its child counts are captured.
--- Existing ON DELETE CASCADE relationships remove the Original entry data. A
--- delayed autosave still carrying the old entry id then fails the entry foreign
--- key and cannot recreate predictions after the wipe.
+-- Original Predictor children are removed while the entry still exists, then
+-- retire the now-empty entry identity. A delayed autosave still carrying the old
+-- entry id fails the entry foreign key and cannot recreate predictions.
 
 begin;
 
@@ -49,29 +48,33 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  select count(*)::integer into v_scores
-    from public.match_predictions prediction
+  -- Delete the children explicitly while the parent still exists. In particular,
+  -- match_predictions has an AFTER DELETE derived-position refresh trigger that
+  -- needs the entry row to remain resolvable during the child delete.
+  delete from public.match_predictions prediction
     where prediction.entry_id = v_entry;
+  get diagnostics v_scores = row_count;
 
-  select count(*)::integer into v_ties
-    from public.predicted_tie_resolutions resolution
+  delete from public.predicted_tie_resolutions resolution
     where resolution.entry_id = v_entry;
+  get diagnostics v_ties = row_count;
 
-  select count(*)::integer into v_positions
-    from public.predicted_group_positions snapshot
+  delete from public.predicted_group_positions snapshot
     where snapshot.entry_id = v_entry;
+  get diagnostics v_positions = row_count;
 
-  select count(*)::integer into v_progression
-    from public.predicted_progression progression
+  delete from public.predicted_progression progression
     where progression.entry_id = v_entry;
+  get diagnostics v_progression = row_count;
 
-  select count(*)::integer into v_awards
-    from public.bonus_predictions bonus
+  delete from public.bonus_predictions bonus
     where bonus.entry_id = v_entry;
+  get diagnostics v_awards = row_count;
 
-  -- Delete the entry identity rather than only its children. The application
-  -- immediately reloads through getOrCreateEntry, which creates a fresh empty
-  -- entry. Any old debounced request remains tied to v_entry and fails its FK.
+  -- The application immediately reloads through getOrCreateEntry, which creates
+  -- a fresh empty entry. PostgreSQL's FK locking serialises any concurrent stale
+  -- child insert with this parent delete: a write completed first is cascaded;
+  -- a write arriving after deletion fails the foreign key.
   delete from public.entries entry
     where entry.id = v_entry;
 
