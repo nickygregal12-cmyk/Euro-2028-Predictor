@@ -4,7 +4,7 @@ select plan(14);
 
 -- ---------------------------------------------------------------------------
 -- Fixtures: six entrants → two three-player groups. Matchday 1 bundles two
--- real MD1 fixtures (m1, m2). In group 1: X (2-0 exact + 1-1 result) faces
+-- real MD1 fixtures (m1, m2). In group 1: X (2-0 exact + 0-0 result) faces
 -- Y (1-0 result only); Z is on a bye but predicts m1 exactly (bye points
 -- count for tie-breaks). In group 2: P (1-0 result) faces Q (nothing —
 -- walkover); R is on a bye with no predictions.
@@ -122,7 +122,7 @@ $$;
 
 insert into public.match_predictions (entry_id, match_id, home_score, away_score) values
   (pg_temp.entry_of(current_setting('test.b7b_x')), current_setting('test.b7b_m1')::uuid, 2, 0),
-  (pg_temp.entry_of(current_setting('test.b7b_x')), current_setting('test.b7b_m2')::uuid, 1, 1),
+  (pg_temp.entry_of(current_setting('test.b7b_x')), current_setting('test.b7b_m2')::uuid, 0, 0),
   (pg_temp.entry_of(current_setting('test.b7b_y')), current_setting('test.b7b_m1')::uuid, 1, 0),
   (pg_temp.entry_of(current_setting('test.b7b_p')), current_setting('test.b7b_m1')::uuid, 1, 0),
   (pg_temp.entry_of(current_setting('test.b7b_z')), current_setting('test.b7b_m1')::uuid, 2, 0);
