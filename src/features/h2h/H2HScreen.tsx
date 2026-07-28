@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { initialsOf, TeamFlag, type MatchTeam } from '../../design-system'
 import { UsersIcon, ArrowsSplitIcon } from '../../design-system/icons'
 import type { BracketHealth } from '../../domain/tournament/bracketHealth'
@@ -25,6 +26,7 @@ export type H2HScreenProps = {
   you: H2HPlayerView
   rival: H2HPlayerView
   split: H2HSplitView
+  rankHistory?: ReactNode
 }
 
 function PlayerHead({ p, isYou }: { p: H2HPlayerView; isYou: boolean }) {
@@ -95,9 +97,9 @@ function HealthPanel({ label, health }: { label: string; health: BracketHealth }
 
 /**
  * H2H comparison: authoritative headline totals, browser-derived comparison
- * statistics, milestone-based knockout health, and the major bracket splits.
+ * statistics, rank history, milestone-based knockout health, and major splits.
  */
-export function H2HScreen({ you, rival, split }: H2HScreenProps) {
+export function H2HScreen({ you, rival, split, rankHistory }: H2HScreenProps) {
   return (
     <>
       <div className={h.faceOff}>
@@ -115,6 +117,8 @@ export function H2HScreen({ you, rival, split }: H2HScreenProps) {
         <StatRow label="Exact scores" you={you.exactScores} rival={rival.exactScores} />
         <StatRow label="Max still possible" you={you.maxPossible} rival={rival.maxPossible} />
       </div>
+
+      {rankHistory}
 
       <section className={h.healthCard} aria-labelledby="h2h-bracket-health-heading">
         <div>
