@@ -108,9 +108,9 @@ Exit met: the operating caps are enforced under concurrency at the authoritative
 
 ## Stage 3C2 — Representative scale evidence: current
 
-1. Seed representative volumes at the intended caps without weakening production isolation.
-2. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads.
-3. Measure score recomputation and rank-history capture at representative submitted-entry volume.
+1. Seed representative volumes at the intended caps without weakening production isolation. *(First pass done via a rollback-only 250-entry fixture on development — no data retained.)*
+2. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads. *(Non-league tranche captured — `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`; league tranche in draft PR #138.)*
+3. Measure score recomputation and rank-history capture at representative submitted-entry volume. *(Measured: ~354 ms / ~4 ms at 250 entries with 12 results — same document; re-measure at full result volume.)*
 4. Test the main profile, league and comparison surfaces against that data.
 5. Repair completion, loading, empty and error states exposed by the scale journeys.
 6. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.

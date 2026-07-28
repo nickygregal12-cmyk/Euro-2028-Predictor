@@ -94,12 +94,12 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 Operating-cap enforcement at authoritative write boundaries, including concurrency behaviour, shipped in PR #136 (contract 44). Remaining:
 
-1. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads at the intended caps.
-2. Measure score recomputation and rank-history capture with representative submitted entries.
+1. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads at the intended caps. **First tranche captured** for the non-league reads (overall standings pages/cursors, rival entry, match-pick distribution, submission status): single-digit milliseconds and kilobytes at 250 submitted entries — [`investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`](investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md). League-read evidence belongs to draft PR #138.
+2. Measure score recomputation and rank-history capture with representative submitted entries. **Measured:** full delete-and-rederive recompute at 250 entries with 12 confirmed results takes ~354 ms (3,060 events); rank-history capture ~4 ms — same evidence document. Re-measure at full-tournament result volume during the dress rehearsal.
 3. Prove the main profile, league and comparison surfaces remain correct and responsive at the intended caps.
 4. Repair completion, loading, empty and error states exposed by those scale journeys.
 
-Draft PR #138 (contracts 45–46) is in flight for paginated private-league standings and ownership-candidate search, including part of the evidence capture above.
+Draft PR #138 (contracts 45–46) is in flight for paginated private-league standings and ownership-candidate search, including the league share of the evidence capture above.
 
 ## Operational follow-ups
 

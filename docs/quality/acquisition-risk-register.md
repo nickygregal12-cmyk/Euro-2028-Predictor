@@ -33,7 +33,7 @@
 | ACQ-R10 | League invite generation/probing can support enumeration. | Cryptographic longer codes, preview throttling, reduced disclosure and code rotation. | Open |
 | ACQ-R11 | No accepted background-job tier supports scoring, submission, reconciliation and lifecycle work. | Establish `pg_cron`/Edge Function responsibilities with idempotency and observability. | In progress — a `pg_cron` tier is established and carries the idempotent submission job (contract 41); scoring, reconciliation and lifecycle jobs plus failure observability remain |
 | ACQ-R12 | No product analytics supports funnel or retention decisions. | Privacy-conscious event taxonomy, approved provider, CSP/DPIA and core dashboards. | Open |
-| ACQ-R13 | Large-scale behaviour at lock and result peaks is not evidenced. | Representative seeded load tests, connection-pool budget and rehearsed thresholds. | Open |
+| ACQ-R13 | Large-scale behaviour at lock and result peaks is not evidenced. | Representative seeded load tests, connection-pool budget and rehearsed thresholds. | In progress — first 250-entry read/recompute evidence captured (`docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`); concurrency/load, connection-pool budget and full-result-volume evidence remain |
 | ACQ-R14 | Critical admin/result, penalty-winner and accessibility journeys lack complete end-to-end evidence. | Browser E2E, pgTAP privilege enumeration, axe automation and manual assistive-technology review. | In progress — admin/result and penalty-winner browser journeys shipped (PRs #120, #124); axe automation and manual assistive-technology review remain |
 
 ## Medium risks
