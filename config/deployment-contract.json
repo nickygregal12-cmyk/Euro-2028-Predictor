@@ -1,6 +1,6 @@
 {
-  "contractVersion": 48,
-  "requiredMigrationCount": 48,
+  "contractVersion": 49,
+  "requiredMigrationCount": 49,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -19,7 +19,10 @@
     "public.search_league_transfer_candidates(uuid,text,integer)",
     "public.get_player_profile(uuid,uuid)",
     "public.get_public_capacity()",
-    "public.set_operating_limits(integer,integer)"
+    "public.set_operating_limits(integer,integer)",
+    "public.get_bonus_games(uuid)",
+    "public.register_bonus_competition(uuid)",
+    "public.withdraw_bonus_competition(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 47 adds a bounded co-member profile read with pre-lock privacy and post-lock authoritative profile detail. Contract 48 adds the deny-all Bonus Games platform schema (ADR-0010 B2): competitions, windows, window fixtures, entrants, score events and audit, with no browser-facing RPCs yet. Development promotion follows Database parity; production remains locked at contract 44."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the deny-all Bonus Games platform schema (ADR-0010 B2). Contract 49 adds the Games hub slice (B3): one bounded authenticated hub read plus voluntary registration and withdrawal RPCs with audit entries; the platform tables stay deny-all. Development promotion follows Database parity; production remains locked at contract 44."
 }

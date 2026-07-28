@@ -1,0 +1,41 @@
+.gameCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gameHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gameName {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--text-muted, #667085);
+  font-size: 0.85rem;
+}
+
+.stateLine {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.deadline {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #667085);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
