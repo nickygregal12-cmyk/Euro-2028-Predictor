@@ -11,21 +11,21 @@
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Repository contract | 55 canonical migrations through `20260729030000_predictor_cup_group_scoring.sql` (contract 48 = H2H rank history; 49–55 = Bonus Games B2–B7b) |
 | Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136, #138 and #141 cover the lifecycle, recovery, bounded/paginated reads, operating caps and Profile/H2H resilience; PR #143 adds secure other-player profiles; PR #145 adds richer H2H rank history and bracket health; PR #150 adds contracts 49–52 for the Bonus Games platform and KO Predictor; PR #157 contains contracts 53–55 for Last Man Standing and Predictor Cup group-stage delivery |
-| Verified production release source | `348b4c49a6f7a57eef69a875e3cae6d090a3abb2` — contract-48 milestone |
+| Verified production release source | `af5aa15a151f5c4236ba3f2756faab4b357f31ee` — contract-55 Bonus Games milestone |
 | Development Supabase | `iouzoutneyjpugbbtdem` — exactly 55 canonical versions through `20260729030000_predictor_cup_group_scoring.sql`; a concurrent duplicate connector-history row was removed without changing schema or data |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — **contract 48** through `20260728122500_h2h_rank_history.sql`; remains locked at the milestone |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 55 and use development Supabase; `production` declares 48 and uses production Supabase |
-| Published production deploy | `6a68c00aff68bef9b503a857`, ready, exact contract-48 release identity and anonymous Chromium smoke verified |
-| Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |
-| Production smoke | exact contract-48 release identity, HTTP smoke and Chromium browser smoke passed; PR #153 permanently aligns the manual workflow to this milestone |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly **contract 55** through `20260729030000_predictor_cup_group_scoring.sql`; preserved-data and privilege checks passed |
+| Netlify contexts | all four contexts declare 55; non-production uses development Supabase and production uses production Supabase |
+| Published production deploy | `6a68e4f9ee76002a26ffbee6`, ready; exact contract-55 release identity, HTTP smoke and Chromium smoke passed |
+| Production recovery | fresh encrypted contract-48 pre-promotion backup and disposable restore passed immediately before contracts 49–55; encrypted artifact retained |
+| Production smoke | exact contract-55 release identity, HTTP smoke and Chromium browser smoke passed; the manual workflow now requires the exact release commit |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 48. Contracts 49–55 are development-only and must not be promoted to production without a later approved milestone gate.
+Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and re-locked at contract 55 after the approved Bonus Games milestone promotion.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Intentionally split and internally aligned.** Repository branch, development Supabase and non-production Netlify are at contract 55; production database and application are aligned and locked at contract 48. Contracts 53–55 retain their canonical filenames and ordering after concurrent Bonus Games work. |
+| Contract alignment | **Aligned at 55.** Repository, development Supabase, production Supabase and every Netlify context use the same 55-migration contract. Contracts 49–55 retain their canonical filenames and ordering. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven; one owner-controlled production results administrator is assigned through server-owned Auth metadata. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |
@@ -37,7 +37,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 | Product-facing result lifecycle | **Proven.** Match Centre, fixtures and H2H consume server-owned result/winner data. H2H headline points use authoritative standings/rival totals rather than partial browser recomputation. |
 | Profile/H2H resilience | **Proven.** Own Profile and H2H react to current provider values, expose retry actions and retain bounded server contracts; league-to-H2H is browser-proven on desktop and phone. |
 | Other-player profile privacy | **Implemented and hosted-proven.** Co-members receive only identity/league/entry state before lock; after lock a submitted entry receives authoritative rank/points and bounded 36/24/100 detail. Outsiders are denied server-side. |
-| Bonus Games | **Development-delivered through B7b.** Platform, hub, shared knockout store, KO Predictor, tournament-format Last Man Standing, Predictor Cup draw/foundation and read-derived group scoring are represented by contracts 49–55. Predictor Cup knockouts remain B7c. |
+| Bonus Games | **Production-delivered through B7b.** Platform, hub, shared knockout store, KO Predictor, tournament-format Last Man Standing, Predictor Cup draw/foundation and read-derived group scoring are represented by contracts 49–55. Predictor Cup knockouts remain B7c. |
 | Browser/reset lifecycle | **Proven.** Authenticated journeys cover the complete tournament, private-league pagination/ownership transfer and the secure hidden-to-full player-profile transition on desktop and phone. |
 | Launch readiness | **Not ready.** Official data, remaining product states, accessibility, operational ownership and the later full dress rehearsal remain. |
 
@@ -79,7 +79,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - authorised and unauthorised administrator browser journeys on desktop/mobile;
 - environment/deployment-contract guards;
 - CI, Database parity, Browser E2E and exact-head preview smoke;
-- production backup/restore rehearsal and contract-48 release publication/smoke.
+- production backup/restore rehearsal, contracts 49–55 migration promotion and exact contract-55 release smoke.
 
 ## Immediate product gaps
 
@@ -104,14 +104,12 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 ## Current next batch
 
-**Finish the contract-55 gate, then resume Stage 4 core experience**
+**Resume Stage 4 core experience from the contract-55 production baseline**
 
-1. Complete PR #157 exact authenticated Browser E2E and contract-55 deploy-preview smoke, then merge.
-2. Merge PR #153 so the permanent manual Production Smoke workflow targets the verified contract-48 release.
-3. Continue Match Centre/tournament state resilience and fixture switching from current `main`.
-4. Follow with account/privacy/contact-admin and post-lock trends.
-5. Complete Predictor Cup B7c after the remaining Stage 4 core-experience tranche.
-6. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
+1. Continue Match Centre/tournament state resilience and fixture switching from current `main`.
+2. Follow with account/privacy/contact-admin and post-lock trends.
+3. Complete Predictor Cup B7c after the remaining Stage 4 core-experience tranche.
+4. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
 
 ## Operational follow-ups
 

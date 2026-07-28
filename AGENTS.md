@@ -16,17 +16,17 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository is at contract `55`; development Supabase and non-production Netlify are at `54` pending contract 55's parity and hosted application; production database and application are intentionally aligned and locked at contract `48` (the H2H rank-history milestone, released 28 July 2026).
+Repository, development Supabase, production Supabase and all Netlify contexts are aligned at contract `55`, the Bonus Games B2–B7b production milestone released on 28 July 2026.
 
 - canonical repository migration history contains exactly 55 versions through `20260729030000_predictor_cup_group_scoring.sql` (48 = `20260728122500_h2h_rank_history`, 49–55 = the Bonus Games chain);
-- development Supabase is `iouzoutneyjpugbbtdem` and records 54 canonical versions, with contract 55 pending hosted application;
-- production Supabase is `vkfnsqdyhvtwyqkisxhk` and holds 48 canonical versions through `20260728122500_h2h_rank_history.sql` per the dated contract-48 release record;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and declare `EURO28_DEPLOYED_DB_CONTRACT=54`;
-- Netlify `production` declares contract 48 and uses production Supabase;
-- production remains milestone-locked and normal development must not publish or migrate it automatically;
-- encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
+- development Supabase is `iouzoutneyjpugbbtdem` and records exactly 55 canonical versions;
+- production Supabase is `vkfnsqdyhvtwyqkisxhk` and records exactly 55 canonical versions through `20260729030000_predictor_cup_group_scoring.sql`;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and declare `EURO28_DEPLOYED_DB_CONTRACT=55`;
+- Netlify `production` declares contract 55 and uses production Supabase;
+- production is re-locked at contract 55 and normal development must not publish or migrate it automatically;
+- a fresh encrypted pre-promotion backup and disposable restore rehearsal passed immediately before contracts 49–55 were applied.
 
-Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member player profiles are delivered through contract 47; contract 48 delivers richer H2H rank history and bracket health (Stage 4B, production-released); contracts 49–55 add the Bonus Games platform and games (ADR-0010 B1–B7b: deny-all schema, hub with voluntary entry, shared knockout prediction store, KO Predictor scoring/standings, tournament-format Last Man Standing and Cup draw + read-derived group scoring per `docs/scoring-rules.md` §8); B7c (Cup knockouts) remains; the next product batch is the remaining Stage 4 core experience (Match Centre/tournament states, account/privacy/contact-admin, post-lock trends).
+Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member profiles, richer H2H and the Bonus Games platform through B7b are production-released at contract 55; B7c (Cup knockouts) remains. The next product batch is the remaining Stage 4 core experience: Match Centre/tournament states, account/privacy/contact-admin and post-lock trends.
 
 ## Development operating mode
 
