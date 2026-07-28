@@ -1,7 +1,11 @@
 import { expect, test } from '@playwright/test'
-import { clearH2HSurfaceFixture, prepareH2HSurfaceFixture } from './h2h-local'
+import {
+  clearH2HSurfaceFixture,
+  lockH2HSurfaceFixture,
+  prepareH2HSurfaceFixture,
+} from './h2h-local'
 
-test('profile and league-to-H2H surfaces work on desktop and phone', async ({ page }, testInfo) => {
+test('secure player profiles cross lock on desktop and phone', async ({ page }, testInfo) => {
   test.setTimeout(150_000)
   const fixture = await prepareH2HSurfaceFixture(
     `${testInfo.project.name}-retry-${testInfo.retry}`,
@@ -23,7 +27,31 @@ test('profile and league-to-H2H surfaces work on desktop and phone', async ({ pa
       .first()
     await expect(rivalRow).toBeVisible()
     await rivalRow.click()
-    await page.getByRole('button', { name: 'Head to head', exact: true }).click()
+
+    // Before lock, the safe Profile action is available but H2H and stats remain hidden.
+    await expect(page.getByText('Stats are hidden until entries lock.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Profile', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Head to head', exact: true })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Profile', exact: true }).click()
+
+    await expect(page).toHaveURL((url) => url.pathname === `/profile/${fixture.rivalId}`)
+    await expect(page.getByRole('heading', { name: 'Player profile' })).toBeVisible()
+    await expect(page.getByText(fixture.rivalDisplayName, { exact: true })).toBeVisible()
+    await expect(page.getByText(/Predictions and stats are hidden until entries lock/)).toBeVisible()
+    await expect(page.getByRole('button', { name: 'H2H', exact: true })).toHaveCount(0)
+    await expect(page.getByText('Points', { exact: true })).toHaveCount(0)
+
+    // Advance the same fixture through lock, then prove authoritative full detail.
+    await lockH2HSurfaceFixture(fixture)
+    await page.reload()
+
+    await expect(page.getByText(fixture.rivalDisplayName, { exact: true })).toBeVisible()
+    await expect(page.getByText(String(fixture.rivalPoints), { exact: true })).toBeVisible()
+    await expect(page.getByText('Points', { exact: true })).toBeVisible()
+    await expect(page.getByText('Overall rank', { exact: true })).toBeVisible()
+    await expect(page.getByText('Group matches', { exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'H2H', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'H2H', exact: true }).click()
 
     await expect(page).toHaveURL((url) => url.pathname === `/h2h/${fixture.rivalId}`)
     await expect(page.getByRole('heading', { name: 'Head to head' })).toBeVisible()
@@ -34,9 +62,10 @@ test('profile and league-to-H2H surfaces work on desktop and phone', async ({ pa
     ).toBeVisible()
     await expect(page.getByText('Head-to-head unavailable')).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Back', exact: true }).click()
-    await expect(page).toHaveURL((url) => url.pathname === `/league/${fixture.leagueId}`)
-    await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible()
+    // H2H links back to the same secure profile rather than relying on browser history.
+    await page.getByRole('button', { name: 'View player profile', exact: true }).click()
+    await expect(page).toHaveURL((url) => url.pathname === `/profile/${fixture.rivalId}`)
+    await expect(page.getByText(String(fixture.rivalPoints), { exact: true })).toBeVisible()
   } finally {
     await clearH2HSurfaceFixture(fixture)
   }
