@@ -16,8 +16,8 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- Fixtures. Two rounds: Matchday 1 (two group fixtures) and a final knockout
--- round (one staged R16 tie). Five entrants and one outsider:
---   alpha: picks the MD1 winner, then the R16 winner      → champion path
+-- round (one staged quarter-final). Five entrants and one outsider:
+--   alpha: picks the MD1 winner, then the KO winner       → champion path
 --   beta:  picks the MD1 loser                            → eliminated
 --   gamma: never picks                                    → eliminated
 --   delta: picks a team that draws                        → eliminated (draw kills)
@@ -49,11 +49,14 @@ select set_config(
   true
 );
 
+-- The knockout round uses a QUARTER-FINAL: R16 participants are server-owned
+-- and re-derived (to null while groups are incomplete) on every group result
+-- change, so staged R16 teams would be wiped by the MD1 confirmations below.
 select set_config(
-  'test.lms_r16',
+  'test.lms_ko',
   (select m.id::text from public.matches m
     where m.tournament_id = current_setting('test.lms_tournament_id')::uuid
-      and m.round = 'r16'
+      and m.round = 'qf'
     order by m.match_ref limit 1),
   true
 );
@@ -101,7 +104,7 @@ update public.matches
 set home_team_id = current_setting('test.lms_m1_home')::uuid,
     away_team_id = current_setting('test.lms_m2_home')::uuid,
     kickoff_at = now() - interval '30 minutes'
-where id = current_setting('test.lms_r16')::uuid;
+where id = current_setting('test.lms_ko')::uuid;
 
 set local session_replication_role = origin;
 
@@ -121,13 +124,13 @@ insert into public.bonus_competition_windows (id, competition_id, sequence, labe
 values
   (md5('lms-w1')::uuid, md5('lms-comp')::uuid, 1, 'Matchday 1',
     now() - interval '2 hours', now() + interval '1 hour'),
-  (md5('lms-w2')::uuid, md5('lms-comp')::uuid, 2, 'Round of 16',
+  (md5('lms-w2')::uuid, md5('lms-comp')::uuid, 2, 'Quarter-final',
     now() - interval '2 hours', now() + interval '1 hour');
 
 insert into public.bonus_window_fixtures (window_id, match_id) values
   (md5('lms-w1')::uuid, current_setting('test.lms_m1')::uuid),
   (md5('lms-w1')::uuid, current_setting('test.lms_m2')::uuid),
-  (md5('lms-w2')::uuid, current_setting('test.lms_r16')::uuid);
+  (md5('lms-w2')::uuid, current_setting('test.lms_ko')::uuid);
 
 -- ---------------------------------------------------------------------------
 -- Structure and closed execution
@@ -367,7 +370,7 @@ set locks_at = now() - interval '1 minute'
 where id = md5('lms-w2')::uuid;
 
 select public.confirm_match_result(
-  current_setting('test.lms_r16')::uuid, 'regulation', 0::smallint, 1::smallint
+  current_setting('test.lms_ko')::uuid, 'regulation', 0::smallint, 1::smallint
 );
 
 select is(
