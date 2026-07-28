@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_ENABLED?: string
   readonly VITE_SENTRY_DSN?: string
   readonly VITE_SENTRY_VERIFICATION_EVENT?: string
+  // Optional public address used to build the Account → Contact admin mail link.
+  readonly VITE_SUPPORT_EMAIL?: string
 }
 
 interface ImportMeta {
