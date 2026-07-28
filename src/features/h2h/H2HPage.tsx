@@ -19,6 +19,7 @@ import {
 } from '../../domain/tournament/authoritativeMatchResult'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import { fetchRivalEntry } from '../../services/supabase/h2h'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { H2HScreen, type H2HPlayerView, type H2HSplitView } from './H2HScreen'
 import s from '../shared.module.css'
 
@@ -107,8 +108,11 @@ export function H2HPage() {
     setState({ status: 'loading' })
     const { actuals, ownPreds, teamOf } = derived
 
-    fetchRivalEntry(rivalId, tournamentId)
-      .then((rival) => {
+    Promise.all([
+      fetchRivalEntry(rivalId, tournamentId),
+      fetchLeaderboardPage(tournamentId, { limit: 1 }),
+    ])
+      .then(([rival, leaderboard]) => {
         if (!active) return
         const youStats = computeEntryStats(ownPreds, actuals)
         const rivalStats = computeEntryStats(rival.predictions, actuals)
@@ -125,12 +129,14 @@ export function H2HPage() {
             champion: championTeam(ownPreds.progression),
             championEliminated: ownPreds.progression.some((p) => p.stage === 'CHAMPION' && elim(p.teamId)),
             ...youStats,
+            totalPoints: leaderboard.you?.totalPoints ?? 0,
           },
           rival: {
             displayName: rival.displayName,
             champion: championTeam(rival.predictions.progression),
             championEliminated: rival.predictions.progression.some((p) => p.stage === 'CHAMPION' && elim(p.teamId)),
             ...rivalStats,
+            totalPoints: rival.totalPoints,
           },
           split: {
             champion: {
@@ -154,7 +160,7 @@ export function H2HPage() {
     return () => {
       active = false
     }
-  }, [ready, tournamentId, rivalId, derived, data.status, displayName, reloadKey])
+  }, [data.status, derived, displayName, ready, reloadKey, rivalId, tournamentId])
 
   const header = (
     <div className={s.header}>
