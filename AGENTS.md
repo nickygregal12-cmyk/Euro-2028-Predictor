@@ -21,7 +21,7 @@ Repository and development Supabase are at contract `57` (contract 56 = B7c Cup 
 - canonical repository migration history contains exactly 57 versions through `20260729070000_account_entry_controls.sql` (48 = `20260728122500_h2h_rank_history`, 49–56 = the Bonus Games chain, 57 = Account entry controls);
 - development Supabase is `iouzoutneyjpugbbtdem` and records exactly 57 canonical versions through `20260729070000_account_entry_controls.sql` (verified posture: hardened search paths, no anonymous execution), with the three bonus competitions published as seeded development data;
 - production Supabase is `vkfnsqdyhvtwyqkisxhk` and records exactly 55 canonical versions through `20260729030000_predictor_cup_group_scoring.sql`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and declare `EURO28_DEPLOYED_DB_CONTRACT=55`, pending the owner update to `56`;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and need the owner `EURO28_DEPLOYED_DB_CONTRACT=57` update;
 - Netlify `production` declares contract 55 and uses production Supabase;
 - production is re-locked at contract 55 and normal development must not publish or migrate it automatically;
 - a fresh encrypted pre-promotion backup and disposable restore rehearsal passed immediately before contracts 49–55 were applied.
