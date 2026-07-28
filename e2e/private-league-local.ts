@@ -78,7 +78,9 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
   const admin = createLocalAdmin()
   const safeSuffix = suffix.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   const emailPrefix = `private-league-${safeSuffix}-`
-  const leagueName = `Private League Scale ${safeSuffix}`
+  // Keep generated fixture names beneath the authoritative league-name limit,
+  // including Playwright retry/project suffixes that can be unexpectedly long.
+  const leagueName = `PL Scale ${safeSuffix.slice(0, 20)}`
   const createdUsers: CreatedUser[] = []
   let leagueId: string | null = null
 
