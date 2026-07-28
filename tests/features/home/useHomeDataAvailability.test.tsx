@@ -15,13 +15,13 @@ const mocks = vi.hoisted(() => ({
   updateLastSeen: vi.fn(),
 }))
 
-vi.mock('../../../src/features/auth/AuthProvider', () => ({
-  useAuth: () => ({ userId: 'user-1', displayName: 'Dashboard Tester' }),
-}))
-
-vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
-  useTournamentData: () => ({
-    status: 'ready',
+// Context providers retain their value object while a child updates its own
+// state. Keep the test doubles equally stable; returning a fresh object from
+// either mocked hook on every Harness render would retrigger useHomeData's
+// effect indefinitely and would not model the real providers.
+const context = vi.hoisted(() => ({
+  tournamentData: {
+    status: 'ready' as const,
     data: {
       tournament: {
         id: 'tournament-1',
@@ -45,18 +45,27 @@ vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
         },
       ],
     },
-  }),
-}))
-
-vi.mock('../../../src/app/providers/PredictionsProvider', () => ({
-  usePredictions: () => ({
+  },
+  predictions: {
     ready: true,
     submittedAt: '2026-07-24T12:00:00.000Z',
-    getPrediction: () => ({ homeScore: 1, awayScore: 0, joker: false }),
+    getPrediction: vi.fn(() => ({ homeScore: 1, awayScore: 0, joker: false })),
     jokerCount: 0,
     tieResolutions: [],
     bracketProgression: {},
-  }),
+  },
+}))
+
+vi.mock('../../../src/features/auth/AuthProvider', () => ({
+  useAuth: () => ({ userId: 'user-1', displayName: 'Dashboard Tester' }),
+}))
+
+vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
+  useTournamentData: () => context.tournamentData,
+}))
+
+vi.mock('../../../src/app/providers/PredictionsProvider', () => ({
+  usePredictions: () => context.predictions,
 }))
 
 vi.mock('../../../src/features/predict/hubStatus', () => ({
