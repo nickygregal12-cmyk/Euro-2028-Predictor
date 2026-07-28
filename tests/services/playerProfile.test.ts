@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mapPlayerProfile } from '../../src/services/supabase/playerProfile'
+import { mapPlayerProfile } from '../../src/services/supabase/playerProfileModel'
 
 const base = {
   player_id: '11111111-1111-1111-1111-111111111111',
