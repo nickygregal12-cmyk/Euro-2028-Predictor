@@ -1,4 +1,4 @@
-name: Contract 54 source discovery
+name: Contract 55 canonical export
 
 on:
   push:
@@ -12,54 +12,39 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
-  discover:
+  export:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ github.token }}
       REPO: ${{ github.repository }}
+      SOURCE_REF: claude/apply-patch-gckf6v
     steps:
       - uses: actions/checkout@v4
 
-      - name: Locate canonical contract 53 and 54 sources
+      - name: Export exact canonical migration files
         shell: bash
         run: |
           set -euo pipefail
-          : > contract54-source-findings.txt
-          mapfile -t branches < <(
-            gh api --paginate "repos/${REPO}/branches?per_page=100" --jq '.[].name'
-          )
-          printf 'Scanned %s branches.\n' "${#branches[@]}" | tee -a contract54-source-findings.txt
-
-          for branch in "${branches[@]}"; do
-            for path in \
-              supabase/migrations/20260728230000_last_man_standing.sql \
-              supabase/migrations/20260729010000_predictor_cup_foundation.sql \
-              config/deployment-contract.json
-            do
-              encoded_path="${path//\//%2F}"
-              if gh api "repos/${REPO}/contents/${encoded_path}?ref=${branch}" \
-                --jq '.content' >/tmp/content.b64 2>/dev/null
-              then
-                printf '\n=== branch: %s | path: %s ===\n' "$branch" "$path" \
-                  | tee -a contract54-source-findings.txt
-                base64 -d /tmp/content.b64 | tee -a contract54-source-findings.txt
-                printf '\n' >> contract54-source-findings.txt
-              fi
-            done
+          mkdir -p canonical-migrations
+          for filename in \
+            20260728230000_last_man_standing.sql \
+            20260729010000_predictor_cup_foundation.sql \
+            20260729030000_predictor_cup_group_scoring.sql
+          do
+            path="supabase/migrations/${filename}"
+            encoded_path="${path//\//%2F}"
+            gh api "repos/${REPO}/contents/${encoded_path}?ref=${SOURCE_REF}" \
+              --jq '.content' | base64 -d > "canonical-migrations/${filename}"
+            test -s "canonical-migrations/${filename}"
           done
+          sha256sum canonical-migrations/*.sql | tee canonical-migrations/SHA256SUMS
 
-          printf '\n=== open pull requests ===\n' | tee -a contract54-source-findings.txt
-          gh api --paginate "repos/${REPO}/pulls?state=open&per_page=100" \
-            --jq '.[] | [.number,.head.ref,.head.sha,.title] | @tsv' \
-            | tee -a contract54-source-findings.txt
-
-      - name: Upload findings
+      - name: Upload canonical migrations
         uses: actions/upload-artifact@v4
         with:
-          name: contract54-source-findings
-          path: contract54-source-findings.txt
+          name: contract53-55-canonical-migrations
+          path: canonical-migrations/
           retention-days: 1
