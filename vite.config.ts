@@ -68,11 +68,9 @@ export default defineConfig(({ command, mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './tests/setup.ts',
-      // The growing jsdom suite can retain transformed ESM state across files.
-      // CI uses Vitest's VM-fork pool with an explicit recycle threshold so a
-      // worker is replaced before it reaches Node's hosted-runner heap limit.
-      pool: process.env.CI ? 'vmForks' : undefined,
-      vmMemoryLimit: process.env.CI ? '1GB' : undefined,
+      // CI invokes deterministic small shards in separate processes. Keep each
+      // shard serial as a second memory bound; local runs retain normal parallel
+      // worker selection for faster feedback.
       maxWorkers: process.env.CI ? 1 : undefined,
       fileParallelism: process.env.CI ? false : undefined,
       // Playwright owns the real-browser suite. Keeping it out of Vitest prevents
