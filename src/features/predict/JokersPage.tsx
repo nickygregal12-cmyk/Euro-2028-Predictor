@@ -133,7 +133,7 @@ export function JokersPage() {
       <div className={`${s.card} ${s.rowBetween}`}>
         <span className={s.sub}>Jokers are optional and stay movable</span>
         <Button variant="secondary" onClick={() => navigate('/predict/review')}>
-          Next: Review and submit
+          Next: Review and submit →
         </Button>
       </div>
     </div>

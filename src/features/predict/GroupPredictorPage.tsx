@@ -98,13 +98,16 @@ export function GroupPredictorPage() {
   const locked = isEntryLocked(data.data.tournament.lockAt)
   const returnToFinalise = searchParams.get('return') === FINALISE_PATH
 
-  // The primary linear continuation is available only when the group is complete
-  // and every same-group tie has an explicit user decision. Arrow navigation stays
-  // available for browsing, but it is never mistaken for completion.
-  const continuation =
-    tiePrompt.complete && tiePrompt.pendingCount === 0
-      ? groupContinuation(letter)
-      : null
+  // The linear continuation is ALWAYS one tap away (bottom of a group → next
+  // group; Group F → Finalise Group Standings). A settled group gets the
+  // primary button; an unfinished one gets the secondary variant plus a hint,
+  // so moving on is easy but never mistaken for completion.
+  const continuation = groupContinuation(letter)
+  const groupSettled = tiePrompt.complete && tiePrompt.pendingCount === 0
+  const predictedInGroup = groupMatches.filter((match) => {
+    const prediction = preds.getPrediction(match.id)
+    return prediction.homeScore !== null && prediction.awayScore !== null
+  }).length
 
   const index = LETTERS.indexOf(letter)
   const prev = index > 0 ? LETTERS[index - 1] : null
@@ -231,13 +234,22 @@ export function GroupPredictorPage() {
             Return to Finalise Group Standings
           </Button>
         ) : continuation ? (
-          <Button
-            variant="primary"
-            fullWidth
-            onClick={() => navigate(continuation.path)}
-          >
-            {continuation.label}
-          </Button>
+          <>
+            {!groupSettled ? (
+              <p className={g.continueHint}>
+                {tiePrompt.pendingCount > 0
+                  ? `${tiePrompt.pendingCount} tie${tiePrompt.pendingCount === 1 ? '' : 's'} above still need${tiePrompt.pendingCount === 1 ? 's' : ''} your call — you can come back any time.`
+                  : `${predictedInGroup} of ${groupMatches.length} predicted in this group — you can come back any time.`}
+              </p>
+            ) : null}
+            <Button
+              variant={groupSettled ? 'primary' : 'secondary'}
+              fullWidth
+              onClick={() => navigate(continuation.path)}
+            >
+              {continuation.label}
+            </Button>
+          </>
         ) : null}
       </div>
     </div>

@@ -130,14 +130,19 @@ export function ThirdPlacePage() {
         )}
       </div>
 
-      {pipeline.rows && pipeline.pendingCount === 0 ? (
-        <div className={`${s.card} ${s.rowBetween}`}>
-          <span className={s.sub}>Standings confirmed</span>
-          <Button onClick={() => navigate('/predict/bracket')}>
-            Next: Knockout bracket
-          </Button>
-        </div>
-      ) : null}
+      <div className={`${s.card} ${s.rowBetween}`}>
+        <span className={s.sub}>
+          {pipeline.rows && pipeline.pendingCount === 0
+            ? 'Standings confirmed'
+            : 'The bracket draws from these standings'}
+        </span>
+        <Button
+          variant={pipeline.rows && pipeline.pendingCount === 0 ? 'primary' : 'secondary'}
+          onClick={() => navigate('/predict/bracket')}
+        >
+          Next: Knockout bracket →
+        </Button>
+      </div>
     </div>
   )
 }

@@ -113,6 +113,11 @@ export function BracketRound() {
           icon={<TrophyIcon size={22} />}
           title="Finish the group stage first"
           description="Your bracket is drawn from your group predictions. Predict every group match and settle any ties, and the Round of 16 appears here."
+          action={
+            <Button onClick={() => navigate('/predict/groups/A')}>
+              Continue the groups
+            </Button>
+          }
         />
       </div>
     )
@@ -172,13 +177,6 @@ export function BracketRound() {
         <ChampionCard name={pipeline.champion.name} countryCode={pipeline.champion.countryCode} />
       )}
 
-      {pipeline.pickedCount === pipeline.total ? (
-        <div className={`${s.card} ${s.rowBetween}`}>
-          <span className={s.sub}>All {pipeline.total} winners picked</span>
-          <Button onClick={() => navigate('/predict/jokers')}>Next: Jokers</Button>
-        </div>
-      ) : null}
-
       <div className={b.ties}>
         {activeRound.ties.map((tie) => (
           <div
@@ -200,6 +198,20 @@ export function BracketRound() {
             />
           </div>
         ))}
+      </div>
+
+      <div className={`${s.card} ${s.rowBetween}`}>
+        <span className={s.sub}>
+          {pipeline.pickedCount === pipeline.total
+            ? `All ${pipeline.total} winners picked`
+            : `${pipeline.pickedCount} of ${pipeline.total} winners picked`}
+        </span>
+        <Button
+          variant={pipeline.pickedCount === pipeline.total ? 'primary' : 'secondary'}
+          onClick={() => navigate('/predict/jokers')}
+        >
+          Next: Jokers →
+        </Button>
       </div>
 
       <ConfirmModal
