@@ -6,6 +6,9 @@ on:
       - release/production-smoke-contract48
     paths:
       - .github/workflows/patch-production-backup-contract48.yml
+  pull_request:
+    paths:
+      - .github/workflows/patch-production-backup-contract48.yml
 
 permissions:
   contents: write
