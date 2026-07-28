@@ -12,11 +12,31 @@ import {
   authoritativeWinnerSide,
 } from '../../domain/tournament/authoritativeMatchResult'
 import { groupByMatchday, groupByGroupLetter, currentGroupIndex } from '../../domain/tournament/matchesTab'
+import { sumGroupGoals } from '../../domain/tournament/groupGoals'
 import { MatchesScreen, type FilterKey, type FixtureRowVM, type MatchesGroupVM } from './MatchesScreen'
+import {
+  buildLiveTablesView,
+  buildBracketView,
+  buildStatsView,
+} from './tournamentInfoPipeline'
+import { MatchesTablesView, MatchesBracketView, MatchesStatsView } from './TournamentInfoViews'
 import { useOpenMatchCentre } from './useOpenMatchCentre'
+import { formatShortDate } from '../../app/time'
 import s from '../shared.module.css'
+import m from './MatchesTab.module.css'
 
 const STAGE_UP: Record<string, KnockoutStage> = { r16: 'R16', qf: 'QF', sf: 'SF', final: 'FINAL', champion: 'CHAMPION' }
+
+// The tournament-info sub-views (design-system §Matches). Fixtures keeps its
+// own filter chips; the other three are the "what's happening" views.
+type ViewKey = 'fixtures' | 'tables' | 'bracket' | 'stats'
+
+const VIEWS: { key: ViewKey; label: string }[] = [
+  { key: 'fixtures', label: 'Fixtures' },
+  { key: 'tables', label: 'Tables' },
+  { key: 'bracket', label: 'Bracket' },
+  { key: 'stats', label: 'Stats' },
+]
 
 function whenLabel(m: Match): string {
   const d = new Date(m.kickoffAt ?? m.matchDate)
@@ -34,6 +54,7 @@ export function MatchesPage() {
   const openMatchCentre = useOpenMatchCentre()
   const data = useTournamentData()
   const preds = usePredictions()
+  const [view, setView] = useState<ViewKey>('fixtures')
   const [filter, setFilter] = useState<FilterKey>('all')
 
   const teamName = useMemo(
@@ -111,6 +132,34 @@ export function MatchesPage() {
     return { vm, scrollToKey }
   }, [data, preds, teamName, filter])
 
+  // The tournament-info view models read confirmed results only — they don't
+  // depend on the filter or (except the goals race) on the user's entry.
+  const info = useMemo(() => {
+    if (data.status !== 'ready') return null
+    const td = data.data
+    return {
+      tables: buildLiveTablesView(td),
+      bracket: buildBracketView(td),
+      stats: buildStatsView(td),
+      tournamentDates:
+        td.tournament.startsOn && td.tournament.endsOn
+          ? `${formatShortDate(td.tournament.startsOn)} – ${formatShortDate(td.tournament.endsOn)}`
+          : 'Summer 2028',
+      hostCities: [...new Set(td.matches.map((match) => match.venue))].sort(),
+    }
+  }, [data])
+
+  const predictedGroupGoals = useMemo(() => {
+    if (data.status !== 'ready' || !preds.ready) {
+      return { total: 0, predictedCount: 0, matchCount: 0 }
+    }
+    return sumGroupGoals(
+      data.data.matches
+        .filter((match) => match.round === 'group')
+        .map((match) => preds.getPrediction(match.id)),
+    )
+  }, [data, preds])
+
   if (data.status === 'error') {
     return (
       <div className={s.page}>
@@ -124,7 +173,7 @@ export function MatchesPage() {
       </div>
     )
   }
-  if (!built) {
+  if (!built || !info) {
     return (
       <div className={s.page} role="status" aria-live="polite" aria-label="Loading fixtures">
         <div className={s.card}>
@@ -138,13 +187,46 @@ export function MatchesPage() {
   }
 
   return (
-    <MatchesScreen
-      filter={filter}
-      onFilter={setFilter}
-      groups={built.vm}
-      scrollToKey={built.scrollToKey}
-      onOpen={openMatchCentre}
-      emptyMessage={filter === 'jokers' ? 'No jokers placed yet — place them on your group predictions.' : 'No fixtures yet.'}
-    />
+    <div className={m.page}>
+      <h1 className={m.title}>Matches</h1>
+
+      {/* Toggle chips, not tabs — same reasoning as the fixture filter (axe
+          wcag131: a tablist requires tab-role children). */}
+      <div className={m.filters} role="group" aria-label="Matches view">
+        {VIEWS.map((v) => (
+          <button
+            key={v.key}
+            type="button"
+            className={`${m.chip} ${view === v.key ? m.chipOn : ''}`}
+            aria-pressed={view === v.key}
+            onClick={() => setView(v.key)}
+          >
+            {v.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'fixtures' ? (
+        <MatchesScreen
+          filter={filter}
+          onFilter={setFilter}
+          groups={built.vm}
+          scrollToKey={built.scrollToKey}
+          onOpen={openMatchCentre}
+          emptyMessage={filter === 'jokers' ? 'No jokers placed yet — place them on your group predictions.' : 'No fixtures yet.'}
+        />
+      ) : view === 'tables' ? (
+        <MatchesTablesView view={info.tables} />
+      ) : view === 'bracket' ? (
+        <MatchesBracketView rounds={info.bracket} onOpen={openMatchCentre} />
+      ) : (
+        <MatchesStatsView
+          view={info.stats}
+          predictedGroupGoals={predictedGroupGoals}
+          tournamentDates={info.tournamentDates}
+          hostCities={info.hostCities}
+        />
+      )}
+    </div>
   )
 }

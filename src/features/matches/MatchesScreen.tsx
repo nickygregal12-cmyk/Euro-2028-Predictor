@@ -93,9 +93,7 @@ export function MatchesScreen(props: MatchesScreenProps) {
   }, [props.scrollToKey])
 
   return (
-    <div className={s.page}>
-      <h1 className={s.title}>Matches</h1>
-
+    <div className={s.subview}>
       {/* Toggle chips (aria-pressed), not tabs — a tablist requires tab-role
           children, so the container is a labelled group (axe wcag131). */}
       <div className={s.filters} role="group" aria-label="Fixture filter">
