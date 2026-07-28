@@ -1,0 +1,221 @@
+.highlights {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--chip);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font: 500 16px var(--font-display);
+}
+
+.identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tx);
+  font: 500 18px var(--font-display);
+}
+
+.meta,
+.currentValue,
+.futureCopy {
+  margin: 0;
+  color: var(--tx2);
+  font: 400 13px/1.45 var(--font-body);
+}
+
+.champion {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--tx2);
+  font: 400 12px var(--font-body);
+}
+
+.profileLink,
+.contactLink {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--tx);
+  text-decoration: none;
+  font: 500 13px var(--font-display);
+  cursor: pointer;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--tx);
+  font: 500 17px var(--font-display);
+}
+
+.form,
+.dangerActions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.success,
+.formMessage {
+  margin: 0;
+  font: 400 12px/1.4 var(--font-body);
+}
+
+.success {
+  color: var(--acc);
+}
+
+.formMessage {
+  color: var(--tx2);
+}
+
+.switchRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.switchCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.switchLabel {
+  color: var(--tx);
+  font: 500 14px var(--font-body);
+}
+
+.switchHint {
+  color: var(--tx2);
+  font: 400 12px/1.4 var(--font-body);
+}
+
+.switch {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  flex: 0 0 auto;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--mut);
+  cursor: pointer;
+}
+
+.switchTrack::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  top: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: var(--tx2);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.switch input:checked + .switchTrack {
+  background: color-mix(in srgb, var(--acc) 28%, var(--card));
+  border-color: var(--acc);
+}
+
+.switch input:checked + .switchTrack::after {
+  transform: translateX(20px);
+  background: var(--acc);
+}
+
+.switch input:focus-visible + .switchTrack {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.policyList {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--tx2);
+  font: 400 13px/1.45 var(--font-body);
+}
+
+.danger {
+  border-color: color-mix(in srgb, var(--red) 55%, var(--line));
+}
+
+.futureRow {
+  width: 100%;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+  color: var(--tx3);
+  text-align: left;
+  font: 400 13px var(--font-body);
+}
+
+.futureBadge {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--tx3);
+  font: 500 10px var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (min-width: 700px) {
+  .highlights {
+    grid-template-columns: 56px minmax(0, 1fr) auto;
+  }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .profileLink {
+    padding: 0 16px;
+  }
+}
