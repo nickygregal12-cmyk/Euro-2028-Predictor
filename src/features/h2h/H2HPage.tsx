@@ -1,7 +1,7 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Alert, Skeleton, type MatchTeam } from '../../design-system'
+import { Alert, Button, Skeleton, type MatchTeam } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
@@ -19,6 +19,7 @@ import {
 } from '../../domain/tournament/authoritativeMatchResult'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import { fetchRivalEntry } from '../../services/supabase/h2h'
+import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { H2HScreen, type H2HPlayerView, type H2HSplitView } from './H2HScreen'
 import s from '../shared.module.css'
 
@@ -42,6 +43,7 @@ export function H2HPage() {
   const data = useTournamentData()
   const preds = usePredictions()
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [reloadKey, setReloadKey] = useState(0)
 
   const ready = data.status === 'ready' && preds.ready
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
@@ -91,8 +93,7 @@ export function H2HPage() {
       })),
     }
     return { actuals, ownPreds, teamOf, locked: isEntryLocked(td.tournament.lockAt) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.status, preds.ready])
+  }, [data, preds])
 
   useEffect(() => {
     if (data.status === 'error') {
@@ -107,8 +108,11 @@ export function H2HPage() {
     setState({ status: 'loading' })
     const { actuals, ownPreds, teamOf } = derived
 
-    fetchRivalEntry(rivalId, tournamentId)
-      .then((rival) => {
+    Promise.all([
+      fetchRivalEntry(rivalId, tournamentId),
+      fetchLeaderboardPage(tournamentId, { limit: 1 }),
+    ])
+      .then(([rival, leaderboard]) => {
         if (!active) return
         const youStats = computeEntryStats(ownPreds, actuals)
         const rivalStats = computeEntryStats(rival.predictions, actuals)
@@ -125,12 +129,14 @@ export function H2HPage() {
             champion: championTeam(ownPreds.progression),
             championEliminated: ownPreds.progression.some((p) => p.stage === 'CHAMPION' && elim(p.teamId)),
             ...youStats,
+            totalPoints: leaderboard.you?.totalPoints ?? 0,
           },
           rival: {
             displayName: rival.displayName,
             champion: championTeam(rival.predictions.progression),
             championEliminated: rival.predictions.progression.some((p) => p.stage === 'CHAMPION' && elim(p.teamId)),
             ...rivalStats,
+            totalPoints: rival.totalPoints,
           },
           split: {
             champion: {
@@ -154,7 +160,7 @@ export function H2HPage() {
     return () => {
       active = false
     }
-  }, [ready, tournamentId, rivalId, derived, data.status, displayName])
+  }, [data.status, derived, displayName, ready, reloadKey, rivalId, tournamentId])
 
   const header = (
     <div className={s.header}>
@@ -171,6 +177,11 @@ export function H2HPage() {
         {header}
         <Alert variant="warning" title="Head-to-head unavailable">
           {state.message}
+          <div style={{ marginTop: 10 }}>
+            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
+              Retry
+            </Button>
+          </div>
         </Alert>
       </div>
     )

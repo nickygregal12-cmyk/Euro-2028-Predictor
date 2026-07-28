@@ -145,8 +145,7 @@ export function ProfilePage() {
     return () => {
       active = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, tournamentId, data.status, reloadKey])
+  }, [data, preds, ready, reloadKey, tournamentId])
 
   const header = (
     <div className={s.header}>
@@ -198,6 +197,11 @@ export function ProfilePage() {
         <Alert variant="warning" title="Some profile data is unavailable">
           Your predictions and locally derived accuracy are unaffected. Missing figures will
           return when the connection recovers.
+          <div style={{ marginTop: 10 }}>
+            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
+              Retry missing data
+            </Button>
+          </div>
         </Alert>
       )}
       <ProfileScreen

@@ -106,7 +106,7 @@ Delivered through PR #136 and contract 44:
 
 Exit met: the operating caps are enforced under concurrency at the authoritative write boundaries.
 
-## Stage 3C2 — Representative scale evidence: current
+## Stage 3C2 — Representative scale and surface evidence: closing
 
 Completed:
 
@@ -115,26 +115,27 @@ Completed:
 3. Capture private-league pagination, caller-context, owner-search and lightweight-summary evidence — `docs/quality/investigations/2026-07-28-stage-3c2-private-league-evidence.md`.
 4. Measure score recomputation and rank-history capture at representative submitted-entry volume: ~354 ms / ~4 ms at 250 entries with 12 results. Re-measure at full result volume during the dress rehearsal.
 5. Apply contracts 45–46 to development with canonical history and move non-production Netlify contexts to the matching contract; production remains locked at 44.
+6. Merge PR #138 after green CI, Database parity, Browser E2E and exact-head preview smoke, delivering paginated private-league standings and owner-only transfer search.
+7. Through PR #141, repair Profile/H2H background refresh and retry states, use authoritative H2H headline totals, retain bounded rival/standings reads and prove league-to-H2H on desktop and phone.
 
-Current:
+Close-out:
 
-1. Complete and merge draft PR #138 after CI, Database parity, Browser E2E and exact-head preview smoke are green.
-2. Test profile, H2H and comparison surfaces against representative data on desktop and phone.
-3. Repair completion, loading, empty, retry and error states exposed by those journeys.
-4. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+1. Merge PR #141 after exact-head CI, authenticated Browser E2E and preview smoke are green.
+2. Carry resilient loading/empty/retry/error treatment into each Stage 4 surface rather than creating another broad pre-product audit batch.
+3. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
 
-Exit: core Original Predictor reads and recomputation remain correct and responsive at the operating caps, and the main user-facing surfaces have complete resilient states with recorded evidence.
+Exit: core Original Predictor reads and recomputation remain correct and responsive at the operating caps, and the principal Profile/H2H/league comparison journeys have complete resilient states with recorded desktop/mobile evidence.
 
-## Stage 4 — Core product experience
+## Stage 4 — Core product experience: next
 
-Begin after the remaining Stage 3C2 surface/state pass:
+Build in this order after PR #141:
 
-- complete other-player profiles and richer H2H;
-- add rank-over-time and bracket health;
-- expand Match Centre/tournament states;
-- add account, privacy and contact-admin surfaces;
-- add post-lock trends;
-- finish mobile, empty/error-state and accessibility work.
+1. complete other-player profiles and the richer H2H layer;
+2. add rank-over-time and bracket health;
+3. expand Match Centre and tournament states;
+4. add account, privacy and contact-admin surfaces;
+5. add post-lock trends;
+6. finish mobile, empty/error-state and accessibility work alongside each feature rather than as a late cleanup pass.
 
 ## Stage 5 — Bonus competitions
 
