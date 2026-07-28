@@ -5,10 +5,11 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development and both hosted databases are at contract 44 (production database promoted 28 July 2026); the production application release is the remaining milestone step.
+- Repository, development Supabase and non-production Netlify are at contract 46.
+- Production Supabase and the published production application are aligned and locked at contract 44.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- The published production deploy is still the contract-38 build; publish the contract-44 build to complete the milestone.
+- Production deploy: `6a686e30f2f13c07f10e30d8` from `515e794aa483a779c971e16a364fcbd243fa7ee6`.
 - Normal work happens against development; production promotion is milestone-only.
 
 Do not import rules or features from previous projects, old branches, prototypes or chats.
@@ -44,12 +45,13 @@ Ordinary development does not require production backup, production smoke or a n
 
 ## Current order
 
-1. Capture representative query-plan, response-size and recomputation evidence at the intended caps.
-2. Repair completion, loading, empty and error states exposed by those scale journeys.
-3. Continue core experience, accessibility and operational readiness.
-4. Add bonus competitions only after the Original Predictor lifecycle and scale stage are proven.
+1. Complete and merge PR #138 after CI, Database parity, Browser E2E and exact-head preview smoke.
+2. Verify profile, H2H and comparison surfaces at representative scale on desktop and phone.
+3. Repair completion, loading, empty, retry and error states exposed by those journeys.
+4. Continue core experience and accessibility work.
+5. Add bonus competitions only after the Original Predictor lifecycle and scale stage are proven.
 
-Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, bounded/paginated reads and operating-cap enforcement are complete (PRs #120–#136).
+Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement and both 250-entry/member evidence tranches are complete or contained in PR #138.
 
 ## Hard boundaries
 
