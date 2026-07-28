@@ -255,7 +255,7 @@ export function LeagueDetailPage() {
         onProfile={
           isYou
             ? () => navigate('/profile')
-            : () => setToast('Player profiles are coming soon.')
+            : () => navigate(`/profile/${member.userId}`)
         }
         onHeadToHead={isYou ? undefined : () => navigate(`/h2h/${member.userId}`)}
       />
