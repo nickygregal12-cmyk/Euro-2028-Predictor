@@ -54,6 +54,23 @@ test('private league pages preserve your position and search ownership candidate
     await expect(page.getByText(fixture.memberDisplayName, { exact: true })).toBeVisible()
     await expect(page.getByText('Showing 50 of 56', { exact: true })).toBeVisible()
 
+    const rivalRow = page
+      .getByRole('button')
+      .filter({ hasText: fixture.h2hRivalDisplayName })
+      .first()
+    await rivalRow.click()
+    await page.getByRole('button', { name: 'Head to head', exact: true }).click()
+    await expect(page).toHaveURL((url) => url.pathname === `/h2h/${fixture.h2hRivalId}`, {
+      timeout: 15_000,
+    })
+    await expect(page.getByRole('heading', { name: 'Head to head' })).toBeVisible()
+    await expect(page.getByText(fixture.h2hRivalDisplayName, { exact: true })).toBeVisible()
+
+    await page.goBack()
+    await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible({
+      timeout: 15_000,
+    })
+
     await page.getByRole('button', { name: 'Load more members' }).click()
 
     await expect(page.getByText('Your position', { exact: true })).toHaveCount(0, {
