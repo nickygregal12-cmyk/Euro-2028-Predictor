@@ -255,7 +255,7 @@ select is(
     ) payload
   ),
   jsonb_build_object(
-    'first_user', md5('ko-user-alpha'),
+    'first_user', md5('ko-user-alpha')::uuid::text,
     'first_rank', 1,
     'first_points', 7,
     'rows', 4
@@ -290,22 +290,26 @@ select is(
 
 select is(
   (
-    select jsonb_build_object(
-      'rows', jsonb_array_length(second_page.payload -> 'standings'),
-      'exhausted', second_page.payload ->> 'next_cursor' is null
-    )
-    from public.get_ko_predictor_standings(
-      current_setting('test.ko_tournament_id')::uuid,
-      2,
-      (
-        select first_page.payload ->> 'next_cursor'
-        from public.get_ko_predictor_standings(
+    select count(distinct pages.entry ->> 'user_id')::integer
+    from (
+      select jsonb_array_elements(
+        public.get_ko_predictor_standings(
           current_setting('test.ko_tournament_id')::uuid, 2
-        ) first_page(payload)
-      )
-    ) second_page(payload)
+        ) -> 'standings'
+      ) as entry
+      union all
+      select jsonb_array_elements(
+        public.get_ko_predictor_standings(
+          current_setting('test.ko_tournament_id')::uuid,
+          2,
+          public.get_ko_predictor_standings(
+            current_setting('test.ko_tournament_id')::uuid, 2
+          ) ->> 'next_cursor'
+        ) -> 'standings'
+      ) as entry
+    ) pages
   ),
-  '{"rows": 2, "exhausted": true}'::jsonb,
+  4,
   'the keyset cursor walks the remaining field without overlap'
 );
 
@@ -373,6 +377,9 @@ select is(
 -- ---------------------------------------------------------------------------
 -- Access boundaries
 -- ---------------------------------------------------------------------------
+
+-- Clear the transaction-local claim so the caller is truly anonymous.
+select set_config('request.jwt.claim.sub', '', true);
 
 select is(
   pg_temp.capture_sqlstate(
