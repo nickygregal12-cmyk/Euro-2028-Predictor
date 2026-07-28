@@ -29,6 +29,7 @@ const MatchesPage = lazy(() => import('./features/matches/MatchesPage').then((m)
 const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').then((m) => ({ default: m.MatchCentrePage })))
 const WelcomePage = lazy(() => import('./features/welcome/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const OtherPlayerProfilePage = lazy(() => import('./features/profile/OtherPlayerProfilePage').then((m) => ({ default: m.OtherPlayerProfilePage })))
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
 const AdminResultsWorkspacePage = lazy(() => import('./features/admin/AdminResultsWorkspacePage').then((m) => ({ default: m.AdminResultsWorkspacePage })))
 const AdminUsersPage = lazy(() => import('./features/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })))
@@ -85,6 +86,7 @@ export default function App() {
                     <Route path="/match/:matchRef" element={<MatchCentrePage />} />
                     <Route path="/more" element={<MorePage />} />
                     <Route path="/profile" element={<ProfilePage />} />
+                    <Route path="/profile/:playerId" element={<OtherPlayerProfilePage />} />
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                     <Route path="/more/scoring" element={<ScoringRulesPage />} />
 

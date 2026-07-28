@@ -16,17 +16,17 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository, development and non-production Netlify are at contract `46`; production database and application are intentionally aligned and locked at contract `44`.
+Repository, development and non-production Netlify are at contract `47`; production database and application are intentionally aligned and locked at contract `44`.
 
-- canonical repository migration history contains exactly 46 versions through `20260727221000_private_league_summary_activity.sql`;
-- development Supabase is `iouzoutneyjpugbbtdem` and records the same 46 canonical versions;
+- canonical repository migration history contains exactly 47 versions through `20260728113000_other_player_profiles.sql`;
+- development Supabase is `iouzoutneyjpugbbtdem` and records the same 47 canonical versions;
 - production Supabase is `vkfnsqdyhvtwyqkisxhk` and remains at 44 canonical versions through `20260727191942_operating_cap_enforcement.sql`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` declare contract 46 and use development Supabase;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` declare contract 47 and use development Supabase;
 - Netlify `production` declares contract 44, uses production Supabase and serves deploy `6a686e30f2f13c07f10e30d8` from commit `515e794aa483a779c971e16a364fcbd243fa7ee6`;
 - production remains milestone-locked and normal development must not publish or migrate it automatically;
 - encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
 
-Contract compatibility does not make the product tournament-ready. Operating-cap enforcement and the non-league/private-league scale evidence are complete at the current 250-user/member technical cap. The current product batch is profile, H2H and comparison surface verification followed by completion/loading/empty/retry/error-state repairs.
+Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member player profiles are delivered through contract 47; the next product batch is richer H2H with rank-over-time and bracket health.
 
 ## Development operating mode
 
@@ -64,18 +64,21 @@ Rules:
 - Hosted inspection defaults to read-only.
 - Never run a remote reset, destructive repair, unreviewed SQL or production mutation without explicit approval.
 - Browser roles receive minimum privileges; internal trigger and maintenance helpers default to no Data API execution.
-- The database is authoritative for locks, submission, results, progression and scoring integrity.
+- The database is authoritative for locks, submission, results, progression, scoring and profile reveal/access boundaries.
 
 ## Architecture rules
 
 - Put tournament rules in pure functions under `src/domain/tournament/` before UI wiring.
 - Components render domain output; they do not invent standings, scoring or bracket rules.
 - All browser Supabase access goes through `src/services/supabase/`.
+- Keep pure response parsing/models separate from configured network wrappers.
 - Do not expose private integrity helpers as browser RPCs.
 - Original Predictor and bonus competitions remain separate competitions and score systems.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references, unknown official data and incompatible schemas.
 - Knockout display/social views consume authoritative winner and result-method data.
+- Other-player detail stays within the authenticated co-member boundary unless a later explicit privacy decision changes it.
+- Profile/H2H headline points and ranks come from bounded authoritative server reads; browser logic may derive comparison/accuracy views only.
 
 ## Scoring authority
 

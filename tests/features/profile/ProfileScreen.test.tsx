@@ -30,6 +30,7 @@ describe('ProfileScreen — full', () => {
         }}
         events={EVENTS}
         locked
+        onViewEntry={() => {}}
       />,
     )
     expect(screen.getByText('Alex Turner')).toBeInTheDocument()
@@ -42,7 +43,7 @@ describe('ProfileScreen — full', () => {
     // Own profile → Edit, not H2H.
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'H2H' })).not.toBeInTheDocument()
-    // Post-lock → view-full-entry row present.
+    // Post-lock + supplied action → view-full-entry row present.
     expect(screen.getByRole('button', { name: /view full entry/i })).toBeInTheDocument()
   })
 
@@ -133,15 +134,17 @@ describe('ProfileScreen — full', () => {
         }}
         events={EVENTS}
         locked
+        onH2H={() => {}}
       />,
     )
     expect(screen.getByRole('button', { name: 'H2H' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /view full entry/i })).not.toBeInTheDocument()
   })
 })
 
-describe('ProfileScreen — reveal-gated hidden state', () => {
-  it('shows only name, leagues, entry status + the lock explainer (no stats/breakdown)', () => {
+describe('ProfileScreen — reveal-gated states', () => {
+  it('shows only name, leagues, entry status + the lock explainer before lock', () => {
     render(
       <ProfileScreen
         kind="hidden"
@@ -157,5 +160,21 @@ describe('ProfileScreen — reveal-gated hidden state', () => {
     // No breakdown, no stat values leaked.
     expect(screen.queryByText('Group matches')).not.toBeInTheDocument()
     expect(screen.queryByText('Accuracy')).not.toBeInTheDocument()
+  })
+
+  it('shows a distinct post-lock no-entry state without inventing points', () => {
+    render(
+      <ProfileScreen
+        kind="empty"
+        displayName="No Entry Player"
+        leaguesCount={1}
+      />,
+    )
+
+    expect(screen.getByText('No Entry Player')).toBeVisible()
+    expect(screen.getByText('1 league')).toBeVisible()
+    expect(screen.getByText('No submitted entry')).toBeVisible()
+    expect(screen.queryByText('Points')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'H2H' })).not.toBeInTheDocument()
   })
 })

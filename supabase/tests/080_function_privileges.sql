@@ -25,6 +25,7 @@ insert into expected_authenticated_functions (signature) values
   ('get_league_preview(text)'),
   ('get_match_prediction_distribution(uuid)'),
   ('get_my_leagues(uuid)'),
+  ('get_player_profile(uuid,uuid)'),
   ('get_public_capacity()'),
   ('get_rival_entry(uuid,uuid)'),
   ('join_league(text)'),

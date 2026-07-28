@@ -28,7 +28,7 @@ async function deleteUserIfPresent(email: string): Promise<void> {
   if (deleteError) throw deleteError
 }
 
-async function restoreTournamentLock(
+async function setTournamentLock(
   tournamentId: string,
   lockAt: string | null,
 ): Promise<void> {
@@ -37,6 +37,13 @@ async function restoreTournamentLock(
     .update({ lock_at: lockAt })
     .eq('id', tournamentId)
   if (error) throw error
+}
+
+export async function lockH2HSurfaceFixture(fixture: H2HSurfaceFixture): Promise<void> {
+  await setTournamentLock(
+    fixture.tournamentId,
+    new Date(Date.now() - 60_000).toISOString(),
+  )
 }
 
 export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfaceFixture> {
@@ -140,11 +147,12 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
     })
     if (scoreError) throw scoreError
 
-    const { error: lockError } = await admin
-      .from('tournaments')
-      .update({ lock_at: new Date(Date.now() - 60_000).toISOString() })
-      .eq('id', tournamentId)
-    if (lockError) throw lockError
+    // Start before lock so the browser proves the safe hidden profile state and
+    // absence of H2H. The test advances this exact fixture through lock later.
+    await setTournamentLock(
+      tournamentId,
+      new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    )
 
     return {
       leagueId,
@@ -158,7 +166,7 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
   } catch (error) {
     if (leagueId) await admin.from('leagues').delete().eq('id', leagueId)
     if (rivalId) await admin.auth.admin.deleteUser(rivalId)
-    if (tournamentId) await restoreTournamentLock(tournamentId, originalLockAt)
+    if (tournamentId) await setTournamentLock(tournamentId, originalLockAt)
     throw error
   }
 }
@@ -172,6 +180,6 @@ export async function clearH2HSurfaceFixture(fixture: H2HSurfaceFixture): Promis
     const { error: userError } = await admin.auth.admin.deleteUser(fixture.rivalId)
     if (userError) throw userError
   } finally {
-    await restoreTournamentLock(fixture.tournamentId, fixture.originalLockAt)
+    await setTournamentLock(fixture.tournamentId, fixture.originalLockAt)
   }
 }

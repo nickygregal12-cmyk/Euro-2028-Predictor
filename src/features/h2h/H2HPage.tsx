@@ -205,6 +205,11 @@ export function H2HPage() {
     <div className={s.page}>
       {header}
       <H2HScreen you={state.you} rival={state.rival} split={state.split} />
+      {rivalId && (
+        <Button variant="secondary" fullWidth onClick={() => navigate(`/profile/${rivalId}`)}>
+          View player profile
+        </Button>
+      )}
     </div>
   )
 }
