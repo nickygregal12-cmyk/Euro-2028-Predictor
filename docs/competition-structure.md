@@ -17,7 +17,7 @@ Source of truth for how competitions relate. The core law: **the Original Predic
 
 - **The shipped nav is the full 5-tab set:** Home / Predict / Matches / League / More (Matches joined when the Match Centre shipped, 2026-07-21 — tabs proved to be config; no rebuild).
 - **League** = Original Predictor only, permanently.
-- **Bonus Games hub lives at More → Games (/games)** — built 2026-07-28 (contract 50): per-game state from the single resolver, entry status, deadlines and voluntary registration/withdrawal. Per-game score/survival detail arrives with each game (B5–B7); no game itself exists yet.
+- **Bonus Games hub lives at More → Games (/games)** — built 2026-07-28 (contract 50): per-game state from the single resolver, entry status, deadlines and voluntary registration/withdrawal. Per-game surfaces: `/games/knockout` (shared store), `/games/ko-predictor` (standings), `/games/lms` (survival), `/games/cup` (group + ties).
 
 ## 3. Original Predictor private leagues (shipped)
 
