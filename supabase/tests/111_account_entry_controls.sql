@@ -98,22 +98,31 @@ select is(
     'scores', 2, 'tie_resolutions', 0, 'group_positions', 0,
     'progression', 0, 'awards', 1
   ),
-  'the clear wipes exactly the caller''s own prediction rows'
+  'the clear reports exactly the caller''s removed Original rows'
 );
 
 select is(
   (
     select (
-      (select count(*) from public.match_predictions p
+      (select count(*) from public.entries e
+        where e.id = md5('acct-entry-1')::uuid)
+      + (select count(*) from public.match_predictions p
         where p.entry_id = md5('acct-entry-1')::uuid)
       + (select count(*) from public.bonus_predictions b
         where b.entry_id = md5('acct-entry-1')::uuid)
     )::integer
-      + case when entry.submitted_at is null then 0 else 100 end
-    from public.entries entry where entry.id = md5('acct-entry-1')::uuid
   ),
   0,
-  'nothing remains and the submitted flag is reset'
+  'the old entry identity and every tested Original child row are gone'
+);
+
+-- A later provider reload creates a fresh empty entry. Use that fresh identity
+-- to prove the same RPC still refuses after the tournament lock.
+insert into public.entries (id, user_id, tournament_id)
+values (
+  md5('acct-entry-after-clear')::uuid,
+  md5('acct-user-1')::uuid,
+  current_setting('test.acct_tournament_id')::uuid
 );
 
 update public.tournaments
