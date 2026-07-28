@@ -476,7 +476,9 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- The separation law as a schema fact
+-- The separation law as a schema fact. The platform tables are enumerated
+-- explicitly: bonus_predictions is the Original Predictor's own bonus-question
+-- feature and legitimately references entries.
 -- ---------------------------------------------------------------------------
 
 select is(
@@ -488,7 +490,14 @@ select is(
       and ccu.constraint_schema = tc.constraint_schema
     where tc.constraint_type = 'FOREIGN KEY'
       and tc.table_schema = 'public'
-      and tc.table_name like 'bonus\_%'
+      and tc.table_name in (
+        'bonus_competitions',
+        'bonus_competition_windows',
+        'bonus_window_fixtures',
+        'bonus_competition_entrants',
+        'bonus_score_events',
+        'bonus_competition_audit'
+      )
       and ccu.table_name in ('entries', 'leagues', 'league_members', 'score_events', 'rank_history')
   ),
   0,
