@@ -24,6 +24,9 @@ const OverallStandingsPage = lazy(() => import('./features/league/OverallStandin
 const LeagueDetailPage = lazy(() => import('./features/leagues/LeagueDetailPage').then((m) => ({ default: m.LeagueDetailPage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
+const AccountPage = lazy(() =>
+  import('./features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
+)
 const GamesPage = lazy(() => import('./features/games/GamesPage').then((m) => ({ default: m.GamesPage })))
 const KnockoutPredictionsPage = lazy(() => import('./features/games/KnockoutPredictionsPage').then((m) => ({ default: m.KnockoutPredictionsPage })))
 const KoPredictorStandingsPage = lazy(() => import('./features/games/KoPredictorStandingsPage').then((m) => ({ default: m.KoPredictorStandingsPage })))
@@ -90,6 +93,7 @@ export default function App() {
                     <Route path="/matches" element={<MatchesPage />} />
                     <Route path="/match/:matchRef" element={<MatchCentrePage />} />
                     <Route path="/more" element={<MorePage />} />
+                    <Route path="/account" element={<AccountPage />} />
                     <Route path="/games" element={<GamesPage />} />
                     <Route path="/games/knockout" element={<KnockoutPredictionsPage />} />
                     <Route path="/games/ko-predictor" element={<KoPredictorStandingsPage />} />

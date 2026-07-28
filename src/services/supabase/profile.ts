@@ -31,6 +31,44 @@ export async function fetchMyProfile(userId: string): Promise<Profile | null> {
  * user as already welcomed — a missing column must never trap anyone on a
  * welcome screen. Real reads return the actual value (null = show it).
  */
+export type MyAccount = { displayName: string; reminderEmails: boolean }
+
+/** The private Account read: own display name and preferences. */
+export async function fetchMyAccount(userId: string): Promise<MyAccount | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('display_name, reminder_emails')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  return { displayName: data.display_name, reminderEmails: data.reminder_emails }
+}
+
+/** Rename the own profile; the server moderation trigger is the gate. */
+export async function updateMyDisplayName(
+  userId: string,
+  displayName: string,
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: displayName })
+    .eq('id', userId)
+  if (error) throw error
+}
+
+/** The deadline-reminder opt-out (design-system §Account — default on). */
+export async function updateReminderEmails(
+  userId: string,
+  reminderEmails: boolean,
+): Promise<void> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ reminder_emails: reminderEmails })
+    .eq('id', userId)
+  if (error) throw error
+}
+
 export async function fetchWelcomedAt(userId: string): Promise<{ welcomedAt: string | null }> {
   try {
     const { data, error } = await supabase

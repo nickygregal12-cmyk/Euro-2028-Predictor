@@ -176,3 +176,15 @@ export async function deleteMatchPrediction(
   }
   return data as boolean
 }
+
+/**
+ * The Account danger-zone clear (contract 57): one atomic pre-lock wipe of the
+ * caller's own entry — scores, ties, positions, bracket, awards — and the
+ * submitted flag. The server refuses post-lock.
+ */
+export async function clearMyPredictions(tournamentId: string): Promise<void> {
+  const { error } = await supabase.rpc('clear_my_predictions', {
+    p_tournament_id: tournamentId,
+  })
+  if (error) throw error
+}

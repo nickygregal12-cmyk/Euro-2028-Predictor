@@ -21,6 +21,8 @@ type AuthContextValue = {
   welcomeStatus: WelcomeStatus
   markWelcomed: () => void
   signOut: () => Promise<void>
+  // Re-reads the profile (display name) after an Account-page change.
+  refreshProfile: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -28,6 +30,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
+  const [profileNonce, setProfileNonce] = useState(0)
   const [loading, setLoading] = useState(true)
   const [welcomeStatus, setWelcomeStatus] = useState<WelcomeStatus>('loading')
 
@@ -70,7 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false
     }
-  }, [userId])
+  }, [userId, profileNonce])
+
+  function refreshProfile() {
+    setProfileNonce((nonce) => nonce + 1)
+  }
 
   function markWelcomed() {
     // Optimistic: advance the gate immediately so navigation off /welcome is
@@ -89,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ userId, displayName, loading, welcomeStatus, markWelcomed, signOut }}
+      value={{ userId, displayName, loading, welcomeStatus, markWelcomed, signOut, refreshProfile }}
     >
       {children}
     </AuthContext.Provider>
