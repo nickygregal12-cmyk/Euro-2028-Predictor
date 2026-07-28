@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_ENABLED?: string
   readonly VITE_SENTRY_DSN?: string
   readonly VITE_SENTRY_VERIFICATION_EVENT?: string
+  // Optional public support address shown only as a mailto link on Account.
+  readonly VITE_SUPPORT_EMAIL?: string
 }
 
 interface ImportMeta {
