@@ -68,9 +68,11 @@ export default defineConfig(({ command, mode }) => {
       globals: true,
       environment: 'jsdom',
       setupFiles: './tests/setup.ts',
-      // Keep CI memory bounded as the suite grows; local runs retain Vitest's
-      // default worker selection for faster developer feedback.
-      maxWorkers: process.env.CI ? 2 : undefined,
+      // GitHub's hosted runner has a 4 GB V8 heap. Run test files serially in CI
+      // so the growing jsdom suite cannot exhaust it; local runs keep Vitest's
+      // normal parallel worker selection for faster feedback.
+      maxWorkers: process.env.CI ? 1 : undefined,
+      fileParallelism: process.env.CI ? false : undefined,
       // Playwright owns the real-browser suite. Keeping it out of Vitest prevents
       // either runner from interpreting the other runner's test API.
       exclude: [...configDefaults.exclude, 'e2e/**', 'production-smoke/**'],
