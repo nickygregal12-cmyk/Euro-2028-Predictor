@@ -112,8 +112,9 @@ insert into auth.users (
   now()
 );
 
-set local session_replication_role = origin;
-
+-- Actual knockout participants are server-owned (the Round-of-16 population
+-- boundary), so this rollback-only fixture stages them under replica mode,
+-- exactly as the auth.users fixture above does.
 -- Match A: scheduled knockout tie with both teams known.
 update public.matches
 set kickoff_at = now() + interval '2 hours',
@@ -125,6 +126,8 @@ where id = current_setting('test.kp_match_a')::uuid;
 update public.matches
 set kickoff_at = null
 where id = current_setting('test.kp_match_b')::uuid;
+
+set local session_replication_role = origin;
 
 -- ---------------------------------------------------------------------------
 -- Structure and closed execution
@@ -379,9 +382,11 @@ select is(
 
 reset role;
 
+set local session_replication_role = replica;
 update public.matches
 set kickoff_at = now() - interval '1 minute'
 where id = current_setting('test.kp_match_a')::uuid;
+set local session_replication_role = origin;
 
 set local role authenticated;
 
