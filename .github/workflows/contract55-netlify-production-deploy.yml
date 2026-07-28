@@ -99,7 +99,9 @@ jobs:
         working-directory: source
         run: |
           set -euo pipefail
-          proxy_path="$(cat /tmp/proxy-path.txt)"
+          raw_proxy="$(cat /tmp/proxy-path.txt)"
+          proxy_path="${raw_proxy/https:\/\/netlify-mcp.netlify.app\/\/proxy\//https:\/\/netlify-mcp.netlify.app\/proxy\/}"
+          echo "::add-mask::$raw_proxy"
           echo "::add-mask::$proxy_path"
           npx -y @netlify/mcp@latest \
             --site-id c69da01a-4650-43db-a1d2-b78b7f8e198a \
