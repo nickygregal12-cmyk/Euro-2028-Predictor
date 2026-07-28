@@ -142,15 +142,23 @@ touches Original Predictor points, jokers or standings (§1 separation law).
   through the final round are champions — co-champions possible. Elimination
   is permanent. Survival is fully re-derived inside the single result
   operation, so corrections re-eliminate or un-eliminate automatically.
-- **Predictor Cup (group stage implemented, contract 55; knockouts follow):**
-  per Cup matchday, raw **Exact 5 / Correct result 3 / 0** (regulation time
-  only, jokers never) over the round's designated real fixtures — group
-  scorelines from the Original entry, knockout scorelines from the shared
-  store. Head-to-head: higher total wins 3 table points, equal totals draw
-  1–1; one submitter wins by walkover, two non-submitters void the fixture.
-  Nothing settles before the round deadline and official confirmation, and
-  a missing prediction carries a 999-per-fixture scoreline-error sentinel in
-  tie-breaks. Full rules: `docs/predictor-cup-rules.md`.
+- **Predictor Cup (complete — group stage at contract 55, qualification and
+  knockouts at contract 56):** per Cup matchday, raw **Exact 5 / Correct
+  result 3 / 0** (regulation time only, jokers never) over the round's
+  designated real fixtures — group scorelines from the Original entry,
+  knockout scorelines from the shared store. Head-to-head: higher total wins
+  3 table points, equal totals draw 1–1; one submitter wins by walkover, two
+  non-submitters void the fixture. Nothing settles before the round deadline
+  and official confirmation, and a missing prediction carries a
+  999-per-fixture scoreline-error sentinel in tie-breaks. **Knockouts:** a
+  tied tie resolves by Extra-Time Accuracy (lower total scoreline error)
+  then the mandatory **Penalty Number** (predicted total regulation goals in
+  the round; the better seed holds the odd lane, the opponent the even lane,
+  so it can never tie); missing submissions route to walkover rules, with
+  the better seed advancing by administrative walkover when neither side
+  submits. The champion wins the final; the **Golden Predictor** (highest
+  cumulative Cup prediction points, elimination irrelevant) is a separate
+  honour. Full rules: `docs/predictor-cup-rules.md`.
 
 ## Open items / things to revisit later
 
