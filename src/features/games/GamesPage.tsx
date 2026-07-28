@@ -260,6 +260,11 @@ export function GamesPage() {
                     Enter
                   </Button>
                 ) : null}
+                {game.competition.gameKey === 'ko_predictor' ? (
+                  <Button variant="secondary" onClick={() => navigate('/games/ko-predictor')}>
+                    Standings
+                  </Button>
+                ) : null}
                 {canWithdraw ? (
                   <Button
                     variant="secondary"

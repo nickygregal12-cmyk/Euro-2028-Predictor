@@ -66,13 +66,15 @@ insert into expected_authenticated_functions (signature) values
 
 -- Contract 49: the Bonus Games hub read plus voluntary entry and withdrawal.
 -- Contract 50: the shared knockout prediction store.
+-- Contract 51: the bounded KO Predictor standings read.
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
   ('withdraw_bonus_competition(uuid)'),
   ('save_knockout_prediction(uuid,smallint,smallint,uuid,integer)'),
   ('delete_knockout_prediction(uuid,integer)'),
-  ('get_my_knockout_predictions(uuid)');
+  ('get_my_knockout_predictions(uuid)'),
+  ('get_ko_predictor_standings(uuid,integer,text)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
@@ -80,7 +82,8 @@ insert into expected_service_functions (signature) values
   ('withdraw_bonus_competition(uuid)'),
   ('save_knockout_prediction(uuid,smallint,smallint,uuid,integer)'),
   ('delete_knockout_prediction(uuid,integer)'),
-  ('get_my_knockout_predictions(uuid)');
+  ('get_my_knockout_predictions(uuid)'),
+  ('get_ko_predictor_standings(uuid,integer,text)');
 
 create temporary view public_function_privileges as
 select

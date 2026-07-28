@@ -57,3 +57,25 @@
 .teamName:last-child {
   text-align: right;
 }
+
+.standingsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.standingsTable th,
+.standingsTable td {
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line, #e4e7ec);
+}
+
+.standingsTable th:nth-child(n + 3),
+.standingsTable td:nth-child(n + 3) {
+  text-align: right;
+}
+
+.ownRow {
+  font-weight: 700;
+}
