@@ -222,6 +222,7 @@ export function ProfilePage() {
         }}
         locked={state.locked}
         onViewEntry={() => navigate('/predict/review')}
+        onEdit={() => navigate('/account#display-name')}
       />
     </div>
   )
