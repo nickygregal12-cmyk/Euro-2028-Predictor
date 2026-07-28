@@ -5,7 +5,7 @@
 // Supabase, no React, no Original Predictor imports.
 //
 // The state SET is canonical (§8). The PRECEDENCE between simultaneously true
-// states is proposed here and is recorded in ADR-0004 pending owner sign-off —
+// states is proposed here and is recorded in ADR-0010 pending owner sign-off —
 // it mirrors the Home action priority queue (§6), which is canonical, so that
 // the Games hub and Home never disagree about what a user should do next.
 
