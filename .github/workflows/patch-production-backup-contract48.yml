@@ -1,0 +1,54 @@
+name: Patch production backup to contract 48
+
+on:
+  push:
+    branches:
+      - release/production-smoke-contract48
+    paths:
+      - .github/workflows/patch-production-backup-contract48.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/production-smoke-contract48
+          fetch-depth: 0
+      - name: Update backup contract and its executable assertion
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('.github/workflows/production-backup.yml'): [
+                  ("EXPECTED_MIGRATION_COUNT: '44'", "EXPECTED_MIGRATION_COUNT: '48'"),
+                  ("EXPECTED_LATEST_MIGRATION_VERSION: '20260727191942'", "EXPECTED_LATEST_MIGRATION_VERSION: '20260728122500'"),
+                  ('EXPECTED_LATEST_MIGRATION_NAME: operating_cap_enforcement', 'EXPECTED_LATEST_MIGRATION_NAME: h2h_rank_history'),
+              ],
+              Path('tests/scripts/productionBackupWorkflow.test.ts'): [
+                  ('restored migration history at the contract-44 head', 'restored migration history at the contract-48 head'),
+                  ("EXPECTED_MIGRATION_COUNT: '44'", "EXPECTED_MIGRATION_COUNT: '48'"),
+                  ("EXPECTED_LATEST_MIGRATION_VERSION: '20260727191942'", "EXPECTED_LATEST_MIGRATION_VERSION: '20260728122500'"),
+                  ('EXPECTED_LATEST_MIGRATION_NAME: operating_cap_enforcement', 'EXPECTED_LATEST_MIGRATION_NAME: h2h_rank_history'),
+              ],
+          }
+
+          for path, pairs in replacements.items():
+              text = path.read_text()
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'Missing expected text in {path}: {old}')
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .github/workflows/production-backup.yml tests/scripts/productionBackupWorkflow.test.ts
+          git commit -m 'Align production backup with contract 48'
+          git push origin HEAD:release/production-smoke-contract48
