@@ -39,10 +39,13 @@ jobs:
         run: |
           set -euo pipefail
           : > /tmp/euro28-vitest.log
-          shard_count=30
+          # The suite currently contains fewer than 120 files. Using more shards
+          # than files gives each populated shard one file and starts a fresh Node
+          # process for it; empty shards are accepted explicitly.
+          shard_count=120
           for shard in $(seq 1 "$shard_count"); do
             echo "=== Vitest shard ${shard}/${shard_count} ===" | tee -a /tmp/euro28-vitest.log
-            npm run test -- --shard="${shard}/${shard_count}" 2>&1 | tee -a /tmp/euro28-vitest.log
+            npm run test -- --shard="${shard}/${shard_count}" --passWithNoTests 2>&1 | tee -a /tmp/euro28-vitest.log
           done
       - name: Upload failure diagnostics
         if: failure()
