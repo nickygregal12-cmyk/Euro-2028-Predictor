@@ -18,8 +18,7 @@
 - safe immutable result revision history;
 - regulation, extra-time, penalty and unresolved-participant handling;
 - authorised/unauthorised desktop and mobile Browser E2E;
-- production assignment/revocation model based on server-owned Auth
-  `app_metadata`, never `profiles.role`.
+- production assignment/revocation model based on server-owned Auth `app_metadata`, never `profiles.role`.
 
 Exit met: an authorised administrator can manage the full result lifecycle; ordinary users cannot. One owner-controlled production results administrator is assigned through the narrow `results` capability.
 
@@ -75,7 +74,7 @@ Delivered through PR #131 and contract 42:
 - existing RPC signatures, ownership and co-membership rules preserved;
 - all five bounded security-definer reads moved to an empty immutable search path;
 - 17 excess-data database assertions using 251 users, 21 leagues and 251 league members;
-- clean rebuild from 42 canonical migrations; production remained at contract 38 at delivery time.
+- clean rebuild from 42 canonical migrations.
 
 Exit met: current Original Predictor standings and comparison payloads cannot grow beyond the intended operating bounds.
 
@@ -87,8 +86,7 @@ Delivered through PR #134 and contract 43:
 - 50 rows by default, 100 maximum, deterministic opaque cursors;
 - independent current-user position context;
 - all other contract-42 read bounds unchanged;
-- database (`099_paginated_overall_leaderboard`) and browser (`e2e/overall-standings.spec.ts`) proof;
-- production remained at contract 38 at delivery time.
+- database and browser standings proof.
 
 Exit met: overall standings pages are bounded and deterministic at any submitted-entry volume.
 
@@ -98,48 +96,66 @@ Delivered through PR #136 and contract 44:
 
 - a private singleton operating-limit record seeded to 50 public users and 20 total leagues (250 remains the tested technical capacity; the public signup limit stays fail-closed at 50 pending SMTP verification);
 - signup and league-creation counters serialised with transaction advisory locks;
-- `BEFORE INSERT` enforcement on `auth.users` and `public.leagues`;
-- an anonymous-safe aggregate capacity RPC and a service-role-only limit adjustment RPC;
+- authoritative write-boundary enforcement on `auth.users` and `public.leagues`;
+- anonymous-safe capacity preflight and service-role-only adjustment;
 - full registration and league-cap states with contact-admin guidance;
-- a 24-assertion database lifecycle plus authenticated capacity browser journeys;
-- clean rebuild from 44 canonical migrations; production was subsequently promoted and released at contract 44.
+- database concurrency assertions and authenticated capacity browser journeys;
+- production subsequently promoted and released at contract 44.
 
 Exit met: the operating caps are enforced under concurrency at the authoritative write boundaries.
 
-## Stage 3C2 — Representative scale and surface evidence: closing
+## Stage 3C2 — Representative scale and surface evidence: complete
 
-Completed:
+Delivered through PRs #138 and #141:
 
-1. Seed representative volumes without weakening production isolation. Rollback-only fixtures cover 250 submitted entries and a separate 250-member private league; no synthetic hosted data was retained.
-2. Capture non-league read and recomputation evidence — `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`.
-3. Capture private-league pagination, caller-context, owner-search and lightweight-summary evidence — `docs/quality/investigations/2026-07-28-stage-3c2-private-league-evidence.md`.
-4. Measure score recomputation and rank-history capture at representative submitted-entry volume: ~354 ms / ~4 ms at 250 entries with 12 results. Re-measure at full result volume during the dress rehearsal.
-5. Apply contracts 45–46 to development with canonical history and move non-production Netlify contexts to the matching contract; production remains locked at 44.
-6. Merge PR #138 after green CI, Database parity, Browser E2E and exact-head preview smoke, delivering paginated private-league standings and owner-only transfer search.
-7. Through PR #141, repair Profile/H2H background refresh and retry states, use authoritative H2H headline totals, retain bounded rival/standings reads and prove league-to-H2H on desktop and phone.
+- rollback-only evidence at 250 submitted entries and a separate 250-member private league;
+- non-league read, recomputation and rank-history measurements;
+- server-ranked private-league keyset pagination, independent caller context and owner-only transfer search;
+- five-page deterministic private-league traversal and hosted query-plan/response-size evidence;
+- own Profile and H2H retry/background-refresh repairs;
+- authoritative H2H headline totals;
+- desktop/phone league-to-H2H surface evidence;
+- contracts 45–46 applied to development and non-production only; production remained contract 44.
 
-Close-out:
+Exit met: core Original Predictor reads and recomputation remain correct and responsive at the operating caps, and the principal own Profile/H2H/league comparison journeys have resilient states with recorded evidence.
 
-1. Merge PR #141 after exact-head CI, authenticated Browser E2E and preview smoke are green.
-2. Carry resilient loading/empty/retry/error treatment into each Stage 4 surface rather than creating another broad pre-product audit batch.
-3. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+## Stage 4 — Core product experience: current
 
-Exit: core Original Predictor reads and recomputation remain correct and responsive at the operating caps, and the principal Profile/H2H/league comparison journeys have complete resilient states with recorded desktop/mobile evidence.
+### Stage 4A — Secure other-player profiles: closing
 
-## Stage 4 — Core product experience: next
+PR #143 and contract 47 deliver:
 
-Build in this order after PR #141:
+- a co-member-only, bounded profile read with self access;
+- identity, tournament league count and submitted-entry state only before lock;
+- authoritative rank/points plus maximum 36 group predictions, 24 progression rows and 100 score events after lock;
+- explicit post-lock no-entry state;
+- outsider denial server-side, empty security-definer search path and exact execution grants;
+- real private-league Profile navigation before and after lock;
+- two-way Profile/H2H navigation while overall standings remain non-clickable under the current privacy rule;
+- strict response parsing, pgTAP access/bounds tests, unit coverage and authenticated desktop/mobile lock-transition journeys;
+- development-hosted timing, payload and rollback evidence;
+- contract 47 applied to development and non-production only; production remains contract 44.
 
-1. complete other-player profiles and the richer H2H layer;
-2. add rank-over-time and bracket health;
-3. expand Match Centre and tournament states;
-4. add account, privacy and contact-admin surfaces;
-5. add post-lock trends;
-6. finish mobile, empty/error-state and accessibility work alongside each feature rather than as a late cleanup pass.
+Close-out: merge PR #143 after exact-head CI, Database parity, Browser E2E and preview smoke are green.
+
+### Stage 4B — Richer H2H, rank-over-time and bracket health: next
+
+1. expose bounded rank-history checkpoints for the current user and authorised co-members;
+2. add a clear rank-over-time graph with accessible non-visual equivalents;
+3. define bracket-health metrics from predicted progression, actual advancement and remaining possible points;
+4. add richer H2H comparison without mixing Original and bonus scores or widening the co-member privacy boundary;
+5. carry loading, empty, retry, error, mobile and accessibility states within the same batch.
+
+### Later Stage 4 sequence
+
+1. expand Match Centre and tournament states;
+2. add account, privacy and contact-admin surfaces;
+3. add post-lock trends;
+4. complete remaining mobile, empty/error-state and accessibility work alongside each feature rather than as a late cleanup pass.
 
 ## Stage 5 — Bonus competitions
 
-Build only after the Original Predictor lifecycle and integrity/scale stage are proven:
+Build only after the Original Predictor lifecycle and core experience are proven:
 
 1. KO Predictor;
 2. Last Man Standing;
