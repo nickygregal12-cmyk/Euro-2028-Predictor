@@ -12,6 +12,7 @@ import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
 import { createMatchCentrePageModel } from '../../domain/tournament/matchCentrePageModel'
+import { adjacentMatchRefs } from '../../domain/tournament/matchNavigation'
 import {
   authoritativeMatchScore,
   authoritativeWinnerSide,
@@ -85,6 +86,7 @@ export function MatchCentrePage() {
   })
   const [saidLoading, setSaidLoading] = useState(true)
   const [saidError, setSaidError] = useState<string | null>(null)
+  const [saidReloadKey, setSaidReloadKey] = useState(0)
   const [consequence, setConsequence] = useState<{
     casualties: number
     example: string | null
@@ -144,6 +146,14 @@ export function MatchCentrePage() {
     data.status === 'ready'
       ? data.data.matches.find((candidate) => candidate.matchRef === matchRef)
       : undefined
+
+  const adjacent = useMemo(
+    () =>
+      data.status === 'ready' && matchRef
+        ? adjacentMatchRefs(data.data.matches, matchRef)
+        : { previous: null, next: null },
+    [data, matchRef],
+  )
 
   const teamsById = useMemo(
     () =>
@@ -266,7 +276,7 @@ export function MatchCentrePage() {
     return () => {
       active = false
     }
-  }, [match, scope, preds, teamsById])
+  }, [match, scope, preds, teamsById, saidReloadKey])
 
   if (data.status === 'error') {
     return (
@@ -276,14 +286,42 @@ export function MatchCentrePage() {
           title="Couldn't load this match"
           description={data.message}
         />
+        <Button variant="secondary" fullWidth onClick={data.reload}>
+          Retry match data
+        </Button>
         <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
           Back to Home
         </Button>
       </div>
     )
   }
-  if (data.status !== 'ready' || !preds.ready) {
-    return <div className={s.page} />
+  if (data.status !== 'ready') {
+    return (
+      <div className={s.page} role="status" aria-live="polite">
+        <p>Loading match…</p>
+      </div>
+    )
+  }
+  if (preds.loadStatus === 'error') {
+    return (
+      <div className={s.page}>
+        <EmptyState
+          icon={<CalendarIcon size={22} />}
+          title="Couldn't load your prediction context"
+          description={preds.loadMessage ?? 'Your saved predictions remain safe.'}
+        />
+        <Button variant="secondary" fullWidth onClick={preds.retryInitialLoad}>
+          Retry predictions
+        </Button>
+      </div>
+    )
+  }
+  if (!preds.ready) {
+    return (
+      <div className={s.page} role="status" aria-live="polite">
+        <p>Loading your prediction context…</p>
+      </div>
+    )
   }
   if (!match) {
     return (
@@ -293,11 +331,21 @@ export function MatchCentrePage() {
           title="Match not found"
           description={`No fixture matches "${matchRef}".`}
         />
+        <Button variant="secondary" fullWidth onClick={data.reload}>
+          Retry match data
+        </Button>
         <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
           Back to Home
         </Button>
       </div>
     )
+  }
+
+  const navigateToMatch = (nextMatchRef: string) => {
+    const params = new URLSearchParams()
+    if (scope.type === 'league') params.set('league', scope.id)
+    const query = params.toString()
+    navigate(`/match/${nextMatchRef}${query ? `?${query}` : ''}`)
   }
 
   const td = data.data
@@ -379,6 +427,11 @@ export function MatchCentrePage() {
       said={said}
       saidLoading={saidLoading}
       saidError={saidError}
+      onRetrySaid={() => setSaidReloadKey((key) => key + 1)}
+      onPreviousMatch={
+        adjacent.previous ? () => navigateToMatch(adjacent.previous as string) : undefined
+      }
+      onNextMatch={adjacent.next ? () => navigateToMatch(adjacent.next as string) : undefined}
       consequence={consequence}
       scoreEvents={events}
       onBack={onBack}
