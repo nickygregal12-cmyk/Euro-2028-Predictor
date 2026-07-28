@@ -16,17 +16,17 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository, development and non-production Netlify are at contract `47`; production database and application are intentionally aligned and locked at contract `44`.
+Repository and development Supabase are at contract `48`; non-production Netlify still declares `47` pending an owner environment update; production database and application are intentionally aligned and locked at contract `44`.
 
-- canonical repository migration history contains exactly 47 versions through `20260728113000_other_player_profiles.sql`;
-- development Supabase is `iouzoutneyjpugbbtdem` and records the same 47 canonical versions;
+- canonical repository migration history contains exactly 48 versions through `20260728150000_bonus_games_platform.sql`;
+- development Supabase is `iouzoutneyjpugbbtdem` and records the same 48 canonical versions;
 - production Supabase is `vkfnsqdyhvtwyqkisxhk` and remains at 44 canonical versions through `20260727191942_operating_cap_enforcement.sql`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` declare contract 47 and use development Supabase;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and require `EURO28_DEPLOYED_DB_CONTRACT=48` before their next deploy;
 - Netlify `production` declares contract 44, uses production Supabase and serves deploy `6a686e30f2f13c07f10e30d8` from commit `515e794aa483a779c971e16a364fcbd243fa7ee6`;
 - production remains milestone-locked and normal development must not publish or migrate it automatically;
 - encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
 
-Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member player profiles are delivered through contract 47; the next product batch is richer H2H with rank-over-time and bracket health.
+Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member player profiles are delivered through contract 47, and contract 48 adds the deny-all Bonus Games platform schema (ADR-0010 B1–B2, no browser surface yet); the next product batch is richer H2H with rank-over-time and bracket health.
 
 ## Development operating mode
 

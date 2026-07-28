@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development Supabase and non-production Netlify are at contract 47.
+- Repository and development Supabase are at contract 48; non-production Netlify still declares 47 pending an owner environment update.
 - Production Supabase and the published production application are aligned and locked at contract 44.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
@@ -48,11 +48,10 @@ Ordinary development does not require production backup, production smoke or a n
 
 ## Current order
 
-1. Complete and merge PR #143 after exact-head CI, Database parity, authenticated Browser E2E and preview smoke.
-2. Build richer H2H with bounded rank-over-time and bracket health.
-3. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends.
-4. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-5. Add bonus competitions only after the Original Predictor lifecycle and core experience are proven.
+1. Build richer H2H with bounded rank-over-time and bracket health.
+2. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends.
+3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
+4. Bonus Games platform foundation (ADR-0010 B1 domain + B2 deny-all schema) is delivered at contract 48; game surfaces (B3+) wait until the Original Predictor core experience is proven.
 
 Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 
