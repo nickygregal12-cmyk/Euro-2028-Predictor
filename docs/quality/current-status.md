@@ -9,35 +9,36 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository contract | 46 canonical migrations through `20260727221000_private_league_summary_activity.sql` |
-| Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136 and #138 cover the full tournament lifecycle, automatic valid-entry recovery, bounded/paginated Original Predictor reads, operating-cap enforcement and private-league scale evidence; PR #141 closes the Profile/H2H resilient-state pass |
+| Repository contract | 47 canonical migrations through `20260728113000_other_player_profiles.sql` |
+| Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136, #138 and #141 cover the lifecycle, recovery, bounded/paginated reads, operating caps and Profile/H2H resilience; PR #143 adds secure other-player profiles |
 | Verified production release source | `515e794aa483a779c971e16a364fcbd243fa7ee6` |
-| Development Supabase | `iouzoutneyjpugbbtdem` — contract 46 applied, canonical history aligned and baseline data unchanged |
+| Development Supabase | `iouzoutneyjpugbbtdem` — contract 47 applied with canonical history, exact privileges and unchanged baseline data |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — **contract 44** applied 28 July 2026 after a fresh green backup (run `30337648499`); remains locked at the milestone |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 46 and use development Supabase; `production` declares 44 and uses production Supabase |
+| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 47 and use development Supabase; `production` declares 44 and uses production Supabase |
 | Published production deploy | `6a686e30f2f13c07f10e30d8` from `515e794aa483a779c971e16a364fcbd243fa7ee6` — contract 44, ready and manually verified signed-in |
 | Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |
 | Production smoke | contract-44 release identity and signed-in operation manually verified; the exact-head Production Smoke workflow remains an operational follow-up |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 44. Contracts 45–46 are development-only and must not be promoted to production without a later approved milestone gate.
+Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 44. Contracts 45–47 are development-only and must not be promoted to production without a later approved milestone gate.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Intentionally split.** Repository, development and non-production Netlify are at contract 46; production database and application are aligned and locked at contract 44. |
+| Contract alignment | **Intentionally split.** Repository, development and non-production Netlify are at contract 47; production database and application are aligned and locked at contract 44. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven; one owner-controlled production results administrator is assigned through server-owned Auth metadata. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |
 | Automatic valid-entry recovery | **Implemented.** A database-owned one-minute job submits only complete valid entries at lock, records immutable outcomes and exposes success/failure only to the entry owner. |
 | Bounded Original Predictor reads | **Implemented.** Overall and private-league standings use server-ranked keyset pagination, independent caller context and deterministic ordering; owner transfer uses a separate bounded search. |
-| Operating-cap enforcement | **Implemented.** Contract 44 serialises signup and league-creation counters with advisory locks, enforces the public-user and total-league limits at authoritative write boundaries, and exposes safe capacity controls. The current public signup limit remains 50 pending SMTP verification; 250 is the tested technical capacity. |
-| Representative scale evidence | **Strong at the current cap.** Non-league reads and recomputation are recorded at 250 entries; private-league traversal is recorded at 250 members with five complete 50-row pages, no duplicates and rollback-only hosted evidence. |
+| Operating-cap enforcement | **Implemented.** Contract 44 serialises signup and league-creation counters with advisory locks, enforces public-user and total-league limits at authoritative write boundaries, and exposes safe capacity controls. The current public signup limit remains 50 pending SMTP verification; 250 is the tested technical capacity. |
+| Representative scale evidence | **Strong at the current cap.** Non-league reads/recomputation are recorded at 250 entries; private-league traversal is recorded at 250 members with complete deterministic pages and rollback-only hosted evidence. |
 | Tournament database lifecycle | **Proven.** Deterministic 51-match, boundary-tie, automatic-submission and excess-data pgTAP journeys cover the full lifecycle and intended read boundaries. |
-| Product-facing result lifecycle | **Proven.** Match Centre, fixtures and H2H consume server-owned result/winner data. H2H headline points now use authoritative standings/rival totals rather than a partial browser recomputation. |
-| Profile/H2H resilience | **Proven.** Profile and H2H react to current tournament/prediction provider values, expose retry actions for transient/partial failures and retain bounded server contracts; league-to-H2H is browser-proven on desktop and phone. |
-| Browser/reset lifecycle | **Proven.** Authenticated journeys cover real group completion, knockout results, boundary resolution, automatic submission, private-league pagination/ownership transfer and Profile/H2H comparison surfaces on disposable local Supabase. |
-| Launch readiness | **Not ready.** Official data, remaining product states, accessibility, operational ownership and the later full dress rehearsal remain. |
+| Product-facing result lifecycle | **Proven.** Match Centre, fixtures and H2H consume server-owned result/winner data. H2H headline points use authoritative standings/rival totals rather than partial browser recomputation. |
+| Profile/H2H resilience | **Proven.** Own Profile and H2H react to current provider values, expose retry actions and retain bounded server contracts; league-to-H2H is browser-proven on desktop and phone. |
+| Other-player profile privacy | **Implemented and hosted-proven.** Co-members receive only identity/league/entry state before lock; after lock a submitted entry receives authoritative rank/points and bounded 36/24/100 detail. Outsiders are denied server-side. |
+| Browser/reset lifecycle | **Proven.** Authenticated journeys cover the complete tournament, private-league pagination/ownership transfer and the secure hidden-to-full player-profile transition on desktop and phone. |
+| Launch readiness | **Not ready.** Official data, richer H2H/rank history, remaining product states, accessibility, operational ownership and the later full dress rehearsal remain. |
 
 ## Implemented foundation
 
@@ -54,8 +55,10 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - transactional bracket replay that refuses to rewrite a played knockout fixture;
 - real winner propagation from the Round of 16 through the final;
 - Match Centre, fixtures and H2H consumption of authoritative regulation, extra-time and penalty results;
-- H2H authoritative headline totals from bounded server reads, with browser-derived exact-score/knockout/max-possible comparison statistics;
-- Profile/H2H refresh from current provider values plus explicit retry for partial/transient reads;
+- H2H authoritative headline totals from bounded server reads, with browser-derived comparison statistics;
+- own Profile/H2H refresh from current provider values plus explicit retry for partial/transient reads;
+- co-member-only player profiles with safe pre-lock summary, explicit post-lock no-entry state and bounded full post-lock detail;
+- two-way Profile/H2H navigation while overall standings remain non-clickable under the current privacy boundary;
 - predicted-bracket replay and atomic bracket persistence;
 - version-safe score clearing and immutable result/qualification revisions;
 - overall standings served by server-ranked keyset pagination (50 default / 100 maximum) with deterministic cursors and current-user position context;
@@ -63,8 +66,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - owner-only transfer-candidate search separated from standings, with authoritative membership validation retained;
 - lightweight league summaries retain latest activity without downloading standings;
 - transaction-serialised public-user and total-league operating limits enforced at signup and league creation, with anonymous-safe capacity preflight and service-role-only adjustment;
-- user league lists capped at 20, and match-pick payloads capped at 250;
-- rival-entry payloads fixed to 36 group predictions and 24 tournament teams;
+- user league lists capped at 20, match-pick payloads capped at 250, rival-entry payloads fixed to 36/24 and player-profile detail fixed to 36/24/100;
 - exact function execution allowlists, empty security-definer search paths and closed direct-table access;
 - protected administrator routes and capability parsing;
 - a top-nav app bar on every signed-in screen with section context, theme toggle and avatar access to the user's profile;
@@ -76,7 +78,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 
 ## Immediate product gaps
 
-- complete other-player profiles and the next richer H2H/rank-history/bracket-health product layer;
+- richer H2H with rank-over-time and bracket health;
 - completion, loading, empty, retry and error-state coverage across remaining Match Centre, tournament, account and comparison surfaces;
 - reminder delivery only after Auth/SMTP ownership and reliability are verified;
 - official teams, fixtures, regulations and lock instant;
@@ -97,19 +99,19 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 ## Current next batch
 
-**Stage 3C2 close-out → Stage 4 core product experience**
+**Stage 4A — secure other-player profiles → Stage 4B richer comparison insight**
 
 Completed evidence:
 
-1. Non-league reads at 250 submitted entries remain single-digit milliseconds and kilobytes; full recomputation with 12 results is ~354 ms and rank-history capture ~4 ms — [`investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`](investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md).
-2. Private-league standings traverse all 250 members exactly once across five 50-row pages; warm pages are ~23–24 ms and ~14 kB, owner search is ~3.2 ms and the lightweight summary is ~1.2 ms — [`investigations/2026-07-28-stage-3c2-private-league-evidence.md`](investigations/2026-07-28-stage-3c2-private-league-evidence.md).
-3. PR #138 merged contracts 45–46 after CI, Database parity, Browser E2E and exact-head preview smoke; production remains contract 44.
-4. PR #141 verifies Profile and H2H retry/background-refresh behaviour, authoritative H2H totals, the 56-member league-to-H2H journey and a focused desktop/phone Profile-to-H2H journey.
+1. Stage 3C2 scale and surface evidence is complete through PRs #138 and #141.
+2. Contract 47 rebuilds cleanly from all 47 migrations; database lint, pgTAP, TypeScript/PostgreSQL parity, CI and authenticated desktop/mobile Browser E2E pass.
+3. Development-hosted profile evidence proves a 195 B pre-lock response with no score/pick detail, outsider denial with `42501`, and a 21,273 B fully capped post-lock response in 9.691 ms — [`investigations/2026-07-28-stage-4-secure-player-profile-evidence.md`](investigations/2026-07-28-stage-4-secure-player-profile-evidence.md).
+4. Development and non-production Netlify are at contract 47; production remains contract 44.
 
-Next:
+Current:
 
-1. Close Stage 3C2 after PR #141 merges.
-2. Begin Stage 4 with other-player profile completion and the richer H2H/rank-over-time/bracket-health layer.
+1. Complete PR #143 exact-head preview smoke and merge the secure-profile batch.
+2. Begin richer H2H with rank-over-time and bracket health, reusing existing rank-history checkpoints and preserving co-member privacy.
 3. Continue through Match Centre/tournament states, account/privacy/contact-admin and post-lock trends, repairing resilient states and accessibility alongside each surface.
 4. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
 
