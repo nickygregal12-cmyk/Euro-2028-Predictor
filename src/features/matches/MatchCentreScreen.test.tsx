@@ -41,8 +41,13 @@ describe('MatchCentreScreen resilience controls', () => {
   it('disables an unavailable adjacent direction', () => {
     render(<MatchCentreScreen {...baseProps} onNextMatch={vi.fn()} />)
 
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
+    const previous = screen.getByRole('button', {
+      name: 'Previous',
+    }) as HTMLButtonElement
+    const next = screen.getByRole('button', { name: 'Next' }) as HTMLButtonElement
+
+    expect(previous.disabled).toBe(true)
+    expect(next.disabled).toBe(false)
   })
 
   it('offers an in-place retry when prediction context fails', () => {
@@ -63,7 +68,7 @@ describe('MatchCentreScreen resilience controls', () => {
   it('announces the prediction-context loading state', () => {
     render(<MatchCentreScreen {...baseProps} saidLoading />)
 
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(screen.getByRole('status').textContent).toContain(
       'Loading prediction context…',
     )
   })
