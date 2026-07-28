@@ -12,6 +12,7 @@ test('profile and league-to-H2H surfaces work on desktop and phone', async ({ pa
     await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
     await expect(page.getByText('E2E Tester', { exact: true })).toBeVisible()
     await expect(page.getByText(/\d+ leagues?/, { exact: true })).toBeVisible()
+    await expect(page.getByText('Some profile data is unavailable')).toHaveCount(0)
 
     await page.goto(`/league/${fixture.leagueId}`)
     await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible()
@@ -31,6 +32,11 @@ test('profile and league-to-H2H surfaces work on desktop and phone', async ({ pa
     await expect(
       page.getByText(new RegExp(`\\d+\\s+–\\s+${fixture.rivalPoints}`)),
     ).toBeVisible()
+    await expect(page.getByText('Head-to-head unavailable')).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Back', exact: true }).click()
+    await expect(page).toHaveURL((url) => url.pathname === `/league/${fixture.leagueId}`)
+    await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible()
   } finally {
     await clearH2HSurfaceFixture(fixture)
   }
