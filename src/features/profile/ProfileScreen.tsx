@@ -173,8 +173,8 @@ export function ProfileScreen(props: ProfileScreenProps) {
           </span>
         </span>
         <span className={p.headerAction}>
-          {header.isOwn ? (
-            <Button variant="secondary" onClick={onEdit} disabled title="Coming soon">
+          {header.isOwn && onEdit ? (
+            <Button variant="secondary" onClick={onEdit}>
               Edit
             </Button>
           ) : onH2H ? (
