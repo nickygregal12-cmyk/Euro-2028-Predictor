@@ -1,6 +1,6 @@
 # Euro 2028 Predictor — Roadmap
 
-**Status date:** 27 July 2026  
+**Status date:** 28 July 2026  
 **Authority:** The only live execution sequence. Use `docs/quality/current-status.md` for current facts.
 
 ## Stage 0 — Contract-38 baseline and release closure: complete

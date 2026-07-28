@@ -2,7 +2,7 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 27 July 2026
+**Status date:** 28 July 2026
 
 ## Baseline
 

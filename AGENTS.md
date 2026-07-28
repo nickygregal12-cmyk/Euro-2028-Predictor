@@ -27,7 +27,7 @@ Repository, development and non-production Netlify are at contract `44`; product
 - production is locked after that milestone release, so normal development must not publish automatically;
 - encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
 
-Contract compatibility does not make the product tournament-ready. The current product batch is authoritative cap enforcement followed by representative query-plan, response-size and recomputation evidence at the intended 250-user / 20-league operating caps.
+Contract compatibility does not make the product tournament-ready. Authoritative cap enforcement is complete (contract 44); the current product batch is representative query-plan, response-size and recomputation evidence at the intended operating caps (first non-league tranche captured in `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`), followed by surface correctness and state repairs at those caps.
 
 ## Development operating mode
 

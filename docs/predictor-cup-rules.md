@@ -197,7 +197,7 @@ Higher Cup points across the round's designated matches advances. No tie-break u
 ## 9. Submission, visibility and inactivity rules
 
 ### 9.1 Locking
-- Each real-match prediction locks at that match's scheduled kickoff. *(Group-stage scorelines are the Original Predictor entry's, already locked at MD1; per-kickoff locks apply to the shared knockout store.)*
+- Each real-match prediction locks at that match's scheduled kickoff. *(Group-stage scorelines are the Original Predictor entry's, already locked at the tournament-wide lock instant — the opening kickoff, `tournaments.lock_at`; per-kickoff locks apply to the shared knockout store.)*
 - No post-lock changes except an authorised admin correction restoring a match to editable **before play begins**.
 - The Penalty Number locks with the first real match in the relevant window.
 

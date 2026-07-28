@@ -134,6 +134,7 @@ Repository contract 44 supports:
 | Interface and design system | `docs/design-system.md` |
 | Competition boundaries | `docs/competition-structure.md` |
 | Future product sequence | `docs/roadmap.md` |
+| Platform architecture decisions | `docs/adr/` (see its README for status conventions) |
 | Operations records and repeatable procedures | `docs/ops-*.md` |
 
 Dated audits and reconciliations remain historical evidence. Roadmap and TODO documents describe future intent and sequencing, not proof that a feature or migration is live.
