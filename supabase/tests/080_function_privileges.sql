@@ -186,19 +186,19 @@ select is(
 
 select is(
   (select proconfig::text from public_function_privileges where signature = 'gen_invite_code()'),
-  '{"search_path="""}',
+  '{"search_path=\"\""}',
   'invite-code generation has an immutable empty search path'
 );
 
 select is(
   (select proconfig::text from public_function_privileges where signature = '_stage_ord(text)'),
-  '{"search_path="""}',
+  '{"search_path=\"\""}',
   'stage ordinal calculation has an immutable empty search path'
 );
 
 select is(
   (select proconfig::text from public_function_privileges where signature = 'enforce_write_version()'),
-  '{"search_path="""}',
+  '{"search_path=\"\""}',
   'write-version enforcement has an immutable empty search path'
 );
 
