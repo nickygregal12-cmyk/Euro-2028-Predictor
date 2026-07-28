@@ -25,6 +25,7 @@ insert into expected_authenticated_functions (signature) values
   ('get_league_preview(text)'),
   ('get_match_prediction_distribution(uuid)'),
   ('get_my_leagues(uuid)'),
+  ('get_player_profile(uuid,uuid)'),
   ('get_public_capacity()'),
   ('get_rival_entry(uuid,uuid)'),
   ('join_league(text)'),
@@ -142,19 +143,19 @@ select is(
 
 select is(
   (select proconfig::text from public_function_privileges where signature = 'gen_invite_code()'),
-  '{"search_path=\"\""}',
+  '{"search_path="""}',
   'invite-code generation has an immutable empty search path'
 );
 
 select is(
   (select proconfig::text from public_function_privileges where signature = '_stage_ord(text)'),
-  '{"search_path=\"\""}',
+  '{"search_path="""}',
   'stage ordinal calculation has an immutable empty search path'
 );
 
 select is(
   (select proconfig::text from public_function_privileges where signature = 'enforce_write_version()'),
-  '{"search_path=\"\""}',
+  '{"search_path="""}',
   'write-version enforcement has an immutable empty search path'
 );
 
