@@ -34,7 +34,7 @@ The workflow fails immediately, before any dump step, if either secret is missin
 ### What one run does
 
 1. dumps roles, schema and COPY-format data read-only — including the `auth.users` / `public.profiles` data path required by `create-production-backup.sh` — plus the `supabase_migrations` history via `pg_dump`;
-2. restores the plaintext dump into a disposable local Supabase inside the same job and verifies that the restored migration history has exactly 38 versions ending in `20260727080159` / `admin_result_revision_timestamp`;
+2. restores the plaintext dump into a disposable local Supabase inside the same job and verifies that the restored migration history matches the workflow's pinned expectation (44 versions ending in `20260727191942` / `operating_cap_enforcement` since the contract-44 promotion; keep the pins current with the production contract);
 3. prints inventory-equivalent counts from the restored copy (counts only — never emails, display names or row contents), then tears the disposable instance down;
 4. age-encrypts the bundle to `BACKUP_AGE_PUBLIC_KEY` as `euro28-prod-<UTC>.backup.tar.gz.age` and shreds every plaintext dump file before the artifact step;
 5. uploads only the encrypted file as a workflow artifact with 7-day retention, failing if any non-`.age` dump file would be uploaded;
@@ -344,7 +344,7 @@ At 27 July 2026:
 - owner off-GitHub encrypted custody and ZIP digest match: **passed**;
 - contract-36 recovery exception: **closed**;
 - contract-38 promotion and exact-release smoke: **passed**;
-- backup workflow baseline for future runs: **38 versions through `20260727080159`**.
+- backup workflow baseline for future runs: **44 versions through `20260727191942`** (updated at the 28 July 2026 contract-44 promotion; the pre-promotion backup run `30337648499` verified the final 38-version state).
 
 ## Related documents
 

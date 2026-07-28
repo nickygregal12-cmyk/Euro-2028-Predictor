@@ -13,19 +13,19 @@
 | Delivery evidence | PRs #122, #124, #126, #128, #131, #134 and #136 cover the full tournament lifecycle, automatic valid-entry recovery, bounded Original Predictor reads, paginated overall standings and operating-cap enforcement |
 | Verified production release source | `0b956e8f553f06f5bdb72ce937acc6295a8c2451` |
 | Development Supabase | `iouzoutneyjpugbbtdem` — contract 44 applied and history-aligned |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — contract 38; unchanged |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 44 and use development Supabase; `production` remains 38 and uses production Supabase |
-| Published production deploy | `6a67560deb88202a74108c37` — verified and locked |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — **contract 44** applied 28 July 2026 after a fresh green backup (run `30337648499`); history-aligned with development; data unchanged ([reconciliation](reconciliations/2026-07-28-contract-44-production-promotion.md)) |
+| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 44 and use development Supabase; `production` still declares 38 pending the contract-44 release publication |
+| Published production deploy | `6a67560deb88202a74108c37` (contract-38 build) — **interim**: its standings read calls the dropped `get_leaderboard(uuid)`, so publish the contract-44 build promptly |
 | Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |
 | Production smoke | exact commit, contract, routes/assets, security headers and Supabase isolation passed |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. It remains locked at the contract-38 milestone. Contracts 39–44 are development-only until a later production milestone receives explicit owner approval.
+Production is a controlled future-tournament target, not an active Euro 2028 service. The contract-44 database promotion completed on 28 July 2026 with explicit owner approval; the matching application release (Netlify `EURO28_DEPLOYED_DB_CONTRACT=44`, publish from `main`, exact-head production smoke) is the remaining owner step, after which production re-locks at the contract-44 milestone. Contracts 45+ (draft PR #138) remain development-only.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Controlled divergence.** Repository, development and non-production Netlify are at 44; production remains deliberately locked at 38. |
+| Contract alignment | **Aligned at 44 (database).** Repository, development, non-production Netlify and both hosted databases are at contract 44; the production application release is the remaining step of the milestone. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |

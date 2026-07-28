@@ -5,10 +5,10 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository and development are at contract 44; production is deliberately locked at contract 38.
+- Repository, development and both hosted databases are at contract 44 (production database promoted 28 July 2026); the production application release is the remaining milestone step.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- Production milestone deploy `6a67560deb88202a74108c37` is verified and locked.
+- The published production deploy is still the contract-38 build; publish the contract-44 build to complete the milestone.
 - Normal work happens against development; production promotion is milestone-only.
 
 Do not import rules or features from previous projects, old branches, prototypes or chats.

@@ -16,15 +16,14 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository, development and non-production Netlify are at contract `44`; production remains deliberately locked at contract `38`.
+Repository, development, non-production Netlify and both hosted Supabase databases are at contract `44`.
 
 - canonical repository migration history contains exactly 44 versions through `20260727191942_operating_cap_enforcement.sql`;
 - development Supabase is `iouzoutneyjpugbbtdem` and records the same 44 canonical versions;
-- production Supabase is `vkfnsqdyhvtwyqkisxhk` and remains at contract 38;
+- production Supabase is `vkfnsqdyhvtwyqkisxhk` and was promoted to the same 44 canonical versions on 28 July 2026 after a fresh green backup (`docs/quality/reconciliations/2026-07-28-contract-44-production-promotion.md`);
 - Netlify `dev`, `branch-deploy` and `deploy-preview` declare contract 44 and use development Supabase;
-- Netlify `production` declares contract 38 and uses production Supabase;
-- production deploy `6a67560deb88202a74108c37` passed exact-release HTTP smoke on 27 July 2026;
-- production is locked after that milestone release, so normal development must not publish automatically;
+- Netlify `production` still declares contract 38 pending the contract-44 release publication (owner step: `EURO28_DEPLOYED_DB_CONTRACT=44`, publish from `main`, exact-head production smoke);
+- production re-locks after that release publishes and smokes, so normal development must not publish automatically;
 - encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
 
 Contract compatibility does not make the product tournament-ready. Authoritative cap enforcement is complete (contract 44); the current product batch is representative query-plan, response-size and recomputation evidence at the intended operating caps (first non-league tranche captured in `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`), followed by surface correctness and state repairs at those caps.
