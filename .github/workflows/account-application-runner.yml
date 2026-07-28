@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
 
+# Existing branch workflow: this update triggers the runner after creation.
 jobs:
   run-embedded-patch:
     runs-on: ubuntu-latest
