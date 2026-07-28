@@ -4,6 +4,14 @@ import { UsersIcon, ArrowsSplitIcon } from '../../design-system/icons'
 import type { BracketHealth } from '../../domain/tournament/bracketHealth'
 import h from './h2h.module.css'
 
+const EMPTY_BRACKET_HEALTH: BracketHealth = {
+  securedPoints: 0,
+  possiblePoints: 0,
+  lostPoints: 0,
+  totalPredictedPoints: 0,
+  milestones: [],
+}
+
 export type H2HPlayerView = {
   displayName: string
   champion: MatchTeam | null
@@ -12,7 +20,7 @@ export type H2HPlayerView = {
   exactScores: number
   koPicksAlive: number
   maxPossible: number
-  bracketHealth: BracketHealth
+  bracketHealth?: BracketHealth
 }
 
 export type H2HSplitView = {
@@ -100,6 +108,9 @@ function HealthPanel({ label, health }: { label: string; health: BracketHealth }
  * statistics, rank history, milestone-based knockout health, and major splits.
  */
 export function H2HScreen({ you, rival, split, rankHistory }: H2HScreenProps) {
+  const youHealth = you.bracketHealth ?? EMPTY_BRACKET_HEALTH
+  const rivalHealth = rival.bracketHealth ?? EMPTY_BRACKET_HEALTH
+
   return (
     <>
       <div className={h.faceOff}>
@@ -128,8 +139,8 @@ export function H2HScreen({ you, rival, split, rankHistory }: H2HScreenProps) {
           </h2>
         </div>
         <div className={h.healthGrid}>
-          <HealthPanel label="You" health={you.bracketHealth} />
-          <HealthPanel label={rival.displayName} health={rival.bracketHealth} />
+          <HealthPanel label="You" health={youHealth} />
+          <HealthPanel label={rival.displayName} health={rivalHealth} />
         </div>
         <p className={h.healthNote}>
           Knockout points stack by milestone. “Still possible” means the team can still reach that predicted stage.
