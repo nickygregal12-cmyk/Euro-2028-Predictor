@@ -37,6 +37,11 @@ export type ProfileDataAvailability = {
   events: boolean
 }
 
+type ProfileSummaryProps = {
+  displayName: string
+  leaguesCount: number
+}
+
 export type ProfileScreenProps =
   | {
       kind: 'full'
@@ -50,26 +55,45 @@ export type ProfileScreenProps =
       onH2H?: () => void
       onEdit?: () => void
     }
-  | {
+  | (ProfileSummaryProps & {
       // Another player's profile before entries lock (reveal rule): name +
       // leagues + entry status only, everything else replaced by a lock card.
       kind: 'hidden'
-      displayName: string
-      leaguesCount: number
       hasEntry: boolean
       lockDateLabel: string
-    }
+    })
+  | (ProfileSummaryProps & {
+      // Post-lock co-member with no submitted entry. This is distinct from the
+      // hidden state: there is nothing to reveal after the deadline.
+      kind: 'empty'
+    })
 
 function leaguesLine(count: number | null): string {
   if (count === null) return 'Leagues unavailable'
   return `${count} league${count === 1 ? '' : 's'}`
 }
 
+function SummaryHeader({ displayName, leaguesCount }: ProfileSummaryProps) {
+  return (
+    <div className={p.headerCard}>
+      <span className={p.avatar} aria-hidden="true">
+        {initialsOf(displayName)}
+      </span>
+      <span className={p.headerBody}>
+        <span className={p.name}>{displayName}</span>
+        <span className={p.headerMeta}>
+          <UsersIcon size={13} /> {leaguesLine(leaguesCount)}
+        </span>
+      </span>
+    </div>
+  )
+}
+
 /**
  * The Profile page (design-system §6). Presentational: identity header, four-up
  * stat grid, the reused Points breakdown card, and the post-lock view-full-entry
- * row — or, for another player pre-lock, the reveal-gated hidden state. All data
- * and callbacks come from the caller.
+ * row — or a reveal-gated/empty other-player state. All data and callbacks come
+ * from the caller.
  */
 export function ProfileScreen(props: ProfileScreenProps) {
   if (props.kind === 'hidden') {
@@ -94,6 +118,20 @@ export function ProfileScreen(props: ProfileScreenProps) {
             Predictions and stats are hidden until entries lock on {props.lockDateLabel}.
           </p>
         </div>
+      </>
+    )
+  }
+
+  if (props.kind === 'empty') {
+    return (
+      <>
+        <SummaryHeader
+          displayName={props.displayName}
+          leaguesCount={props.leaguesCount}
+        />
+        <Alert variant="info" title="No submitted entry">
+          This player did not submit an Original Predictor entry before the deadline.
+        </Alert>
       </>
     )
   }
@@ -139,11 +177,11 @@ export function ProfileScreen(props: ProfileScreenProps) {
             <Button variant="secondary" onClick={onEdit} disabled title="Coming soon">
               Edit
             </Button>
-          ) : (
+          ) : onH2H ? (
             <Button variant="secondary" onClick={onH2H}>
               H2H
             </Button>
-          )}
+          ) : null}
         </span>
       </div>
 
@@ -180,8 +218,8 @@ export function ProfileScreen(props: ProfileScreenProps) {
         )}
       </div>
 
-      {/* View full entry — post-lock only (reveal rule) */}
-      {locked && (
+      {/* View full entry — post-lock only and only when the caller supplies it. */}
+      {locked && onViewEntry && (
         <button type="button" className={p.entryRow} onClick={onViewEntry}>
           View full entry
           <ChevronRightIcon size={18} className={p.entryChev} />
