@@ -80,8 +80,13 @@ const createLoadRevisions = (): LoadRevisions => ({
   goldenBoot: 0,
 })
 
+export type PredictionsLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
+
 type PredictionsContextValue = {
   ready: boolean
+  loadStatus: PredictionsLoadStatus
+  loadMessage: string | null
+  retryInitialLoad: () => void
   submittedAt: string | null
   jokerCount: number
   getPrediction: (matchId: string) => Prediction
@@ -141,6 +146,9 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   const [goldenBootSaveStatus, setGoldenBootSaveStatus] = useState<SaveStatus>('idle')
   const [submitting, setSubmitting] = useState(false)
   const [ready, setReady] = useState(false)
+  const [loadStatus, setLoadStatus] = useState<PredictionsLoadStatus>('idle')
+  const [loadMessage, setLoadMessage] = useState<string | null>(null)
+  const [initialLoadNonce, setInitialLoadNonce] = useState(0)
 
   // Latest predictions + entryId for the debounced saver to read without going
   // stale between the timer being set and firing.
@@ -331,6 +339,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
     // version baseline immediately so the previous account/tournament cannot
     // remain visible or receive a delayed save while the next entry loads.
     setReady(false)
+    setLoadStatus(userId && tournamentId ? 'loading' : 'idle')
+    setLoadMessage(null)
     clearDebounceTimers()
     controllerRef.current?.reset()
     entryIdRef.current = null
@@ -386,6 +396,8 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
           setPredictions(map)
         }
         setReady(true)
+        setLoadStatus('ready')
+        setLoadMessage(null)
 
         // These secondary reads remain fail-soft so missing optional data cannot
         // block the entry. Their result/default may only apply if no newer local
@@ -455,14 +467,19 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
             }
           })
       })
-      .catch(() => {
-        if (active) setReady(false)
+      .catch((error: unknown) => {
+        if (!active) return
+        setReady(false)
+        setLoadStatus('error')
+        setLoadMessage(
+          userFacingError(error, 'Could not load your prediction entry. Please try again.'),
+        )
       })
 
     return () => {
       active = false
     }
-  }, [userId, tournamentId])
+  }, [userId, tournamentId, initialLoadNonce])
 
   async function refreshPersistedEntryAfterForeground() {
     const id = entryIdRef.current
@@ -838,6 +855,9 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
 
   const value: PredictionsContextValue = {
     ready,
+    loadStatus,
+    loadMessage,
+    retryInitialLoad: () => setInitialLoadNonce((nonce) => nonce + 1),
     submittedAt,
     jokerCount,
     getPrediction: (matchId) => predictions[matchId] ?? EMPTY,

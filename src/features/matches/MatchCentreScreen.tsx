@@ -69,6 +69,9 @@ export type MatchCentreScreenProps = {
   said: MatchSaid
   saidLoading?: boolean
   saidError?: string | null
+  onRetrySaid?: () => void
+  onPreviousMatch?: () => void
+  onNextMatch?: () => void
   consequence?: { casualties: number; example: string | null } | null
   scoreEvents: ScoreEvent[]
   onBack?: () => void
@@ -221,6 +224,24 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         <button type="button" className={s.back} onClick={props.onBack}>
           <ChevronLeftIcon size={16} /> Back
         </button>
+        <nav className={s.matchNav} aria-label="Adjacent matches">
+          <button
+            type="button"
+            className={s.matchNavButton}
+            disabled={!props.onPreviousMatch}
+            onClick={props.onPreviousMatch}
+          >
+            Previous
+          </button>
+          <button
+            type="button"
+            className={s.matchNavButton}
+            disabled={!props.onNextMatch}
+            onClick={props.onNextMatch}
+          >
+            Next
+          </button>
+        </nav>
         {leagueScopesStatus === 'ready' && props.leagues.length > 0 ? (
           <MatchCentreScopeChoice
             scope={props.scope}
@@ -341,9 +362,20 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
               What {props.scope.type === 'league' ? props.scope.name : 'everyone'} said
             </h2>
             {props.saidError ? (
-              <Alert variant="error">{props.saidError}</Alert>
+              <Alert variant="error">
+                {props.saidError}
+                {props.onRetrySaid ? (
+                  <div style={{ marginTop: 10 }}>
+                    <Button variant="secondary" onClick={props.onRetrySaid}>
+                      Retry predictions
+                    </Button>
+                  </div>
+                ) : null}
+              </Alert>
             ) : props.saidLoading ? (
-              <p className={s.stakeMuted}>Loading…</p>
+              <p className={s.stakeMuted} role="status" aria-live="polite">
+                Loading prediction context…
+              </p>
             ) : !props.said.revealed ? (
               <p className={s.stakeMuted}>
                 {props.said.predicted} of {props.said.total} have predicted this match.

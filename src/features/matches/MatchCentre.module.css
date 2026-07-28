@@ -9,7 +9,35 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--sp-2);
+}
+
+.matchNav {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.matchNavButton {
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx2);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 12px;
+}
+
+.matchNavButton:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.matchNavButton:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
 }
 
 .back {
