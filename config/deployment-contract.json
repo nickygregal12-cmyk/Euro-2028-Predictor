@@ -1,9 +1,10 @@
 {
-  "contractVersion": 56,
-  "requiredMigrationCount": 56,
+  "contractVersion": 57,
+  "requiredMigrationCount": 57,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
+    "public.clear_my_entry(uuid)",
     "public.admin_confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)",
     "public.admin_correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)",
     "public.admin_clear_match_result(uuid,text)",
@@ -36,5 +37,5 @@
     "public.admin_finalise_predictor_cup_groups(uuid)",
     "public.admin_settle_predictor_cup_round(uuid,uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 55 is the production-published Bonus Games B2-B7b milestone. Contract 56 adds Predictor Cup qualification and knockouts (ADR-0010 B7c): the audited service-role qualification gate (full rules-5.2 tables including the mini head-to-head, automatic and wildcard places, seeding, playoff with byes and same-group avoidance), parity-laned Penalty Numbers, the audited round settle with points/extra-time/penalty-number/walkover resolution, champion and Golden Predictor reads. Development promotion follows Database parity; production remains locked at contract 55."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 55 is the production-published Bonus Games milestone. Contract 56 completes Predictor Cup qualification and knockouts in development. Contract 57 adds the private Account preference column and the authenticated, pre-lock-only clear_my_entry(uuid) RPC. Contract 57 remains development-only until its database, browser and preview gates pass; production stays locked at contract 55."
 }
