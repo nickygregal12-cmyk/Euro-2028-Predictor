@@ -24,7 +24,7 @@ describe('RankHistoryComparison', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Seven tournament checkpoints' })).toBeVisible()
-    expect(screen.getByRole('img', { name: 'Rank history comparison' })).toBeVisible()
+    expect(screen.getByRole('img', { name: /^Rank history comparison/ })).toBeVisible()
     expect(screen.getByRole('table', { name: 'Rank and total points at each checkpoint' })).toBeVisible()
     expect(screen.getByRole('row', { name: /Matchday 1 4th 18 pts 7th 12 pts/ })).toBeVisible()
     expect(screen.getByRole('row', { name: /Matchday 2 2nd 39 pts/ })).toBeVisible()
@@ -41,7 +41,7 @@ describe('RankHistoryComparison', () => {
     )
 
     expect(screen.getByText(/appears after the first completed tournament checkpoint/i)).toBeVisible()
-    expect(screen.queryByRole('img', { name: 'Rank history comparison' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /^Rank history comparison/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
   })
 })
