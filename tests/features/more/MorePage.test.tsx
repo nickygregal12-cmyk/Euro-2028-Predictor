@@ -5,15 +5,10 @@ import { MorePage } from '../../../src/features/more/MorePage'
 
 const mocks = vi.hoisted(() => ({
   signOut: vi.fn<() => Promise<void>>(),
-  toggleTheme: vi.fn(),
 }))
 
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
   useAuth: () => ({ displayName: 'Nicky', signOut: mocks.signOut }),
-}))
-
-vi.mock('../../../src/app/providers/ThemeProvider', () => ({
-  useTheme: () => ({ theme: 'dark', toggle: mocks.toggleTheme }),
 }))
 
 function renderPage() {

@@ -60,6 +60,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - rival-entry payloads fixed to 36 group predictions and 24 tournament teams;
 - exact function execution allowlists, empty security-definer search paths and closed direct-table access;
 - protected administrator routes and capability parsing;
+- a top-nav app bar on every signed-in screen (section context, theme toggle, avatar into own profile) with the legacy PageShell title header retired;
 - responsive administrator result and qualification controls with review and required reasons;
 - authorised and unauthorised administrator browser journeys on desktop/mobile;
 - environment/deployment-contract guards;
