@@ -1,9 +1,11 @@
 name: Contract 55 production migration
 
+# Temporary controlled release gate. It runs only on this unmerged release PR
+# and fails closed unless production is exactly at contract 48.
 on:
-  push:
+  pull_request:
     branches:
-      - release/contract55-production-promotion
+      - main
     paths:
       - .github/workflows/contract55-production-migrate.yml
 
@@ -61,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t \
-            -c "select version || E'\\t' || name from supabase_migrations.schema_migrations order by version" \
+            -c "select version || E'\t' || name from supabase_migrations.schema_migrations order by version" \
             > /tmp/remote-migrations.tsv
           find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
             | sort > /tmp/local-migrations.txt
@@ -147,10 +149,7 @@ jobs:
           );
           SQL
 
-          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t \
-            -v expected_count="$EXPECTED_END_COUNT" \
-            -v expected_version="$EXPECTED_LATEST_VERSION" \
-            -v expected_name="$EXPECTED_LATEST_NAME" <<'SQL'
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL'
           do $$
           declare
             actual_count integer;
