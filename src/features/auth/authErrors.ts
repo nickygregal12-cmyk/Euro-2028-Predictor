@@ -3,7 +3,7 @@
 // only the return value — a raw Supabase message must never reach the user
 // (docs/auth-plan.md §3).
 
-export type AuthAction = 'login' | 'signup' | 'reset' | 'update'
+export type AuthAction = 'login' | 'signup' | 'reset' | 'update' | 'account'
 
 type MaybeError = {
   code?: unknown
@@ -33,8 +33,7 @@ function isNetworkError(e: MaybeError): boolean {
   )
 }
 
-const NETWORK =
-  "We couldn't reach the server. Check your connection and try again."
+const NETWORK = "We couldn't reach the server. Check your connection and try again."
 const GENERIC = 'Something went wrong. Please try again.'
 
 /** Turn any thrown auth error into one stable, safe sentence. */
@@ -67,6 +66,16 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
 
   if (code === 'same_password' || message.includes('should be different from the old')) {
     return 'Your new password must be different from your current one.'
+  }
+
+  if (
+    action === 'account' &&
+    (code === 'session_not_found' ||
+      asText(e.name) === 'authsessionmissingerror' ||
+      message.includes('auth session missing') ||
+      message.includes('session_not_found'))
+  ) {
+    return 'Your session has expired. Sign in again and retry the change.'
   }
 
   if (
@@ -118,7 +127,9 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
     message.includes('row-level security') ||
     message.includes('permission denied')
   ) {
-    return "We couldn't finish setting up your account. Please try again."
+    return action === 'account'
+      ? "We couldn't update your account. Please try again."
+      : "We couldn't finish setting up your account. Please try again."
   }
 
   return GENERIC
