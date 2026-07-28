@@ -343,7 +343,10 @@ export function MatchCentrePage() {
 
   const navigateToMatch = (nextMatchRef: string) => {
     const params = new URLSearchParams()
-    if (scope.type === 'league') params.set('league', scope.id)
+    const pendingLeagueId =
+      leagueScopes.status === 'ready' ? null : searchParams.get('league')
+    const leagueId = scope.type === 'league' ? scope.id : pendingLeagueId
+    if (leagueId) params.set('league', leagueId)
     const query = params.toString()
     navigate(`/match/${nextMatchRef}${query ? `?${query}` : ''}`)
   }
