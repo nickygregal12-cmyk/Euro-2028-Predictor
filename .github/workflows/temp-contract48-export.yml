@@ -6,6 +6,9 @@ on:
       - temp/contract48-production-export
     paths:
       - .github/workflows/temp-contract48-export.yml
+  pull_request:
+    paths:
+      - .github/workflows/temp-contract48-export.yml
 
 permissions:
   contents: read
