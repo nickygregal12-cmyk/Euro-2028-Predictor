@@ -381,6 +381,14 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
                 {props.said.predicted} of {props.said.total} have predicted this match.
                 Everyone&rsquo;s picks reveal once entries lock.
               </p>
+            ) : (props.said.kind === 'overall-group' || props.said.kind === 'overall-ko') &&
+              (props.said.kind === 'overall-group'
+                ? props.said.total
+                : props.said.split.total) === 0 ? (
+              <p className={s.stakeMuted}>No one predicted this match.</p>
+            ) : (props.said.kind === 'league-group' || props.said.kind === 'league-ko') &&
+              props.said.rows.length === 0 ? (
+              <p className={s.stakeMuted}>No picks to show for this match.</p>
             ) : props.said.kind === 'overall-group' ? (
               <ScorelineBars bars={props.said.bars} total={props.said.total} />
             ) : props.said.kind === 'overall-ko' ? (
