@@ -16,17 +16,17 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository and development Supabase are at contract `50`; non-production Netlify declares `49` pending an owner environment update; production database and application are intentionally aligned and locked at contract `44`.
+Repository and development Supabase are at contract `51`; non-production Netlify declares `50` pending an owner environment update; production database and application are intentionally aligned and locked at contract `44`.
 
-- canonical repository migration history contains exactly 50 versions through `20260728190000_shared_knockout_prediction_store.sql`;
-- development Supabase is `iouzoutneyjpugbbtdem` and records the same 50 canonical versions;
+- canonical repository migration history contains exactly 51 versions through `20260728210000_ko_predictor_scoring.sql`;
+- development Supabase is `iouzoutneyjpugbbtdem` and records the same 51 canonical versions;
 - production Supabase is `vkfnsqdyhvtwyqkisxhk` and remains at 44 canonical versions through `20260727191942_operating_cap_enforcement.sql`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and require `EURO28_DEPLOYED_DB_CONTRACT=50` before their next deploy;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and require `EURO28_DEPLOYED_DB_CONTRACT=51` before their next deploy;
 - Netlify `production` declares contract 44, uses production Supabase and serves deploy `6a686e30f2f13c07f10e30d8` from commit `515e794aa483a779c971e16a364fcbd243fa7ee6`;
 - production remains milestone-locked and normal development must not publish or migrate it automatically;
 - encrypted backup run `30264080847` passed disposable restore verification and its artifact was preserved off GitHub.
 
-Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member player profiles are delivered through contract 47; contracts 48–50 add the Bonus Games platform foundation (ADR-0010 B1–B4: deny-all schema, hub read, voluntary entry, the More → Games surface and the shared knockout prediction store — no game scoring yet); the next product batch is richer H2H with rank-over-time and bracket health.
+Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member player profiles are delivered through contract 47; contracts 48–51 add the Bonus Games platform and the first game (ADR-0010 B1–B5: deny-all schema, hub with voluntary entry, shared knockout prediction store and KO Predictor scoring/standings per `docs/scoring-rules.md` §8); the next product batch is richer H2H with rank-over-time and bracket health.
 
 ## Development operating mode
 

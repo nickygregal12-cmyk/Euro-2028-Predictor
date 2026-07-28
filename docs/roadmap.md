@@ -161,7 +161,7 @@ Platform first, then each game as a thin ruleset (ADR-0010, accepted 28 July 202
 2. **B2 — platform schema (delivered, development only):** contract 48 adds deny-all `bonus_competitions`, `bonus_competition_windows`, `bonus_window_fixtures`, `bonus_competition_entrants`, `bonus_score_events` and `bonus_competition_audit` with RPC-only mutation and pgTAP coverage;
 3. **B3 — Games hub (delivered, development only):** contract 49 adds the bounded authenticated hub read plus voluntary registration/withdrawal RPCs with audit and scored-history protection, and the More → Games (`/games`) surface consuming the single state resolver;
 4. **B4 — shared knockout prediction store (delivered, development only):** contract 50 collects one knockout scoreline per user per real match — per-kickoff database locks, optimistic versions, entrant gating and the `/games/knockout` form (draws carry a who-goes-through pick, decisive scorelines imply it);
-5. **B5 — KO Predictor** (Exact 5 / Result 3 / Through +2, recompute fan-out inside the single result operation);
+5. **B5 — KO Predictor (delivered, development only):** contract 51 scores the shared store — Exact 5 / Result 3 / Through +2 (`docs/scoring-rules.md` §8) — inside the single advisory-locked result operation, with rolling-entry banking, a bounded server-ranked standings read and the `/games/ko-predictor` surface;
 6. **B6 — Last Man Standing;**
 7. **B7 — Predictor Cup.**
 

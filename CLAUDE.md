@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository and development Supabase are at contract 50; non-production Netlify declares 49 pending an owner environment update.
+- Repository and development Supabase are at contract 51; non-production Netlify declares 50 pending an owner environment update.
 - Production Supabase and the published production application are aligned and locked at contract 44.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
@@ -44,14 +44,15 @@ Ordinary development does not require production backup, production smoke or a n
 - positions 2 each plus 5 full-order bonus;
 - knockout 10 / 15 / 20 / 25 / 40, stacking;
 - Golden Boot 25;
-- group goals 40 / 30 / 20.
+- group goals 40 / 30 / 20;
+- KO Predictor (separate score system, §8): exact 5 / result 3 / through +2.
 
 ## Current order
 
 1. Build richer H2H with bounded rank-over-time and bracket health.
 2. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends.
 3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-4. Bonus Games platform foundation (ADR-0010 B1 domain, B2 deny-all schema, B3 Games hub with voluntary entry, B4 shared knockout prediction store) is delivered through contract 50; game scoring and standings (B5+) wait until the Original Predictor core experience is proven.
+4. Bonus Games platform and the KO Predictor (ADR-0010 B1–B5: domain, deny-all schema, Games hub, shared knockout store, KO scoring/standings) are delivered through contract 51; Last Man Standing and the Predictor Cup (B6–B7) wait until the Original Predictor core experience is proven.
 
 Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 
