@@ -9,23 +9,23 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository contract | 54 canonical migrations through `20260729010000_predictor_cup_foundation.sql` (contract 48 = H2H rank history; 49–54 = Bonus Games B2–B7a) |
+| Repository contract | 55 canonical migrations through `20260729030000_predictor_cup_group_scoring.sql` (contract 48 = H2H rank history; 49–55 = Bonus Games B2–B7b) |
 | Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136, #138 and #141 cover the lifecycle, recovery, bounded/paginated reads, operating caps and Profile/H2H resilience; PR #143 adds secure other-player profiles; PR #145 adds richer H2H rank history and bracket health (contract 48); the Bonus Games branch adds ADR-0010 B1–B5 (contracts 49–52) |
 | Verified production release source | PR #145, merged as `1da5fb0` — see `investigations/2026-07-28-contract-48-production-release.md` |
-| Development Supabase | `iouzoutneyjpugbbtdem` — contract 54 applied 28 July 2026 with canonical history (54 versions through `20260729010000_predictor_cup_foundation`), verified deny-all bonus-table posture (incl. the three Cup tables), hardened RPC grants, the extended bonus result fan-out live and the Cup draw operation service-role-only |
+| Development Supabase | `iouzoutneyjpugbbtdem` — contract 54 applied 28 July 2026 (54 versions through `20260729010000_predictor_cup_foundation`, verified posture); contract 55 (B7b Cup group scoring, read-derived so it stores nothing) awaits Database parity and hosted application |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — **contract 48** applied 28 July 2026 per the dated release record (48 canonical versions through `20260728122500_h2h_rank_history`, verified read-only during merge reconciliation); remains locked at the milestone |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 54 and match the repository/development contract; `production` declares 48 and uses production Supabase |
+| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 54 and require an owner `EURO28_DEPLOYED_DB_CONTRACT=55` update once contract 55 reaches development; `production` declares 48 and uses production Supabase |
 | Published production deploy | contract-48 release published from `main` per the Git-based deployment described in the dated release record |
 | Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |
 | Production smoke | contract-44 release identity and signed-in operation manually verified; the exact-head Production Smoke workflow remains an operational follow-up |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 48 (the H2H rank-history milestone). Contracts 49–54 (the Bonus Games platform, KO Predictor, Last Man Standing and the Cup foundation) are development-only and must not be promoted to production without a later approved milestone gate.
+Production is a controlled future-tournament target, not an active Euro 2028 service. Its database and application are aligned and locked at contract 48 (the H2H rank-history milestone). Contracts 49–55 (the Bonus Games platform, KO Predictor, Last Man Standing and the Cup through group-stage scoring) are development-only and must not be promoted to production without a later approved milestone gate.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Intentionally split.** Repository, development Supabase and non-production Netlify are aligned at contract 54; production database and application are aligned and locked at contract 48. Merge reconciliation 28 July 2026: the H2H branch's contract 48 and the Bonus Games branch's former 48–51 were renumbered into one chain (48 = H2H, 49–52 = bonus), and the H2H migration — production-released but never applied to development — was applied to development during the merge. |
+| Contract alignment | **Intentionally split.** Repository is at contract 55; development Supabase and non-production Netlify are at 54 pending contract 55's parity and hosted application; production database and application are aligned and locked at contract 48. Merge reconciliation 28 July 2026: the H2H branch's contract 48 and the Bonus Games branch's former 48–51 were renumbered into one chain (48 = H2H, 49–52 = bonus), and the H2H migration — production-released but never applied to development — was applied to development during the merge. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven; one owner-controlled production results administrator is assigned through server-owned Auth metadata. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |
@@ -111,7 +111,7 @@ Current:
 
 1. Stage 4B richer H2H (rank history + bracket health) is delivered through PR #145 and production-released at contract 48.
 2. The Bonus Games platform (ADR-0010 B1–B4) and the first two games (B5 KO Predictor, B6 Last Man Standing — contract 53, tournament format per `docs/scoring-rules.md` §8, with survival re-derived inside the result operation and pgTAP `107` covering the full lifecycle incl. a correction-driven crown change) are delivered: B1 pure domain, B2 deny-all schema (contract 49), B3 the Games hub (contract 50), B4 the shared knockout prediction store (contract 51) and B5 KO Predictor scoring (contract 52) — Exact 5 / Result 3 / Through +2 per `docs/scoring-rules.md` §8, recomputed inside the single advisory-locked result operation with rolling-entry banking, plus a bounded server-ranked standings read and the `/games/ko-predictor` surface. pgTAP `103`–`106` and Database parity are green; the full 52-migration chain is applied to development Supabase with verified posture. Last Man Standing and the Predictor Cup (B6–B7) remain gated behind the remaining Stage 4 core experience per `docs/roadmap.md` Stage 5.
-3. The Predictor Cup foundation (B7a, contract 54) is delivered: dedicated deny-all cup tables, the audited seed-reproducible close-and-draw operation (service-role only), the bounded my-cup read and the `/games/cup` surface; Cup group-stage scoring (B7b) and knockouts (B7c) follow. The non-production contract chain is aligned at 54; each future contract bump repeats the owner Netlify variable update.
+3. The Predictor Cup foundation (B7a, contract 54) and group-stage scoring (B7b, contract 55 — all read-derived from confirmed results: raw 5/3/0 window points, settled head-to-head with walkover/void, ranked tables with §5.2 tie-breaks 1–3/6–8) are built; contract 55 awaits Database parity and hosted development application, then the owner Netlify variable update to 55. B7c (qualification, seeded playoff, Extra-Time Accuracy, Penalty Numbers, champion and Golden Predictor) is the remaining Cup stage.
 4. Continue through Match Centre/tournament states, account/privacy/contact-admin and post-lock trends, repairing resilient states and accessibility alongside each surface.
 5. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
 
