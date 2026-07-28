@@ -1,6 +1,6 @@
 {
-  "contractVersion": 47,
-  "requiredMigrationCount": 47,
+  "contractVersion": 48,
+  "requiredMigrationCount": 48,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -21,5 +21,5 @@
     "public.get_public_capacity()",
     "public.set_operating_limits(integer,integer)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contracts 45-46 deliver bounded private-league standings/search and lightweight activity summaries. Contract 47 adds a bounded co-member profile read with pre-lock privacy and post-lock authoritative profile detail. Development and non-production Netlify are promoted to contract 47 after clean-room, authenticated-browser and rollback-only hosted evidence; production remains locked at contract 44."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 47 adds a bounded co-member profile read with pre-lock privacy and post-lock authoritative profile detail. Contract 48 adds the deny-all Bonus Games platform schema (ADR-0010 B2): competitions, windows, window fixtures, entrants, score events and audit, with no browser-facing RPCs yet. Development promotion follows Database parity; production remains locked at contract 44."
 }

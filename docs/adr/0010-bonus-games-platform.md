@@ -1,6 +1,6 @@
 # ADR 0010 — Bonus Games platform: one platform, three games
 
-- **Status:** Proposed — awaiting owner sign-off on the three open decisions in "Decisions required"
+- **Status:** Accepted — 28 July 2026, the owner directed continuation into B2, confirming the three decisions in "Decisions required"
 - **Date:** 28 July 2026
 
 ## Context
@@ -47,11 +47,11 @@ No elimination, qualification, progression or scoring may occur from a provision
 
 B1–B4 are shared by all three games. Nothing in B5–B7 may add a second registration, deadline, window or audit mechanism.
 
-## Decisions required before B2
+## Decisions required before B2 — all confirmed 28 July 2026
 
-1. **Entrant mechanism.** `competition-structure.md` §1 records `entries.entry_type` as the planned mechanism *and* records that the Predictor Cup gets dedicated tables. This ADR proposes dedicated `competition_entrants` for all three games and **abandoning `entries.entry_type`**, leaving `entries` as the Original Predictor's alone. Confirm.
-2. **Sequencing.** `roadmap.md` Stage 5 places bonus competitions after Stage 4B (richer H2H) and the remaining Stage 4 work. Building B1–B2 now re-sequences that. Confirm, and update `roadmap.md` so the repository does not describe two orders.
-3. **State precedence.** §8 fixes the state *set*; it does not fix precedence when several are simultaneously true. The precedence implemented in `resolveCompetitionStatus` mirrors the §6 Home action queue and is documented in that file's header. Confirm it, then record it in §8 so the doc, not the code, is the authority.
+1. **Entrant mechanism — decided.** Dedicated `bonus_competition_entrants` rows serve all three games; the previously planned `entries.entry_type` column is **abandoned**, leaving `entries` as the Original Predictor's alone. `competition-structure.md` §1 records this.
+2. **Sequencing — decided.** The platform foundation (B1–B2) lands now, ahead of the remaining Stage 4 product work; the games themselves (B3+ surfaces onward) still follow the Stage 5 gate. `roadmap.md` Stage 5 records the single order.
+3. **State precedence — decided.** The precedence implemented in `resolveCompetitionStatus` (mirroring the §6 Home action queue) is canonical and is recorded in `architecture-and-tournament-states.md` §8; the doc, not the code, is the authority.
 
 ## Consequences
 

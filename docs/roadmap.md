@@ -155,13 +155,17 @@ Close-out: merge PR #143 after exact-head CI, Database parity, Browser E2E and p
 
 ## Stage 5 — Bonus competitions
 
-Build only after the Original Predictor lifecycle and core experience are proven:
+Platform first, then each game as a thin ruleset (ADR-0010, accepted 28 July 2026). The pure platform foundation lands ahead of the remaining Stage 4 product work; every user-visible bonus surface still waits until the Original Predictor core experience is proven:
 
-1. KO Predictor;
-2. Last Man Standing;
-3. Predictor Cup.
+1. **B1 — platform domain (delivered):** `src/domain/competitions/` model and `resolveCompetitionStatus`, the single fourteen-state resolver every bonus surface consumes;
+2. **B2 — platform schema (delivered, development only):** contract 48 adds deny-all `bonus_competitions`, `bonus_competition_windows`, `bonus_window_fixtures`, `bonus_competition_entrants`, `bonus_score_events` and `bonus_competition_audit` with RPC-only mutation and pgTAP coverage;
+3. **B3 — Games hub** at More → Games (`/games`) with registration/withdrawal RPCs;
+4. **B4 — shared knockout prediction store** (one form, per-kickoff locks, version guards);
+5. **B5 — KO Predictor** (Exact 5 / Result 3 / Through +2, recompute fan-out inside the single result operation);
+6. **B6 — Last Man Standing;**
+7. **B7 — Predictor Cup.**
 
-Each mode keeps its own entry window, rules, scoring and leagues.
+Each mode keeps its own entry, rules, scoring and standings; B5–B7 may never add a second registration, deadline, window or audit mechanism.
 
 ## Stage 6 — Operations and launch preparation
 
