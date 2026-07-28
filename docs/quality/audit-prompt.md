@@ -6,6 +6,8 @@ This file preserves the complete approved evidence-based audit prompt used for t
 
 Material changes to this prompt affect audit comparability and must be reviewed as a quality-control change. Do not replace it with a generic checklist.
 
+**Revision note (2026-07-28, owner-directed):** the "Additional and future game modes" section was rewritten because the Bonus Games programme is now implemented (it originally instructed auditors to assume those games were absent), and the scoring audit gained a note about the intentional TypeScript/PostgreSQL dual implementation. No other section changed; earlier reports remain comparable outside those areas.
+
 ---
 
 # Full Website and Repository Audit
@@ -871,6 +873,11 @@ Identify:
 - administrator tools that initiate scoring or recalculation; and
 - any duplicated scoring implementation.
 
+Two structural facts to audit against rather than report as defects:
+
+- the TypeScript domain and the PostgreSQL functions intentionally implement the same scoring rules twice, guarded by the Database parity workflow — report drift between them, never their coexistence;
+- `docs/scoring-rules.md` §8 defines the bonus-game score systems (KO Predictor, Last Man Standing, Predictor Cup) as separate systems that must never combine with Original Predictor points — any place they blend is a Critical finding, not a consistency improvement.
+
 Produce:
 
 | Scoring rule | Current value | Evidence | Implemented where | Tested | Conflicts |
@@ -886,36 +893,19 @@ Where sources disagree, do not choose one silently. Report:
 
 Do not modify or standardise scoring during the audit.
 
-## Additional and future game modes
+## Bonus game modes
 
-Do not assume that KO Predictor, Last Man Standing, Fan Duels or any other bonus game exists.
+The Bonus Games programme (ADR-0010) is an implemented part of the application: the shared platform (competitions, windows, fixtures, entrants, score events, audit), the KO Predictor, tournament-format Last Man Standing and the Predictor Cup (group stage and knockouts), plus the shared knockout prediction store. Audit these as first-class features — routes under `/games`, their services, migrations, RPCs, pgTAP suites and admin-configured stored data — do not treat them as hypothetical.
 
-Search for evidence of each possible game mode across:
+Bonus-game invariants to verify explicitly:
 
-- routes;
-- components;
-- services;
-- database migrations;
-- tables;
-- types;
-- tests;
-- navigation;
-- feature flags;
-- documentation; and
-- deployed pages.
+- the separation law (`docs/competition-structure.md` §1): separate voluntary entry per game, no bonus table referencing Original Predictor league/score structures, bonus results never altering Original Predictor points or league pages;
+- raw knockout scorelines collected once in the shared store and scored independently by each game under its own rules;
+- jokers never applying to any bonus-game scoring;
+- deny-all table grants with RPC-only mutation, service-role-only admin operations (draw, qualification gate, round settle) and settle-only-on-confirmed-results behaviour;
+- competitions, windows and fixture bundles are admin-configured stored data — verify the configured data itself is coherent (window sequences, lock instants derived from real kickoffs, fixture bundles matching the advertised rounds), since an empty or malformed configuration silently disables a game.
 
-Classify each separately.
-
-A feature mentioned only in a roadmap or TODO file must be reported as planned, not implemented.
-
-If KO Predictor is not present in the current repository, state:
-
-- that it is outside the current implemented application scope;
-- whether any unused scaffolding exists;
-- whether existing architecture could support it later; and
-- whether any current code incorrectly assumes it already exists.
-
-Do not audit hypothetical KO Predictor scoring or behaviour unless the repository contains an active implementation.
+Modes that must NOT be assumed to exist: Fan Duels (formally superseded by the Predictor Cup, 2026-07-22 — report any surviving Fan Duels code as legacy), Shield/Plate secondary cups, invite-only KO competitions, sweepstakes, and anything named only in roadmaps or prior projects. A feature mentioned only in a roadmap or TODO file must be reported as planned, not implemented.
 
 ## Business rules
 
