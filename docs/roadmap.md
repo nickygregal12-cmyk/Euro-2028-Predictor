@@ -159,7 +159,7 @@ Platform first, then each game as a thin ruleset (ADR-0010, accepted 28 July 202
 
 1. **B1 — platform domain (delivered):** `src/domain/competitions/` model and `resolveCompetitionStatus`, the single fourteen-state resolver every bonus surface consumes;
 2. **B2 — platform schema (delivered, development only):** contract 48 adds deny-all `bonus_competitions`, `bonus_competition_windows`, `bonus_window_fixtures`, `bonus_competition_entrants`, `bonus_score_events` and `bonus_competition_audit` with RPC-only mutation and pgTAP coverage;
-3. **B3 — Games hub** at More → Games (`/games`) with registration/withdrawal RPCs;
+3. **B3 — Games hub (delivered, development only):** contract 49 adds the bounded authenticated hub read plus voluntary registration/withdrawal RPCs with audit and scored-history protection, and the More → Games (`/games`) surface consuming the single state resolver;
 4. **B4 — shared knockout prediction store** (one form, per-kickoff locks, version guards);
 5. **B5 — KO Predictor** (Exact 5 / Result 3 / Through +2, recompute fan-out inside the single result operation);
 6. **B6 — Last Man Standing;**
