@@ -63,13 +63,13 @@ describe('production backup workflow', () => {
     )
   })
 
-  it('verifies restored migration history at the contract-44 head', () => {
-    expect(workflow).toContain("EXPECTED_MIGRATION_COUNT: '44'")
+  it('verifies restored migration history at the contract-48 head', () => {
+    expect(workflow).toContain("EXPECTED_MIGRATION_COUNT: '48'")
     expect(workflow).toContain(
-      "EXPECTED_LATEST_MIGRATION_VERSION: '20260727191942'",
+      "EXPECTED_LATEST_MIGRATION_VERSION: '20260728122500'",
     )
     expect(workflow).toContain(
-      'EXPECTED_LATEST_MIGRATION_NAME: operating_cap_enforcement',
+      'EXPECTED_LATEST_MIGRATION_NAME: h2h_rank_history',
     )
     expect(rehearsalVerification).toContain(
       'supabase_migrations.schema_migrations',
