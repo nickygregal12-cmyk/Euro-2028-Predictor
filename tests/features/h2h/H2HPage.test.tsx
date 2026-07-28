@@ -5,6 +5,7 @@ import { H2HPage } from '../../../src/features/h2h/H2HPage'
 
 const mocks = vi.hoisted(() => ({
   fetchRivalEntry: vi.fn(),
+  fetchLeaderboardPage: vi.fn(),
 }))
 
 function tournamentData(homeScore = 2, awayScore = 1) {
@@ -32,6 +33,17 @@ function tournamentData(homeScore = 2, awayScore = 1) {
           resultState: 'confirmed',
         },
       ],
+    },
+  }
+}
+
+function predictionData(homeScore = 2, awayScore = 1) {
+  return {
+    ready: true,
+    getPrediction: vi.fn(() => ({ homeScore, awayScore, joker: false })),
+    bracketProgression: {
+      'team-a': 'champion',
+      'team-b': 'final',
     },
   }
 }
@@ -86,6 +98,10 @@ vi.mock('../../../src/services/supabase/h2h', () => ({
   fetchRivalEntry: mocks.fetchRivalEntry,
 }))
 
+vi.mock('../../../src/services/supabase/leaderboard', () => ({
+  fetchLeaderboardPage: mocks.fetchLeaderboardPage,
+}))
+
 function page() {
   return (
     <MemoryRouter initialEntries={['/h2h/rival-1']}>
@@ -103,7 +119,7 @@ function renderPage() {
 function rivalEntry() {
   return {
     displayName: 'Rival Player',
-    totalPoints: 5,
+    totalPoints: 25,
     predictions: {
       groupMatches: [
         {
@@ -129,14 +145,35 @@ function expectTotals(text: string) {
   )
 }
 
+function expectExactScores(text: string) {
+  return waitFor(() =>
+    expect(screen.getByText('Exact scores').parentElement).toHaveTextContent(text),
+  )
+}
+
 describe('H2HPage resilient states', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     context.tournamentData = tournamentData()
+    context.predictions = predictionData()
     mocks.fetchRivalEntry.mockResolvedValue(rivalEntry())
+    mocks.fetchLeaderboardPage.mockResolvedValue({
+      rows: [],
+      totalCount: 2,
+      pageSize: 1,
+      hasMore: false,
+      nextCursor: null,
+      you: {
+        displayName: 'You Player',
+        totalPoints: 12,
+        rank: 2,
+        tied: false,
+        position: 2,
+      },
+    })
   })
 
-  it('retries a transient rival read without reloading the route', async () => {
+  it('retries transient reads without reloading the route', async () => {
     mocks.fetchRivalEntry.mockRejectedValueOnce(new Error('rival read offline'))
 
     renderPage()
@@ -145,20 +182,37 @@ describe('H2HPage resilient states', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
     expect(await screen.findByText('Rival Player')).toBeVisible()
-    await expectTotals('5 – 5')
+    await expectTotals('12 – 25')
     expect(mocks.fetchRivalEntry).toHaveBeenCalledTimes(2)
+    expect(mocks.fetchLeaderboardPage).toHaveBeenCalledTimes(2)
   })
 
-  it('recomputes both sides when authoritative results refresh', async () => {
+  it('recomputes derived statistics when authoritative results refresh', async () => {
     const rendered = renderPage()
 
     expect(await screen.findByText('Rival Player')).toBeVisible()
-    await expectTotals('5 – 5')
+    await expectTotals('12 – 25')
+    await expectExactScores('1Exact scores1')
 
     context.tournamentData = tournamentData(0, 0)
     rendered.rerender(page())
 
-    await expectTotals('0 – 0')
+    await expectExactScores('0Exact scores0')
+    await expectTotals('12 – 25')
+    expect(mocks.fetchRivalEntry).toHaveBeenCalledTimes(2)
+  })
+
+  it('recomputes derived statistics when own predictions refresh', async () => {
+    const rendered = renderPage()
+
+    expect(await screen.findByText('Rival Player')).toBeVisible()
+    await expectExactScores('1Exact scores1')
+
+    context.predictions = predictionData(0, 0)
+    rendered.rerender(page())
+
+    await expectExactScores('0Exact scores1')
+    await expectTotals('12 – 25')
     expect(mocks.fetchRivalEntry).toHaveBeenCalledTimes(2)
   })
 })
