@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { EmptyState, Button } from '../../design-system'
+import { EmptyState, Button, Skeleton } from '../../design-system'
 import { CalendarIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
@@ -115,13 +115,27 @@ export function MatchesPage() {
     return (
       <div className={s.page}>
         <EmptyState icon={<CalendarIcon size={22} />} title="Couldn't load fixtures" description={data.message} />
+        <Button variant="secondary" fullWidth onClick={data.reload}>
+          Retry fixtures
+        </Button>
         <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
           Back to Home
         </Button>
       </div>
     )
   }
-  if (!built) return <div className={s.page} />
+  if (!built) {
+    return (
+      <div className={s.page} role="status" aria-live="polite" aria-label="Loading fixtures">
+        <div className={s.card}>
+          <Skeleton lines={3} />
+        </div>
+        <div className={s.card}>
+          <Skeleton lines={3} />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <MatchesScreen

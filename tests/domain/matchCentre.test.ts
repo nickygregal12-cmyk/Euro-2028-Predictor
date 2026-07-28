@@ -15,16 +15,16 @@ const AT = (iso: string) => new Date(iso)
 describe('matchTemporalState', () => {
   const kick = '2028-06-10T18:00:00Z'
   it('is "after" once a result exists (regardless of clock)', () => {
-    expect(matchTemporalState({ kickoffAt: kick, homeScore: 2, awayScore: 1 }, AT('2028-06-10T17:00:00Z'))).toBe('after')
+    expect(matchTemporalState({ kickoffAt: kick, homeScore: 2, awayScore: 1 })).toBe('after')
   })
   it('is "before" ahead of kickoff', () => {
-    expect(matchTemporalState({ kickoffAt: kick, homeScore: null, awayScore: null }, AT('2028-06-10T17:59:00Z'))).toBe('before')
+    expect(matchTemporalState({ kickoffAt: kick, homeScore: null, awayScore: null })).toBe('before')
   })
-  it('is "during" after kickoff with no result yet (the live window)', () => {
-    expect(matchTemporalState({ kickoffAt: kick, homeScore: null, awayScore: null }, AT('2028-06-10T18:30:00Z'))).toBe('during')
+  it('never infers a live period from a passed kickoff — it fails closed to "before"', () => {
+    expect(matchTemporalState({ kickoffAt: '2020-01-01T00:00:00Z', homeScore: null, awayScore: null })).toBe('before')
   })
   it('is "before" when there is no kickoff time and no result', () => {
-    expect(matchTemporalState({ kickoffAt: null, homeScore: null, awayScore: null }, AT('2028-06-10T18:30:00Z'))).toBe('before')
+    expect(matchTemporalState({ kickoffAt: null, homeScore: null, awayScore: null })).toBe('before')
   })
 })
 

@@ -13,15 +13,15 @@ export type MatchTemporalState = 'before' | 'during' | 'after'
 
 /**
  * Which of the three states a fixture is in. `after` once a result exists;
- * `during` once kickoff has passed but no result is in yet (the live window —
- * wired through but unfed until a live-score source exists); `before` otherwise.
+ * `before` otherwise. The `during` member is reserved for a real live-score
+ * source: like the Match Centre adapter (matchCentreRepositoryAdapter), this
+ * NEVER infers a live period merely because kickoff has passed — an absent or
+ * delayed feed fails closed rather than showing a convincing live match.
  */
 export function matchTemporalState(
   match: { kickoffAt: string | null; homeScore: number | null; awayScore: number | null },
-  now: Date = new Date(),
 ): MatchTemporalState {
   if (match.homeScore !== null && match.awayScore !== null) return 'after'
-  if (match.kickoffAt && now.getTime() >= new Date(match.kickoffAt).getTime()) return 'during'
   return 'before'
 }
 
