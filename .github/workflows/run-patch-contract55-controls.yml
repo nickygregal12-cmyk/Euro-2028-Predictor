@@ -1,0 +1,49 @@
+name: Run contract 55 controls patch
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/run-patch-contract55-controls.yml
+      - .github/workflows/patch-contract55-controls.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/align-contract55-controls
+          fetch-depth: 0
+
+      - name: Execute the reviewed embedded patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import textwrap
+
+          source = Path('.github/workflows/patch-contract55-controls.yml').read_text()
+          start_marker = "          python - <<'PY'\n"
+          end_marker = "\n          PY\n\n          git config user.name"
+          if start_marker not in source or end_marker not in source:
+              raise SystemExit('Could not locate the reviewed embedded patch.')
+          script = source.split(start_marker, 1)[1].split(end_marker, 1)[0]
+          exec(compile(textwrap.dedent(script), 'contract55-controls-patch', 'exec'))
+          PY
+
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .github/workflows/production-backup.yml \
+            tests/scripts/productionBackupWorkflow.test.ts \
+            AGENTS.md CLAUDE.md \
+            docs/quality/current-status.md \
+            docs/ops-pending-migrations.md
+          git commit -m 'Align permanent controls and status at contract 55'
+          git push origin HEAD:release/align-contract55-controls
