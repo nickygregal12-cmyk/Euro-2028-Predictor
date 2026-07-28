@@ -11,7 +11,6 @@ import { welcomeStatusFor, type WelcomeStatus } from '../welcome/welcomeGating'
 // auth screens (log in / sign up) or, in a dev build, by the auto-login shim on
 // startup (docs/auth-plan.md §1). This provider treats every session the same
 // way — nothing here special-cases the dev user (CLAUDE.md rule 8).
-
 type AuthContextValue = {
   userId: string | null
   displayName: string | null
@@ -20,6 +19,7 @@ type AuthContextValue = {
   // never-welcomed user, 'seen' otherwise. `markWelcomed` stamps it seen.
   welcomeStatus: WelcomeStatus
   markWelcomed: () => void
+  refreshProfile: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -79,6 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (userId) void markWelcomedNow(userId)
   }
 
+  async function refreshProfile() {
+    if (!userId) return
+    const profile = await fetchMyProfile(userId)
+    setDisplayName(profile?.displayName ?? null)
+  }
+
   async function signOut() {
     // A real sign-out: clear the session and let the route gate show the auth
     // screens. The dev auto-login shim only runs at startup (main.tsx), so
@@ -89,7 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ userId, displayName, loading, welcomeStatus, markWelcomed, signOut }}
+      value={{
+        userId,
+        displayName,
+        loading,
+        welcomeStatus,
+        markWelcomed,
+        refreshProfile,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>
