@@ -33,8 +33,8 @@ export type LeagueMemberRowProps = {
   // Expansion is controlled by the parent (one row open at a time).
   expanded: boolean
   onToggle: () => void
-  // Expanded content. When `revealed` is false and this isn't you, stats stay
-  // hidden behind a reveal-rules note instead of the stat triple + actions.
+  // Expanded content. When `revealed` is false and this isn't you, stats and H2H
+  // remain hidden, but the safe co-member Profile action can still be available.
   revealed?: boolean
   stats?: MemberStats
   onProfile?: () => void
@@ -143,19 +143,32 @@ export function LeagueMemberRow({
                   <span className={s.statLabel}>Max left</span>
                 </span>
               </div>
-              <div className={s.actions}>
-                <button type="button" className={s.action} onClick={onProfile}>
-                  Profile
-                </button>
-                {!isYou && (
-                  <button type="button" className={s.action} onClick={onHeadToHead}>
-                    Head to head
-                  </button>
-                )}
-              </div>
+              {(onProfile || (!isYou && onHeadToHead)) && (
+                <div className={s.actions}>
+                  {onProfile && (
+                    <button type="button" className={s.action} onClick={onProfile}>
+                      Profile
+                    </button>
+                  )}
+                  {!isYou && onHeadToHead && (
+                    <button type="button" className={s.action} onClick={onHeadToHead}>
+                      Head to head
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           ) : (
-            <p className={s.hidden}>Stats are hidden until entries lock.</p>
+            <>
+              <p className={s.hidden}>Stats are hidden until entries lock.</p>
+              {onProfile && (
+                <div className={s.actions}>
+                  <button type="button" className={s.action} onClick={onProfile}>
+                    Profile
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
