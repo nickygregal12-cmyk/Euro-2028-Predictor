@@ -21,5 +21,5 @@
     "public.get_public_capacity()",
     "public.set_operating_limits(integer,integer)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contracts 45-46 deliver bounded private-league standings/search and lightweight activity summaries. Contract 47 adds a bounded co-member profile read with pre-lock privacy and post-lock authoritative profile detail. Contract 47 is development-only pending clean-room and authenticated-browser evidence; production remains locked at contract 44."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contracts 45-46 deliver bounded private-league standings/search and lightweight activity summaries. Contract 47 adds a bounded co-member profile read with pre-lock privacy and post-lock authoritative profile detail. Development and non-production Netlify are promoted to contract 47 after clean-room, authenticated-browser and rollback-only hosted evidence; production remains locked at contract 44."
 }
