@@ -67,7 +67,8 @@ function markReached(
 /**
  * Build the authoritative knockout state from fixture participants and winners.
  * A participant has reached that round; a winner has reached the next milestone.
- * Once every group match is resulted, teams absent from the R16 are eliminated.
+ * Group-stage elimination is declared only after all 16 R16 participant slots
+ * are populated, so an unresolved official qualification tie remains possible.
  */
 export function deriveKnockoutState(input: {
   teamIds: string[]
@@ -76,7 +77,11 @@ export function deriveKnockoutState(input: {
   const reachedByTeam = new Map<string, Set<KnockoutStage>>()
   const eliminatedTeamIds = new Set<string>()
   const groupMatches = input.matches.filter((match) => match.round === 'group')
+  const r16Matches = input.matches.filter((match) => match.round === 'r16')
   const groupsComplete = groupMatches.length > 0 && groupMatches.every((match) => match.resulted)
+  const r16PopulationComplete =
+    r16Matches.length === 8 &&
+    r16Matches.every((match) => match.homeTeamId !== null && match.awayTeamId !== null)
 
   for (const match of input.matches) {
     const stage = ROUND_STAGE[match.round]
@@ -95,7 +100,7 @@ export function deriveKnockoutState(input: {
     }
   }
 
-  if (groupsComplete) {
+  if (groupsComplete && r16PopulationComplete) {
     for (const teamId of input.teamIds) {
       if (!reachedByTeam.get(teamId)?.has('R16')) {
         eliminatedTeamIds.add(teamId)
