@@ -3,6 +3,7 @@ import { createLocalAdmin, DEFAULT_E2E_EMAIL } from './local-supabase'
 const PASSWORD = 'H2h-surface-local-2028!'
 const INVITE_CODE = 'H2H001'
 const RIVAL_POINTS = 37
+const RIVAL_RANK = 2
 
 export type H2HSurfaceFixture = {
   leagueId: string
@@ -10,6 +11,7 @@ export type H2HSurfaceFixture = {
   rivalId: string
   rivalDisplayName: string
   rivalPoints: number
+  rivalRank: number
   tournamentId: string
   originalLockAt: string | null
 }
@@ -147,8 +149,17 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
     })
     if (scoreError) throw scoreError
 
-    // Start before lock so the browser proves the safe hidden profile state and
-    // absence of H2H. The test advances this exact fixture through lock later.
+    const { error: historyError } = await admin.from('rank_history').insert({
+      user_id: rivalId,
+      tournament_id: tournamentId,
+      matchday_key: 'MD1',
+      matchday_ord: 1,
+      rank: RIVAL_RANK,
+      total_points: RIVAL_POINTS,
+      captured_at: new Date().toISOString(),
+    })
+    if (historyError) throw historyError
+
     await setTournamentLock(
       tournamentId,
       new Date(Date.now() + 60 * 60 * 1000).toISOString(),
@@ -160,6 +171,7 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
       rivalId,
       rivalDisplayName,
       rivalPoints: RIVAL_POINTS,
+      rivalRank: RIVAL_RANK,
       tournamentId,
       originalLockAt,
     }
