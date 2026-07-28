@@ -78,32 +78,23 @@ begin
     );
   end if;
 
-  -- Match deletion runs the existing derived-position refresh trigger. The
-  -- explicit group-position delete below guarantees the final state is empty.
-  delete from public.match_predictions
-    where entry_id = v_entry_id;
-  get diagnostics v_match_predictions = row_count;
+  select count(*)::integer into v_match_predictions
+    from public.match_predictions where entry_id = v_entry_id;
+  select count(*)::integer into v_group_positions
+    from public.predicted_group_positions where entry_id = v_entry_id;
+  select count(*)::integer into v_tie_resolutions
+    from public.predicted_tie_resolutions where entry_id = v_entry_id;
+  select count(*)::integer into v_progression
+    from public.predicted_progression where entry_id = v_entry_id;
+  select count(*)::integer into v_award_picks
+    from public.bonus_predictions where entry_id = v_entry_id;
 
-  delete from public.predicted_tie_resolutions
-    where entry_id = v_entry_id;
-  get diagnostics v_tie_resolutions = row_count;
-
-  delete from public.predicted_group_positions
-    where entry_id = v_entry_id;
-  get diagnostics v_group_positions = row_count;
-
-  delete from public.predicted_progression
-    where entry_id = v_entry_id;
-  get diagnostics v_progression = row_count;
-
-  -- bonus_predictions stores Original Predictor award picks. It is not one of
-  -- the separate bonus_* game tables introduced by contracts 49–56.
-  delete from public.bonus_predictions
-    where entry_id = v_entry_id;
-  get diagnostics v_award_picks = row_count;
-
-  update public.entries
-    set submitted_at = null
+  -- Delete the entry itself so every Original Predictor child row is removed by
+  -- its existing foreign-key cascade. More importantly, a debounced write that
+  -- was already queued against the old entry id cannot recreate cleared picks:
+  -- it fails the entry foreign key. The normal entry loader creates a fresh,
+  -- empty entry on the next application load.
+  delete from public.entries
     where id = v_entry_id;
 
   return jsonb_build_object(
