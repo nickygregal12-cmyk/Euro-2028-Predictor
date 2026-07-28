@@ -1,0 +1,80 @@
+name: Contract 55 production preflight diagnostics
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/contract55-production-preflight-diagnostics.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+      RELEASE_COMMIT: f4250cc15930f047c8d706472907de92ddb3bef3
+    steps:
+      - name: Check out the exact verified main release
+        uses: actions/checkout@v4
+        with:
+          ref: f4250cc15930f047c8d706472907de92ddb3bef3
+          fetch-depth: 1
+
+      - name: Capture remote and local migration ledgers
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          : "${SUPABASE_PROD_DB_URL:?SUPABASE_PROD_DB_URL is not set}"
+          case "$SUPABASE_PROD_DB_URL" in
+            *"$EXPECTED_PROJECT_REF"*) ;;
+            *) exit 1 ;;
+          esac
+
+          mkdir -p /tmp/contract55-preflight
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -c "select version || E'\t' || name from supabase_migrations.schema_migrations order by version" \
+            > /tmp/contract55-preflight/remote-migrations.tsv
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sort > /tmp/contract55-preflight/local-migrations.txt
+
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('/tmp/contract55-preflight')
+          remote_versions = {
+              line.split('\t', 1)[0]
+              for line in (root / 'remote-migrations.tsv').read_text().splitlines()
+              if line.strip()
+          }
+          local_files = [
+              line.strip()
+              for line in (root / 'local-migrations.txt').read_text().splitlines()
+              if line.strip()
+          ]
+          pending = [
+              filename for filename in local_files
+              if filename.split('_', 1)[0] not in remote_versions
+          ]
+          (root / 'pending-migrations.txt').write_text('\n'.join(pending) + '\n')
+          (root / 'summary.txt').write_text(
+              f'remote_count={len(remote_versions)}\n'
+              f'local_count={len(local_files)}\n'
+              f'pending_count={len(pending)}\n'
+          )
+          print((root / 'summary.txt').read_text(), end='')
+          print((root / 'pending-migrations.txt').read_text(), end='')
+          PY
+
+      - name: Upload preflight diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract55-production-preflight-diagnostics
+          path: /tmp/contract55-preflight/
+          retention-days: 1
