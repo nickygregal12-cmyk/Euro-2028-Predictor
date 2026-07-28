@@ -138,13 +138,16 @@ PR #143 and contract 47 deliver:
 
 Close-out: merge PR #143 after exact-head CI, Database parity, Browser E2E and preview smoke are green.
 
-### Stage 4B — Richer H2H, rank-over-time and bracket health: next
+### Stage 4B — Richer H2H, rank-over-time and bracket health: complete
 
-1. expose bounded rank-history checkpoints for the current user and authorised co-members;
-2. add a clear rank-over-time graph with accessible non-visual equivalents;
-3. define bracket-health metrics from predicted progression, actual advancement and remaining possible points;
-4. add richer H2H comparison without mixing Original and bonus scores or widening the co-member privacy boundary;
-5. carry loading, empty, retry, error, mobile and accessibility states within the same batch.
+Delivered through PR #145 and contract 48 (production-released 28 July 2026 —
+see `docs/quality/investigations/2026-07-28-contract-48-production-release.md`):
+
+1. bounded post-lock co-member rank-history read (`get_h2h_rank_history`), with browser direct-table access to `rank_history` revoked;
+2. accessible rank-over-time comparison inside H2H with non-visual equivalents;
+3. bracket-health metrics from predicted progression, actual advancement and remaining possible points;
+4. richer H2H comparison without mixing Original and bonus scores or widening the co-member privacy boundary;
+5. loading, empty, retry, error, mobile and accessibility states carried within the batch.
 
 ### Later Stage 4 sequence
 
@@ -155,13 +158,17 @@ Close-out: merge PR #143 after exact-head CI, Database parity, Browser E2E and p
 
 ## Stage 5 — Bonus competitions
 
-Build only after the Original Predictor lifecycle and core experience are proven:
+Platform first, then each game as a thin ruleset (ADR-0010, accepted 28 July 2026). The pure platform foundation lands ahead of the remaining Stage 4 product work; every user-visible bonus surface still waits until the Original Predictor core experience is proven:
 
-1. KO Predictor;
-2. Last Man Standing;
-3. Predictor Cup.
+1. **B1 — platform domain (delivered):** `src/domain/competitions/` model and `resolveCompetitionStatus`, the single fourteen-state resolver every bonus surface consumes;
+2. **B2 — platform schema (delivered, development only):** contract 49 adds deny-all `bonus_competitions`, `bonus_competition_windows`, `bonus_window_fixtures`, `bonus_competition_entrants`, `bonus_score_events` and `bonus_competition_audit` with RPC-only mutation and pgTAP coverage;
+3. **B3 — Games hub (delivered, development only):** contract 50 adds the bounded authenticated hub read plus voluntary registration/withdrawal RPCs with audit and scored-history protection, and the More → Games (`/games`) surface consuming the single state resolver;
+4. **B4 — shared knockout prediction store (delivered, development only):** contract 51 collects one knockout scoreline per user per real match — per-kickoff database locks, optimistic versions, entrant gating and the `/games/knockout` form (draws carry a who-goes-through pick, decisive scorelines imply it);
+5. **B5 — KO Predictor (delivered, development only):** contract 52 scores the shared store — Exact 5 / Result 3 / Through +2 (`docs/scoring-rules.md` §8) — inside the single advisory-locked result operation, with rolling-entry banking, a bounded server-ranked standings read and the `/games/ko-predictor` surface;
+6. **B6 — Last Man Standing;**
+7. **B7 — Predictor Cup.**
 
-Each mode keeps its own entry window, rules, scoring and leagues.
+Each mode keeps its own entry, rules, scoring and standings; B5–B7 may never add a second registration, deadline, window or audit mechanism.
 
 ## Stage 6 — Operations and launch preparation
 

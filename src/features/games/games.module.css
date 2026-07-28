@@ -1,0 +1,81 @@
+.gameCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gameHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gameName {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tagline {
+  margin: 0;
+  color: var(--text-muted, #667085);
+  font-size: 0.85rem;
+}
+
+.stateLine {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.deadline {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted, #667085);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.teamName {
+  flex: 1;
+  font-size: 0.9rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.teamName:last-child {
+  text-align: right;
+}
+
+.standingsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.standingsTable th,
+.standingsTable td {
+  text-align: left;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--line, #e4e7ec);
+}
+
+.standingsTable th:nth-child(n + 3),
+.standingsTable td:nth-child(n + 3) {
+  text-align: right;
+}
+
+.ownRow {
+  font-weight: 700;
+}

@@ -5,11 +5,11 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development Supabase and non-production Netlify are at contract 47.
-- Production Supabase and the published production application are aligned and locked at contract 44.
+- Repository and development Supabase are at contract 52; non-production Netlify declares 51 pending an owner environment update.
+- Production Supabase and the published production application are aligned and locked at contract 48 (the H2H rank-history milestone).
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- Production deploy: `6a686e30f2f13c07f10e30d8` from `515e794aa483a779c971e16a364fcbd243fa7ee6`.
+- Production deploy: contract-48 release from `main` (PR #145) — see `docs/quality/investigations/2026-07-28-contract-48-production-release.md`.
 - Normal work happens against development; production promotion is milestone-only.
 
 Do not import rules or features from previous projects, old branches, prototypes or chats.
@@ -44,15 +44,14 @@ Ordinary development does not require production backup, production smoke or a n
 - positions 2 each plus 5 full-order bonus;
 - knockout 10 / 15 / 20 / 25 / 40, stacking;
 - Golden Boot 25;
-- group goals 40 / 30 / 20.
+- group goals 40 / 30 / 20;
+- KO Predictor (separate score system, §8): exact 5 / result 3 / through +2.
 
 ## Current order
 
-1. Complete and merge PR #143 after exact-head CI, Database parity, authenticated Browser E2E and preview smoke.
-2. Build richer H2H with bounded rank-over-time and bracket health.
-3. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends.
-4. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-5. Add bonus competitions only after the Original Predictor lifecycle and core experience are proven.
+1. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends (richer H2H is delivered at contract 48).
+3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
+4. Bonus Games platform and the KO Predictor (ADR-0010 B1–B5: domain, deny-all schema, Games hub, shared knockout store, KO scoring/standings) are delivered through contract 52; Last Man Standing and the Predictor Cup (B6–B7) wait until the Original Predictor core experience is proven.
 
 Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 

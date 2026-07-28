@@ -115,6 +115,23 @@ Applied in order until the tie is broken:
 - Incomplete entries at lock are not submitted and do not appear in standings. (Deadline reminder emails exist to minimise this case.)
 - Manual submission remains the normal path and is encouraged in the UI; auto-submit is the safety net, and auto-submitted entries are marked as such internally.
 
+## 8. Bonus games (separate score systems — never combined with the above)
+
+Bonus-game scoring is specified in `docs/competition-structure.md` §4 and never
+touches Original Predictor points, jokers or standings (§1 separation law).
+
+- **KO Predictor (implemented, contract 52):** per confirmed knockout match,
+  scored from the shared knockout prediction store — **Exact scoreline 5**
+  (total; exact and result never stack) · **Correct result 3** · **Advancing
+  team +2** (explicit pick on a predicted draw, implied by a decisive
+  scoreline; stacks on exact or result and pays alone on a wrong scoreline
+  with the right team through). Rolling entry: matches that kicked off before
+  the entrant joined stay unbanked. No jokers, ever. Recompute runs inside the
+  single advisory-locked result operation; nothing is scored from a
+  provisional result.
+- Last Man Standing and Predictor Cup scoring follow in their own build
+  stages.
+
 ## Open items / things to revisit later
 
 - Confirm whether knockout mode ever moves beyond winner-only selection (e.g. a future score-prediction knockout mode) — if so, exact-score bonus rules will need defining for that mode separately, and must stay isolated from these original-entry scores per the "never merge original and live knockout scores" rule.
