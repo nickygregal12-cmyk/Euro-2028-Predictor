@@ -1,9 +1,5 @@
 import { supabase } from './client'
-import {
-  mapPlayerProfile,
-  type PlayerProfileDetail,
-  type PlayerProfileRead,
-} from './playerProfileModel'
+import { mapPlayerProfile, type PlayerProfileRead } from './playerProfileModel'
 
 export type { PlayerProfileDetail, PlayerProfileRead } from './playerProfileModel'
 
