@@ -1,0 +1,207 @@
+name: Contract 55 production migration
+
+on:
+  push:
+    branches:
+      - release/contract55-production-promotion
+    paths:
+      - .github/workflows/contract55-production-migrate.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract55-production-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+      EXPECTED_START_COUNT: '48'
+      EXPECTED_END_COUNT: '55'
+      EXPECTED_LATEST_VERSION: '20260729030000'
+      EXPECTED_LATEST_NAME: predictor_cup_group_scoring
+      RELEASE_COMMIT: f4250cc15930f047c8d706472907de92ddb3bef3
+
+    steps:
+      - name: Check out the exact verified main release
+        uses: actions/checkout@v4
+        with:
+          ref: f4250cc15930f047c8d706472907de92ddb3bef3
+          fetch-depth: 1
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Validate production secret and exact release
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          : "${SUPABASE_PROD_DB_URL:?SUPABASE_PROD_DB_URL is not set}"
+          case "$SUPABASE_PROD_DB_URL" in
+            *"$EXPECTED_PROJECT_REF"*) ;;
+            *)
+              echo "STOP: database URL is not the approved production project $EXPECTED_PROJECT_REF." >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Preflight exact pending migration chain
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -c "select version || E'\\t' || name from supabase_migrations.schema_migrations order by version" \
+            > /tmp/remote-migrations.tsv
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sort > /tmp/local-migrations.txt
+
+          python - <<'PY'
+          from pathlib import Path
+
+          expected = [
+              '20260728160000_bonus_games_platform.sql',
+              '20260728180000_bonus_games_hub.sql',
+              '20260728210000_shared_knockout_prediction_store.sql',
+              '20260728220000_ko_predictor_scoring.sql',
+              '20260728230000_last_man_standing.sql',
+              '20260729010000_predictor_cup_foundation.sql',
+              '20260729030000_predictor_cup_group_scoring.sql',
+          ]
+          remote_versions = {
+              line.split('\t', 1)[0]
+              for line in Path('/tmp/remote-migrations.tsv').read_text().splitlines()
+              if line.strip()
+          }
+          local_files = [
+              line.strip()
+              for line in Path('/tmp/local-migrations.txt').read_text().splitlines()
+              if line.strip()
+          ]
+          pending = [
+              filename for filename in local_files
+              if filename.split('_', 1)[0] not in remote_versions
+          ]
+          if len(remote_versions) != 48:
+              raise SystemExit(
+                  f'STOP: expected 48 production migrations before promotion, found {len(remote_versions)}.'
+              )
+          if pending != expected:
+              raise SystemExit(
+                  'STOP: pending production migrations are not the approved contract 49-55 chain.\n'
+                  f'Expected: {expected}\nActual: {pending}'
+              )
+          print('Approved pending chain:')
+          print('\n'.join(pending))
+          PY
+
+      - name: Dry-run production migration push
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        run: |
+          set -o pipefail
+          supabase db push --db-url "$SUPABASE_PROD_DB_URL" --include-all --dry-run \
+            2>&1 | tee /tmp/contract55-production-dry-run.log
+
+      - name: Apply contracts 49 through 55
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        run: supabase db push --db-url "$SUPABASE_PROD_DB_URL" --include-all --yes
+
+      - name: Verify production contract and preserved data
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
+            | tee /tmp/contract55-production-verification.txt
+          select jsonb_build_object(
+            'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+            'latest_version', (select max(version) from supabase_migrations.schema_migrations),
+            'latest_name', (
+              select name from supabase_migrations.schema_migrations order by version desc limit 1
+            ),
+            'auth_users', (select count(*) from auth.users),
+            'profiles', (select count(*) from public.profiles),
+            'entries', (select count(*) from public.entries),
+            'leagues', (select count(*) from public.leagues),
+            'matches', (select count(*) from public.matches),
+            'match_predictions', (select count(*) from public.match_predictions),
+            'bonus_competitions', (select count(*) from public.bonus_competitions),
+            'bonus_entrants', (select count(*) from public.bonus_competition_entrants),
+            'lms_selections', (select count(*) from public.bonus_lms_selections),
+            'cup_groups', (select count(*) from public.bonus_cup_groups),
+            'cup_members', (select count(*) from public.bonus_cup_members),
+            'cup_fixtures', (select count(*) from public.bonus_cup_fixtures)
+          );
+          SQL
+
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -v expected_count="$EXPECTED_END_COUNT" \
+            -v expected_version="$EXPECTED_LATEST_VERSION" \
+            -v expected_name="$EXPECTED_LATEST_NAME" <<'SQL'
+          do $$
+          declare
+            actual_count integer;
+            actual_version text;
+            actual_name text;
+          begin
+            select count(*)::integer into actual_count
+            from supabase_migrations.schema_migrations;
+            select version, name into actual_version, actual_name
+            from supabase_migrations.schema_migrations
+            order by version desc limit 1;
+            if actual_count <> 55
+              or actual_version <> '20260729030000'
+              or actual_name <> 'predictor_cup_group_scoring'
+            then
+              raise exception 'Contract verification failed: count %, version %, name %',
+                actual_count, actual_version, actual_name;
+            end if;
+            if (select count(*) from auth.users) <> 1
+              or (select count(*) from public.profiles) <> 1
+              or (select count(*) from public.entries) <> 1
+              or (select count(*) from public.leagues) <> 1
+              or (select count(*) from public.matches) <> 51
+              or (select count(*) from public.match_predictions) <> 36
+            then
+              raise exception 'Existing production data counts changed unexpectedly.';
+            end if;
+            if (select count(*) from public.bonus_competition_entrants) <> 0
+              or (select count(*) from public.bonus_lms_selections) <> 0
+              or (select count(*) from public.bonus_cup_groups) <> 0
+              or (select count(*) from public.bonus_cup_members) <> 0
+              or (select count(*) from public.bonus_cup_fixtures) <> 0
+            then
+              raise exception 'Synthetic Bonus Games data was unexpectedly created.';
+            end if;
+          end
+          $$;
+          SQL
+
+      - name: Lint production database
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        run: supabase db lint --db-url "$SUPABASE_PROD_DB_URL" --fail-on error
+
+      - name: Upload production migration evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract55-production-migration-evidence
+          path: |
+            /tmp/contract55-production-dry-run.log
+            /tmp/contract55-production-verification.txt
+          if-no-files-found: warn
+          retention-days: 14
