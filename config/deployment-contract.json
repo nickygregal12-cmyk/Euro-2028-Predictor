@@ -1,6 +1,6 @@
 {
-  "contractVersion": 51,
-  "requiredMigrationCount": 51,
+  "contractVersion": 52,
+  "requiredMigrationCount": 52,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -18,6 +18,7 @@
     "public.get_league_members(uuid,integer,text)",
     "public.search_league_transfer_candidates(uuid,text,integer)",
     "public.get_player_profile(uuid,uuid)",
+    "public.get_h2h_rank_history(uuid,uuid)",
     "public.get_public_capacity()",
     "public.set_operating_limits(integer,integer)",
     "public.get_bonus_games(uuid)",
@@ -28,5 +29,5 @@
     "public.get_my_knockout_predictions(uuid)",
     "public.get_ko_predictor_standings(uuid,integer,text)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contracts 48-50 add the Bonus Games platform foundation (ADR-0010 B2-B4): deny-all schema, Games hub with voluntary entry and the shared knockout prediction store. Contract 51 adds KO Predictor scoring (B5): Exact 5 / Result 3 / Through +2 recomputed inside the single advisory-locked result operation, with a bounded server-ranked standings read. Development promotion follows Database parity; production remains locked at contract 44."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the bounded H2H rank-history read and is the production-published milestone. Contracts 49-51 add the Bonus Games platform foundation (ADR-0010 B2-B4): deny-all schema, Games hub with voluntary entry and the shared knockout prediction store. Contract 52 adds KO Predictor scoring (B5): Exact 5 / Result 3 / Through +2 recomputed inside the single advisory-locked result operation, with a bounded server-ranked standings read. Development promotion follows Database parity; production remains locked at contract 48."
 }

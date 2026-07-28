@@ -1,6 +1,6 @@
 -- Euro 2028 Predictor — Bonus Games hub read model and voluntary entry
 --
--- Contract 49 (ADR-0010, stage B3 database slice). Adds the bounded read the
+-- Contract 50 (ADR-0010, stage B3 database slice). Adds the bounded read the
 -- Games hub consumes and the voluntary registration/withdrawal writes. The
 -- platform tables stay deny-all: these three RPCs are the only browser paths.
 --

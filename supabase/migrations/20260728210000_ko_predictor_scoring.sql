@@ -1,7 +1,7 @@
 -- Euro 2028 Predictor — KO Predictor scoring and standings
 --
--- Contract 51 (ADR-0010, stage B5). The first bonus game becomes live scoring:
--- shared knockout predictions (contract 50) are scored under the decided KO
+-- Contract 52 (ADR-0010, stage B5). The first bonus game becomes live scoring:
+-- shared knockout predictions (contract 51) are scored under the decided KO
 -- Predictor rules (competition-structure.md §4, 2026-07-22) into the game's
 -- own bonus_score_events, never touching Original Predictor scoring.
 --

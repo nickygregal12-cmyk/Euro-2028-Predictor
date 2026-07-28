@@ -18,6 +18,7 @@ insert into expected_authenticated_functions (signature) values
   ('delete_league(uuid)'),
   ('delete_match_prediction(uuid,uuid,integer)'),
   ('get_entry_submission_status(uuid)'),
+  ('get_h2h_rank_history(uuid,uuid)'),
   ('get_leaderboard(uuid,integer,text)'),
   ('get_league(uuid)'),
   ('get_league_match_picks(uuid,uuid)'),
@@ -64,9 +65,9 @@ insert into expected_authenticated_functions (signature) values
   ('admin_match_result_revisions(uuid)'),
   ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
--- Contract 49: the Bonus Games hub read plus voluntary entry and withdrawal.
--- Contract 50: the shared knockout prediction store.
--- Contract 51: the bounded KO Predictor standings read.
+-- Contract 50: the Bonus Games hub read plus voluntary entry and withdrawal.
+-- Contract 51: the shared knockout prediction store.
+-- Contract 52: the bounded KO Predictor standings read.
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),

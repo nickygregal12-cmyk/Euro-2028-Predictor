@@ -1,4 +1,4 @@
-// Pure response parsing for the Games hub read (contract 49). No Supabase
+// Pure response parsing for the Games hub read (contract 50). No Supabase
 // client, no clock — strict shape validation that fails closed on anything the
 // contract does not promise.
 

@@ -5,7 +5,7 @@ import {
 } from './koPredictorStandingsModel'
 
 /**
- * Bounded, server-ranked global KO Predictor standings (contract 51). Pass
+ * Bounded, server-ranked global KO Predictor standings (contract 52). Pass
  * the previous page's cursor to continue; the server owns rank and order.
  */
 export async function fetchKoPredictorStandings(

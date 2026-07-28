@@ -1,6 +1,6 @@
 -- Euro 2028 Predictor — shared knockout prediction store
 --
--- Contract 50 (ADR-0010, stage B4). Raw per-match knockout scoreline
+-- Contract 51 (ADR-0010, stage B4). Raw per-match knockout scoreline
 -- predictions are collected ONCE — per-kickoff locks — and later read by both
 -- the KO Predictor and the Predictor Cup, each scoring them under its own
 -- rules into its own score events (competition-structure §1, decided

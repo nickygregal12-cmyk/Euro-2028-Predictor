@@ -120,7 +120,7 @@ Applied in order until the tie is broken:
 Bonus-game scoring is specified in `docs/competition-structure.md` §4 and never
 touches Original Predictor points, jokers or standings (§1 separation law).
 
-- **KO Predictor (implemented, contract 51):** per confirmed knockout match,
+- **KO Predictor (implemented, contract 52):** per confirmed knockout match,
   scored from the shared knockout prediction store — **Exact scoreline 5**
   (total; exact and result never stack) · **Correct result 3** · **Advancing
   team +2** (explicit pick on a predicted draw, implied by a decisive

@@ -1,4 +1,4 @@
-// Pure response parsing for the KO Predictor standings read (contract 51).
+// Pure response parsing for the KO Predictor standings read (contract 52).
 
 export type KoStandingRow = {
   userId: string
