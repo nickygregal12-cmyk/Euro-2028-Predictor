@@ -1,6 +1,6 @@
 {
-  "contractVersion": 46,
-  "requiredMigrationCount": 46,
+  "contractVersion": 47,
+  "requiredMigrationCount": 47,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -17,8 +17,9 @@
     "public.get_leaderboard(uuid,integer,text)",
     "public.get_league_members(uuid,integer,text)",
     "public.search_league_transfer_candidates(uuid,text,integer)",
+    "public.get_player_profile(uuid,uuid)",
     "public.get_public_capacity()",
     "public.set_operating_limits(integer,integer)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 45 paginates private-league standings and separates owner-only transfer-candidate search; contract 46 adds latest league activity to the existing lightweight league summary so Home preserves its rank/activity selection without full member payloads. Development and non-production Netlify are promoted to contract 46 after clean-room database and authenticated-browser evidence; production remains locked at contract 44."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contracts 45-46 deliver bounded private-league standings/search and lightweight activity summaries. Contract 47 adds a bounded co-member profile read with pre-lock privacy and post-lock authoritative profile detail. Contract 47 is development-only pending clean-room and authenticated-browser evidence; production remains locked at contract 44."
 }
