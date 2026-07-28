@@ -6,15 +6,15 @@ Live source of truth for repository migration count, hosted state and pending ro
 
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| Repository | 46 | 46 canonical files through `20260727221000` in draft PR #138 | merge PR #138 after final gates |
-| Development Supabase `iouzoutneyjpugbbtdem` | 46 | exactly 46 canonical versions through `20260727221000`; history aligned and baseline data unchanged | surface/state verification only |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 46 | development Supabase; exact PR #138 preview available | exact-head preview smoke |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 44 | exactly 44 canonical versions through `20260727191942`; locked milestone | contracts 45–46 intentionally deferred |
+| Repository | 47 | 47 canonical files through `20260728113000_other_player_profiles.sql` in PR #143 | merge after final exact-head gates |
+| Development Supabase `iouzoutneyjpugbbtdem` | 47 | exactly 47 canonical versions through `20260728113000`; history, grants and baseline data verified | none for contract 47 |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 47 | development Supabase; compatible PR #143 preview rebuilding | exact-head preview smoke |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 44 | exactly 44 canonical versions through `20260727191942`; locked milestone | contracts 45–47 intentionally deferred |
 | Netlify `production` | 44 | production Supabase; deploy `6a686e30f2f13c07f10e30d8` from `515e794aa483a779c971e16a364fcbd243fa7ee6` | exact-head Production Smoke workflow |
 
-Production is a controlled future-tournament target, not an active tournament. Contracts 45–46 are development-only. Do not update the production database, production Netlify contract declaration or locked production release without explicit owner approval and the full milestone gate.
+Production is a controlled future-tournament target, not an active tournament. Contracts 45–47 are development-only. Do not update the production database, production Netlify contract declaration or locked production release without explicit owner approval and the full milestone gate.
 
-## Migration 37–46 hosted history
+## Migration 37–47 hosted history
 
 | # | Canonical migration | Purpose | Development | Production |
 | ---: | --- | --- | --- | --- |
@@ -28,30 +28,36 @@ Production is a controlled future-tournament target, not an active tournament. C
 | 44 | `20260727191942_operating_cap_enforcement.sql` | Transaction-serialised public-user and total-league operating limits with authoritative write-boundary enforcement | Applied and verified | Applied and verified (28 July 2026) |
 | 45 | `20260727214500_paginated_private_league_standings.sql` | Keyset-paginated private-league standings, independent caller position, owner-only transfer search and hardened touched functions | Applied and verified; hosted scale evidence captured | Not applied — milestone locked |
 | 46 | `20260727221000_private_league_summary_activity.sql` | Lightweight league summaries retain latest activity without loading standings | Applied and verified | Not applied — milestone locked |
+| 47 | `20260728113000_other_player_profiles.sql` | Co-member-only player profiles with safe pre-lock summary and bounded authoritative post-lock detail | Applied and verified; hosted privacy/payload evidence captured | Not applied — milestone locked |
 
 Development's migration versions match the exact canonical repository filenames. Do not renumber or reapply them under another timestamp.
 
-## Contract-45/46 development evidence
+## Contract-47 development evidence
 
-- all 46 migrations rebuild from zero in disposable local Supabase;
-- database lint, pgTAP and TypeScript/PostgreSQL parity pass on the unchanged contract code;
-- authenticated Browser E2E proves five-page private-league navigation, outside-page caller context, owner search and real ownership transfer;
-- `get_league_members(uuid,integer,text)` defaults to 50 rows and clamps at 100, with deterministic cursor traversal and server-owned rank/tie/position semantics;
-- `search_league_transfer_candidates(uuid,text,integer)` is owner-only, independently clamped and does not expose the standings payload;
-- `get_league`, `get_league_members`, `get_my_leagues`, `search_league_transfer_candidates` and `transfer_ownership` use empty security-definer search paths, deny anonymous execution and permit only authenticated/service-role execution;
-- rollback-only hosted evidence traversed 250 unique members across five 50-row pages with warm pages around 23–24 ms and approximately 14 kB, owner search around 3.2 ms and the summary around 1.2 ms;
-- baseline and post-evidence hosted data counts were identical;
-- non-production Netlify contexts declare contract 46 and remain isolated from production;
+- all 47 migrations rebuild from zero in disposable local Supabase;
+- database lint, pgTAP and TypeScript/PostgreSQL parity pass;
+- `get_player_profile(uuid,uuid)` is security-definer with an immutable empty search path;
+- anonymous execution is denied; authenticated and service-role execution are explicitly allowed;
+- non-co-members are denied server-side while self access remains available;
+- pre-lock response contains identity, tournament league count and entry state only;
+- post-lock detail is capped at 36 group predictions, 24 progression rows and 100 score events;
+- rollback-only hosted evidence measured a 195-byte pre-lock payload in 2.408 ms and a fully capped 21,273-byte post-lock payload in 9.691 ms;
+- the measured post-lock execution plan completed in 4.836 ms with 193 shared-buffer hits and no disk/temp reads or writes;
+- hosted baseline counts remained 23 Auth users, 23 profiles, 21 entries, 3 leagues, 37 memberships and 252 score events after rollback;
+- authenticated Browser E2E proves the hidden-to-full profile transition and Profile/H2H navigation on desktop and phone;
+- non-production Netlify contexts declare contract 47 and remain isolated from production;
 - production Supabase and Netlify production remain aligned and locked at contract 44.
 
-See `docs/quality/investigations/2026-07-28-stage-3c2-private-league-evidence.md`.
+See `docs/quality/investigations/2026-07-28-stage-4-secure-player-profile-evidence.md`.
 
-## Earlier bounded-read evidence
+## Earlier development evidence
 
 - PR #134 delivered contract 43 with server-ranked overall pagination, current-user context, database assertions, browser standings journeys and exact-head preview validation;
 - PR #136 delivered contract 44 with operating-cap enforcement, concurrency assertions and capacity browser journeys;
+- PR #138 delivered contracts 45–46 with private-league pagination/search and 250-member hosted evidence;
+- PR #141 closed the Stage 3C2 own Profile/H2H resilient-state pass;
 - `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md` records the 250-entry non-league read and recomputation tranche;
-- the hosted apply sequence preserved all existing tournament data and created no automatic-submission outcome during promotion.
+- the hosted apply sequences preserved all existing tournament data.
 
 ## Future rollout authority
 
@@ -61,9 +67,10 @@ The contract-38 and contract-44 production promotions are closed (`quality/recon
 
 - `docs/quality/current-status.md`
 - `docs/roadmap.md`
-- PRs #122, #124, #126, #128, #131, #134, #136 and draft #138
+- PRs #122, #124, #126, #128, #131, #134, #136, #138, #141 and #143
 - `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`
 - `docs/quality/investigations/2026-07-28-stage-3c2-private-league-evidence.md`
+- `docs/quality/investigations/2026-07-28-stage-4-secure-player-profile-evidence.md`
 - `docs/quality/reconciliations/2026-07-28-contract-44-production-promotion.md`
 - `docs/ops-production-backup-restore.md`
 - `config/deployment-contract.json`
