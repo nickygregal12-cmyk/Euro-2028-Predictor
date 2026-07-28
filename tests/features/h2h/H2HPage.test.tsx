@@ -6,6 +6,7 @@ import { H2HPage } from '../../../src/features/h2h/H2HPage'
 const mocks = vi.hoisted(() => ({
   fetchRivalEntry: vi.fn(),
   fetchLeaderboardPage: vi.fn(),
+  fetchH2HRankHistory: vi.fn(),
 }))
 
 function tournamentData(homeScore = 2, awayScore = 1) {
@@ -102,6 +103,10 @@ vi.mock('../../../src/services/supabase/leaderboard', () => ({
   fetchLeaderboardPage: mocks.fetchLeaderboardPage,
 }))
 
+vi.mock('../../../src/services/supabase/h2hRankHistory', () => ({
+  fetchH2HRankHistory: mocks.fetchH2HRankHistory,
+}))
+
 function page() {
   return (
     <MemoryRouter initialEntries={['/h2h/rival-1']}>
@@ -151,6 +156,11 @@ function expectExactScores(text: string) {
   )
 }
 
+async function expectRivalVisible() {
+  const matches = await screen.findAllByText('Rival Player')
+  expect(matches[0]).toBeVisible()
+}
+
 describe('H2HPage resilient states', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -171,6 +181,7 @@ describe('H2HPage resilient states', () => {
         position: 2,
       },
     })
+    mocks.fetchH2HRankHistory.mockResolvedValue({ you: [], rival: [] })
   })
 
   it('retries transient reads without reloading the route', async () => {
@@ -181,7 +192,7 @@ describe('H2HPage resilient states', () => {
     expect(await screen.findByText('Head-to-head unavailable')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
-    expect(await screen.findByText('Rival Player')).toBeVisible()
+    await expectRivalVisible()
     await expectTotals('12 – 25')
     expect(mocks.fetchRivalEntry).toHaveBeenCalledTimes(2)
     expect(mocks.fetchLeaderboardPage).toHaveBeenCalledTimes(2)
@@ -190,7 +201,7 @@ describe('H2HPage resilient states', () => {
   it('recomputes derived statistics when authoritative results refresh', async () => {
     const rendered = renderPage()
 
-    expect(await screen.findByText('Rival Player')).toBeVisible()
+    await expectRivalVisible()
     await expectTotals('12 – 25')
     await expectExactScores('1Exact scores1')
 
@@ -205,7 +216,7 @@ describe('H2HPage resilient states', () => {
   it('recomputes derived statistics when own predictions refresh', async () => {
     const rendered = renderPage()
 
-    expect(await screen.findByText('Rival Player')).toBeVisible()
+    await expectRivalVisible()
     await expectExactScores('1Exact scores1')
 
     context.predictions = predictionData(0, 0)

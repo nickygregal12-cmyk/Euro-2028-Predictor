@@ -51,7 +51,7 @@ test('private league pages preserve your position and search ownership candidate
     await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible()
     await expect(page.getByText('Your position', { exact: true })).toBeVisible()
     await expect(page.getByText('56 of 56', { exact: true })).toBeVisible()
-    await expect(page.getByText(fixture.memberDisplayName, { exact: true })).toBeVisible()
+    await expect(page.getByText(fixture.memberDisplayName, { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Showing 50 of 56', { exact: true })).toBeVisible()
 
     const rivalRow = page
@@ -64,7 +64,7 @@ test('private league pages preserve your position and search ownership candidate
       timeout: 15_000,
     })
     await expect(page.getByRole('heading', { name: 'Head to head' })).toBeVisible()
-    await expect(page.getByText(fixture.h2hRivalDisplayName, { exact: true })).toBeVisible()
+    await expect(page.getByText(fixture.h2hRivalDisplayName, { exact: true }).first()).toBeVisible()
 
     await page.goBack()
     await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible({

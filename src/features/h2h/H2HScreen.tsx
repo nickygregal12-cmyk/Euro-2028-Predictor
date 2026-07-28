@@ -1,6 +1,16 @@
+import type { ReactNode } from 'react'
 import { initialsOf, TeamFlag, type MatchTeam } from '../../design-system'
 import { UsersIcon, ArrowsSplitIcon } from '../../design-system/icons'
+import type { BracketHealth } from '../../domain/tournament/bracketHealth'
 import h from './h2h.module.css'
+
+const EMPTY_BRACKET_HEALTH: BracketHealth = {
+  securedPoints: 0,
+  possiblePoints: 0,
+  lostPoints: 0,
+  totalPredictedPoints: 0,
+  milestones: [],
+}
 
 export type H2HPlayerView = {
   displayName: string
@@ -10,6 +20,7 @@ export type H2HPlayerView = {
   exactScores: number
   koPicksAlive: number
   maxPossible: number
+  bracketHealth?: BracketHealth
 }
 
 export type H2HSplitView = {
@@ -23,6 +34,7 @@ export type H2HScreenProps = {
   you: H2HPlayerView
   rival: H2HPlayerView
   split: H2HSplitView
+  rankHistory?: ReactNode
 }
 
 function PlayerHead({ p, isYou }: { p: H2HPlayerView; isYou: boolean }) {
@@ -56,16 +68,51 @@ function StatRow({ label, you, rival }: { label: string; you: number; rival: num
   )
 }
 
+function percentage(value: number, total: number): number {
+  return total > 0 ? (value / total) * 100 : 0
+}
+
+function HealthPanel({ label, health }: { label: string; health: BracketHealth }) {
+  const aria = `${label}: ${health.securedPoints} knockout points secured, ${health.possiblePoints} still possible, ${health.lostPoints} lost.`
+  return (
+    <div className={h.healthPanel}>
+      <div className={h.healthPanelHead}>
+        <span>{label}</span>
+        <strong>{health.totalPredictedPoints} pts predicted</strong>
+      </div>
+      <div className={h.healthBar} role="img" aria-label={aria}>
+        <span
+          className={h.healthSecured}
+          style={{ width: `${percentage(health.securedPoints, health.totalPredictedPoints)}%` }}
+        />
+        <span
+          className={h.healthPossible}
+          style={{ width: `${percentage(health.possiblePoints, health.totalPredictedPoints)}%` }}
+        />
+        <span
+          className={h.healthLost}
+          style={{ width: `${percentage(health.lostPoints, health.totalPredictedPoints)}%` }}
+        />
+      </div>
+      <dl className={h.healthStats}>
+        <div><dt>Secured</dt><dd>{health.securedPoints}</dd></div>
+        <div><dt>Still possible</dt><dd>{health.possiblePoints}</dd></div>
+        <div><dt>Lost</dt><dd>{health.lostPoints}</dd></div>
+      </dl>
+    </div>
+  )
+}
+
 /**
- * H2H pass 1 (design-system §6): face-off header (both players + big totals),
- * stat-vs-stat rows (Exact / KO picks alive / Max still possible), and the
- * where-you-split strip. The rank-over-time graph and bracket-health are Phase 3
- * and deliberately absent. Presentational — the page computes and resolves teams.
+ * H2H comparison: authoritative headline totals, browser-derived comparison
+ * statistics, rank history, milestone-based knockout health, and major splits.
  */
-export function H2HScreen({ you, rival, split }: H2HScreenProps) {
+export function H2HScreen({ you, rival, split, rankHistory }: H2HScreenProps) {
+  const youHealth = you.bracketHealth ?? EMPTY_BRACKET_HEALTH
+  const rivalHealth = rival.bracketHealth ?? EMPTY_BRACKET_HEALTH
+
   return (
     <>
-      {/* Face-off header */}
       <div className={h.faceOff}>
         <PlayerHead p={you} isYou />
         <div className={h.scoreCol}>
@@ -77,14 +124,29 @@ export function H2HScreen({ you, rival, split }: H2HScreenProps) {
         <PlayerHead p={rival} isYou={false} />
       </div>
 
-      {/* Stat vs stat */}
       <div className={h.statCard}>
         <StatRow label="Exact scores" you={you.exactScores} rival={rival.exactScores} />
-        <StatRow label="KO picks alive" you={you.koPicksAlive} rival={rival.koPicksAlive} />
         <StatRow label="Max still possible" you={you.maxPossible} rival={rival.maxPossible} />
       </div>
 
-      {/* Where you split */}
+      {rankHistory}
+
+      <section className={h.healthCard} aria-labelledby="h2h-bracket-health-heading">
+        <div>
+          <span className={h.sectionEyebrow}>Bracket health</span>
+          <h2 id="h2h-bracket-health-heading" className={h.sectionTitle}>
+            Knockout value secured, alive and lost
+          </h2>
+        </div>
+        <div className={h.healthGrid}>
+          <HealthPanel label="You" health={youHealth} />
+          <HealthPanel label={rival.displayName} health={rivalHealth} />
+        </div>
+        <p className={h.healthNote}>
+          Knockout points stack by milestone. “Still possible” means the team can still reach that predicted stage.
+        </p>
+      </section>
+
       <div className={h.splitCard}>
         <span className={h.splitEyebrow}>Where you split</span>
 

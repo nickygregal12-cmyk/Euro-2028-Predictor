@@ -14,13 +14,21 @@ import {
   type H2HActuals,
 } from '../../domain/tournament/h2h'
 import {
+  computeBracketHealth,
+  deriveKnockoutState,
+} from '../../domain/tournament/bracketHealth'
+import {
   authoritativeMatchScore,
-  eliminatedKnockoutTeamId,
 } from '../../domain/tournament/authoritativeMatchResult'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import { fetchRivalEntry } from '../../services/supabase/h2h'
 import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
+import {
+  fetchH2HRankHistory,
+  type H2HRankHistory,
+} from '../../services/supabase/h2hRankHistory'
 import { H2HScreen, type H2HPlayerView, type H2HSplitView } from './H2HScreen'
+import { RankHistoryComparison } from './RankHistoryComparison'
 import s from '../shared.module.css'
 
 const STAGE_UP: Record<string, KnockoutStage> = {
@@ -36,6 +44,11 @@ type State =
   | { status: 'error'; message: string }
   | { status: 'ready'; you: H2HPlayerView; rival: H2HPlayerView; split: H2HSplitView }
 
+type HistoryState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; data: H2HRankHistory }
+
 export function H2HPage() {
   const { rivalId } = useParams<{ rivalId: string }>()
   const navigate = useNavigate()
@@ -44,47 +57,67 @@ export function H2HPage() {
   const preds = usePredictions()
   const [state, setState] = useState<State>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
+  const [historyState, setHistoryState] = useState<HistoryState>({ status: 'loading' })
+  const [historyReloadKey, setHistoryReloadKey] = useState(0)
 
   const ready = data.status === 'ready' && preds.ready
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
 
-  // Shared actuals + own predictions (from tournament data + the provider).
   const derived = useMemo(() => {
     if (data.status !== 'ready' || !preds.ready) return null
     const td = data.data
-    const teamsById = new Map(td.teams.map((t) => [t.id, t]))
+    const teamsById = new Map(td.teams.map((team) => [team.id, team]))
     const teamOf = (id: string | null): MatchTeam => ({
       name: id ? (teamsById.get(id)?.name ?? 'TBC') : 'TBC',
       countryCode: '',
     })
 
-    const groupMatches = td.matches.filter((m) => m.round === 'group')
+    const groupMatches = td.matches.filter((match) => match.round === 'group')
     const resultsByMatch = new Map<string, { home: number; away: number }>()
     const playedByGroup = new Map<string, number>()
-    for (const m of groupMatches) {
-      const result = authoritativeMatchScore(m)
+    for (const match of groupMatches) {
+      const result = authoritativeMatchScore(match)
       if (result) {
-        resultsByMatch.set(m.id, result)
-        if (m.groupId) playedByGroup.set(m.groupId, (playedByGroup.get(m.groupId) ?? 0) + 1)
+        resultsByMatch.set(match.id, result)
+        if (match.groupId) {
+          playedByGroup.set(match.groupId, (playedByGroup.get(match.groupId) ?? 0) + 1)
+        }
       }
     }
-    const undecidedGroupCount = td.groups.filter((g) => (playedByGroup.get(g.id) ?? 0) < 6).length
+    const undecidedGroupCount = td.groups.filter(
+      (group) => (playedByGroup.get(group.id) ?? 0) < 6,
+    ).length
 
-    // Knockout elimination is server-owned through winner_team_id. This remains
-    // correct when the displayed football score is level after extra time and a
-    // penalty shootout decides which team advances.
-    const eliminatedTeamIds = new Set<string>()
-    for (const m of td.matches) {
-      const eliminated = eliminatedKnockoutTeamId(m)
-      if (eliminated) eliminatedTeamIds.add(eliminated)
+    const knockoutState = deriveKnockoutState({
+      teamIds: td.teams.map((team) => team.id),
+      matches: td.matches.map((match) => ({
+        round: match.round,
+        homeTeamId: match.homeTeamId,
+        awayTeamId: match.awayTeamId,
+        winnerTeamId: match.winnerTeamId ?? null,
+        resulted:
+          match.round === 'group'
+            ? authoritativeMatchScore(match) !== null
+            : Boolean(match.winnerTeamId),
+      })),
+    })
+
+    const actuals: H2HActuals = {
+      resultsByMatch,
+      undecidedGroupCount,
+      eliminatedTeamIds: knockoutState.eliminatedTeamIds,
     }
-    const actuals: H2HActuals = { resultsByMatch, undecidedGroupCount, eliminatedTeamIds }
 
     const ownPreds: EntryPredictions = {
-      groupMatches: groupMatches.flatMap((m) => {
-        const p = preds.getPrediction(m.id)
-        return p.homeScore !== null && p.awayScore !== null
-          ? [{ matchId: m.id, homeScore: p.homeScore, awayScore: p.awayScore, joker: Boolean(p.joker) }]
+      groupMatches: groupMatches.flatMap((match) => {
+        const prediction = preds.getPrediction(match.id)
+        return prediction.homeScore !== null && prediction.awayScore !== null
+          ? [{
+              matchId: match.id,
+              homeScore: prediction.homeScore,
+              awayScore: prediction.awayScore,
+              joker: Boolean(prediction.joker),
+            }]
           : []
       }),
       progression: Object.entries(preds.bracketProgression).map(([teamId, stage]) => ({
@@ -92,7 +125,14 @@ export function H2HPage() {
         stage: STAGE_UP[stage],
       })),
     }
-    return { actuals, ownPreds, teamOf, locked: isEntryLocked(td.tournament.lockAt) }
+
+    return {
+      actuals,
+      ownPreds,
+      teamOf,
+      knockoutState,
+      locked: isEntryLocked(td.tournament.lockAt),
+    }
   }, [data, preds])
 
   useEffect(() => {
@@ -104,9 +144,10 @@ export function H2HPage() {
       setState({ status: 'loading' })
       return
     }
+
     let active = true
     setState({ status: 'loading' })
-    const { actuals, ownPreds, teamOf } = derived
+    const { actuals, ownPreds, teamOf, knockoutState } = derived
 
     Promise.all([
       fetchRivalEntry(rivalId, tournamentId),
@@ -117,26 +158,33 @@ export function H2HPage() {
         const youStats = computeEntryStats(ownPreds, actuals)
         const rivalStats = computeEntryStats(rival.predictions, actuals)
         const split = whereYouSplit(ownPreds, rival.predictions)
-        const championTeam = (prog: EntryPredictions['progression']): MatchTeam | null => {
-          const id = prog.find((p) => p.stage === 'CHAMPION')?.teamId
+        const championTeam = (progression: EntryPredictions['progression']): MatchTeam | null => {
+          const id = progression.find((prediction) => prediction.stage === 'CHAMPION')?.teamId
           return id ? teamOf(id) : null
         }
-        const elim = (id: string) => actuals.eliminatedTeamIds.has(id)
+        const eliminated = (id: string) => knockoutState.eliminatedTeamIds.has(id)
+
         setState({
           status: 'ready',
           you: {
             displayName: displayName ?? 'You',
             champion: championTeam(ownPreds.progression),
-            championEliminated: ownPreds.progression.some((p) => p.stage === 'CHAMPION' && elim(p.teamId)),
+            championEliminated: ownPreds.progression.some(
+              (prediction) => prediction.stage === 'CHAMPION' && eliminated(prediction.teamId),
+            ),
             ...youStats,
             totalPoints: leaderboard.you?.totalPoints ?? 0,
+            bracketHealth: computeBracketHealth(ownPreds.progression, knockoutState),
           },
           rival: {
             displayName: rival.displayName,
             champion: championTeam(rival.predictions.progression),
-            championEliminated: rival.predictions.progression.some((p) => p.stage === 'CHAMPION' && elim(p.teamId)),
+            championEliminated: rival.predictions.progression.some(
+              (prediction) => prediction.stage === 'CHAMPION' && eliminated(prediction.teamId),
+            ),
             ...rivalStats,
             totalPoints: rival.totalPoints,
+            bracketHealth: computeBracketHealth(rival.predictions.progression, knockoutState),
           },
           split: {
             champion: {
@@ -150,17 +198,45 @@ export function H2HPage() {
           },
         })
       })
-      .catch((e) => {
-        if (active)
+      .catch((error) => {
+        if (active) {
           setState({
             status: 'error',
-            message: userFacingError(e, 'Head-to-head is unavailable. Please try again.'),
+            message: userFacingError(error, 'Head-to-head is unavailable. Please try again.'),
           })
+        }
       })
+
     return () => {
       active = false
     }
   }, [data.status, derived, displayName, ready, reloadKey, rivalId, tournamentId])
+
+  useEffect(() => {
+    if (!ready || !tournamentId || !rivalId) {
+      setHistoryState({ status: 'loading' })
+      return
+    }
+
+    let active = true
+    setHistoryState({ status: 'loading' })
+    fetchH2HRankHistory(rivalId, tournamentId)
+      .then((history) => {
+        if (active) setHistoryState({ status: 'ready', data: history })
+      })
+      .catch((error) => {
+        if (active) {
+          setHistoryState({
+            status: 'error',
+            message: userFacingError(error, 'Rank history is unavailable. Please try again.'),
+          })
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [historyReloadKey, ready, rivalId, tournamentId])
 
   const header = (
     <div className={s.header}>
@@ -201,10 +277,40 @@ export function H2HPage() {
     )
   }
 
+  const rankHistory =
+    historyState.status === 'ready' ? (
+      <RankHistoryComparison
+        youName={state.you.displayName}
+        rivalName={state.rival.displayName}
+        history={historyState.data}
+      />
+    ) : historyState.status === 'error' ? (
+      <Alert variant="warning" title="Rank history unavailable">
+        {historyState.message}
+        <div style={{ marginTop: 10 }}>
+          <Button
+            variant="secondary"
+            onClick={() => setHistoryReloadKey((key) => key + 1)}
+          >
+            Retry rank history
+          </Button>
+        </div>
+      </Alert>
+    ) : (
+      <div className={s.card} aria-label="Loading rank history">
+        <Skeleton lines={4} />
+      </div>
+    )
+
   return (
     <div className={s.page}>
       {header}
-      <H2HScreen you={state.you} rival={state.rival} split={state.split} />
+      <H2HScreen
+        you={state.you}
+        rival={state.rival}
+        split={state.split}
+        rankHistory={rankHistory}
+      />
       {rivalId && (
         <Button variant="secondary" fullWidth onClick={() => navigate(`/profile/${rivalId}`)}>
           View player profile
