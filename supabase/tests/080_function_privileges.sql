@@ -21,7 +21,7 @@ insert into expected_authenticated_functions (signature) values
   ('get_leaderboard(uuid,integer,text)'),
   ('get_league(uuid)'),
   ('get_league_match_picks(uuid,uuid)'),
-  ('get_league_members(uuid)'),
+  ('get_league_members(uuid,integer,text)'),
   ('get_league_preview(text)'),
   ('get_match_prediction_distribution(uuid)'),
   ('get_my_leagues(uuid)'),
@@ -30,6 +30,7 @@ insert into expected_authenticated_functions (signature) values
   ('join_league(text)'),
   ('leave_league(uuid)'),
   ('replace_predicted_progression(uuid,jsonb,jsonb)'),
+  ('search_league_transfer_candidates(uuid,text,integer)'),
   ('submit_entry(uuid)'),
   ('transfer_ownership(uuid,uuid)');
 
@@ -191,10 +192,10 @@ select ok(
 select ok(
   not has_function_privilege(
     'anon',
-    'public.get_leaderboard(uuid,integer,text)',
+    'public.get_league_members(uuid,integer,text)',
     'execute'
   ),
-  'anonymous users cannot call the paginated leaderboard RPC'
+  'anonymous users cannot call private league standings pagination'
 );
 
 select ok(
