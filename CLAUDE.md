@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development Supabase and non-production Netlify are aligned at contract 53.
+- Repository, development Supabase and non-production Netlify are aligned at contract 54.
 - Production Supabase and the published production application are aligned and locked at contract 48 (the H2H rank-history milestone).
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
@@ -52,7 +52,7 @@ Ordinary development does not require production backup, production smoke or a n
 
 1. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends (richer H2H is delivered at contract 48).
 3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-4. Bonus Games platform, KO Predictor and Last Man Standing (ADR-0010 B1–B6) are delivered through contract 53; the Predictor Cup (B7) is in progress in staged contracts.
+4. Bonus Games platform, KO Predictor, Last Man Standing and the Cup foundation (ADR-0010 B1–B7a) are delivered through contract 54; Cup scoring and knockouts (B7b–B7c) are in progress.
 
 Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 
