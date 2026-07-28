@@ -30,6 +30,7 @@ import {
 import { clearMyPredictions } from '../../services/supabase/predictions'
 import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { userFacingError } from '../../shared/errors/userFacingError'
+import { AccountPrivacySupport } from './AccountPrivacySupport'
 import s from '../shared.module.css'
 import a from './account.module.css'
 
@@ -423,6 +424,11 @@ export function AccountPage() {
           />
         </label>
       </div>
+
+      <AccountPrivacySupport
+        supportEmail={import.meta.env.VITE_SUPPORT_EMAIL}
+        accountEmail={emails.email}
+      />
 
       <div className={`${s.card} ${a.danger}`}>
         <span className={s.eyebrow}>Danger zone</span>
