@@ -4,8 +4,12 @@ import { Alert, Button, EmptyState, Skeleton, StatusBadge } from '../../design-s
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { useAuth } from '../auth/AuthProvider'
-import { fetchMyCup } from '../../services/supabase/cup'
-import type { CupFixtureResult, CupRead } from '../../services/supabase/cupModel'
+import { fetchMyCup, submitCupPenaltyNumber } from '../../services/supabase/cup'
+import type {
+  CupDecidedBy,
+  CupFixtureResult,
+  CupRead,
+} from '../../services/supabase/cupModel'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import s from '../shared.module.css'
 import g from './games.module.css'
@@ -31,6 +35,28 @@ const RESULT_COPY: Record<CupFixtureResult, string> = {
   walkover_win: 'Won W/O',
   walkover_loss: 'Lost W/O',
   void: 'Void',
+}
+
+const DECIDER_COPY: Record<CupDecidedBy, string> = {
+  points: '',
+  extra_time: ' (AET)',
+  penalty_number: ' (P)',
+  walkover: ' (W/O)',
+  admin_walkover: ' (W/O)',
+}
+
+const QUALIFICATION_COPY = {
+  winner: 'Group winner',
+  runner_up: 'Runner-up',
+  wildcard: 'Wildcard',
+} as const
+
+function roundName(roundSize: number | null, stage: 'playoff' | 'knockout'): string {
+  if (stage === 'playoff') return 'Playoff'
+  if (roundSize === 2) return 'Final'
+  if (roundSize === 4) return 'Semi-finals'
+  if (roundSize === 8) return 'Quarter-finals'
+  return roundSize ? `Round of ${roundSize}` : 'Knockout'
 }
 
 export function CupPage() {
@@ -145,6 +171,47 @@ export function CupPage() {
     <div className={s.page}>
       {header}
 
+      {read.champion ? (
+        <Alert
+          variant="success"
+          title={
+            read.champion.userId === userId
+              ? 'You are the Predictor Cup Champion!'
+              : `${read.champion.displayName} is the Predictor Cup Champion`
+          }
+        >
+          The Cup is complete. The Golden Predictor award below recognises the
+          highest cumulative prediction points, regardless of elimination.
+        </Alert>
+      ) : null}
+
+      {read.myMember?.qualifiedAs ? (
+        <Alert
+          variant="success"
+          title={`${QUALIFICATION_COPY[read.myMember.qualifiedAs]} — seed ${read.myMember.seed ?? '—'}`}
+        >
+          You qualified for the knockout bracket
+          {read.myMember.groupPosition
+            ? ` after finishing ${read.myMember.groupPosition}${read.myMember.groupPosition === 1 ? 'st' : read.myMember.groupPosition === 2 ? 'nd' : read.myMember.groupPosition === 3 ? 'rd' : 'th'} in your group`
+            : ''}
+          .
+        </Alert>
+      ) : read.myMember?.groupPosition && read.entrant.outcome === 'eliminated' ? (
+        <Alert variant="info" title="Eliminated at the group stage">
+          You finished {read.myMember.groupPosition}
+          {read.myMember.groupPosition === 3 ? 'rd' : 'th'} in your group. Your
+          other games and the Original Predictor continue as normal.
+        </Alert>
+      ) : null}
+
+      {read.penaltyNumber ? (
+        <PenaltyNumberCard
+          competitionId={read.competitionId}
+          penalty={read.penaltyNumber}
+          onSaved={() => setReloadKey((key) => key + 1)}
+        />
+      ) : null}
+
       {read.myGroup ? (
         <section className={`${s.card} ${g.gameCard}`}>
           <div className={g.gameHeader}>
@@ -211,15 +278,18 @@ export function CupPage() {
           read.myFixtures.map((fixture) => (
             <div key={fixture.fixtureId}>
               <p className={g.stateLine}>
-                {fixture.windowLabel}
-                {fixture.matchday ? ` (Matchday ${fixture.matchday})` : ''} — you{' '}
+                {fixture.stage === 'group'
+                  ? `${fixture.windowLabel}${fixture.matchday ? ` (Matchday ${fixture.matchday})` : ''}`
+                  : `${roundName(fixture.roundSize, fixture.stage)} · ${fixture.windowLabel}`}{' '}
+                — you{' '}
                 {fixture.myPoints !== null && fixture.opponentPoints !== null
                   ? `${fixture.myPoints}–${fixture.opponentPoints} `
                   : 'vs '}
                 <strong>{fixture.opponent.displayName}</strong>
                 {fixture.result ? ` — ${RESULT_COPY[fixture.result]}` : ''}
+                {fixture.decidedBy ? DECIDER_COPY[fixture.decidedBy] : ''}
               </p>
-              {fixture.windowLocksAt ? (
+              {fixture.status === 'pending' && fixture.windowLocksAt ? (
                 <p className={g.deadline}>
                   Predictions lock {formatInstant(fixture.windowLocksAt)}
                 </p>
@@ -228,10 +298,155 @@ export function CupPage() {
           ))
         )}
         <p className={g.deadline}>
-          Scores and tables arrive with the next Cup build stage; your matchday
-          points come from your Original Predictor scorelines (no jokers).
+          Group scorelines come from your Original Predictor entry; knockout
+          scorelines from the shared knockout form (no jokers, regulation time
+          only).
         </p>
       </section>
+
+      {read.bracket && read.bracket.length > 0 ? (
+        <section className={`${s.card} ${g.gameCard}`}>
+          <h2 className={g.gameName}>Knockout bracket</h2>
+          {read.bracket.map((tie) => (
+            <p
+              key={`${tie.windowSequence}-${tie.bracketSlot}`}
+              className={g.stateLine}
+            >
+              {roundName(tie.roundSize, tie.stage)} {tie.bracketSlot}:{' '}
+              <strong>{tie.home.displayName}</strong> v{' '}
+              <strong>{tie.away.displayName}</strong>
+              {tie.winnerUserId
+                ? ` — ${
+                    tie.winnerUserId === tie.home.userId
+                      ? tie.home.displayName
+                      : tie.away.displayName
+                  } through${tie.decidedBy ? DECIDER_COPY[tie.decidedBy] : ''}`
+                : ` — ${tie.windowLabel}`}
+            </p>
+          ))}
+        </section>
+      ) : null}
+
+      {read.goldenPredictor ? (
+        <section className={`${s.card} ${g.gameCard}`}>
+          <h2 className={g.gameName}>Golden Predictor</h2>
+          <p className={g.tagline}>
+            Highest cumulative Cup prediction points across every designated
+            match — elimination never stops the count.
+          </p>
+          {read.goldenPredictor.top.map((row) => (
+            <p
+              key={row.userId}
+              className={row.userId === userId ? `${g.stateLine} ${g.ownRow}` : g.stateLine}
+            >
+              {row.rank}. {row.displayName}
+              {row.userId === userId ? ' (you)' : ''} — {row.points} pts
+            </p>
+          ))}
+          {read.goldenPredictor.me &&
+          !read.goldenPredictor.top.some((row) => row.userId === userId) ? (
+            <p className={g.deadline}>
+              Your position: {read.goldenPredictor.me.rank} (
+              {read.goldenPredictor.me.points} pts)
+            </p>
+          ) : null}
+        </section>
+      ) : null}
     </div>
+  )
+}
+
+function PenaltyNumberCard(props: {
+  competitionId: string
+  penalty: NonNullable<CupRead['penaltyNumber']>
+  onSaved: () => void
+}) {
+  const { competitionId, penalty } = props
+  const [draft, setDraft] = useState(
+    penalty.value === null ? '' : String(penalty.value),
+  )
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const parity = penalty.lane === 'odd' ? 1 : 0
+  const parsed = /^\d{1,2}$/.test(draft) ? Number(draft) : null
+  const valid = parsed !== null && parsed % 2 === parity
+
+  const save = () => {
+    if (!valid || parsed === null) return
+    setSaving(true)
+    setError(null)
+    submitCupPenaltyNumber(competitionId, penalty.windowId, parsed, penalty.version)
+      .then(() => props.onSaved())
+      .catch((cause) => {
+        setError(
+          userFacingError(
+            cause,
+            'Your Penalty Number could not be saved. Please try again.',
+          ),
+        )
+      })
+      .finally(() => setSaving(false))
+  }
+
+  return (
+    <section className={`${s.card} ${g.gameCard}`}>
+      <div className={g.gameHeader}>
+        <h2 className={g.gameName}>Penalty Number — {penalty.windowLabel}</h2>
+        {penalty.value !== null ? (
+          <StatusBadge variant="submitted" label={`Saved: ${penalty.value}`} />
+        ) : (
+          <StatusBadge variant="live" label="Required" />
+        )}
+      </div>
+      <p className={g.tagline}>
+        Predict the total regulation-time goals across this round’s real
+        matches. Your lane is <strong>{penalty.lane.toUpperCase()}</strong> —
+        {penalty.lane === 'odd'
+          ? ' an odd number from 1 to 99.'
+          : ' an even number from 0 to 98.'}{' '}
+        Opposite lanes mean the decider can never tie. It stays hidden from
+        your opponent until the round locks.
+      </p>
+      {penalty.locked ? (
+        <p className={g.deadline}>
+          Locked at the round’s first kickoff
+          {penalty.value === null ? ' — no number was saved.' : '.'}
+        </p>
+      ) : (
+        <>
+          <div className={g.gameHeader}>
+            <input
+              className={g.penaltyInput}
+              type="number"
+              inputMode="numeric"
+              min={parity}
+              max={parity === 1 ? 99 : 98}
+              step={2}
+              value={draft}
+              aria-label={`Penalty Number (${penalty.lane} lane)`}
+              onChange={(event) => setDraft(event.target.value)}
+            />
+            <Button onClick={save} disabled={!valid || saving}>
+              {saving ? 'Saving…' : 'Save number'}
+            </Button>
+          </div>
+          {draft !== '' && !valid ? (
+            <p className={g.deadline}>
+              Pick {penalty.lane === 'odd' ? 'an odd' : 'an even'} whole number
+              in range.
+            </p>
+          ) : null}
+          {penalty.locksAt ? (
+            <p className={g.deadline}>Locks {formatInstant(penalty.locksAt)}</p>
+          ) : null}
+          {error ? (
+            <Alert variant="error" title="Couldn’t save your Penalty Number">
+              {error}
+            </Alert>
+          ) : null}
+        </>
+      )}
+    </section>
   )
 }

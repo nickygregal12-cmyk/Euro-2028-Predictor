@@ -46,15 +46,117 @@ describe('Predictor Cup response parsing', () => {
       fixtureId: 'fix-1',
       stage: 'group',
       matchday: 1,
+      roundSize: null,
+      bracketSlot: null,
       windowLabel: 'Cup Matchday 1',
       windowOpensAt: '2028-06-07T12:00:00+00:00',
       windowLocksAt: '2028-06-09T13:00:00+00:00',
       opponent: { userId: 'user-2', displayName: 'Beta' },
       myPoints: null,
       opponentPoints: null,
+      decidedBy: null,
       status: 'pending',
       result: null,
     })
+    expect(read.myMember).toBeNull()
+    expect(read.penaltyNumber).toBeNull()
+    expect(read.bracket).toBeNull()
+    expect(read.champion).toBeNull()
+    expect(read.goldenPredictor).toBeNull()
+  })
+
+  it('maps the knockout journey: seeds, penalty lane, bracket and honours', () => {
+    const read = mapCupResponse(
+      payload({
+        completed_at: '2028-07-10T21:00:00+00:00',
+        my_member: {
+          draw_number: 1,
+          group_position: 1,
+          qualified_as: 'winner',
+          seed: 2,
+        },
+        penalty_number: {
+          window_id: 'w-6',
+          window_label: 'Cup Final',
+          lane: 'even',
+          value: 2,
+          version: 0,
+          locks_at: '2028-07-09T19:00:00+00:00',
+          locked: false,
+        },
+        bracket: [
+          {
+            stage: 'knockout',
+            round_size: 2,
+            bracket_slot: 1,
+            window_sequence: 6,
+            window_label: 'Cup Final',
+            home: { user_id: 'user-1', display_name: 'Alpha' },
+            away: { user_id: 'user-7', display_name: 'Eta' },
+            winner_user_id: 'user-7',
+            decided_by: 'penalty_number',
+          },
+        ],
+        champion: { user_id: 'user-7', display_name: 'Eta' },
+        golden_predictor: {
+          top: [
+            { user_id: 'user-1', display_name: 'Alpha', points: 23, rank: 1 },
+          ],
+          me: { points: 14, rank: 2 },
+        },
+      }),
+    )
+    expect(read.completedAt).toBe('2028-07-10T21:00:00+00:00')
+    expect(read.myMember).toEqual({
+      drawNumber: 1,
+      groupPosition: 1,
+      qualifiedAs: 'winner',
+      seed: 2,
+    })
+    expect(read.penaltyNumber?.lane).toBe('even')
+    expect(read.penaltyNumber?.locked).toBe(false)
+    expect(read.bracket?.[0].decidedBy).toBe('penalty_number')
+    expect(read.bracket?.[0].winnerUserId).toBe('user-7')
+    expect(read.champion?.displayName).toBe('Eta')
+    expect(read.goldenPredictor?.top[0].points).toBe(23)
+    expect(read.goldenPredictor?.me?.rank).toBe(2)
+  })
+
+  it('rejects an unknown decider or penalty lane', () => {
+    expect(() =>
+      mapCupResponse(
+        payload({
+          bracket: [
+            {
+              stage: 'knockout',
+              round_size: 2,
+              bracket_slot: 1,
+              window_sequence: 6,
+              window_label: 'Cup Final',
+              home: { user_id: 'user-1', display_name: 'Alpha' },
+              away: { user_id: 'user-7', display_name: 'Eta' },
+              winner_user_id: null,
+              decided_by: 'coin_toss',
+            },
+          ],
+        }),
+      ),
+    ).toThrow('unknown bracket decider')
+    expect(() =>
+      mapCupResponse(
+        payload({
+          penalty_number: {
+            window_id: 'w-6',
+            window_label: 'Cup Final',
+            lane: 'prime',
+            value: null,
+            version: null,
+            locks_at: null,
+            locked: false,
+          },
+        }),
+      ),
+    ).toThrow('unknown penalty lane')
   })
 
   it('maps the pre-draw state', () => {
