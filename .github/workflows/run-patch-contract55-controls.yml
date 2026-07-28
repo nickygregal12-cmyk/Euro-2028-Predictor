@@ -24,8 +24,8 @@ jobs:
       - name: Execute the reviewed embedded patch
         shell: bash
         run: |
-          set -euo pipefail
-          python - <<'PY'
+          set -o pipefail
+          python - <<'PY' 2>&1 | tee /tmp/contract55-control-patch.log
           from pathlib import Path
           import textwrap
 
@@ -47,3 +47,12 @@ jobs:
             docs/ops-pending-migrations.md
           git commit -m 'Align permanent controls and status at contract 55'
           git push origin HEAD:release/align-contract55-controls
+
+      - name: Upload patch diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract55-control-patch-diagnostics
+          path: /tmp/contract55-control-patch.log
+          if-no-files-found: warn
+          retention-days: 1
