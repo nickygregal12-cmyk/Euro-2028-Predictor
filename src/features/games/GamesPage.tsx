@@ -265,6 +265,11 @@ export function GamesPage() {
                     Standings
                   </Button>
                 ) : null}
+                {game.competition.gameKey === 'last_man_standing' && game.entrant ? (
+                  <Button variant="secondary" onClick={() => navigate('/games/lms')}>
+                    Play
+                  </Button>
+                ) : null}
                 {canWithdraw ? (
                   <Button
                     variant="secondary"

@@ -129,8 +129,20 @@ touches Original Predictor points, jokers or standings (§1 separation law).
   the entrant joined stay unbanked. No jokers, ever. Recompute runs inside the
   single advisory-locked result operation; nothing is scored from a
   provisional result.
-- Last Man Standing and Predictor Cup scoring follow in their own build
-  stages.
+- **Last Man Standing (implemented, contract 53 — tournament format, decided
+  2026-07-28):** the Euro 2024 / World Cup 2026 style, not the weekly EPL
+  style. Rounds are the competition's admin-scheduled windows with one round
+  deadline each. Each surviving entrant picks one team playing in that round,
+  changeable until the deadline. **Group rounds: the pick must win — a draw
+  eliminates. Knockout rounds: the pick must advance** (authoritative winner;
+  extra time and penalties count). **Each team once per competition.** No
+  pick by the deadline = eliminated at settle. Rounds settle only on
+  officially confirmed results. **Whole-round wipeout voids the round** (all
+  remaining survivors carry through, so a winner always exists); survivors
+  through the final round are champions — co-champions possible. Elimination
+  is permanent. Survival is fully re-derived inside the single result
+  operation, so corrections re-eliminate or un-eliminate automatically.
+- Predictor Cup scoring follows in its own build stage.
 
 ## Open items / things to revisit later
 

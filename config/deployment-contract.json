@@ -1,6 +1,6 @@
 {
-  "contractVersion": 52,
-  "requiredMigrationCount": 52,
+  "contractVersion": 53,
+  "requiredMigrationCount": 53,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -27,7 +27,9 @@
     "public.save_knockout_prediction(uuid,smallint,smallint,uuid,integer)",
     "public.delete_knockout_prediction(uuid,integer)",
     "public.get_my_knockout_predictions(uuid)",
-    "public.get_ko_predictor_standings(uuid,integer,text)"
+    "public.get_ko_predictor_standings(uuid,integer,text)",
+    "public.save_lms_selection(uuid,uuid,integer)",
+    "public.get_my_lms(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the bounded H2H rank-history read and is the production-published milestone. Contracts 49-51 add the Bonus Games platform foundation (ADR-0010 B2-B4): deny-all schema, Games hub with voluntary entry and the shared knockout prediction store. Contract 52 adds KO Predictor scoring (B5): Exact 5 / Result 3 / Through +2 recomputed inside the single advisory-locked result operation, with a bounded server-ranked standings read. Development promotion follows Database parity; production remains locked at contract 48."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the bounded H2H rank-history read and is the production-published milestone. Contracts 49-52 add the Bonus Games platform and KO Predictor (ADR-0010 B2-B5). Contract 53 adds Last Man Standing (B6) in the tournament format: window-deadline picks, team-once-per-competition, win-to-survive groups / advance-to-survive knockouts, wipeout-void, with survival fully re-derived inside the single advisory-locked result operation. Development promotion follows Database parity; production remains locked at contract 48."
 }
