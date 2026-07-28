@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ProfilePage } from '../../../src/features/profile/ProfilePage'
@@ -9,13 +9,9 @@ const mocks = vi.hoisted(() => ({
   fetchMyScoreEvents: vi.fn(),
 }))
 
-vi.mock('../../../src/features/auth/AuthProvider', () => ({
-  useAuth: () => ({ userId: 'user-1', displayName: 'Profile Tester' }),
-}))
-
-vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
-  useTournamentData: () => ({
-    status: 'ready',
+function tournamentData(homeScore = 2, awayScore = 1) {
+  return {
+    status: 'ready' as const,
     data: {
       tournament: {
         id: 'tournament-1',
@@ -25,21 +21,42 @@ vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
         {
           id: 'match-1',
           round: 'group',
-          homeScore: 2,
-          awayScore: 1,
+          homeScore,
+          awayScore,
         },
       ],
     },
-  }),
+  }
+}
+
+const context = vi.hoisted(() => ({
+  tournamentData: {
+    status: 'ready' as const,
+    data: {
+      tournament: { id: 'tournament-1', lockAt: null },
+      matches: [
+        { id: 'match-1', round: 'group', homeScore: 2, awayScore: 1 },
+      ],
+    },
+  },
+  predictions: {
+    ready: true,
+    getPrediction: vi.fn(() => ({ homeScore: 2, awayScore: 1, joker: false })),
+    tieResolutions: [],
+    bracketProgression: {},
+  },
+}))
+
+vi.mock('../../../src/features/auth/AuthProvider', () => ({
+  useAuth: () => ({ userId: 'user-1', displayName: 'Profile Tester' }),
+}))
+
+vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
+  useTournamentData: () => context.tournamentData,
 }))
 
 vi.mock('../../../src/app/providers/PredictionsProvider', () => ({
-  usePredictions: () => ({
-    ready: true,
-    getPrediction: () => ({ homeScore: 2, awayScore: 1, joker: false }),
-    tieResolutions: [],
-    bracketProgression: {},
-  }),
+  usePredictions: () => context.predictions,
 }))
 
 vi.mock('../../../src/features/bracket', () => ({
@@ -58,12 +75,16 @@ vi.mock('../../../src/services/supabase/scoring', () => ({
   fetchMyScoreEvents: mocks.fetchMyScoreEvents,
 }))
 
-function renderPage() {
-  render(
+function page() {
+  return (
     <MemoryRouter>
       <ProfilePage />
-    </MemoryRouter>,
+    </MemoryRouter>
   )
+}
+
+function renderPage() {
+  return render(page())
 }
 
 async function waitForProfile() {
@@ -99,6 +120,7 @@ function leaderboardPage() {
 describe('ProfilePage remote source availability', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    context.tournamentData = tournamentData()
     mocks.fetchLeaderboardPage.mockResolvedValue(leaderboardPage())
     mocks.fetchMyLeagues.mockResolvedValue([])
     mocks.fetchMyScoreEvents.mockResolvedValue([
@@ -157,5 +179,33 @@ describe('ProfilePage remote source availability', () => {
     expect(screen.queryByText('Group matches')).not.toBeInTheDocument()
     expect(screen.getByText('12')).toBeVisible()
     expect(screen.getByText('0 leagues')).toBeVisible()
+  })
+
+  it('retries partially unavailable sources without a page reload', async () => {
+    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('leaderboard offline'))
+
+    renderPage()
+    await waitForProfile()
+    expect(screen.getByText('Points unavailable')).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry missing data' }))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Some profile data is unavailable')).not.toBeInTheDocument()
+    })
+    expect(screen.getByText('12')).toBeVisible()
+    expect(mocks.fetchLeaderboardPage).toHaveBeenCalledTimes(2)
+  })
+
+  it('recomputes local accuracy when tournament results refresh', async () => {
+    const rendered = renderPage()
+    await waitForProfile()
+    expect(screen.getByText('100%')).toBeVisible()
+
+    context.tournamentData = tournamentData(0, 0)
+    rendered.rerender(page())
+
+    await waitFor(() => expect(screen.getByText('0%')).toBeVisible())
+    expect(mocks.fetchLeaderboardPage).toHaveBeenCalledTimes(2)
   })
 })
