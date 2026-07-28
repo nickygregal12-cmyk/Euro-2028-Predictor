@@ -153,6 +153,52 @@
   flex-shrink: 0;
 }
 
+.sectionTitle {
+  margin: 4px 0 0;
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.privacyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0;
+  padding-left: 18px;
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.supportLink {
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.supportLink:hover {
+  border-color: var(--acc);
+}
+
+.supportLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
 .danger {
   border-color: color-mix(in srgb, var(--bad, #c0392b) 45%, var(--line));
 }
