@@ -1,88 +1,34 @@
-import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { MemoryRouter } from 'react-router'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router'
+import { describe, expect, it } from 'vitest'
 import { MorePage } from '../../../src/features/more/MorePage'
-
-const mocks = vi.hoisted(() => ({
-  signOut: vi.fn<() => Promise<void>>(),
-}))
-
-vi.mock('../../../src/features/auth/AuthProvider', () => ({
-  useAuth: () => ({ displayName: 'Nicky', signOut: mocks.signOut }),
-}))
 
 function renderPage() {
   render(
-    <MemoryRouter>
-      <MorePage />
+    <MemoryRouter initialEntries={['/more']}>
+      <Routes>
+        <Route path="/more" element={<MorePage />} />
+        <Route path="/account" element={<p>account page</p>} />
+      </Routes>
     </MemoryRouter>,
   )
 }
 
-describe('MorePage sign out', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    mocks.signOut.mockResolvedValue(undefined)
-  })
-
-  it('does not sign out when confirmation is cancelled', () => {
+describe('MorePage', () => {
+  it('keeps only link rows — sign-out and profile details live on Account', () => {
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    const dialog = screen.getByRole('dialog', { name: 'Sign out?' })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
-
-    expect(mocks.signOut).not.toHaveBeenCalled()
-    expect(screen.queryByRole('dialog', { name: 'Sign out?' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
+    expect(screen.queryByText('Display name')).toBeNull()
+    for (const label of ['Account', 'Profile', 'Games', 'How scoring works']) {
+      expect(screen.getByRole('button', { name: label })).toBeTruthy()
+    }
   })
 
-  it('signs out once only after explicit confirmation', async () => {
-    let finishSignOut!: () => void
-    mocks.signOut.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finishSignOut = resolve
-        }),
-    )
+  it('routes the Account row to /account', () => {
     renderPage()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    const dialog = screen.getByRole('dialog', { name: 'Sign out?' })
-    const confirm = within(dialog).getByRole('button', { name: 'Sign out' })
-
-    fireEvent.click(confirm)
-    fireEvent.click(confirm)
-
-    expect(mocks.signOut).toHaveBeenCalledOnce()
-    expect(screen.getByRole('dialog', { name: 'Sign out?' })).toBeTruthy()
-
-    act(() => finishSignOut())
-
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog', { name: 'Sign out?' })).toBeNull()
-    })
-  })
-
-  it('keeps the dialog open with a safe retry message after failure', async () => {
-    mocks.signOut.mockRejectedValueOnce(new Error('internal provider detail'))
-    renderPage()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
-    let dialog = screen.getByRole('dialog', { name: 'Sign out?' })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Sign out' }))
-
-    const alert = await screen.findByRole('alert')
-    expect(alert).toHaveTextContent(
-      'We couldn’t sign you out. Check your connection and try again.',
-    )
-    expect(screen.queryByText('internal provider detail')).toBeNull()
-
-    dialog = screen.getByRole('dialog', { name: 'Sign out?' })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Sign out' }))
-
-    await waitFor(() => {
-      expect(mocks.signOut).toHaveBeenCalledTimes(2)
-      expect(screen.queryByRole('dialog', { name: 'Sign out?' })).toBeNull()
-    })
+    fireEvent.click(screen.getByRole('button', { name: 'Account' }))
+    expect(screen.getByText('account page')).toBeTruthy()
   })
 })

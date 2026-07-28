@@ -72,6 +72,7 @@ insert into expected_authenticated_functions (signature) values
 -- Contract 54: the Predictor Cup foundation (the draw stays service-only).
 -- Contract 56: the Cup Penalty Number submission (the qualification gate
 -- and round settle stay service-only).
+-- Contract 57: the pre-lock own-entry clear.
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
@@ -83,7 +84,8 @@ insert into expected_authenticated_functions (signature) values
   ('save_lms_selection(uuid,uuid,integer)'),
   ('get_my_lms(uuid)'),
   ('get_my_cup(uuid)'),
-  ('submit_cup_penalty_number(uuid,uuid,smallint,integer)');
+  ('submit_cup_penalty_number(uuid,uuid,smallint,integer)'),
+  ('clear_my_predictions(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
@@ -99,7 +101,8 @@ insert into expected_service_functions (signature) values
   ('submit_cup_penalty_number(uuid,uuid,smallint,integer)'),
   ('admin_draw_predictor_cup(uuid,text)'),
   ('admin_finalise_predictor_cup_groups(uuid)'),
-  ('admin_settle_predictor_cup_round(uuid,uuid)');
+  ('admin_settle_predictor_cup_round(uuid,uuid)'),
+  ('clear_my_predictions(uuid)');
 
 create temporary view public_function_privileges as
 select

@@ -24,6 +24,7 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/match/:matchRef', title: 'Match centre' },
   { path: '/more/scoring', title: 'Scoring rules' },
   { path: '/more/points', title: 'Profile' },
+  { path: '/account', title: 'Account' },
   { path: '/more', title: 'More' },
   { path: '/profile', title: 'Profile' },
   { path: '/dev/components', title: 'Component gallery' },

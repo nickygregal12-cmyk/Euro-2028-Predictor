@@ -103,3 +103,24 @@ export async function updatePassword(newPassword: string): Promise<void> {
 export async function signOut(): Promise<void> {
   await supabase.auth.signOut()
 }
+
+export type SessionEmailState = { email: string | null; pendingEmail: string | null }
+
+/** The signed-in address plus any not-yet-confirmed replacement. */
+export async function getSessionEmailState(): Promise<SessionEmailState> {
+  const { data } = await supabase.auth.getSession()
+  const user = data.session?.user ?? null
+  return {
+    email: user?.email ?? null,
+    pendingEmail: (user as { new_email?: string } | null)?.new_email ?? null,
+  }
+}
+
+/**
+ * Change the account email. Supabase sends a confirmation to the new address;
+ * the change applies only once that link is clicked.
+ */
+export async function updateEmail(newEmail: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ email: newEmail })
+  if (error) throw error
+}
