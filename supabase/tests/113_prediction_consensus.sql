@@ -342,8 +342,8 @@ select is(
   jsonb_array_length(
     current_setting('test.c59_result_c')::jsonb -> 'only_you'
   ),
-  5,
-  'caller C sees unique champion, final, Golden Boot and two exact scores'
+  6,
+  'caller C receives the full six-card bound: champion, final, Golden Boot and three exact scores'
 );
 
 select set_config('request.jwt.claim.sub', md5('c59-user-d'), true);
@@ -404,7 +404,7 @@ select is(
     where namespace.nspname = 'public'
       and procedure.oid::regprocedure::text = 'get_prediction_consensus(uuid)'
   ),
-  '{"search_path="""}',
+  '{"search_path=\"\""}',
   'the consensus RPC has an immutable empty search path'
 );
 
