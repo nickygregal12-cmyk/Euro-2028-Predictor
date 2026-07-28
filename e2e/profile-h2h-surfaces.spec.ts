@@ -63,7 +63,7 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
     const matchdayOne = page.getByRole('row').filter({ hasText: 'Matchday 1' })
     await expect(matchdayOne).toContainText(`${fixture.rivalRank}nd`)
     await expect(matchdayOne).toContainText(`${fixture.rivalPoints} pts`)
-    await expect(page.getByRole('img', { name: 'Rank history comparison' })).toBeVisible()
+    await expect(page.getByRole('img', { name: /^Rank history comparison/ })).toBeVisible()
 
     await expect(page.getByText('Bracket health', { exact: true })).toBeVisible()
     await expect(page.getByText('Head-to-head unavailable')).toHaveCount(0)
