@@ -5,7 +5,7 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository and development Supabase are at contract 52; non-production Netlify declares 51 pending an owner environment update.
+- Repository is at contract 55; development Supabase and non-production Netlify are at 54 pending contract 55's parity and hosted application.
 - Production Supabase and the published production application are aligned and locked at contract 48 (the H2H rank-history milestone).
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
@@ -45,13 +45,14 @@ Ordinary development does not require production backup, production smoke or a n
 - knockout 10 / 15 / 20 / 25 / 40, stacking;
 - Golden Boot 25;
 - group goals 40 / 30 / 20;
-- KO Predictor (separate score system, §8): exact 5 / result 3 / through +2.
+- KO Predictor (separate score system, §8): exact 5 / result 3 / through +2;
+- Last Man Standing (§8): tournament format — win to survive groups, advance in knockouts, one team once, wipeout voids.
 
 ## Current order
 
 1. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends (richer H2H is delivered at contract 48).
 3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-4. Bonus Games platform and the KO Predictor (ADR-0010 B1–B5: domain, deny-all schema, Games hub, shared knockout store, KO scoring/standings) are delivered through contract 52; Last Man Standing and the Predictor Cup (B6–B7) wait until the Original Predictor core experience is proven.
+4. Bonus Games platform, KO Predictor, Last Man Standing and the Cup through group-stage scoring (ADR-0010 B1–B7b) are built through contract 55; Cup knockouts (B7c) remain.
 
 Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
 

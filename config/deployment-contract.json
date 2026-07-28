@@ -1,6 +1,6 @@
 {
-  "contractVersion": 52,
-  "requiredMigrationCount": 52,
+  "contractVersion": 55,
+  "requiredMigrationCount": 55,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -27,7 +27,11 @@
     "public.save_knockout_prediction(uuid,smallint,smallint,uuid,integer)",
     "public.delete_knockout_prediction(uuid,integer)",
     "public.get_my_knockout_predictions(uuid)",
-    "public.get_ko_predictor_standings(uuid,integer,text)"
+    "public.get_ko_predictor_standings(uuid,integer,text)",
+    "public.save_lms_selection(uuid,uuid,integer)",
+    "public.get_my_lms(uuid)",
+    "public.admin_draw_predictor_cup(uuid,text)",
+    "public.get_my_cup(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the bounded H2H rank-history read and is the production-published milestone. Contracts 49-51 add the Bonus Games platform foundation (ADR-0010 B2-B4): deny-all schema, Games hub with voluntary entry and the shared knockout prediction store. Contract 52 adds KO Predictor scoring (B5): Exact 5 / Result 3 / Through +2 recomputed inside the single advisory-locked result operation, with a bounded server-ranked standings read. Development promotion follows Database parity; production remains locked at contract 48."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 is the production-published H2H milestone. Contracts 49-52 add the Bonus Games platform and KO Predictor (ADR-0010 B2-B5); contract 53 adds tournament-format Last Man Standing (B6); contracts 54-55 add the Predictor Cup foundation and group-stage scoring (B7a-B7b). Development Supabase and non-production Netlify are aligned at contract 55; production remains locked at contract 48."
 }

@@ -27,6 +27,8 @@ const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ de
 const GamesPage = lazy(() => import('./features/games/GamesPage').then((m) => ({ default: m.GamesPage })))
 const KnockoutPredictionsPage = lazy(() => import('./features/games/KnockoutPredictionsPage').then((m) => ({ default: m.KnockoutPredictionsPage })))
 const KoPredictorStandingsPage = lazy(() => import('./features/games/KoPredictorStandingsPage').then((m) => ({ default: m.KoPredictorStandingsPage })))
+const LmsPage = lazy(() => import('./features/games/LmsPage').then((m) => ({ default: m.LmsPage })))
+const CupPage = lazy(() => import('./features/games/CupPage').then((m) => ({ default: m.CupPage })))
 const ScoringRulesPage = lazy(() => import('./features/more/ScoringRulesPage').then((m) => ({ default: m.ScoringRulesPage })))
 const MatchesPage = lazy(() => import('./features/matches/MatchesPage').then((m) => ({ default: m.MatchesPage })))
 const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').then((m) => ({ default: m.MatchCentrePage })))
@@ -91,6 +93,8 @@ export default function App() {
                     <Route path="/games" element={<GamesPage />} />
                     <Route path="/games/knockout" element={<KnockoutPredictionsPage />} />
                     <Route path="/games/ko-predictor" element={<KoPredictorStandingsPage />} />
+                    <Route path="/games/lms" element={<LmsPage />} />
+                    <Route path="/games/cup" element={<CupPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/profile/:playerId" element={<OtherPlayerProfilePage />} />
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />
