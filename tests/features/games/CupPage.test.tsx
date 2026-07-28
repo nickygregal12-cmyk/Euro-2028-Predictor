@@ -12,6 +12,10 @@ vi.mock('../../../src/services/supabase/cup', () => ({
   fetchMyCup: mocks.fetchMyCup,
 }))
 
+vi.mock('../../../src/features/auth/AuthProvider', () => ({
+  useAuth: () => ({ userId: 'user-1' }),
+}))
+
 vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
   useTournamentData: () => ({
     status: 'ready',
@@ -76,6 +80,7 @@ describe('CupPage', () => {
             { userId: 'user-3', displayName: 'Gamma', drawNumber: 3 },
             { userId: 'user-4', displayName: 'Delta', drawNumber: 4 },
           ],
+          standings: [],
         },
         myFixtures: [
           {
@@ -86,6 +91,10 @@ describe('CupPage', () => {
             windowOpensAt: '2028-06-07T12:00:00Z',
             windowLocksAt: '2028-06-09T13:00:00Z',
             opponent: { userId: 'user-2', displayName: 'Beta' },
+            myPoints: null,
+            opponentPoints: null,
+            status: 'pending',
+            result: null,
           },
         ],
       }),

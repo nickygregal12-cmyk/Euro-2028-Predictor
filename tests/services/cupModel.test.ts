@@ -50,6 +50,10 @@ describe('Predictor Cup response parsing', () => {
       windowOpensAt: '2028-06-07T12:00:00+00:00',
       windowLocksAt: '2028-06-09T13:00:00+00:00',
       opponent: { userId: 'user-2', displayName: 'Beta' },
+      myPoints: null,
+      opponentPoints: null,
+      status: 'pending',
+      result: null,
     })
   })
 
@@ -60,6 +64,34 @@ describe('Predictor Cup response parsing', () => {
     expect(read.drawCompletedAt).toBeNull()
     expect(read.myGroup).toBeNull()
     expect(read.myFixtures).toEqual([])
+  })
+
+  it('maps a settled fixture with points, result and standings', () => {
+    const raw = payload()
+    ;(raw.my_fixtures[0] as Record<string, unknown>).my_points = 8
+    ;(raw.my_fixtures[0] as Record<string, unknown>).opponent_points = 3
+    ;(raw.my_fixtures[0] as Record<string, unknown>).status = 'settled'
+    ;(raw.my_fixtures[0] as Record<string, unknown>).result = 'win'
+    ;(raw.my_group as Record<string, unknown>).standings = [
+      {
+        user_id: 'user-1',
+        display_name: 'Alpha',
+        position: 1,
+        played: 1,
+        wins: 1,
+        draws: 0,
+        losses: 0,
+        points_for: 8,
+        points_against: 3,
+        table_points: 3,
+        window_points: 8,
+      },
+    ]
+    const read = mapCupResponse(raw)
+    expect(read.myFixtures[0].myPoints).toBe(8)
+    expect(read.myFixtures[0].result).toBe('win')
+    expect(read.myFixtures[0].status).toBe('settled')
+    expect(read.myGroup?.standings[0].tablePoints).toBe(3)
   })
 
   it('rejects malformed payloads instead of guessing', () => {

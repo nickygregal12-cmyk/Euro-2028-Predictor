@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton, StatusBadge } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
+import { useAuth } from '../auth/AuthProvider'
 import { fetchMyCup } from '../../services/supabase/cup'
-import type { CupRead } from '../../services/supabase/cupModel'
+import type { CupFixtureResult, CupRead } from '../../services/supabase/cupModel'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import s from '../shared.module.css'
 import g from './games.module.css'
@@ -23,8 +24,18 @@ type LoadState =
   | { status: 'error'; message: string }
   | { status: 'ready'; read: CupRead }
 
+const RESULT_COPY: Record<CupFixtureResult, string> = {
+  win: 'Won',
+  draw: 'Drawn',
+  loss: 'Lost',
+  walkover_win: 'Won W/O',
+  walkover_loss: 'Lost W/O',
+  void: 'Void',
+}
+
 export function CupPage() {
   const navigate = useNavigate()
+  const { userId } = useAuth()
   const data = useTournamentData()
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
   const [state, setState] = useState<LoadState>({ status: 'loading' })
@@ -144,11 +155,47 @@ export function CupPage() {
             {read.groupCount} groups · {read.entrantCount} players. Win 3 · draw 1 ·
             loss 0 on prediction-point totals per matchday.
           </p>
-          {read.myGroup.members.map((member) => (
-            <p key={member.userId} className={g.stateLine}>
-              #{member.drawNumber} {member.displayName}
-            </p>
-          ))}
+          {read.myGroup.standings.length > 0 ? (
+            <table className={g.standingsTable}>
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Player</th>
+                  <th scope="col">P</th>
+                  <th scope="col">W</th>
+                  <th scope="col">D</th>
+                  <th scope="col">L</th>
+                  <th scope="col">PF</th>
+                  <th scope="col">PA</th>
+                  <th scope="col">Pts</th>
+                </tr>
+              </thead>
+              <tbody>
+                {read.myGroup.standings.map((row) => (
+                  <tr key={row.userId} className={row.userId === userId ? g.ownRow : undefined}>
+                    <td>{row.position}</td>
+                    <td>
+                      {row.displayName}
+                      {row.userId === userId ? ' (you)' : ''}
+                    </td>
+                    <td>{row.played}</td>
+                    <td>{row.wins}</td>
+                    <td>{row.draws}</td>
+                    <td>{row.losses}</td>
+                    <td>{row.pointsFor}</td>
+                    <td>{row.pointsAgainst}</td>
+                    <td>{row.tablePoints}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            read.myGroup.members.map((member) => (
+              <p key={member.userId} className={g.stateLine}>
+                #{member.drawNumber} {member.displayName}
+              </p>
+            ))
+          )}
         </section>
       ) : (
         <Alert variant="error" title="No group assigned">
@@ -165,8 +212,12 @@ export function CupPage() {
             <div key={fixture.fixtureId}>
               <p className={g.stateLine}>
                 {fixture.windowLabel}
-                {fixture.matchday ? ` (Matchday ${fixture.matchday})` : ''} — you vs{' '}
+                {fixture.matchday ? ` (Matchday ${fixture.matchday})` : ''} — you{' '}
+                {fixture.myPoints !== null && fixture.opponentPoints !== null
+                  ? `${fixture.myPoints}–${fixture.opponentPoints} `
+                  : 'vs '}
                 <strong>{fixture.opponent.displayName}</strong>
+                {fixture.result ? ` — ${RESULT_COPY[fixture.result]}` : ''}
               </p>
               {fixture.windowLocksAt ? (
                 <p className={g.deadline}>

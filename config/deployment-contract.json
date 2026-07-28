@@ -1,6 +1,6 @@
 {
-  "contractVersion": 54,
-  "requiredMigrationCount": 54,
+  "contractVersion": 55,
+  "requiredMigrationCount": 55,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -33,5 +33,5 @@
     "public.admin_draw_predictor_cup(uuid,text)",
     "public.get_my_cup(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the bounded H2H rank-history read and is the production-published milestone. Contracts 49-52 add the Bonus Games platform and KO Predictor (ADR-0010 B2-B5). Contract 53 adds Last Man Standing (B6) in the tournament format. Contract 54 adds the Predictor Cup foundation (B7a): dedicated groups/members/fixtures, the audited seed-reproducible close-and-draw operation (service-role only) and the bounded my-cup read; Cup scoring and knockouts follow in B7b/B7c. Development promotion follows Database parity; production remains locked at contract 48."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 48 adds the bounded H2H rank-history read and is the production-published milestone. Contracts 49-52 add the Bonus Games platform and KO Predictor (ADR-0010 B2-B5). Contract 53 adds Last Man Standing (B6) in the tournament format. Contracts 54-55 add the Predictor Cup foundation and group-stage scoring (B7a-B7b): dedicated groups/members/fixtures, the audited seed-reproducible draw (service-role only), and read-time-derived matchday scoring (raw 5/3/0, regulation only), settled head-to-head results with walkover/void and ranked group tables; knockouts follow in B7c. Development promotion follows Database parity; production remains locked at contract 48."
 }

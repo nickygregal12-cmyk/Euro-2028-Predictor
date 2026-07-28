@@ -168,7 +168,7 @@ Platform first, then each game as a thin ruleset (ADR-0010, accepted 28 July 202
 6. **B6 — Last Man Standing (delivered, development only):** contract 53 implements the tournament format (`docs/scoring-rules.md` §8): window-deadline picks, team-once-per-competition, win-to-survive groups / advance-to-survive knockouts, wipeout-void, permanent elimination, with survival fully re-derived inside the single result operation and the `/games/lms` surface;
 7. **B7 — Predictor Cup (staged B7a–B7c):**
    - **B7a — foundation (delivered, development only):** contract 54 adds dedicated cup groups/members/fixtures, the audited seed-reproducible close-and-draw operation (dynamic 3/4-player allocation, round robin with byes, neutral draw numbers, service-role only) and the bounded my-cup read with the `/games/cup` surface;
-   - **B7b — group-stage scoring:** per-window prediction points (raw 5/3/0 from the Original entry, no jokers), head-to-head results with walkover/void, tables with the §5.2 tie-breaks;
+   - **B7b — group-stage scoring (delivered, development only):** contract 55 derives everything at read time from confirmed results — per-window prediction points (raw 5/3/0, regulation only, Original entry for group fixtures and the shared store for knockout fixtures), settled head-to-head results with walkover/void, and ranked group tables (§5.2 steps 1–3, 6–8; the mini head-to-head steps 4–5 apply at the B7c qualification gate);
    - **B7c — qualification and knockouts:** wildcards, seeded playoff with byes, Extra-Time Accuracy, Penalty Number lanes, champion and Golden Predictor.
 
 Each mode keeps its own entry, rules, scoring and standings; B5–B7 may never add a second registration, deadline, window or audit mechanism.

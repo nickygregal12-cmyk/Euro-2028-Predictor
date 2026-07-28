@@ -8,6 +8,14 @@ export type CupGroupMemberRead = {
   drawNumber: number
 }
 
+export type CupFixtureResult =
+  | 'win'
+  | 'draw'
+  | 'loss'
+  | 'walkover_win'
+  | 'walkover_loss'
+  | 'void'
+
 export type CupFixtureRead = {
   fixtureId: string
   stage: 'group' | 'playoff' | 'knockout'
@@ -16,6 +24,24 @@ export type CupFixtureRead = {
   windowOpensAt: string | null
   windowLocksAt: string | null
   opponent: { userId: string; displayName: string }
+  myPoints: number | null
+  opponentPoints: number | null
+  status: 'pending' | 'settled'
+  result: CupFixtureResult | null
+}
+
+export type CupStandingRow = {
+  userId: string
+  displayName: string
+  position: number
+  played: number
+  wins: number
+  draws: number
+  losses: number
+  pointsFor: number
+  pointsAgainst: number
+  tablePoints: number
+  windowPoints: number
 }
 
 export type CupRead = {
@@ -30,6 +56,7 @@ export type CupRead = {
     ordinal: number
     size: number
     members: CupGroupMemberRead[]
+    standings: CupStandingRow[]
   } | null
   myFixtures: CupFixtureRead[]
 }
@@ -43,6 +70,7 @@ const OUTCOMES: readonly EntrantOutcome[] = [
 ]
 
 const STAGES = ['group', 'playoff', 'knockout'] as const
+const RESULTS = ['win', 'draw', 'loss', 'walkover_win', 'walkover_loss', 'void'] as const
 
 function recordOf(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
@@ -112,6 +140,25 @@ export function mapCupResponse(value: unknown): CupRead {
           drawNumber: count(member.draw_number, 'draw number'),
         }
       }),
+      standings:
+        group.standings === null || group.standings === undefined
+          ? []
+          : arrayOf(group.standings, 'standings list').map((entry): CupStandingRow => {
+              const row = recordOf(entry)
+              return {
+                userId: text(row.user_id, 'standing user id'),
+                displayName: text(row.display_name, 'standing name'),
+                position: count(row.position, 'standing position'),
+                played: count(row.played, 'played count'),
+                wins: count(row.wins, 'win count'),
+                draws: count(row.draws, 'draw count'),
+                losses: count(row.losses, 'loss count'),
+                pointsFor: count(row.points_for, 'points for'),
+                pointsAgainst: count(row.points_against, 'points against'),
+                tablePoints: count(row.table_points, 'table points'),
+                windowPoints: count(row.window_points, 'window points'),
+              }
+            }),
     }
   }
 
@@ -123,6 +170,18 @@ export function mapCupResponse(value: unknown): CupRead {
         throw new Error('Predictor Cup returned an unknown fixture stage.')
       }
       const opponent = recordOf(fixture.opponent)
+      const status = text(fixture.status ?? 'pending', 'fixture status')
+      if (status !== 'pending' && status !== 'settled') {
+        throw new Error('Predictor Cup returned an unknown fixture status.')
+      }
+      let result: CupFixtureRead['result'] = null
+      if (fixture.result !== null && fixture.result !== undefined) {
+        const value = text(fixture.result, 'fixture result')
+        if (!(RESULTS as readonly string[]).includes(value)) {
+          throw new Error('Predictor Cup returned an unknown fixture result.')
+        }
+        result = value as CupFixtureResult
+      }
       return {
         fixtureId: text(fixture.fixture_id, 'fixture id'),
         stage: stage as CupFixtureRead['stage'],
@@ -137,6 +196,16 @@ export function mapCupResponse(value: unknown): CupRead {
           userId: text(opponent.user_id, 'opponent id'),
           displayName: text(opponent.display_name, 'opponent name'),
         },
+        myPoints:
+          fixture.my_points === null || fixture.my_points === undefined
+            ? null
+            : count(fixture.my_points, 'my points'),
+        opponentPoints:
+          fixture.opponent_points === null || fixture.opponent_points === undefined
+            ? null
+            : count(fixture.opponent_points, 'opponent points'),
+        status,
+        result,
       }
     },
   )

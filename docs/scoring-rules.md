@@ -142,7 +142,15 @@ touches Original Predictor points, jokers or standings (§1 separation law).
   through the final round are champions — co-champions possible. Elimination
   is permanent. Survival is fully re-derived inside the single result
   operation, so corrections re-eliminate or un-eliminate automatically.
-- Predictor Cup scoring follows in its own build stage.
+- **Predictor Cup (group stage implemented, contract 55; knockouts follow):**
+  per Cup matchday, raw **Exact 5 / Correct result 3 / 0** (regulation time
+  only, jokers never) over the round's designated real fixtures — group
+  scorelines from the Original entry, knockout scorelines from the shared
+  store. Head-to-head: higher total wins 3 table points, equal totals draw
+  1–1; one submitter wins by walkover, two non-submitters void the fixture.
+  Nothing settles before the round deadline and official confirmation, and
+  a missing prediction carries a 999-per-fixture scoreline-error sentinel in
+  tie-breaks. Full rules: `docs/predictor-cup-rules.md`.
 
 ## Open items / things to revisit later
 
