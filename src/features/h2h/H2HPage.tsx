@@ -1,7 +1,7 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Alert, Skeleton, type MatchTeam } from '../../design-system'
+import { Alert, Button, Skeleton, type MatchTeam } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
@@ -42,6 +42,7 @@ export function H2HPage() {
   const data = useTournamentData()
   const preds = usePredictions()
   const [state, setState] = useState<State>({ status: 'loading' })
+  const [reloadKey, setReloadKey] = useState(0)
 
   const ready = data.status === 'ready' && preds.ready
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
@@ -91,8 +92,7 @@ export function H2HPage() {
       })),
     }
     return { actuals, ownPreds, teamOf, locked: isEntryLocked(td.tournament.lockAt) }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data.status, preds.ready])
+  }, [data, preds])
 
   useEffect(() => {
     if (data.status === 'error') {
@@ -154,7 +154,7 @@ export function H2HPage() {
     return () => {
       active = false
     }
-  }, [ready, tournamentId, rivalId, derived, data.status, displayName])
+  }, [ready, tournamentId, rivalId, derived, data.status, displayName, reloadKey])
 
   const header = (
     <div className={s.header}>
@@ -171,6 +171,11 @@ export function H2HPage() {
         {header}
         <Alert variant="warning" title="Head-to-head unavailable">
           {state.message}
+          <div style={{ marginTop: 10 }}>
+            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
+              Retry
+            </Button>
+          </div>
         </Alert>
       </div>
     )
