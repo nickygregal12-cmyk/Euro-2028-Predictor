@@ -17,6 +17,7 @@ insert into expected_authenticated_functions (signature) values
   ('create_league(uuid,text)'),
   ('delete_league(uuid)'),
   ('delete_match_prediction(uuid,uuid,integer)'),
+  ('clear_my_entry(uuid)'),
   ('get_entry_submission_status(uuid)'),
   ('get_h2h_rank_history(uuid,uuid)'),
   ('get_leaderboard(uuid,integer,text)'),

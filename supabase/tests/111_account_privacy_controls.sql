@@ -56,7 +56,7 @@ select is(
     where n.nspname = 'public'
       and p.oid::regprocedure::text = 'clear_my_entry(uuid)'
   ),
-  '{"search_path="""}',
+  '{"search_path=\"\""}',
   'clear_my_entry has an immutable empty search path'
 );
 
@@ -330,7 +330,7 @@ select is(
 
 select is(
   (select submitted_at from public.entries where id = md5('account-entry-a')::uuid),
-  null,
+  null::timestamptz,
   'the caller entry returns to an unsubmitted state'
 );
 
