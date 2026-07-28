@@ -3,11 +3,10 @@ import styles from './PageShell.module.css'
 import { BottomNav, type NavKey } from './BottomNav'
 
 export type PageShellProps = {
-  // Header title for the current section. Omit for screens that render their
-  // own header inside `children`.
-  title?: string
-  // Optional right-aligned header slot (e.g. a settings button).
-  headerAction?: ReactNode
+  // Slim bar rendered above the content region (the AppBar). Page titles stay
+  // content-owned — the legacy title/headerAction header is retired
+  // (design-system §6, one title system).
+  topBar?: ReactNode
   active: NavKey
   /** Dev/demo-only override. Production navigation should omit this. */
   onNavigate?: (key: NavKey) => void
@@ -15,22 +14,17 @@ export type PageShellProps = {
 }
 
 /**
- * The app frame: sticky header, scrolling content, and the fixed BottomNav.
+ * The app frame: optional top bar, scrolling content, and the fixed BottomNav.
  * Fills its container height (use 100dvh at the app root); the content region
- * scrolls independently so the nav stays put. Presentational only.
+ * scrolls independently so the bars stay put. Presentational only.
  */
-export function PageShell({ title, headerAction, active, onNavigate, children }: PageShellProps) {
+export function PageShell({ topBar, active, onNavigate, children }: PageShellProps) {
   return (
     <div className={styles.shell}>
       <a className={styles.skipLink} href="#main-content">
         Skip to main content
       </a>
-      {title || headerAction ? (
-        <header className={styles.header}>
-          {title ? <h1 className={styles.title}>{title}</h1> : <span />}
-          {headerAction ? <div className={styles.headerAction}>{headerAction}</div> : null}
-        </header>
-      ) : null}
+      {topBar}
       <main id="main-content" className={styles.content} tabIndex={-1}>
         {children}
       </main>

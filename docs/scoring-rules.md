@@ -79,7 +79,9 @@ Applied in order until the tie is broken:
 2. Most correct outcomes
 3. Most correct knockout teams
 4. Correct champion
-5. Closest total-goals prediction (smallest absolute difference from actual tournament goal count)
+5. Closest total-goals prediction (smallest absolute difference from the actual **group-stage** goal count — the same derived number as §4)
+
+**Implementation status:** the criteria are implemented in `src/domain/tournament/calculateLeagueRank.ts` but are not yet wired into the shipped standings reads — live standings currently show tied totals at a shared rank with rows ordered alphabetically (per the design-system ranking display rule), and these tie-breakers apply only to final standings at tournament end. The final-standings wiring is an open item tracked in `docs/quality/current-status.md`.
 
 ---
 

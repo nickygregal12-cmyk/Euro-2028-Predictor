@@ -1,7 +1,7 @@
 # Production observability and application rollback
 
 **Status:** privacy-safe Sentry production delivery verified; operating policy and rollback rehearsal remain incomplete.  
-**Repository/development/production contract:** 38.
+**Contracts:** repository/development 44 (see `docs/quality/current-status.md` for the live value); production locked at 38.
 **Primary owner:** `nickygregal12-cmyk`.  
 **Scope:** client failures, release identity, anonymous read-only smoke and static-application rollback. This runbook authorizes no database write.
 
@@ -40,7 +40,7 @@ Current target identities:
 
 | Target | Environment | App/hosted contract | Supabase |
 | --- | --- | ---: | --- |
-| Development preview | `deploy-preview` | 38/38 | `iouzoutneyjpugbbtdem` |
+| Development preview | `deploy-preview` | current repository contract (44 today) | `iouzoutneyjpugbbtdem` |
 | Production milestone | `production` | 38/38 | `vkfnsqdyhvtwyqkisxhk` |
 
 Preview requires the exact PR head. Production smoke is manual milestone-only and requires the exact selected `main` head.
@@ -53,7 +53,7 @@ Both smoke implementations require:
 EURO28_SMOKE_EXPECTED_CONTRACT=<positive-integer>
 ```
 
-The command fails closed if this value is missing or invalid. Keep the expectation explicit even while both targets are contract 38.
+The command fails closed if this value is missing or invalid. Keep the expectation explicit — the targets diverge deliberately (production locked at 38, previews at the current repository contract), so the right value depends on which target is being smoked.
 
 ## Anonymous final-target smoke
 
@@ -90,7 +90,7 @@ EURO28_SMOKE_ALLOW_NON_PRODUCTION=true \
 EURO28_SMOKE_EXPECTED_CONTEXT=deploy-preview \
 EURO28_SMOKE_EXPECTED_SUPABASE_REF=iouzoutneyjpugbbtdem \
 EURO28_SMOKE_EXPECTED_COMMIT="<exact-pr-head-sha>" \
-EURO28_SMOKE_EXPECTED_CONTRACT=38 \
+EURO28_SMOKE_EXPECTED_CONTRACT=<current repository contract, e.g. 44> \
 npm run smoke:production
 ```
 
@@ -104,7 +104,7 @@ Use the same variables with `npm run smoke:production:browser`. Never use final-
 
 - exact PR head;
 - `deploy-preview` environment;
-- contract 38/38;
+- the contract declared by `config/deployment-contract.json` at the PR head (the workflow derives it — nothing hardcoded);
 - development Supabase;
 - HTTP smoke;
 - anonymous browser smoke;

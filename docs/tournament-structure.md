@@ -101,7 +101,7 @@ Feed-through is by venue of the preceding round:
 | Date | Fixture | Venue |
 |---|---|---|
 | 04/07 | Winner QF-1 (Wembley) v Winner QF-2 (Dublin) | Wembley (SF-1) |
-| 05/07 | Winner QF-2... see note | Wembley (SF-2) |
+| 05/07 | Winner QF-4 (Glasgow) v Winner QF-3 (Cardiff) | Wembley (SF-2) |
 | 09/07 | Final: Winner SF-1 v Winner SF-2 | Wembley |
 
 **SF-2 is Winner QF-4 (Glasgow) v Winner QF-3 (Cardiff).** (UEFA lists semis as "Wembley QF winners vs Dublin QF winners" and "Glasgow QF winners vs Cardiff QF winners".)
@@ -157,4 +157,4 @@ Slot key: **WB** = Winner B's opponent (R16-3), **WC** = Winner C's opponent (R1
 - Never hardcode team names into bracket logic — slots only. Real teams resolve through slots at render/scoring time.
 - `advanceBracket()` operates purely on slot references (R16-1 … R16-8 → QF-1 … QF-4 → SF-1, SF-2 → Final) per sections 4–5.
 - A unit test must cover **all 15 combinations** in section 7, plus the constraint sanity check.
-- Knockout draws after 90 minutes: users predict a single winner per KO match (winner-only mode), so extra time/penalties don't need modelling in predictions — but `match_results` supports them for real results (already in the DB schema design).
+- Knockout draws after 90 minutes: users predict a single winner per KO match (winner-only mode), so extra time/penalties don't need modelling in predictions — but the real-result columns on `matches` support them (`result_method` regulation/extra_time/penalties plus extra-time and penalty scores, migration `20260723183000_knockout_result_lifecycle.sql`).

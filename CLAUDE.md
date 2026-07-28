@@ -5,10 +5,10 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development and production are aligned at contract 38.
+- Repository, development and both hosted databases are at contract 44 (production database promoted 28 July 2026); the production application release is the remaining milestone step.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- Production milestone deploy `6a67560deb88202a74108c37` is verified and locked.
+- The published production deploy is still the contract-38 build; publish the contract-44 build to complete the milestone.
 - Normal work happens against development; production promotion is milestone-only.
 
 Do not import rules or features from previous projects, old branches, prototypes or chats.
@@ -44,12 +44,12 @@ Ordinary development does not require production backup, production smoke or a n
 
 ## Current order
 
-1. Complete administrator result mutation forms, confirmation review and E2E.
-2. Run the first complete pre-tournament → live → correction → scoring → finish simulation.
-3. Repair authoritative knockout-result consumption.
-4. Add automatic valid-entry submission.
-5. Continue core experience, accessibility and operational readiness.
-6. Add bonus competitions only after the Original Predictor lifecycle is proven.
+1. Capture representative query-plan, response-size and recomputation evidence at the intended caps.
+2. Repair completion, loading, empty and error states exposed by those scale journeys.
+3. Continue core experience, accessibility and operational readiness.
+4. Add bonus competitions only after the Original Predictor lifecycle and scale stage are proven.
+
+Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, bounded/paginated reads and operating-cap enforcement are complete (PRs #120–#136).
 
 ## Hard boundaries
 

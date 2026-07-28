@@ -1,6 +1,6 @@
 # ADR 0003 — Asynchronous incremental scoring
 
-- **Status:** Accepted direction
+- **Status:** Accepted direction — not currently justified: first capacity evidence (28 July 2026, `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`) measured the synchronous full recompute at ~354 ms for 250 entries with 12 results; revisit at full-tournament result volume (see `DEC-009`)
 - **Date:** 27 July 2026
 
 ## Context

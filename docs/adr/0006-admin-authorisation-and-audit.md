@@ -1,6 +1,6 @@
 # ADR 0006 — Administrator authorisation and audit
 
-- **Status:** Accepted direction
+- **Status:** Implemented (contracts 37–40: `app_metadata` capability model, internally-enforcing `admin_*` RPCs in `20260727075922` and `20260727163339`, code-split gated SPA routes, immutable revisions with actor/reason, and the privilege-enumeration tests in `supabase/tests/080_function_privileges.sql`)
 - **Date:** 27 July 2026
 
 ## Context

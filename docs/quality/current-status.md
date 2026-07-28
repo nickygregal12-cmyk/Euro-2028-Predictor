@@ -2,35 +2,36 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 27 July 2026
+**Status date:** 28 July 2026
 
 ## Baseline
 
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository contract | 42 canonical migrations through `20260727182300_bounded_read_models.sql` |
-| Delivery evidence | PRs #122, #124, #126, #128 and #131 cover the full tournament lifecycle, automatic valid-entry recovery and bounded Original Predictor reads |
+| Repository contract | 44 canonical migrations through `20260727191942_operating_cap_enforcement.sql` |
+| Delivery evidence | PRs #122, #124, #126, #128, #131, #134 and #136 cover the full tournament lifecycle, automatic valid-entry recovery, bounded Original Predictor reads, paginated overall standings and operating-cap enforcement |
 | Verified production release source | `0b956e8f553f06f5bdb72ce937acc6295a8c2451` |
-| Development Supabase | `iouzoutneyjpugbbtdem` — contract 42 applied and history-aligned |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — contract 38; unchanged |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 42 and use development Supabase; `production` remains 38 and uses production Supabase |
-| Published production deploy | `6a67560deb88202a74108c37` — verified and locked |
+| Development Supabase | `iouzoutneyjpugbbtdem` — contract 44 applied and history-aligned |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — **contract 44** applied 28 July 2026 after a fresh green backup (run `30337648499`); history-aligned with development; data unchanged ([reconciliation](reconciliations/2026-07-28-contract-44-production-promotion.md)) |
+| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 44 and use development Supabase; `production` still declares 38 pending the contract-44 release publication |
+| Published production deploy | `6a67560deb88202a74108c37` (contract-38 build) — **interim**: its standings read calls the dropped `get_leaderboard(uuid)`, so publish the contract-44 build promptly |
 | Production recovery | green encrypted backup run `30264080847`; disposable restore passed; artifact preserved off GitHub |
 | Production smoke | exact commit, contract, routes/assets, security headers and Supabase isolation passed |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. It remains locked at the contract-38 milestone. Contracts 39–42 are development-only until a later production milestone receives explicit owner approval.
+Production is a controlled future-tournament target, not an active Euro 2028 service. The contract-44 database promotion completed on 28 July 2026 with explicit owner approval; the matching application release (Netlify `EURO28_DEPLOYED_DB_CONTRACT=44`, publish from `main`, exact-head production smoke) is the remaining owner step, after which production re-locks at the contract-44 milestone. Contracts 45+ (draft PR #138) remain development-only.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Controlled divergence.** Repository, development and non-production Netlify are at 42; production remains deliberately locked at 38. |
+| Contract alignment | **Aligned at 44 (database).** Repository, development, non-production Netlify and both hosted databases are at contract 44; the production application release is the remaining step of the milestone. |
 | Recovery | **Verified.** The deferred exception is closed by green run #7 and off-GitHub encrypted custody. |
 | Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, ordered only by authorised administrators, reasoned, reviewed, revisioned and replayed transactionally. |
 | Automatic valid-entry recovery | **Implemented.** A database-owned one-minute job submits only complete valid entries at lock, records immutable outcomes and exposes success/failure only to the entry owner. |
-| Bounded Original Predictor reads | **Implemented.** Overall standings, user league lists, league members, match-pick comparisons and rival-entry payloads have explicit server-side maxima with deterministic ordering and unchanged access gates. |
+| Bounded Original Predictor reads | **Implemented.** User league lists, league members, match-pick comparisons and rival-entry payloads have explicit server-side maxima with deterministic ordering and unchanged access gates; overall standings use server-ranked keyset pagination (contract 43: 50 rows default, 100 maximum, deterministic cursors, independent current-user position context). |
+| Operating-cap enforcement | **Implemented.** Contract 44 serialises signup and league-creation counters with advisory locks, enforces the public-user and total-league limits in `BEFORE INSERT` triggers, exposes an anonymous-safe capacity RPC and a service-role-only limit adjustment, and shows full registration/league states with contact-admin guidance. The current public signup limit is 50 (fail-closed pending SMTP verification); 250 remains the tested technical capacity. |
 | Tournament database lifecycle | **Proven.** Deterministic 51-match, boundary-tie, automatic-submission and excess-data pgTAP journeys cover the full lifecycle and the intended 250-user / 20-league read boundaries. |
 | Product-facing result lifecycle | **Proven.** Match Centre, fixtures and H2H consume the server-owned knockout winner, including level extra-time scores and penalty shootouts. |
 | Browser/reset lifecycle | **Proven.** Authenticated journeys cover real group completion, knockout results, boundary resolution and both successful and failed automatic-submission outcomes on disposable local Supabase. |
@@ -53,11 +54,13 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - Match Centre, fixtures and H2H consumption of authoritative regulation, extra-time and penalty results;
 - predicted-bracket replay and atomic bracket persistence;
 - version-safe score clearing and immutable result/qualification revisions;
-- overall standings capped at 250 submitted entries after score-first deterministic ordering;
+- overall standings served by server-ranked keyset pagination (50 default / 100 maximum per page) with deterministic cursors and current-user position context;
+- transaction-serialised public-user and total-league operating limits enforced at signup and league creation, with anonymous-safe capacity preflight and service-role-only adjustment;
 - user league lists capped at 20, and league member/pick payloads capped at 250;
 - rival-entry payloads fixed to 36 group predictions and 24 tournament teams;
 - exact function execution allowlists, empty security-definer search paths and closed direct-table access;
 - protected administrator routes and capability parsing;
+- a top-nav app bar on every signed-in screen (section context, theme toggle, avatar into own profile) with the legacy PageShell title header retired;
 - responsive administrator result and qualification controls with review and required reasons;
 - authorised and unauthorised administrator browser journeys on desktop/mobile;
 - environment/deployment-contract guards;
@@ -71,6 +74,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - reminder delivery only after Auth/SMTP ownership and reliability are verified;
 - completion, loading, empty and error-state coverage across the remaining product surfaces;
 - official teams, fixtures, regulations and lock instant;
+- league tie-breakers (`docs/scoring-rules.md` §5) are implemented in `src/domain/tournament/calculateLeagueRank.ts` but not yet wired into the shipped standings reads, which currently order level entries deterministically by name — final-standings tie-break wiring and its explanation UI remain;
 - manual accessibility review and a later full product dress rehearsal.
 
 ## Development mode
@@ -87,13 +91,16 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 ## Current next batch
 
-**Stage 3 — cap enforcement and representative scale evidence**
+**Stage 3 — representative scale evidence (cap enforcement complete)**
 
-1. Define and enforce the documented 250-user and 20-league operating caps at authoritative write boundaries, including concurrency behaviour.
-2. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads at those caps.
-3. Measure score recomputation and rank-history capture with representative submitted entries.
-4. Prove the main profile, league and comparison surfaces remain correct and responsive at the intended caps.
-5. Repair completion, loading, empty and error states exposed by those scale journeys.
+Operating-cap enforcement at authoritative write boundaries, including concurrency behaviour, shipped in PR #136 (contract 44). Remaining:
+
+1. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads at the intended caps. **First tranche captured** for the non-league reads (overall standings pages/cursors, rival entry, match-pick distribution, submission status): single-digit milliseconds and kilobytes at 250 submitted entries — [`investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`](investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md). League-read evidence belongs to draft PR #138.
+2. Measure score recomputation and rank-history capture with representative submitted entries. **Measured:** full delete-and-rederive recompute at 250 entries with 12 confirmed results takes ~354 ms (3,060 events); rank-history capture ~4 ms — same evidence document. Re-measure at full-tournament result volume during the dress rehearsal.
+3. Prove the main profile, league and comparison surfaces remain correct and responsive at the intended caps.
+4. Repair completion, loading, empty and error states exposed by those scale journeys.
+
+Draft PR #138 (contracts 45–46) is in flight for paginated private-league standings and ownership-candidate search, including the league share of the evidence capture above.
 
 ## Operational follow-ups
 

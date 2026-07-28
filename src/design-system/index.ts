@@ -21,6 +21,9 @@ export type { SkeletonProps } from './Skeleton'
 export { PageShell } from './PageShell'
 export type { PageShellProps } from './PageShell'
 
+export { AppBar } from './AppBar'
+export type { AppBarProps } from './AppBar'
+
 export { Alert } from './Alert'
 export type { AlertProps, AlertVariant } from './Alert'
 

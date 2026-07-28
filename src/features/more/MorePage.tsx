@@ -3,14 +3,12 @@ import { useNavigate } from 'react-router'
 import { Button, ConfirmModal } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
-import { useTheme } from '../../app/providers/ThemeProvider'
 import s from '../shared.module.css'
 import m from './more.module.css'
 
 export function MorePage() {
   const navigate = useNavigate()
   const { displayName, signOut } = useAuth()
-  const { theme, toggle } = useTheme()
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
@@ -57,16 +55,7 @@ export function MorePage() {
         </div>
       </div>
 
-      <div className={s.card}>
-        <span className={s.eyebrow}>Appearance</span>
-        <div className={m.row}>
-          <span className={m.rowLabel}>Theme</span>
-          <Button variant="secondary" onClick={toggle}>
-            {theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
-          </Button>
-        </div>
-      </div>
-
+      {/* Theme switching lives in the top-nav app bar (design-system §6). */}
       <button type="button" className={m.linkRow} onClick={() => navigate('/profile')}>
         Profile
         <ChevronRightIcon size={18} className={m.chev} />

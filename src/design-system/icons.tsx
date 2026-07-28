@@ -290,3 +290,22 @@ export function CardsIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function SunIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 3v2M12 19v2M5.6 5.6l1.5 1.5M16.9 16.9l1.5 1.5M3 12h2M19 12h2M5.6 18.4l1.5-1.5M16.9 7.1l1.5-1.5" />
+    </svg>
+  )
+}
+
+export function MoonIcon(props: IconProps) {
+  return (
+    <svg {...svgProps(props)}>
+      {props.title ? <title>{props.title}</title> : null}
+      <path d="M12 3h.4a7.5 7.5 0 0 0 7.9 12.4A9 9 0 1 1 12 3z" />
+    </svg>
+  )
+}

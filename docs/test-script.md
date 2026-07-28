@@ -9,7 +9,7 @@ This is a usability and comprehension test, not proof of production readiness. C
 - Use a current Euro 2028 preview or development environment connected to development Supabase at the repository's compatible database contract.
 - Do not use the legacy `euro28-predictor-dev.netlify.app` site; it belongs to the protected World Cup environment.
 - Verify login, signup and recovery are usable in the selected environment before involving the tester. A successful static preview build is not enough.
-- Do not use production for this flow while the application/database compatibility gate remains open.
+- Do not use production for this flow; production is a locked milestone target (contract 38) and is never a test environment.
 - Record the exact URL, commit/deploy identity, device and date with the findings.
 
 ## Ground rules
@@ -35,7 +35,7 @@ Watch whether the prediction hub reads as a checklist; whether third-place selec
 
 If a tie-resolution prompt appears naturally, observe it closely. Do not manufacture one mid-test; discuss the concept in the debrief instead.
 
-For submission, pay particular attention to the final visible edit immediately before pressing submit. Any lost edit, save conflict or unclear failure is evidence against the remaining browser-closure requirements for `REL-003` and related persistence controls.
+For submission, pay particular attention to the final visible edit immediately before pressing submit. Any lost edit, save conflict or unclear failure is a persistence-control finding — record it against the relevant current entry in `docs/quality/risk-register.md` (for example `REL-007`), or propose a new ID if the root cause is materially different.
 
 ## Part 2 — Directed tasks
 
@@ -69,7 +69,7 @@ Write findings up the same day with:
 - reproduction steps where practical;
 - severity and the relevant existing finding ID, or a proposed new ID when the root cause is materially different.
 
-Create or update GitHub Issues for actionable work. Update `docs/build-todo.md` only when sequencing changes; do not use chat or the TODO as implementation evidence.
+Create or update GitHub Issues for actionable work. Update `docs/roadmap.md` only when sequencing changes (`docs/build-todo.md` is a compatibility pointer, not a checklist); do not use chat or a TODO as implementation evidence.
 
 ## Pass bar
 

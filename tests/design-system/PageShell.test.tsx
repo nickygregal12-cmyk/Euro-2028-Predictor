@@ -20,4 +20,18 @@ describe('PageShell accessibility', () => {
     expect(main.id).toBe('main-content')
     expect(main.tabIndex).toBe(-1)
   })
+
+  it('renders the top bar above the content region', () => {
+    render(
+      <MemoryRouter>
+        <PageShell active="home" topBar={<header data-testid="top-bar">Bar</header>}>
+          <p>Page content</p>
+        </PageShell>
+      </MemoryRouter>,
+    )
+
+    const bar = screen.getByTestId('top-bar')
+    const main = screen.getByRole('main')
+    expect(bar.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
 })

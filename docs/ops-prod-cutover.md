@@ -1,8 +1,8 @@
 # Ops record — Production Supabase cutover
 
-This is the historical and current record of the separate production Supabase project created on 22 July 2026 and advanced to contract 35 on 25 July 2026. It is **not** a reusable migration script.
+> **Historical record.** This documents the production Supabase cutover of 22 July 2026 and the contract-35 promotion of 25 July 2026 as they happened. It is **not** a reusable migration script and its environment tables are a dated snapshot — production has since been promoted to contract 38 (see `docs/quality/reconciliations/2026-07-27-contract-38-final-target-promotion.md`) and the repository/development have advanced further. For current facts use `docs/quality/current-status.md` and `docs/ops-pending-migrations.md`; future production milestones follow the gate in `AGENTS.md`.
 
-## Current verified environment position — 25 July 2026
+## Verified environment position — as of 25 July 2026 (superseded)
 
 | Component | Verified position |
 | --- | --- |
@@ -120,7 +120,7 @@ A previous version said an admin bootstrap grant had run. Direct inspection conf
 
 - no version-controlled administrator model was created;
 - the claimed update did not establish the documented admin state;
-- the issue remains tracked under `OPS-002`;
+- the issue was tracked under `OPS-002` (since resolved in development by PRs #120 and #126);
 - `docs/ops-admin-bootstrap.md` prohibits the obsolete SQL.
 
 ## Absolute environment boundary
@@ -133,9 +133,9 @@ A previous version said an admin bootstrap grant had run. Direct inspection conf
 - Migration/data failure stops the rollout; it never triggers reset, improvised SQL or cross-environment swapping.
 - Non-production Netlify contexts remain connected to development Supabase.
 
-## Current Netlify position
+## Netlify position — as of 25 July 2026 (superseded; see `docs/ops-pending-migrations.md` for current)
 
-The current production Netlify project is correctly isolated:
+The production Netlify project was correctly isolated:
 
 | Context | Supabase | Contract |
 | --- | --- | ---: |
@@ -150,7 +150,7 @@ The separate legacy `euro28-predictor-dev.netlify.app` site remains outside this
 
 ## Future production migration gate
 
-For migration 36 or later:
+For any future production migration (`AGENTS.md` → Production milestones is the authoritative gate; this list is the cutover-era statement of the same discipline):
 
 1. verify current Netlify release/deploy and executable diff;
 2. verify the repository contract and exact migration set;
@@ -168,7 +168,7 @@ For migration 36 or later:
 
 A safe application rollback:
 
-1. identifies a known-good executable application baseline compatible with production contract 35;
+1. identifies a known-good executable application baseline compatible with the current production contract (38 since the 27 July 2026 milestone);
 2. selects a Netlify release containing that baseline;
 3. restores it through Netlify;
 4. leaves production Supabase URL/key unchanged;

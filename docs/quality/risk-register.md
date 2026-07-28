@@ -15,7 +15,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DATA-003` | **Resolved and hosted.** Six relationship groups are guarded in development and production. |
 | `DATA-006` | **No concrete residual defect established.** Reopen only with an exact uncovered relationship. |
 | `DOC-001` | **Resolved.** Current agent/status/risk/roadmap/migration authority is reconciled. |
-| `OPS-006` | **Resolved.** Repository, development, production and Netlify declarations are aligned at contract 38. |
+| `OPS-006` | **Resolved.** Repository, development and production databases aligned at contract 44 (28 July 2026 promotion); the production application release completes the alignment. |
 | `TEST-001` | **Reduced.** Hosted development migration and exact-head preview smoke are complete; other critical journeys remain. |
 
 ## Critical
@@ -26,7 +26,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DATA-001` | Predicted group positions can be forged or drift | **Resolved** | Reopen on regression. |
 | `SECURITY-001` | Browser roles can write server-owned position inputs | **Resolved** | Reopen on regression. |
 | `SECURITY-002` | Submission boundary can be bypassed | **Resolved** | Reopen on regression. |
-| `DATA-002` | Knockout winner/method lacks database authority | **Resolved in database** | Frontend authoritative consumption remains separately open. |
+| `DATA-002` | Knockout winner/method lacks database authority | **Resolved** | Database authority plus frontend authoritative consumption across Match Centre, fixtures and H2H shipped (PR #124). Reopen on regression. |
 | `OPS-001` | Environment rollback crosses database boundaries | **Resolved** | Preserve isolation. |
 
 ## High
@@ -35,11 +35,11 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | --- | --- | --- | --- |
 | `DATA-003` | Same-tournament/reference constraints incomplete | **Resolved and hosted** | Six private guards, privilege revocations and valid/invalid hosted verification passed in both hosted environments. |
 | `DATA-006` | Wider fixture/source relationships insufficiently constrained | **No proven residual defect** | Do not retain as a broad duplicate. |
-| `FUNC-002` | Valid entries are not automatically submitted at lock | **Open** | Server scheduler and exact lock-boundary tests. |
-| `DATA-004` | Actual tie resolution can use non-authoritative fallback | **Open** | Define authoritative workflow when official regulations/data are available. |
+| `FUNC-002` | Valid entries are not automatically submitted at lock | **Resolved in development** | Database-scheduled automatic submission with immutable outcomes shipped (PR #128, contract 41) with lock-boundary pgTAP and browser journeys. Reopen on regression; production carries it only at a later milestone. |
+| `DATA-004` | Actual tie resolution can use non-authoritative fallback | **Reduced** | Authorised exact-set third-place boundary resolution with required reasons, immutable revisions and fingerprint invalidation shipped (PR #126). Verifying decisions against official regulations/data remains a launch item. |
 | `DATA-005` | Score clearing lacks complete final-target browser proof | **Backend implemented; final-target evidence pending** | Controlled clear/reload/conflict/lock verification. |
-| `OPS-002` | Administrator control room is not yet complete | **Partial; foundation merged** | Mutation UI, bootstrap/assignment evidence, audit-history presentation and Browser E2E remain. |
-| `TEST-001` | Critical rules lack complete end-to-end evidence | **Partial** | Result admin, authoritative penalty-winner UI, final-target controlled mutations and manual screen-reader review remain. |
+| `OPS-002` | Administrator control room is not yet complete | **Resolved in development** | Result confirm/correct/clear forms, review step, revision history and authorised/unauthorised desktop/mobile Browser E2E shipped (PR #120); qualification-boundary controls followed (PR #126). Reopen on regression. |
+| `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Admin result/qualification journeys, authoritative knockout consumption and automatic-submission outcomes are browser-proven (PRs #120–#128). Final-target controlled mutations, representative scale journeys and manual screen-reader review remain. |
 | `OPS-003` | Production observability operations incomplete | **Partial; delivery verified** | Record actual retention, server-side/IP scrubbing, backup alert recipient/escalation, durable milestone-smoke evidence and rollback promotion rehearsal. |
 
 ## Medium
@@ -82,7 +82,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 - Repository implementation, development-hosted verification and final-target verification are separate closure states.
 - Do not call a final-target risk closed because the tournament is not live.
 - Do not retain broad findings after the concrete defect is resolved.
-- The verified contract-38 application/database pair is the production baseline.
+- The verified contract-38 application/database pair is the production baseline; development runs ahead under the controlled divergence recorded in `current-status.md`.
 - A guard blocking incompatible deployment is a working safeguard, not a defect to bypass.
 - Sentry delivery is already active; do not describe it as disabled merely because policy/ownership items remain.
 - Advisor warnings require context; do not remove indexes or revoke intended RPC access without evidence.

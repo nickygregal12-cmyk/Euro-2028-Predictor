@@ -1,6 +1,6 @@
 # Euro 2028 Predictor — Roadmap
 
-**Status date:** 27 July 2026  
+**Status date:** 28 July 2026  
 **Authority:** The only live execution sequence. Use `docs/quality/current-status.md` for current facts.
 
 ## Stage 0 — Contract-38 baseline and release closure: complete
@@ -79,17 +79,45 @@ Delivered through PR #131 and contract 42:
 
 Exit met: current Original Predictor standings and comparison payloads cannot grow beyond the intended operating bounds.
 
-## Stage 3C — Cap enforcement and representative scale evidence: current
+## Stage 3B2 — Paginated overall standings: complete
 
-1. Define and enforce the documented 250-user and 20-league operating caps at authoritative write boundaries, including concurrent signup/create/join behaviour.
-2. Seed representative volumes at those caps without weakening production isolation.
-3. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads.
-4. Measure score recomputation and rank-history capture at representative submitted-entry volume.
-5. Test the main profile, league and comparison surfaces against that data.
-6. Repair completion, loading, empty and error states exposed by the scale journeys.
-7. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+Delivered through PR #134 and contract 43:
 
-Exit: operating caps are enforced under concurrency, and core Original Predictor reads and recomputation remain correct and responsive at those caps.
+- the contract-42 capped overall standings RPC replaced by server-ranked keyset pagination;
+- 50 rows by default, 100 maximum, deterministic opaque cursors;
+- independent current-user position context;
+- all other contract-42 read bounds unchanged;
+- database (`099_paginated_overall_leaderboard`) and browser (`e2e/overall-standings.spec.ts`) proof;
+- production left at contract 38.
+
+Exit met: overall standings pages are bounded and deterministic at any submitted-entry volume.
+
+## Stage 3C1 — Operating-cap enforcement: complete
+
+Delivered through PR #136 and contract 44:
+
+- a private singleton operating-limit record seeded to 50 public users and 20 total leagues (250 remains the tested technical capacity; the public signup limit stays fail-closed at 50 pending SMTP verification);
+- signup and league-creation counters serialised with transaction advisory locks;
+- `BEFORE INSERT` enforcement on `auth.users` and `public.leagues`;
+- an anonymous-safe aggregate capacity RPC and a service-role-only limit adjustment RPC;
+- full registration and league-cap states with contact-admin guidance;
+- a 24-assertion database lifecycle plus authenticated capacity browser journeys;
+- clean rebuild from 44 canonical migrations with production left at contract 38.
+
+Exit met: the operating caps are enforced under concurrency at the authoritative write boundaries.
+
+## Stage 3C2 — Representative scale evidence: current
+
+1. Seed representative volumes at the intended caps without weakening production isolation. *(First pass done via a rollback-only 250-entry fixture on development — no data retained.)*
+2. Capture query plans, response sizes and timings for standings, league, profile, H2H and scoring-summary reads. *(Non-league tranche captured — `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`; league tranche in draft PR #138.)*
+3. Measure score recomputation and rank-history capture at representative submitted-entry volume. *(Measured: ~354 ms / ~4 ms at 250 entries with 12 results — same document; re-measure at full result volume.)*
+4. Test the main profile, league and comparison surfaces against that data.
+5. Repair completion, loading, empty and error states exposed by the scale journeys.
+6. Add reminders only after Auth/SMTP ownership and delivery reliability are verified.
+
+Draft PR #138 (contracts 45–46: paginated private-league standings and ownership-candidate search) is in flight against this stage.
+
+Exit: core Original Predictor reads and recomputation remain correct and responsive at the operating caps, with recorded evidence.
 
 ## Stage 4 — Core product experience
 

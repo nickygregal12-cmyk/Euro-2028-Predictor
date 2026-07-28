@@ -1,6 +1,8 @@
 # Ops runbook — Confirming and correcting match results
 
-This runbook describes the production result contract introduced by migrations 28–32. The functions are live in development and production at contract 35. This document does not grant authority to enter or change a result.
+> **Superseded for normal result entry (2026-07-27):** authorised administrators now confirm, correct and clear results through the browser Admin Control Room (`/admin/results`, shipped via PRs #110-follow-ons and #120 on the `admin_*` result RPCs from migration `20260727075922`). This runbook remains valid as the service-role/SQL reference and for operations the UI does not cover; the authority rules below still apply.
+
+This runbook describes the production result contract introduced by migrations 28–32. The functions are live in development and production at contract 35 (production now at contract 38). This document does not grant authority to enter or change a result.
 
 ## Hosted status — 25 July 2026
 
@@ -9,7 +11,7 @@ This runbook describes the production result contract introduced by migrations 2
 | Development `iouzoutneyjpugbbtdem` | Migrations 28–32 are applied and verified. Confirm/correct/clear, immutable revisions, serialized scoring and winner propagation are available. |
 | Production `vkfnsqdyhvtwyqkisxhk` | Migrations 28–32 are applied within the exact 35-version chain. The 63-check verifier and rollback-only service-role confirm/clear smoke passed. No real result, revision, score event or rank-history row is currently stored. |
 
-No browser administrator result-entry interface or version-controlled admin role exists. Result RPCs are service-role-only. A database owner or service-role operator may use them only during an explicitly authorized operation with a verified source and retained evidence.
+Since this snapshot, a browser administrator result-entry interface exists (`/admin/results`, capability-checked via server-owned Auth `app_metadata` — see the note at the top). The underlying migration 28–32 RPCs described below remain service-role-only. A database owner or service-role operator may use them only during an explicitly authorized operation with a verified source and retained evidence.
 
 ## Absolute rules
 

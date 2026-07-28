@@ -73,7 +73,7 @@ The one-time synthetic preview event was already received and inspected. The ver
 Current preview release identity:
 
 - environment `deploy-preview`;
-- application/hosted contract 38;
+- application/hosted contract = the repository contract at the PR head (44 today; see `config/deployment-contract.json`);
 - development Supabase `iouzoutneyjpugbbtdem`;
 - exact PR commit.
 

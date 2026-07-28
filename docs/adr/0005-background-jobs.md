@@ -1,6 +1,6 @@
 # ADR 0005 — Background jobs
 
-- **Status:** Accepted direction
+- **Status:** Accepted direction — partially implemented (auto-submit at lock ships on `pg_cron` via contract 41, `20260727174658_automatic_entry_submission.sql`; rate-limit pruning was instead solved opportunistically in-transaction, `20260720210000_rate_limits.sql`; scoring drain, standings reconciliation, reminders, failure reporting and the Edge Functions half remain unbuilt)
 - **Date:** 27 July 2026
 
 ## Context

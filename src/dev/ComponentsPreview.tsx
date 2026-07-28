@@ -3,6 +3,7 @@ import styles from './ComponentsPreview.module.css'
 import { renderShareCard } from '../features/share/renderShareCard'
 import type { ShareCardModel, ShareVariant } from '../features/share/shareModel'
 import {
+  AppBar,
   Button,
   TextInput,
   EmptyState,
@@ -187,12 +188,21 @@ const SHARE_MODEL: ShareCardModel = {
 
 function PageShellDemo() {
   const [active, setActive] = useState<NavKey>('home')
+  const [demoTheme, setDemoTheme] = useState<'dark' | 'light'>('dark')
   return (
     <div className={styles.shellFrame}>
       <PageShell
-        title={active === 'home' ? 'Home' : COMING_SOON[active]}
         active={active}
         onNavigate={setActive}
+        topBar={
+          <AppBar
+            context={active === 'home' ? 'Home' : COMING_SOON[active]}
+            theme={demoTheme}
+            onToggleTheme={() => setDemoTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            displayName="Dev Tester"
+            onOpenProfile={() => {}}
+          />
+        }
       >
         {active === 'home' ? (
           <EmptyState
