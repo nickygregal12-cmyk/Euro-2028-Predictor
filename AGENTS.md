@@ -16,17 +16,18 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository and development Supabase are at contract `57` (contract 56 = B7c Cup qualification and knockouts; contract 57 = Account entry controls, both development only); production Supabase, the published production application and the `production` Netlify context remain locked at the contract-`55` Bonus Games milestone released on 28 July 2026, and non-production Netlify needs the owner `EURO28_DEPLOYED_DB_CONTRACT=57` update.
+Repository, development Supabase and production Supabase are aligned at contract `60`. The production application is being published from the contract-60 release-alignment merge; every Netlify context must declare contract 60 and retain its correct Supabase project.
 
-- canonical repository migration history contains exactly 57 versions through `20260729070000_account_entry_controls.sql` (48 = `20260728122500_h2h_rank_history`, 49–56 = the Bonus Games chain, 57 = Account entry controls);
-- development Supabase is `iouzoutneyjpugbbtdem` and records exactly 57 canonical versions through `20260729070000_account_entry_controls.sql` (verified posture: hardened search paths, no anonymous execution), with the three bonus competitions published as seeded development data;
-- production Supabase is `vkfnsqdyhvtwyqkisxhk` and records exactly 55 canonical versions through `20260729030000_predictor_cup_group_scoring.sql`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` use development Supabase and need the owner `EURO28_DEPLOYED_DB_CONTRACT=57` update;
-- Netlify `production` declares contract 55 and uses production Supabase;
-- production is re-locked at contract 55 and normal development must not publish or migrate it automatically;
-- a fresh encrypted pre-promotion backup and disposable restore rehearsal passed immediately before contracts 49–55 were applied.
+- canonical repository migration history contains exactly 60 versions through `20260729110000_predictor_cup_lint_safe_qualification.sql`;
+- development Supabase is `iouzoutneyjpugbbtdem` and records the same 60 canonical versions;
+- production Supabase is `vkfnsqdyhvtwyqkisxhk` and records the same 60 canonical versions;
+- contracts 49–56 deliver the complete Bonus Games programme through Predictor Cup qualification, knockouts and honours;
+- contract 57 adds the private Account entry controls, 58 makes clear-entry non-resurrecting, and 59–60 remove Predictor Cup temporary-table dependencies without changing rules or privileges;
+- production promotion preserved one Auth user, one profile, one entry, one league, 51 matches and 36 saved predictions, with no synthetic Bonus Games data;
+- fresh encrypted production backup and disposable restore rehearsal passed immediately before the 55→60 promotion;
+- production database lint, privileges and environment isolation are verified at contract 60.
 
-Contract compatibility does not make the product tournament-ready. Operating caps and Stage 3C2 scale/surface evidence are complete. Secure co-member profiles, richer H2H and the Bonus Games platform through B7b are production-released at contract 55; B7c (Cup qualification, knockouts, Penalty Numbers, champion and Golden Predictor) is delivered at contract 56 in development, completing ADR-0010. The next product batch is the remaining Stage 4 core experience: Match Centre/tournament states, account/privacy/contact-admin and post-lock trends.
+Contract compatibility does not make the product tournament-ready. The next product batch is the post-lock experience from the stable contract-60 baseline, followed by final-standings tie-breaker activation and the later dress rehearsal.
 
 ## Development operating mode
 
