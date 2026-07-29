@@ -2,7 +2,7 @@
 
 **Status date:** 29 July 2026  
 **Live status authority:** [`current-status.md`](current-status.md)  
-**Latest production baseline:** contract 60, production deploy `6a69b630f65752000822324e` from `31e06271f5f5b753c0bacf20353097055880988e`  
+**Latest production application baseline:** contract 60, verified Bonus Games release deploy `6a69c4178767280008845b27` from `0fe61a84bc43a7894b0de5b4bc923e188f043c14`  
 **Recovery:** fresh encrypted backup, disposable restore and contract-60 backup verifier passed.
 
 Current `main`, executable tests and verified hosted evidence override older classifications. Production is the controlled final target, not an active tournament service. Historical reconciliations remain immutable evidence and are not live status.
@@ -16,6 +16,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DOC-001` | **Resolved by contract-60 documentation audit.** README, live status, migration inventory, risk register and deployment notes are reconciled. |
 | `FUNC-003` | **Resolved in the Bonus Games production-release batch.** Canonical game cards no longer disappear when hosted catalogue rows are absent; repeatable reference-data publication supplies the production catalogue. |
 | `OPS-006` | **Resolved and published.** Repository, both hosted databases, every Netlify context and production deploy are aligned at contract 60. |
+| `TEST-GAP-01` | **Resolved by PR #187.** KO Predictor, Last Man Standing and Predictor Cup now have real authenticated desktop/phone Browser E2E journeys against disposable contract-60 Supabase. |
 | `TEST-001` | **Reduced.** Critical lifecycle, privacy, Account, Bonus Games and accessibility automation are covered; manual accessibility and later complete-volume rehearsal remain. |
 
 ## Critical
@@ -39,7 +40,8 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DATA-004` | Actual tie resolution can use non-authoritative fallback | **Reduced** | Authorised exact-set resolution is implemented; official regulations/data verification remains a launch item. |
 | `DATA-005` | Score/entry clearing lacks race-safe authority | **Resolved and hosted** | Contract 58 retires cleared entry identity so stale autosaves cannot resurrect predictions. |
 | `OPS-002` | Administrator control room incomplete | **Resolved** | Result and qualification controls are implemented and browser-proven. |
-| `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Core lifecycle is proven. Remaining closure: manual assistive-technology review, complete-volume dress rehearsal and controlled rollback rehearsal. |
+| `TEST-GAP-01` | Production-hosted Bonus Games lacked end-to-end browser proof | **Resolved** | PR #187 proves registration and game-specific interaction for all three games on desktop/phone, while the corrected catalogue script executes from a clean 60-migration rebuild. |
+| `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Core and Bonus Games lifecycles are proven. Remaining closure: manual assistive-technology review, complete-volume dress rehearsal and controlled rollback rehearsal. |
 | `OPS-003` | Production observability operations incomplete | **Partial** | Name monitoring/backup/Cron alert owners, retention/escalation and incident procedure. |
 
 ## Medium
@@ -60,6 +62,8 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `UX-001` | Trustworthy invite context before auth incomplete | **Partial** |
 | `UX-002` | Unavailable and empty data can be conflated | **Reduced; Bonus Games catalogue disappearance is fixed, secondary surfaces remain** |
 | `FUNC-003` | Production Bonus Games implementation rendered as absent when catalogue reference data was empty | **Resolved in release batch; fallback cards plus repeatable 3/14/102 catalogue publication** |
+| `TEST-GAP-02` | H2H rank-history capture lacks dedicated behavioural pgTAP coverage | **Open; next focused assurance candidate** |
+| `RESULT-AUDIT-01` | Result-revision audit content lacks dedicated before/after behavioural assertions | **Open; lifecycle and permissions are already covered** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
 | `DOC-001` | Documentation authority can drift | **Resolved; reopen on contradiction** |
