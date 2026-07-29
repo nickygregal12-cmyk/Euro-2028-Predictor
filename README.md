@@ -6,18 +6,19 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-The repository, development Supabase, production Supabase and production application are aligned at **contract 60**:
+A controlled environment split is active for PR #193:
 
-- `config/deployment-contract.json` declares contract 60 and requires 60 canonical migrations;
-- development Supabase `iouzoutneyjpugbbtdem` and production Supabase `vkfnsqdyhvtwyqkisxhk` both hold the canonical history through `20260729110000_predictor_cup_lint_safe_qualification.sql`;
-- every Netlify context declares contract 60 while retaining the correct development/production Supabase boundary;
-- production deploy `6a69b630f65752000822324e` is ready from release-alignment commit `31e06271f5f5b753c0bacf20353097055880988e`;
-- the production deployment completed with no build error, no secret-scan findings, and Netlify Lighthouse scores of 95 performance, 100 accessibility, 100 best practices and 100 SEO;
-- the contract-60 milestone includes the complete Bonus Games programme, private Account controls, race-safe entry clearing, Match Centre resilience, the Predict journey, secure Profile/H2H, automated accessibility scanning and the first tournament-information cut.
+- the repository candidate and development Supabase are at **contract 62** through `20260729122200_final_standings_tiebreaks.sql`;
+- Netlify `dev`, `branch-deploy` and `deploy-preview` declare 62 and use development Supabase;
+- production Supabase and Netlify production remain aligned and re-locked at **contract 60**;
+- no contract-61/62 production migration or application deploy has been authorised;
+- the verified production release remains the PR #184 Bonus Games application.
 
-Normal work continues against development Supabase. Production remains milestone-only and re-locked between approved releases.
+Contract 61 adds bounded authenticated post-lock prediction consensus. Contract 62 activates the approved final standings tie-break order after every tournament result while preserving points-only live ranks.
 
-This does **not** mean the product is tournament-launch-ready. Post-lock consensus/My-entry states, final league tie-breaker activation, official Euro 2028 data, operational ownership, Auth/SMTP/CAPTCHA decisions, manual accessibility review and the full dress rehearsal remain.
+Normal work continues against development Supabase. Production remains milestone-only and requires a fresh backup/preflight, explicit approval and exact release verification.
+
+This does **not** mean the product is tournament-launch-ready. Official Euro 2028 data, operational ownership, Auth/SMTP decisions, manual accessibility review and the full tournament/rollback dress rehearsal remain.
 
 ## Setup
 
@@ -40,7 +41,7 @@ src/
   dev/            # dev-only component gallery
   domain/
     tournament/   # pure tournament rules and calculations
-  features/       # auth, predict, bracket, leagues, matches, home, profile, etc.
+  features/       # auth, predict, trends, leagues, matches, games, profile, etc.
   services/
     supabase/     # browser database queries and RPC wrappers
   styles/         # tokens, fonts, flags
@@ -67,11 +68,21 @@ Tournament rules are implemented first as pure functions under `src/domain/tourn
 
 The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. Database parity rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-The repository contract is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, race-safe clearing, function execution boundaries, authoritative reference integrity, administrator result/qualification control, automatic submission, bounded reads, operating caps, Account entry controls and Bonus Games lifecycle rules.
+The repository contract is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket validation, race-safe clearing, function execution boundaries, reference integrity, administrator control, automatic submission, bounded reads, operating caps, Account controls, Bonus Games, post-lock consensus and final standings.
 
-## Scoring
+## Scoring and final ranking
 
-`docs/scoring-rules.md` is the source of truth. Values are transcribed into `src/domain/tournament/scoringConfig.ts` and mirrored in SQL. No scoring value should appear as an unexplained literal in scoring logic.
+`docs/scoring-rules.md` is the scoring source of truth. Values are transcribed into `src/domain/tournament/scoringConfig.ts` and mirrored in SQL.
+
+During the tournament, standings are ranked by points. Once every result is confirmed, equal points are separated by:
+
+1. exact group-stage scores;
+2. correct group-stage outcomes;
+3. correct knockout teams;
+4. correct champion;
+5. closest predicted group-stage goals total.
+
+Players still equal after all five share the position.
 
 ## Verification
 
@@ -88,28 +99,23 @@ Database parity CI runs:
 - disposable local Supabase start;
 - full migration rebuild through the current repository contract;
 - database lint;
-- all pgTAP suites, including function privilege allowlists;
+- all pgTAP suites, including privilege allowlists, consensus and final standings;
 - TypeScript/PostgreSQL differential parity;
 - clean teardown.
 
-Browser E2E covers authenticated desktop/mobile journeys for prediction persistence and clearing, submission settlement/conflicts, bracket conflicts, post-lock rejection, private leagues, Auth recovery, Match Centre, Profile/H2H privacy, Account controls, Bonus Games and tournament-information states.
+Browser E2E covers authenticated desktop/mobile prediction, submission, clearing, bracket conflicts, post-lock rejection, private leagues, Auth recovery, Match Centre, Profile/H2H privacy, Account, Bonus Games, tournament-information states and Prediction Trends. Exact deploy-preview smoke is contract-gated.
 
-## Current implemented repository contract
+## Current contract-62 development candidate
 
-Repository contract 60 supports:
+The candidate supports everything in production contract 60 plus:
 
-- canonical group ordering, recursive head-to-head handling and explicit unresolved ties;
-- RPC-only submission, automatic valid-entry submission and server-derived predicted positions;
-- authoritative result confirmation/correction/clearing, immutable revisions and serialised scoring;
-- actual qualification, best-third decisions, bracket replay and winner propagation;
-- atomic predicted-bracket replacement and race-safe complete entry clearing;
-- exact function privilege allowlists and closed browser access to integrity helpers;
-- bounded overall/private-league standings, player profiles and H2H reads;
-- operating-cap enforcement and anonymous-safe capacity preflight;
-- private Account controls and privacy/contact-admin content;
-- separate Bonus Games platform, KO Predictor, Last Man Standing and full Predictor Cup lifecycle;
-- resilient Match Centre, Predict journey, Matches tournament-information views and automated axe coverage;
-- environment/deployment-contract guards, verified backup/restore and production-aligned release controls.
+- a richer locked My Entry state with champion, review, Trends, joker, profile and standings actions;
+- bounded post-lock consensus covering champion race, predicted final, awards, agreement/division, trusted team, goals spread and caller-only unique picks;
+- final overall/private standings using the approved five-step tie-break order;
+- explicit final-standings explanation UI;
+- desktop/phone Trends Browser E2E, mobile overflow proof and axe coverage.
+
+Production remains contract 60 until separate approval.
 
 ## Documentation authority
 
