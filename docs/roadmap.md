@@ -1,7 +1,9 @@
 # Euro 2028 Predictor — Roadmap
 
 **Status date:** 29 July 2026  
-**Authority:** The only live execution sequence. Use `docs/quality/current-status.md` for current facts.
+**Authority:** The only live execution sequence. Use `docs/quality/current-status.md` for current facts.  
+**Verified against:** `origin/main`. Every stage status below was checked against the code, migrations and tests on `origin/main` — none was carried forward from a previous revision of this file.  
+**Contract versions:** this document deliberately names **no contract number**. `config/deployment-contract.json` is the contract authority and `docs/quality/current-status.md` records the hosted position. Hardcoded figures here went stale twice; a stage is described by what it delivers, not by the contract it happened to land in.
 
 ## Stage 0 — Release and control foundation: complete
 
@@ -49,7 +51,7 @@ Delivered through PRs #162, #165–#178:
 - automated axe WCAG 2.2 AA coverage across key desktop/phone routes;
 - Matches tournament-information sub-views for group tables, best thirds, authoritative knockout bracket and result-derived statistics.
 
-Exit met for the first production cut: the principal prediction, match, profile, comparison, Account and tournament-information journeys are implemented, resilient and production-aligned at contract 60.
+Exit met for the first production cut: the principal prediction, match, profile, comparison, Account and tournament-information journeys are implemented, resilient and production-aligned. `docs/quality/current-status.md` records the hosted position.
 
 ## Stage 5 — Bonus competitions: complete
 
@@ -61,31 +63,34 @@ ADR-0010 B1–B7c is delivered and production-aligned:
 4. **Last Man Standing:** win/advance to survive, one team once, deadline locking, correction re-derivation and wipeout voiding.
 5. **Predictor Cup:** deterministic groups, regulation-time scoring, complete §5.2 qualification, wildcards, banded seeding, playoff/byes, fixed bracket, parity-laned Penalty Numbers, points/AET/penalty/walkover settlement, champion and Golden Predictor.
 
-Contracts 59–60 preserve those rules while removing the two temporary-table implementation dependencies so hosted database lint is clean.
+Later hardening preserved those rules while removing the two temporary-table implementation dependencies, so hosted database lint is clean.
 
 The visible production cut also includes explicit More → Bonus Games navigation, a resilient three-game catalogue and repeatable publication of the three competition records, 14 LMS/Cup windows and 102 fixture links. Production registration remains deliberately closed until the owner records opening instants.
 
-## Stage 6 — Post-lock product experience: current
+## Stage 6 — Post-lock product experience: 6A and 6B complete; 6C current
 
-### 6A — Consensus and richer My-entry state
+### 6A — Consensus and richer My-entry state: complete
 
 - post-lock prediction consensus/trends;
 - clearer My-entry hero and reveal state;
 - movement/impact explanations without exposing pre-lock picks;
-- loading, empty, partial and retry states on desktop and phone.
+- a tournament-wide minimum-cohort gate suppressing consensus below ten submitted entries;
+- loading, empty, partial, suppressed and retry states on desktop and phone.
 
-### 6B — Final standings activation
+### 6B — Final standings activation: complete
 
-- wire `calculateLeagueRank` into final authoritative standings;
-- expose the applied tie-break criteria in the UI;
-- prove deterministic final ranking under all equal-points cases;
-- keep Original and Bonus Games standings separate.
+- final overall and private standings apply the approved five-step tie-break order once every result is confirmed or corrected, while live ranks stay points-only;
+- the applied criteria are exposed in the standings UI;
+- deterministic ordering under equal points is proven by database tests;
+- Original and Bonus Games standings remain separate.
 
-### 6C — Remaining product-state completion
+The ordering is owned by the database rather than by browser logic. The `AGENTS.md` architecture rule requires authoritative points and ranks to come from bounded server reads, so the pure `calculateLeagueRank` helper was deliberately **not** wired into the authoritative path and remains a tested domain helper with no caller. This stage is complete by outcome; the wiring its earlier wording specified was rejected on purpose, not left undone.
 
-- finish secondary comparison/loading/error states;
-- manual keyboard/screen-reader/contrast review alongside automated axe;
-- deferred Matches slices: Predicted/Live table switcher, mid-groups bracket projection and feed-gated top scorers.
+### 6C — Remaining product-state completion: current
+
+- finish secondary comparison, loading and error states (`UX-002`);
+- manual keyboard/screen-reader/contrast review alongside automated axe (`A11Y-001`);
+- deferred Matches slices, none of which is present on `origin/main`: Predicted/Live table switcher, mid-groups bracket projection and feed-gated top scorers.
 
 ## Stage 7 — Official data and dress rehearsal
 

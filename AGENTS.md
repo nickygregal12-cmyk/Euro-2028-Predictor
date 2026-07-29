@@ -51,7 +51,8 @@ Rules:
 
 ## Git discipline
 
-- Work from current `main` on a dedicated branch.
+- **Diff against `origin/main`, never the local `main` ref.** Run `git fetch origin main` first. A fresh clone in a remote or ephemeral environment can leave local `main` many contracts behind — it has been observed pointing at contract-46 history while `origin/main` was at 63. Diffing against the stale ref silently attributes hundreds of already-merged files to your own branch, which makes a documentation-only change look as though it touched `src/`, `supabase/` and `tests/`. Verify current state with `git show origin/main:<path>`, and treat any claim about what is on `main` as unverified until you have.
+- Work from current `origin/main` on a dedicated branch.
 - Keep one coherent concern per PR where practical.
 - Do not push directly to `main`.
 - Run the checks required by the change class above.

@@ -7,7 +7,7 @@ A head-to-head prediction tournament that mirrors football: random groups, quali
 > **STATUS — concept rules v0.1, 22 July 2026.** Format complete enough for product and technical planning; match windows, naming and capacity controls can still be refined before launch. Source: Nicky's draft rules document (this file is the repo-canonical copy).
 >
 > **Decisions stamped 2026-07-22 (chat session — binding on this doc):**
-> - **The Predictor Cup SUPERSEDES Fan Duels** in launch scope (`docs/roadmap.md` Stage 5 item 3). Fan Duels' direct-challenge mode is parked.
+> - **The Predictor Cup SUPERSEDES Fan Duels** in launch scope (`docs/roadmap.md` Stage 5; the supersession is recorded as `DEC-008` in `docs/quality/deferred-decisions.md` and as `PLAN-004` in `docs/quality/feature-baseline.md`). Fan Duels' direct-challenge mode is parked.
 > - **Jokers NEVER apply to Cup scoring** — raw 5/3/0 only. Jokers are an Original Predictor mechanic; doubling must not leak into head-to-head fairness.
 > - **Entry requires a submitted Original Predictor entry** — the Cup group stage reads its 36 scorelines; an entrant without one would score zero all group stage.
 > - **Knockout scorelines come from the SHARED prediction store with the KO Predictor** (competition-structure §1): collected once, per-kickoff locks, each game scores them under its own rules. "Never predict the same real match twice" is a schema fact.
