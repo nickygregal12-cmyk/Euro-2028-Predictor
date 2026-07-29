@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { ChevronLeftIcon, LockIcon, TrophyIcon } from '../../design-system/icons'
@@ -9,27 +9,18 @@ import {
   fetchPredictionConsensus,
   type ConsensusPlayer,
 } from '../../services/supabase/predictionConsensus'
-import type {
-  PredictionConsensus,
-  UniqueConsensusPick,
-} from '../../services/supabase/predictionConsensusModel'
+import type { PredictionConsensus, UniqueConsensusPick } from '../../services/supabase/predictionConsensusModel'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import s from '../shared.module.css'
 import t from './trends.module.css'
 
-type ReadyState = {
-  consensus: PredictionConsensus
-  players: ConsensusPlayer[]
-}
-
+type ReadyState = { consensus: PredictionConsensus; players: ConsensusPlayer[] }
 type State =
   | { status: 'idle' | 'loading' }
   | { status: 'error'; message: string }
   | { status: 'ready'; data: ReadyState }
 
-function percent(picks: number, total: number): number {
-  return total > 0 ? Math.round((picks / total) * 100) : 0
-}
+const pct = (picks: number, total: number) => (total > 0 ? Math.round((picks / total) * 100) : 0)
 
 export function PredictionTrendsPage() {
   const navigate = useNavigate()
@@ -44,28 +35,20 @@ export function PredictionTrendsPage() {
       setState({ status: 'idle' })
       return
     }
-
     let active = true
     setState({ status: 'loading' })
     void fetchPredictionConsensus(tournamentId)
       .then(async (consensus) => {
-        const players = await fetchConsensusPlayers(
-          consensus.goldenBoot.map((pick) => pick.playerId),
-        ).catch(() => [])
+        const players = await fetchConsensusPlayers(consensus.goldenBoot.map((pick) => pick.playerId)).catch(() => [])
         if (active) setState({ status: 'ready', data: { consensus, players } })
       })
       .catch((error) => {
-        if (active) {
-          setState({
-            status: 'error',
-            message: userFacingError(error, 'Could not load prediction trends. Please try again.'),
-          })
-        }
+        if (active) setState({
+          status: 'error',
+          message: userFacingError(error, 'Could not load prediction trends. Please try again.'),
+        })
       })
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [locked, reloadKey, tournamentId])
 
   const header = (
@@ -80,199 +63,102 @@ export function PredictionTrendsPage() {
   )
 
   if (tournament.status === 'error') {
-    return (
-      <div className={s.page}>
-        {header}
-        <Alert variant="error" title="Couldn't load the tournament">{tournament.message}</Alert>
-      </div>
-    )
+    return <Page header={header}><Alert variant="error" title="Couldn't load the tournament">{tournament.message}</Alert></Page>
   }
-
   if (tournament.status !== 'ready') {
-    return (
-      <div className={s.page}>
-        {header}
-        <div className={s.card}><Skeleton lines={5} /></div>
-        <div className={s.card}><Skeleton lines={4} /></div>
-      </div>
-    )
+    return <Page header={header}><div className={s.card}><Skeleton lines={7} /></div></Page>
   }
-
   if (!locked) {
     return (
-      <div className={s.page}>
-        {header}
+      <Page header={header}>
         <EmptyState
           icon={<LockIcon size={28} />}
           title="Trends unlock at kickoff"
-          description="Everyone's predictions stay private until the Original Predictor locks. Your own entry remains editable until then."
+          description="Everyone's predictions stay private until the Original Predictor locks."
           action={<Button onClick={() => navigate('/predict')}>Return to your entry</Button>}
         />
-      </div>
+      </Page>
     )
   }
-
-  if (state.status === 'loading' || state.status === 'idle') {
-    return (
-      <div className={s.page}>
-        {header}
-        <div className={s.card}><Skeleton lines={5} /></div>
-        <div className={s.card}><Skeleton lines={6} /></div>
-      </div>
-    )
+  if (state.status === 'idle' || state.status === 'loading') {
+    return <Page header={header}><div className={s.card}><Skeleton lines={8} /></div></Page>
   }
-
   if (state.status === 'error') {
     return (
-      <div className={s.page}>
-        {header}
+      <Page header={header}>
         <Alert variant="error" title="Couldn't load prediction trends">
           {state.message}
-          <div className={t.actionRow}>
-            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>Retry</Button>
-          </div>
+          <div className={t.actionRow}><Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>Retry</Button></div>
         </Alert>
-      </div>
+      </Page>
     )
   }
+  if (state.status !== 'ready') return null
 
   const { consensus, players } = state.data
   if (consensus.submittedEntries === 0) {
     return (
-      <div className={s.page}>
-        {header}
-        <EmptyState
-          icon={<TrophyIcon size={28} />}
-          title="No submitted entries yet"
-          description="The crowd view will appear as soon as locked, submitted entries are available."
-        />
-      </div>
+      <Page header={header}>
+        <EmptyState icon={<TrophyIcon size={28} />} title="No submitted entries yet" description="The crowd view will appear when locked entries are available." />
+      </Page>
     )
   }
 
-  return (
-    <TrendsContent
-      consensus={consensus}
-      players={players}
-      teams={tournament.data.teams}
-      matches={tournament.data.matches}
-      header={header}
-    />
-  )
+  return <TrendsContent header={header} consensus={consensus} players={players} teams={tournament.data.teams} matches={tournament.data.matches} />
 }
 
-function TrendsContent({
-  consensus,
-  players,
-  teams,
-  matches,
-  header,
-}: {
+function Page({ header, children }: { header: ReactNode; children: ReactNode }) {
+  return <div className={s.page}>{header}{children}</div>
+}
+
+function TrendsContent({ header, consensus, players, teams, matches }: {
+  header: ReactNode
   consensus: PredictionConsensus
   players: ConsensusPlayer[]
   teams: { id: string; name: string }[]
   matches: { id: string; matchRef: string; homeTeamId: string | null; awayTeamId: string | null }[]
-  header: React.ReactNode
 }) {
   const teamName = useMemo(() => new Map(teams.map((team) => [team.id, team.name])), [teams])
   const playerName = useMemo(() => new Map(players.map((player) => [player.id, player.name])), [players])
   const matchById = useMemo(() => new Map(matches.map((match) => [match.id, match])), [matches])
   const topChampion = consensus.championRace[0]?.picks ?? 1
   const maxGoalEntries = Math.max(1, ...consensus.goalsSpread.distribution.map((point) => point.entries))
-
-  const matchLabel = (matchId: string, fallback: string) => {
-    const match = matchById.get(matchId)
+  const matchLabel = (id: string, fallback: string) => {
+    const match = matchById.get(id)
     if (!match) return fallback
-    return `${match.homeTeamId ? (teamName.get(match.homeTeamId) ?? 'TBC') : 'TBC'} v ${
-      match.awayTeamId ? (teamName.get(match.awayTeamId) ?? 'TBC') : 'TBC'
-    }`
+    return `${match.homeTeamId ? teamName.get(match.homeTeamId) ?? 'TBC' : 'TBC'} v ${match.awayTeamId ? teamName.get(match.awayTeamId) ?? 'TBC' : 'TBC'}`
   }
 
   return (
     <div className={s.page}>
       {header}
-
-      <div className={t.summaryStrip} aria-label="Consensus sample">
-        <strong>{consensus.submittedEntries}</strong>
-        <span>locked {consensus.submittedEntries === 1 ? 'entry' : 'entries'} in this view</span>
-      </div>
+      <div className={t.summaryStrip}><strong>{consensus.submittedEntries}</strong><span>locked {consensus.submittedEntries === 1 ? 'entry' : 'entries'} in this view</span></div>
 
       <section className={s.card} aria-labelledby="champion-race-heading">
-        <div>
-          <span className={s.eyebrow}>The headline</span>
-          <h2 id="champion-race-heading" className={t.sectionTitle}>Champion race</h2>
-        </div>
+        <div><span className={s.eyebrow}>The headline</span><h2 id="champion-race-heading" className={t.sectionTitle}>Champion race</h2></div>
         <div className={t.rankedList}>
           {consensus.championRace.slice(0, 6).map((pick, index) => (
             <div key={pick.teamId} className={t.rankedRow}>
               <span className={t.rank}>{index + 1}</span>
               <span className={t.label}>{teamName.get(pick.teamId) ?? 'Team TBC'}</span>
-              <span className={t.barTrack} aria-hidden="true">
-                <span className={t.bar} style={{ width: `${Math.max(8, (pick.picks / topChampion) * 100)}%` }} />
-              </span>
-              <strong className={t.value}>{percent(pick.picks, consensus.submittedEntries)}%</strong>
+              <span className={t.barTrack} aria-hidden="true"><span className={t.bar} style={{ width: `${Math.max(8, (pick.picks / topChampion) * 100)}%` }} /></span>
+              <strong className={t.value}>{pct(pick.picks, consensus.submittedEntries)}%</strong>
             </div>
           ))}
         </div>
       </section>
 
       <section className={t.signalGrid} aria-label="Prediction signals">
-        <SignalCard
-          eyebrow="Most agreed"
-          title={consensus.mostAgreedMatch ? matchLabel(consensus.mostAgreedMatch.matchId, consensus.mostAgreedMatch.matchRef) : 'Not enough data'}
-          value={consensus.mostAgreedMatch ? `${percent(consensus.mostAgreedMatch.dominantPicks, consensus.mostAgreedMatch.predictions)}% backed the leading outcome` : '—'}
-        />
-        <SignalCard
-          eyebrow="Most divided"
-          title={consensus.mostDividedMatch ? matchLabel(consensus.mostDividedMatch.matchId, consensus.mostDividedMatch.matchRef) : 'Not enough data'}
-          value={consensus.mostDividedMatch ? `${consensus.mostDividedMatch.topTwoGap} pick gap between the top two outcomes` : '—'}
-        />
-        <SignalCard
-          eyebrow="Most trusted"
-          title={consensus.mostTrustedTeam ? (teamName.get(consensus.mostTrustedTeam.teamId) ?? 'Team TBC') : 'Not enough data'}
-          value={consensus.mostTrustedTeam ? `${consensus.mostTrustedTeam.predictedWins} predicted group wins` : '—'}
-        />
+        <Signal eyebrow="Most agreed" title={consensus.mostAgreedMatch ? matchLabel(consensus.mostAgreedMatch.matchId, consensus.mostAgreedMatch.matchRef) : 'Not enough data'} value={consensus.mostAgreedMatch ? `${pct(consensus.mostAgreedMatch.dominantPicks, consensus.mostAgreedMatch.predictions)}% backed the leading outcome` : '—'} />
+        <Signal eyebrow="Most divided" title={consensus.mostDividedMatch ? matchLabel(consensus.mostDividedMatch.matchId, consensus.mostDividedMatch.matchRef) : 'Not enough data'} value={consensus.mostDividedMatch ? `${consensus.mostDividedMatch.topTwoGap} pick gap between the top two outcomes` : '—'} />
+        <Signal eyebrow="Most trusted" title={consensus.mostTrustedTeam ? teamName.get(consensus.mostTrustedTeam.teamId) ?? 'Team TBC' : 'Not enough data'} value={consensus.mostTrustedTeam ? `${consensus.mostTrustedTeam.predictedWins} predicted group wins` : '—'} />
       </section>
 
-      <section className={s.card} aria-labelledby="peoples-final-heading">
-        <div>
-          <span className={s.eyebrow}>Knockout picture</span>
-          <h2 id="peoples-final-heading" className={t.sectionTitle}>The people's final</h2>
-        </div>
-        {consensus.peoplesFinal.length > 0 ? (
-          <ol className={t.simpleList}>
-            {consensus.peoplesFinal.slice(0, 5).map((pick) => (
-              <li key={`${pick.teamAId}-${pick.teamBId}`}>
-                <span>{teamName.get(pick.teamAId) ?? 'TBC'} v {teamName.get(pick.teamBId) ?? 'TBC'}</span>
-                <strong>{percent(pick.picks, consensus.submittedEntries)}%</strong>
-              </li>
-            ))}
-          </ol>
-        ) : <p className={s.sub}>No complete predicted finals are available.</p>}
-      </section>
-
-      <section className={s.card} aria-labelledby="boot-heading">
-        <div>
-          <span className={s.eyebrow}>Awards</span>
-          <h2 id="boot-heading" className={t.sectionTitle}>Golden Boot picks</h2>
-        </div>
-        {consensus.goldenBoot.length > 0 ? (
-          <ol className={t.simpleList}>
-            {consensus.goldenBoot.slice(0, 5).map((pick) => (
-              <li key={pick.playerId}>
-                <span>{playerName.get(pick.playerId) ?? 'Official squad player'}</span>
-                <strong>{percent(pick.picks, consensus.submittedEntries)}%</strong>
-              </li>
-            ))}
-          </ol>
-        ) : <p className={s.sub}>No Golden Boot selections are available.</p>}
-      </section>
+      <ListSection title="The people's final" eyebrow="Knockout picture" rows={consensus.peoplesFinal.slice(0, 5).map((pick) => ({ key: `${pick.teamAId}-${pick.teamBId}`, label: `${teamName.get(pick.teamAId) ?? 'TBC'} v ${teamName.get(pick.teamBId) ?? 'TBC'}`, value: `${pct(pick.picks, consensus.submittedEntries)}%` }))} />
+      <ListSection title="Golden Boot picks" eyebrow="Awards" rows={consensus.goldenBoot.slice(0, 5).map((pick) => ({ key: pick.playerId, label: playerName.get(pick.playerId) ?? 'Official squad player', value: `${pct(pick.picks, consensus.submittedEntries)}%` }))} />
 
       <section className={s.card} aria-labelledby="goals-heading">
-        <div>
-          <span className={s.eyebrow}>Group-stage goals</span>
-          <h2 id="goals-heading" className={t.sectionTitle}>How bold was the field?</h2>
-        </div>
+        <div><span className={s.eyebrow}>Group-stage goals</span><h2 id="goals-heading" className={t.sectionTitle}>How bold was the field?</h2></div>
         <div className={t.goalStats}>
           <span><strong>{consensus.goalsSpread.minimum ?? '—'}</strong>Low</span>
           <span><strong>{consensus.goalsSpread.median ?? '—'}</strong>Median</span>
@@ -283,9 +169,7 @@ function TrendsContent({
           {consensus.goalsSpread.distribution.map((point) => (
             <div key={point.totalGoals} className={t.distributionRow}>
               <span>{point.totalGoals}</span>
-              <span className={t.goalTrack} aria-hidden="true">
-                <span className={t.goalBar} style={{ width: `${Math.max(5, (point.entries / maxGoalEntries) * 100)}%` } as CSSProperties} />
-              </span>
+              <span className={t.goalTrack} aria-hidden="true"><span className={t.goalBar} style={{ width: `${Math.max(5, (point.entries / maxGoalEntries) * 100)}%` }} /></span>
               <strong>{point.entries}</strong>
             </div>
           ))}
@@ -293,47 +177,31 @@ function TrendsContent({
       </section>
 
       <section className={s.card} aria-labelledby="only-you-heading">
-        <div>
-          <span className={s.eyebrow}>Your entry</span>
-          <h2 id="only-you-heading" className={t.sectionTitle}>Only you called it</h2>
-        </div>
+        <div><span className={s.eyebrow}>Your entry</span><h2 id="only-you-heading" className={t.sectionTitle}>Only you called it</h2></div>
         {consensus.onlyYou.length > 0 ? (
-          <ul className={t.uniqueList}>
-            {consensus.onlyYou.map((pick, index) => (
-              <li key={`${pick.kind}-${index}`}>{uniquePickLabel(pick, teamName, playerName)}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className={s.sub}>Your headline picks were shared by at least one other submitted entry.</p>
-        )}
+          <ul className={t.uniqueList}>{consensus.onlyYou.map((pick, index) => <li key={`${pick.kind}-${index}`}>{uniquePickLabel(pick, teamName, playerName)}</li>)}</ul>
+        ) : <p className={s.sub}>Your headline picks were shared by at least one other submitted entry.</p>}
       </section>
     </div>
   )
 }
 
-function SignalCard({ eyebrow, title, value }: { eyebrow: string; title: string; value: string }) {
+function Signal({ eyebrow, title, value }: { eyebrow: string; title: string; value: string }) {
+  return <article className={t.signalCard}><span className={s.eyebrow}>{eyebrow}</span><h2 className={t.signalTitle}>{title}</h2><p>{value}</p></article>
+}
+
+function ListSection({ title, eyebrow, rows }: { title: string; eyebrow: string; rows: { key: string; label: string; value: string }[] }) {
   return (
-    <article className={t.signalCard}>
-      <span className={s.eyebrow}>{eyebrow}</span>
-      <h2 className={t.signalTitle}>{title}</h2>
-      <p>{value}</p>
-    </article>
+    <section className={s.card} aria-labelledby={`${title.replace(/\W+/g, '-').toLowerCase()}-heading`}>
+      <div><span className={s.eyebrow}>{eyebrow}</span><h2 id={`${title.replace(/\W+/g, '-').toLowerCase()}-heading`} className={t.sectionTitle}>{title}</h2></div>
+      {rows.length > 0 ? <ol className={t.simpleList}>{rows.map((row) => <li key={row.key}><span>{row.label}</span><strong>{row.value}</strong></li>)}</ol> : <p className={s.sub}>No submitted selections are available.</p>}
+    </section>
   )
 }
 
-function uniquePickLabel(
-  pick: UniqueConsensusPick,
-  teams: Map<string, string>,
-  players: Map<string, string>,
-): string {
-  switch (pick.kind) {
-    case 'champion':
-      return `${teams.get(pick.teamId) ?? 'Team TBC'} as champion`
-    case 'final':
-      return `${teams.get(pick.teamAId) ?? 'TBC'} v ${teams.get(pick.teamBId) ?? 'TBC'} as the final`
-    case 'golden_boot':
-      return `${players.get(pick.playerId) ?? 'An official squad player'} for the Golden Boot`
-    case 'exact_score':
-      return `${pick.matchRef}: ${pick.homeScore}–${pick.awayScore}`
-  }
+function uniquePickLabel(pick: UniqueConsensusPick, teams: Map<string, string>, players: Map<string, string>): string {
+  if (pick.kind === 'champion') return `${teams.get(pick.teamId) ?? 'Team TBC'} as champion`
+  if (pick.kind === 'final') return `${teams.get(pick.teamAId) ?? 'TBC'} v ${teams.get(pick.teamBId) ?? 'TBC'} as the final`
+  if (pick.kind === 'golden_boot') return `${players.get(pick.playerId) ?? 'An official squad player'} for the Golden Boot`
+  return `${pick.matchRef}: ${pick.homeScore}–${pick.awayScore}`
 }
