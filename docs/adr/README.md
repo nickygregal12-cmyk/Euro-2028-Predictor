@@ -1,6 +1,6 @@
 # Architecture decision records
 
-Decision records for platform-level directions derived from the 27 July 2026 acquisition technical audit. The series deliberately starts at **0003** — designations 0001 and 0002 were never issued; do not create records under those numbers.
+Decision records for platform-level directions derived from the 27 July 2026 acquisition technical audit and subsequent multi-competition planning. The series deliberately starts at **0003** — designations 0001 and 0002 were never issued; do not create records under those numbers.
 
 ## Status vocabulary
 
@@ -22,3 +22,12 @@ Update a record's status line when merged work changes its truth — an ADR desc
 | [0007](0007-reference-data-caching.md) | Reference-data caching | Accepted direction — unimplemented |
 | [0008](0008-live-updates.md) | Live result and standing updates | Accepted direction — unimplemented |
 | [0009](0009-product-analytics.md) | Privacy-conscious product analytics | Accepted direction — unimplemented |
+| [0010](0010-bonus-games-platform.md) | Bonus Games platform: one platform, three games | Implemented for the Euro 2028 Bonus Games platform (contracts 49–60); multi-competition generalisation is governed by ADR 0011 |
+| [0011](0011-multi-competition-platform.md) | Multi-competition platform | Accepted direction — context and lock generalisation unimplemented |
+| [0012](0012-season-predictor-rules.md) | Season Predictor rules | Accepted direction — unimplemented |
+| [0013](0013-last-man-standing-season-rules.md) | Last Man Standing season rules | Accepted direction — unimplemented |
+| [0014](0014-predictor-cup-season-formats.md) | Predictor Cup season formats | Accepted direction — unimplemented |
+| [0015](0015-commercial-and-social-model.md) | Commercial and social model | Accepted direction — unimplemented |
+| [0016](0016-client-and-distribution.md) | Client and distribution strategy | Accepted direction — unimplemented |
+| [0017](0017-brand-and-club-identity.md) | Brand and club identity | Provisional — brand pending clearance; identity approach accepted |
+| [0018](0018-pre-launch-promotion-cadence.md) | Pre-launch promotion cadence | Accepted direction — activation requires owner verification |
