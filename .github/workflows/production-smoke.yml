@@ -38,7 +38,7 @@ jobs:
         env:
           PRODUCTION_ORIGIN: https://euro28predictor.com
           EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
-          EXPECTED_CONTRACT: '55'
+          EXPECTED_CONTRACT: '60'
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           set -euo pipefail
