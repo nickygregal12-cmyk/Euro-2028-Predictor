@@ -174,7 +174,7 @@ jobs:
           # Local disposable target only. Clears anything `supabase start`
           # created (applied migrations, seed rows) so the production dump can
           # restore into an empty target, mirroring the documented restore
-          # sequence in docs/ops-production-backup-restore.md.
+          # sequence in docs/ops/ops-production-backup-restore.md.
           psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
           begin;
           drop schema if exists predictor_internal cascade;
