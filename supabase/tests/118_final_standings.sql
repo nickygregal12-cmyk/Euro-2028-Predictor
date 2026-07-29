@@ -81,7 +81,7 @@ insert into public.score_events (entry_id, category, points, explanation) values
 set local session_replication_role = origin;
 
 insert into public.leagues (id, tournament_id, name, invite_code, owner_id) values
-  ('62000000-0000-0000-0000-000000000301', '62000000-0000-0000-0000-000000000001', 'Final standings league', 'FINAL62', '62000000-0000-0000-0001-000000000001');
+  ('62000000-0000-0000-0000-000000000301', '62000000-0000-0000-0000-000000000001', 'Final standings league', 'FINL62', '62000000-0000-0000-0001-000000000001');
 insert into public.league_members (league_id, user_id, role)
 select '62000000-0000-0000-0000-000000000301',
        ('62000000-0000-0000-0001-' || lpad(i::text, 12, '0'))::uuid,
@@ -95,13 +95,11 @@ select is(
   'false',
   'standings remain live while any tournament fixture is scheduled'
 );
-
 select is(
   (public.get_leaderboard('62000000-0000-0000-0000-000000000001', 10, null) #>> '{rows,0,rank}')::integer,
   1,
   'equal live totals share rank one'
 );
-
 select is(
   public.get_leaderboard('62000000-0000-0000-0000-000000000001', 10, null) #>> '{rows,0,displayName}',
   'Player 1',
