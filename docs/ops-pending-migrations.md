@@ -2,19 +2,19 @@
 
 Live source of truth for repository migration count, hosted state and pending rollout scope.
 
-## Current status — 28 July 2026
+## Current status — 29 July 2026
 
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| Repository | 56 | 56 canonical files through `20260729050000_predictor_cup_knockouts.sql` | none |
-| Development Supabase `iouzoutneyjpugbbtdem` | 56 | exactly 56 canonical versions; history, grants and posture verified after the contract-56 application | none |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 55 | development Supabase; exact preview HTTP and Chromium smoke passed at 55 | owner `EURO28_DEPLOYED_DB_CONTRACT=56` update |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 55 | exactly 55 canonical versions; contracts 49–55 applied after encrypted backup, dry-run and preserved-data verification | none |
-| Netlify `production` | 55 | production Supabase; deploy `6a68e4f9ee76002a26ffbee6` from `af5aa15a151f5c4236ba3f2756faab4b357f31ee` | none |
+| Repository | 60 | 60 canonical files through `20260729110000_predictor_cup_lint_safe_qualification.sql` | none |
+| Development Supabase `iouzoutneyjpugbbtdem` | 60 | exactly 60 canonical versions; history, grants and posture verified | none |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 60 | development Supabase; exact preview HTTP and Chromium smoke passed | none |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 60 | exactly 60 canonical versions; backup, dry-runs, preserved-data, privilege and hosted-lint checks passed | none |
+| Netlify `production` | 60 | production Supabase; current application publishes from the contract-60 release-alignment merge | exact release smoke before closure |
 
-Production is re-locked at contract 55; contract 56 is development-only. Any later production migration requires a new approved milestone gate; ordinary application development must not mutate production.
+Production database and repository are aligned at contract 60. Any later migration requires a new approved milestone gate; ordinary application development must not mutate production.
 
-## Contracts 45–55
+## Contracts 45–60
 
 | # | Canonical migration | Purpose | Development | Production |
 | ---: | --- | --- | --- | --- |
@@ -29,23 +29,27 @@ Production is re-locked at contract 55; contract 56 is development-only. Any lat
 | 53 | `20260728230000_last_man_standing.sql` | Tournament-format Last Man Standing | verified | verified |
 | 54 | `20260729010000_predictor_cup_foundation.sql` | Predictor Cup draw, groups, members and fixtures | verified | verified |
 | 55 | `20260729030000_predictor_cup_group_scoring.sql` | Regulation-time Cup group scoring and tables | verified | verified |
-| 56 | `20260729050000_predictor_cup_knockouts.sql` | Cup qualification, knockouts, Penalty Numbers and honours (B7c) | verified | not applied — awaits a later milestone gate |
+| 56 | `20260729050000_predictor_cup_knockouts.sql` | Cup qualification, knockouts, Penalty Numbers and honours | verified | verified |
+| 57 | `20260729070000_account_entry_controls.sql` | Private Account reminder preference and pre-lock Original entry clear | verified | verified |
+| 58 | `20260729090000_clear_predictions_race_safety.sql` | Retire the cleared entry identity so delayed autosaves cannot resurrect picks | verified | verified |
+| 59 | `20260729100000_predictor_cup_lint_safe_progression.sql` | Lint-resolvable playoff/byes-to-bracket seat progression | verified | verified |
+| 60 | `20260729110000_predictor_cup_lint_safe_qualification.sql` | Lint-resolvable Cup qualification/seeding and loop-declaration cleanup | verified | verified |
 
 The migration versions match the exact canonical repository filenames. Do not renumber or reapply them under another timestamp.
 
-## Contract-55 production evidence
+## Contract-60 production evidence
 
 - fresh encrypted production backup completed and restored into disposable local Supabase before mutation;
-- preflight found exactly seven pending canonical migrations, 49–55;
-- `supabase db push --dry-run` passed before application;
-- all seven migrations applied in canonical order;
-- production history contains exactly 55 versions through `20260729030000`;
-- existing production counts remained one Auth user, one profile, one entry, one league, 51 matches and 36 group predictions;
-- no synthetic Bonus Games entrants, selections, groups, members or fixtures were created;
-- security-definer search paths are empty; anonymous execution is denied; internal Cup/LMS helpers are not Data API callable;
-- production database lint passed;
-- deploy `6a68e4f9ee76002a26ffbee6` reports contract 55, production Supabase and exact commit `af5aa15a151f5c4236ba3f2756faab4b357f31ee`;
-- production HTTP and Chromium smoke passed.
+- preflight found exactly the approved pending canonical chain 56–58, followed by the isolated function-only 59 and 60 hotfixes;
+- every production `supabase db push --dry-run` passed before application;
+- production history contains exactly 60 versions through `20260729110000`;
+- existing production counts remained one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved predictions;
+- no synthetic Bonus Games entrants, selections, groups, members, fixtures or Penalty Number rows were created;
+- Account clear execution remains denied to anonymous callers and allowed only to authenticated/service roles;
+- Predictor Cup qualification and settle remain service-role-only;
+- no application SQL function retains a `pg_temp` or temporary-table dependency;
+- production database lint passed at contract 60;
+- exact application release identity, HTTP and Chromium smoke are required before the milestone is closed.
 
 ## Future rollout authority
 
