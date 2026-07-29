@@ -97,8 +97,8 @@ select is(
 );
 select is(
   (public.get_leaderboard('62000000-0000-0000-0000-000000000001', 10, null) #>> '{rows,0,rank}')::integer,
-  1,
-  'equal live totals share rank one'
+  null::integer,
+  'equal live totals keep the pre-result rank hidden'
 );
 select is(
   public.get_leaderboard('62000000-0000-0000-0000-000000000001', 10, null) #>> '{rows,0,displayName}',
