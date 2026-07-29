@@ -2,6 +2,8 @@
 
 This is the single source of truth for scoring. The `calculateScore()` domain function must implement exactly this, and nothing should be hardcoded elsewhere.
 
+League-season Predictor scoring and jokers are governed by [ADR 0012](adr/0012-season-predictor-rules.md); season Last Man Standing and Cup scoring contexts are governed by [ADR 0013](adr/0013-last-man-standing-season-rules.md) and [ADR 0014](adr/0014-predictor-cup-season-formats.md).
+
 ---
 
 ## 1. Group match points
