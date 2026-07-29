@@ -1,14 +1,14 @@
 # Multi-competition hub — engineering workstream
 
 **Status:** Child engineering plan within the product programme. Proposal, not implementation authority.  
-**Status date:** 29 July 2026  
+**Status date:** 30 July 2026  
 **Parent programme:** [`programme-plan.md`](programme-plan.md)  
 **Decision authority:** [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).  
 **Implementation authority:** [`../quality/current-status.md`](../quality/current-status.md).
 
 This document owns the Stage A–L engineering sequence. Discovery, research, product design, instrumentation, go-to-market, operations and legal work are governed by the parent programme. Competition rules and strategic decisions are referenced rather than repeated here; the ADRs win wherever this plan or an older document differs.
 
-## 1. Repository verification and discrepancies
+## 1. Repository verification and corrections
 
 Repository assertions in the earlier engineering drafts were checked against current `main` at `1fb8ffd36ad113079181829a8bcc47175c43b6da`.
 
@@ -17,9 +17,9 @@ Repository assertions in the earlier engineering drafts were checked against cur
 | Production and repository were at contract 60 | **Stale.** Current `main`, the recorded hosted baseline and the published application are contract 63. |
 | The context engine was unbuilt | **True for current `main`.** Open PR #201 proposes an isolated, unwired foundation; it is not merged implementation. |
 | Automatic submission did not exist | **Stale.** Tournament-wide automatic valid-entry submission exists. Only recurring matchweek scheduling is unbuilt. |
-| Bonus Games lacked Browser E2E | **Stale.** The current risk/feature evidence records authenticated Bonus Games lifecycle coverage. |
+| Bonus Games lacked Browser E2E | **Stale and corrected 30 July 2026.** PR #187 provides authenticated desktop/phone lifecycle coverage for KO Predictor, Last Man Standing and Predictor Cup. `TEST-GAP-01` is resolved in the risk register. |
 | Both the feature baseline and risk register were several generations stale | **Partly stale.** The risk register is contract-63 aligned; the feature baseline still contains contract-60 classification text. |
-| `844` tests across `144` files were the current safety-net count | **Not retained.** The current quality record reports 149 Vitest files for the exact contract-63 PR head and does not support the earlier count as current. |
+| A fixed test-count snapshot was the current safety-net measure | **Not retained.** Test counts change with ordinary development. Current evidence belongs in [`../quality/current-status.md`](../quality/current-status.md), executable CI and dated validation records, not this planning document. |
 | No fixture/results ingestion adapter existed | **Confirmed on current `main`.** Repository search found no football-data.org, Sportmonks or provider-ingestion implementation. |
 | Browser result-entry administration remained unbuilt | **Stale.** Browser result and qualification administration is implemented and production-hosted. |
 
@@ -167,6 +167,8 @@ Re-plumb the existing Cup machinery to the season points source and formats gove
 - retain bounded reads, privacy and independent competition standings;
 - emit the Phase 1 analytics events from the first commit.
 
+**Correction — 30 July 2026:** earlier §12/launch-readiness wording treated Bonus Games Browser E2E as absent. That finding is resolved by PR #187 and the recorded authenticated desktop/phone Browser E2E run. Stage H must preserve that tournament proof and add coverage only for genuinely new hub and season behaviour.
+
 **Exit:** the shell matches the tested prototype and a single-game/single-league user sees only their chosen product by default.
 
 ## 13. Stage I — client distribution
@@ -176,6 +178,8 @@ Deliver the sequence governed by ADR 0016, proving notifications, deep links, au
 ## 14. Stage J — launch readiness and go-to-market
 
 **Window:** February–August 2027.
+
+**Correction — 30 July 2026:** Bonus Games Browser E2E is not an open Stage J gap. `TEST-GAP-01` is resolved by PR #187, with CI `30442005168` and Browser E2E `30442002202`. Stage J requires future platform/season journeys and continued regression coverage; it does not recreate existing tournament proof.
 
 Engineering and operations:
 
@@ -203,16 +207,16 @@ Operate, measure and learn. Current facts and incidents belong in `docs/quality/
 
 Return in January 2028 to the parked Euro inventory. Complete official data, tournament-only presentation work, full state rehearsal, recovery/rollback evidence and the release decision without bypassing the platform seam.
 
-## 17. Roadmap reconciliation check
+## 17. Roadmap reconciliation — corrected 30 July 2026
 
-`docs/roadmap.md` was intentionally not changed in this task. The following differences must remain visible until a later roadmap reconciliation:
+The earlier version reported four roadmap contradictions without resolving them. [`../roadmap.md`](../roadmap.md) now:
 
-1. its header still calls this engineering plan the **programme map**, while the parent is now `programme-plan.md`;
-2. its Stage B order is `entryLock → matchCentre → matchesTab → homeDashboard`, while the required migration order is now `homeDashboard → matchesTab → matchCentre → entryLock`;
-3. its Stage H still carries design/acquisition/analytics decision work that the parent moves to Phase 1 before feature implementation;
-4. its Stage J is framed only as public-launch readiness and does not identify go-to-market beginning in February 2027.
+1. identifies `programme-plan.md` as the parent programme and this file as its child engineering workstream;
+2. points to the Home-first Stage B order instead of restating a conflicting sequence;
+3. assigns discovery, design and event-taxonomy work to parent Phase 1 rather than Stage H implementation;
+4. identifies Stage J as launch readiness and go-to-market beginning February 2027.
 
-These are planning contradictions/omissions, not implementation defects. They are reported rather than silently resolved, as required.
+The roadmap is intentionally thin. It records the current position and next executable slice, while this file and the parent programme retain the actual sequencing authorities.
 
 ## 18. What changed from the earlier long engineering draft
 
@@ -223,6 +227,6 @@ The following material was genuinely removed from the engineering plan:
 - unverified market-positioning and legal-analysis essays;
 - provider pricing/free-tier claims and exact season-date claims not freshly verified in this repository task;
 - obsolete instructions to write ADRs 0011–0018;
-- obsolete contract-60, missing-Browser-E2E and `844/144` repository assertions.
+- obsolete contract-60, missing-Browser-E2E and fixed test-count assertions.
 
 They were removed because they are either external research requiring dated evidence, already governed elsewhere, or factually stale. Their removal does not change an accepted ADR or implemented capability.
