@@ -6,15 +6,15 @@ Live source of truth for repository migration count, hosted state and pending ro
 
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| PR #193 repository candidate | 62 | 62 canonical files through `20260729122200_final_standings_tiebreaks.sql` | merge and production promotion |
-| Development Supabase `iouzoutneyjpugbbtdem` | 62 | exactly 62 canonical versions; history, privileges, lint and hosted functions verified | none |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 62 | development Supabase; contract guard aligned | exact final Browser E2E completion |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 60 | exactly 60 canonical versions; backup, dry-runs, preserved-data, privilege and hosted-lint checks passed | contracts 61–62 require separate approval |
+| Stacked PR #196 repository candidate | 63 | 63 canonical files through `20260729154931_prediction_consensus_minimum_cohort.sql` | complete exact-head verification and stacked-PR disposition |
+| Development Supabase `iouzoutneyjpugbbtdem` | 63 | owner-verified 29 July 2026 at exactly 63 versions; history and consensus public/private privileges verified | none |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 63 required | **REQUIRES OWNER VERIFICATION** that each context declares 63 and uses development Supabase | align before exact preview smoke |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 60 | exactly 60 canonical versions; backup, dry-runs, preserved-data, privilege and hosted-lint checks passed | contracts 61–63 require separate approval |
 | Netlify `production` | 60 | production Supabase; current production release remains contract 60 | no change authorised |
 
-The development-62/production-60 split is intentional. It allows the next product batch to be verified in development without mutating the controlled production target. Production must not receive contracts 61–62 or a contract-62 application until a fresh milestone preflight, recovery check and explicit owner approval.
+The development-63/production-60 split is intentional. It allows the post-lock/final-standings batch and privacy hardening to be verified in development without mutating the controlled production target. Production must not receive contracts 61–63 or a contract-63 application until a fresh milestone preflight, recovery check and explicit owner approval.
 
-## Contracts 45–62
+## Contracts 45–63
 
 | # | Canonical migration | Purpose | Development | Production |
 | ---: | --- | --- | --- | --- |
@@ -36,19 +36,22 @@ The development-62/production-60 split is intentional. It allows the next produc
 | 60 | `20260729110000_predictor_cup_lint_safe_qualification.sql` | Lint-resolvable Cup qualification/seeding | verified | verified |
 | 61 | `20260729122100_prediction_consensus.sql` | Bounded authenticated post-lock Original Predictor consensus | verified | pending approval |
 | 62 | `20260729122200_final_standings_tiebreaks.sql` | Final overall/private standings tie-break activation | verified | pending approval |
+| 63 | `20260729154931_prediction_consensus_minimum_cohort.sql` | Constant ten-entry tournament-wide consensus gate and explicit successful suppression state | verified | pending approval |
 
-The migration versions match the exact canonical repository filenames. Development history was explicitly reconciled to `20260729122100` and `20260729122200` after the hosted migration API initially supplied execution-second versions. Do not renumber or reapply them under another timestamp.
+The migration versions match the exact canonical repository filenames. Development history contains `20260729122100`, `20260729122200` and `20260729154931` exactly. Do not renumber or reapply them under another timestamp.
 
-## Contract-62 development evidence
+## Contract-63 development evidence
 
-- disposable clean rebuild through all 62 migrations passed;
+- disposable clean rebuild through all 63 migrations passed;
 - local database lint passed;
-- all pgTAP suites passed, including bounded consensus and all five final standings tie-breakers;
+- all pgTAP suites passed, including below/at/above consensus threshold and caller-counting assertions;
 - TypeScript/PostgreSQL differential parity passed;
-- development Supabase contains exactly 62 canonical versions through `20260729122200`;
-- `get_prediction_consensus`, `get_leaderboard` and `get_league_members` are authenticated/service-only public RPCs with empty search paths;
-- `predictor_internal.standing_metrics` is not executable by anonymous or authenticated roles;
-- Netlify non-production contexts declare contract 62 and continue to use development Supabase;
+- development Supabase contains exactly 63 canonical versions through `20260729154931`;
+- `get_prediction_consensus` remains authenticated/service-only and anonymous execution is denied;
+- `predictor_internal.get_prediction_consensus_unsuppressed` is not executable by anonymous or authenticated roles;
+- below ten submitted entries the public RPC returns `suppressed: true`, `reason: not_enough_entries`, the threshold and truthful submitted count;
+- at ten or more submitted entries the existing bounded aggregate is returned with `suppressed: false`;
+- Netlify non-production contract-63 alignment remains **REQUIRES OWNER VERIFICATION**;
 - production remains contract 60 and was not mutated.
 
 ## Contract-60 production evidence
@@ -63,7 +66,7 @@ The migration versions match the exact canonical repository filenames. Developme
 
 ## Future rollout authority
 
-Production promotion of contracts 61–62 must follow `AGENTS.md`: exact target/current contract, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope, hosted verification and exact release smoke.
+Production promotion of contracts 61–63 must follow `AGENTS.md`: exact target/current contract, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope, hosted verification and exact release smoke.
 
 ## Related authority
 
