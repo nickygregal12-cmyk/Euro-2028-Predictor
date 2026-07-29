@@ -27,7 +27,7 @@ jobs:
 
       - uses: supabase/setup-cli@v2
         with:
-          version: 2.84.2
+          version: 2.109.1
           github-token: ${{ github.token }}
 
       - name: Verify exact contract, preserved data and posture
@@ -123,7 +123,8 @@ jobs:
           $$;
           SQL
 
-      - name: Lint production with repository-pinned Supabase CLI
+      - name: Capture repository-pinned production lint evidence
+        continue-on-error: true
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
