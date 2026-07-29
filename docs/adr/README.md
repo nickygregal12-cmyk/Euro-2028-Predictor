@@ -2,6 +2,25 @@
 
 Decision records for platform-level directions derived from the 27 July 2026 acquisition technical audit. The series deliberately starts at **0003** — designations 0001 and 0002 were never issued; do not create records under those numbers.
 
+## What belongs in this area
+
+One directory, one file per decision, `NNNN-<slug>.md`, each carrying a maintained status line.
+
+Belongs here:
+
+- a platform-level or architectural decision, its context, the decision itself and its consequences;
+- the current truth of that decision, in its status line.
+
+Does **not** belong here:
+
+- current implementation or hosted state — that is `docs/quality/current-status.md`;
+- build order or when a decision gets implemented — that is `docs/roadmap.md`;
+- a risk arising from an unimplemented decision — that is `docs/quality/risk-register.md`;
+- a deliberate postponement — that is `docs/quality/deferred-decisions.md`;
+- tournament-state or scoring contracts — those are `docs/architecture-and-tournament-states.md` and `docs/scoring-rules.md`.
+
+**An ADR is never archived.** A decision that no longer holds is marked **Superseded** in place, naming the record that replaced it, so the traceability survives. This is the one documentation area where supersession is a status change rather than a move to a history directory. Every record must appear in the index below; a record missing from the index is unreachable.
+
 ## Status vocabulary
 
 - **Accepted direction** — agreed target; no or partial implementation exists.
@@ -22,3 +41,4 @@ Update a record's status line when merged work changes its truth — an ADR desc
 | [0007](0007-reference-data-caching.md) | Reference-data caching | Accepted direction — unimplemented |
 | [0008](0008-live-updates.md) | Live result and standing updates | Accepted direction — unimplemented |
 | [0009](0009-product-analytics.md) | Privacy-conscious product analytics | Accepted direction — unimplemented |
+| [0010](0010-bonus-games-platform.md) | Bonus Games platform: one platform, three games | Accepted — 28 July 2026 owner-directed continuation into B2. The record's status line predates delivery of B1–B7c and needs a status refresh; see `docs/roadmap.md` Stage 5 |

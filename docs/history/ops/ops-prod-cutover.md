@@ -1,5 +1,7 @@
 # Ops record — Production Supabase cutover
 
+> **Archived 29 July 2026** by the documentation consolidation, moved unchanged from `docs/ops-prod-cutover.md`. It sat among the live `docs/ops-*.md` runbooks while describing a superseded environment position. Current hosted facts are owned by [`current-status.md`](../../quality/current-status.md) and the migration chain by [`ops-pending-migrations.md`](../../ops-pending-migrations.md); production milestones follow [`AGENTS.md`](../../../AGENTS.md). Retained as dated operator evidence.
+
 > **Historical record.** This documents the production Supabase cutover of 22 July 2026 and the contract-35 promotion of 25 July 2026 as they happened. It is **not** a reusable migration script and its environment tables are a dated snapshot — production has since been promoted to contract 38 (see `docs/quality/reconciliations/2026-07-27-contract-38-final-target-promotion.md`) and the repository/development have advanced further. For current facts use `docs/quality/current-status.md` and `docs/ops-pending-migrations.md`; future production milestones follow the gate in `AGENTS.md`.
 
 ## Verified environment position — as of 25 July 2026 (superseded)

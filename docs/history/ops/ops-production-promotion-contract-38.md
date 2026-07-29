@@ -1,5 +1,7 @@
 # Production promotion — contract 36 to 38
 
+> **Archived 29 July 2026** by the documentation consolidation, moved unchanged from `docs/ops-production-promotion-contract-38.md`. It sat among the live `docs/ops-*.md` runbooks while being a completed one-off window, not a reusable procedure. Production milestones follow [`AGENTS.md`](../../../AGENTS.md); current hosted facts are owned by [`current-status.md`](../../quality/current-status.md). Retained as dated operator evidence.
+
 > **Completed 27 July 2026.** Retained as historical operator evidence; do not reuse it as the current promotion checklist. Future production milestones follow `AGENTS.md`.
 
 **Target:** production Supabase `vkfnsqdyhvtwyqkisxhk` and Netlify `production`  

@@ -17,10 +17,33 @@ The quality system complements rather than replaces:
 - [`../scoring-rules.md`](../scoring-rules.md) — approved Original Predictor scoring and entry-validity rules.
 - [`../tournament-structure.md`](../tournament-structure.md) — tournament facts and structural rules.
 - [`../competition-structure.md`](../competition-structure.md) — separation between the Original Predictor and future competitions.
+- [`../predictor-cup-rules.md`](../predictor-cup-rules.md) — approved Predictor Cup competition rules.
 - [`../design-system.md`](../design-system.md) — approved interface and design-system rules.
-- `../ops-*.md` — operational procedures and environment-specific evidence.
+- [`../adr/`](../adr/README.md) — platform architecture decisions, one record per decision, superseded by status change and never archived.
+- [`../architecture/acquisition-target-architecture.md`](../architecture/acquisition-target-architecture.md) — cross-cutting target-architecture principles and constraints.
+- `../ops-*.md` — **live** operational runbooks and repeatable procedures, including [`../ops-pending-migrations.md`](../ops-pending-migrations.md) (migration chain and hosted applied state), [`../ops-admin-bootstrap.md`](../ops-admin-bootstrap.md), [`../ops-production-backup-restore.md`](../ops-production-backup-restore.md), [`../ops-production-observability.md`](../ops-production-observability.md), [`../ops-sentry.md`](../ops-sentry.md) (provider/SDK configuration) and [`../ops-result-entry.md`](../ops-result-entry.md). Completed one-off windows and superseded environment snapshots belong in [`../history/ops/`](../history/ops/ops-prod-cutover.md), not here.
 
 Do not move their content here or create competing copies. Where actual and intended behaviour conflict, keep the conflict visible until it is repaired or explicitly decided.
+
+## What belongs in this area
+
+`docs/quality/` holds assurance: what is true now, what is at risk, what was deliberately postponed, what was verified and when. It holds no sequence and no task list.
+
+| Content | Home |
+| --- | --- |
+| Current implementation and hosted state, including every contract number | [`current-status.md`](current-status.md) — the single owner. Other documents cite it rather than restating it. |
+| Capability/safeguard inventory and stable identifiers | [`feature-baseline.md`](feature-baseline.md) — classifications and identifiers only, not contract facts. |
+| Current risks and findings | [`risk-register.md`](risk-register.md) — the single live register. |
+| Deliberately postponed decisions | [`deferred-decisions.md`](deferred-decisions.md) — conscious postponement only, never a backlog. |
+| Audit method | [`audit-prompt.md`](audit-prompt.md) |
+| Dated audit evidence | [`audits/`](audits/README.md) |
+| Dated investigation evidence | [`investigations/`](investigations/2026-07-29-euro-2028-baseline-readiness.md) — evidence only. An open action or an unexecuted command does not belong in an immutable evidence file; it belongs in the risk register or a GitHub Issue. |
+| Dated workstream closure evidence | [`reconciliations/`](reconciliations/2026-07-24-feature-baseline-identifiers.md) |
+| Superseded versions of quality control documents | [`history/`](history/risk-register-2026-07-23R.md) |
+
+Not here: the execution sequence ([`../roadmap.md`](../roadmap.md)), architecture decisions ([`../adr/`](../adr/README.md)), operational procedure (`../ops-*.md`), and active implementation work (GitHub Issues).
+
+**One subject, one owner.** Where two documents describe the same subject, one is authoritative and the other cites it. Restating a fact you do not own is how the registers drift apart.
 
 ## Source-of-truth hierarchy
 
@@ -45,7 +68,7 @@ A historical audit is evidence at one commit and date. It must not become a comp
 | [`current-status.md`](current-status.md) | Live assurance and operations position | No |
 | [`feature-baseline.md`](feature-baseline.md) | Feature/safeguard preservation and regression comparison | No |
 | [`risk-register.md`](risk-register.md) | Permanent finding history and current status | No |
-| [`acquisition-risk-register.md`](acquisition-risk-register.md) | Acquisition-audit-derived risk register (`ACQ-R` findings) | No |
+| [`acquisition-risk-register.md`](acquisition-risk-register.md) | Acquisition-audit-derived risk register (`ACQ-R` findings) — **pending merge into [`risk-register.md`](risk-register.md)**, which is the single live register | No |
 | [`deferred-decisions.md`](deferred-decisions.md) | Intentionally postponed decisions with review triggers | No |
 | [`audit-prompt.md`](audit-prompt.md) | Controlled reusable audit instructions | No |
 | [`audits/`](audits/) | Immutable dated audit evidence (the acquisition technical audit lives at `../audits/`) | No |
@@ -61,7 +84,16 @@ A reconciliation records the closure evidence for one workstream: what changed, 
 
 ### `history/`
 
-When a live control document is materially restructured, archive the previous version here as `<document>-<audit-designation>.md` before replacing it. Fix relative links when moving a file down a directory level.
+When a live control document is materially restructured, archive the previous version here as `<document>-<audit-designation>.md` before replacing it, or `<document>-<YYYY-MM-DD>.md` where the document carries no audit designation. Fix relative links when moving a file down a directory level.
+
+**Archiving rules, applied to every area:**
+
+- **Archive; never delete.** Removing a control document is how `DOC-004` happened. A superseded document moves; it does not disappear.
+- **Move with `git mv`** so history records a rename rather than a delete plus an add.
+- **Every archived file gains a short supersession header** — what superseded it, when, and where it moved from — so a future reader knows why it is there without consulting git history.
+- **Content is otherwise preserved unchanged.** Repoint only the relative links the move itself broke, and say in the header that you did.
+- Quality control documents archive to `history/`. Superseded root and planning documents archive to [`../history/`](../history/roadmap-2026-07-22.md); completed operational windows and superseded environment snapshots archive to [`../history/ops/`](../history/ops/ops-prod-cutover.md).
+- ADRs are the single exception: they are superseded by status change in place and are never archived. See [`../adr/README.md`](../adr/README.md).
 
 ## Finding workflow
 

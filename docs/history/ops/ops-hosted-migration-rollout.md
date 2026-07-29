@@ -1,8 +1,10 @@
 # Hosted migrations 21–35 — completed production rollout record
 
+> **Archived 29 July 2026** by the documentation consolidation, moved unchanged from `docs/ops-hosted-migration-rollout.md`. It sat among the live `docs/ops-*.md` runbooks while recording a completed rollout. The live migration chain and hosted applied state are owned by [`ops-pending-migrations.md`](../../ops-pending-migrations.md); production milestones follow [`AGENTS.md`](../../../AGENTS.md). Retained as dated operator evidence. Its evidence link below was repointed for the new location; no other content changed.
+
 This document records the controlled production rollout of repository migrations 21–35 and the release of application/database contract 35 on 25 July 2026. It also preserves the safety rules that must be reused for any later hosted migration.
 
-The full evidence record is [`quality/reconciliations/2026-07-25-contract-35-production-promotion.md`](quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
+The full evidence record is [`docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`](../../quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
 
 ## Final production state
 

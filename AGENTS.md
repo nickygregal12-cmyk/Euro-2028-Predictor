@@ -115,11 +115,39 @@ For a production database or release milestone:
 
 Never weaken an environment or deployment-contract guard merely to make a build pass.
 
-## Documentation maintenance
+## Documentation map
 
-- `docs/quality/current-status.md` is the only live status authority.
-- `docs/roadmap.md` is the only live execution sequence.
-- `docs/build-todo.md` is a compatibility pointer, not a separate checklist.
+### Where the task queue lives
+
+**GitHub Issues.** No markdown file in this repository is a task queue. `docs/roadmap.md` gives the order of work, `docs/quality/current-status.md` gives the current batch, and neither is a checklist to tick. If you are looking for what to do next, read those two for context and the Issue for the work.
+
+### Read these before changing anything
+
+| Document | Owns |
+| --- | --- |
+| `AGENTS.md` (this file) | Operating rules, git and database discipline, architecture rules, hard boundaries |
+| `docs/quality/current-status.md` | Current implementation and hosted state, and **every contract number** |
+| `docs/roadmap.md` | The single execution sequence |
+
+### Read when your change touches the subject
+
+`docs/scoring-rules.md` (scoring and entry validity) · `docs/tournament-structure.md` (tournament facts, R16 allocation) · `docs/competition-structure.md` (competition separation law) · `docs/predictor-cup-rules.md` (Cup rules) · `docs/design-system.md` (visual and interaction rules) · `docs/architecture-and-tournament-states.md` (how the app understands the tournament) · `docs/adr/` (platform architecture decisions, indexed in `docs/adr/README.md`) · `docs/quality/feature-baseline.md` (capabilities and safeguards that must not silently regress) · `docs/quality/risk-register.md` (current findings) · `docs/quality/deferred-decisions.md` (what is deliberately postponed, and what you must therefore not do yet) · `docs/ops-*.md` (live operational runbooks) · `docs/quality/README.md` (the governance charter and this taxonomy).
+
+### Do not read these as current truth
+
+Dated evidence, immutable, historical only — never a task list and never a statement of what is live now:
+
+- `docs/quality/audits/`, `docs/quality/investigations/`, `docs/quality/reconciliations/`, `docs/audits/`;
+- everything under `docs/history/` and `docs/quality/history/`, including `docs/history/ops/`.
+
+A file in one of those directories describes one commit on one date. If it disagrees with `docs/quality/current-status.md`, the status document wins and the dated file is simply old — do not "correct" it.
+
+### Rules
+
+- **One subject, one owner.** Do not restate a fact owned by another document; cite it. Every stale document in this repository became stale by restating something it did not own — contract numbers most of all.
+- `docs/quality/current-status.md` is the only live status authority; `docs/roadmap.md` is the only live execution sequence.
+- `docs/build-todo.md` is a compatibility pointer, not a separate checklist. `CLAUDE.md` is a pointer index, not a second copy of this file.
 - Update risk, scoring, architecture or operational runbooks only when their subject changes.
-- Dated audits and reconciliations are immutable historical evidence.
+- Archive; never delete. A superseded document moves with `git mv` and gains a supersession header — see `docs/quality/README.md` § `history/`. ADRs are the exception: they are superseded by status change in place.
 - Do not create a new status, audit or reconciliation document for routine development work.
+- Do not add a second document describing a subject that already has an owner.

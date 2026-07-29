@@ -1,5 +1,9 @@
 # Acquisition readiness roadmap
 
+> **Archived 29 July 2026** by the documentation consolidation, moved unchanged from `docs/roadmap/acquisition-readiness-roadmap.md`. It was a second full sequence (Phases 1–6) over the same programme as [`roadmap.md`](../roadmap.md) (Stages 0–8), which is now the single sequencing authority. Retained as dated 27 July 2026 planning derived from [`2026-07-27-acquisition-technical-audit.md`](../audits/2026-07-27-acquisition-technical-audit.md).
+>
+> **Two parts have no home yet and were deliberately not lifted out of this file:** its *audit-derived backlog map* (the only traceability from audit items C-1/C-2/H-6 to planned work) and its *per-phase exit gates*. Both remain readable here until an authorised content change folds them into the live register and roadmap. Its status lines were already stale when archived — Phase 3 marks merged work "in flight", and Phase 6 lists delivered features as future candidates.
+
 **Status:** Planning authority for audit-derived platform work.  
 **Implementation authority:** Current code, migrations, tests and hosted evidence.
 
