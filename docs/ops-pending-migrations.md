@@ -6,15 +6,15 @@ Live source of truth for repository migration count, hosted state and pending ro
 
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
-| Repository | 60 | 60 canonical files through `20260729110000_predictor_cup_lint_safe_qualification.sql` | none |
-| Development Supabase `iouzoutneyjpugbbtdem` | 60 | exactly 60 canonical versions; history, grants, posture, lint and lifecycle tests verified | none |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 60 | development Supabase; contract guard aligned | none |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 60 | exactly 60 canonical versions; backup, dry-runs, preserved-data, privilege and hosted-lint checks passed | none |
-| Netlify `production` | 60 | production Supabase; deploy `6a69b630f65752000822324e` from `31e06271f5f5b753c0bacf20353097055880988e`, ready | none |
+| PR #193 repository candidate | 62 | 62 canonical files through `20260729122200_final_standings_tiebreaks.sql` | merge and production promotion |
+| Development Supabase `iouzoutneyjpugbbtdem` | 62 | exactly 62 canonical versions; history, privileges, lint and hosted functions verified | none |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 62 | development Supabase; contract guard aligned | exact final Browser E2E completion |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | 60 | exactly 60 canonical versions; backup, dry-runs, preserved-data, privilege and hosted-lint checks passed | contracts 61–62 require separate approval |
+| Netlify `production` | 60 | production Supabase; current production release remains contract 60 | no change authorised |
 
-Production database, repository and published application are aligned at contract 60. Any later migration requires a new approved milestone gate; ordinary application development must not mutate production.
+The development-62/production-60 split is intentional. It allows the next product batch to be verified in development without mutating the controlled production target. Production must not receive contracts 61–62 or a contract-62 application until a fresh milestone preflight, recovery check and explicit owner approval.
 
-## Contracts 45–60
+## Contracts 45–62
 
 | # | Canonical migration | Purpose | Development | Production |
 | ---: | --- | --- | --- | --- |
@@ -31,30 +31,39 @@ Production database, repository and published application are aligned at contrac
 | 55 | `20260729030000_predictor_cup_group_scoring.sql` | Regulation-time Cup group scoring and tables | verified | verified |
 | 56 | `20260729050000_predictor_cup_knockouts.sql` | Cup qualification, knockouts, Penalty Numbers and honours | verified | verified |
 | 57 | `20260729070000_account_entry_controls.sql` | Private Account reminder preference and pre-lock Original entry clear | verified | verified |
-| 58 | `20260729090000_clear_predictions_race_safety.sql` | Retire the cleared entry identity so delayed autosaves cannot resurrect picks | verified | verified |
-| 59 | `20260729100000_predictor_cup_lint_safe_progression.sql` | Lint-resolvable playoff/byes-to-bracket seat progression | verified | verified |
-| 60 | `20260729110000_predictor_cup_lint_safe_qualification.sql` | Lint-resolvable Cup qualification/seeding and loop-declaration cleanup | verified | verified |
+| 58 | `20260729090000_clear_predictions_race_safety.sql` | Retire cleared entry identity so delayed autosaves cannot resurrect picks | verified | verified |
+| 59 | `20260729100000_predictor_cup_lint_safe_progression.sql` | Lint-resolvable playoff/byes-to-bracket progression | verified | verified |
+| 60 | `20260729110000_predictor_cup_lint_safe_qualification.sql` | Lint-resolvable Cup qualification/seeding | verified | verified |
+| 61 | `20260729122100_prediction_consensus.sql` | Bounded authenticated post-lock Original Predictor consensus | verified | pending approval |
+| 62 | `20260729122200_final_standings_tiebreaks.sql` | Final overall/private standings tie-break activation | verified | pending approval |
 
-The migration versions match the exact canonical repository filenames. Do not renumber or reapply them under another timestamp.
+The migration versions match the exact canonical repository filenames. Development history was explicitly reconciled to `20260729122100` and `20260729122200` after the hosted migration API initially supplied execution-second versions. Do not renumber or reapply them under another timestamp.
+
+## Contract-62 development evidence
+
+- disposable clean rebuild through all 62 migrations passed;
+- local database lint passed;
+- all pgTAP suites passed, including bounded consensus and all five final standings tie-breakers;
+- TypeScript/PostgreSQL differential parity passed;
+- development Supabase contains exactly 62 canonical versions through `20260729122200`;
+- `get_prediction_consensus`, `get_leaderboard` and `get_league_members` are authenticated/service-only public RPCs with empty search paths;
+- `predictor_internal.standing_metrics` is not executable by anonymous or authenticated roles;
+- Netlify non-production contexts declare contract 62 and continue to use development Supabase;
+- production remains contract 60 and was not mutated.
 
 ## Contract-60 production evidence
 
 - fresh encrypted production backup completed and restored into disposable Supabase before mutation;
-- approved pending chain 56–58 and isolated function-only hotfixes 59–60 were dry-run before application;
 - production history contains exactly 60 versions through `20260729110000`;
-- existing production counts remained one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved predictions;
-- no synthetic Bonus Games entrants, selections, groups, members, fixtures or Penalty Number rows were created;
-- Account clear execution remains denied to anonymous callers and allowed only to authenticated/service roles;
-- Predictor Cup qualification and settle remain service-role-only;
-- no application SQL function retains a `pg_temp` or temporary-table dependency;
+- existing production user/profile/entry/league/match/prediction counts were preserved;
+- no synthetic Bonus Games entrants, selections, draws, scores or results were created;
 - production database lint passed at contract 60;
 - permanent backup verification is pinned to 60 and passed after restore;
-- production deploy `6a69b630f65752000822324e` is ready from release-alignment commit `31e06271f5f5b753c0bacf20353097055880988e`;
-- Netlify processed redirect/header rules successfully, reported no deploy error and found no secrets in 754 scanned files.
+- the verified contract-60 production application remains the PR #184 Bonus Games release.
 
 ## Future rollout authority
 
-Future production promotions must follow `AGENTS.md`: exact target/current contract, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope, hosted verification and exact release smoke.
+Production promotion of contracts 61–62 must follow `AGENTS.md`: exact target/current contract, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope, hosted verification and exact release smoke.
 
 ## Related authority
 
