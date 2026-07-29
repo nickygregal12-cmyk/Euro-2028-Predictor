@@ -4,14 +4,11 @@
 
 This runbook describes the production result contract introduced by migrations 28–32. The functions are live in development and production at contract 35 (production now at contract 38). This document does not grant authority to enter or change a result.
 
-## Hosted status — 25 July 2026
+## Hosted status
 
-| Environment | Result-lifecycle position |
-| --- | --- |
-| Development `iouzoutneyjpugbbtdem` | Migrations 28–32 are applied and verified. Confirm/correct/clear, immutable revisions, serialized scoring and winner propagation are available. |
-| Production `vkfnsqdyhvtwyqkisxhk` | Migrations 28–32 are applied within the exact 35-version chain. The 63-check verifier and rollback-only service-role confirm/clear smoke passed. No real result, revision, score event or rank-history row is currently stored. |
+This runbook names no contract or hosted state. [`docs/quality/current-status.md`](quality/current-status.md) is the hosted authority and [`docs/ops-pending-migrations.md`](ops-pending-migrations.md) the migration chain. The former 25 July 2026 snapshot is archived at [`docs/history/ops/ops-result-entry-hosted-status-2026-07-25.md`](history/ops/ops-result-entry-hosted-status-2026-07-25.md).
 
-Since this snapshot, a browser administrator result-entry interface exists (`/admin/results`, capability-checked via server-owned Auth `app_metadata` — see the note at the top). The underlying migration 28–32 RPCs described below remain service-role-only. A database owner or service-role operator may use them only during an explicitly authorized operation with a verified source and retained evidence.
+A browser administrator result-entry interface exists (`/admin/results`, capability-checked via server-owned Auth `app_metadata` — see the note at the top). The migration 28–32 RPCs described below remain service-role-only. A database owner or service-role operator may use them only during an explicitly authorized operation with a verified source and retained evidence.
 
 ## Absolute rules
 

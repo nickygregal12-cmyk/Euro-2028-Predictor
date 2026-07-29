@@ -2,7 +2,7 @@
 
 **Status:** Accepted direction; implementation remains evidence-driven.  
 **Source:** 27 July 2026 acquisition technical audit.  
-**Authority:** This document defines target architecture only. Current code, migrations, tests and hosted verification define what is implemented.
+**Authority:** This document holds the **cross-cutting** target architecture only — objective, principles, preserved foundation, security constraints, performance acceptance direction and the implementation boundary. Each per-component decision is owned by an ADR under [`../adr/`](../adr/README.md); this file links to them and does not restate them. Current code, migrations, tests and hosted verification define what is implemented.
 
 ## Objective
 
@@ -38,87 +38,21 @@ Preserve the tested tournament domain and deployment model while removing the pl
 - Add a client query cache for request deduplication, controlled freshness and foreground refresh.
 - Add a code-split protected administrator area.
 
-### Reference data
+### Component decisions — owned by ADRs
 
-Tournament, team, group, venue and fixture reference data should be tournament-scoped and cacheable. The target is a versioned CDN artefact or equivalent edge-cached endpoint with short live-match freshness and longer pre-tournament freshness.
+Each target component decision has its own architecture decision record with a maintained status line. **Read the ADR, not a restatement:**
 
-A reference-data failure must not silently convert the tournament into an unlocked or incomplete state.
+| Component | Decision record |
+| --- | --- |
+| Reference data and caching | [ADR-0007](../adr/0007-reference-data-caching.md) |
+| Maintained standings model | [ADR-0004](../adr/0004-maintained-entry-standings.md) |
+| Scoring: queue and incremental processing | [ADR-0003](../adr/0003-asynchronous-incremental-scoring.md) |
+| Background jobs | [ADR-0005](../adr/0005-background-jobs.md) |
+| Administrator platform, authorisation and audit | [ADR-0006](../adr/0006-admin-authorisation-and-audit.md) |
+| Live result and standing updates | [ADR-0008](../adr/0008-live-updates.md) |
+| Product analytics and communications | [ADR-0009](../adr/0009-product-analytics.md) |
 
-### Standings
-
-Introduce a maintained standings model with at least:
-
-- `entry_id`
-- `tournament_id`
-- `total_points`
-- `rank`
-- `last_scored_at`
-
-Browser-reachable leaderboard paths read this maintained model. A derived aggregate remains available only for reconciliation and repair verification.
-
-Required read contracts:
-
-- paginated global leaderboard;
-- one-row current-user standing for the home screen;
-- optional window around the current user;
-- league standings that do not aggregate the global score-event table.
-
-### Scoring
-
-Normal result handling becomes:
-
-1. validate and record the result;
-2. append a result revision;
-3. enqueue a scoring job;
-4. return control to the administrator;
-5. score the affected match and dependent group/award state in bounded batches;
-6. update maintained standings and ranks;
-7. record rank history at the defined checkpoint.
-
-The existing full-tournament recomputation remains restricted as:
-
-- a repair operation;
-- a parity oracle;
-- a rehearsal and reconciliation tool.
-
-### Background jobs
-
-Use database scheduling for database-resident work and Edge Functions for outbound services.
-
-Initial jobs:
-
-- scoring-queue drain;
-- complete-entry auto-submission at lock;
-- standings reconciliation;
-- rate-limit-event pruning;
-- reminder and lifecycle email dispatch;
-- operational health checks.
-
-Every job must be idempotent, retry-safe, observable and bounded.
-
-### Administrator platform
-
-The administrator area must provide least-privilege capabilities for:
-
-- result confirmation, correction and clearing;
-- immutable result-revision review;
-- user and display-name moderation;
-- league moderation;
-- feature/configuration controls where expressly designed.
-
-Every mutation must enforce server-side role or capability checks and write actor, action, reason and before/after evidence to the appropriate audit record.
-
-Routine operations must not require Supabase Studio, database-owner credentials or a browser-held service-role key.
-
-### Live updates
-
-Use a narrow live-results channel rather than general client synchronisation. Result changes may invalidate cached match, standings and leaderboard queries. A bounded poll remains acceptable as a fallback while matches are live.
-
-### Analytics and communications
-
-Add privacy-conscious event analytics with a deliberately small taxonomy. Error telemetry remains separate from product analytics.
-
-Add transactional email for lock reminders, auto-submission confirmation and selected operational messages. Provider use requires a processor record, retention position and CSP/configuration review.
+The prose these rows replaced described all seven in the future tense, including two that have since shipped. It is archived verbatim at [`../history/acquisition-target-architecture-components-2026-07-27.md`](../history/acquisition-target-architecture-components-2026-07-27.md).
 
 ## Security constraints
 
