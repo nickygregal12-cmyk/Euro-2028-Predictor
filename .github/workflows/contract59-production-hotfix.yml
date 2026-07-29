@@ -1,0 +1,199 @@
+name: Contract 59 production lint hotfix
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/contract59-production-hotfix.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract59-production-hotfix
+  cancel-in-progress: false
+
+jobs:
+  migrate-and-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+      RELEASE_COMMIT: 322ca2f2c44dfd1596998aca2714391acc2d82a1
+
+    steps:
+      - name: Check out exact contract-59 hotfix
+        uses: actions/checkout@v4
+        with:
+          ref: 322ca2f2c44dfd1596998aca2714391acc2d82a1
+          fetch-depth: 1
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Validate exact production target
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          : "${SUPABASE_PROD_DB_URL:?SUPABASE_PROD_DB_URL is not set}"
+          case "$SUPABASE_PROD_DB_URL" in
+            *"$EXPECTED_PROJECT_REF"*) ;;
+            *) echo 'STOP: wrong production project.' >&2; exit 1 ;;
+          esac
+
+      - name: Preflight the single canonical migration
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -c "select version || E'\t' || name from supabase_migrations.schema_migrations order by version" \
+            > /tmp/remote-migrations.tsv
+          find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+            | sort > /tmp/local-migrations.txt
+
+          python - <<'PY'
+          from pathlib import Path
+          expected = ['20260729100000_predictor_cup_lint_safe_progression.sql']
+          remote_versions = {
+              line.split('\t', 1)[0]
+              for line in Path('/tmp/remote-migrations.tsv').read_text().splitlines()
+              if line.strip()
+          }
+          local_files = [line.strip() for line in Path('/tmp/local-migrations.txt').read_text().splitlines() if line.strip()]
+          pending = [filename for filename in local_files if filename.split('_', 1)[0] not in remote_versions]
+          if len(remote_versions) != 58:
+              raise SystemExit(f'STOP: expected production contract 58, found {len(remote_versions)} migrations.')
+          if pending != expected:
+              raise SystemExit(f'STOP: expected only contract 59 pending. Expected {expected}; actual {pending}')
+          print('Approved pending migration:', pending[0])
+          PY
+
+      - name: Capture preserved-data baseline
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
+            > /tmp/contract59-before.json
+          select jsonb_build_object(
+            'auth_users', (select count(*) from auth.users),
+            'profiles', (select count(*) from public.profiles),
+            'entries', (select count(*) from public.entries),
+            'leagues', (select count(*) from public.leagues),
+            'league_members', (select count(*) from public.league_members),
+            'matches', (select count(*) from public.matches),
+            'match_predictions', (select count(*) from public.match_predictions),
+            'bonus_competitions', (select count(*) from public.bonus_competitions),
+            'bonus_entrants', (select count(*) from public.bonus_competition_entrants),
+            'bonus_knockout_predictions', (select count(*) from public.bonus_knockout_predictions),
+            'lms_selections', (select count(*) from public.bonus_lms_selections),
+            'cup_groups', (select count(*) from public.bonus_cup_groups),
+            'cup_members', (select count(*) from public.bonus_cup_members),
+            'cup_fixtures', (select count(*) from public.bonus_cup_fixtures),
+            'penalty_rows', (select count(*) from public.bonus_cup_penalty_numbers)
+          );
+          SQL
+          jq -e . /tmp/contract59-before.json >/dev/null
+
+      - name: Dry-run and apply contract 59
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          supabase db push --db-url "$SUPABASE_PROD_DB_URL" --include-all --dry-run \
+            2>&1 | tee /tmp/contract59-dry-run.log
+          supabase db push --db-url "$SUPABASE_PROD_DB_URL" --include-all --yes
+
+      - name: Verify contract, preserved data and function body
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
+            > /tmp/contract59-after.json
+          select jsonb_build_object(
+            'auth_users', (select count(*) from auth.users),
+            'profiles', (select count(*) from public.profiles),
+            'entries', (select count(*) from public.entries),
+            'leagues', (select count(*) from public.leagues),
+            'league_members', (select count(*) from public.league_members),
+            'matches', (select count(*) from public.matches),
+            'match_predictions', (select count(*) from public.match_predictions),
+            'bonus_competitions', (select count(*) from public.bonus_competitions),
+            'bonus_entrants', (select count(*) from public.bonus_competition_entrants),
+            'bonus_knockout_predictions', (select count(*) from public.bonus_knockout_predictions),
+            'lms_selections', (select count(*) from public.bonus_lms_selections),
+            'cup_groups', (select count(*) from public.bonus_cup_groups),
+            'cup_members', (select count(*) from public.bonus_cup_members),
+            'cup_fixtures', (select count(*) from public.bonus_cup_fixtures),
+            'penalty_rows', (select count(*) from public.bonus_cup_penalty_numbers)
+          );
+          SQL
+          diff -u <(jq -S . /tmp/contract59-before.json) <(jq -S . /tmp/contract59-after.json)
+
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
+            | tee /tmp/contract59-verification.txt
+          select jsonb_build_object(
+            'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+            'latest_version', (select max(version) from supabase_migrations.schema_migrations),
+            'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+            'pg_temp_reference', position('pg_temp.cup_round_seats' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure)),
+            'cte_reference', position('with cup_round_seats as' in lower(pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))),
+            'slot_loop', position('for v_slot in' in lower(pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))),
+            'authenticated_execute', has_function_privilege('authenticated','public.admin_settle_predictor_cup_round(uuid,uuid)','execute'),
+            'service_execute', has_function_privilege('service_role','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
+          );
+
+          do $$
+          begin
+            if (select count(*) from supabase_migrations.schema_migrations) <> 59
+              or (select max(version) from supabase_migrations.schema_migrations) <> '20260729100000'
+              or (select name from supabase_migrations.schema_migrations order by version desc limit 1) <> 'predictor_cup_lint_safe_progression'
+            then raise exception 'Production is not canonical contract 59.';
+            end if;
+            if position('pg_temp.cup_round_seats' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure)) <> 0
+              or position('with cup_round_seats as' in lower(pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))) = 0
+              or position('for v_slot in' in lower(pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))) = 0
+            then raise exception 'Lint-safe Cup progression rewrite is incomplete.';
+            end if;
+            if has_function_privilege('authenticated','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
+              or not has_function_privilege('service_role','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
+            then raise exception 'Cup settle privilege boundary changed.';
+            end if;
+          end
+          $$;
+          SQL
+
+      - name: Lint production database
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db lint --db-url "$SUPABASE_PROD_DB_URL" --fail-on error \
+            2>&1 | tee /tmp/contract59-production-lint.log
+
+      - name: Upload contract-59 evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract59-production-hotfix-evidence
+          path: |
+            /tmp/contract59-before.json
+            /tmp/contract59-after.json
+            /tmp/contract59-dry-run.log
+            /tmp/contract59-verification.txt
+            /tmp/contract59-production-lint.log
+          if-no-files-found: warn
+          retention-days: 14
