@@ -1,6 +1,7 @@
 [build.environment]
   NODE_VERSION = "22.22.2"
 
+# Production redeploy marker: contract 60 verified 2026-07-29.
 [[redirects]]
   from = "/*"
   to = "/index.html"
