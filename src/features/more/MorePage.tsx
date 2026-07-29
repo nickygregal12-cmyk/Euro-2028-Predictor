@@ -26,7 +26,7 @@ export function MorePage() {
       </button>
 
       <button type="button" className={m.linkRow} onClick={() => navigate('/games')}>
-        Games
+        Bonus Games
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
 
@@ -34,7 +34,6 @@ export function MorePage() {
         How scoring works
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
-
     </div>
   )
 }
