@@ -15,6 +15,9 @@ Current code, executable tests and verified hosted evidence override older class
 | `OPS-006` | **Controlled split, not accidental divergence.** Development and non-production contexts are at 62 for PR #193; production remains aligned and locked at 60. |
 | `POSTLOCK-001` | **Resolved in development by PR #193.** Bounded post-lock consensus and the richer locked My Entry state are implemented; production promotion remains pending approval. |
 | `LEAGUE-001` | **Resolved in development by PR #193.** Final overall/private standings apply the approved five tie-breakers only after every result; production promotion remains pending approval. |
+| `PRIV-001` | **Open on PR #193.** Contract 61 is tournament-wide and returns substantive raw-count aggregates from one submitted entry. Owner threshold decision is recorded on PR #193; no threshold implementation exists. |
+| `REL-008` | **Open — reproduced.** PRs #194 and #195 both failed Netlify deploy-preview checks, while the preceding ten merged PRs passed. Exact Netlify logs are required to isolate the cause. |
+| `MIG-001` | **Implementation on PR #196; validation pending.** The new pull-request guard fetches `origin/main`, rejects colliding timestamps and tests collision/valid/multiple-addition paths. Do not mark resolved until exact-head CI passes. |
 | `DATA-003` | **Resolved and hosted.** Same-tournament/reference guards are present in both hosted environments. |
 | `DOC-001` | **Resolved and actively maintained.** The contract-62 development split is recorded here and in `current-status.md`. |
 | `FUNC-003` | **Resolved in production.** Canonical Bonus Game cards and the repeatable catalogue prevent silent disappearance. |
@@ -57,6 +60,9 @@ Current code, executable tests and verified hosted evidence override older class
 | `AUTH-002` | Leaked-password protection disabled | **Open decision** |
 | `OPS-008` | Legacy public development site remains | **Open — separate workstream; never use as current preview** |
 | `REL-007` | Stale device can delete a newer bracket pick | **Implementation present; final controlled browser evidence pending** |
+| `REL-008` | Netlify deploy-preview policy is inconsistent across documentation branches | **Open — reproduced on `chore/*` PRs #194/#195; six recent `agent/*` documentation PRs passed. Review the exact logs linked in [`REL-008 investigation`](investigations/2026-07-29-rel-008-deploy-preview-reliability.md).** |
+| `MIG-001` | Concurrent branches can add stale/colliding migration timestamps | **Implementation on PR #196; exact-head validation pending. Guard: `scripts/check-migration-timestamps.mjs`; test: `tests/scripts/migrationTimestampGuard.test.ts`.** |
+| `PRIV-001` | Tournament-wide prediction consensus has no minimum cohort | **Open on PR #193. One submitted entry can produce aggregate output; threshold options and hosted migration state are recorded in [`PRIV-001 options`](investigations/2026-07-29-priv-001-options.md).** |
 | `DB-001` | `public.enforce_joker_rules` has mutable search path | **Open advisor finding** |
 | `DB-002` | Authenticated `SECURITY DEFINER` allowlist needs continued review | **Open assurance finding; intended RPCs remain explicitly granted** |
 | `DB-003` | Several foreign keys lack supporting indexes | **Open pending representative query evidence** |
