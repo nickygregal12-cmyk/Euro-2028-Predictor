@@ -1,0 +1,37 @@
+.note {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.icon {
+  color: var(--acc);
+  margin-top: 2px;
+}
+
+.title {
+  margin: 0 0 4px;
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.copy {
+  margin: 0;
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 520px) {
+  .note {
+    padding: 14px;
+  }
+}

@@ -13,7 +13,8 @@ const SignUpPage = lazy(() => import('./features/auth/SignUpPage').then((m) => (
 const ResetRequestPage = lazy(() => import('./features/auth/ResetRequestPage').then((m) => ({ default: m.ResetRequestPage })))
 const UpdatePasswordPage = lazy(() => import('./features/auth/UpdatePasswordPage').then((m) => ({ default: m.UpdatePasswordPage })))
 const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })))
-const PredictHubPage = lazy(() => import('./features/predict/PredictHubPage').then((m) => ({ default: m.PredictHubPage })))
+const PredictEntryPage = lazy(() => import('./features/predict/PredictEntryPage').then((m) => ({ default: m.PredictEntryPage })))
+const PredictionTrendsPage = lazy(() => import('./features/trends/PredictionTrendsPage').then((m) => ({ default: m.PredictionTrendsPage })))
 const GroupPredictorPage = lazy(() => import('./features/predict/GroupPredictorPage').then((m) => ({ default: m.GroupPredictorPage })))
 const ThirdPlacePage = lazy(() => import('./features/predict/ThirdPlacePage').then((m) => ({ default: m.ThirdPlacePage })))
 const BracketRound = lazy(() => import('./features/bracket').then((m) => ({ default: m.BracketRound })))
@@ -21,7 +22,7 @@ const JokersPage = lazy(() => import('./features/predict/JokersPage').then((m) =
 const ReviewWorkspacePage = lazy(() => import('./features/predict/ReviewWorkspacePage').then((m) => ({ default: m.ReviewWorkspacePage })))
 const LeaguePage = lazy(() => import('./features/league/LeaguePage').then((m) => ({ default: m.LeaguePage })))
 const OverallStandingsPage = lazy(() => import('./features/league/OverallStandingsPage').then((m) => ({ default: m.OverallStandingsPage })))
-const LeagueDetailPage = lazy(() => import('./features/leagues/LeagueDetailPage').then((m) => ({ default: m.LeagueDetailPage })))
+const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
 const AccountPage = lazy(() =>
@@ -80,7 +81,8 @@ export default function App() {
                 <Route element={<RequireWelcome />}>
                   <Route element={<AppShell />}>
                     <Route path="/" element={<HomePage />} />
-                    <Route path="/predict" element={<PredictHubPage />} />
+                    <Route path="/predict" element={<PredictEntryPage />} />
+                    <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
                     <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
                     <Route path="/predict/third-place" element={<ThirdPlacePage />} />
                     <Route path="/predict/bracket" element={<BracketRound />} />
@@ -88,7 +90,7 @@ export default function App() {
                     <Route path="/predict/review" element={<ReviewWorkspacePage />} />
                     <Route path="/league" element={<LeaguePage />} />
                     <Route path="/league/overall" element={<OverallStandingsPage />} />
-                    <Route path="/league/:id" element={<LeagueDetailPage />} />
+                    <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
                     <Route path="/h2h/:rivalId" element={<H2HPage />} />
                     <Route path="/matches" element={<MatchesPage />} />
                     <Route path="/match/:matchRef" element={<MatchCentrePage />} />

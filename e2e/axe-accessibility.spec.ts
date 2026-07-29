@@ -10,6 +10,7 @@ import { expect, test } from '@playwright/test'
 const ROUTES = [
   '/',
   '/predict',
+  '/prediction-trends',
   '/predict/groups/A',
   '/predict/review',
   '/matches',

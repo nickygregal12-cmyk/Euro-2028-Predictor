@@ -4,11 +4,13 @@ import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { ChevronLeftIcon, TrophyIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
+import { areFinalStandingsActive } from '../../domain/tournament/finalStandings'
 import {
   fetchLeaderboardPage,
   type LeaderboardRow as LeaderboardEntry,
   type LeaderboardYou,
 } from '../../services/supabase/leaderboard'
+import { FinalStandingsNote } from './FinalStandingsNote'
 import { LeaderboardRow } from './LeaderboardRow'
 import s from '../shared.module.css'
 import l from './leaderboard.module.css'
@@ -32,6 +34,8 @@ export function OverallStandingsPage() {
   const navigate = useNavigate()
   const data = useTournamentData()
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
+  const finalStandings =
+    data.status === 'ready' && areFinalStandingsActive(data.data.matches)
   const [state, setState] = useState<State>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -128,7 +132,9 @@ export function OverallStandingsPage() {
         <ChevronLeftIcon size={16} /> League
       </button>
       <h1 className={s.title}>Overall standings</h1>
-      <p className={s.sub}>All players, everywhere.</p>
+      <p className={s.sub}>
+        {finalStandings ? 'The final table after every tournament result.' : 'All players, everywhere.'}
+      </p>
     </div>
   )
 
@@ -136,9 +142,7 @@ export function OverallStandingsPage() {
     return (
       <div className={s.page}>
         {header}
-        <Alert variant="error" title="Couldn't load the tournament">
-          {data.message}
-        </Alert>
+        <Alert variant="error" title="Couldn't load the tournament">{data.message}</Alert>
       </div>
     )
   }
@@ -147,9 +151,7 @@ export function OverallStandingsPage() {
     return (
       <div className={s.page}>
         {header}
-        <div className={s.card}>
-          <Skeleton lines={6} />
-        </div>
+        <div className={s.card}><Skeleton lines={6} /></div>
       </div>
     )
   }
@@ -161,9 +163,7 @@ export function OverallStandingsPage() {
         <Alert variant="error" title="Couldn't load standings">
           {state.message}
           <div style={{ marginTop: 10 }}>
-            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>
-              Retry
-            </Button>
+            <Button variant="secondary" onClick={() => setReloadKey((key) => key + 1)}>Retry</Button>
           </div>
         </Alert>
       </div>
@@ -189,14 +189,13 @@ export function OverallStandingsPage() {
   return (
     <div className={s.page}>
       {header}
+      {finalStandings ? <FinalStandingsNote /> : null}
 
       {you && !youLoaded ? (
         <section className={l.yourPosition} aria-labelledby="your-position-heading">
           <div className={l.yourPositionHeader}>
             <span id="your-position-heading">Your position</span>
-            <span>
-              {you.position} of {totalCount}
-            </span>
+            <span>{you.position} of {totalCount}</span>
           </div>
           <LeaderboardRow
             rank={you.rank}
@@ -227,14 +226,10 @@ export function OverallStandingsPage() {
         ))}
       </div>
 
-      <p className={l.loadedCount}>
-        Showing {rows.length} of {totalCount}
-      </p>
+      <p className={l.loadedCount}>Showing {rows.length} of {totalCount}</p>
 
       {moreError ? (
-        <Alert variant="warning" title="Couldn't load more standings">
-          {moreError}
-        </Alert>
+        <Alert variant="warning" title="Couldn't load more standings">{moreError}</Alert>
       ) : null}
 
       {hasMore ? (
