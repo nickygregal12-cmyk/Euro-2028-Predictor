@@ -1,0 +1,73 @@
+name: Contract 58 production backup gate
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/contract58-production-backup-gate.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch-and-wait:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      WORKFLOW_FILE: production-backup.yml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dispatch the main-branch encrypted production backup
+        id: dispatch
+        shell: bash
+        run: |
+          set -euo pipefail
+          previous_id="$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=workflow_dispatch&per_page=1" --jq '.workflow_runs[0].id // 0')"
+          gh api --method POST "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/dispatches" -f ref=main
+
+          run_id=''
+          for attempt in $(seq 1 60); do
+            candidate="$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=workflow_dispatch&per_page=1" --jq '.workflow_runs[0].id // 0')"
+            if [ "${candidate}" != '0' ] && [ "${candidate}" != "${previous_id}" ]; then
+              run_id="${candidate}"
+              break
+            fi
+            sleep 2
+          done
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          printf '{"run_id":%s}\n' "${run_id}" > production-backup-run.json
+
+      - name: Wait for backup and restore rehearsal
+        shell: bash
+        env:
+          RUN_ID: ${{ steps.dispatch.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 540); do
+            gh api "repos/${REPO}/actions/runs/${RUN_ID}" > production-backup-run.json
+            status="$(jq -r '.status' production-backup-run.json)"
+            conclusion="$(jq -r '.conclusion // empty' production-backup-run.json)"
+            echo "Production backup run ${RUN_ID}: ${status}${conclusion:+ / ${conclusion}}"
+            if [ "${status}" = 'completed' ]; then
+              test "${conclusion}" = 'success'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Production backup did not complete within the gate timeout.' >&2
+          exit 1
+
+      - name: Upload backup-run evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract58-production-backup-run
+          path: production-backup-run.json
+          if-no-files-found: error
+          retention-days: 7
