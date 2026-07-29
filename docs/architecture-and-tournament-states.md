@@ -113,18 +113,17 @@ Overlays modify a state, never replace it:
 
 ## 11. Testing contract
 
-Every named state gets a deterministic fake-clock fixture. Minimum 20 scenarios: entries-open incomplete · entries-open submitted · locked with opening match tomorrow · first match today not started · one live match · two simultaneous live · between matches · awaiting confirmation · day complete · rest day · stage transition · knockout window open · spectator post-lock · Cup-eliminated user · Cup live knockout tie · LMS action required · feed unavailable · postponed match · corrected result · final complete. Each renders under the hostile-data matrix (360px + desktop, both themes, long names, large league, partial data). **The dress rehearsal drives one seeded tournament clock through every state in order** — never a pile of unrelated mock pages (this redefines the rehearsal method in `roadmap.md`).
+Every named state gets a deterministic fake-clock fixture. Minimum 20 scenarios: entries-open incomplete · entries-open submitted · locked with opening match tomorrow · first match today not started · one live match · two simultaneous live · between matches · awaiting confirmation · day complete · rest day · stage transition · knockout window open · spectator post-lock · Cup-eliminated user · Cup live knockout tie · LMS action required · feed unavailable · postponed match · corrected result · final complete. Each renders under the hostile-data matrix (360px + desktop, both themes, long names, large league, partial data). **The dress rehearsal drives one seeded tournament clock through every state in order** — never a pile of unrelated mock pages. This is the testing contract the rehearsal must satisfy; when the rehearsal is scheduled and run is `roadmap.md` Stage 7.
 
-## 12. Reconciliation with the decided build sequence
+## 12. The engine's ordering constraint
 
-The proposal's stages map onto the decided order (`roadmap.md` → Launch scope & build sequence) as follows — no resequencing of decided items, one insertion:
-1. Write integrity (audit items, incl. phase 2) — unchanged, first.
-2. Friction test — unchanged.
-3. **NEW foundation item: the tournament-context engine** (resolver + match-state resolver + action queue + fake-clock fixtures) — built **before** the state-heavy re-cuts (Home phases, Matches expansion, My entry, spectator states) so they're built once, on the engine.
-4. Bonus Games platform (Phase 4) — now explicitly including: shared knockout-prediction store (per-kickoff locks + version guards, one prediction form), competition instances/entries/**windows (§7)**, registration + deadlines, Games hub read model, admin controls, audit logging, `confirm_match_result` (§9).
-5. The three games (Phases 5–7) — unchanged.
-6. Core-experience re-cuts (Phase 3 items) — consuming the engine.
-7. Dress rehearsal (§11 method) → Tournament Readiness → launch.
+**Sequencing lives in `roadmap.md`. This section states the architectural dependency only.**
+
+The state-heavy surfaces — Home phase layouts, the Matches expansion, My entry and the spectator states — must consume the tournament-context engine (§3) rather than computing phase, day-shape or urgency themselves. The engine is a foundation, so building it first means those surfaces are built once.
+
+**That ordering was not followed.** The state-heavy re-cuts shipped ahead of the engine, and the engine (§3) remains adopted design rather than built code. The surfaces therefore carry their timing logic in the individual domain modules named in the implementation-status note at the head of this document. This is migration debt, not a decision to revisit: when the engine lands, those surfaces move onto it, and the read-model pattern in §1 says such migrations happen opportunistically rather than as a big-bang refactor.
+
+New state-dependent surfaces built after the engine exists must consume it from the start.
 
 ## 13. The final rule
 
