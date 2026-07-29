@@ -68,11 +68,15 @@ describe('GamesPage', () => {
     vi.clearAllMocks()
   })
 
-  it('shows the empty state when nothing is published', async () => {
+  it('keeps every canonical game visible when the hosted catalogue is empty', async () => {
     mocks.fetchBonusGames.mockResolvedValue({ serverNow: SERVER_NOW, games: [] })
     renderPage()
 
-    expect(await screen.findByText('No bonus games yet')).toBeTruthy()
+    expect(await screen.findByText('More ways to play Euro 2028')).toBeTruthy()
+    for (const name of ['KO Predictor', 'Last Man Standing', 'Predictor Cup']) {
+      expect(screen.getByText(name)).toBeTruthy()
+    }
+    expect(screen.getAllByText('Schedule not published yet')).toHaveLength(3)
   })
 
   it('offers entry for an open competition and refreshes after registering', async () => {
@@ -139,7 +143,7 @@ describe('GamesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
 
-    expect(await screen.findByText('No bonus games yet')).toBeTruthy()
+    expect(await screen.findByText('More ways to play Euro 2028')).toBeTruthy()
     expect(mocks.fetchBonusGames).toHaveBeenCalledTimes(2)
   })
 })

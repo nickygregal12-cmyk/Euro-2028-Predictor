@@ -4,7 +4,6 @@ import {
   Alert,
   Button,
   ConfirmModal,
-  EmptyState,
   Skeleton,
   StatusBadge,
 } from '../../design-system'
@@ -29,23 +28,36 @@ import { userFacingError } from '../../shared/errors/userFacingError'
 import s from '../shared.module.css'
 import g from './games.module.css'
 
-const GAME_META: Record<BonusGameKey, { name: string; tagline: string }> = {
+type GameMeta = {
+  name: string
+  tagline: string
+  rules: string
+}
+
+const GAME_ORDER: readonly BonusGameKey[] = [
+  'ko_predictor',
+  'last_man_standing',
+  'predictor_cup',
+]
+
+const GAME_META: Record<BonusGameKey, GameMeta> = {
   ko_predictor: {
     name: 'KO Predictor',
     tagline: 'Predict every knockout scoreline. Join before any round — no jokers.',
+    rules: 'Exact score 5 · correct result 3 · correct team through +2.',
   },
   last_man_standing: {
     name: 'Last Man Standing',
     tagline: 'One pick per round. Survive elimination longer than everyone else.',
+    rules: 'Win in the groups, advance in the knockouts, and use each team only once.',
   },
   predictor_cup: {
     name: 'Predictor Cup',
-    tagline: 'Your predictions become fixtures in a head-to-head knockout cup.',
+    tagline: 'Your predictions become fixtures in a head-to-head tournament.',
+    rules: 'Group matches, qualification, seeded knockouts and a Golden Predictor award.',
   },
 }
 
-// One user-facing line per canonical state (architecture §8; precedence in
-// resolveCompetitionStatus). The domain decides the state — this only words it.
 const STATE_COPY: Record<CompetitionState, string> = {
   not_open: 'Not open yet',
   registration_open: 'Registration open — join now',
@@ -165,7 +177,7 @@ export function GamesPage() {
       <button type="button" className={s.backLink} onClick={() => navigate('/more')}>
         <ChevronLeftIcon size={16} /> More
       </button>
-      <h1 className={s.title}>Games</h1>
+      <h1 className={s.title}>Bonus Games</h1>
     </div>
   )
 
@@ -192,18 +204,38 @@ export function GamesPage() {
         <div className={s.card}>
           <Skeleton lines={3} />
         </div>
-        <div className={s.card}>
-          <Skeleton lines={3} />
+        <div className={g.catalogueGrid}>
+          {GAME_ORDER.map((gameKey) => (
+            <div key={gameKey} className={`${s.card} ${g.gameCard}`}>
+              <Skeleton lines={4} />
+            </div>
+          ))}
         </div>
       </div>
     )
   }
 
   const now = new Date(state.serverNow)
+  const gamesByKey = new Map(state.games.map((game) => [game.competition.gameKey, game]))
+  const enteredKnockoutGame = state.games.some(
+    (game) =>
+      game.entrant !== null &&
+      (game.competition.gameKey === 'ko_predictor' ||
+        game.competition.gameKey === 'predictor_cup'),
+  )
 
   return (
     <div className={s.page}>
       {header}
+
+      <section className={`${s.card} ${g.heroCard}`}>
+        <span className={s.eyebrow}>Three separate competitions</span>
+        <h2 className={g.heroTitle}>More ways to play Euro 2028</h2>
+        <p className={g.tagline}>
+          Entry is optional for each game. Bonus points and standings never change your
+          Original Predictor score or private leagues.
+        </p>
+      </section>
 
       {actionError ? (
         <Alert variant="error" title="That didn’t work">
@@ -211,13 +243,27 @@ export function GamesPage() {
         </Alert>
       ) : null}
 
-      {state.games.length === 0 ? (
-        <EmptyState
-          title="No bonus games yet"
-          description="Bonus competitions open closer to the tournament. Your Original Predictor entry is unaffected."
-        />
-      ) : (
-        state.games.map((game) => {
+      <div className={g.catalogueGrid}>
+        {GAME_ORDER.map((gameKey) => {
+          const meta = GAME_META[gameKey]
+          const game = gamesByKey.get(gameKey)
+
+          if (!game) {
+            return (
+              <section key={gameKey} className={`${s.card} ${g.gameCard}`}>
+                <div className={g.gameHeader}>
+                  <h2 className={g.gameName}>{meta.name}</h2>
+                </div>
+                <p className={g.tagline}>{meta.tagline}</p>
+                <p className={g.rules}>{meta.rules}</p>
+                <p className={g.stateLine}>Schedule not published yet</p>
+                <p className={g.deadline}>
+                  This game will activate automatically when its tournament configuration is published.
+                </p>
+              </section>
+            )
+          }
+
           const windows: CompetitionWindow[] = game.windows.map((window) => ({
             id: window.id,
             competitionId: window.competitionId,
@@ -235,7 +281,6 @@ export function GamesPage() {
             entrant: game.entrant,
             now,
           })
-          const meta = GAME_META[game.competition.gameKey]
           const canRegister = !status.entered && status.state === 'registration_open'
           const canWithdraw =
             status.entered &&
@@ -250,9 +295,12 @@ export function GamesPage() {
                 {badgeFor(status)}
               </div>
               <p className={g.tagline}>{meta.tagline}</p>
+              <p className={g.rules}>{meta.rules}</p>
               <p className={g.stateLine}>{STATE_COPY[status.state]}</p>
               {status.nextDeadline ? (
                 <p className={g.deadline}>Deadline: {formatInstant(status.nextDeadline)}</p>
+              ) : status.state === 'not_open' ? (
+                <p className={g.deadline}>Opening date to be confirmed</p>
               ) : null}
               <div className={g.actions}>
                 {canRegister ? (
@@ -260,17 +308,22 @@ export function GamesPage() {
                     Enter
                   </Button>
                 ) : null}
-                {game.competition.gameKey === 'ko_predictor' ? (
+                {gameKey === 'ko_predictor' ? (
                   <Button variant="secondary" onClick={() => navigate('/games/ko-predictor')}>
                     Standings
                   </Button>
                 ) : null}
-                {game.competition.gameKey === 'last_man_standing' && game.entrant ? (
+                {gameKey === 'ko_predictor' && game.entrant ? (
+                  <Button variant="secondary" onClick={() => navigate('/games/knockout')}>
+                    Predictions
+                  </Button>
+                ) : null}
+                {gameKey === 'last_man_standing' && game.entrant ? (
                   <Button variant="secondary" onClick={() => navigate('/games/lms')}>
                     Play
                   </Button>
                 ) : null}
-                {game.competition.gameKey === 'predictor_cup' && game.entrant ? (
+                {gameKey === 'predictor_cup' && game.entrant ? (
                   <Button variant="secondary" onClick={() => navigate('/games/cup')}>
                     My Cup
                   </Button>
@@ -287,20 +340,15 @@ export function GamesPage() {
               </div>
             </section>
           )
-        })
-      )}
+        })}
+      </div>
 
-      {state.games.some(
-        (game) =>
-          game.entrant !== null &&
-          (game.competition.gameKey === 'ko_predictor' ||
-            game.competition.gameKey === 'predictor_cup'),
-      ) ? (
+      {enteredKnockoutGame ? (
         <section className={`${s.card} ${g.gameCard}`}>
-          <h2 className={g.gameName}>Knockout predictions</h2>
+          <h2 className={g.gameName}>Shared knockout predictions</h2>
           <p className={g.tagline}>
-            One shared set of knockout scorelines, read by every game you’ve entered.
-            Each match locks at its own kickoff.
+            One set of knockout scorelines is read by every knockout game you enter. Each
+            match locks at its own kickoff.
           </p>
           <div className={g.actions}>
             <Button variant="secondary" onClick={() => navigate('/games/knockout')}>

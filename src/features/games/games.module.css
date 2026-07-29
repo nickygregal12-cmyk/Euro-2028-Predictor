@@ -1,7 +1,26 @@
+.heroCard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: clamp(1.2rem, 4vw, 1.65rem);
+  line-height: 1.15;
+}
+
+.catalogueGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
 .gameCard {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: 100%;
 }
 
 .gameHeader {
@@ -19,8 +38,14 @@
 
 .tagline {
   margin: 0;
-  color: var(--text-muted, #667085);
+  color: var(--tx2);
   font-size: 0.85rem;
+}
+
+.rules {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .stateLine {
@@ -31,7 +56,7 @@
 .deadline {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--text-muted, #667085);
+  color: var(--tx2);
 }
 
 .actions {
@@ -98,4 +123,10 @@
 .penaltyInput:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
+}
+
+@media (min-width: 760px) {
+  .catalogueGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }

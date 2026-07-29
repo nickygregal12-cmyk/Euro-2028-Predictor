@@ -1,67 +1,67 @@
 # Current feature and safeguard baseline
 
-**Latest development reconciliation:** [`reconciliations/2026-07-27-admin-migration-version-reconciliation.md`](reconciliations/2026-07-27-admin-migration-version-reconciliation.md)
-**Last verified final-target baseline:** [`reconciliations/2026-07-27-contract-38-final-target-promotion.md`](reconciliations/2026-07-27-contract-38-final-target-promotion.md)
-**Sentry assurance:** [`reconciliations/2026-07-26-sentry-operational-assurance.md`](reconciliations/2026-07-26-sentry-operational-assurance.md)  
+**Latest full audit reconciliation:** [`audits/2026-07-29-contract-60-full-documentation-audit.md`](audits/2026-07-29-contract-60-full-documentation-audit.md)  
+**Latest production release alignment:** [`investigations/2026-07-29-contract60-production-promotion.md`](investigations/2026-07-29-contract60-production-promotion.md)  
 **Current hosted state:** [`current-status.md`](current-status.md)  
 **Identifier repair:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
 
-> Every compact current row has one primary identifier. All archived identifiers remain reserved in the continuity register. Current code, migrations, tests and verified hosted evidence override older wording.
+> Every compact current row has one primary identifier. Archived identifiers remain reserved in the continuity register. Current code, migrations, executable tests and verified hosted evidence override older wording.
 
 ## Classification rules
 
-- **Implemented and final-target-hosted:** working capability supported by the verified contract-38 production application/database pair.
-- **Implemented and development-hosted; final-target pending:** reserved for a future development-only capability that has not yet reached production.
-- **Implemented with evidence gap:** hosted capability exists but a required browser/operational journey remains incomplete.
+- **Implemented and production-hosted:** working capability supported by the current contract-60 production application/database pair.
+- **Implemented and development-hosted; production pending:** working development capability not yet promoted.
+- **Implemented with evidence gap:** hosted capability exists but a required browser, accessibility or operational journey remains incomplete.
 - **Partial:** meaningful implementation exists but a required layer, route or journey is absent.
 - **UI prototype only:** presentation exists without an authoritative data path.
 - **Documented/planned:** intent exists without working implementation.
 - **Not present:** no current implementation evidence.
 
-Repository, development Supabase, production Supabase and non-production Netlify contexts are contract 44 (production database promoted 28 July 2026); the production application release is the remaining milestone step. See `current-status.md` for the live contract position.
+Repository, development Supabase, production Supabase and every Netlify context are aligned at contract 60. The production application is published from the exact contract-60 release-alignment merge. See `current-status.md` for the live deploy and data position.
 
 ## Original Predictor and core application
 
 | ID | Capability | Current classification | Evidence boundary |
 | --- | --- | --- | --- |
-| `FEAT-001` | Authentication, signup/login, password recovery, moderation and sign-out | Implemented and final-target-hosted | Auth routes/Supabase; final SMTP/Turnstile settings remain |
-| `FEAT-006` | First-use welcome gate | Implemented and final-target-hosted | `/welcome`, `welcomed_at`, Browser E2E |
-| `FEAT-009` | Group score prediction | Implemented and final-target-hosted | Predictor UI and protected prediction boundary |
-| `FEAT-015` | Joker selection | Implemented and final-target-hosted | UI, database guard and scoring config |
-| `FEAT-010` | Predicted group table | Implemented and final-target-hosted | Domain logic and derived-position path |
-| `FEAT-045` | Recursive head-to-head predicted ordering | Implemented and final-target-hosted | SQL resolver and TypeScript parity |
-| `FEAT-012` | Manual predicted same-group tie resolution | Implemented and final-target-hosted | Replay/validation and stored decisions |
-| `FEAT-013` | Best-third ranking/manual boundary resolution | Implemented and final-target-hosted | Replay and exact-set decisions |
-| `FEAT-014` | Winner-only Original bracket | Implemented and final-target-hosted | Atomic persistence and full-tree replay |
-| `FEAT-046` | Atomic complete-bracket replacement | Implemented and final-target-hosted | Protected RPC and conflict boundary |
-| `FEAT-016` | Golden Boot selection | Implemented and final-target-hosted | Prediction data/UI |
-| `FEAT-017` | Derived group-stage goals | Implemented and final-target-hosted | Derived from 36 group scores |
-| `FEAT-018` | Review and manual submission | Implemented and final-target-hosted | RPC-only submission boundary |
-| `FEAT-047` | Pending-write settlement before submit | Implemented and final-target-hosted | Browser coverage and smoke |
-| `FEAT-048` | Persisted score clearing | Implemented with evidence gap | RPC/trigger hosted; final-target browser proof remains |
-| `FEAT-020` | Automatic valid-entry submission at lock | Implemented and development-hosted; final-target pending | Database-scheduled processor, immutable outcomes and owner status RPC (contract 41, PR #128); production carries it only at a later milestone |
-| `FEAT-041` | Deadline reminder emails | Documented/planned | No scheduler/email implementation |
+| `FEAT-001` | Authentication, signup/login, password recovery, moderation and sign-out | Implemented and production-hosted | Auth routes/Supabase; final SMTP/Turnstile decisions remain |
+| `FEAT-006` | First-use welcome gate | Implemented and production-hosted | `/welcome`, `welcomed_at`, Browser E2E |
+| `FEAT-009` | Group score prediction | Implemented and production-hosted | Predictor UI and protected prediction boundary |
+| `FEAT-015` | Joker selection | Implemented and production-hosted | UI, database guard and scoring config |
+| `FEAT-010` | Predicted group table | Implemented and production-hosted | Domain logic, server-derived positions and parity |
+| `FEAT-045` | Recursive head-to-head predicted ordering | Implemented and production-hosted | SQL resolver and TypeScript parity |
+| `FEAT-012` | Manual predicted same-group tie resolution | Implemented and production-hosted | Replay/validation and stored decisions |
+| `FEAT-013` | Best-third ranking/manual boundary resolution | Implemented and production-hosted | Exact-set decisions and actual qualification control |
+| `FEAT-014` | Winner-only Original bracket | Implemented and production-hosted | Atomic persistence and full-tree replay |
+| `FEAT-046` | Atomic complete-bracket replacement | Implemented and production-hosted | Protected RPC and conflict boundary |
+| `FEAT-016` | Golden Boot selection | Implemented and production-hosted | Prediction data/UI; official squad data remains future |
+| `FEAT-017` | Derived group-stage goals | Implemented and production-hosted | Derived from 36 group scores |
+| `FEAT-018` | Review and manual submission | Implemented and production-hosted | RPC-only submission boundary |
+| `FEAT-047` | Pending-write settlement before submit | Implemented and production-hosted | Browser coverage and smoke |
+| `FEAT-048` | Persisted score and entry clearing | Implemented and production-hosted | Version-safe clearing plus contract-58 non-resurrection |
+| `FEAT-020` | Automatic valid-entry submission at lock | Implemented and production-hosted | Database-scheduled processor, immutable outcomes and owner status |
+| `FEAT-041` | Deadline reminder emails | Documented/planned | Preference exists; delivery awaits Auth/SMTP ownership |
 
 ## Competition integrity safeguards
 
 | ID | Safeguard | Current classification | Current position |
 | --- | --- | --- | --- |
-| `SAFE-007` | RPC-only submission | Implemented and final-target-hosted | Direct browser entry mutation denied |
-| `SAFE-045` | Server-derived predicted positions | Implemented and final-target-hosted | Derived/protected rows |
-| `SAFE-008` | Same-tournament and authoritative reference guards | Implemented and final-target-hosted | Migration 36 guards six relationship groups in development and the final target |
-| `SAFE-006` | Lock-time write rejection | Implemented and final-target-hosted | Final browser lock assurance remains |
-| `SAFE-009` | Full predicted bracket replay | Implemented and final-target-hosted | Validation/submission replay |
-| `SAFE-046` | Optimistic bracket conflict detection | Implemented and final-target-hosted | Atomic expected-version boundary |
-| `SAFE-047` | Save-settlement submission barrier | Implemented and final-target-hosted | Submission-settlement proof |
-| `SAFE-048` | Version-safe prediction deletion | Implemented with evidence gap | Final-target browser clear/conflict proof remains |
-| `SAFE-049` | Derived-position invalidation after clear | Implemented and final-target-hosted | Trigger path hosted |
-| `SAFE-050` | Authoritative result method/winner | Implemented and final-target-hosted | Database authority; frontend consumption of the authoritative winner/method shipped in PR #124 |
-| `SAFE-051` | Immutable result revision history | Implemented and final-target-hosted | Direct-access denial and verifier |
-| `SAFE-052` | Real knockout winner propagation | Implemented and final-target-hosted | Contract-36 functions/validation hosted |
-| `SAFE-010` | Serialized score recomputation | Implemented and final-target-hosted | Result/scoring operations serialized |
-| `SAFE-053` | Exact function execution allowlists | Implemented and final-target-hosted | Zero anonymous application execution in verifier |
-| `SAFE-013` | Final-target/development isolation | Implemented and hosted | Production uses final-target; non-production uses development |
-| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Per-context verification (development 44/44, production 38/38); incompatible builds blocked |
+| `SAFE-007` | RPC-only submission | Implemented and production-hosted | Direct browser entry mutation denied |
+| `SAFE-045` | Server-derived predicted positions | Implemented and production-hosted | Derived/protected rows |
+| `SAFE-008` | Same-tournament and authoritative reference guards | Implemented and production-hosted | Six relationship groups plus later Bonus Games boundaries |
+| `SAFE-006` | Lock-time write rejection | Implemented and production-hosted | Browser and database coverage |
+| `SAFE-009` | Full predicted bracket replay | Implemented and production-hosted | Validation/submission replay |
+| `SAFE-046` | Optimistic bracket conflict detection | Implemented and production-hosted | Atomic expected-version boundary |
+| `SAFE-047` | Save-settlement submission barrier | Implemented and production-hosted | Submission-settlement proof |
+| `SAFE-048` | Version-safe prediction deletion | Implemented and production-hosted | Stale writes cannot recreate a cleared entry |
+| `SAFE-049` | Derived-position invalidation after clear | Implemented and production-hosted | Trigger path hosted |
+| `SAFE-050` | Authoritative result method/winner | Implemented and production-hosted | Regulation, extra time and penalties consumed by product UI |
+| `SAFE-051` | Immutable result revision history | Implemented and production-hosted | Direct-access denial and verifier |
+| `SAFE-052` | Real knockout winner propagation | Implemented and production-hosted | Transactional replay and played-fixture protection |
+| `SAFE-010` | Serialized score recomputation | Implemented and production-hosted | Result/scoring operations serialized |
+| `SAFE-053` | Exact function execution allowlists | Implemented and production-hosted | Zero anonymous application execution; service-only internals |
+| `SAFE-013` | Production/development isolation | Implemented and hosted | Production and non-production retain separate Supabase projects |
+| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Every Netlify context declares contract 60 |
+| `SAFE-056` | Bonus Games catalogue visibility fallback | Implemented in current release batch | Canonical cards remain visible even if hosted catalogue rows are absent |
 
 Safe error mapping and redacting client-error capture remain governed by preserved `SAFE-039`.
 
@@ -69,46 +69,47 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 
 | ID | Capability | Current classification | Notes |
 | --- | --- | --- | --- |
-| `FEAT-027` | Overall standings | Implemented and final-target-hosted | Contract-43 server-ranked keyset pagination in development; production serves the contract-38 reads until a later milestone |
-| `FEAT-028` | Private league lifecycle | Implemented and final-target-hosted | Abuse/security review remains |
-| `FEAT-029` | Invite deep links | Implemented and final-target-hosted | Pre-auth context weak |
-| `FEAT-049` | League detail/member rows | Implemented and final-target-hosted | Other-player destination incomplete |
-| `FEAT-031` | H2H comparison | Implemented and final-target-hosted, pass 1 | Rank graph/bracket health planned; authoritative penalty-winner consumption shipped (PR #124) |
-| `FEAT-035` | Own profile/points breakdown | Implemented and final-target-hosted | `/profile` present |
-| `FEAT-036` | Other-player full profile | Partial/UI prototype | Complete secure flow absent |
-| `FEAT-032` | Match list and Match Centre | Implemented and final-target-hosted | Consumes the authoritative winner, extra-time and penalty results (PR #124) |
-| `FEAT-050` | Post-lock trends | Documented/planned | No hosted capability |
+| `FEAT-027` | Overall standings | Implemented and production-hosted | Server-ranked keyset pagination and current-user context |
+| `FEAT-028` | Private league lifecycle | Implemented and production-hosted | Bounded standings and transfer search; abuse review remains |
+| `FEAT-029` | Invite deep links | Implemented and production-hosted | Pre-auth invite context remains partial |
+| `FEAT-049` | League detail/member rows | Implemented and production-hosted | Secure profile and H2H destinations |
+| `FEAT-031` | H2H comparison | Implemented and production-hosted | Authoritative totals, rank history and bracket health |
+| `FEAT-035` | Own profile/points breakdown | Implemented and production-hosted | `/profile` with resilient reload/retry |
+| `FEAT-036` | Other-player full profile | Implemented and production-hosted | Co-member-only pre/post-lock reveal boundary |
+| `FEAT-032` | Match list, Match Centre and tournament information | Implemented and production-hosted | Fixtures, tables, bracket, stats and authoritative result detail |
+| `FEAT-050` | Post-lock trends | Documented/planned | Current Stage 6 product batch |
 
 ## Administration, accessibility, assurance and operations
 
 | ID | Capability/safeguard | Classification | Notes |
 | --- | --- | --- | --- |
-| `FEAT-040` | Result confirm/correct/clear server functions | Implemented and final-target-hosted | Authoritative service-role functions; browser-authorised `admin_*` wrappers hosted at contracts 37–38 in both environments |
-| `FEAT-039` | Browser result administration | Implemented and development-hosted; final-target pending | Full confirm/correct/clear mutation UI, review step, revision history and authorised/unauthorised desktop/mobile Browser E2E merged (PR #120); qualification-boundary controls added (PR #126) |
-| `SAFE-032` | Administrator bootstrap/authorization | Partial | Fail-closed `app_metadata` capability model is implemented; hosted assignment/custody evidence remains |
-| `SAFE-012` | Fake clock/simulation isolation | Partial development capability | Full rehearsal open |
-| `SAFE-025` | Application CI | Implemented | Build, lint, tests and audit passing through the contract-44 merges |
-| `SAFE-026` | Disposable database integration CI | Implemented | Full current-contract rebuild (44 migrations), lint, pgTAP and parity |
-| `SAFE-055` | Provider submission/clear regression tests | Implemented | Not all final-target browser evidence |
-| `SAFE-027` | Browser E2E and hosted preview smoke | Implemented for disposable and development preview | Authenticated, auth recovery, exact-head HTTP and anonymous smoke passed; extended with admin, automatic-submission, overall-standings and capacity journeys through contract 44 |
-| `FEAT-042` | Monitoring and alerting | Partial hosted capability | Privacy-safe production Sentry delivery is verified; retention, server-side/IP scrubbing confirmation, backup recipient, escalation and rollback rehearsal remain |
-| `SAFE-033` | Verified backup/restore | Implemented and accepted | Encrypted artifact and clean restore proof |
-| `SAFE-031` | Safe application rollback | Procedure implemented; hosted rehearsal pending | Final-target rollback rehearsal remains |
-| `SAFE-029` | Automatic final-target deploy | Implemented but contract-gated | Production retains the verified contract-38 release; contract-44 `main` is correctly blocked from production until a later approved milestone |
+| `FEAT-040` | Result confirm/correct/clear server functions | Implemented and production-hosted | Authoritative wrappers and immutable revisions |
+| `FEAT-039` | Browser result and qualification administration | Implemented and production-hosted | Protected desktop/mobile workflows and capability checks |
+| `SAFE-032` | Administrator bootstrap/authorization | Implemented with operational follow-up | Owner-controlled `app_metadata` capability assigned; custody remains operational |
+| `SAFE-012` | Fake clock/simulation isolation | Partial development capability | Full dress rehearsal remains |
+| `SAFE-025` | Application CI | Implemented | Build, lint, tests and production dependency audit |
+| `SAFE-026` | Disposable database integration CI | Implemented | Full 60-migration rebuild, lint, pgTAP and differential parity |
+| `SAFE-055` | Provider submission/clear regression tests | Implemented | Unit, database and browser coverage |
+| `SAFE-027` | Browser E2E and hosted preview smoke | Implemented | Auth, lifecycle, admin, profiles, capacity and accessibility journeys |
+| `FEAT-042` | Monitoring and alerting | Partial hosted capability | Sentry delivery verified; ownership, retention/escalation and rollback rehearsal remain |
+| `SAFE-033` | Verified backup/restore | Implemented and accepted | Encrypted artifact and disposable restore proof |
+| `SAFE-031` | Safe application rollback | Procedure implemented; hosted rehearsal pending | Final rollback rehearsal remains |
+| `SAFE-029` | Contract-gated production deploy | Implemented | Exact contract-60 release published and production re-locked |
 
-Route titles, live announcements, main focus and skip navigation exist. Manual screen-reader review remains open.
+Automated axe scanning, route titles, live announcements, main focus and skip navigation exist. Manual keyboard, screen-reader and contrast review remains open.
 
 ## Bonus competition scope
 
-| ID | Competition | Classification |
-| --- | --- | --- |
-| `PLAN-001` | KO Predictor | Documented/planned launch scope |
-| `PLAN-002` | Last Man Standing | Documented/planned launch scope |
-| `PLAN-003` | Predictor Cup | Rules/planning; implementation absent |
-| `PLAN-008` | Sweepstake builder | Future/non-launch-blocking |
-| `PLAN-004` | Fan Duels separate mode | Legacy/superseded by Predictor Cup |
+| ID | Competition/capability | Classification | Evidence boundary |
+| --- | --- | --- | --- |
+| `FEAT-051` | Bonus Games hub and voluntary entry | Implemented and production-hosted | `/games`, contract-50 RPCs, More navigation and resilient catalogue cards |
+| `FEAT-052` | KO Predictor | Implemented and production-hosted | Shared knockout store, per-kickoff locks, 5/3/+2 scoring and standings |
+| `FEAT-053` | Last Man Standing | Implemented and production-hosted | One-use teams, round locks, correction-aware settlement and survivor view |
+| `FEAT-054` | Predictor Cup | Implemented and production-hosted | Draw, groups, qualification, playoff/byes, knockouts, Penalty Numbers and honours |
+| `PLAN-008` | Sweepstake builder | Future/non-launch-blocking | No current implementation |
+| `PLAN-004` | Fan Duels separate mode | Legacy/superseded by Predictor Cup | Direct challenge remains parked |
 
-No bonus game is implemented merely because it appears in design or roadmap material.
+The production catalogue is operational reference data rather than a schema contract. The repeatable publication source is `scripts/bonus-games/publish-catalogue.sql`; it creates no entrants, predictions, draws, scores or results.
 
 ## Identifier continuity and archived dispositions
 
@@ -132,10 +133,12 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 | `FEAT-037` | Share-card preserved |
 | `FEAT-038` | Scoring explanation preserved |
 | `FEAT-043` | Public marketing landing not approved/present |
-| `PLAN-001`, `PLAN-002`, `PLAN-003`, `PLAN-004`, `PLAN-008` | Retained primary rows |
-| `PLAN-005` | Planned bonus hub |
-| `PLAN-006` | Planned shared KO store |
-| `PLAN-007` | Planned typed competition entries |
+| `PLAN-001`, `PLAN-005` | Superseded by `FEAT-051` |
+| `PLAN-002` | Superseded by `FEAT-053` |
+| `PLAN-003` | Superseded by `FEAT-054` |
+| `PLAN-006` | Superseded by `FEAT-052` shared knockout store |
+| `PLAN-007` | Abandoned by ADR-0010 dedicated Bonus Games tables |
+| `PLAN-004`, `PLAN-008` | Retained current rows |
 | `SAFE-001`, `SAFE-002`, `SAFE-003`, `SAFE-004` | Domain, splitting, service and RLS safeguards preserved |
 | `SAFE-005` | Search-path safeguard; exact allowlists use `SAFE-053` |
 | `SAFE-006`, `SAFE-007`, `SAFE-008`, `SAFE-009`, `SAFE-010`, `SAFE-012`, `SAFE-013`, `SAFE-025`, `SAFE-026`, `SAFE-027`, `SAFE-029`, `SAFE-031`, `SAFE-032`, `SAFE-033` | Retained primary rows |
@@ -157,13 +160,17 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 | `FEAT-045` | Recursive H2H predicted ordering |
 | `FEAT-046` | Atomic complete-bracket replacement |
 | `FEAT-047` | Submission settlement |
-| `FEAT-048` | Persisted score clearing |
+| `FEAT-048` | Persisted score/entry clearing |
 | `FEAT-049` | League detail/member rows |
 | `FEAT-050` | Post-lock trends |
+| `FEAT-051` | Bonus Games hub and voluntary entry |
+| `FEAT-052` | KO Predictor and shared knockout store |
+| `FEAT-053` | Last Man Standing |
+| `FEAT-054` | Predictor Cup |
 | `SAFE-045` | Server-derived positions |
 | `SAFE-046` | Bracket conflict detection |
 | `SAFE-047` | Submission settlement barrier |
-| `SAFE-048` | Version-safe deletion |
+| `SAFE-048` | Version-safe, non-resurrecting deletion |
 | `SAFE-049` | Position invalidation after clear |
 | `SAFE-050` | Authoritative result method/winner |
 | `SAFE-051` | Immutable revisions |
@@ -171,14 +178,13 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 | `SAFE-053` | Exact function allowlists |
 | `SAFE-054` | App/schema compatibility gate |
 | `SAFE-055` | Submission/clear regression tests |
+| `SAFE-056` | Bonus Games catalogue visibility fallback |
 
 ## Current route and data baseline
 
-Current `main` has authenticated Original Predictor, league, H2H, match, profile and auth routes plus catch-all. Development-only routes remain gated. Protected administrator routes with the full result and qualification mutation workflow are merged.
+Current `main` has authenticated Original Predictor, league, H2H, match, profile, Account, Bonus Games and protected administrator routes plus catch-all. Development-only routes remain gated. Repository and both hosted databases have exactly 60 canonical migrations; every Netlify context declares contract 60.
 
-Development is verified with 44 canonical migrations. The final target retains 38 migrations; migrations 39–44 are development-only until a later approved production milestone.
-
-Contract 39–44 capabilities not yet carrying individual register rows (tracked in `current-status.md`): server-owned actual Round-of-16 population, authorised third-place qualification-boundary resolution, automatic valid-entry submission (`FEAT-020` above), bounded league/member/pick/rival reads, paginated overall standings and operating-cap enforcement with the anonymous-safe capacity RPC.
+The Bonus Games runtime routes are `/games`, `/games/knockout`, `/games/ko-predictor`, `/games/lms` and `/games/cup`. Hosted catalogue publication is separate operational reference data and must not create synthetic entrants or result history.
 
 ## Safeguard regression rules
 
@@ -190,9 +196,10 @@ Do not silently:
 - accept impossible brackets;
 - infer penalty winners from tied public scores;
 - mix Original/bonus points or predicted/real brackets;
+- remove a canonical Bonus Game because hosted catalogue data is absent;
 - cross Supabase/Netlify environments or use the legacy World Cup site;
 - deploy against an unverified database contract;
-- omit target contract from smoke commands;
+- omit target contract or release identity from smoke commands;
 - disable or misdescribe approved Sentry production delivery;
 - expose sensitive observability data;
 - change scoring without rules/TypeScript/SQL/tests;

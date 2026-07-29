@@ -63,6 +63,8 @@ ADR-0010 B1–B7c is delivered and production-aligned:
 
 Contracts 59–60 preserve those rules while removing the two temporary-table implementation dependencies so hosted database lint is clean.
 
+The visible production cut also includes explicit More → Bonus Games navigation, a resilient three-game catalogue and repeatable publication of the three competition records, 14 LMS/Cup windows and 102 fixture links. Production registration remains deliberately closed until the owner records opening instants.
+
 ## Stage 6 — Post-lock product experience: current
 
 ### 6A — Consensus and richer My-entry state
