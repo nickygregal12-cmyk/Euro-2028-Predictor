@@ -18,6 +18,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `PRIV-001` | **Resolved and production-hosted.** Tournament-wide consensus is suppressed below ten submitted entries; the caller counts and browser roles cannot execute the unsuppressed helper. |
 | `REL-008` | **Reduced to historical evidence.** PRs #194/#195 showed inconsistent documentation-branch previews, but exact PR #193 contract-63 preview publication, HTTP smoke and Chromium smoke passed. |
 | `MIG-001` | **Resolved.** Pull-request CI fetches `origin/main`, rejects stale/colliding added migrations, enforces strict ordering and passes when no migration is added. |
+| `CI-001` | **Resolved by the domain-root filter.** Database parity previously watched only `src/domain/tournament/**`, so PR #201's new `src/domain/competition/**` engine silently skipped the control. The workflow now watches `src/domain/**`; closure requires the workflow to run successfully on the fixing pull request. |
 | `DATA-003` | **Resolved and hosted.** Same-tournament/reference guards are present in both hosted environments. |
 | `DOC-001` | **Resolved and actively maintained.** Contract-63 production evidence is recorded in the live authority documents. |
 | `FUNC-003` | **Resolved in production.** Canonical Bonus Game cards and the repeatable catalogue prevent silent disappearance. |
@@ -49,6 +50,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `OPS-002` | Administrator control room incomplete | **Resolved** | Result and qualification controls are browser-proven. |
 | `POSTLOCK-001` | Locked entries lacked a crowd/trends experience | **Resolved and production-hosted** | Contracts 61 and 63 provide bounded post-lock aggregates with cohort suppression. |
 | `LEAGUE-001` | Final standings did not apply the documented tie-break order | **Resolved and production-hosted** | Contract 62 activates the five-step order after all results and preserves live points-only ranks. |
+| `CI-001` | Database parity path filtering excluded new domain siblings while appearing to cover domain changes | **Resolved in workflow configuration; run evidence required** | Root cause was a hard-coded `src/domain/tournament/**` filter. The fix is `src/domain/**`, which also covers future `competition/` and `season/` modules. Verify the parity job runs and passes on this PR. |
 | `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Remaining: manual assistive-technology review, full-volume dress rehearsal and rollback rehearsal. |
 | `OPS-003` | Production observability operations incomplete | **Partial** | Name monitoring/backup/Cron owners, retention/escalation and incident procedure. |
 
