@@ -62,8 +62,7 @@
 .actions {
   display: flex;
   gap: 8px;
-  margin-top: auto;
-  padding-top: 4px;
+  margin-top: 4px;
   flex-wrap: wrap;
 }
 
