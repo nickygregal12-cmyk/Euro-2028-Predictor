@@ -10,7 +10,7 @@
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Repository contract | 60 canonical migrations through `20260729110000_predictor_cup_lint_safe_qualification.sql` |
-| Delivery evidence | PRs #122–#145 establish lifecycle, bounded reads, scale, Profile/H2H and privacy; PRs #150, #157 and #164 deliver Bonus Games; PRs #162, #165 and #166 complete Match Centre and Predict journey resilience; PRs #167, #171 and #174 deliver Account controls and race-safe clearing; PR #177 adds automated axe coverage; PR #178 rebuilds Matches as tournament information; PR #180 makes Predictor Cup qualification/progression fully lint-resolvable; PR #182 aligns permanent release controls at contract 60; PR #184 publishes the visible Bonus Games product cut; PR #187 adds complete desktop/phone Bonus Games browser lifecycle proof and repairs the repeatable catalogue SQL source |
+| Delivery evidence | PRs #122–#145 establish lifecycle, bounded reads, scale, Profile/H2H and privacy; PRs #150, #157 and #164 deliver Bonus Games; PRs #162, #165 and #166 complete Match Centre and Predict journey resilience; PRs #167, #171 and #174 deliver Account controls and race-safe clearing; PR #177 adds automated axe coverage; PR #178 rebuilds Matches as tournament information; PR #180 makes Predictor Cup qualification/progression fully lint-resolvable; PR #182 aligns permanent release controls at contract 60; PR #184 publishes the visible Bonus Games product cut; PR #187 adds complete desktop/phone Bonus Games browser lifecycle proof and repairs the repeatable catalogue SQL source; PR #189 adds direct behavioural pgTAP for H2H rank-history capture |
 | Development Supabase | `iouzoutneyjpugbbtdem` — exactly 60 canonical versions; history, privileges, lint and lifecycle tests verified; Bonus Games catalogue verified at 3 competitions / 14 windows / 102 fixture links |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly 60 canonical versions; encrypted backup/restore, dry-runs, preserved-data checks, privilege checks and hosted database lint passed; Bonus Games catalogue published at 3 / 14 / 102 with registration closed |
 | Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 60 and use development Supabase; `production` declares 60 and uses production Supabase |
@@ -36,7 +36,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 | Automatic valid-entry recovery | **Implemented.** A database-owned one-minute job submits only complete valid entries at lock and exposes immutable owner outcomes. |
 | Bounded reads and capacity | **Implemented.** Overall/private-league standings, player profiles and H2H use bounded server contracts; signup and league creation are authoritatively capped. |
 | Tournament database lifecycle | **Proven.** Deterministic full-tournament, correction, replay, automatic-submission, Cup and excess-data pgTAP journeys pass from a clean 60-migration rebuild. |
-| Profile/H2H and privacy | **Proven.** Own Profile/H2H are resilient; other-player detail remains authenticated and co-member-only with pre/post-lock reveal boundaries. |
+| Profile/H2H and privacy | **Proven.** Own Profile/H2H are resilient; other-player detail remains authenticated and co-member-only with pre/post-lock reveal boundaries. Rank-history capture is behaviourally proven for submitted-only inclusion, completed-stage gating, shared ranks, immutable checkpoints and later checkpoint creation. |
 | Account controls | **Implemented.** Display name, password, email, reminders, privacy/contact content, sign-out and race-safe pre-lock Original entry clearing are delivered. |
 | Bonus Games | **Visible, production-hosted and browser-proven.** More → Bonus Games exposes KO Predictor, Last Man Standing and Predictor Cup. The canonical catalogue is published, the empty-catalogue fallback prevents silent disappearance, and registration/prediction/game-state journeys pass on desktop and phone against disposable contract-60 Supabase. Production registrations remain intentionally closed. |
 | Core product experience | **Implemented first production cut.** Match Centre resilience, Predict flow, Account, Profile/H2H, Matches tournament information and the visible Bonus Games hub are delivered. |
@@ -50,6 +50,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - deterministic group/tie resolution and real winner propagation through all knockout rounds;
 - bounded overall/private-league reads, representative scale evidence and operating caps;
 - secure co-member profiles, authoritative H2H totals, rank history and bracket health;
+- behavioural rank-history pgTAP covering submitted-only capture, stage completion, shared ranks, idempotency and later checkpoint creation;
 - private Account identity/auth controls, reminder preference, privacy guidance and Contact admin path;
 - non-resurrecting pre-lock Original entry clearing that preserves accounts, leagues and Bonus Games;
 - separate deny-all Bonus Games storage, voluntary registration, KO Predictor, Last Man Standing and full Predictor Cup;
