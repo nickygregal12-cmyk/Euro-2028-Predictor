@@ -14,6 +14,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DATA-003` | **Resolved and hosted.** Same-tournament/reference guards are present in both hosted environments. |
 | `DATA-006` | **No concrete residual defect established.** Reopen only with an exact uncovered relationship. |
 | `DOC-001` | **Resolved by contract-60 documentation audit.** README, live status, migration inventory, risk register and deployment notes are reconciled. |
+| `FUNC-003` | **Resolved in the Bonus Games production-release batch.** Canonical game cards no longer disappear when hosted catalogue rows are absent; repeatable reference-data publication supplies the production catalogue. |
 | `OPS-006` | **Resolved and published.** Repository, both hosted databases, every Netlify context and production deploy are aligned at contract 60. |
 | `TEST-001` | **Reduced.** Critical lifecycle, privacy, Account, Bonus Games and accessibility automation are covered; manual accessibility and later complete-volume rehearsal remain. |
 
@@ -57,7 +58,8 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `TYPE-001` | Hand-written types/casts can hide schema drift | **Open** |
 | `A11Y-001` | Assistive-technology review incomplete | **Partial; automated axe and production Lighthouse accessibility are green** |
 | `UX-001` | Trustworthy invite context before auth incomplete | **Partial** |
-| `UX-002` | Unavailable and empty data can be conflated | **Partial** |
+| `UX-002` | Unavailable and empty data can be conflated | **Reduced; Bonus Games catalogue disappearance is fixed, secondary surfaces remain** |
+| `FUNC-003` | Production Bonus Games implementation rendered as absent when catalogue reference data was empty | **Resolved in release batch; fallback cards plus repeatable 3/14/102 catalogue publication** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
 | `DOC-001` | Documentation authority can drift | **Resolved; reopen on contradiction** |
@@ -70,7 +72,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `CODE-001` | Large orchestration files are hotspots | **Open** |
 | `SEO-001` | SPA fallback produces soft 404s | **Open** |
 | `SEO-002` | Metadata largely global | **Open** |
-| `UX-003` | Other-player profile action incomplete | **Open** |
+| `UX-003` | Other-player profile action incomplete | **Resolved; secure co-member profile and H2H navigation are production-hosted** |
 | `DATA-008` | Scores have no practical database maximum | **Open** |
 | `DOC-002` | Package version remains `0.0.0` | **Open** |
 | `DOC-003` | Component gallery large/partly historical | **Open; development-only** |
