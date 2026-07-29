@@ -1,6 +1,6 @@
 {
-  "contractVersion": 62,
-  "requiredMigrationCount": 62,
+  "contractVersion": 63,
+  "requiredMigrationCount": 63,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -38,5 +38,5 @@
     "public.clear_my_predictions(uuid)",
     "public.get_prediction_consensus(uuid)"
   ],
-  "notes": "Development batch 62 adds bounded post-lock Original Predictor consensus at contract 61 and activates the approved five-step final standings tie-break order at contract 62. Production remains contract 60 until the milestone promotion is explicitly approved, backed up and verified."
+  "notes": "Development batch 63 preserves contract-61 prediction consensus as a private helper and enforces the approved tournament-wide minimum cohort of 10 submitted entries at the public RPC boundary. Contract 62 final standings behaviour is unchanged. Production remains contract 60 until the milestone promotion is explicitly approved, backed up and verified."
 }
