@@ -3,7 +3,7 @@
 **Date:** 29 July 2026  
 **Repository baseline reviewed:** `main` at `7555db4625f8e1c4d9a0cb72185c40391cf90f3f`  
 **Pull request #193 disposition:** OPEN, DRAFT, NOT MERGED  
-**Outcome:** Phase A stop condition reached. Phases B–D were not started.  
+**Outcome:** Phase A stop condition remains active. Phases B–D were not started.  
 **Tag status:** No tag created. The prepared command remains unexecuted.
 
 ## Phase A — repository and PR #193 findings
@@ -12,20 +12,20 @@
 
 | Check | Finding | Evidence |
 | --- | --- | --- |
-| Current `main` commit | `7555db4625f8e1c4d9a0cb72185c40391cf90f3f` | The draft reconciliation PR was created from this exact `main` SHA; PR #193 also has this exact base and merge base. |
-| Migration count | 60 canonical migration files | Current `config/deployment-contract.json` declares both `contractVersion` and `requiredMigrationCount` as 60. PR #193 adds exactly two migration files and changes those values from 60 to 62. The existing migration inventory also records 60 files. |
+| Current `main` commit | `7555db4625f8e1c4d9a0cb72185c40391cf90f3f` | PR #195 was created from this exact SHA. PR #193 has the same base and merge base. |
+| Migration count | 60 canonical migration files | Current `config/deployment-contract.json` declares `contractVersion` and `requiredMigrationCount` as 60. PR #193 adds exactly two migration files. |
 | Highest migration on `main` | `20260729110000_predictor_cup_lint_safe_qualification.sql` | The file exists on `main` and identifies itself as contract 60. |
 | `contractVersion` | 60 | `config/deployment-contract.json` on `main`. |
 | `requiredMigrationCount` | 60 | `config/deployment-contract.json` on `main`. |
-| Migrations 61 and 62 on `main` | No | Both files are additions in PR #193 and are absent from the current `main` baseline. |
+| Migrations 61 and 62 on `main` | No | Both files are additions in PR #193 and are absent from current `main`. |
 
 The repository-side count and declared contract agree at 60. Hosted environment alignment is not established by this review.
 
 ### A2. Pull request #193 disposition
 
-PR #193, **Build post-lock trends and final standings**, is open and draft. `merged_at` is `null`; it is therefore **not merged**. Its non-null `merge_commit_sha` is GitHub's synthetic test-merge ref and is not evidence of a merge.
+PR #193, **Build post-lock trends and final standings**, remains open and draft. `merged_at` is `null`; it is therefore **not merged**. A non-null synthetic merge ref is not evidence of a completed merge.
 
-The branch is 15 commits ahead and zero commits behind `main`. Its merge base is the current `main` commit above. GitHub reports it as mergeable, so the non-mutating comparison indicates it applies cleanly at the time of review.
+At the latest review, the branch is ahead of and not behind `main`. Its merge base is the current `main` commit above, and GitHub reports it as mergeable. The non-mutating comparison therefore indicates that it applies cleanly at the time of review.
 
 ### A3. Migration timestamp safety
 
@@ -34,7 +34,7 @@ PR #193 adds:
 - `20260729122100_prediction_consensus.sql`
 - `20260729122200_final_standings_tiebreaks.sql`
 
-Both timestamps are strictly greater than the current highest timestamp `20260729110000`. They do not collide with each other. This avoids the timestamp-collision defect found on seven older branches.
+Both timestamps are strictly greater than the current highest timestamp `20260729110000`, and they do not collide with each other. This avoids the timestamp-collision defect found on older branches.
 
 ### A4. Contract 61 — post-lock prediction consensus
 
@@ -71,7 +71,7 @@ In plain English, it:
 
 - keeps live-tournament ranks based on shared total points;
 - activates final tie-breaks only after every tournament fixture is confirmed or corrected;
-- then orders equal-point entries by: exact scores, correct outcomes, correct knockout teams, correct champion, and closest predicted group-stage goals total;
+- then orders equal-point entries by exact scores, correct outcomes, correct knockout teams, correct champion, and closest predicted group-stage goals total;
 - applies the same ordering to overall and private-league standings;
 - includes a `finalStandings` response flag and invalidates pagination cursors when the live/final mode changes;
 - keeps the new metrics helper unavailable to browser roles.
@@ -86,69 +86,99 @@ Impact review:
 | Competition scoping | Overall reads use the supplied tournament; private reads derive the league's tournament. Bonus standings are not touched. |
 | Locking | No entry or match lock changed. Activation depends on authoritative result completion, not on a new lock. |
 | Stored decisions | No stored bracket, tie-resolution, result or score decision is rewritten. |
-| Privileges | Existing public RPC signatures are preserved. The new internal helper has all browser/service execution revoked. Existing function privilege coverage was updated. |
+| Privileges | Existing public RPC signatures are preserved. The new internal helper has browser/service execution revoked. Existing function privilege coverage was updated. |
 
-The helper identifies a correct champion through the current cumulative knockout score event of 110 points. This matches the current stacking rules (10 + 15 + 20 + 25 + 40), but it is a deliberate coupling to the current scoring contract and should remain covered whenever scoring changes.
+The helper identifies a correct champion through the current cumulative knockout score event of 110 points. This matches the current stacking rules, but it is a deliberate coupling to the current scoring contract and must remain covered whenever scoring changes.
 
-### A6. Validation and current blocker
+### A6. Browser assertion repair and exact-head validation
 
-At exact PR #193 head `544bbfe5889e7b762897d043d3e0d4ccaf8f3093`:
+The original PR #193 Browser E2E failure was a test-selector defect. The page renders the numeric submitted-entry count in a sibling `<strong>` element and its label in a `<span>`. The test read only the label span and therefore parsed zero.
+
+Commit `901a2bb92b74979283491e5c85d71b01657193a9` repairs the assertion by reading the complete parent summary element. No application code, migration or product behaviour changed in that repair.
+
+At exact PR #193 head `901a2bb92b74979283491e5c85d71b01657193a9`:
 
 | Gate | Result |
 | --- | --- |
-| CI | PASS |
-| Database parity | PASS |
-| Netlify deploy-preview status | PASS — repository status only; hosted configuration was not independently inspected |
-| Browser E2E deploy-preview smoke | PASS |
-| Browser E2E authenticated journey | **FAIL** |
+| CI run `30456665007` | PASS |
+| Database parity run `30456665266` | PASS |
+| Browser E2E run `30456664993` | PASS |
+| Exact deploy-preview smoke within Browser E2E | PASS |
+| Authenticated desktop/mobile journeys | PASS |
+| Signup and password-recovery journeys | PASS |
 
-The failing journey is the new Prediction Trends test on both desktop and mobile. The page renders the numeric entry count in a sibling `<strong>` element and the words `locked entries in this view` in a `<span>`. The test locates only the text-bearing span, parses its `textContent`, finds no digit and therefore reads zero. It expects at least three and fails on both viewports. Because the authenticated job fails at that point, signup and password-recovery journeys are skipped in that run.
-
-This appears to be a test-selector defect rather than evidence that the RPC returned zero entries, but the required Browser E2E gate is still red. The test must target the whole summary element or otherwise assert the returned count, then the complete browser workflow must pass.
+Repository-side implementation and validation are therefore complete and green at that exact head.
 
 ### A7. Hosted checks that remain owner-only
 
-No hosted database or Netlify state was verified in this review.
+No hosted database or Netlify configuration was independently verified in this review. The following checks are recorded as **REQUIRES OWNER VERIFICATION**.
 
-Before any merge, the owner should verify development Supabase with:
+#### Development Supabase
+
+Run against project `iouzoutneyjpugbbtdem`:
 
 ```sql
-select count(*) as migration_count, max(version) as highest_version
+select count(*)::integer as migration_count,
+       max(version) as highest_version
 from supabase_migrations.schema_migrations;
 
 select version, name
 from supabase_migrations.schema_migrations
 where version in ('20260729122100', '20260729122200')
 order by version;
+
+select
+  has_function_privilege('authenticated', 'public.get_prediction_consensus(uuid)', 'execute') as authenticated_consensus,
+  has_function_privilege('anon', 'public.get_prediction_consensus(uuid)', 'execute') as anonymous_consensus,
+  has_function_privilege('authenticated', 'predictor_internal.standing_metrics(uuid)', 'execute') as browser_internal_metrics;
 ```
 
-Expected only after an intentional development promotion: 62 rows, highest `20260729122200`, with the two canonical migration names above.
+Expected only after an intentional development promotion:
 
-The owner should also open the exact PR preview's `/release.json` and confirm:
+- 62 migration rows;
+- highest version `20260729122200`;
+- canonical rows `20260729122100_prediction_consensus` and `20260729122200_final_standings_tiebreaks`;
+- privileges `true`, `false`, `false` respectively.
 
-- exact PR head `544bbfe5889e7b762897d043d3e0d4ccaf8f3093`;
-- application/deployed database contract 62;
+#### Netlify non-production contexts
+
+Open or query the exact PR preview:
+
+```bash
+curl -fsS https://deploy-preview-193--euro28predictor.netlify.app/release.json
+```
+
+The owner must record that it identifies:
+
+- exact PR head `901a2bb92b74979283491e5c85d71b01657193a9`;
+- application/database contract 62;
 - deploy-preview context;
 - development Supabase project `iouzoutneyjpugbbtdem`;
 - no production Supabase identifier.
 
-Production Supabase and production Netlify must be checked separately and deliberately; this review does not assert their contract or release state.
+The owner must also inspect Netlify environment settings for `dev`, `branch-deploy` and `deploy-preview`, recording that each expects contract 62 and points to development Supabase. The `production` context must be inspected separately and its actual contract/project recorded without changing it.
+
+#### Production baseline
+
+Run the migration count/highest-version query against production Supabase and inspect:
+
+```bash
+curl -fsS https://euro28predictor.com/release.json
+```
+
+Record the verifier, verification date, actual production database contract, published release commit/deploy identity and whether any application/database split is deliberate. This report does not assert those facts.
 
 ### A8. Independent merge recommendation
 
-**PR #193 is not safe to merge yet.**
+**Repository-side contract 61–62 work is complete and safe based on the reviewed diff and exact-head validation.**
 
-The migration timestamps are safe, the branch is current and cleanly applicable, the database work is bounded and preserves Original/Bonus separation, existing scoring, stored decisions and lock rules. CI and Database parity pass. However:
+The migrations use safe timestamps, apply cleanly to current `main`, preserve Original/Bonus competition separation, do not rewrite entries or predictions, do not change point awards, do not alter lock rules, and preserve stored decisions and existing public RPC signatures. CI, Database parity and the complete Browser E2E workflow pass on the exact repaired head.
 
-1. the required authenticated Browser E2E gate fails on both desktop and mobile;
-2. the remainder of that browser workflow is skipped after the failure;
-3. development Supabase and non-production Netlify alignment are owner-only facts and were not independently verified here.
-
-The merge block is therefore validation and environment evidence, not a detected migration collision or destructive database change. Repair the selector assertion, rerun the full Browser E2E workflow to green, and complete the owner checks above before reconsidering merge.
+**PR #193 should nevertheless remain unmerged until the owner records the hosted checks in A7.** The remaining block is hosted environment evidence, not a repository implementation or validation defect.
 
 ## Phase B — authority-document reconciliation
 
-**NOT YET COMPLETED.** Phase A requires the task to stop because PR #193 is not merged.
+**NOT YET COMPLETED.** Phase A requires the task to stop because PR #193 is not merged and has not been deliberately excluded.
 
 No authority document was changed. No hosted claim was rewritten.
 
@@ -160,9 +190,9 @@ Their proposed behaviour is summarised in Phase A4–A5 solely for independent r
 
 ## Phase C — deploy preview and migration timestamp controls
 
-**NOT YET COMPLETED.** The task stopped at Phase A as required.
+**NOT YET COMPLETED.** The task remains stopped at Phase A.
 
-The only preview evidence reviewed is PR #193's own exact-head status and Browser E2E result. The requested five-merged-PR comparison and repository-wide timestamp-guard inspection were not performed.
+PR #193's exact deploy-preview smoke now passes, but the requested five-merged-PR comparison and repository-wide timestamp-guard inspection were not performed.
 
 ## Phase D — final tag-readiness assessment
 
@@ -173,15 +203,15 @@ The only preview evidence reviewed is PR #193's own exact-head status and Browse
 | Item | Status | Evidence / owner check |
 | --- | --- | --- |
 | Repository migration count matches `contractVersion` | VERIFIED | Current `main`: 60 migrations; `contractVersion` 60; `requiredMigrationCount` 60. |
-| PR #193 merged, or deliberately excluded from the baseline | BLOCKED | PR #193 is open, draft and unmerged; no deliberate exclusion decision was recorded. |
+| PR #193 merged, or deliberately excluded from the baseline | BLOCKED | PR #193 is open, draft and unmerged; repository gates are green, but owner environment checks remain outstanding. |
 | Authority documents carry dated, attributed hosted claims | NOT YET COMPLETED | Phase B not started because of the Phase A stop condition. |
 | Risk register reflects current `main` | NOT YET COMPLETED | Phase B not started. |
-| No duplicate migration timestamps | NOT YET COMPLETED | The two PR #193 timestamps are safe relative to `main`; the full canonical-chain/CI-guard Phase C check was not performed. |
-| Development Supabase at expected contract | REQUIRES OWNER VERIFICATION | Run the migration-history SQL in Phase A7. |
-| Production Supabase at expected contract | REQUIRES OWNER VERIFICATION | Run the same history count/highest query against production and record the verifier/date. |
-| Published production release identified and any database-contract split recorded deliberately | REQUIRES OWNER VERIFICATION | Inspect production `/release.json`, deployment identity and production environment contract; record verifier/date and any deliberate split. |
+| No duplicate migration timestamps | NOT YET COMPLETED | PR #193's two timestamps are safe relative to `main`; the full canonical-chain/CI-guard Phase C check was not performed. |
+| Development Supabase at expected contract | REQUIRES OWNER VERIFICATION | Run and record the SQL in A7. |
+| Production Supabase at expected contract | REQUIRES OWNER VERIFICATION | Run the history query against production and record verifier/date. |
+| Published production release identified and any database-contract split recorded deliberately | REQUIRES OWNER VERIFICATION | Inspect production `/release.json` and record deployment identity, contract and any deliberate split. |
 | Branch cleanup complete — PR #194 merged and deletions run | REQUIRES OWNER VERIFICATION | PR #194 and branch deletions were not changed or verified by this task. |
-| Deploy previews confirmed working, or failure recorded as a finding | NOT YET COMPLETED | Repository-wide five-PR comparison not performed. PR #193's preview smoke passes, but its authenticated Browser E2E fails. |
+| Deploy previews confirmed working, or failure recorded as a finding | NOT YET COMPLETED | PR #193's exact preview smoke passes; the required five-merged-PR comparison remains unperformed. |
 
 ## Prepared annotated tag command — unexecuted
 
