@@ -1,0 +1,213 @@
+.actionRow {
+  margin-top: 10px;
+}
+
+.summaryStrip {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: var(--radius-card);
+  background: var(--acc-soft);
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.summaryStrip strong {
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.sectionTitle,
+.signalTitle {
+  margin: 0;
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
+.sectionTitle {
+  font-size: 18px;
+}
+
+.rankedList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rankedRow {
+  display: grid;
+  grid-template-columns: 22px minmax(90px, 1fr) minmax(80px, 2fr) 42px;
+  gap: 10px;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.rank {
+  color: var(--tx3);
+  text-align: center;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tx);
+}
+
+.barTrack,
+.goalTrack {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.bar,
+.goalBar {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--acc);
+}
+
+.value {
+  color: var(--tx);
+  text-align: right;
+  font-family: var(--font-display);
+}
+
+.signalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.signalCard {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.signalTitle {
+  margin-top: 6px;
+  font-size: 16px;
+}
+
+.signalCard p {
+  margin: 8px 0 0;
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.simpleList,
+.uniqueList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.simpleList li,
+.uniqueList li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  color: var(--tx);
+  font-family: var(--font-body);
+  font-size: 13px;
+}
+
+.simpleList li:last-child,
+.uniqueList li:last-child {
+  border-bottom: 0;
+}
+
+.uniqueList li {
+  justify-content: flex-start;
+}
+
+.uniqueList li::before {
+  content: '•';
+  color: var(--acc);
+}
+
+.goalStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.goalStats span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px;
+  border-radius: var(--radius-control);
+  background: var(--bg2);
+  color: var(--tx3);
+  font-family: var(--font-body);
+  font-size: 11px;
+  text-align: center;
+}
+
+.goalStats strong {
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+
+.distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.distributionRow {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 26px;
+  gap: 10px;
+  align-items: center;
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+
+.distributionRow strong {
+  color: var(--tx);
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .signalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .rankedRow {
+    grid-template-columns: 20px minmax(0, 1fr) 48px;
+  }
+
+  .barTrack {
+    grid-column: 2 / 4;
+    grid-row: 2;
+  }
+
+  .goalStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

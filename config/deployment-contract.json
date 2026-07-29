@@ -1,6 +1,6 @@
 {
-  "contractVersion": 60,
-  "requiredMigrationCount": 60,
+  "contractVersion": 62,
+  "requiredMigrationCount": 62,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -35,7 +35,8 @@
     "public.submit_cup_penalty_number(uuid,uuid,smallint,integer)",
     "public.admin_finalise_predictor_cup_groups(uuid)",
     "public.admin_settle_predictor_cup_round(uuid,uuid)",
-    "public.clear_my_predictions(uuid)"
+    "public.clear_my_predictions(uuid)",
+    "public.get_prediction_consensus(uuid)"
   ],
-  "notes": "Repository, development Supabase, production Supabase and every Netlify context are aligned at contract 60. Contracts 49-56 deliver the complete Bonus Games programme through Predictor Cup knockouts; 57 adds private Account controls; 58 makes clear-entry non-resurrecting; 59-60 make Predictor Cup qualification and progression fully lint-resolvable without changing game rules or privileges. Any later contract change must follow the production milestone gate before publication."
+  "notes": "Development batch 62 adds bounded post-lock Original Predictor consensus at contract 61 and activates the approved five-step final standings tie-break order at contract 62. Production remains contract 60 until the milestone promotion is explicitly approved, backed up and verified."
 }

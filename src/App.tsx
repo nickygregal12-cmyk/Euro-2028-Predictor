@@ -13,7 +13,8 @@ const SignUpPage = lazy(() => import('./features/auth/SignUpPage').then((m) => (
 const ResetRequestPage = lazy(() => import('./features/auth/ResetRequestPage').then((m) => ({ default: m.ResetRequestPage })))
 const UpdatePasswordPage = lazy(() => import('./features/auth/UpdatePasswordPage').then((m) => ({ default: m.UpdatePasswordPage })))
 const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })))
-const PredictHubPage = lazy(() => import('./features/predict/PredictHubPage').then((m) => ({ default: m.PredictHubPage })))
+const PredictEntryPage = lazy(() => import('./features/predict/PredictEntryPage').then((m) => ({ default: m.PredictEntryPage })))
+const PredictionTrendsPage = lazy(() => import('./features/trends/PredictionTrendsPage').then((m) => ({ default: m.PredictionTrendsPage })))
 const GroupPredictorPage = lazy(() => import('./features/predict/GroupPredictorPage').then((m) => ({ default: m.GroupPredictorPage })))
 const ThirdPlacePage = lazy(() => import('./features/predict/ThirdPlacePage').then((m) => ({ default: m.ThirdPlacePage })))
 const BracketRound = lazy(() => import('./features/bracket').then((m) => ({ default: m.BracketRound })))
@@ -80,7 +81,8 @@ export default function App() {
                 <Route element={<RequireWelcome />}>
                   <Route element={<AppShell />}>
                     <Route path="/" element={<HomePage />} />
-                    <Route path="/predict" element={<PredictHubPage />} />
+                    <Route path="/predict" element={<PredictEntryPage />} />
+                    <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
                     <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
                     <Route path="/predict/third-place" element={<ThirdPlacePage />} />
                     <Route path="/predict/bracket" element={<BracketRound />} />
