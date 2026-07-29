@@ -6,18 +6,18 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-The repository, development and **both hosted databases** are at **contract 44** (production database promoted 28 July 2026):
+The repository, development Supabase, production Supabase and production application are aligned at **contract 60**:
 
-- `config/deployment-contract.json` declares contract 44 and requires 44 canonical migrations;
-- development and production Supabase both hold the canonical history through `20260727191942_operating_cap_enforcement`;
-- non-production Netlify contexts declare contract 44; the production context's contract-44 release publication is the remaining milestone step;
-- administrator result control, the full tournament lifecycle, automatic valid-entry submission, bounded/paginated reads and operating-cap enforcement are merged (PRs #120–#136).
+- `config/deployment-contract.json` declares contract 60 and requires 60 canonical migrations;
+- development Supabase `iouzoutneyjpugbbtdem` and production Supabase `vkfnsqdyhvtwyqkisxhk` both hold the canonical history through `20260729110000_predictor_cup_lint_safe_qualification.sql`;
+- every Netlify context declares contract 60 while retaining the correct development/production Supabase boundary;
+- production deploy `6a69b630f65752000822324e` is ready from release-alignment commit `31e06271f5f5b753c0bacf20353097055880988e`;
+- the production deployment completed with no build error, no secret-scan findings, and Netlify Lighthouse scores of 95 performance, 100 accessibility, 100 best practices and 100 SEO;
+- the contract-60 milestone includes the complete Bonus Games programme, private Account controls, race-safe entry clearing, Match Centre resilience, the Predict journey, secure Profile/H2H, automated accessibility scanning and the first tournament-information cut.
 
-Normal work continues against development Supabase `iouzoutneyjpugbbtdem`; production Supabase `vkfnsqdyhvtwyqkisxhk` is promoted only at deliberate milestones (most recently contract 44 on 28 July 2026, after a fresh verified backup).
+Normal work continues against development Supabase. Production remains milestone-only and re-locked between approved releases.
 
-The project now uses proportionate Development Mode gates: ordinary UI/docs use CI and targeted previews, feature/schema work adds relevant parity/E2E, and the full backup/approval/promotion sequence is reserved for production-risk work.
-
-This does **not** mean the product is tournament-launch-ready. Official Euro 2028 data, administrator journeys, monitoring ownership, Auth/CAPTCHA configuration, accessibility review and a full dress rehearsal remain.
+This does **not** mean the product is tournament-launch-ready. Post-lock consensus/My-entry states, final league tie-breaker activation, official Euro 2028 data, operational ownership, Auth/SMTP/CAPTCHA decisions, manual accessibility review and the full dress rehearsal remain.
 
 ## Setup
 
@@ -67,7 +67,7 @@ Tournament rules are implemented first as pure functions under `src/domain/tourn
 
 The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. Database parity rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
 
-The repository contract (declared in `config/deployment-contract.json`) is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, version-safe score clearing, function execution boundaries, authoritative same-tournament reference integrity, administrator result and qualification authorization, automatic valid-entry submission and bounded/paginated read models.
+The repository contract is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket-tree validation, atomic complete-bracket replacement, race-safe clearing, function execution boundaries, authoritative reference integrity, administrator result/qualification control, automatic submission, bounded reads, operating caps, Account entry controls and Bonus Games lifecycle rules.
 
 ## Scoring
 
@@ -92,33 +92,24 @@ Database parity CI runs:
 - TypeScript/PostgreSQL differential parity;
 - clean teardown.
 
-Browser E2E covers disposable authenticated desktop/mobile journeys for score persistence and protected clearing, submission settlement and conflicts, atomic bracket conflicts, post-lock rejection, private-league invitation/join, signup confirmation, password recovery and Match Centre lifecycle/navigation.
+Browser E2E covers authenticated desktop/mobile journeys for prediction persistence and clearing, submission settlement/conflicts, bracket conflicts, post-lock rejection, private leagues, Auth recovery, Match Centre, Profile/H2H privacy, Account controls, Bonus Games and tournament-information states.
 
 ## Current implemented repository contract
 
-Repository contract 44 supports:
+Repository contract 60 supports:
 
-- canonical predicted group ordering, including recursive head-to-head handling and unresolved ties;
-- exact manual same-group and best-third decisions;
-- TypeScript/PostgreSQL group-order parity;
-- RPC-only submission and server-derived predicted group positions;
-- ownership, lock-time and same-tournament prediction boundaries;
-- regulation, extra-time and penalty result confirmation/correction/clear operations;
-- immutable result revisions and serialized scoring recomputation;
-- confirmed knockout-winner propagation;
-- full match-by-match predicted bracket replay;
-- expected-version, one-transaction complete-bracket replacement;
-- pending-write settlement before manual submission;
-- version-safe persisted score clearing with derived-position invalidation;
-- zero anonymous public-function execution;
-- exact authenticated/service function allowlists and owner-only future defaults;
-- authoritative reference integrity for group-team, match, player, result revision, Golden Boot and score-event relationships;
-- browser-authorised administrator result confirmation, correction, clearing and revision access with capability enforcement;
-- server-owned actual Round-of-16 population and authorised third-place qualification-boundary resolution with immutable revisions;
-- database-scheduled automatic submission of complete valid entries at lock with owner-visible outcomes;
-- bounded league, member, pick-comparison and rival-entry reads;
-- server-ranked keyset pagination for overall standings with current-user position context;
-- transaction-serialised public-user and total-league operating limits with anonymous-safe capacity preflight.
+- canonical group ordering, recursive head-to-head handling and explicit unresolved ties;
+- RPC-only submission, automatic valid-entry submission and server-derived predicted positions;
+- authoritative result confirmation/correction/clearing, immutable revisions and serialised scoring;
+- actual qualification, best-third decisions, bracket replay and winner propagation;
+- atomic predicted-bracket replacement and race-safe complete entry clearing;
+- exact function privilege allowlists and closed browser access to integrity helpers;
+- bounded overall/private-league standings, player profiles and H2H reads;
+- operating-cap enforcement and anonymous-safe capacity preflight;
+- private Account controls and privacy/contact-admin content;
+- separate Bonus Games platform, KO Predictor, Last Man Standing and full Predictor Cup lifecycle;
+- resilient Match Centre, Predict journey, Matches tournament-information views and automated axe coverage;
+- environment/deployment-contract guards, verified backup/restore and production-aligned release controls.
 
 ## Documentation authority
 
@@ -134,7 +125,7 @@ Repository contract 44 supports:
 | Interface and design system | `docs/design-system.md` |
 | Competition boundaries | `docs/competition-structure.md` |
 | Future product sequence | `docs/roadmap.md` |
-| Platform architecture decisions | `docs/adr/` (see its README for status conventions) |
+| Platform architecture decisions | `docs/adr/` |
 | Operations records and repeatable procedures | `docs/ops-*.md` |
 
 Dated audits and reconciliations remain historical evidence. Roadmap and TODO documents describe future intent and sequencing, not proof that a feature or migration is live.

@@ -7,12 +7,12 @@ Live source of truth for repository migration count, hosted state and pending ro
 | Environment | Contract | Hosted migration state | Pending |
 | --- | ---: | --- | --- |
 | Repository | 60 | 60 canonical files through `20260729110000_predictor_cup_lint_safe_qualification.sql` | none |
-| Development Supabase `iouzoutneyjpugbbtdem` | 60 | exactly 60 canonical versions; history, grants and posture verified | none |
-| Netlify `dev`, `branch-deploy`, `deploy-preview` | 60 | development Supabase; exact preview HTTP and Chromium smoke passed | none |
+| Development Supabase `iouzoutneyjpugbbtdem` | 60 | exactly 60 canonical versions; history, grants, posture, lint and lifecycle tests verified | none |
+| Netlify `dev`, `branch-deploy`, `deploy-preview` | 60 | development Supabase; contract guard aligned | none |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | 60 | exactly 60 canonical versions; backup, dry-runs, preserved-data, privilege and hosted-lint checks passed | none |
-| Netlify `production` | 60 | production Supabase; current application publishes from the contract-60 release-alignment merge | exact release smoke before closure |
+| Netlify `production` | 60 | production Supabase; deploy `6a69b630f65752000822324e` from `31e06271f5f5b753c0bacf20353097055880988e`, ready | none |
 
-Production database and repository are aligned at contract 60. Any later migration requires a new approved milestone gate; ordinary application development must not mutate production.
+Production database, repository and published application are aligned at contract 60. Any later migration requires a new approved milestone gate; ordinary application development must not mutate production.
 
 ## Contracts 45–60
 
@@ -39,9 +39,8 @@ The migration versions match the exact canonical repository filenames. Do not re
 
 ## Contract-60 production evidence
 
-- fresh encrypted production backup completed and restored into disposable local Supabase before mutation;
-- preflight found exactly the approved pending canonical chain 56–58, followed by the isolated function-only 59 and 60 hotfixes;
-- every production `supabase db push --dry-run` passed before application;
+- fresh encrypted production backup completed and restored into disposable Supabase before mutation;
+- approved pending chain 56–58 and isolated function-only hotfixes 59–60 were dry-run before application;
 - production history contains exactly 60 versions through `20260729110000`;
 - existing production counts remained one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved predictions;
 - no synthetic Bonus Games entrants, selections, groups, members, fixtures or Penalty Number rows were created;
@@ -49,11 +48,13 @@ The migration versions match the exact canonical repository filenames. Do not re
 - Predictor Cup qualification and settle remain service-role-only;
 - no application SQL function retains a `pg_temp` or temporary-table dependency;
 - production database lint passed at contract 60;
-- exact application release identity, HTTP and Chromium smoke are required before the milestone is closed.
+- permanent backup verification is pinned to 60 and passed after restore;
+- production deploy `6a69b630f65752000822324e` is ready from release-alignment commit `31e06271f5f5b753c0bacf20353097055880988e`;
+- Netlify processed redirect/header rules successfully, reported no deploy error and found no secrets in 754 scanned files.
 
 ## Future rollout authority
 
-Future production promotions must follow `AGENTS.md`: exact target and current contract, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope, hosted verification and exact release smoke.
+Future production promotions must follow `AGENTS.md`: exact target/current contract, fresh recovery evidence when stored data is at risk, dry-run/preflight, explicit owner approval, exact application scope, hosted verification and exact release smoke.
 
 ## Related authority
 
