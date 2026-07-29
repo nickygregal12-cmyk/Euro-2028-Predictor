@@ -163,8 +163,8 @@ test('Predictor Cup registration shares knockout predictions and reaches the dra
     await page.goto('/games/cup')
     await expect(page).toHaveURL((url) => url.pathname === '/games/cup')
     await expect(page.getByRole('heading', { name: 'Predictor Cup', exact: true })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Waiting for the draw' })).toBeVisible()
-    await expect(page.getByText(/1 entrants so far/)).toBeVisible()
+    await expect(page.getByText('Waiting for the draw', { exact: true })).toBeVisible()
+    await expect(page.getByText(/The field \(1 so far\) closes/)).toBeVisible()
   } finally {
     await clearFirstKnockoutPrediction(page)
     await withdrawGame(page, 'Predictor Cup')
