@@ -10,7 +10,7 @@
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Repository contract | 60 canonical migrations through `20260729110000_predictor_cup_lint_safe_qualification.sql` |
-| Delivery evidence | PRs #122–#145 establish lifecycle, bounded reads, scale, Profile/H2H and privacy; PRs #150, #157 and #164 deliver Bonus Games; PRs #162, #165 and #166 complete Match Centre and Predict journey resilience; PRs #167, #171 and #174 deliver Account controls and race-safe clearing; PR #177 adds automated axe coverage; PR #178 rebuilds Matches as tournament information; PR #180 makes Predictor Cup qualification/progression fully lint-resolvable; PR #182 aligns permanent release controls at contract 60; PR #184 publishes the visible Bonus Games product cut; PR #187 adds complete desktop/phone Bonus Games browser lifecycle proof and repairs the repeatable catalogue SQL source; PR #189 adds direct behavioural pgTAP for H2H rank-history capture |
+| Delivery evidence | PRs #122–#145 establish lifecycle, bounded reads, scale, Profile/H2H and privacy; PRs #150, #157 and #164 deliver Bonus Games; PRs #162, #165 and #166 complete Match Centre and Predict journey resilience; PRs #167, #171 and #174 deliver Account controls and race-safe clearing; PR #177 adds automated axe coverage; PR #178 rebuilds Matches as tournament information; PR #180 makes Predictor Cup qualification/progression fully lint-resolvable; PR #182 aligns permanent release controls at contract 60; PR #184 publishes the visible Bonus Games product cut; PR #187 adds complete desktop/phone Bonus Games browser lifecycle proof and repairs the repeatable catalogue SQL source; PR #189 adds direct behavioural pgTAP for H2H rank-history capture; PR #191 proves exact result-revision before/after content for confirm, correct and clear |
 | Development Supabase | `iouzoutneyjpugbbtdem` — exactly 60 canonical versions; history, privileges, lint and lifecycle tests verified; Bonus Games catalogue verified at 3 competitions / 14 windows / 102 fixture links |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly 60 canonical versions; encrypted backup/restore, dry-runs, preserved-data checks, privilege checks and hosted database lint passed; Bonus Games catalogue published at 3 / 14 / 102 with registration closed |
 | Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 60 and use development Supabase; `production` declares 60 and uses production Supabase |
@@ -31,7 +31,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 | Recovery | **Verified.** A fresh encrypted production backup restored successfully into disposable Supabase before milestone writes; the permanent verifier is pinned to contract 60. |
 | Production preservation | **Verified.** Original user/profile/entry/league/match/prediction counts remain unchanged. Only controlled Bonus Games reference data was added; no synthetic player, prediction, draw, scoring or result history exists. |
 | Database lint | **Clean.** Contracts 59–60 removed the remaining application SQL temporary-table dependencies while retaining tested Predictor Cup rules and service-only privileges. |
-| Administrator result control | **Implemented.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven. |
+| Administrator result control | **Implemented and audit-proven.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven. Revision rows are also behaviourally proven to preserve exact scheduled, confirmed, corrected and cleared snapshots; chained before/after content; versions; reasons; timestamps; tournament identity and authenticated actor. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, authorised, reasoned, revisioned and replayed transactionally. |
 | Automatic valid-entry recovery | **Implemented.** A database-owned one-minute job submits only complete valid entries at lock and exposes immutable owner outcomes. |
 | Bounded reads and capacity | **Implemented.** Overall/private-league standings, player profiles and H2H use bounded server contracts; signup and league creation are authoritatively capped. |
@@ -46,6 +46,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 ## Implemented foundation
 
 - authoritative locks, submission, results, revisions, scoring, qualification and bracket replay;
+- exact result-revision content proof across confirm, penalty correction and clear, including snapshot chaining, reasons, actor and timestamp semantics;
 - automatic valid-entry submission using the same validator as manual submission;
 - deterministic group/tie resolution and real winner propagation through all knockout rounds;
 - bounded overall/private-league reads, representative scale evidence and operating caps;
