@@ -1,16 +1,19 @@
 # Euro 2028 Predictor — Roadmap
 
 **Status date:** 29 July 2026  
-**Authority:** The only live execution sequence. Use `docs/quality/current-status.md` for current facts.
+**Authority:** The only live execution sequence. Use [`quality/current-status.md`](quality/current-status.md) for current facts.
 
-## Stage 0 — Release and control foundation: complete
+Repository completion and hosted publication are separate. The assessed baseline is contract 60. Hosted Supabase/Netlify status is **REQUIRES OWNER VERIFICATION** unless a verifier/date is recorded.
+
+## Stage 0 — Release and control foundation: repository complete
 
 - branch/PR/CI discipline and deployment-contract guards;
-- encrypted production backup and disposable restore rehearsal;
-- milestone-only production promotion and exact-head smoke;
+- backup/restore and milestone-release procedures;
 - administrator authorisation and protected application routes.
 
-## Stage 1 — Result and qualification control: complete
+Hosted execution of those procedures requires owner verification.
+
+## Stage 1 — Result and qualification control: repository complete
 
 - result confirm, correct and clear with required review/reasons;
 - immutable revisions and regulation/extra-time/penalty handling;
@@ -18,89 +21,102 @@
 - authorised exact-boundary tie resolution and transactional bracket replay;
 - authorised/unauthorised desktop and mobile Browser E2E.
 
-## Stage 2 — Full tournament lifecycle: complete
+## Stage 2 — Full tournament lifecycle: repository complete
 
-- seeded complete 51-match tournament journey;
+- seeded 51-match tournament journey;
 - valid/incomplete entries, predicted tables/brackets, lock and submission;
-- automatic valid-entry submission at lock using the authoritative validator;
-- all group and knockout results, corrections, clears and downstream replay;
+- automatic valid-entry submission using the authoritative validator;
+- group and knockout results, corrections, clears and downstream replay;
 - scoring recomputation, rank history, champion and revision evidence;
 - clean canonical rebuild, pgTAP and authenticated browser reset journeys.
 
-## Stage 3 — Capacity, bounded reads and comparison surfaces: complete
+## Stage 3 — Capacity, bounded reads and comparison surfaces: repository complete
 
 - server-ranked keyset pagination for overall and private-league standings;
-- independent caller context and bounded owner transfer search;
+- independent caller context and bounded owner-transfer search;
 - operating-cap enforcement at signup and league creation;
 - representative 250-entry and 250-member evidence;
-- secure co-member profiles with pre/post-lock reveal boundaries;
+- secure co-member profiles with reveal boundaries;
 - resilient own Profile/H2H, authoritative totals, rank history and bracket health.
 
-## Stage 4 — Core product experience: complete first production cut
-
-Delivered through PRs #162, #165–#178:
+## Stage 4 — Core product experience: repository complete first cut
 
 - resilient Match Centre states and deterministic fixture switching;
-- Predict hero/journey map, 51-pick completion and always-forward stage flow;
+- Predict hero/journey map, completion and forward stage flow;
 - truthful Matches list states;
-- private Account page for display name, password, email, reminders and sign-out;
-- privacy/reveal explanation and configuration-driven Contact admin;
-- race-safe pre-lock Original entry clearing that preserves accounts, leagues and Bonus Games;
-- automated axe WCAG 2.2 AA coverage across key desktop/phone routes;
-- Matches tournament-information sub-views for group tables, best thirds, authoritative knockout bracket and result-derived statistics.
+- private Account controls and Contact admin path;
+- race-safe pre-lock Original entry clearing;
+- automated axe coverage;
+- tournament-information tables, bracket and result-derived statistics.
 
-Exit met for the first production cut: the principal prediction, match, profile, comparison, Account and tournament-information journeys are implemented, resilient and production-aligned at contract 60.
+Hosted publication of this cut is **REQUIRES OWNER VERIFICATION**.
 
-## Stage 5 — Bonus competitions: complete
+## Stage 5 — Bonus competitions: repository complete
 
-ADR-0010 B1–B7c is delivered and production-aligned:
+ADR-0010 B1–B7c is present in the contract-60 repository:
 
-1. **Platform:** single competition lifecycle resolver, deny-all storage, bounded hub, voluntary registration/withdrawal and audit.
-2. **Shared knockout store:** one versioned prediction per user/per knockout match with per-kickoff locking.
-3. **KO Predictor:** Exact 5 / Result 3 / Through +2, rolling-entry banking and server-ranked standings.
-4. **Last Man Standing:** win/advance to survive, one team once, deadline locking, correction re-derivation and wipeout voiding.
-5. **Predictor Cup:** deterministic groups, regulation-time scoring, complete §5.2 qualification, wildcards, banded seeding, playoff/byes, fixed bracket, parity-laned Penalty Numbers, points/AET/penalty/walkover settlement, champion and Golden Predictor.
+1. **Platform:** lifecycle resolver, deny-all storage, bounded hub and voluntary registration.
+2. **Shared knockout store:** versioned prediction per user/per knockout match with per-kickoff locking.
+3. **KO Predictor:** Exact 5 / Result 3 / Through +2.
+4. **Last Man Standing:** win/advance to survive, one team once and correction-aware settlement.
+5. **Predictor Cup:** groups, qualification, seeding, playoff/byes, fixed bracket, Penalty Numbers and honours.
 
-Contracts 59–60 preserve those rules while removing the two temporary-table implementation dependencies so hosted database lint is clean.
+Contracts 59–60 preserve those rules while removing temporary-table dependencies. Hosted catalogue, registration and production-release state are **REQUIRES OWNER VERIFICATION**.
 
-The visible production cut also includes explicit More → Bonus Games navigation, a resilient three-game catalogue and repeatable publication of the three competition records, 14 LMS/Cup windows and 102 fixture links. Production registration remains deliberately closed until the owner records opening instants.
+## Stage 6 — Post-lock product experience: contract-62 candidate, not baseline
 
-## Stage 6 — Post-lock product experience: current
+PR #193 is open, draft and unmerged. It is deliberately excluded from the contract-60 baseline. Exact head `901a2bb92b74979283491e5c85d71b01657193a9` passed CI `30456665007`, Database parity `30456665266` and Browser E2E `30456664993`.
 
-### 6A — Consensus and richer My-entry state
+### 6A — Consensus and richer My Entry
 
-- post-lock prediction consensus/trends;
-- clearer My-entry hero and reveal state;
-- movement/impact explanations without exposing pre-lock picks;
-- loading, empty, partial and retry states on desktop and phone.
+Candidate implementation includes:
+
+- bounded authenticated post-lock consensus/trends;
+- richer locked My Entry state;
+- loading, empty, error, desktop and phone coverage.
+
+**Privacy gate:** migration 61 has no minimum cohort threshold; one submitted entry can produce aggregate output. Resolve or explicitly accept `PRIV-001` before merge.
 
 ### 6B — Final standings activation
 
-- wire `calculateLeagueRank` into final authoritative standings;
-- expose the applied tie-break criteria in the UI;
-- prove deterministic final ranking under all equal-points cases;
-- keep Original and Bonus Games standings separate.
+`DEC-003` is resolved for the candidate:
+
+- live standings remain points/shared-rank based;
+- final ordering activates automatically only after every tournament match is confirmed/corrected;
+- equal points are separated by exact scores, correct outcomes, correct knockout teams, correct champion and closest group-stage goals total;
+- overall and private-league standings use the same order;
+- Original and Bonus Games standings remain separate.
+
+This is not contract-60 behaviour until PR #193 is merged.
 
 ### 6C — Remaining product-state completion
 
 - finish secondary comparison/loading/error states;
-- manual keyboard/screen-reader/contrast review alongside automated axe;
-- deferred Matches slices: Predicted/Live table switcher, mid-groups bracket projection and feed-gated top scorers.
+- manual keyboard/screen-reader/contrast review;
+- deferred Matches slices: Predicted/Live switcher, mid-groups bracket projection and feed-gated top scorers.
 
-## Stage 7 — Official data and dress rehearsal
+## Stage 7 — Baseline and repository control
+
+1. Complete PR #195's contract-60 tag-readiness reconciliation.
+2. Owner verifies development/production Supabase and Netlify contracts/releases with dated evidence.
+3. Resolve or accept `PRIV-001` and decide PR #193's disposition.
+4. Complete branch cleanup from PR #194.
+5. Add a migration-timestamp CI guard; current review found no automatic protection against a new timestamp less than or equal to `main`.
+
+## Stage 8 — Official data and dress rehearsal
 
 - replace provisional teams, fixtures, regulations and lock instant with official sources;
-- verify source provenance/effective dates and remove provisional labels;
+- verify provenance/effective dates and remove provisional labels;
 - full time-travel rehearsal from pre-tournament through final/awards;
 - complete-volume recomputation, correction and rollback measurement;
-- application rollback rehearsal and current production backup restore repeat;
+- application rollback and backup-restore rehearsal;
 - monitoring, backup, Cron and incident ownership.
 
-## Stage 8 — Launch readiness
+## Stage 9 — Launch readiness
 
-- Auth/SMTP ownership and reminder-delivery reliability;
+- Auth/SMTP ownership and reminder reliability;
 - final Turnstile and leaked-password decisions;
 - official support/administrator ownership;
 - branch protection and required-check verification;
-- final security, accessibility and phone-first product sweep;
+- final security, accessibility and phone-first sweep;
 - release freeze and exact production dress rehearsal.
