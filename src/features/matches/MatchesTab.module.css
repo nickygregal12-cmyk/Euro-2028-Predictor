@@ -12,7 +12,15 @@
   color: var(--tx);
 }
 
-/* Filter chips */
+/* A sub-view under the page-level view switcher (Fixtures / Tables /
+   Bracket / Stats) — same vertical rhythm as the page itself. */
+.subview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* Filter chips — also the page-level view switcher (same visual language) */
 .filters {
   display: flex;
   gap: var(--sp-2);
@@ -195,6 +203,191 @@
 .jokerBurned {
   background: var(--chip);
   color: var(--tx3);
+}
+
+/* Tables / Bracket / Stats sub-views */
+.tableSection {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--tx);
+}
+.statusLine {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+.tieNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+.noteIcon {
+  flex: none;
+  margin-top: 1px;
+  color: var(--tx3);
+}
+
+/* Bracket tie card (tap target → match centre, like fixture rows) */
+.tie {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  cursor: pointer;
+}
+.tie:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+.tieMeta {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--tx3);
+}
+.tieLine {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.tieTeam {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--tx);
+}
+.tieAway {
+  text-align: right;
+}
+.tieUnknown {
+  color: var(--tx3);
+  font-family: var(--font-body);
+  font-size: 12px;
+}
+.tieWinner {
+  color: var(--acc);
+  font-weight: 600;
+}
+.tieLoser {
+  color: var(--tx3);
+}
+.tieScore {
+  min-width: 44px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--tx);
+}
+.tieDetail {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+
+/* Stats cards */
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+.statBig {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 26px;
+  color: var(--tx);
+}
+.statBigUnit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tx2);
+}
+.statSub {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+.factList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+.factRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.factLabel {
+  flex: none;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--tx2);
+}
+.factValue {
+  margin: 0;
+  min-width: 0;
+  text-align: right;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+.teamGoalList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding-left: 22px;
+}
+.teamGoalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx);
+}
+.teamGoalName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+}
+.teamGoalCount {
+  flex: none;
+  color: var(--tx2);
+  font-size: 12px;
 }
 
 /* Outcome tints on the points pill */

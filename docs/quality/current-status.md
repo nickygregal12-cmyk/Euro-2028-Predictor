@@ -10,7 +10,7 @@
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Repository contract | 58 canonical migrations through `20260729090000_clear_predictions_race_safety.sql` (contract 48 = H2H rank history; 49–56 = Bonus Games B2–B7c; 57 = Account entry controls; 58 = race-safe clearing) |
-| Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136, #138 and #141 cover the lifecycle, recovery, bounded/paginated reads, operating caps and Profile/H2H resilience; PR #143 adds secure other-player profiles; PR #145 adds richer H2H rank history and bracket health; PR #150 adds contracts 49–52 for the Bonus Games platform and KO Predictor; PR #157 contains contracts 53–55 for Last Man Standing and Predictor Cup group-stage delivery; PR #164 completes Predictor Cup at contract 56; PR #167 adds the private Account surface and contract-57 entry controls; PR #171 hardens clear-entry concurrency at contract 58 |
+| Delivery evidence | PRs #122, #124, #126, #128, #131, #134, #136, #138 and #141 cover the lifecycle, recovery, bounded/paginated reads, operating caps and Profile/H2H resilience; PR #143 adds secure other-player profiles; PR #145 adds richer H2H rank history and bracket health; PR #150 adds contracts 49–52 for the Bonus Games platform and KO Predictor; PR #157 contains contracts 53–55 for Last Man Standing and Predictor Cup group-stage delivery; PR #164 completes Predictor Cup at contract 56; PR #167 adds the private Account surface and contract-57 entry controls; PR #171 hardens clear-entry concurrency at contract 58; PR #174 completes Account privacy and contact-admin content; PR #177 adds automated axe accessibility coverage; PR #178 delivers the Matches tournament-info sub-views |
 | Verified production release source | `af5aa15a151f5c4236ba3f2756faab4b357f31ee` — contract-55 Bonus Games milestone |
 | Development Supabase | `iouzoutneyjpugbbtdem` — exactly 58 canonical versions through `20260729090000_clear_predictions_race_safety.sql`; contract 58 has one canonical history row, hardened execution posture and no production promotion |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly **contract 55** through `20260729030000_predictor_cup_group_scoring.sql`; preserved-data and privilege checks passed |
@@ -37,7 +37,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 | Product-facing result lifecycle | **Proven.** Match Centre, fixtures and H2H consume server-owned result/winner data. H2H headline points use authoritative standings/rival totals rather than partial browser recomputation. |
 | Profile/H2H resilience | **Proven.** Own Profile and H2H react to current provider values, expose retry actions and retain bounded server contracts; league-to-H2H is browser-proven on desktop and phone. |
 | Other-player profile privacy | **Implemented and hosted-proven.** Co-members receive only identity/league/entry state before lock; after lock a submitted entry receives authoritative rank/points and bounded 36/24/100 detail. Outsiders are denied server-side. |
-| Account controls | **Development-delivered.** Contract 57 provides the private Account page, identity/auth editing, reminder preference and pre-lock Original entry wipe. Contract 58 makes the wipe resistant to delayed autosaves by retiring the old entry identity after child cleanup; stale writes fail the foreign key. Privacy/support explanatory content remains a small application follow-up. |
+| Account controls | **Development-delivered.** Contract 57 provides the private Account page, identity/auth editing, reminder preference and pre-lock Original entry wipe. Contract 58 makes the wipe resistant to delayed autosaves by retiring the old entry identity after child cleanup; stale writes fail the foreign key. Privacy/reveal explanation and the configuration-driven Contact admin action shipped in PR #174. |
 | Bonus Games | **Complete (ADR-0010 B1–B7c).** Contracts 49–55 (production-released) carry the platform, hub, shared knockout store, KO Predictor, tournament-format Last Man Standing and Cup group stage; contract 56 (development only) completes the Cup — audited qualification gate with the §5.2 mini head-to-head, per-game wildcards, banded seeding, playoff with byes, parity-laned Penalty Numbers, points/AET/penalty/walkover round settle, champion and Golden Predictor. |
 | Browser/reset lifecycle | **Proven.** Authenticated journeys cover the complete tournament, private-league pagination/ownership transfer and the secure hidden-to-full player-profile transition on desktop and phone. |
 | Launch readiness | **Not ready.** Official data, remaining product states, accessibility, operational ownership and the later full dress rehearsal remain. |
@@ -74,7 +74,9 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - tournament-format Last Man Standing with one-use teams, deadline locking and result-correction-aware survivor resolution;
 - Predictor Cup deterministic group draw, dedicated groups/members/fixtures and read-derived regulation-time group scoring/tables;
 - the Predict hub hero + journey map: weighted 51-pick completion, lock countdown, champion anchor, a Continue deep-link to the first incomplete thing, a numbered stepper with tie-aware A–F quick-jump chips, step eyebrows and stage-boundary CTAs, and first-cut post-lock My-entry/spectator states;
-- private Account management for display name, password, email, reminder preference, sign-out and pre-lock Original entry clearing;
+- private Account management for display name, password, email, reminder preference, sign-out and pre-lock Original entry clearing, with privacy/reveal explanation and a configuration-driven Contact admin action;
+- the Matches tab tournament-info sub-views: real-results group tables and best-thirds ranking through the shared tie-break domain, the server-owned knockout bracket with slot provenance and decided-by detail, and result-derived stats (group-goals race, records, top-scoring teams, tournament facts);
+- automated axe WCAG 2.2 AA scanning across the key authenticated surfaces on desktop and phone viewports, including the Matches sub-views;
 - race-safe clear-entry semantics that remove Original children before retiring the entry identity, making stale autosaves non-resurrecting while preserving accounts, leagues and Bonus Games;
 - exact function execution allowlists, empty security-definer search paths and closed direct-table access;
 - protected administrator routes and capability parsing;
@@ -87,13 +89,13 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 
 ## Immediate product gaps
 
-- Account privacy/reveal explanation and configuration-driven contact-admin action;
 - post-lock consensus/trends surface and richer My-entry reveal state;
 - completion, loading, empty, retry and error-state coverage across remaining tournament and comparison surfaces;
 - reminder delivery only after Auth/SMTP ownership and reliability are verified;
 - official teams, fixtures, regulations and lock instant;
 - league tie-breakers (`docs/scoring-rules.md` §5) are implemented in `src/domain/tournament/calculateLeagueRank.ts` but not yet wired into final shipped standings reads; final-standings activation and explanation UI remain;
-- automated axe coverage, manual accessibility review and the later full product dress rehearsal.
+- manual accessibility review and the later full product dress rehearsal;
+- the Matches tab's deferred slices: the Live table component (Predicted/Live switcher, "You" column), the mid-groups bracket projection with agree/differ marks, and feed-gated top scorers.
 
 ## Development mode
 
@@ -109,12 +111,11 @@ Production promotion is milestone-only. Development can advance ahead of product
 
 ## Current next batch
 
-**Finish Account hardening, then move into post-lock experience**
+**Post-lock experience from the stable contract-58 baseline**
 
-1. Complete PR #171 exact preview/browser evidence and merge contract 58.
-2. Add the missing Account privacy/reveal explanation and configuration-driven Contact admin action as a small application-only slice.
-3. Build post-lock consensus/trends and the richer My-entry hero from the stable contract-58 baseline.
-4. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
+1. Build post-lock consensus/trends and the richer My-entry hero.
+2. Activate league tie-breaker final standings (`calculateLeagueRank` wiring plus explanation UI).
+3. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
 
 ## Operational follow-ups
 
