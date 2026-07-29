@@ -177,7 +177,7 @@ No tag was created, moved, deleted or re-pushed by this reconciliation.
 
 ## Acceptance evidence
 
-**Status:** COMPLETED SUBJECT TO CI
+**Status:** COMPLETED
 
 - branch created from the exact tag commit;
 - draft PR opened before investigation work;
@@ -191,4 +191,6 @@ No tag was created, moved, deleted or re-pushed by this reconciliation.
 - `contractVersion` unchanged;
 - no tag mutation;
 - no pull request merge, close or approval;
-- Markdown link integrity and CI: NOT YET COMPLETED.
+- first complete reconciliation head CI `30488647322`: passed, including Markdown link integrity;
+- first complete reconciliation head Database parity `30488647382`: passed clean rebuild, lint, pgTAP and TypeScript/PostgreSQL parity;
+- final evidence-only head CI: pending exact-head confirmation before ready-for-review transition.
