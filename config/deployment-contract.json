@@ -1,6 +1,6 @@
 {
-  "contractVersion": 58,
-  "requiredMigrationCount": 58,
+  "contractVersion": 60,
+  "requiredMigrationCount": 60,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -37,5 +37,5 @@
     "public.admin_settle_predictor_cup_round(uuid,uuid)",
     "public.clear_my_predictions(uuid)"
   ],
-  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contract 55 is the production-published Bonus Games B2-B7b milestone. Contract 56 adds Predictor Cup qualification and knockouts. Contract 57 adds the private Account page entry controls. Contract 58 hardens clear_my_predictions against delayed autosaves by deleting the unlocked Original entry identity and relying on the existing cascades; stale writes against the old entry id must fail. Development promotion follows Database parity; production remains locked at contract 55."
+  "notes": "Production deployments must not proceed unless the verified hosted database contract exactly matches this version. Contracts 49-56 deliver the Bonus Games programme through Predictor Cup knockouts; 57 adds private Account controls; 58 makes clear-entry non-resurrecting; 59 makes Cup round progression lint-resolvable; 60 removes the final temporary-table dependency from Cup qualification and cleans implicit loop declarations without changing rules or privileges. Production is temporarily at 59 while contract 60 passes the controlled promotion gate."
 }
