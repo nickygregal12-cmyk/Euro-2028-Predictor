@@ -9,6 +9,7 @@ on:
       - 'playwright.config.ts'
       - 'playwright.auth.config.ts'
       - 'playwright.production.config.ts'
+      - 'scripts/bonus-games/**'
       - 'scripts/production-smoke.mjs'
       - 'vite.config.ts'
       - 'package.json'
@@ -51,6 +52,18 @@ jobs:
 
       - name: Rebuild from committed migrations and seed
         run: supabase db reset --local
+
+      - name: Publish disposable Bonus Games browser catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_CONTAINER='supabase_db_euro-2028-predictor-local'
+          docker exec -i "$DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
+            < scripts/bonus-games/publish-catalogue.sql
+          docker exec -i "$DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
+            < e2e/bonus-games-fixture.sql
 
       - name: Export local-only browser environment
         shell: bash

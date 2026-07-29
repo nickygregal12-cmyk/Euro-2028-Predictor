@@ -128,11 +128,11 @@ with mapped_matches as (
   where tournament.name = 'UEFA Euro 2028'
 )
 insert into public.bonus_window_fixtures (window_id, match_id)
-select window.id, mapped.match_id
+select competition_window.id, mapped.match_id
 from mapped_matches mapped
-join public.bonus_competition_windows window
-  on window.competition_id = mapped.competition_id
- and window.sequence = mapped.window_sequence
+join public.bonus_competition_windows competition_window
+  on competition_window.competition_id = mapped.competition_id
+ and competition_window.sequence = mapped.window_sequence
 where mapped.window_sequence is not null
 on conflict (window_id, match_id) do nothing;
 
@@ -172,18 +172,23 @@ begin
 
   select count(*)
     into v_windows
-    from public.bonus_competition_windows window
-    join public.bonus_competitions competition on competition.id = window.competition_id
-    join public.tournaments tournament on tournament.id = competition.tournament_id
+    from public.bonus_competition_windows competition_window
+    join public.bonus_competitions competition
+      on competition.id = competition_window.competition_id
+    join public.tournaments tournament
+      on tournament.id = competition.tournament_id
     where tournament.name = 'UEFA Euro 2028'
       and competition.game_key in ('last_man_standing', 'predictor_cup');
 
   select count(*)
     into v_fixtures
     from public.bonus_window_fixtures fixture
-    join public.bonus_competition_windows window on window.id = fixture.window_id
-    join public.bonus_competitions competition on competition.id = window.competition_id
-    join public.tournaments tournament on tournament.id = competition.tournament_id
+    join public.bonus_competition_windows competition_window
+      on competition_window.id = fixture.window_id
+    join public.bonus_competitions competition
+      on competition.id = competition_window.competition_id
+    join public.tournaments tournament
+      on tournament.id = competition.tournament_id
     where tournament.name = 'UEFA Euro 2028'
       and competition.game_key in ('last_man_standing', 'predictor_cup');
 

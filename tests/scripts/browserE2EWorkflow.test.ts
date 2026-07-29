@@ -15,6 +15,10 @@ const productionSmoke = readFileSync(
   resolve(root, 'scripts/production-smoke.mjs'),
   'utf8',
 )
+const bonusGamesCatalogue = readFileSync(
+  resolve(root, 'scripts/bonus-games/publish-catalogue.sql'),
+  'utf8',
+)
 const anonymousBrowserSmoke = readFileSync(
   resolve(root, 'production-smoke/anonymous.spec.ts'),
   'utf8',
@@ -22,6 +26,14 @@ const anonymousBrowserSmoke = readFileSync(
 const globalSetup = readFileSync(resolve(root, 'e2e/global-setup.ts'), 'utf8')
 const localFixtures = readFileSync(
   resolve(root, 'e2e/local-supabase.ts'),
+  'utf8',
+)
+const bonusGamesFixture = readFileSync(
+  resolve(root, 'e2e/bonus-games-fixture.sql'),
+  'utf8',
+)
+const bonusGamesSpec = readFileSync(
+  resolve(root, 'e2e/bonus-games.spec.ts'),
   'utf8',
 )
 const packageJson = JSON.parse(
@@ -41,7 +53,7 @@ const [authenticatedWorkflow, previewWorkflow = ''] = workflow.split(
   '\n  deploy-preview-smoke:',
 )
 const authenticatedBrowserHarness =
-  `${authenticatedWorkflow}\n${globalSetup}\n${localFixtures}`
+  `${authenticatedWorkflow}\n${globalSetup}\n${localFixtures}\n${bonusGamesFixture}\n${bonusGamesSpec}`
 
 describe('authenticated browser E2E workflow', () => {
   it('uses a disposable local Supabase rebuild and Playwright Chromium', () => {
@@ -53,6 +65,49 @@ describe('authenticated browser E2E workflow', () => {
     )
     expect(authenticatedWorkflow).toContain('npm run test:e2e')
     expect(authenticatedWorkflow).toContain('playwright-report')
+  })
+
+  it('publishes the canonical Bonus Games catalogue only inside disposable browser E2E', () => {
+    expect(authenticatedWorkflow).toContain(
+      'scripts/bonus-games/publish-catalogue.sql',
+    )
+    expect(authenticatedWorkflow).toContain('e2e/bonus-games-fixture.sql')
+    expect(authenticatedWorkflow).toContain(
+      "DB_CONTAINER='supabase_db_euro-2028-predictor-local'",
+    )
+    expect(authenticatedWorkflow).toContain('--set=ON_ERROR_STOP=1')
+    expect(bonusGamesFixture).toContain('It must never run against a hosted DB.')
+    expect(bonusGamesFixture).toContain("match.match_ref = 'R16-1'")
+  })
+
+  it('keeps one browser lifecycle for every delivered Bonus Game', () => {
+    expect(bonusGamesSpec).toContain(
+      'KO Predictor registration, scoreline save and standings work end to end',
+    )
+    expect(bonusGamesSpec).toContain(
+      'Last Man Standing registration and first-round pick work end to end',
+    )
+    expect(bonusGamesSpec).toContain(
+      'Predictor Cup registration shares knockout predictions and reaches the draw state',
+    )
+    for (const route of [
+      '/games/knockout',
+      '/games/ko-predictor',
+      '/games/lms',
+      '/games/cup',
+    ]) {
+      expect(bonusGamesSpec).toContain(route)
+    }
+  })
+
+  it('keeps the repeatable catalogue SQL parse-safe and shape-checked', () => {
+    expect(bonusGamesCatalogue).toContain(
+      'v_competitions <> 3 or v_windows <> 14 or v_fixtures <> 102',
+    )
+    expect(bonusGamesCatalogue).not.toMatch(
+      /public\.bonus_competition_windows\s+window\b/,
+    )
+    expect(bonusGamesCatalogue).not.toContain('select window.id')
   })
 
   it('contains no hosted Supabase project reference', () => {
