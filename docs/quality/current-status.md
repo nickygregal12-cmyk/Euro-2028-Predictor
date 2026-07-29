@@ -1,90 +1,109 @@
 # Current quality status
 
-> The only live implementation and hosted-status authority. Current code, migrations, executable tests and verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
+> The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
 **Status date:** 29 July 2026
 
-## Baseline
+## Product position
+
+The repository is a multi-competition prediction platform in transition. The completed Euro 2028 tournament product is the first recoverable competition baseline, not the endpoint of the forward programme.
+
+- the annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc47175c43b6da`;
+- the remaining Euro 2028 scope is parked in [`../../MASTER-TODO.md`](../../MASTER-TODO.md);
+- the scheduled return date is **January 2028**;
+- forward sequencing is the Stage A–L programme in [`../roadmap.md`](../roadmap.md);
+- platform decisions are governed by [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).
+
+## Repository baseline
 
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository baseline | `main` at merge commit `ff633396e04eca77ed4456c5537ab361d9d259ee`; contract 63 with 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
-| Delivery evidence | PR #193 merged on 29 July 2026 and delivered post-lock consensus/Trends, final standings, the ten-entry consensus privacy gate and the migration timestamp guard |
-| Development Supabase | `iouzoutneyjpugbbtdem` — verified at exactly 63 versions through `20260729154931`; public consensus gate and private-helper privileges verified |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — promoted and verified at exactly 63 canonical versions through `20260729154931`; preserved-data and privilege checks passed |
-| Netlify contexts | `dev`, `branch-deploy`, `deploy-preview` and `production` all declare contract 63; non-production contexts use development Supabase and production uses production Supabase |
-| Verified production application | Netlify production deploy `6a6a53af58a0a500096b7cb1`, ready, from exact `main` commit `ff633396e04eca77ed4456c5537ab361d9d259ee`, published 29 July 2026 at 19:25:56 UTC |
-| Production release validation | Netlify plugin succeeded; deploy secret scan found no matches; Lighthouse reported Performance 96, Accessibility 100, Best Practices 100 and SEO 100. The exact pre-merge deploy-preview HTTP and Chromium smoke passed in Browser E2E `30473546011` |
-| Production data preservation | one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved Original predictions preserved; Bonus Games catalogue remains three competitions and player-created Bonus Games data remains zero |
-| Production registration state | all three Bonus Games retain `registration_opens_at = null`; entry remains closed until a later owner-approved opening decision |
-| Production recovery | same-day encrypted contract-60 backup/restore evidence remains the recovery point; exact 60→63 preflight and postflight proved all tracked production counts unchanged |
+| Recoverable Euro baseline | `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da` |
+| Application/database contract at the tag | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
+| Forward architecture | ADRs 0011–0018 plus the Stage A–L programme |
+| Current development position | Stage A documentation/control alignment and Stage B pure context-engine foundation; no rendered surface is migrated by the foundation PR |
+| Production posture | Controlled pre-launch target; no development or simulation write path is permitted |
 
-Repository, both hosted databases, all Netlify contract declarations and the published production application are aligned at contract 63. No baseline tag has been created.
+## Hosted evidence boundary
+
+This documentation task had **no Supabase or Netlify access**. Hosted statements below are the last owner-verified repository record from **29 July 2026**, not fresh inspection. Run the named target checks again before operational reliance.
+
+| Target | Last recorded state | Fresh check required |
+| --- | --- | --- |
+| Development Supabase `iouzoutneyjpugbbtdem` | owner-verified at contract 63 on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** run the canonical applied-state and privilege queries |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight | **REQUIRES OWNER VERIFICATION:** run read-only applied-state, privilege and preservation checks before any write |
+| Netlify contexts | owner-verified on 29 July 2026 as contract 63 with development/production Supabase separation | **REQUIRES OWNER VERIFICATION:** inspect each context's release identity and environment |
+| Published production application | owner-verified deploy `6a6a53af58a0a500096b7cb1` from `ff633396e04eca77ed4456c5537ab361d9d259ee`, published 29 July 2026 | **REQUIRES OWNER VERIFICATION:** fetch `/release.json` and run exact-origin smoke |
+| Production data/recovery | owner-verified preserved counts and same-day encrypted contract-60 backup/restore evidence on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** take a fresh backup/restore proof before a data-risk milestone |
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Verified at 63.** Repository, development Supabase, production Supabase and every Netlify context agree. Environment-specific Supabase URLs remain correctly separated. |
-| Production publication | **Verified.** Deploy `6a6a53af58a0a500096b7cb1` is ready from exact merge commit `ff633396e04eca77ed4456c5537ab361d9d259ee`. |
-| Recovery and preservation | **Verified.** Same-day recovery evidence exists and all tracked production counts were unchanged across 60→63. |
-| Repository validation | **Verified.** Exact PR head passed CI `30473545872`, Database parity `30473545780` and Browser E2E `30473546011`; the CI test loop ran 149 Vitest files. |
-| Database lifecycle | **Verified through 63.** Clean rebuild, lint, all pgTAP and TypeScript/PostgreSQL parity passed. |
-| Privacy | **Production-hosted.** Tournament-wide consensus is suppressed below ten submitted entries and browser roles cannot execute the unsuppressed helper. |
-| Final standings | **Production-hosted.** Live ranks remain points-only; the approved five-step order activates only after every result is confirmed or corrected. |
-| Bonus Games | **Production-hosted and isolated.** Registration remains closed. |
-| Baseline tag readiness | **Ready.** The annotated command is prepared in the baseline-readiness investigation and remains unexecuted. |
-| Launch readiness | **Not ready for public tournament operation.** Official data, manual accessibility, Auth/SMTP ownership, operational ownership and the later dress rehearsal remain. |
+| Euro 2028 baseline | **Tagged and recoverable.** Product work through contract 63 is preserved at `euro-2028-baseline`. |
+| Euro 2028 forward work | **Parked.** Remaining tournament data, presentation, rehearsal and release items return in January 2028. |
+| Platform direction | **Established by ADRs 0011–0018.** Forward documents and agent framing are being aligned. |
+| Context engine | **Foundation implemented on the Stage B branch, not wired to surfaces.** Existing rendered behaviour remains unchanged until separate migrations. |
+| Contract alignment | **Last owner-verified at 63 on 29 July 2026; fresh hosted verification required before reliance.** |
+| Recovery and preservation | **Historical evidence exists; refresh at the next production-risk milestone.** |
+| Public launch readiness | **Not ready.** The domestic-season platform, ingestion, operations, accessibility and legal/client gates remain. |
+| Production mutation | **Prohibited without explicit owner approval and the full milestone process.** |
 
-## Implemented foundation
+## Baseline capabilities carried forward
 
-- authoritative locks, submission, results, revisions, scoring, qualification and bracket replay;
+- authoritative tournament locks, submission, results, revisions, scoring, qualification and bracket replay;
 - automatic valid-entry submission using the authoritative validator;
 - deterministic group/tie resolution and real knockout winner propagation;
-- bounded overall/private standings, profiles, H2H and post-lock consensus with a ten-entry privacy threshold;
-- richer post-lock My Entry and bounded Trends experience;
-- final standings activation and explanation using the approved five-step order;
+- bounded overall/private standings, profiles, H2H and post-lock consensus;
+- richer post-lock My Entry, Trends and final standings;
 - private Account controls and race-safe Original entry clearing;
-- isolated KO Predictor, Last Man Standing and Predictor Cup;
-- automated desktop/phone axe coverage and targeted mobile overflow tests;
-- environment contract guards, migration timestamp guard, CI, Database parity, Browser E2E and exact-release controls;
-- production contract 63 with preserved data and verified public/private function privileges.
+- isolated KO Predictor, Last Man Standing and Predictor Cup tournament implementations;
+- protected browser result/qualification administration;
+- automated desktop/phone accessibility checks and targeted overflow tests;
+- deployment-contract, migration timestamp, CI, Database parity, Browser E2E and exact-release controls.
 
-## Immediate product gaps
+These capabilities are evidence for the first competition. They do not imply that season rules, season scoping or multi-competition surfaces already exist.
 
-- remaining loading, empty, retry and error-state coverage across secondary comparison, transfer and invitation surfaces;
-- trustworthy pre-auth private-league invite context and aggregate-disclosure abuse review;
-- manual keyboard, screen-reader and contrast review across core desktop/phone journeys;
-- reminder delivery only after Auth/SMTP ownership and reliability are verified;
-- official teams, fixtures, regulations, kickoff times and lock instant;
-- deliberate production registration opening for each Bonus Game after official-data and support gates;
-- operational ownership for monitoring, backups, Cron alerts and incident response;
-- later complete-volume recomputation, rollback and full tournament dress rehearsal.
+## Active work
 
-## Current next batch
+### Stage A
 
-**Secondary resilience, invite trust and manual accessibility**
+1. land the ADR stack;
+2. reframe forward documents and agent instructions;
+3. reconcile the architecture contract with ADRs 0011–0013;
+4. repair the Database parity domain-path gap;
+5. complete brand clearance and remaining documentation-control alignment.
 
-1. Complete loading, empty, retry and unavailable-data states on H2H/player comparisons, private-league transfer/search and invitation surfaces.
-2. Finish trustworthy pre-auth invite context without exposing private membership or prediction data.
-3. Run a documented keyboard, screen-reader and contrast review across core desktop/phone journeys.
-4. Close defects found with targeted Browser E2E and axe regressions before official-data ingestion.
+### Stage B
 
-## Operational follow-ups
+1. land the pure `src/domain/competition/` foundation and deterministic tests;
+2. keep it unconsumed until review;
+3. migrate the four legacy timing consumers separately with differential Euro evidence.
 
-- keep all Netlify contract declarations at 63 unless a reviewed future migration changes the contract;
-- keep production locked between milestones;
-- do not set Bonus Games registration opening instants yet;
-- name monitoring, backup and Cron alert ownership;
-- decide leaked-password protection and final Turnstile configuration;
-- rehearse application rollback and later repeat backup restore against the then-current production artifact.
+## Parked Euro 2028 scope
+
+The complete inventory is in [`../../MASTER-TODO.md`](../../MASTER-TODO.md). It includes official data, final tournament-only slices, administration fit-for-final verification, the full rehearsal, operational recovery and the published-release decision.
+
+## Open platform gaps
+
+- competition-season schema and scoping;
+- fixture/result ingestion and provider evidence;
+- season Predictor, Last Man Standing and Cup implementations;
+- cross-competition hub and weekly action surfaces;
+- notification/client distribution;
+- manual accessibility, legal, operations, load and public-launch proof;
+- brand clearance and close-season product decision.
 
 ## Documentation authority
 
 - Current facts: this file.
-- Future sequence: `docs/roadmap.md`.
-- Scoring: `docs/scoring-rules.md`.
-- Architecture/tournament states: `docs/architecture-and-tournament-states.md`.
-- Operations: the relevant `docs/ops-*.md` runbook.
+- Future sequence: [`../roadmap.md`](../roadmap.md).
+- Detailed active/parked inventory: [`../../MASTER-TODO.md`](../../MASTER-TODO.md).
+- Programme map: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md).
+- Decisions: [`../adr/README.md`](../adr/README.md).
+- Current risks and findings: [`risk-register.md`](risk-register.md).
+- Scoring: [`../scoring-rules.md`](../scoring-rules.md).
+- State architecture: [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md).
+- Operations: the relevant `docs/ops/` runbook.
 - Dated reconciliations and audits: historical evidence only.
