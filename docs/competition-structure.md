@@ -2,6 +2,8 @@
 
 Source of truth for how competitions relate. The core law: **the Original Predictor and Bonus Games are fully separate competitions.** Shared user accounts and shared tournament data are the only common ground.
 
+Platform-wide competition-season and opt-in authority: [ADR 0011](adr/0011-multi-competition-platform.md). Season Last Man Standing and Cup formats are governed by [ADR 0013](adr/0013-last-man-standing-season-rules.md) and [ADR 0014](adr/0014-predictor-cup-season-formats.md); commercial and social constraints are governed by [ADR 0015](adr/0015-commercial-and-social-model.md).
+
 ---
 
 ## 1. Separation law
