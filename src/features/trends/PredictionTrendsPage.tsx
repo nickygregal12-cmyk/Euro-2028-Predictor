@@ -9,12 +9,16 @@ import {
   fetchPredictionConsensus,
   type ConsensusPlayer,
 } from '../../services/supabase/predictionConsensus'
-import type { PredictionConsensus, UniqueConsensusPick } from '../../services/supabase/predictionConsensusModel'
+import type {
+  AvailablePredictionConsensus,
+  PredictionConsensusResponse,
+} from '../../services/supabase/predictionConsensusResponse'
+import type { UniqueConsensusPick } from '../../services/supabase/predictionConsensusModel'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import s from '../shared.module.css'
 import t from './trends.module.css'
 
-type ReadyState = { consensus: PredictionConsensus; players: ConsensusPlayer[] }
+type ReadyState = { consensus: PredictionConsensusResponse; players: ConsensusPlayer[] }
 type State =
   | { status: 'idle' | 'loading' }
   | { status: 'error'; message: string }
@@ -39,7 +43,11 @@ export function PredictionTrendsPage() {
     setState({ status: 'loading' })
     void fetchPredictionConsensus(tournamentId)
       .then(async (consensus) => {
-        const players = await fetchConsensusPlayers(consensus.goldenBoot.map((pick) => pick.playerId)).catch(() => [])
+        const players = consensus.suppressed
+          ? []
+          : await fetchConsensusPlayers(
+              consensus.goldenBoot.map((pick) => pick.playerId),
+            ).catch(() => [])
         if (active) setState({ status: 'ready', data: { consensus, players } })
       })
       .catch((error) => {
@@ -96,10 +104,15 @@ export function PredictionTrendsPage() {
   if (state.status !== 'ready') return null
 
   const { consensus, players } = state.data
-  if (consensus.submittedEntries === 0) {
+  if (consensus.suppressed) {
+    const entryLabel = consensus.submittedEntries === 1 ? 'entry is' : 'entries are'
     return (
       <Page header={header}>
-        <EmptyState icon={<TrophyIcon size={28} />} title="No submitted entries yet" description="The crowd view will appear when locked entries are available." />
+        <EmptyState
+          icon={<TrophyIcon size={28} />}
+          title="Not enough entries yet"
+          description={`Prediction trends appear once ${consensus.minimumEntries} entries are submitted. ${consensus.submittedEntries} ${entryLabel} currently available.`}
+        />
       </Page>
     )
   }
@@ -113,7 +126,7 @@ function Page({ header, children }: { header: ReactNode; children: ReactNode }) 
 
 function TrendsContent({ header, consensus, players, teams, matches }: {
   header: ReactNode
-  consensus: PredictionConsensus
+  consensus: AvailablePredictionConsensus
   players: ConsensusPlayer[]
   teams: { id: string; name: string }[]
   matches: { id: string; matchRef: string; homeTeamId: string | null; awayTeamId: string | null }[]
