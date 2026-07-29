@@ -1,6 +1,6 @@
 begin;
 
-select plan(14);
+select plan(16);
 
 create or replace function pg_temp.capture_sqlstate(p_sql text)
 returns text
@@ -45,16 +45,46 @@ insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_d
   ('61000000-0000-0000-0001-000000000002', 'consensus-two@example.test', 'authenticated', 'authenticated', '{}'::jsonb, '{"display_name":"Consensus Two"}'::jsonb, now(), now()),
   ('61000000-0000-0000-0001-000000000003', 'consensus-draft@example.test', 'authenticated', 'authenticated', '{}'::jsonb, '{"display_name":"Consensus Draft"}'::jsonb, now(), now());
 
+insert into auth.users (
+  id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+)
+select
+  ('61000000-0000-0000-0001-' || lpad(index::text, 12, '0'))::uuid,
+  format('consensus-extra-%s@example.test', index),
+  'authenticated',
+  'authenticated',
+  '{}'::jsonb,
+  jsonb_build_object('display_name', format('Consensus Extra %s', index)),
+  now(),
+  now()
+from generate_series(4, 11) as index;
+
 insert into public.profiles (id, display_name, welcomed_at) values
   ('61000000-0000-0000-0001-000000000001', 'Consensus One', now()),
   ('61000000-0000-0000-0001-000000000002', 'Consensus Two', now()),
   ('61000000-0000-0000-0001-000000000003', 'Consensus Draft', now())
 on conflict (id) do update set display_name = excluded.display_name;
 
+insert into public.profiles (id, display_name, welcomed_at)
+select
+  ('61000000-0000-0000-0001-' || lpad(index::text, 12, '0'))::uuid,
+  format('Consensus Extra %s', index),
+  now()
+from generate_series(4, 11) as index
+on conflict (id) do update set display_name = excluded.display_name;
+
 insert into public.entries (id, user_id, tournament_id, submitted_at) values
   ('61000000-0000-0000-0002-000000000001', '61000000-0000-0000-0001-000000000001', '61000000-0000-0000-0000-000000000001', now()),
   ('61000000-0000-0000-0002-000000000002', '61000000-0000-0000-0001-000000000002', '61000000-0000-0000-0000-000000000001', now()),
   ('61000000-0000-0000-0002-000000000003', '61000000-0000-0000-0001-000000000003', '61000000-0000-0000-0000-000000000001', null);
+
+insert into public.entries (id, user_id, tournament_id, submitted_at)
+select
+  ('61000000-0000-0000-0002-' || lpad(index::text, 12, '0'))::uuid,
+  ('61000000-0000-0000-0001-' || lpad(index::text, 12, '0'))::uuid,
+  '61000000-0000-0000-0000-000000000001'::uuid,
+  now()
+from generate_series(4, 11) as index;
 
 set local session_replication_role = replica;
 insert into public.match_predictions (entry_id, match_id, home_score, away_score) values
@@ -78,7 +108,9 @@ set local role authenticated;
 create temporary table consensus_payload (payload jsonb not null) on commit drop;
 insert into consensus_payload values (public.get_prediction_consensus('61000000-0000-0000-0000-000000000001'));
 
-select is((select (payload ->> 'submitted_entries')::integer from consensus_payload), 2, 'only submitted entries contribute');
+select is((select payload ->> 'suppressed' from consensus_payload), 'false', 'consensus is available at the ten-entry threshold');
+select is((select (payload ->> 'minimum_entries')::integer from consensus_payload), 10, 'the public response declares the fixed cohort threshold');
+select is((select (payload ->> 'submitted_entries')::integer from consensus_payload), 10, 'only submitted entries contribute');
 select is((select jsonb_array_length(payload -> 'champion_race') from consensus_payload), 1, 'champion race is grouped and bounded');
 select is((select (payload #>> '{champion_race,0,picks}')::integer from consensus_payload), 2, 'champion race counts both submitted picks');
 select is((select jsonb_array_length(payload -> 'peoples_final') from consensus_payload), 2, 'distinct predicted final pairs remain separate');
