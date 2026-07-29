@@ -131,10 +131,10 @@ describe('target-specific production smoke contracts', () => {
     expect(productionSmoke).not.toContain('const APPLICATION_CONTRACT')
   })
 
-  it('keeps production smoke manual and release-specific at contract 55', () => {
+  it('keeps production smoke manual and release-specific at contract 60', () => {
     expect(productionWorkflow).toContain('workflow_dispatch:')
     expect(productionWorkflow).not.toMatch(/^\s+push:/m)
-    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '55'")
+    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '60'")
     expect(productionWorkflow).toContain(
       'Wait for the exact milestone production release',
     )
