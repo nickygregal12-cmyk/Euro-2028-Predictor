@@ -1,44 +1,56 @@
 # Euro 2028 baseline readiness
 
 **Date:** 29 July 2026  
-**Candidate:** PR #193  
+**Baseline commit:** `ff633396e04eca77ed4456c5537ab361d9d259ee`  
+**Merged delivery:** PR #193  
 **Contract:** 63  
 **Canonical migration count:** 63  
 **Highest migration:** `20260729154931_prediction_consensus_minimum_cohort.sql`
 
-## Current disposition
+## Final disposition
 
-The repository candidate, development Supabase, production Supabase and every Netlify context declaration are aligned at contract 63. The currently published production application remains the earlier contract-60 artifact until PR #193 passes exact final-head gates, is merged and the resulting production deployment is verified.
+PR #193 merged on 29 July 2026 at `ff633396e04eca77ed4456c5537ab361d9d259ee`. Repository, development Supabase, production Supabase, every Netlify contract declaration and the published production application are aligned at contract 63.
 
-No baseline tag has been created.
+The exact production release is Netlify deploy `6a6a53af58a0a500096b7cb1`, ready, production context, from the exact merge commit. No baseline tag has been created.
 
-## Completed reconciliation
+## What contracts 61–63 changed
 
-- migrations 61–63 are canonical and ordered above the contract-60 baseline;
-- contract 61 supplies bounded authenticated post-lock Original Predictor consensus;
-- contract 62 activates the approved five-step final standings order only after every tournament result is confirmed or corrected;
-- contract 63 suppresses tournament-wide consensus below ten submitted entries, includes the caller and returns an explicit successful suppression state;
-- the migration timestamp guard rejects stale or colliding additions against fresh `origin/main`;
-- development and production Supabase each contain exactly 63 versions through `20260729154931`;
-- production promotion preserved all tracked user, entry, league, match, prediction and Bonus Games counts;
-- public/private consensus and final-standings privileges match the approved model;
-- all Netlify contexts declare contract 63 and retain correct development/production Supabase separation;
-- `DEC-003`, `DEC-004`, `LEAGUE-001` and `PRIV-001` are resolved at the database/implementation layer.
+- **Contract 61** added one bounded, authenticated, post-lock Original Predictor consensus read. Only submitted entries contribute; Bonus Games remain separate.
+- **Contract 62** added database-owned final standings metrics and automatically activates the approved five-step order only after every tournament result is confirmed or corrected. Live standings remain points-only.
+- **Contract 63** enforces a minimum cohort of ten submitted Original Predictor entries before tournament-wide consensus is returned. The caller counts. Below ten, the RPC returns an explicit successful `not_enough_entries` state. Browser roles cannot execute the unsuppressed helper.
 
-## Remaining baseline gates
+## Deferred-decision findings
 
-1. Exact PR #193 final-head CI passes.
-2. Exact PR #193 final-head Database parity passes.
-3. Exact PR #193 authenticated Browser E2E and deploy-preview smoke pass against contract 63.
-4. PR #193 is merged to `main` without bypassing required checks.
-5. The exact contract-63 production application deployment is ready and identifies the expected commit, contract and production Supabase environment.
-6. Production HTTP/browser smoke passes.
-7. Authority documents record the exact production deploy evidence.
-8. The baseline tag command is prepared and independently checked.
+- `DEC-003` is resolved by contract 62: final tie-break ordering activates automatically at complete tournament result confirmation; no separate administrative calculation is required.
+- `DEC-004` is resolved by the owner-approved contract-63 policy: minimum ten submitted entries, caller included, database constant, explicit successful suppression response.
 
-## Production preservation evidence
+## Reliability findings
 
-The 60→63 production migration retained:
+- `REL-008` remains historical evidence for inconsistent documentation-branch Netlify previews on PRs #194/#195. It did not reproduce on the final contract-63 delivery: exact PR #193 preview publication, HTTP smoke and Chromium smoke passed in Browser E2E `30473546011`.
+- `MIG-001` is resolved. Pull-request CI fetches `origin/main`, rejects any added migration timestamp less than or equal to main's highest timestamp, checks multiple additions for strict order and passes when no migration is added.
+- The canonical 63-file migration chain has no duplicate timestamps.
+
+## Hosted verification
+
+### Development Supabase
+
+Verified at exactly 63 migrations through `20260729154931`. Public consensus execution is authenticated/service-only; anonymous execution is denied; browser execution of the private consensus and standings helpers is denied.
+
+### Production Supabase
+
+Promoted from exactly 60 to exactly 63 after explicit owner approval. Preflight required the exact contract-60 baseline. Postflight verified:
+
+- exactly 63 migrations through `20260729154931`;
+- canonical rows `20260729122100`, `20260729122200` and `20260729154931`;
+- authenticated public consensus execution allowed;
+- anonymous public consensus execution denied;
+- authenticated execution of private consensus and standings helpers denied;
+- rollback-only suppression call returned the approved `not_enough_entries` object;
+- no persisted test data.
+
+### Production preservation
+
+The 60→63 promotion retained:
 
 - one Auth user;
 - one profile;
@@ -51,15 +63,48 @@ The 60→63 production migration retained:
 - zero Last Man Standing selections;
 - zero KO Predictor selections.
 
-The same-day encrypted contract-60 backup/restore evidence remains the recovery point. The production promotion required exactly 60 migrations before writing and verified exactly 63 migrations afterward.
+### Netlify and production application
 
-## Prepared tag
+- `dev`, `branch-deploy`, `deploy-preview` and `production` declare contract 63;
+- non-production contexts use development Supabase;
+- production uses production Supabase;
+- exact production deploy `6a6a53af58a0a500096b7cb1` is ready from `ff633396e04eca77ed4456c5537ab361d9d259ee`;
+- Netlify plugin state passed and the deploy secret scan found no matches;
+- production Lighthouse: Performance 96, Accessibility 100, Best Practices 100, SEO 100;
+- exact pre-merge production-equivalent preview HTTP and Chromium smoke passed.
 
-Do not run this until every remaining gate above is complete and the exact final `main` commit and production deploy are recorded.
+## Exact validation evidence
+
+- CI `30473545872`: **VERIFIED** — build, lint, migration timestamp guard, 149 isolated Vitest files and production dependency audit passed;
+- Database parity `30473545780`: **VERIFIED** — clean 63-migration rebuild, database lint, all pgTAP and TypeScript/PostgreSQL parity passed;
+- Browser E2E `30473546011`: **VERIFIED** — authenticated desktop/mobile journeys, ten-entry Trends, signup/recovery, exact preview HTTP smoke and Chromium smoke passed;
+- Netlify deploy `6a6a53af58a0a500096b7cb1`: **VERIFIED READY** from exact merged `main` commit.
+
+## Readiness checklist
+
+| Item | Status |
+| --- | --- |
+| Repository migration count matches `contractVersion` | **VERIFIED** — 63/63 |
+| PR #193 merged or deliberately excluded | **VERIFIED** — merged 29 July 2026 |
+| Authority documents carry dated, attributed hosted claims | **VERIFIED** |
+| Deferred-decisions register reflects what shipped | **VERIFIED** |
+| Risk register reflects current `main` | **VERIFIED** |
+| No duplicate migration timestamps | **VERIFIED** |
+| Development Supabase at expected contract | **VERIFIED** — 63 |
+| Production Supabase at expected contract | **VERIFIED** — 63 |
+| Published production release identified and contract split recorded deliberately | **VERIFIED** — deploy `6a6a53af58a0a500096b7cb1`, no split remains |
+| Branch cleanup complete — PR #194 merged and deletions run | **REQUIRES OWNER VERIFICATION** — separate repository-hygiene item; not a product/database/tag integrity blocker |
+| Deploy-preview reliability confirmed or recorded as a finding | **VERIFIED** — final exact preview passed; historical inconsistency remains recorded |
+| Exact production application release ready | **VERIFIED** |
+| Baseline tag currently absent | **VERIFIED** |
+
+## Prepared annotated tag command
+
+The command below is prepared for the final evidence commit that merges this reconciliation. Replace `<FINAL_MAIN_SHA>` with that exact merge commit after this documentation-only PR is merged. Do not tag `ff633396...` if `main` has advanced to include this final evidence commit.
 
 ```bash
-git tag -a euro-2028-baseline -m "Euro 2028 product baseline. Repository, development Supabase, production Supabase and Netlify aligned at contract 63 with 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Production deploy: <EXACT DEPLOY ID>. Test evidence: <FINAL CI / DATABASE PARITY / BROWSER E2E / PRODUCTION SMOKE>. Superseded by the multi-competition hub direction (ADR 0011)."
+git tag -a euro-2028-baseline <FINAL_MAIN_SHA> -m "Euro 2028 product baseline. Repository, development Supabase, production Supabase and all Netlify contexts verified at contract 63 with 63 canonical migrations, highest 20260729154931_prediction_consensus_minimum_cohort.sql. Product release deploy 6a6a53af58a0a500096b7cb1 published from ff633396e04eca77ed4456c5537ab361d9d259ee. Test evidence: CI 30473545872 with 149 Vitest files, Database parity 30473545780, Browser E2E and exact preview smoke 30473546011. Superseded by the multi-competition hub direction (ADR 0011)."
 git push origin euro-2028-baseline
 ```
 
-No tag has been created, moved or deleted.
+No tag was created, moved or deleted. The command remains unexecuted.
