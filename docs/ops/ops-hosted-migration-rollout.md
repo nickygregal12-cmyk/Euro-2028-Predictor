@@ -2,7 +2,7 @@
 
 This document records the controlled production rollout of repository migrations 21–35 and the release of application/database contract 35 on 25 July 2026. It also preserves the safety rules that must be reused for any later hosted migration.
 
-The full evidence record is [`quality/reconciliations/2026-07-25-contract-35-production-promotion.md`](quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
+The full evidence record is [`../quality/reconciliations/2026-07-25-contract-35-production-promotion.md`](../quality/reconciliations/2026-07-25-contract-35-production-promotion.md).
 
 ## Final production state
 
