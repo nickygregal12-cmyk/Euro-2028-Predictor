@@ -1,14 +1,14 @@
 # Production backup and restore rehearsal
 
 **Status date:** 27 July 2026  
-**Scope:** Canonical recovery procedure and the owner-triggered contract-38 backup workflow.
+**Scope:** Canonical recovery procedure and the owner-triggered encrypted backup workflow.
 **Authority:** This document prepares, records and verifies recovery evidence. It does not by itself authorize a production restore or future migration.
 
 ## Current verified position
 
 Production Supabase project `vkfnsqdyhvtwyqkisxhk` is on the Free plan. Automatic daily backups and PITR must not be assumed. Production recovery therefore relies on fresh logical exports, encrypted off-machine custody and proven disposable restores.
 
-The recovery exception is closed. Green backup run `30264080847` restored and verified the contract-36 source before production advanced to contract 38; the encrypted artifact was downloaded and preserved off GitHub. The workflow now expects the current contract-38 head for future milestone backups.
+The recovery exception is closed. Green backup run `30264080847` restored and verified its source before the following production promotion; the encrypted artifact was downloaded and preserved off GitHub. The workflow pins the migration count and latest migration version it expects — those pins live in `.github/workflows/production-backup.yml` and are the authority for what a run will accept.
 
 Latest records:
 
@@ -34,7 +34,7 @@ The workflow fails immediately, before any dump step, if either secret is missin
 ### What one run does
 
 1. dumps roles, schema and COPY-format data read-only — including the `auth.users` / `public.profiles` data path required by `create-production-backup.sh` — plus the `supabase_migrations` history via `pg_dump`;
-2. restores the plaintext dump into a disposable local Supabase inside the same job and verifies that the restored migration history matches the workflow's pinned expectation (44 versions ending in `20260727191942` / `operating_cap_enforcement` since the contract-44 promotion; keep the pins current with the production contract);
+2. restores the plaintext dump into a disposable local Supabase inside the same job and verifies that the restored migration history matches the workflow's pinned expectation. The pins are `EXPECTED_MIGRATION_COUNT`, `EXPECTED_LATEST_MIGRATION_VERSION` and `EXPECTED_LATEST_MIGRATION_NAME` in `.github/workflows/production-backup.yml`, which is the authority for what a run accepts; they must be advanced with each production promotion or the run will fail against the promoted database;
 3. prints inventory-equivalent counts from the restored copy (counts only — never emails, display names or row contents), then tears the disposable instance down;
 4. age-encrypts the bundle to `BACKUP_AGE_PUBLIC_KEY` as `euro28-prod-<UTC>.backup.tar.gz.age` and shreds every plaintext dump file before the artifact step;
 5. uploads only the encrypted file as a workflow artifact with 7-day retention, failing if any non-`.age` dump file would be uploaded;
@@ -344,7 +344,7 @@ At 27 July 2026:
 - owner off-GitHub encrypted custody and ZIP digest match: **passed**;
 - contract-36 recovery exception: **closed**;
 - contract-38 promotion and exact-release smoke: **passed**;
-- backup workflow baseline for future runs: **44 versions through `20260727191942`** (updated at the 28 July 2026 contract-44 promotion; the pre-promotion backup run `30337648499` verified the final 38-version state).
+- backup workflow baseline for future runs: whatever `.github/workflows/production-backup.yml` currently pins. Read the workflow rather than a figure copied here; a stale copy is how this line went wrong twice.
 
 ## Related documents
 

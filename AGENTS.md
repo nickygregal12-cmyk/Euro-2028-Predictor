@@ -16,18 +16,15 @@ Never import features, scoring values or game rules from previous World Cup proj
 
 ## Current baseline
 
-Repository, development Supabase and production Supabase are aligned at contract `60`. The production application is being published from the contract-60 release-alignment merge; every Netlify context must declare contract 60 and retain its correct Supabase project.
+**This file names no contract version, and you should not add one.** The authorities are:
 
-- canonical repository migration history contains exactly 60 versions through `20260729110000_predictor_cup_lint_safe_qualification.sql`;
-- development Supabase is `iouzoutneyjpugbbtdem` and records the same 60 canonical versions;
-- production Supabase is `vkfnsqdyhvtwyqkisxhk` and records the same 60 canonical versions;
-- contracts 49–56 deliver the complete Bonus Games programme through Predictor Cup qualification, knockouts and honours;
-- contract 57 adds the private Account entry controls, 58 makes clear-entry non-resurrecting, and 59–60 remove Predictor Cup temporary-table dependencies without changing rules or privileges;
-- production promotion preserved one Auth user, one profile, one entry, one league, 51 matches and 36 saved predictions, with no synthetic Bonus Games data;
-- fresh encrypted production backup and disposable restore rehearsal passed immediately before the 55→60 promotion;
-- production database lint, privileges and environment isolation are verified at contract 60.
+- [`config/deployment-contract.json`](config/deployment-contract.json) — the contract version, required migration count and the exact RPC allowlist;
+- [`docs/quality/current-status.md`](docs/quality/current-status.md) — the hosted position of the repository, development Supabase `iouzoutneyjpugbbtdem`, production Supabase `vkfnsqdyhvtwyqkisxhk`, every Netlify context and the published application, plus any deliberate development-ahead-of-production split;
+- [`docs/ops-pending-migrations.md`](docs/ops-pending-migrations.md) — the canonical migration chain and per-environment applied state.
 
-Contract compatibility does not make the product tournament-ready. The next product batch is the post-lock experience from the stable contract-60 baseline, followed by final-standings tie-breaker activation and the later dress rehearsal.
+Read those rather than trusting a number written anywhere else. Every stale document in this repository became stale by copying a contract figure out of them.
+
+Contract compatibility does not make the product tournament-ready. `docs/roadmap.md` holds the order of remaining work and `docs/quality/risk-register.md` the open risks.
 
 ## Development operating mode
 
@@ -51,7 +48,7 @@ Rules:
 
 ## Git discipline
 
-- **Diff against `origin/main`, never the local `main` ref.** Run `git fetch origin main` first. A fresh clone in a remote or ephemeral environment can leave local `main` many contracts behind — it has been observed pointing at contract-46 history while `origin/main` was at 63. Diffing against the stale ref silently attributes hundreds of already-merged files to your own branch, which makes a documentation-only change look as though it touched `src/`, `supabase/` and `tests/`. Verify current state with `git show origin/main:<path>`, and treat any claim about what is on `main` as unverified until you have.
+- **Diff against `origin/main`, never the local `main` ref.** Run `git fetch origin main` first. A fresh clone in a remote or ephemeral environment can leave local `main` many merges behind — it has been observed pointing at history from roughly seventeen contracts earlier than `origin/main`. Diffing against the stale ref silently attributes hundreds of already-merged files to your own branch, which makes a documentation-only change look as though it touched `src/`, `supabase/` and `tests/`. Verify current state with `git show origin/main:<path>`, and treat any claim about what is on `main` as unverified until you have.
 - Work from current `origin/main` on a dedicated branch.
 - Keep one coherent concern per PR where practical.
 - Do not push directly to `main`.

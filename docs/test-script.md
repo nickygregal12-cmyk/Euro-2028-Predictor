@@ -9,7 +9,7 @@ This is a usability and comprehension test, not proof of production readiness. C
 - Use a current Euro 2028 preview or development environment connected to development Supabase at the repository's compatible database contract.
 - Do not use the legacy `euro28-predictor-dev.netlify.app` site; it belongs to the protected World Cup environment.
 - Verify login, signup and recovery are usable in the selected environment before involving the tester. A successful static preview build is not enough.
-- Do not use production for this flow; production is a locked milestone target (contract 38) and is never a test environment.
+- Do not use production for this flow; production is a locked milestone target and is never a test environment.
 - Record the exact URL, commit/deploy identity, device and date with the findings.
 
 ## Ground rules

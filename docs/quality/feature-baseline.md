@@ -1,6 +1,6 @@
 # Current feature and safeguard baseline
 
-**Latest full audit reconciliation:** [`audits/2026-07-29-contract-60-full-documentation-audit.md`](audits/2026-07-29-contract-60-full-documentation-audit.md)  
+**Latest full audit reconciliation:** [`audits/2026-07-29-documentation-audit.md`](audits/2026-07-29-documentation-audit.md), which supersedes [`audits/2026-07-29-contract-60-full-documentation-audit.md`](audits/2026-07-29-contract-60-full-documentation-audit.md)  
 **Latest production release alignment:** [`investigations/2026-07-29-contract60-production-promotion.md`](investigations/2026-07-29-contract60-production-promotion.md)  
 **Current hosted state:** [`current-status.md`](current-status.md)  
 **Identifier repair:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
@@ -9,7 +9,7 @@
 
 ## Classification rules
 
-- **Implemented and production-hosted:** working capability supported by the current contract-60 production application/database pair.
+- **Implemented and production-hosted:** working capability supported by the current production application/database pair, whose contract is recorded in `../../config/deployment-contract.json`.
 - **Implemented and development-hosted; production pending:** working development capability not yet promoted.
 - **Implemented with evidence gap:** hosted capability exists but a required browser, accessibility or operational journey remains incomplete.
 - **Partial:** meaningful implementation exists but a required layer, route or journey is absent.
@@ -17,7 +17,7 @@
 - **Documented/planned:** intent exists without working implementation.
 - **Not present:** no current implementation evidence.
 
-Repository, development Supabase, production Supabase and every Netlify context are aligned at contract 60. The production application is published from the exact contract-60 release-alignment merge. See `current-status.md` for the live deploy and data position.
+This file names no contract version. `../../config/deployment-contract.json` is the contract authority and `current-status.md` records the alignment of the repository, both Supabase projects, every Netlify context and the published application, plus the live deploy and data position.
 
 ## Original Predictor and core application
 
@@ -60,7 +60,7 @@ Repository, development Supabase, production Supabase and every Netlify context 
 | `SAFE-010` | Serialized score recomputation | Implemented and production-hosted | Result/scoring operations serialized |
 | `SAFE-053` | Exact function execution allowlists | Implemented and production-hosted | Zero anonymous application execution; service-only internals |
 | `SAFE-013` | Production/development isolation | Implemented and hosted | Production and non-production retain separate Supabase projects |
-| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Every Netlify context declares contract 60 |
+| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Every Netlify context declares the contract in `../../config/deployment-contract.json` |
 | `SAFE-056` | Bonus Games catalogue visibility fallback | Implemented in current release batch | Canonical cards remain visible even if hosted catalogue rows are absent |
 
 Safe error mapping and redacting client-error capture remain governed by preserved `SAFE-039`.
@@ -77,7 +77,7 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 | `FEAT-035` | Own profile/points breakdown | Implemented and production-hosted | `/profile` with resilient reload/retry |
 | `FEAT-036` | Other-player full profile | Implemented and production-hosted | Co-member-only pre/post-lock reveal boundary |
 | `FEAT-032` | Match list, Match Centre and tournament information | Implemented and production-hosted | Fixtures, tables, bracket, stats and authoritative result detail |
-| `FEAT-050` | Post-lock trends | Documented/planned | Current Stage 6 product batch |
+| `FEAT-050` | Post-lock trends | Implemented and production-hosted | Bounded post-lock consensus/Trends with a ten-submitted-entry cohort gate; `docs/roadmap.md` Stage 6A |
 
 ## Administration, accessibility, assurance and operations
 
@@ -88,13 +88,13 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 | `SAFE-032` | Administrator bootstrap/authorization | Implemented with operational follow-up | Owner-controlled `app_metadata` capability assigned; custody remains operational |
 | `SAFE-012` | Fake clock/simulation isolation | Partial development capability | Full dress rehearsal remains |
 | `SAFE-025` | Application CI | Implemented | Build, lint, tests and production dependency audit |
-| `SAFE-026` | Disposable database integration CI | Implemented | Full 60-migration rebuild, lint, pgTAP and differential parity |
+| `SAFE-026` | Disposable database integration CI | Implemented | Full canonical-chain rebuild, lint, pgTAP and differential parity |
 | `SAFE-055` | Provider submission/clear regression tests | Implemented | Unit, database and browser coverage |
 | `SAFE-027` | Browser E2E and hosted preview smoke | Implemented | Auth, lifecycle, admin, profiles, capacity and accessibility journeys |
 | `FEAT-042` | Monitoring and alerting | Partial hosted capability | Sentry delivery verified; ownership, retention/escalation and rollback rehearsal remain |
 | `SAFE-033` | Verified backup/restore | Implemented and accepted | Encrypted artifact and disposable restore proof |
 | `SAFE-031` | Safe application rollback | Procedure implemented; hosted rehearsal pending | Final rollback rehearsal remains |
-| `SAFE-029` | Contract-gated production deploy | Implemented | Exact contract-60 release published and production re-locked |
+| `SAFE-029` | Contract-gated production deploy | Implemented | Exact contract-gated release published and production re-locked |
 
 Automated axe scanning, route titles, live announcements, main focus and skip navigation exist. Manual keyboard, screen-reader and contrast review remains open.
 
@@ -182,7 +182,7 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 
 ## Current route and data baseline
 
-Current `main` has authenticated Original Predictor, league, H2H, match, profile, Account, Bonus Games and protected administrator routes plus catch-all. Development-only routes remain gated. Repository and both hosted databases have exactly 60 canonical migrations; every Netlify context declares contract 60.
+Current `main` has authenticated Original Predictor, league, H2H, match, profile, Account, Bonus Games and protected administrator routes plus catch-all. Development-only routes remain gated. The canonical migration count and the contract every Netlify context declares are recorded in `../../config/deployment-contract.json`; `current-status.md` records the hosted position.
 
 The Bonus Games runtime routes are `/games`, `/games/knockout`, `/games/ko-predictor`, `/games/lms` and `/games/cup`. Hosted catalogue publication is separate operational reference data and must not create synthetic entrants or result history.
 

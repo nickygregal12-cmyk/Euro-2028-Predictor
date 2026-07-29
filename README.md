@@ -6,15 +6,7 @@ A mobile-first Euro 2028 football predictor web app built with React 19, TypeScr
 
 Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
 
-A controlled environment split is active for PR #193:
-
-- the repository candidate and development Supabase are at **contract 62** through `20260729122200_final_standings_tiebreaks.sql`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` declare 62 and use development Supabase;
-- production Supabase and Netlify production remain aligned and re-locked at **contract 60**;
-- no contract-61/62 production migration or application deploy has been authorised;
-- the verified production release remains the PR #184 Bonus Games application.
-
-Contract 61 adds bounded authenticated post-lock prediction consensus. Contract 62 activates the approved final standings tie-break order after every tournament result while preserving points-only live ranks.
+This file names no contract version. [`config/deployment-contract.json`](config/deployment-contract.json) is the contract authority; [`docs/quality/current-status.md`](docs/quality/current-status.md) records the hosted position of the repository, both Supabase projects, every Netlify context and the published application, including any deliberate development-ahead-of-production split. Figures repeated here went stale twice.
 
 Normal work continues against development Supabase. Production remains milestone-only and requires a fresh backup/preflight, explicit approval and exact release verification.
 
@@ -105,9 +97,9 @@ Database parity CI runs:
 
 Browser E2E covers authenticated desktop/mobile prediction, submission, clearing, bracket conflicts, post-lock rejection, private leagues, Auth recovery, Match Centre, Profile/H2H privacy, Account, Bonus Games, tournament-information states and Prediction Trends. Exact deploy-preview smoke is contract-gated.
 
-## Current contract-62 development candidate
+## Post-lock and final-standings capabilities
 
-The candidate supports everything in production contract 60 plus:
+Beyond the core prediction, league, profile and Bonus Games surfaces:
 
 - a richer locked My Entry state with champion, review, Trends, joker, profile and standings actions;
 - bounded post-lock consensus covering champion race, predicted final, awards, agreement/division, trusted team, goals spread and caller-only unique picks;
@@ -115,7 +107,7 @@ The candidate supports everything in production contract 60 plus:
 - explicit final-standings explanation UI;
 - desktop/phone Trends Browser E2E, mobile overflow proof and axe coverage.
 
-Production remains contract 60 until separate approval.
+Production promotion is milestone-only and requires separate approval; `docs/quality/current-status.md` records what production currently carries.
 
 ## Documentation authority
 

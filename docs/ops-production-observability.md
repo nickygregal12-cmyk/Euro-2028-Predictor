@@ -1,7 +1,7 @@
 # Production observability and application rollback
 
 **Status:** privacy-safe Sentry production delivery verified; operating policy and rollback rehearsal remain incomplete.  
-**Contracts:** repository/development 44 (see `docs/quality/current-status.md` for the live value); production locked at 38.
+**Contracts:** this runbook names no contract version. See `config/deployment-contract.json` for the contract and `docs/quality/current-status.md` for the hosted position.
 **Primary owner:** `nickygregal12-cmyk`.  
 **Scope:** client failures, release identity, anonymous read-only smoke and static-application rollback. This runbook authorizes no database write.
 
@@ -115,7 +115,7 @@ Use the same variables with `npm run smoke:production:browser`. Never use final-
 `.github/workflows/production-smoke.yml` is manual-only and requires:
 
 - production environment;
-- contract 38/38;
+- the repository and production contract pair recorded in `docs/quality/current-status.md`;
 - final-target Supabase;
 - the exact selected `github.sha`;
 - HTTP/browser smoke.
@@ -154,12 +154,12 @@ Alerts remain limited to actionable startup, availability, route-affecting error
 
 A Netlify rollback changes static files only, not Supabase schema/data.
 
-- **Static client regression while production remains contract 38:** a compatible contract-38 application rollback may be appropriate.
+- **Static client regression:** a rollback to the previous application build carrying the same contract as the production database may be appropriate.
 - **Database/RLS/function/history/data incident:** stop and use database recovery/change control.
 - **Wrong Supabase or contract identity:** stop deployment/traffic and investigate; never point production at development.
 - **Auth/CAPTCHA incident:** use the separate Auth/Turnstile process.
 
-The verified contract-38 production application/database pair is the current baseline.
+The verified production application/database pair recorded in `docs/quality/current-status.md` is the current baseline.
 
 ### Pre-rollback
 
