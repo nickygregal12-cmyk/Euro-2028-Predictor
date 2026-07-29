@@ -197,10 +197,10 @@ PR #194 remains open and unmerged. The owner must merge or otherwise accept the 
 
 ## 9. Prepared annotated tag command — unexecuted
 
-The command is not ready to run. Repository facts are filled; owner-only and final test-summary values remain placeholders.
+The command is not ready to run. Repository facts and test totals are filled; owner-only values remain placeholders. Ordinary CI passed 850 tests across 144 files. The 15 tests in the skipped PostgreSQL parity file were exercised by successful Database parity run `30460530182`.
 
 ```bash
-git tag -a euro-2028-baseline -m "Euro 2028 product baseline. Repository verified at contract 60, 60 migrations, highest 20260729110000_predictor_cup_lint_safe_qualification.sql. Development Supabase: <OWNER TO CONFIRM>. Production Supabase: <OWNER TO CONFIRM>. Published production release: <OWNER TO CONFIRM>. Test suite: <X> passing across <Y> files. Superseded by the multi-competition hub direction (ADR 0011)."
+git tag -a euro-2028-baseline -m "Euro 2028 product baseline. Repository verified at contract 60, 60 migrations, highest 20260729110000_predictor_cup_lint_safe_qualification.sql. Development Supabase: <OWNER TO CONFIRM>. Production Supabase: <OWNER TO CONFIRM>. Published production release: <OWNER TO CONFIRM>. Test suite: 850 passing across 144 files. Superseded by the multi-competition hub direction (ADR 0011)."
 git push origin euro-2028-baseline
 ```
 
