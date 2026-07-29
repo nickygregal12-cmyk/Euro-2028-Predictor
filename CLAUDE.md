@@ -1,19 +1,24 @@
-# CLAUDE.md — Euro 2028 Predictor
+# CLAUDE.md — multi-competition prediction platform
 
-Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/current-status.md` are authoritative.
+Convenience summary for coding-agent sessions. [`AGENTS.md`](AGENTS.md) and [`docs/quality/current-status.md`](docs/quality/current-status.md) are authoritative.
+
+## Project framing
+
+- This is a multi-competition football prediction platform.
+- Euro 2028 is the first completed competition baseline, preserved at `euro-2028-baseline`, and its remaining work returns in January 2028.
+- Platform decisions are in [`docs/adr/README.md`](docs/adr/README.md); do not infer season rules from the tournament implementation.
+- Forward work follows [`docs/roadmap.md`](docs/roadmap.md) and the detailed inventory in [`MASTER-TODO.md`](MASTER-TODO.md).
+- Do not import rules or features from previous projects, old branches, prototypes or chats.
 
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository, development Supabase and production Supabase are aligned at contract 60.
+- The tagged Euro baseline is contract 63 at `1fb8ffd36ad113079181829a8bcc47175c43b6da`.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- Contract 60 contains the complete Bonus Games programme, private Account controls, non-resurrecting clear-entry semantics and lint-safe Predictor Cup qualification/progression.
-- The 55→60 production promotion passed encrypted backup/restore, exact dry-runs, preserved-data checks, privilege verification and hosted database lint.
-- The production application is published only from the exact contract-60 release-alignment merge and must report contract 60 against the production Supabase project.
+- The hosted contract/deploy statements above were last owner-verified on 29 July 2026; **REQUIRES OWNER VERIFICATION** via `docs/quality/current-status.md` before operational reliance.
 - Normal work happens against development; production promotion is milestone-only.
-
-Do not import rules or features from previous projects, old branches, prototypes or chats.
+- Stage A/B is active: authority/control alignment, then the pure context-engine foundation and separate behaviour-preserving surface migrations.
 
 ## Proportionate checks
 
@@ -25,20 +30,25 @@ Ordinary development does not require production backup, production smoke or a n
 
 ## Architecture
 
-- Tournament rules live under `src/domain/tournament/`.
+- Shared competition rules live under `src/domain/competition/` and follow ADR 0011.
+- Tournament-only rules remain under `src/domain/tournament/`.
+- Season-only rules belong under the future `src/domain/season/`.
+- The shared domain may not import tournament/season implementations; tournament and season implementations may not import each other.
+- Domain code is pure: no storage, network or ambient clock reads; time is an input.
 - Components render domain results rather than inventing rules.
 - Browser Supabase access goes through `src/services/supabase/`.
 - Keep pure response parsing/models separate from configured Supabase wrappers.
 - Database rules are authoritative for locks, submission, results, progression, scoring and profile reveal/access boundaries.
-- Original Predictor and bonus games remain separate.
+- Competition entries, scoring and standings remain separate under ADRs 0011 and 0015.
 - Predicted and real brackets never blend.
 - Knockout UI consumes authoritative winner/result-method data.
 - Profile/H2H headline totals and ranks come from bounded server reads; browser domain logic derives only comparison/accuracy views.
-- Other-player profiles remain limited to authenticated league co-members; overall standings are not a global profile directory.
+- Other-player profiles remain limited to authenticated league co-members unless a later privacy authority changes that boundary.
+- Feeds remain display-only; confirmation is the official scoring/progression gate.
 
 ## Scoring
 
-`docs/scoring-rules.md` is authoritative:
+[`docs/scoring-rules.md`](docs/scoring-rules.md) remains authoritative for the Euro 2028 tournament configuration. Preserve the existing values, but never treat them as universal platform defaults:
 
 - group result 3; exact score 5 total;
 - five Jokers, group-match points only;
@@ -46,17 +56,21 @@ Ordinary development does not require production backup, production smoke or a n
 - knockout 10 / 15 / 20 / 25 / 40, stacking;
 - Golden Boot 25;
 - group goals 40 / 30 / 20;
-- KO Predictor (separate score system, §8): exact 5 / result 3 / through +2;
-- Last Man Standing (§8): tournament format — win to survive groups, advance in knockouts, one team once, wipeout voids.
+- KO Predictor: exact 5 / result 3 / through +2;
+- Last Man Standing: the existing tournament format.
+
+Season rules come from ADR 0012, ADR 0013 and their future dedicated scoring authorities. Do not merge tournament and season implementations because terminology overlaps.
 
 ## Current order
 
-1. Build the post-lock consensus/trends surface and richer My-entry state from the stable contract-60 baseline.
-2. Activate final league tie-breaker standings and explanation UI.
-3. Complete remaining mobile, empty/error-state and manual accessibility work alongside each feature.
-4. Perform the later official-data integration and full product dress rehearsal.
+1. Land ADRs 0011–0018 and the reframed forward authorities.
+2. Reconcile `docs/architecture-and-tournament-states.md` with the ADRs.
+3. Make Database parity apply to all `src/domain/**`.
+4. Land the pure competition-context foundation without wiring any surface.
+5. Migrate `entryLock.ts`, `matchCentre.ts`, `matchesTab.ts` and `homeDashboard.ts` separately, each with behaviour-equivalence evidence.
+6. Proceed to competition-season schema and ingestion only after the seam is proven.
 
-The Bonus Games programme, Match Centre resilience, Account/privacy/contact-admin controls, automated accessibility scanning and Matches tournament-information page are delivered and production-aligned.
+The tournament baseline, Bonus Games programme, Match Centre resilience, Account/privacy/contact-admin controls, automated accessibility scanning and Matches tournament-information page remain delivered foundations, not assumptions that season behaviour already exists.
 
 ## Hard boundaries
 
@@ -67,3 +81,5 @@ The Bonus Games programme, Match Centre resilience, Account/privacy/contact-admi
 - No current-project modification of the legacy World Cup deployment.
 - No scoring or rule change without authority and test updates.
 - No hosted claim without evidence.
+- No combined cross-competition entry, score or standings path.
+- No removal of a control document as cleanup; archive it.
