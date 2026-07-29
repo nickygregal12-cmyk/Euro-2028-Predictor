@@ -9,38 +9,39 @@
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository candidate | Stacked PR #196 extends PR #193 to 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql`; `main` and production remain at 60 until the milestone promotion is explicitly approved |
-| Delivery evidence | PRs #122–#145 establish lifecycle, bounded reads, scale, Profile/H2H and privacy; PRs #150, #157 and #164 deliver Bonus Games; PRs #162, #165 and #166 complete Match Centre and Predict resilience; PRs #167, #171 and #174 deliver Account controls and race-safe clearing; PR #177 adds axe coverage; PR #178 rebuilds Matches; PR #180 makes Predictor Cup lint-resolvable; PRs #187, #189 and #191 close browser/database audit gaps; PR #193 adds post-lock/final standings; PR #196 adds the approved consensus cohort gate and migration timestamp control |
-| Development Supabase | `iouzoutneyjpugbbtdem` — owner-verified 29 July 2026 at exactly 63 versions through `20260729154931`; public consensus gate and private-helper privileges verified |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly 60 canonical versions; encrypted backup/restore, dry-runs, preservation checks, privileges and hosted database lint passed |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` require contract 63 alignment — **REQUIRES OWNER VERIFICATION**; `production` remains declared at 60 and uses production Supabase |
-| Verified production application | Bonus Games release deploy `6a69c4178767280008845b27`, ready, from `0fe61a84bc43a7894b0de5b4bc923e188f043c14` (PR #184) |
-| Production data preservation | one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved Original predictions preserved; Bonus Games catalogue is 3 competitions / 14 windows / 102 fixture links; player-created Bonus Games data remains zero |
+| Repository candidate | PR #193 at contract 63 with 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql`; merge and exact production application release remain pending final-head gates |
+| Delivery evidence | PRs #122–#145 establish lifecycle, bounded reads, scale, Profile/H2H and privacy; PRs #150, #157 and #164 deliver Bonus Games; PRs #162, #165 and #166 complete Match Centre and Predict resilience; PRs #167, #171 and #174 deliver Account controls and race-safe clearing; PR #177 adds axe coverage; PR #178 rebuilds Matches; PR #180 makes Predictor Cup lint-resolvable; PRs #187, #189 and #191 close browser/database audit gaps; PR #193 adds post-lock consensus, final standings, cohort privacy and migration timestamp controls |
+| Development Supabase | `iouzoutneyjpugbbtdem` — verified at exactly 63 versions through `20260729154931`; public consensus gate and private-helper privileges verified |
+| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — promoted and verified at exactly 63 canonical versions through `20260729154931`; preserved-data and privilege checks passed |
+| Netlify contexts | `dev`, `branch-deploy`, `deploy-preview` and `production` all declare contract 63; non-production contexts use development Supabase and production uses production Supabase |
+| Verified production application | Current live application remains the contract-60 Bonus Games release deploy `6a69c4178767280008845b27` from `0fe61a84bc43a7894b0de5b4bc923e188f043c14` until PR #193 is merged and an exact contract-63 production deployment is verified |
+| Production data preservation | one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved Original predictions preserved; Bonus Games catalogue remains 3 competitions and player-created Bonus Games data remains zero |
 | Production registration state | all three Bonus Games retain `registration_opens_at = null`; entry remains closed until a later owner-approved opening decision |
-| Production recovery | fresh encrypted contract-55 baseline backup restored successfully before 55→60; the contract-60 backup verifier subsequently passed |
+| Production recovery | same-day encrypted contract-60 backup/restore evidence remains the recovery point; exact 60→63 preflight and postflight proved all tracked production counts unchanged |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Development is intentionally ahead at contract 63 for stacked PR #196 while production remains re-locked at contract 60. This is a recorded milestone split, not an accidental divergence. No contract-61–63 production write or production deploy has been performed.
+The repository, development database, production database and every Netlify contract declaration are aligned at contract 63. The application release is intentionally one step behind until the exact PR #193 final head passes preview and repository gates, is merged, and the resulting production deployment is verified. No tag has been created.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Controlled split.** Repository and development Supabase are at 63; non-production Netlify contract-63 alignment requires owner verification; production Supabase and production Netlify remain at 60. |
-| Production publication | **Unchanged and verified at 60.** The last product release remains the exact PR #184 Bonus Games deployment. |
-| Recovery | **Verified for production 60.** A fresh encrypted backup restored successfully before milestone writes; production promotion to 63 requires a new preflight/backup/approval cycle. |
-| Production preservation | **Verified.** No production data, registration state or schema was changed by PR #193/#196 development work. |
-| Database lint and parity | **Clean at candidate 63.** A disposable 63-migration rebuild, lint, all pgTAP suites and TypeScript/PostgreSQL parity pass. |
+| Contract alignment | **Aligned at 63.** Repository candidate, development Supabase, production Supabase and all Netlify context declarations match. Environment-specific Supabase URLs remain correctly separated. |
+| Production publication | **Pending exact application release.** The database and environment contract are ready; the currently published application remains contract 60 until PR #193 promotion is complete. |
+| Recovery | **Verified recovery point and guarded promotion.** Same-day encrypted backup/restore evidence exists, production was required to be exactly contract 60 before promotion, and postflight proved preservation at 63. |
+| Production preservation | **Verified.** User, profile, entry, league, membership, match, prediction and Bonus Games counts were unchanged across 60→63. |
+| Database lint and parity | **Clean at 63.** Disposable rebuild, lint, all pgTAP suites and TypeScript/PostgreSQL parity pass. |
 | Administrator result control | **Implemented and audit-proven.** Confirm/correct/clear, immutable revisions, result methods and exact before/after content are browser/database proven. |
 | Actual qualification control | **Implemented.** Exact third-place boundary ties are authorised, reasoned, revisioned and replayed transactionally. |
 | Automatic valid-entry recovery | **Implemented.** A database-owned job submits only complete valid entries at lock and exposes immutable owner outcomes. |
 | Bounded reads and capacity | **Implemented.** Overall/private standings, profiles, H2H and post-lock consensus use bounded server contracts. |
-| Tournament database lifecycle | **Proven through candidate 63.** Full-tournament, correction, replay, automatic submission, Cup, rank-history, revision-content, consensus, cohort suppression and final-standings pgTAP journeys pass. |
-| Profile/H2H and privacy | **Proven in development.** Other-player detail remains authenticated/co-member-only; tournament-wide consensus is suppressed below ten submitted entries and the private aggregate helper is inaccessible to browser roles. |
-| Post-lock Original experience | **Implemented in development.** A richer locked My Entry state and bounded Trends page expose crowd signals only after lock and only from an eligible cohort. |
-| Final standings | **Implemented in PR #193 development.** Live ranks stay points-only; after every result, overall/private leagues apply exact scores, correct outcomes, correct knockout teams, champion and closest goals. |
+| Tournament database lifecycle | **Proven and production-hosted through 63.** Full-tournament, correction, replay, automatic submission, Cup, rank-history, revision-content, consensus, cohort suppression and final-standings database contracts are present. |
+| Profile/H2H and privacy | **Production-hosted at 63.** Other-player detail remains authenticated/co-member-only; tournament-wide consensus is suppressed below ten submitted entries and the private aggregate helper is inaccessible to browser roles. |
+| Post-lock Original experience | **Implemented in PR #193.** A richer locked My Entry state and bounded Trends page expose crowd signals only after lock and only from an eligible cohort. |
+| Final standings | **Implemented in PR #193 and production database.** Live ranks stay points-only; after every result, overall/private leagues apply exact scores, correct outcomes, correct knockout teams, champion and closest goals. |
 | Bonus Games | **Visible, production-hosted and browser-proven.** KO Predictor, Last Man Standing and Predictor Cup remain separate and production registration remains closed. |
-| Accessibility automation | **Expanded in PR #193.** The Trends route is included in axe scans and has desktop/phone overflow coverage; manual review remains. |
-| Launch readiness | **Not ready.** Official data, manual accessibility, Auth/SMTP ownership, operational ownership and the later dress rehearsal remain. |
+| Accessibility automation | **Expanded in PR #193.** Trends is included in axe scans and desktop/phone overflow coverage; manual review remains. |
+| Baseline tag readiness | **Pending.** Requires exact final-head preview/repository gates, merge, exact production deploy and smoke evidence. |
+| Launch readiness | **Not ready for public tournament operation.** Official data, manual accessibility, Auth/SMTP ownership, operational ownership and the later dress rehearsal remain. |
 
 ## Implemented foundation
 
@@ -58,7 +59,7 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 - resilient Match Centre, Predict and Matches tournament-information views;
 - automated desktop/phone axe coverage plus targeted mobile overflow tests;
 - environment contract guards, migration timestamp guard, CI, Database parity, Browser E2E and exact-head release controls;
-- production backup/restore and exact contract-60 release evidence.
+- production database contract 63 with preserved data and verified public/private function privileges.
 
 ## Immediate product gaps
 
@@ -78,23 +79,22 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 | --- | --- |
 | UI, copy, styling, docs | CI; targeted preview/UI verification when relevant |
 | Features and development schema | CI plus relevant unit/integration, Database parity and Browser E2E |
-| Production schema, auth, scoring, destructive work or release | Backup when data is at risk, preflight, explicit approval, full verification and dated evidence |
+| Production schema, auth, scoring, destructive work or release | Recovery evidence when data is at risk, preflight, explicit approval, full verification and dated evidence |
 
-Production promotion is milestone-only. Development may advance ahead of production only when the split is recorded here. The heavier release posture returns around six months before the tournament, or earlier when real users or valuable live data appear.
+Production promotion is milestone-only. The heavier release posture returns around six months before the tournament, or earlier when real users or valuable live data appear.
 
 ## Current next batch
 
-**Secondary resilience, invite trust and manual accessibility**
+**Complete contract-63 release and baseline preparation**
 
-1. Complete loading, empty, retry and unavailable-data states on H2H/player comparisons, private-league transfer/search and invitation surfaces.
-2. Finish trustworthy pre-auth invite context without exposing private membership or prediction data; include aggregate-disclosure abuse review.
-3. Run a documented keyboard, screen-reader and contrast review across Home, Predict/My Entry, Trends, Matches, leagues, Profile/H2H, Bonus Games and Account on desktop/phone.
-4. Close any defects found with targeted Browser E2E and axe regressions before starting official-data ingestion work.
+1. Pass exact PR #193 final-head CI, Database parity, authenticated Browser E2E and deploy-preview smoke at contract 63.
+2. Merge PR #193 to `main` only after all required checks are green.
+3. Verify the exact contract-63 production deploy, `/release.json`, production Supabase target and production smoke.
+4. Reconcile the final production deploy evidence and prepare the immutable baseline tag command.
 
 ## Operational follow-ups
 
-- update and verify Netlify `dev`, `branch-deploy` and `deploy-preview` contract declarations at 63 before relying on an exact preview;
-- keep production smoke and backup workflows pinned to contract 60 until promotion is explicitly approved;
+- keep all Netlify contract declarations at 63 unless a reviewed future migration changes the contract;
 - keep production locked between milestones;
 - do not set Bonus Games registration opening instants yet;
 - name monitoring, backup and Cron alert ownership;
