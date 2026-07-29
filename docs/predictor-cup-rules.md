@@ -15,6 +15,8 @@ A head-to-head prediction tournament that mirrors football: random groups, quali
 >
 > **Open before the format is final:** the **window plan** — field size → bracket depth → real-fixture bundles. The real calendar offers ~4 natural post-group windows (R16 / QF / SF / Final); deep brackets (e.g. 86 entrants → 6 knockout rounds) need real rounds split into smaller bundles (e.g. R16 as four windows of two matches), which raises tie frequency — the tie-breaks below are built for that, but the mapping must be published here before the first Cup prediction locks (§13.1). **Mechanism adopted 2026-07-22:** windows are STORED DATA (architecture doc §7) — admin-adjustable rows, not hardcoded arrays — so the plan is configured once the field size is known, and published from the same data.
 
+This document remains the Euro 2028 tournament Cup authority. League-season Cup formats are governed by [ADR 0014](adr/0014-predictor-cup-season-formats.md).
+
 ---
 
 ## Rules at a glance
