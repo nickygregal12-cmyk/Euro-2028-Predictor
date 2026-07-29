@@ -1,8 +1,8 @@
 import { supabase } from './client'
 import {
-  mapPredictionConsensus,
-  type PredictionConsensus,
-} from './predictionConsensusModel'
+  mapPredictionConsensusResponse,
+  type PredictionConsensusResponse,
+} from './predictionConsensusResponse'
 
 export type ConsensusPlayer = {
   id: string
@@ -12,12 +12,12 @@ export type ConsensusPlayer = {
 
 export async function fetchPredictionConsensus(
   tournamentId: string,
-): Promise<PredictionConsensus> {
+): Promise<PredictionConsensusResponse> {
   const { data, error } = await supabase.rpc('get_prediction_consensus', {
     p_tournament_id: tournamentId,
   })
   if (error) throw error
-  return mapPredictionConsensus(data)
+  return mapPredictionConsensusResponse(data)
 }
 
 export async function fetchConsensusPlayers(playerIds: string[]): Promise<ConsensusPlayer[]> {
