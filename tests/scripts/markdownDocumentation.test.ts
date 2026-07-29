@@ -139,7 +139,7 @@ describe('Markdown documentation integrity', () => {
       (line) => line.match(/^\| `((?:FEAT|PLAN|SAFE)-\d{3})` \|/)?.[1],
     )
 
-    expect(compactTableRows).toHaveLength(59)
+    expect(compactTableRows).toHaveLength(61)
     expect(primaryIds.every(Boolean)).toBe(true)
     expect(new Set(primaryIds).size).toBe(primaryIds.length)
 
