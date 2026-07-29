@@ -14,6 +14,7 @@ concurrency:
   group: contract60-final-production-smoke
   cancel-in-progress: false
 
+# Existing branch workflow: this update triggers the exact live release check.
 jobs:
   exact-production-smoke:
     runs-on: ubuntu-latest
