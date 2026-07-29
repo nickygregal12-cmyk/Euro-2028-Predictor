@@ -1,5 +1,9 @@
 # Acquisition risk register
 
+> **Archived 29 July 2026** by the documentation consolidation, moved from `docs/quality/acquisition-risk-register.md` after its contents were merged. Superseded by [`risk-register.md`](../risk-register.md), which is now the single live register: all 27 `ACQ-R` risks below were merged into a destination identifier, carried across keeping their own identifier, or recorded as already covered, and the per-risk disposition is in that file's *Acquisition merge accounting* section. `ACQ-R02`, `ACQ-R06` and `ACQ-R07` were each re-verified against `origin/main` and remain Open; the `FUNC-002` / `ACQ-R05` contradiction was resolved in favour of `FUNC-002` with evidence. **No risk was closed by the merge.**
+>
+> Retained unchanged as dated 27 July 2026 derivation evidence from [`2026-07-27-acquisition-technical-audit.md`](../../audits/2026-07-27-acquisition-technical-audit.md). Its status text is a snapshot of that date and is not current; its *Completed repository foundations* and *Status values* sections are preserved here because they were not merged as risk rows.
+
 **Date opened:** 27 July 2026  
 **Scope:** Risks derived from the acquisition technical audit and reconciled as forward platform work.  
 **Status rule:** A risk closes only when implementation and verification evidence exist; planning text alone does not mitigate it.

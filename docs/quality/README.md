@@ -52,7 +52,7 @@ Not here: the execution sequence ([`../roadmap.md`](../roadmap.md)), architectur
 3. [`current-status.md`](current-status.md) — the live assurance and operations position.
 4. The latest dated audit and the workstream notes in [`reconciliations/`](reconciliations/).
 5. [`feature-baseline.md`](feature-baseline.md) — the feature and safeguard inventory.
-6. [`risk-register.md`](risk-register.md) and [`acquisition-risk-register.md`](acquisition-risk-register.md) — verified findings and risk history.
+6. [`risk-register.md`](risk-register.md) — the single live register of verified findings and risk history, including the merged `ACQ-R` risks.
 7. GitHub Issues — active remediation work.
 8. Pull requests and commits — implementation and review evidence.
 9. Dated files under [`audits/`](audits/), [`investigations/`](investigations/), `../audits/` and superseded documents under [`history/`](history/) — historical evidence only.
@@ -68,7 +68,7 @@ A historical audit is evidence at one commit and date. It must not become a comp
 | [`current-status.md`](current-status.md) | Live assurance and operations position | No |
 | [`feature-baseline.md`](feature-baseline.md) | Feature/safeguard preservation and regression comparison | No |
 | [`risk-register.md`](risk-register.md) | Permanent finding history and current status | No |
-| [`acquisition-risk-register.md`](acquisition-risk-register.md) | Acquisition-audit-derived risk register (`ACQ-R` findings) — **pending merge into [`risk-register.md`](risk-register.md)**, which is the single live register | No |
+| [`history/acquisition-risk-register-2026-07-27.md`](history/acquisition-risk-register-2026-07-27.md) | Archived 27 July 2026 acquisition register; **merged into [`risk-register.md`](risk-register.md)** on 29 July 2026 and retained as derivation evidence | No |
 | [`deferred-decisions.md`](deferred-decisions.md) | Intentionally postponed decisions with review triggers | No |
 | [`audit-prompt.md`](audit-prompt.md) | Controlled reusable audit instructions | No |
 | [`audits/`](audits/) | Immutable dated audit evidence (the acquisition technical audit lives at `../audits/`) | No |
@@ -130,7 +130,7 @@ Deleting a test, TODO, document or finding is not resolution evidence.
 | `CODE` | Code structure and maintainability |
 | `HYGIENE` / `REPO` | Repository hygiene |
 | `SEO` | Public-web and sharing quality |
-| `ACQ-R` | Acquisition-audit-derived risks (in [`acquisition-risk-register.md`](acquisition-risk-register.md)) |
+| `ACQ-R` | Acquisition-audit-derived risks, merged into [`risk-register.md`](risk-register.md) on 29 July 2026 with their identifiers preserved |
 
 Both `SEC` and `SECURITY`, and both `OPS` and `DEPLOY`, appear in the historical registers. Those IDs are preserved exactly. **Do not renumber existing findings merely to normalise naming.**
 
