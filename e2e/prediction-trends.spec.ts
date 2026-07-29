@@ -56,11 +56,14 @@ async function prepareFixture(): Promise<Fixture> {
   if (matchError) throw matchError
   if (!matches || matches.length < 2) throw new Error('Prediction trends fixture needs two group matches.')
 
-  // Each project/retry receives fresh identities. The disposable seed already
-  // contains submitted entries, so the browser assertion must not assume that
-  // these three fixtures are the entire consensus field.
+  // Each project/retry receives fresh identities. Ten submitted fixture entries
+  // guarantee that the tournament-wide aggregate clears the privacy threshold,
+  // regardless of the disposable seed's existing entries.
   const suffix = randomUUID()
-  const emails = [1, 2, 3].map((index) => `trends-${suffix}-${index}@example.test`)
+  const emails = Array.from(
+    { length: 10 },
+    (_, index) => `trends-${suffix}-${index + 1}@example.test`,
+  )
   const userIds: string[] = []
   for (let index = 0; index < emails.length; index += 1) {
     const created = await admin.auth.admin.createUser({
@@ -100,11 +103,12 @@ async function prepareFixture(): Promise<Fixture> {
   const predictionRows = userIds.flatMap((userId, userIndex) => {
     const entryId = entryByUser.get(userId)
     if (!entryId) throw new Error('Prediction trends fixture lost an entry.')
+    const selectedScorelines = scorelines[userIndex % scorelines.length]
     return matches.map((match, matchIndex) => ({
       entry_id: entryId,
       match_id: match.id,
-      home_score: scorelines[userIndex][matchIndex][0],
-      away_score: scorelines[userIndex][matchIndex][1],
+      home_score: selectedScorelines[matchIndex][0],
+      away_score: selectedScorelines[matchIndex][1],
     }))
   })
   const predictionWrite = await admin.from('match_predictions').insert(predictionRows)
@@ -114,7 +118,7 @@ async function prepareFixture(): Promise<Fixture> {
     const entryId = entryByUser.get(userId)
     if (!entryId) throw new Error('Prediction trends fixture lost a progression entry.')
     return [
-      { entry_id: entryId, team_id: teams[index === 2 ? 2 : 0].id, stage: 'champion' },
+      { entry_id: entryId, team_id: teams[index % 3 === 2 ? 2 : 0].id, stage: 'champion' },
       { entry_id: entryId, team_id: teams[1].id, stage: 'final' },
     ]
   })
@@ -174,7 +178,7 @@ test.describe('post-lock prediction trends', () => {
     await expect(crowdSummary).toBeVisible()
     const crowdText = await crowdSummary.textContent()
     const submittedEntries = Number.parseInt(crowdText?.match(/\d+/)?.[0] ?? '0', 10)
-    expect(submittedEntries).toBeGreaterThanOrEqual(3)
+    expect(submittedEntries).toBeGreaterThanOrEqual(10)
 
     await expect(page.getByRole('heading', { name: "The people's final" })).toBeVisible()
 
