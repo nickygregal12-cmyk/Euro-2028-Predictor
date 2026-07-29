@@ -38,7 +38,7 @@
 
 .tagline {
   margin: 0;
-  color: var(--text-muted, #667085);
+  color: var(--tx2);
   font-size: 0.85rem;
 }
 
@@ -56,7 +56,7 @@
 .deadline {
   margin: 0;
   font-size: 0.8rem;
-  color: var(--text-muted, #667085);
+  color: var(--tx2);
 }
 
 .actions {
