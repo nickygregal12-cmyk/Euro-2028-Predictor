@@ -14,20 +14,20 @@
 | Development Supabase | `iouzoutneyjpugbbtdem` — exactly 60 canonical versions; history, privileges, lint and lifecycle tests verified; Bonus Games catalogue verified at 3 competitions / 14 windows / 102 fixture links |
 | Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly 60 canonical versions; encrypted backup/restore, dry-runs, preserved-data checks, privilege checks and hosted database lint passed; Bonus Games catalogue published at 3 / 14 / 102 with registration closed |
 | Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 60 and use development Supabase; `production` declares 60 and uses production Supabase |
-| Published production deploy | `6a69c4178767280008845b27`, ready, from merge commit `0fe61a84bc43a7894b0de5b4bc923e188f043c14` (PR #184) |
-| Production deploy evidence | exact merge identity; no deploy error; plugin success; no secret-scan findings across 756 files; one redirect and one header rule processed successfully; Lighthouse: performance 95, accessibility 100, best practices 100, SEO 100 |
+| Verified Bonus Games application deploy | `6a69c4178767280008845b27`, ready, from merge commit `0fe61a84bc43a7894b0de5b4bc923e188f043c14` (PR #184) |
+| Application release evidence | exact merge identity; no deploy error; plugin success; no secret-scan findings across 756 files; one redirect and one header rule processed successfully; Lighthouse: performance 95, accessibility 100, best practices 100, SEO 100 |
 | Production data preservation | one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved Original predictions preserved; Bonus Games reference catalogue contains 3 competitions, 14 windows and 102 fixture links; entrants, knockout predictions, LMS selections, Cup groups/members/fixtures, score events and Penalty Numbers remain zero |
 | Production registration state | all three Bonus Games have `registration_opens_at = null`; the catalogue is visible but entry is deliberately closed until a later owner-approved opening decision |
 | Production recovery | fresh encrypted contract-55 baseline backup and disposable restore rehearsal passed immediately before the approved 55→60 promotion; the contract-60 backup verifier subsequently passed |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Repository, both hosted databases, every Netlify context and the published production application are aligned at contract 60 and re-locked between milestones.
+Production is a controlled future-tournament target, not an active Euro 2028 service. Repository, both hosted databases, every Netlify context and the published production application are aligned at contract 60 and re-locked between milestones. Later documentation-only main deploys do not replace the verified PR #184 application-release evidence above.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
 | Contract alignment | **Fully aligned at 60.** Repository, development Supabase, production Supabase and all Netlify contexts share the exact canonical contract. |
-| Production publication | **Complete.** The production deploy is ready from the exact PR #184 merge with successful Netlify validation and no secret-scan findings. |
+| Production publication | **Complete.** The Bonus Games application release is verified from the exact PR #184 merge with successful Netlify validation and no secret-scan findings. |
 | Recovery | **Verified.** A fresh encrypted production backup restored successfully into disposable Supabase before milestone writes; the permanent verifier is pinned to contract 60. |
 | Production preservation | **Verified.** Original user/profile/entry/league/match/prediction counts remain unchanged. Only controlled Bonus Games reference data was added; no synthetic player, prediction, draw, scoring or result history exists. |
 | Database lint | **Clean.** Contracts 59–60 removed the remaining application SQL temporary-table dependencies while retaining tested Predictor Cup rules and service-only privileges. |
