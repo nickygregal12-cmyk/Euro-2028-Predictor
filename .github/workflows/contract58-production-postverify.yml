@@ -1,0 +1,144 @@
+name: Contract 58 production post-verification
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/contract58-production-postverify.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+      RELEASE_COMMIT: cb75e9d29b26ad6b0952ee822c21fa795486f435
+
+    steps:
+      - name: Check out exact verified release
+        uses: actions/checkout@v4
+        with:
+          ref: cb75e9d29b26ad6b0952ee822c21fa795486f435
+          fetch-depth: 1
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Verify exact contract, preserved data and posture
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          : "${SUPABASE_PROD_DB_URL:?SUPABASE_PROD_DB_URL is not set}"
+          case "$SUPABASE_PROD_DB_URL" in
+            *"$EXPECTED_PROJECT_REF"*) ;;
+            *) echo 'STOP: wrong production project.' >&2; exit 1 ;;
+          esac
+
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
+            | tee /tmp/contract58-production-postverify.txt
+          select jsonb_build_object(
+            'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+            'latest_version', (select max(version) from supabase_migrations.schema_migrations),
+            'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+            'auth_users', (select count(*) from auth.users),
+            'profiles', (select count(*) from public.profiles),
+            'entries', (select count(*) from public.entries),
+            'leagues', (select count(*) from public.leagues),
+            'league_members', (select count(*) from public.league_members),
+            'matches', (select count(*) from public.matches),
+            'match_predictions', (select count(*) from public.match_predictions),
+            'bonus_competitions', (select count(*) from public.bonus_competitions),
+            'bonus_entrants', (select count(*) from public.bonus_competition_entrants),
+            'bonus_knockout_predictions', (select count(*) from public.bonus_knockout_predictions),
+            'lms_selections', (select count(*) from public.bonus_lms_selections),
+            'cup_groups', (select count(*) from public.bonus_cup_groups),
+            'cup_members', (select count(*) from public.bonus_cup_members),
+            'cup_fixtures', (select count(*) from public.bonus_cup_fixtures),
+            'penalty_rows', (select count(*) from public.bonus_cup_penalty_numbers)
+          );
+
+          do $$
+          declare
+            clear_config text;
+          begin
+            if (select count(*) from supabase_migrations.schema_migrations) <> 58
+              or (select max(version) from supabase_migrations.schema_migrations) <> '20260729090000'
+              or (select name from supabase_migrations.schema_migrations order by version desc limit 1) <> 'clear_predictions_race_safety'
+            then raise exception 'Production is not contract 58.';
+            end if;
+
+            if (select count(*) from auth.users) <> 1
+              or (select count(*) from public.profiles) <> 1
+              or (select count(*) from public.entries) <> 1
+              or (select count(*) from public.leagues) <> 1
+              or (select count(*) from public.league_members) <> 1
+              or (select count(*) from public.matches) <> 51
+              or (select count(*) from public.match_predictions) <> 36
+            then raise exception 'Existing production data counts changed unexpectedly.';
+            end if;
+
+            if (select count(*) from public.bonus_competitions) <> 0
+              or (select count(*) from public.bonus_competition_entrants) <> 0
+              or (select count(*) from public.bonus_knockout_predictions) <> 0
+              or (select count(*) from public.bonus_lms_selections) <> 0
+              or (select count(*) from public.bonus_cup_groups) <> 0
+              or (select count(*) from public.bonus_cup_members) <> 0
+              or (select count(*) from public.bonus_cup_fixtures) <> 0
+              or (select count(*) from public.bonus_cup_penalty_numbers) <> 0
+            then raise exception 'Synthetic Bonus Games data was unexpectedly created.';
+            end if;
+
+            select coalesce(array_to_string(proconfig, ','), '') into clear_config
+            from pg_proc where oid='public.clear_my_predictions(uuid)'::regprocedure;
+            if not (select prosecdef from pg_proc where oid='public.clear_my_predictions(uuid)'::regprocedure)
+              or clear_config <> 'search_path=""'
+              or has_function_privilege('anon','public.clear_my_predictions(uuid)','execute')
+              or not has_function_privilege('authenticated','public.clear_my_predictions(uuid)','execute')
+              or not has_function_privilege('service_role','public.clear_my_predictions(uuid)','execute')
+            then raise exception 'clear_my_predictions posture failed.';
+            end if;
+
+            if not (select relrowsecurity from pg_class where oid='public.bonus_cup_penalty_numbers'::regclass)
+              or has_table_privilege('anon','public.bonus_cup_penalty_numbers','select')
+              or has_table_privilege('authenticated','public.bonus_cup_penalty_numbers','select')
+            then raise exception 'Penalty Number table posture failed.';
+            end if;
+
+            if has_function_privilege('authenticated','public.admin_finalise_predictor_cup_groups(uuid)','execute')
+              or not has_function_privilege('service_role','public.admin_finalise_predictor_cup_groups(uuid)','execute')
+              or has_function_privilege('authenticated','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
+              or not has_function_privilege('service_role','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
+            then raise exception 'Predictor Cup service-only posture failed.';
+            end if;
+          end
+          $$;
+          SQL
+
+      - name: Lint production with repository-pinned Supabase CLI
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db lint --db-url "$SUPABASE_PROD_DB_URL" --fail-on error \
+            2>&1 | tee /tmp/contract58-production-lint.log
+
+      - name: Upload post-verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract58-production-post-verification
+          path: |
+            /tmp/contract58-production-postverify.txt
+            /tmp/contract58-production-lint.log
+          if-no-files-found: warn
+          retention-days: 14
