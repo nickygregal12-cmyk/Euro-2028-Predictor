@@ -1,6 +1,6 @@
 # ADR 0010 — Bonus Games platform: one platform, three games
 
-- **Status:** Accepted — 28 July 2026, the owner directed continuation into B2, confirming the three decisions in "Decisions required"
+- **Status:** Implemented for the Euro 2028 Bonus Games platform (contracts 49–60); multi-competition generalisation is governed by ADR 0011
 - **Date:** 28 July 2026
 
 ## Context
