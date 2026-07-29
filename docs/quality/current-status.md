@@ -1,78 +1,75 @@
 # Current quality status
 
-> The only live implementation and hosted-status authority. Current code, migrations, executable tests and verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
+> The only live implementation and hosted-status authority. Current `main` code, migrations and executable tests override older audits, reconciliations, TODOs and chat narratives. Hosted claims require a dated verifier.
 
-**Status date:** 29 July 2026
+**Status date:** 29 July 2026  
+**Assessed baseline:** contract 60 on `main` at `7555db4625f8e1c4d9a0cb72185c40391cf90f3f`
 
 ## Baseline
 
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Repository contract | 60 canonical migrations through `20260729110000_predictor_cup_lint_safe_qualification.sql` |
-| Delivery evidence | PRs #122–#145 establish lifecycle, bounded reads, scale, Profile/H2H and privacy; PRs #150, #157 and #164 deliver Bonus Games; PRs #162, #165 and #166 complete Match Centre and Predict journey resilience; PRs #167, #171 and #174 deliver Account controls and race-safe clearing; PR #177 adds automated axe coverage; PR #178 rebuilds Matches as tournament information; PR #180 makes Predictor Cup qualification/progression fully lint-resolvable; PR #182 aligns permanent release controls at contract 60; PR #184 publishes the visible Bonus Games product cut; PR #187 adds complete desktop/phone Bonus Games browser lifecycle proof and repairs the repeatable catalogue SQL source; PR #189 adds direct behavioural pgTAP for H2H rank-history capture; PR #191 proves exact result-revision before/after content for confirm, correct and clear |
-| Development Supabase | `iouzoutneyjpugbbtdem` — exactly 60 canonical versions; history, privileges, lint and lifecycle tests verified; Bonus Games catalogue verified at 3 competitions / 14 windows / 102 fixture links |
-| Production Supabase | `vkfnsqdyhvtwyqkisxhk` — exactly 60 canonical versions; encrypted backup/restore, dry-runs, preserved-data checks, privilege checks and hosted database lint passed; Bonus Games catalogue published at 3 / 14 / 102 with registration closed |
-| Netlify contexts | `dev`, `branch-deploy` and `deploy-preview` declare 60 and use development Supabase; `production` declares 60 and uses production Supabase |
-| Verified Bonus Games application deploy | `6a69c4178767280008845b27`, ready, from merge commit `0fe61a84bc43a7894b0de5b4bc923e188f043c14` (PR #184) |
-| Application release evidence | exact merge identity; no deploy error; plugin success; no secret-scan findings across 756 files; one redirect and one header rule processed successfully; Lighthouse: performance 95, accessibility 100, best practices 100, SEO 100 |
-| Production data preservation | one Auth user, one profile, one entry, one league, one league member, 51 matches and 36 saved Original predictions preserved; Bonus Games reference catalogue contains 3 competitions, 14 windows and 102 fixture links; entrants, knockout predictions, LMS selections, Cup groups/members/fixtures, score events and Penalty Numbers remain zero |
-| Production registration state | all three Bonus Games have `registration_opens_at = null`; the catalogue is visible but entry is deliberately closed until a later owner-approved opening decision |
-| Production recovery | fresh encrypted contract-55 baseline backup and disposable restore rehearsal passed immediately before the approved 55→60 promotion; the contract-60 backup verifier subsequently passed |
+| Repository contract | **Verified:** 60 canonical migrations through `20260729110000_predictor_cup_lint_safe_qualification.sql`; `config/deployment-contract.json` declares `contractVersion: 60` and `requiredMigrationCount: 60`. |
+| PR #193 | Open, draft and unmerged (`merged_at = null`). Contracts 61–62 are deliberately excluded from this contract-60 baseline. Exact head `901a2bb92b74979283491e5c85d71b01657193a9` passed CI `30456665007`, Database parity `30456665266` and Browser E2E `30456664993`. |
+| Development Supabase | **REQUIRES OWNER VERIFICATION:** run the migration-history and privilege SQL in [`investigations/2026-07-29-euro-2028-baseline-readiness.md`](investigations/2026-07-29-euro-2028-baseline-readiness.md), then record verifier/date. |
+| Production Supabase | **REQUIRES OWNER VERIFICATION:** run the same migration count/highest-version query against production and record verifier/date. |
+| Netlify non-production contexts | **REQUIRES OWNER VERIFICATION:** inspect `dev`, `branch-deploy`, `deploy-preview` and exact preview `/release.json`; record contract, commit and Supabase project with verifier/date. |
+| Published production application | **REQUIRES OWNER VERIFICATION:** inspect production `/release.json` and deployment identity; record any deliberate application/database split with verifier/date. Historical repository records identify PR #184 as the last verified Bonus Games application cut, but this document does not independently re-verify it. |
+| Branch cleanup | **REQUIRES OWNER VERIFICATION:** PR #194 remains the branch inventory authority; record whether it was merged and deletions executed. |
 
-Production is a controlled future-tournament target, not an active Euro 2028 service. Repository, both hosted databases, every Netlify context and the published production application are aligned at contract 60 and re-locked between milestones. Later test/documentation-only main deploys do not replace the verified PR #184 application-release evidence above.
+Production is a controlled future-tournament target, not an active Euro 2028 service. Repository facts are verified at contract 60. No current hosted alignment statement is made without the owner checks above.
 
 ## Executive verdicts
 
 | Area | Verdict |
 | --- | --- |
-| Contract alignment | **Fully aligned at 60.** Repository, development Supabase, production Supabase and all Netlify contexts share the exact canonical contract. |
-| Production publication | **Complete.** The Bonus Games application release is verified from the exact PR #184 merge with successful Netlify validation and no secret-scan findings. |
-| Recovery | **Verified.** A fresh encrypted production backup restored successfully into disposable Supabase before milestone writes; the permanent verifier is pinned to contract 60. |
-| Production preservation | **Verified.** Original user/profile/entry/league/match/prediction counts remain unchanged. Only controlled Bonus Games reference data was added; no synthetic player, prediction, draw, scoring or result history exists. |
-| Database lint | **Clean.** Contracts 59–60 removed the remaining application SQL temporary-table dependencies while retaining tested Predictor Cup rules and service-only privileges. |
-| Administrator result control | **Implemented and audit-proven.** Protected routes, capability checks, confirm/correct/clear, immutable revisions and regulation/extra-time/penalty handling are browser-proven. Revision rows are also behaviourally proven to preserve exact scheduled, confirmed, corrected and cleared snapshots; chained before/after content; versions; reasons; timestamps; tournament identity and authenticated actor. |
-| Actual qualification control | **Implemented.** Exact third-place boundary ties are detected, authorised, reasoned, revisioned and replayed transactionally. |
-| Automatic valid-entry recovery | **Implemented.** A database-owned one-minute job submits only complete valid entries at lock and exposes immutable owner outcomes. |
-| Bounded reads and capacity | **Implemented.** Overall/private-league standings, player profiles and H2H use bounded server contracts; signup and league creation are authoritatively capped. |
-| Tournament database lifecycle | **Proven.** Deterministic full-tournament, correction, replay, automatic-submission, Cup and excess-data pgTAP journeys pass from a clean 60-migration rebuild. |
-| Profile/H2H and privacy | **Proven.** Own Profile/H2H are resilient; other-player detail remains authenticated and co-member-only with pre/post-lock reveal boundaries. Rank-history capture is behaviourally proven for submitted-only inclusion, completed-stage gating, shared ranks, immutable checkpoints and later checkpoint creation. |
-| Account controls | **Implemented.** Display name, password, email, reminders, privacy/contact content, sign-out and race-safe pre-lock Original entry clearing are delivered. |
-| Bonus Games | **Visible, production-hosted and browser-proven.** More → Bonus Games exposes KO Predictor, Last Man Standing and Predictor Cup. The canonical catalogue is published, the empty-catalogue fallback prevents silent disappearance, and registration/prediction/game-state journeys pass on desktop and phone against disposable contract-60 Supabase. Production registrations remain intentionally closed. |
-| Core product experience | **Implemented first production cut.** Match Centre resilience, Predict flow, Account, Profile/H2H, Matches tournament information and the visible Bonus Games hub are delivered. |
-| Accessibility automation | **Implemented.** Axe WCAG 2.2 AA scans cover key authenticated desktop/phone surfaces, including `/games`; Netlify Lighthouse accessibility is 100. Manual review remains. |
-| Launch readiness | **Not ready.** Official data, richer post-lock states, final standings activation, operational ownership and the later full dress rehearsal remain. |
+| Repository contract | **Verified at 60.** Migration count, highest filename and deployment-contract values agree. |
+| Contract 61–62 candidate | **Repository-side complete and green, not shipped.** PR #193 is deliberately excluded from the baseline until merged. |
+| Final tie-break decision | **Resolved for the candidate.** Migration 62 automatically activates the five tie-breakers after every tournament result is confirmed/corrected; live ranks remain points/shared-rank based. See `DEC-003`. |
+| Prediction aggregate privacy | **Open merge risk.** Migration 61 has no minimum cohort threshold; one submitted entry can produce aggregate output. See `DEC-004` and `PRIV-001`. |
+| Hosted contract and release alignment | **REQUIRES OWNER VERIFICATION.** Exact checks are in the baseline-readiness report. |
+| Database lint and automated repository validation | **Verified for current `main` through existing CI evidence.** PR #193's candidate also passed exact-head CI, Database parity and Browser E2E, but remains unmerged. |
+| Launch readiness | **Not ready.** Official data, hosted verification, privacy acceptance, operational ownership, manual accessibility and the full dress rehearsal remain. |
 
-## Implemented foundation
+## Implemented contract-60 foundation
 
 - authoritative locks, submission, results, revisions, scoring, qualification and bracket replay;
-- exact result-revision content proof across confirm, penalty correction and clear, including snapshot chaining, reasons, actor and timestamp semantics;
-- automatic valid-entry submission using the same validator as manual submission;
-- deterministic group/tie resolution and real winner propagation through all knockout rounds;
+- exact result-revision content proof across confirm, penalty correction and clear;
+- automatic valid-entry submission using the authoritative validator;
+- deterministic group/tie resolution and real winner propagation;
 - bounded overall/private-league reads, representative scale evidence and operating caps;
-- secure co-member profiles, authoritative H2H totals, rank history and bracket health;
-- behavioural rank-history pgTAP covering submitted-only capture, stage completion, shared ranks, idempotency and later checkpoint creation;
-- private Account identity/auth controls, reminder preference, privacy guidance and Contact admin path;
-- non-resurrecting pre-lock Original entry clearing that preserves accounts, leagues and Bonus Games;
-- separate deny-all Bonus Games storage, voluntary registration, KO Predictor, Last Man Standing and full Predictor Cup;
-- explicit More → Bonus Games navigation, a resilient canonical three-game catalogue and repeatable 3/14/102 reference-data publication;
-- desktop/phone Browser E2E for KO Predictor entry/prediction/standings, Last Man Standing entry/pick and Predictor Cup entry/shared prediction/waiting-for-draw state;
-- Predictor Cup service functions free of temporary-table dependencies and retained as service-role-only;
+- secure co-member profiles, H2H totals, rank history and bracket health;
+- private Account controls and non-resurrecting pre-lock Original entry clearing;
+- separate Bonus Games storage and rules for KO Predictor, Last Man Standing and Predictor Cup;
+- desktop/phone Browser E2E for the three Bonus Games against disposable contract-60 Supabase;
 - resilient Match Centre, Predict journey and Matches tournament-information views;
-- automated desktop/phone axe scans across key authenticated routes;
-- environment/deployment-contract guards, CI, Database parity, Browser E2E and exact-head release controls;
-- production backup/restore, contracts 56–60 promotion, hosted database verification and exact PR #184 production deployment.
+- automated axe coverage and exact-head release controls.
 
-## Immediate product gaps
+Hosted publication of any listed capability is **REQUIRES OWNER VERIFICATION** unless a dated verifier is added.
 
-- post-lock consensus/trends surface and richer My-entry reveal state;
-- final league tie-breaker standings activation and explanation UI;
-- remaining loading, empty, retry and error-state coverage across secondary comparison surfaces;
-- reminder delivery only after Auth/SMTP ownership and reliability are verified;
+## Contract-62 candidate — future intent, not baseline behaviour
+
+PR #193 proposes:
+
+1. bounded authenticated post-lock prediction consensus and a richer locked My Entry/Trends experience;
+2. automatic final standings activation after every result is confirmed/corrected;
+3. identical five-step final ordering for overall and private leagues;
+4. desktop/mobile Trends, overflow and accessibility coverage.
+
+The candidate preserves Original/Bonus competition separation, does not rewrite entries or predictions, does not change point awards and does not alter lock rules. It also exposes aggregate output with a cohort of one; `PRIV-001` must be resolved or explicitly accepted before merge.
+
+## Immediate product and assurance gaps
+
+- owner verification of development/production Supabase and all Netlify contexts;
+- PR #193 merge/exclusion decision after `PRIV-001` is handled;
+- remaining loading, empty, retry and error-state coverage on secondary surfaces;
 - official teams, fixtures, regulations, kickoff times and lock instant;
-- deliberate production registration opening for each Bonus Game after official-data and support ownership gates;
-- manual accessibility review and the later full product dress rehearsal;
-- deferred Matches slices: live predicted/actual table switcher, mid-groups bracket projection and feed-gated top scorers.
+- deliberate production registration opening for each Bonus Game;
+- manual keyboard/screen-reader/contrast review;
+- complete-volume scoring, rollback and recovery dress rehearsal;
+- named monitoring, backup, Cron and incident owners;
+- Auth/SMTP, Turnstile and leaked-password decisions.
 
 ## Development mode
 
@@ -80,34 +77,23 @@ Production is a controlled future-tournament target, not an active Euro 2028 ser
 | --- | --- |
 | UI, copy, styling, docs | CI; targeted preview/UI verification when relevant |
 | Features and development schema | CI plus relevant unit/integration, Database parity and Browser E2E |
-| Production schema, auth, scoring, destructive work or release | Backup when data is at risk, preflight, explicit approval, full verification and dated evidence |
+| Production schema, auth, scoring, destructive work or release | Recovery evidence when data is at risk, preflight, explicit approval, hosted verification and dated release evidence |
 
-Production promotion is milestone-only. Development may advance ahead of production only when the split is recorded here. The heavier release posture returns around six months before the tournament, or earlier when real users or valuable live data appear.
+Production promotion is milestone-only. A development/production split may be recorded only after owner verification identifies the actual hosted contracts.
 
 ## Current next batch
 
-**Post-lock experience from the stable contract-60 baseline**
-
-1. Build post-lock consensus/trends and the richer My-entry hero from current `main`; the old `agent/post-lock-consensus` branch/patch must not be applied directly because its migration timestamp collides with merged contract 60.
-2. Activate league tie-breaker final standings (`calculateLeagueRank` wiring plus explanation UI).
-3. Complete remaining mobile, empty/error-state and manual accessibility work alongside each feature.
-4. Re-measure full recomputation at complete tournament result volume during the later dress rehearsal.
-
-## Operational follow-ups
-
-- keep the manual backup and production-smoke workflows pinned to the active production contract;
-- keep production locked between milestones;
-- do not set Bonus Games registration opening instants until the owner approves the live-entry window;
-- name monitoring, backup and Cron alert ownership;
-- decide leaked-password protection and final Turnstile configuration;
-- verify branch protection and required checks;
-- rehearse application rollback and later repeat backup restore against the then-current production artifact.
+1. Complete PR #195's contract-60 baseline reconciliation and readiness report.
+2. Owner runs and records the exact hosted checks for development Supabase, production Supabase and Netlify.
+3. Resolve or explicitly accept `PRIV-001`, then decide whether PR #193 is merged or excluded.
+4. Complete branch cleanup from PR #194 and the remaining launch-readiness work.
 
 ## Documentation authority
 
 - Current facts: this file.
-- Future sequence: `docs/roadmap.md`.
-- Scoring: `docs/scoring-rules.md`.
-- Architecture/tournament states: `docs/architecture-and-tournament-states.md`.
+- Future sequence: [`../roadmap.md`](../roadmap.md).
+- Deferred decisions: [`deferred-decisions.md`](deferred-decisions.md).
+- Current risks: [`risk-register.md`](risk-register.md).
+- Scoring: [`../scoring-rules.md`](../scoring-rules.md).
 - Operations: the relevant `docs/ops-*.md` runbook.
 - Dated reconciliations and audits: historical evidence only.
