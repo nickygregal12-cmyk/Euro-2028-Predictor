@@ -41,4 +41,4 @@ Update a record's status line when merged work changes its truth — an ADR desc
 | [0007](0007-reference-data-caching.md) | Reference-data caching | Accepted direction — unimplemented |
 | [0008](0008-live-updates.md) | Live result and standing updates | Accepted direction — unimplemented |
 | [0009](0009-product-analytics.md) | Privacy-conscious product analytics | Accepted direction — unimplemented |
-| [0010](0010-bonus-games-platform.md) | Bonus Games platform: one platform, three games | Accepted — 28 July 2026 owner-directed continuation into B2. The record's status line predates delivery of B1–B7c and needs a status refresh; see `docs/roadmap.md` Stage 5 |
+| [0010](0010-bonus-games-platform.md) | Bonus Games platform: one platform, three games | Implemented — B1–B7c delivered and production-hosted (`FEAT-051`–`FEAT-054`, the `/games` routes, pgTAP `103`–`110` and `113`–`114`); originally accepted 28 July 2026 |

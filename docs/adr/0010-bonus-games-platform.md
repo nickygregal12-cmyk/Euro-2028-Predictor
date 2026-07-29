@@ -1,6 +1,6 @@
 # ADR 0010 — Bonus Games platform: one platform, three games
 
-- **Status:** Accepted — 28 July 2026, the owner directed continuation into B2, confirming the three decisions in "Decisions required"
+- **Status:** Implemented — B1–B7c are delivered and production-hosted: `FEAT-051`–`FEAT-054` in `docs/quality/feature-baseline.md`, the `/games`, `/games/knockout`, `/games/ko-predictor`, `/games/lms` and `/games/cup` routes, and pgTAP suites `103`–`110` plus `113`–`114`. Originally accepted 28 July 2026 when the owner directed continuation into B2, confirming the three decisions in "Decisions required"
 - **Date:** 28 July 2026
 
 ## Context
