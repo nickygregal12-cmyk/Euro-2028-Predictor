@@ -17,7 +17,8 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `FUNC-003` | **Resolved in the Bonus Games production-release batch.** Canonical game cards no longer disappear when hosted catalogue rows are absent; repeatable reference-data publication supplies the production catalogue. |
 | `OPS-006` | **Resolved and published.** Repository, both hosted databases, every Netlify context and production deploy are aligned at contract 60. |
 | `TEST-GAP-01` | **Resolved by PR #187.** KO Predictor, Last Man Standing and Predictor Cup now have real authenticated desktop/phone Browser E2E journeys against disposable contract-60 Supabase. |
-| `TEST-001` | **Reduced.** Critical lifecycle, privacy, Account, Bonus Games and accessibility automation are covered; manual accessibility and later complete-volume rehearsal remain. |
+| `TEST-GAP-02` | **Resolved by PR #189.** H2H rank-history capture now has 17 behavioural pgTAP assertions covering submitted-only inclusion, completed-stage gating, shared ranks, immutable checkpoints and later checkpoint creation. |
+| `TEST-001` | **Reduced.** Critical lifecycle, privacy, Account, Bonus Games, H2H rank history and accessibility automation are covered; manual accessibility and later complete-volume rehearsal remain. |
 
 ## Critical
 
@@ -41,7 +42,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `DATA-005` | Score/entry clearing lacks race-safe authority | **Resolved and hosted** | Contract 58 retires cleared entry identity so stale autosaves cannot resurrect predictions. |
 | `OPS-002` | Administrator control room incomplete | **Resolved** | Result and qualification controls are implemented and browser-proven. |
 | `TEST-GAP-01` | Production-hosted Bonus Games lacked end-to-end browser proof | **Resolved** | PR #187 proves registration and game-specific interaction for all three games on desktop/phone, while the corrected catalogue script executes from a clean 60-migration rebuild. |
-| `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Core and Bonus Games lifecycles are proven. Remaining closure: manual assistive-technology review, complete-volume dress rehearsal and controlled rollback rehearsal. |
+| `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Core and Bonus Games lifecycles plus H2H rank-history capture are proven. Remaining closure: manual assistive-technology review, complete-volume dress rehearsal and controlled rollback rehearsal. |
 | `OPS-003` | Production observability operations incomplete | **Partial** | Name monitoring/backup/Cron alert owners, retention/escalation and incident procedure. |
 
 ## Medium
@@ -62,7 +63,7 @@ Current `main`, executable tests and verified hosted evidence override older cla
 | `UX-001` | Trustworthy invite context before auth incomplete | **Partial** |
 | `UX-002` | Unavailable and empty data can be conflated | **Reduced; Bonus Games catalogue disappearance is fixed, secondary surfaces remain** |
 | `FUNC-003` | Production Bonus Games implementation rendered as absent when catalogue reference data was empty | **Resolved in release batch; fallback cards plus repeatable 3/14/102 catalogue publication** |
-| `TEST-GAP-02` | H2H rank-history capture lacks dedicated behavioural pgTAP coverage | **Open; next focused assurance candidate** |
+| `TEST-GAP-02` | H2H rank-history capture lacks dedicated behavioural pgTAP coverage | **Resolved by PR #189; clean contract-60 Database parity and all 17 capture assertions pass** |
 | `RESULT-AUDIT-01` | Result-revision audit content lacks dedicated before/after behavioural assertions | **Open; lifecycle and permissions are already covered** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
