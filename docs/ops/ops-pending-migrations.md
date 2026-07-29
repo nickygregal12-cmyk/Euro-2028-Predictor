@@ -58,5 +58,5 @@ The migration versions match the exact canonical repository filenames in both ho
 - `docs/quality/current-status.md`
 - `docs/quality/risk-register.md`
 - `docs/quality/investigations/2026-07-29-euro-2028-baseline-readiness.md`
-- `docs/ops-production-backup-restore.md`
+- `docs/ops/ops-production-backup-restore.md`
 - `config/deployment-contract.json`
