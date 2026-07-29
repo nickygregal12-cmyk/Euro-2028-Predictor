@@ -1,6 +1,6 @@
 -- Euro 2028 Predictor — post-lock prediction consensus
 --
--- Contract 59. One bounded, authenticated, post-lock aggregate read for the
+-- Contract 61. One bounded, authenticated, post-lock aggregate read for the
 -- Original Predictor. The browser never scans entry tables. Only frozen,
 -- submitted entries contribute; Bonus Games remain entirely separate.
 
