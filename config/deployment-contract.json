@@ -38,5 +38,5 @@
     "public.clear_my_predictions(uuid)",
     "public.get_prediction_consensus(uuid)"
   ],
-  "notes": "Development batch 63 preserves contract-61 prediction consensus as a private helper and enforces the approved tournament-wide minimum cohort of 10 submitted entries at the public RPC boundary. Contract 62 final standings behaviour is unchanged. Production remains contract 60 until the milestone promotion is explicitly approved, backed up and verified."
+  "notes": "Repository main, development Supabase, production Supabase and every Netlify context were verified aligned at contract 63 on 29 July 2026. Contract 61 provides bounded post-lock consensus, contract 62 activates final standings only after all results, and contract 63 enforces the approved ten-submitted-entry tournament-wide cohort gate. Production deploy 6a6a53af58a0a500096b7cb1 published exact merge commit ff633396e04eca77ed4456c5537ab361d9d259ee with tracked production data preserved."
 }
