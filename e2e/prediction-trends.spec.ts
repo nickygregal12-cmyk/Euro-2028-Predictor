@@ -170,7 +170,7 @@ test.describe('post-lock prediction trends', () => {
     await expect(page.getByRole('heading', { name: 'Prediction trends' })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Champion race' })).toBeVisible()
 
-    const crowdSummary = page.getByText(/locked entries? in this view/i)
+    const crowdSummary = page.getByText(/locked entries? in this view/i).locator('xpath=..')
     await expect(crowdSummary).toBeVisible()
     const crowdText = await crowdSummary.textContent()
     const submittedEntries = Number.parseInt(crowdText?.match(/\d+/)?.[0] ?? '0', 10)
