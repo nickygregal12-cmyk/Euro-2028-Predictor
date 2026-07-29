@@ -37,5 +37,5 @@
     "public.admin_settle_predictor_cup_round(uuid,uuid)",
     "public.clear_my_predictions(uuid)"
   ],
-  "notes": "Repository, development Supabase, production Supabase and every Netlify context are aligned at contract 60. Contracts 49-56 deliver the complete Bonus Games programme through Predictor Cup knockouts; 57 adds private Account controls; 58 makes clear-entry non-resurrecting; 59-60 make Predictor Cup qualification and progression fully lint-resolvable without changing game rules or privileges. Any later contract change must follow the production milestone gate before publication."
+  "notes": "Repository baseline verified at contract 60 with 60 canonical migrations through 20260729110000_predictor_cup_lint_safe_qualification.sql. PR #193 contracts 61-62 are open, draft, unmerged and excluded from this baseline. Development Supabase, production Supabase and Netlify context alignment are REQUIRES OWNER VERIFICATION using docs/quality/investigations/2026-07-29-euro-2028-baseline-readiness.md; do not infer hosted state from this repository contract."
 }
