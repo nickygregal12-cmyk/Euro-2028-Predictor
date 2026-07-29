@@ -5,11 +5,12 @@ Convenience summary for coding-agent sessions. `AGENTS.md` and `docs/quality/cur
 ## Baseline
 
 - React 19, TypeScript, Vite, Supabase and Netlify.
-- Repository and development Supabase are at contract 57 (Account entry controls); non-production Netlify needs the owner `EURO28_DEPLOYED_DB_CONTRACT=57` update.
-- Production Supabase and the published production application are aligned and locked at contract 55 (the Bonus Games B2–B7b milestone).
+- Repository, development Supabase and production Supabase are aligned at contract 60.
 - Development Supabase: `iouzoutneyjpugbbtdem`.
 - Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- Production deploy: `6a68e4f9ee76002a26ffbee6` from commit `af5aa15a151f5c4236ba3f2756faab4b357f31ee`; exact release identity, HTTP smoke and Chromium smoke passed.
+- Contract 60 contains the complete Bonus Games programme, private Account controls, non-resurrecting clear-entry semantics and lint-safe Predictor Cup qualification/progression.
+- The 55→60 production promotion passed encrypted backup/restore, exact dry-runs, preserved-data checks, privilege verification and hosted database lint.
+- The production application is published only from the exact contract-60 release-alignment merge and must report contract 60 against the production Supabase project.
 - Normal work happens against development; production promotion is milestone-only.
 
 Do not import rules or features from previous projects, old branches, prototypes or chats.
@@ -50,11 +51,12 @@ Ordinary development does not require production backup, production smoke or a n
 
 ## Current order
 
-1. Expand Match Centre/tournament states, then account/privacy/contact-admin and post-lock trends (richer H2H is delivered at contract 48).
-3. Build resilient mobile/loading/empty/retry/error/accessibility states alongside each feature.
-4. The Bonus Games programme (ADR-0010 B1–B7c) is complete through contract 56: platform, KO Predictor, Last Man Standing and the full Predictor Cup including qualification, knockouts and honours.
+1. Build the post-lock consensus/trends surface and richer My-entry state from the stable contract-60 baseline.
+2. Activate final league tie-breaker standings and explanation UI.
+3. Complete remaining mobile, empty/error-state and manual accessibility work alongside each feature.
+4. Perform the later official-data integration and full product dress rehearsal.
 
-Admin result control, the full lifecycle simulation, authoritative knockout consumption, automatic valid-entry submission, paginated overall/private-league reads, operating-cap enforcement, Stage 3C2 evidence and secure co-member player profiles are complete or contained in PR #143.
+The Bonus Games programme, Match Centre resilience, Account/privacy/contact-admin controls, automated accessibility scanning and Matches tournament-information page are delivered and production-aligned.
 
 ## Hard boundaries
 
