@@ -247,7 +247,7 @@ Not yet implemented/live:
 - `docs/quality/current-status.md`
 - `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`
 - `docs/ops-pending-migrations.md`
-- `docs/ops-hosted-migration-rollout.md`
+- `docs/history/ops/ops-hosted-migration-rollout.md`
 - `docs/ops-admin-bootstrap.md`
 - `docs/quality/reconciliations/2026-07-23-knockout-result-lifecycle.md`
 - `docs/quality/reconciliations/2026-07-23-knockout-bracket-tree-integrity.md`

@@ -121,5 +121,5 @@ metadata without terminating existing sessions is not complete revocation.
 
 - `supabase/migrations/20260727075922_admin_result_authorization.sql`
 - `docs/ops-result-entry.md`
-- `docs/ops-production-promotion-contract-38.md`
+- `docs/history/ops/ops-production-promotion-contract-38.md`
 - `docs/quality/current-status.md`

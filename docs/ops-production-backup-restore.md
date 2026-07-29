@@ -352,7 +352,7 @@ At 27 July 2026:
 - `docs/quality/risk-register.md`
 - `docs/quality/reconciliations/2026-07-25-final-recovery-acceptance.md`
 - `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`
-- `docs/ops-hosted-migration-rollout.md`
+- `docs/history/ops/ops-hosted-migration-rollout.md`
 - `docs/ops-pending-migrations.md`
 - `.github/workflows/production-backup.yml`
 - `scripts/database-rollout/create-production-backup.sh`
