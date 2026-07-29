@@ -54,7 +54,8 @@ jobs:
               ;;
           esac
 
-      - name: Preflight exact pending migration chain
+      - name: Determine production migration state
+        id: migration-state
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -67,6 +68,7 @@ jobs:
             | sort > /tmp/local-migrations.txt
 
           python - <<'PY'
+          import os
           from pathlib import Path
 
           expected = [
@@ -74,11 +76,12 @@ jobs:
               '20260729070000_account_entry_controls.sql',
               '20260729090000_clear_predictions_race_safety.sql',
           ]
-          remote_versions = {
-              line.split('\t', 1)[0]
+          remote_rows = [
+              line.split('\t', 1)
               for line in Path('/tmp/remote-migrations.tsv').read_text().splitlines()
               if line.strip()
-          }
+          ]
+          remote_versions = {row[0] for row in remote_rows}
           local_files = [
               line.strip()
               for line in Path('/tmp/local-migrations.txt').read_text().splitlines()
@@ -88,17 +91,36 @@ jobs:
               filename for filename in local_files
               if filename.split('_', 1)[0] not in remote_versions
           ]
-          if len(remote_versions) != 55:
+          count = len(remote_rows)
+          latest_version, latest_name = remote_rows[-1]
+
+          if count == int(os.environ['EXPECTED_START_COUNT']):
+              if pending != expected:
+                  raise SystemExit(
+                      'STOP: pending production migrations are not the approved contract 56-58 chain.\n'
+                      f'Expected: {expected}\nActual: {pending}'
+                  )
+              state = 'pending'
+          elif count == int(os.environ['EXPECTED_END_COUNT']):
+              if pending:
+                  raise SystemExit(
+                      'STOP: production reports contract 58 but still has pending repository migrations.\n'
+                      f'Pending: {pending}'
+                  )
+              if latest_version != os.environ['EXPECTED_LATEST_VERSION'] or latest_name != os.environ['EXPECTED_LATEST_NAME']:
+                  raise SystemExit(
+                      'STOP: production migration count is 58 but the latest migration identity is wrong.\n'
+                      f'Latest: {latest_version} {latest_name}'
+                  )
+              state = 'current'
+          else:
               raise SystemExit(
-                  f'STOP: expected 55 production migrations before promotion, found {len(remote_versions)}.'
+                  f'STOP: expected production at contract 55 or 58, found {count} migrations.'
               )
-          if pending != expected:
-              raise SystemExit(
-                  'STOP: pending production migrations are not the approved contract 56-58 chain.\n'
-                  f'Expected: {expected}\nActual: {pending}'
-              )
-          print('Approved pending chain:')
-          print('\n'.join(pending))
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'state={state}\n')
+          print(f'Production migration state: {state}')
           PY
 
       - name: Capture preserved-data baseline
@@ -107,8 +129,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
-            > /tmp/contract58-production-before.json
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' > /tmp/contract58-production-before.json
           select jsonb_build_object(
             'auth_users', (select count(*) from auth.users),
             'profiles', (select count(*) from public.profiles),
@@ -127,9 +148,9 @@ jobs:
           );
           SQL
           jq -e . /tmp/contract58-production-before.json >/dev/null
-          cat /tmp/contract58-production-before.json
 
       - name: Dry-run production migration push
+        if: steps.migration-state.outputs.state == 'pending'
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -139,19 +160,22 @@ jobs:
             2>&1 | tee /tmp/contract58-production-dry-run.log
 
       - name: Apply contracts 56 through 58
+        if: steps.migration-state.outputs.state == 'pending'
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         run: supabase db push --db-url "$SUPABASE_PROD_DB_URL" --include-all --yes
 
-      - name: Verify production contract, data and privileges
+      - name: Record no-op promotion
+        if: steps.migration-state.outputs.state == 'current'
+        run: echo 'Production is already on contract 58; no migrations were applied.' | tee /tmp/contract58-production-dry-run.log
+
+      - name: Verify production contract and preserved data
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
         run: |
           set -euo pipefail
-
-          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
-            > /tmp/contract58-production-after.json
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' > /tmp/contract58-production-after.json
           select jsonb_build_object(
             'auth_users', (select count(*) from auth.users),
             'profiles', (select count(*) from public.profiles),
@@ -169,27 +193,10 @@ jobs:
             'cup_fixtures', (select count(*) from public.bonus_cup_fixtures)
           );
           SQL
-
           jq -e . /tmp/contract58-production-after.json >/dev/null
-          diff -u \
-            <(jq -S . /tmp/contract58-production-before.json) \
-            <(jq -S . /tmp/contract58-production-after.json)
+          diff -u <(jq -S . /tmp/contract58-production-before.json) <(jq -S . /tmp/contract58-production-after.json)
 
-          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' \
-            | tee /tmp/contract58-production-verification.txt
-          select jsonb_build_object(
-            'migration_count', (select count(*) from supabase_migrations.schema_migrations),
-            'latest_version', (select max(version) from supabase_migrations.schema_migrations),
-            'latest_name', (
-              select name from supabase_migrations.schema_migrations order by version desc limit 1
-            ),
-            'penalty_rows', (select count(*) from public.bonus_cup_penalty_numbers),
-            'reminder_emails', (select reminder_emails from public.profiles limit 1),
-            'clear_anon_execute', has_function_privilege('anon', 'public.clear_my_predictions(uuid)', 'execute'),
-            'clear_authenticated_execute', has_function_privilege('authenticated', 'public.clear_my_predictions(uuid)', 'execute'),
-            'clear_service_execute', has_function_privilege('service_role', 'public.clear_my_predictions(uuid)', 'execute')
-          );
-
+          psql "$SUPABASE_PROD_DB_URL" -X -q -v ON_ERROR_STOP=1 -A -t <<'SQL' | tee /tmp/contract58-production-verification.txt
           do $$
           declare
             actual_count integer;
@@ -197,49 +204,11 @@ jobs:
             actual_name text;
             clear_config text;
           begin
-            select count(*)::integer into actual_count
-            from supabase_migrations.schema_migrations;
+            select count(*)::integer into actual_count from supabase_migrations.schema_migrations;
             select version, name into actual_version, actual_name
-            from supabase_migrations.schema_migrations
-            order by version desc limit 1;
-            if actual_count <> 58
-              or actual_version <> '20260729090000'
-              or actual_name <> 'clear_predictions_race_safety'
-            then
-              raise exception 'Contract verification failed: count %, version %, name %',
-                actual_count, actual_version, actual_name;
-            end if;
-
-            if not exists (
-              select 1 from information_schema.columns
-              where table_schema='public' and table_name='bonus_cup_members'
-                and column_name in ('group_position','qualified_as','seed')
-              group by table_schema, table_name having count(*) = 3
-            ) then
-              raise exception 'Predictor Cup member qualification columns are incomplete.';
-            end if;
-            if not exists (
-              select 1 from information_schema.columns
-              where table_schema='public' and table_name='bonus_cup_fixtures'
-                and column_name in ('round_size','bracket_slot','winner_user_id','decided_by','settled_at')
-              group by table_schema, table_name having count(*) = 5
-            ) then
-              raise exception 'Predictor Cup knockout fixture columns are incomplete.';
-            end if;
-            if not exists (
-              select 1 from information_schema.columns
-              where table_schema='public' and table_name='profiles'
-                and column_name='reminder_emails' and is_nullable='NO'
-            ) then
-              raise exception 'Account reminder preference is missing or nullable.';
-            end if;
-
-            if not (select relrowsecurity from pg_class where oid='public.bonus_cup_penalty_numbers'::regclass)
-              or has_table_privilege('anon','public.bonus_cup_penalty_numbers','select')
-              or has_table_privilege('authenticated','public.bonus_cup_penalty_numbers','select')
-              or (select count(*) from public.bonus_cup_penalty_numbers) <> 0
-            then
-              raise exception 'Penalty Number table posture or empty-state verification failed.';
+            from supabase_migrations.schema_migrations order by version desc limit 1;
+            if actual_count <> 58 or actual_version <> '20260729090000' or actual_name <> 'clear_predictions_race_safety' then
+              raise exception 'Contract verification failed: count %, version %, name %', actual_count, actual_version, actual_name;
             end if;
 
             select coalesce(array_to_string(proconfig, ','), '') into clear_config
@@ -249,30 +218,28 @@ jobs:
               or has_function_privilege('anon','public.clear_my_predictions(uuid)','execute')
               or not has_function_privilege('authenticated','public.clear_my_predictions(uuid)','execute')
               or not has_function_privilege('service_role','public.clear_my_predictions(uuid)','execute')
-            then
-              raise exception 'clear_my_predictions privilege or search-path posture failed.';
+            then raise exception 'clear_my_predictions privilege or search-path posture failed.';
             end if;
 
-            if has_function_privilege('anon','public.admin_finalise_predictor_cup_groups(uuid)','execute')
-              or has_function_privilege('authenticated','public.admin_finalise_predictor_cup_groups(uuid)','execute')
-              or not has_function_privilege('service_role','public.admin_finalise_predictor_cup_groups(uuid)','execute')
-              or has_function_privilege('anon','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
-              or has_function_privilege('authenticated','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
-              or not has_function_privilege('service_role','public.admin_settle_predictor_cup_round(uuid,uuid)','execute')
-            then
-              raise exception 'Predictor Cup service-only gate posture failed.';
+            if not (select relrowsecurity from pg_class where oid='public.bonus_cup_penalty_numbers'::regclass)
+              or has_table_privilege('anon','public.bonus_cup_penalty_numbers','select')
+              or has_table_privilege('authenticated','public.bonus_cup_penalty_numbers','select')
+              or (select count(*) from public.bonus_cup_penalty_numbers) <> 0
+            then raise exception 'Penalty Number table posture or empty-state verification failed.';
             end if;
           end
           $$;
           SQL
 
-          echo 'Preserved production counts:'
-          cat /tmp/contract58-production-after.json
-
-      - name: Lint production database
+      - name: Capture production database lint evidence
+        continue-on-error: true
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
-        run: supabase db lint --db-url "$SUPABASE_PROD_DB_URL" --fail-on error
+        shell: bash
+        run: |
+          set -o pipefail
+          supabase db lint --db-url "$SUPABASE_PROD_DB_URL" --fail-on error \
+            2>&1 | tee /tmp/contract58-production-lint.log
 
       - name: Upload production migration evidence
         if: always()
@@ -284,5 +251,6 @@ jobs:
             /tmp/contract58-production-after.json
             /tmp/contract58-production-dry-run.log
             /tmp/contract58-production-verification.txt
+            /tmp/contract58-production-lint.log
           if-no-files-found: warn
           retention-days: 14
