@@ -22,7 +22,7 @@ const JokersPage = lazy(() => import('./features/predict/JokersPage').then((m) =
 const ReviewWorkspacePage = lazy(() => import('./features/predict/ReviewWorkspacePage').then((m) => ({ default: m.ReviewWorkspacePage })))
 const LeaguePage = lazy(() => import('./features/league/LeaguePage').then((m) => ({ default: m.LeaguePage })))
 const OverallStandingsPage = lazy(() => import('./features/league/OverallStandingsPage').then((m) => ({ default: m.OverallStandingsPage })))
-const LeagueDetailPage = lazy(() => import('./features/leagues/LeagueDetailPage').then((m) => ({ default: m.LeagueDetailPage })))
+const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
 const AccountPage = lazy(() =>
@@ -90,7 +90,7 @@ export default function App() {
                     <Route path="/predict/review" element={<ReviewWorkspacePage />} />
                     <Route path="/league" element={<LeaguePage />} />
                     <Route path="/league/overall" element={<OverallStandingsPage />} />
-                    <Route path="/league/:id" element={<LeagueDetailPage />} />
+                    <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
                     <Route path="/h2h/:rivalId" element={<H2HPage />} />
                     <Route path="/matches" element={<MatchesPage />} />
                     <Route path="/match/:matchRef" element={<MatchCentrePage />} />
