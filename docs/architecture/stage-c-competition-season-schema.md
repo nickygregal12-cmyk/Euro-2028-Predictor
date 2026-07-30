@@ -2,7 +2,7 @@
 
 **Status:** Owner decisions recorded; ready for design review. No migration or hosted change exists.  
 **Status date:** 30 July 2026  
-**Baseline:** `main` at `69f6e364132f6586d5de9ed8706b0802d14ec0fc`  
+**Baseline:** `main` at `972febd017dbecf0ef3b02b16b55c07c74535038`  
 **Decision authority:** [ADR 0011](../adr/0011-multi-competition-platform.md), [ADR 0012](../adr/0012-season-predictor-rules.md) and [ADR 0015](../adr/0015-commercial-and-social-model.md)  
 **Engineering sequence:** [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) §7  
 **Implementation truth:** [`../quality/current-status.md`](../quality/current-status.md)
@@ -25,24 +25,42 @@ Those later behaviours remain owned by Stages D–G and ADRs 0012–0014.
 
 The design is grounded in:
 
-- current `main` through PR #239;
+- current `main` through merged PR #246;
 - read-only introspection of development project `iouzoutneyjpugbbtdem` on Postgres 17;
 - 34 RLS-enabled public tables plus the `entry_totals` view;
 - the current foreign-key, unique/check, trigger, RLS-policy and public/internal-function graph;
 - the existing `predictor_internal` same-tournament validators;
 - Stage B's shared competition-context and lock-state authority;
-- the measured findings and owner decisions recorded in the superseded concurrent proposal PR #242.
+- the measured findings and owner decisions recorded in the superseded concurrent proposal PR #242;
+- PR #245's timezone-authority characterisation;
+- PR #246's effective account-deletion foreign-key characterisation.
 
 No application rows or personal data were read. Only catalogue metadata and function definitions were inspected.
 
-Measured facts that affect the design:
+### 2.1 Measured timezone before-state
 
-- four current foreign keys cascade directly from `auth.users`: `entries`, `league_members`, `rank_history` and `rate_limit_events`;
-- `entries` is itself a cascade parent for predictions, score events and tie-resolution data;
-- `profiles.id` and the current competition `user_id` values use the same auth UUID;
-- every current instant column is `timestamptz`; there are no naked `timestamp` columns;
-- current same-tournament protection is partly declarative and partly enforced by internal trigger assertions;
-- public functions and application callers widely use the established `tournament_id` / `p_tournament_id` contract.
+PR #245 proves:
+
+- `lockState.ts` and `matchState.ts` are timezone-free and compare UTC instants only;
+- exactly four current surfaces read the device timezone: Home, Matches, Match Centre and the shared entry-lock hook;
+- `context.ts` receives a timezone as input and currently uses it for competition-day grouping;
+- because all four surfaces pass the device timezone, two viewers can currently disagree about which fixtures are “today”;
+- an invalid timezone currently fails quietly to empty day buckets and `no_matches_today`.
+
+The first property is the invariant to preserve. The final two are defects Stage C must change visibly in the landed characterisation test.
+
+### 2.2 Measured account-deletion before-state
+
+PR #246 resolves the **effective**, last-declaration-wins actions of every `auth.users` reference:
+
+- effective cascades: `profiles.id`, `entries.user_id`, `league_members.user_id`, `rank_history.user_id`, `rate_limit_events.user_id`, `bonus_competition_entrants.user_id` and `bonus_knockout_predictions.user_id`;
+- deliberate restrict: `leagues.owner_id`, with a documented transfer-first requirement;
+- set-null audit references: `match_result_revisions.actor_id`, `actual_third_place_resolutions.updated_by`, `actual_third_place_resolution_revisions.actor_id` and `bonus_competition_audit.actor_id`;
+- undeclared PostgreSQL `NO ACTION`: `bonus_cup_fixtures.winner_user_id`;
+- at least seven competition tables cascade from `entries(id)`, so deleting an entry owner removes predictions, score events and tie-resolution history;
+- nothing currently references `profiles`, and `profiles.id` already equals the stored auth UUID, making the proposed repoint a constraint migration without row-identity remapping.
+
+The test is the before-side of the approved pseudonymised-history design. It must be updated, not deleted or bypassed, when Stage C changes these actions.
 
 ## 3. Adopted constraints
 
@@ -79,6 +97,8 @@ The identifiers below are permanent design references for migration comments, pg
 | `CS-014` | Schema, SQL functions, TypeScript models and generated database types change together and pass the full parity harness. |
 | `CS-015` | Season Predictor ties resolve by exact scores, then correct results, then joint rank. |
 | `CS-016` | UTC instants decide locks and outcomes; competition timezone decides calendar grouping; viewer timezone decides displayed clock time only. |
+| `CS-017` | An invalid or unavailable competition timezone is rejected on write and fails closed or surfaces an explicit unavailable state; it never silently becomes an empty competition day. |
+| `CS-018` | Every `auth.users` foreign key has an explicit reviewed deletion action; competitive history is profile-owned, audit identity may set null, disposable housekeeping may cascade and every blocker is deliberate. |
 
 ## 5. Schema evolution strategy
 
@@ -160,11 +180,14 @@ Add or alter the profile contract as follows:
 Implementation sequence:
 
 1. preserve existing profile ids;
-2. backfill `auth_user_id = profiles.id`;
+2. add and backfill `profiles.auth_user_id = profiles.id`;
 3. replace the current `profiles.id → auth.users` cascade dependency with the nullable auth link;
 4. repoint competitive ownership foreign keys from `auth.users(id)` to `profiles(id)` without changing stored UUID values;
-5. keep `rate_limit_events` linked to `auth.users` with `ON DELETE CASCADE` because it is disposable housekeeping;
-6. update RLS ownership checks to resolve the authenticated profile through `profiles.auth_user_id = auth.uid()`.
+5. preserve the documented transfer-first rule for owned leagues;
+6. replace the undeclared Predictor Cup winner action with an explicit reviewed profile-owned action;
+7. keep `rate_limit_events` linked to `auth.users` with `ON DELETE CASCADE` because it is disposable housekeeping;
+8. retain audit actor references as explicit `ON DELETE SET NULL` unless a separate immutable pseudonymous actor requirement is approved;
+9. update RLS ownership checks to resolve the authenticated profile through `profiles.auth_user_id = auth.uid()`.
 
 On account deletion:
 
@@ -172,11 +195,12 @@ On account deletion:
 - `profiles.auth_user_id` becomes null;
 - `profiles.display_name` becomes a stable non-identifying label, recommended format `Former player ####` derived without exposing the UUID;
 - personal preferences or fields that no longer have a user purpose are cleared;
-- entries, predictions, score events, rank history, league membership and settled outcomes remain under the profile id;
+- entries, predictions, score events, rank history, league membership, Bonus Games participation and settled outcomes remain under the profile id;
 - league ownership is transferred or the league is archived before deletion;
-- `rate_limit_events` is deleted by cascade.
+- `rate_limit_events` is deleted by cascade;
+- audit rows survive with null actor where that is the existing reviewed semantic.
 
-This fixes the current historical-integrity defect without blocking account deletion through `RESTRICT`.
+This fixes the current historical-integrity defect without blocking account deletion through a blanket `RESTRICT`.
 
 **Implementation dependency:** obtain a data-protection review of the erasure/pseudonymisation boundary before migration. This design is architectural, not legal advice.
 
@@ -198,9 +222,11 @@ Rules:
 - calendar grouping, matchweek boundaries and deadline communication use `competitionTimeZone`;
 - rendered kickoff times use `viewerTimeZone`, preserving correct local display when a user travels;
 - route boundaries provide both inputs explicitly where needed;
-- device timezone never changes lock state, matchweek assignment, scoring or any authoritative outcome.
+- device timezone never changes lock state, matchweek assignment, scoring or any authoritative outcome;
+- invalid timezone identifiers are rejected by database/application validation;
+- if a bad or unavailable value reaches context resolution, the result is fail-closed or explicitly unavailable rather than `no_matches_today`.
 
-The current single `timeZone` input must be split where it conflates calendar grouping and clock rendering. Pure lock and match-state resolvers remain timezone-free.
+The current single `timeZone` input must be split where it conflates calendar grouping and clock rendering. Pure lock and match-state resolvers remain timezone-free. PR #245 remains the before/after contract and must be updated so its grouping divergence and fail-quiet assertions reverse visibly.
 
 ## 7. Rounds, fixtures and lock evidence
 
@@ -272,7 +298,8 @@ Every directly season-scoped parent receives a unique `(tournament_id, id)` key 
 ### Profiles, entries, leagues, scores and history
 
 - `profiles.id` is the durable competitive identifier and `profiles.auth_user_id` is the nullable auth link;
-- `entries`, league ownership/membership, rank history and bonus-game entrant records reference `profiles(id)` rather than `auth.users(id)`;
+- entries, league ownership/membership, rank history, Bonus Games entrants and shared knockout predictions reference `profiles(id)` rather than `auth.users(id)`;
+- Predictor Cup winner identity becomes an explicit profile reference with a reviewed deletion action;
 - entries remain unique per profile/season;
 - leagues remain Predictor-only and season-scoped; rerun/copy creates a new target-season league rather than a durable cross-season league object;
 - prediction rows joining entries to matches/groups/teams/players gain explicit season keys and composite references;
@@ -301,8 +328,9 @@ For new or changed public objects:
 - grant no direct browser writes where an RPC/trigger authority exists;
 - keep internal lock/audit evidence unexposed;
 - rewrite ownership policies through `profiles.auth_user_id = auth.uid()`;
-- prevent anonymous profiles from authenticating merely because their competitive rows remain;
-- revoke `PUBLIC` execution from internal/security-definer functions before granting exact roles.
+- prove null-auth pseudonymised profiles cannot authenticate or regain owner access;
+- revoke `PUBLIC` execution from internal/security-definer functions before granting exact roles;
+- require every `auth.users` FK to appear in the account-deletion parity allowlist with an explicit action and rationale.
 
 ## 10. Deletion and archival rules
 
@@ -321,16 +349,16 @@ Stage C implementation should be one coherent PR and one ordered append-only **d
 Required order:
 
 1. commit pre-migration contract tests and preservation oracles;
-2. obtain the data-protection review required by §6.2 before changing account-deletion behaviour;
-3. capture row counts, identifiers, score totals and relationship results;
+2. retain PR #245 and PR #246 as explicit before-state tests;
+3. capture row counts, identifiers, score totals, leaderboard order and relationship results;
 4. create `competitions`, `competition_rounds`, `competition_lock_events` and `competition_awards`;
-5. add nullable additive columns to `tournaments`, `profiles`, matches and season-sensitive children and backfill them;
-6. swap competitive ownership foreign keys from `auth.users` to `profiles` without changing UUID values;
-7. add composite unique keys and `NOT VALID` foreign keys;
-8. validate every constraint and prove cross-season violation queries return zero rows;
-9. make required columns non-null;
-10. replace functions, triggers, RLS policies, views and application contracts atomically;
-11. update generated TypeScript types and fixtures;
+5. add nullable additive columns to existing tables and backfill them;
+6. add composite unique keys and `NOT VALID` foreign keys;
+7. validate every constraint and prove cross-season violation queries return zero rows;
+8. make required columns non-null;
+9. replace functions, triggers, RLS policies, views and application contracts atomically;
+10. update generated TypeScript types and fixtures;
+11. update PR #245 and PR #246 assertions to the approved after-state;
 12. preserve established physical table/column/RPC names during Stage C;
 13. run the full gate set before proposing any hosted application.
 
@@ -338,18 +366,19 @@ No hosted development or production migration is authorised by this design.
 
 ## 12. Required evidence
 
-### Static and contract tests committed first
+### 12.1 Static and contract tests committed first
 
 - every season-sensitive table/function/trigger/policy/RPC is in the coverage manifest;
 - every multi-parent row has a composite season constraint or named validator;
 - no ranking/score query lacks a season and game boundary;
 - no round stores an authoritative planned deadline;
-- competition and viewer timezone inputs are not conflated in authoritative calendar logic;
 - new public tables have RLS and explicit grants;
 - internal security-definer functions are not executable by `PUBLIC`;
-- the environment/deployment/database privilege contracts landed through PR #235 remain green.
+- the environment/deployment/database privilege contracts landed through PR #235 remain green;
+- PR #245 continues proving lock/match-state timezone independence while changing grouping to competition timezone and invalid-zone handling to fail closed/unavailable;
+- PR #246 continues enumerating every effective `auth.users` FK while proving competitive history is profile-owned and all deletion actions are explicit.
 
-### Disposable Supabase proof
+### 12.2 Disposable Supabase proof
 
 - zero-to-current migration rebuild;
 - migration timestamp and canonical applied-state checks;
@@ -360,12 +389,14 @@ No hosted development or production migration is authorised by this design.
 - stale/missing fixture data fails locks closed;
 - a previously locked scope cannot reopen;
 - per-match late prediction insertion fails;
-- account deletion erases auth identity, pseudonymises the profile and does not change settled totals/ranks;
-- deleted-account RLS access fails while historical public/bounded views remain arithmetically stable;
-- competition calendar grouping remains stable across viewer timezones while displayed kickoff times localise;
+- invalid competition timezone inserts fail;
+- invalid/unavailable competition timezone resolution cannot silently return an empty day;
+- two viewers in different zones receive the same competition day/matchweek grouping;
+- account deletion pseudonymises the profile but does not change settled totals, ranks, membership or outcomes;
+- every `auth.users` reference has the approved explicit action;
 - non-empty season deletion fails and empty-draft deletion succeeds only through the internal path.
 
-### Euro preservation oracle (`CS-012`)
+### 12.3 Euro preservation oracle (`CS-012`)
 
 Before and after migration, assert equality for:
 
@@ -376,17 +407,15 @@ Before and after migration, assert equality for:
 - Golden Boot prediction/result/scoring;
 - group order, third-place resolution and knockout progression;
 - RLS-visible rows for owner, league co-member, unrelated authenticated user and anonymous role;
-- Stage B competition-context outputs under deterministic clocks;
-- viewer-local kickoff presentation and competition-timezone calendar grouping.
+- Stage B competition-context outputs under deterministic clocks, except the deliberate split between competition grouping and viewer-local clock presentation.
 
 ## 13. Explicitly deferred
 
 - cross-season club/player provider identity — Stage D;
 - ingestion, rescheduling audit and feed correction — Stage D;
-- recurring Predictor submission/scoring implementation — Stage E, using the decided tie-break;
+- recurring Predictor submission/scoring implementation — Stage E;
 - season Last Man Standing and Predictor Cup — Stages F–G;
 - cross-competition UI and notification preferences — Stages H–I;
-- legal approval of the pseudonymised-history retention boundary — required before account-deletion migration;
 - hosted migration or production promotion — separate explicit owner approval.
 
 ## 14. Design exit
@@ -394,11 +423,11 @@ Before and after migration, assert equality for:
 The design is ready for approval when reviewers agree that:
 
 - additive in-place evolution is safer than a physical rename in Stage C;
-- using `profiles` as the durable competitive anchor preserves history without preventing auth erasure;
-- the split competition/viewer timezone contract preserves both authoritative grouping and local display;
 - the lock-event record does not violate the derived-deadline rule;
 - every current object is represented in the coverage manifest;
+- the profile-owned deletion design covers every action pinned by PR #246;
+- the timezone split covers every reader and failure path pinned by PR #245;
 - preservation and hostile cross-season tests are specified before SQL;
 - no open question permits a parallel tournament/season implementation or weakens an existing safeguard.
 
-Approval of this document authorises pre-migration contract-test work only. It does not authorise a migration or any hosted schema operation.
+Approval authorises pre-migration contract-test planning only. It does not authorise a migration or any hosted schema operation.
