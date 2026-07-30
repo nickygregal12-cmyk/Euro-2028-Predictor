@@ -1,6 +1,6 @@
 # Multi-competition platform — master TODO
 
-**Status date:** 29 July 2026  
+**Status date:** 30 July 2026  
 **Current facts:** [`docs/quality/current-status.md`](docs/quality/current-status.md)  
 **Execution sequence:** [`docs/roadmap.md`](docs/roadmap.md)  
 **Programme map:** [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md)  
@@ -108,17 +108,19 @@ Read this section in full on return. Do not re-derive the scope from the then-cu
 - [ ] Decide the close-season retention approach before the first exposed close season.
 - [ ] Keep all hosted claims target-specific and freshly verified.
 
-## Stage B — competition-context engine and migrations
+## Stage B — competition-context engine and migrations — COMPLETE
 
-- [ ] Land the isolated pure `src/domain/competition/` foundation and fake-clock suite.
-- [ ] Keep the existing surfaces untouched until separate migration PRs.
-- [ ] Migrate `entryLock.ts` with a differential test proving tagged Euro behaviour unchanged.
-- [ ] Migrate `matchCentre.ts` without removing legacy compatibility until consumers move.
-- [ ] Migrate `matchesTab.ts`.
-- [ ] Migrate `homeDashboard.ts`.
-- [ ] Ensure no surface reads an ambient clock or computes competition timing independently.
-- [ ] Remove legacy timing paths only after all consumers and regression evidence are complete.
-- [ ] Keep the Database parity and Browser E2E path scopes applicable as new domain siblings appear.
+Closed by the intentional merge of PR #226 as `2648540` on 30 July 2026. Retained as the record of what the stage covered.
+
+- [x] Land the isolated pure `src/domain/competition/` foundation and fake-clock suite. — PR #212
+- [x] Keep the existing surfaces untouched until separate migration PRs.
+- [x] Migrate `entryLock.ts` with a differential test proving tagged Euro behaviour unchanged. — PR #223
+- [x] Migrate `matchCentre.ts` without removing legacy compatibility until consumers move. — PR #222
+- [x] Migrate `matchesTab.ts`. — PR #216
+- [x] Migrate `homeDashboard.ts`. — PR #219
+- [x] Ensure no surface reads an ambient clock or computes competition timing independently.
+- [x] Remove legacy timing paths only after all consumers and regression evidence are complete. — PR #224 retired `MatchTemporalState`, which now appears in no file under `src/`.
+- [x] Keep the Database parity and Browser E2E path scopes applicable as new domain siblings appear. — the parity trigger covers `src/domain/**`, and PR #232 made the job run the whole `tests/database-parity/` suite rather than one named file.
 
 ## Stage C — competition-season schema
 
