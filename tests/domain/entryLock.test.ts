@@ -1,22 +1,25 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
+import type { CompetitionEntryState } from '../../src/domain/competition/context'
 import { isEntryLocked } from '../../src/domain/tournament/entryLock'
 
-const LOCK = '2028-06-09T19:00:00Z'
+function context(entryState: CompetitionEntryState) {
+  return { entryState }
+}
 
 describe('isEntryLocked', () => {
-  it('allows writes before the lock (not locked)', () => {
-    expect(isEntryLocked(LOCK, new Date('2028-06-09T18:59:59Z'))).toBe(false)
+  it('keeps open entry states editable', () => {
+    expect(isEntryLocked(context('not_started'))).toBe(false)
+    expect(isEntryLocked(context('incomplete'))).toBe(false)
+    expect(isEntryLocked(context('valid_unsubmitted'))).toBe(false)
+    expect(isEntryLocked(context('submitted'))).toBe(false)
+    expect(isEntryLocked(context('auto_submitted'))).toBe(false)
   })
 
-  it('is locked exactly at the lock instant (inclusive, matches now() >= lock)', () => {
-    expect(isEntryLocked(LOCK, new Date('2028-06-09T19:00:00Z'))).toBe(true)
+  it('reports a valid entry as locked once the engine closes its active scope', () => {
+    expect(isEntryLocked(context('locked'))).toBe(true)
   })
 
-  it('is locked after the lock', () => {
-    expect(isEntryLocked(LOCK, new Date('2028-06-09T19:00:01Z'))).toBe(true)
-  })
-
-  it('is never locked when no lock time is set', () => {
-    expect(isEntryLocked(null, new Date('2030-01-01T00:00:00Z'))).toBe(false)
+  it('reports a missing valid post-lock entry as locked rather than editable', () => {
+    expect(isEntryLocked(context('no_valid_entry'))).toBe(true)
   })
 })
