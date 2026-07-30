@@ -18,8 +18,9 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 4. **Launch and acquisition:** Stage J is launch readiness and go-to-market, with the programme window beginning in February 2027.
 5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games.
 6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; PR #239 closed the retained Stage B checklist with the satisfying PRs.
-7. **Control and parity foundation:** PRs #228, #229, #232, #233 and #235 are on `main`; current `main` is `69f6e364132f6586d5de9ed8706b0802d14ec0fc` after the inventory reconciliation.
-8. **Stage C:** draft PR #236 is the active design baseline. No migration exists.
+7. **Control and parity foundation:** PRs #228, #229, #232, #233 and #235 are on `main`.
+8. **Stage C characterisation:** PR #245 pins timezone authority and the current device-dependent day grouping; PR #246 pins the effective account-deletion foreign-key matrix. Both are tests of the current state, not fixes.
+9. **Current baseline:** `main` is `972febd017dbecf0ef3b02b16b55c07c74535038`; draft PR #236 is the active design baseline and no migration exists.
 
 ## Delivered baseline
 
@@ -41,43 +42,55 @@ Complete on `main`:
 - full clean-main application, database, preview and authenticated-browser gates passed before merge;
 - the Stage B checklist is retained and closed in the master inventory through PR #239.
 
-### Landed control and parity work
+### Landed control, parity and Stage C before-state work
 
 - PR #228: cross-tournament read scoping, production guard derivation, real 404 routing, RPC/browser-key/reachability contracts.
 - PR #229: Original Predictor scoring parity.
 - PR #232: all Database parity subjects execute under the disposable Supabase harness.
 - PR #233: CSP/application resource parity.
 - PR #235: complete `VITE_*` environment contract plus deployment-RPC/database-privilege parity.
+- PR #245: lock and match-state timezone independence, the closed set of four device-timezone readers, current day-grouping divergence and invalid-zone fail-quiet behaviour.
+- PR #246: effective account-deletion actions across every `auth.users` reference, including history-destroying cascades, deliberate league-owner restrict, audit set-null actions and the undeclared Predictor Cup winner action.
+
+PRs #245 and #246 create the reviewable **before-side** of Stage C. Their current expectations must change visibly when the design is implemented.
 
 ### Stage C — active design
 
 Draft PR #236 defines:
 
 - stable competition identity and shared competition-season scope;
-- in-place evolution of the existing tournament tables rather than a parallel season implementation;
-- generic rounds/matchweeks and monotonic lock events;
+- additive in-place evolution of `tournaments`/`tournament_id` rather than a parallel season implementation;
+- generic rounds/matchweeks and monotonic lock-transition evidence;
 - composite same-season relationship safeguards;
-- timezone authority;
-- durable anonymisable competitor identity and deletion/archive consequences;
+- `profiles.id` as the durable pseudonymisable competitive anchor;
+- UTC lock/outcome authority, competition-timezone calendar grouping and viewer-local clock display;
+- deletion/archive consequences and the data-protection dependency;
 - complete current table, function, trigger, RLS and RPC coverage;
-- Euro preservation and hostile cross-season exit tests.
+- Euro preservation, hostile cross-season and before/after characterisation tests.
 
 It contains no migration or hosted write.
 
 ## Next executable sequence
 
-1. Review draft PR #236 as the Stage C design baseline. Decide whether the shared root, competitor identity, round/lock model, deletion/archive rules and in-place rename strategy are accepted.
-2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-014`.
-3. After design approval, commit pre-migration contract tests first:
+1. Review and intentionally approve draft PR #236 as the consolidated Stage C design baseline. The owner decisions on season tie-breaks, account deletion and timezone authority are already recorded; review now concerns completeness, safety and implementation boundaries.
+2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-018`.
+3. Treat the landed tests as mandatory before-state contracts:
+   - PR #245 must change from device-dependent day grouping to competition-timezone grouping while preserving timezone-free locks and viewer-local displayed clocks;
+   - invalid stored competition timezones must fail closed or surface an explicit unavailable state, not silently produce an empty day;
+   - PR #246 must change from direct `auth.users` competitive ownership to the approved pseudonymised-profile model while preserving deliberate audit and housekeeping semantics;
+   - every current and future `auth.users` reference must retain an explicit reviewed deletion action.
+4. After design approval, commit the remaining pre-migration contract tests first:
    - complete season-sensitive object coverage;
    - hostile cross-season relationship failures;
    - lock monotonicity and per-fixture late-write rejection;
    - RLS/grant/function-exposure rules;
-   - Euro identifier, score, rank, access and Stage B context preservation.
-4. Define the exact compatibility allowlist for existing `tournament_id` columns, RPC parameters and application callers; the allowlist must be empty before Stage C exits.
-5. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
-6. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
-7. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
+   - Euro identifier, score, rank, access and Stage B context preservation;
+   - account deletion preserving totals, ranks, league membership and settled outcomes.
+5. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when the intentional physical names disappear.
+6. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history schema path.
+7. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
+8. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
+9. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
 
 ## Programme and stage navigation
 
