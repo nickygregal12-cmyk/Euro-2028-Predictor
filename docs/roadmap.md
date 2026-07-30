@@ -19,9 +19,10 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games.
 6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; PR #239 closed the retained Stage B checklist with the satisfying PRs.
 7. **Control and parity foundation:** PRs #228, #229, #232, #233, #235 and #250 are on `main`.
-8. **Stage C characterisation:** PR #245 pins timezone authority and the current device-dependent day grouping; PR #246 pins the effective account-deletion foreign-key matrix. Both are tests of the current state, not fixes.
-9. **Current baseline:** `main` is `183544b7b29a5360b1c0a04a2c7007e821cbce97`; draft PR #236 is the active design baseline and no migration exists.
-10. **Parallel seam:** PR #252 is fully green and separates competition/viewer timezone inputs while intentionally preserving the viewer fallback until Stage C supplies the persisted season timezone.
+8. **Stage C characterisation:** PR #245 pins timezone authority and the current device-dependent day grouping; PR #246 pins the effective account-deletion foreign-key matrix. Both are before-state controls, not fixes.
+9. **Timezone seam:** PR #252 merged as `1ec505a7d423c8d0b2b03327f8893e3954fa2246`; it separates competition/viewer timezone inputs while intentionally preserving viewer fallback until Stage C supplies the persisted season timezone.
+10. **Test-typecheck prerequisite:** PR #255 is fully green and corrects a vacuous timezone lock assertion plus a wrong timezone field while bringing `tests/` under `tsc -b`; it remains open.
+11. **Current baseline:** `main` is `1ec505a7d423c8d0b2b03327f8893e3954fa2246`; draft PR #236 is the active design baseline and no migration exists.
 
 ## Delivered baseline
 
@@ -43,31 +44,31 @@ Complete on `main`:
 - full clean-main application, database, preview and authenticated-browser gates passed before merge;
 - the Stage B checklist is retained and closed in the master inventory through PR #239.
 
-### Landed control, parity and Stage C before-state work
+### Landed control, parity and Stage C foundation work
 
 - PR #228: cross-tournament read scoping, production guard derivation, real 404 routing, RPC/browser-key/reachability contracts.
 - PR #229: Original Predictor scoring parity.
 - PR #232: all Database parity subjects execute under the disposable Supabase harness.
 - PR #233: CSP/application resource parity.
 - PR #235: complete `VITE_*` environment contract plus deployment-RPC/database-privilege parity.
-- PR #245: lock and match-state timezone independence, the closed set of four device-timezone readers, current day-grouping divergence and invalid-zone fail-quiet behaviour.
+- PR #245: timezone-free resolver source, the four device-timezone readers, current day-grouping divergence and invalid-zone fail-quiet behaviour; one `activeLock` positive assertion is vacuous until PR #255 lands.
 - PR #246: effective account-deletion actions across every `auth.users` reference, including history-destroying cascades, deliberate league-owner restrict, audit set-null actions and the undeclared Predictor Cup winner action.
 - PR #250: ordinary CI proves every public table has RLS enabled and every security-definer function pins `search_path`, using schema-aware, comment-safe and latest-definition parsing.
+- PR #252: the domain and surface adapters distinguish `competitionTimeZone` from `viewerTimeZone`, with viewer fallback while the season value is absent.
 
-PRs #245 and #246 create the reviewable **before-side** of Stage C. Their current expectations must change visibly when the design is implemented.
+PRs #245 and #246 create the reviewable **before-side** of Stage C. PR #252 supplies the compatible application seam. None supplies the Stage C schema or completes the timezone/deletion design.
 
-### Parallel application seam — PR #252
+### Parallel control — PR #255
 
-PR #252 is open, mergeable and fully green. It:
+PR #255 is open, mergeable and fully green across CI, Database parity, exact preview smoke, authenticated journeys, signup and recovery. It:
 
-- renames the domain calendar input to `competitionTimeZone`;
-- introduces `viewerTimeZone` at the surface adapters;
-- lets a supplied competition timezone override viewer location;
-- preserves all existing behaviour while the value is absent by falling back to the viewer;
-- intentionally leaves the day-grouping divergence in place until Stage C adds and supplies `tournaments.display_timezone`;
-- reports that TypeScript test sources are not included in the current `tsc -b` project.
+- adds `tsconfig.test.json` to the existing build so TypeScript tests are strict-checked;
+- changes the vacuous `context.activeLock` comparison to real `lockScopes`;
+- fixes a differential fixture that used `viewerTimeZone` where the config required `competitionTimeZone`;
+- clears fourteen additional stale or incomplete test-fixture/type errors without weakening expectations;
+- leaves `e2e/` and `scripts/` outside the proposed test TypeScript project.
 
-It may integrate independently. It is a useful implementation seam, not the completed Stage C timezone slice.
+It should land before Stage C relies on new TypeScript contract fixtures, but it does not block design approval and contains no schema or hosted change.
 
 ### Stage C — active design
 
@@ -78,7 +79,7 @@ Draft PR #236 defines:
 - generic rounds/matchweeks and monotonic lock-transition evidence;
 - composite same-season relationship safeguards;
 - `profiles.id` as the durable pseudonymisable competitive anchor;
-- UTC lock/outcome authority, competition-timezone calendar grouping and viewer-local clock display;
+- persisted competition timezone wired through the landed seam, with viewer-local clock display;
 - invalid competition-timezone rejection and explicit unavailable/fail-closed handling;
 - deletion/archive consequences and the data-protection dependency;
 - complete current table, function, trigger, RLS and RPC coverage;
@@ -90,16 +91,14 @@ It contains no migration or hosted write.
 
 1. Review and intentionally approve draft PR #236 as the consolidated Stage C design baseline. The owner decisions on season tie-breaks, account deletion and timezone authority are already recorded; review now concerns completeness, safety and implementation boundaries.
 2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-019`.
-3. Treat the landed tests as mandatory before-state contracts:
+3. Integrate or otherwise resolve PR #255 before Stage C TypeScript contract fixtures become migration evidence. Preserve its corrected `lockScopes` assertion and `competitionTimeZone` config field; do not restore the false-positive versions.
+4. Treat the landed tests as mandatory before-state contracts:
    - PR #245 must change from device-dependent day grouping to competition-timezone grouping while preserving timezone-free locks and viewer-local displayed clocks;
    - invalid stored competition timezones must be rejected and any unavailable value must fail closed or surface an explicit unavailable state, not silently produce an empty day;
    - PR #246 must change from direct `auth.users` competitive ownership to the approved pseudonymised-profile model while preserving deliberate audit and housekeeping semantics;
    - every current and future `auth.users` reference must retain an explicit reviewed deletion action;
    - PR #250's all-public-table RLS and all-definer `search_path` invariants must remain green.
-4. Reconcile PR #252 according to its final landed state:
-   - if it lands first, Stage C supplies the persisted `competitionTimeZone` at each seam and reverses the fallback/divergence assertions;
-   - if it does not land, Stage C implements the same split in the migration/application PR without duplicating incompatible adapters.
-5. Add an enforced TypeScript test typecheck or equivalent before relying on Stage C's new TypeScript contract fixtures. Passing Vitest alone is not static type evidence because `tsconfig.app.json` currently includes only `src`.
+5. Wire `tournaments.display_timezone` through the landed PR #252 seam at all four surface adapters, remove authoritative viewer fallback and reverse the divergence assertions while retaining viewer-local rendered kickoff time.
 6. After design approval, commit the remaining pre-migration contract tests first:
    - complete season-sensitive object coverage;
    - hostile cross-season relationship failures;
