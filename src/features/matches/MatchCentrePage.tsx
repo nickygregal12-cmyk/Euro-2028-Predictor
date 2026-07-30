@@ -160,7 +160,7 @@ export function MatchCentrePage() {
       submitted: preds.submittedAt !== null && preds.submittedAt !== undefined,
       entryComplete: preds.ready,
       nowServer,
-      timeZone,
+      viewerTimeZone: timeZone,
     })
     return resolved.context.matches.find((candidate) => candidate.id === match.id)?.state ?? null
   }, [data, match, nowServer, preds.ready, preds.submittedAt, timeZone])

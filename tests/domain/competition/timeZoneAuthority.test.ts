@@ -22,17 +22,17 @@ import type { CompetitionConfig, TournamentCompetitionConfig } from '../../../sr
  *   - locks and match state are timezone-free, comparing UTC instants only, so
  *     no device can move a deadline. Guarded below, because it is an invariant
  *     worth keeping rather than a coincidence worth discovering later;
- *   - day grouping currently reads `config.timeZone`, and every call site feeds
- *     that the *device* zone, so two viewers of the same season at the same
- *     instant can disagree about which fixtures are "today". Characterised
- *     below as measured behaviour.
+ *   - day grouping reads `config.competitionTimeZone`. The seam that separates
+ *     it from the viewer's zone now exists, but no season row supplies a value
+ *     yet, so each surface still falls back to the device zone and two viewers
+ *     of the same competition at the same instant can disagree about which
+ *     fixtures are "today". Characterised below as measured behaviour.
  *
  * The characterisation is deliberately an assertion about what the code does
- * today, not what it should do. Splitting `config.timeZone` into a season zone
- * and a viewer zone is a behaviour change gated on the season column that stores
- * it; these tests exist so that change arrives as a visible, evidenced edit to
- * this file instead of a silent one. Every existing context fixture uses
- * `timeZone: 'UTC'`, which is why the divergence is invisible in the suite.
+ * today, not what it should do. Supplying `competitionTimeZone` is the single
+ * change that ends the divergence, and it is gated on the season column that
+ * stores the value; these tests exist so that change arrives as a visible,
+ * evidenced edit to this file instead of a silent one.
  *
  * Text-based where it guards source shape, execution-based where it records
  * behaviour. Neither half needs a database.
@@ -98,7 +98,7 @@ describe('timezone authority — source shape', () => {
     // The domain formats *in* a supplied zone but never asks the environment
     // which zone that is — the property that makes the later season-zone switch
     // a call-site change rather than a domain rewrite.
-    expect(source).toMatch(/config\.timeZone/)
+    expect(source).toMatch(/config\.competitionTimeZone/)
     expect(source).not.toMatch(DEVICE_TIME_ZONE_READ)
   })
 })
@@ -111,7 +111,7 @@ const BASE_CONFIG: TournamentCompetitionConfig = {
   id: 'euro-2028',
   name: 'Euro 2028',
   kind: 'tournament',
-  timeZone: 'UTC',
+  competitionTimeZone: 'UTC',
   bounds: { startsAt: '2028-06-10T00:00:00Z', endsAt: '2028-07-10T00:00:00Z' },
   primaryStage: 'groups',
   progression: 'groups_to_knockout',
@@ -162,8 +162,8 @@ const ACTIONS: CompetitionUserData['actions'] = {
 const KICKOFF = '2028-06-10T11:00:00Z'
 const OBSERVED_AT = '2028-06-10T21:00:00Z'
 
-function resolveAt(timeZone: string) {
-  const config: CompetitionConfig = { ...BASE_CONFIG, timeZone }
+function resolveAt(competitionTimeZone: string) {
+  const config: CompetitionConfig = { ...BASE_CONFIG, competitionTimeZone }
   const now = new Date(OBSERVED_AT)
   const matches: readonly CompetitionMatchData[] = [
     {

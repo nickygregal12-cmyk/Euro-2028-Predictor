@@ -189,7 +189,7 @@ describe('Matches competition-context migration parity', () => {
       groups,
       submitted: true,
       nowServer,
-      timeZone: 'Europe/London',
+      viewerTimeZone: 'Europe/London',
     })
 
     expect(migrated.currentGroupIndex).toBe(legacy)
@@ -201,7 +201,7 @@ describe('Matches competition-context migration parity', () => {
       groups,
       submitted: true,
       nowServer: new Date('2028-06-09T17:00:00Z'),
-      timeZone: 'Europe/London',
+      viewerTimeZone: 'Europe/London',
     })
 
     expect(resolved.context.lockScopes['matches-entry']).toMatchObject({
@@ -234,14 +234,14 @@ describe('Matches competition-context migration parity', () => {
       groups: timezoneGroups,
       submitted: true,
       nowServer,
-      timeZone: 'Europe/London',
+      viewerTimeZone: 'Europe/London',
     })
     const utc = resolveMatchesCompetitionContext({
       data,
       groups: timezoneGroups,
       submitted: true,
       nowServer,
-      timeZone: 'UTC',
+      viewerTimeZone: 'UTC',
     })
 
     expect(london.context.dayState).toBe('before_first_match')
@@ -255,7 +255,7 @@ describe('Matches competition-context migration parity', () => {
       groups: [],
       submitted: false,
       nowServer: new Date('2028-06-01T00:00:00Z'),
-      timeZone: 'Europe/London',
+      viewerTimeZone: 'Europe/London',
     })
 
     expect(resolved.currentGroupIndex).toBe(0)
