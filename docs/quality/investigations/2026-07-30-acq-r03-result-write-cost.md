@@ -78,7 +78,97 @@ That settles the second half of the impact `ACQ-R03` names. Table bloat follows
 from the same mechanism — 9,000 dead tuples per confirmation at 250 entries by
 result 36 — though autovacuum behaviour under that load was not observed here.
 
-### 5. Rank-history capture is not per-result
+### 5. Table bloat: the table settles at 19× its live size
+
+Measured separately with **each confirmation in its own committed transaction**,
+on a database built fresh so no earlier run contributed pages. 250 entries, all
+36 group results:
+
+| Point | Live tuples | Dead tuples | On disk |
+| --- | --- | --- | --- |
+| Before any result | 0 | 0 | 32 kB |
+| After 36 results | 9,126 | **158,000** | **36 MB** |
+| After plain `VACUUM` | 9,126 | 0 | **36 MB** |
+| After `VACUUM FULL` | 9,126 | 0 | **1.9 MB** |
+
+Two things matter here, and the second is the one that persists.
+
+**Dead tuples reach 17× the live count.** Summing the deletes across the stage
+gives 250 × (1+2+…+36) ≈ 166,500, which is essentially every row ever written —
+the delete-and-rederive pattern means only the final 9,126 survive.
+
+**Plain `VACUUM` reclaims nothing from the file.** It marks space reusable but
+does not return it, so the table stays at 36 MB holding 1.9 MB of live data —
+**19× its content**. Only `VACUUM FULL` shrinks it, and that takes an exclusive
+lock, which is not something to run mid-tournament.
+
+The steady state is therefore the **high-water mark**, set by peak churn between
+autovacuum cycles rather than by how much data the competition actually holds.
+
+**Do not read the 0 autovacuum runs as a production finding.** The threshold for
+this table is `50 + 0.2 × 9,126 ≈ 1,875` dead tuples, crossed after roughly the
+second confirmation, but `autovacuum_naptime` is 60 s and this walk completed
+inside one nap. Real results arrive across days, so autovacuum will run and will
+keep dead tuples in check. What it will not do is shrink the file.
+
+The production-relevant window is a **matchday**, not a stage: twelve results
+within a few hours. At 250 entries a late matchday churns roughly
+250 × (25+26+…+36) ≈ 91,500 tuples in that window, and that is what sets the
+high-water mark.
+
+### 6. Knockout results cost more than any group result
+
+Measured on the same database immediately after the group stage, with a
+predicted bracket seeded for every entry so the per-entry knockout derivation
+is real work rather than a no-op. The round of 16 populated **automatically**
+once the 36th group result confirmed, and each round populated the next, so
+this is the real cascade rather than a fixture.
+
+| Round | Results | Per confirmation | WAL each |
+| --- | --- | --- | --- |
+| R16 | 8 | 1,335–1,476 ms | ~12 MB |
+| QF | 4 | 1,404–1,592 ms | ~12 MB |
+| SF | 2 | 1,541–1,604 ms | ~12 MB |
+| Final | 1 | 827 ms | 6 MB |
+| **All 15** | | **21.2 s** | **179 MB** |
+
+Every knockout confirmation costs more than the *worst* group confirmation
+(884 ms), and roughly four times the group-stage mean. WAL per result is about
+2.5× the group stage's worst. `score_events` grows 9,126 → 13,126 and the table
+reaches 82 MB.
+
+**A full tournament at 250 entries is therefore ~33 s of cumulative recompute
+and ~266 MB of WAL across 51 confirmations.**
+
+That figure also settles the extrapolation this document previously labelled
+"a floor, not an estimate": it predicted ~1.3 s for a late confirmation and
+~32 s cumulative. Measured, knockout confirmations are ~1.4 s and the total is
+~33 s. The model was accurate rather than merely conservative.
+
+The Final being cheapest is consistent with the mechanism: by then few entries
+retain a surviving bracket prediction, so there is less per-entry derivation
+even though the accumulated base is largest.
+
+### 7. Concurrency degrades reads but does not block them
+
+Six concurrent leaderboard readers against three confirmations, same database
+and field size:
+
+| | Mean | p95 | Worst |
+| --- | --- | --- | --- |
+| Reads, no writer | 84 ms | — | 117 ms |
+| Reads, 6 readers + writer | **125 ms** | 189 ms | **347 ms** |
+
+Confirmations under that read load took 944–1,108 ms, and **no query failed or
+serialised**. Delete-and-rederive does not block readers: MVCC gives them the
+pre-delete snapshot, so the contended resource is CPU rather than locks.
+
+The 1.5× mean and 3× worst-case degradation is the honest shape — reads get
+slower during a confirmation, they do not stall. That is a materially better
+answer than "peak-time operational failure" implies, and it narrows the risk to
+throughput rather than availability.
+
+### 8. Rank-history capture is not per-result
 
 A single confirmation on an otherwise unscored tournament wrote 5 score events, 1 revision row and **0** rank-history rows. `capture_rank_history` snapshots at matchday completion, not on every result, so results 12, 24 and 36 carry work the others do not. The measurements at those indices therefore sit at the top of the local range, and the cost between them is not isolated here.
 
@@ -91,9 +181,8 @@ The important point is not the discrepancy but the framing: 12 results is one gr
 ## What this does not establish
 
 - **Not the Supabase stack.** PostgreSQL 16 with a shimmed `auth` schema, versus hosted Postgres 17. Migrations applied cleanly, but the planner, hardware and extension set differ.
-- **No concurrency.** A single session, nothing else running. Real confirmations happen while players are reading.
-- **Table bloat and autovacuum were not observed.** WAL is measured above; the dead-tuple accumulation that follows from the same delete-and-rederive pattern was not, nor was autovacuum's ability to keep up under it.
-- **Knockout results untested**, as above.
+- **Concurrency was measured at six readers on shared hardware**, which is a contention probe rather than a load test. It shows reads do not block; it does not establish behaviour at realistic peak.
+- **Autovacuum was not observed doing its job.** Bloat is measured above, but the walk compressed 36 results into less than one `autovacuum_naptime`, so the run says nothing about whether autovacuum keeps up when results are days apart. It says only what it must keep up with.
 - **Synthetic predictions**, deterministic rather than realistic in distribution.
 
 ## Disposition
@@ -101,5 +190,5 @@ The important point is not the discrepancy but the framing: 12 results is one gr
 - `ACQ-R03` remains **In progress through evidence**, and the evidence is now stronger for acting than for deferring.
 - At the enforced 250-entry cap the operational picture is: **~0.9 s for the final group confirmation and ~12 s of cumulative recompute across the group stage.** Tolerable, but no longer "not currently justification".
 - At 1,000 entries it is **4 s per confirmation** at the end of the group stage and **48 s** cumulative. That is a long write transaction on a live scoring path, which is exactly the impact `ACQ-R03` describes.
-- `DEC-009`'s deferral condition — a full-result-volume benchmark — is **satisfied for the group stage**, now including WAL. The outstanding pieces are knockout results, table-bloat/autovacuum behaviour, and concurrency.
+- `DEC-009`'s deferral condition — a full-result-volume benchmark — is **satisfied for the group stage**, now including WAL. Knockout results, WAL, bloat and a concurrency probe are all now measured. What remains is autovacuum behaviour at realistic result spacing, and a genuine load test at peak.
 - The compounding shape matters more than any single number: the cost is worst at precisely the moment the tournament is busiest.

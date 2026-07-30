@@ -1,0 +1,229 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+/**
+ * The Stage C coverage manifest is the implementation checklist for every
+ * current public relation. A new table/view must not be able to arrive in a
+ * migration without receiving an explicit Stage C disposition, and a removed
+ * relation must not remain in the checklist as if it still existed.
+ *
+ * This is deliberately a pre-migration contract. It does not assume the result
+ * of the data-protection review in issue #272 and it does not require a running
+ * database. It compares the effective committed migration history with the
+ * `Current object` rows in the merged Stage C manifest.
+ */
+
+const repositoryRoot = process.cwd()
+const migrationsDirectory = resolve(repositoryRoot, 'supabase/migrations')
+const coverageManifestPath = resolve(
+  repositoryRoot,
+  'docs/architecture/stage-c-schema-coverage.md',
+)
+
+type RelationKind = 'table' | 'view'
+type RelationEvent = {
+  action: 'create' | 'drop'
+  index: number
+  kind: RelationKind
+  name: string
+}
+
+function blankCharacter(character: string): string {
+  return character === '\n' ? '\n' : ' '
+}
+
+/**
+ * Remove comments and string/function bodies while retaining code positions.
+ * Migration prose and dollar-quoted function bodies are allowed to mention
+ * `create table` without inventing a schema relation for this test.
+ */
+function stripNonCode(source: string): string {
+  let output = ''
+  let index = 0
+
+  while (index < source.length) {
+    if (source.startsWith('--', index)) {
+      while (index < source.length && source[index] !== '\n') {
+        output += ' '
+        index += 1
+      }
+      continue
+    }
+
+    if (source.startsWith('/*', index)) {
+      let depth = 1
+      output += '  '
+      index += 2
+
+      while (index < source.length && depth > 0) {
+        if (source.startsWith('/*', index)) {
+          depth += 1
+          output += '  '
+          index += 2
+          continue
+        }
+        if (source.startsWith('*/', index)) {
+          depth -= 1
+          output += '  '
+          index += 2
+          continue
+        }
+        output += blankCharacter(source[index])
+        index += 1
+      }
+      continue
+    }
+
+    if (source[index] === "'") {
+      output += ' '
+      index += 1
+
+      while (index < source.length) {
+        if (source[index] === '\\' && index + 1 < source.length) {
+          output += ` ${blankCharacter(source[index + 1])}`
+          index += 2
+          continue
+        }
+        if (source[index] === "'" && source[index + 1] === "'") {
+          output += '  '
+          index += 2
+          continue
+        }
+        if (source[index] === "'") {
+          output += ' '
+          index += 1
+          break
+        }
+        output += blankCharacter(source[index])
+        index += 1
+      }
+      continue
+    }
+
+    if (source[index] === '$') {
+      const dollarTag = source
+        .slice(index)
+        .match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/)?.[0]
+
+      if (dollarTag) {
+        output += ' '.repeat(dollarTag.length)
+        index += dollarTag.length
+
+        while (index < source.length && !source.startsWith(dollarTag, index)) {
+          output += blankCharacter(source[index])
+          index += 1
+        }
+
+        if (source.startsWith(dollarTag, index)) {
+          output += ' '.repeat(dollarTag.length)
+          index += dollarTag.length
+        }
+        continue
+      }
+    }
+
+    output += source[index]
+    index += 1
+  }
+
+  return output
+}
+
+function relationEvents(source: string): RelationEvent[] {
+  const sql = stripNonCode(source)
+  const events: RelationEvent[] = []
+
+  const createPattern =
+    /\bcreate\s+(?:or\s+replace\s+)?(?:materialized\s+)?(table|view)\s+(?:if\s+not\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)/gi
+
+  for (const match of sql.matchAll(createPattern)) {
+    const schema = match[2]?.toLowerCase()
+    if (schema && schema !== 'public') continue
+
+    events.push({
+      action: 'create',
+      index: match.index,
+      kind: match[1].toLowerCase() as RelationKind,
+      name: match[3].toLowerCase(),
+    })
+  }
+
+  const dropPattern =
+    /\bdrop\s+(table|(?:materialized\s+)?view)\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)/gi
+
+  for (const match of sql.matchAll(dropPattern)) {
+    const schema = match[2]?.toLowerCase()
+    if (schema && schema !== 'public') continue
+
+    events.push({
+      action: 'drop',
+      index: match.index,
+      kind: /view/i.test(match[1]) ? 'view' : 'table',
+      name: match[3].toLowerCase(),
+    })
+  }
+
+  return events.sort((left, right) => left.index - right.index)
+}
+
+function effectivePublicRelations(): string[] {
+  const relations = new Map<string, RelationKind>()
+
+  for (const migration of readdirSync(migrationsDirectory).sort()) {
+    if (!migration.endsWith('.sql')) continue
+
+    const source = readFileSync(resolve(migrationsDirectory, migration), 'utf8')
+    for (const event of relationEvents(source)) {
+      if (event.action === 'drop') {
+        relations.delete(event.name)
+      } else {
+        relations.set(event.name, event.kind)
+      }
+    }
+  }
+
+  return [...relations]
+    .map(([name, kind]) => `${kind}:${name}`)
+    .sort()
+}
+
+function manifestCurrentRelations(): string[] {
+  const manifest = readFileSync(coverageManifestPath, 'utf8')
+  const publicRelationsSection = manifest
+    .split('## 4. Public relations')[1]
+    ?.split('## 5. New relations')[0]
+
+  expect(publicRelationsSection, 'Stage C public-relations manifest section').toBeTruthy()
+
+  const relations: string[] = []
+  const rowPattern = /^\|\s*`([a-z_][a-z0-9_]*)`(\s+view)?\s*\|/gm
+  for (const match of publicRelationsSection!.matchAll(rowPattern)) {
+    relations.push(`${match[2] ? 'view' : 'table'}:${match[1]}`)
+  }
+
+  return relations.sort()
+}
+
+const effectiveRelations = effectivePublicRelations()
+const manifestRelations = manifestCurrentRelations()
+
+describe('Stage C current public-relation coverage', () => {
+  it('keeps parser positive controls at the current schema boundary', () => {
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(34)
+    expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
+      'view:entry_totals',
+    ])
+  })
+
+  it('gives every effective public table/view exactly one current-object disposition', () => {
+    expect(manifestRelations).toEqual(effectiveRelations)
+  })
+
+  it('does not mix proposed Stage C relations into the current-object inventory', () => {
+    expect(manifestRelations).not.toContain('table:competitions')
+    expect(manifestRelations).not.toContain('table:competition_rounds')
+    expect(manifestRelations).not.toContain('table:competition_lock_events')
+    expect(manifestRelations).not.toContain('table:competition_awards')
+  })
+})

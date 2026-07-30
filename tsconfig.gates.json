@@ -12,6 +12,7 @@
   // JavaScript under scripts/ is deferred, with counts recorded in
   // tests/scripts/typescriptProjectCoverage.test.ts.
   "files": [
+    "scripts/check-bundle-budget.mjs",
     "scripts/deployment-contract-expectations.mjs",
     "scripts/validate-deployment-contract.mjs",
     "scripts/validate-netlify-environment.mjs"
