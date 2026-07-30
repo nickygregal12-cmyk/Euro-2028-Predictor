@@ -182,7 +182,7 @@ const EXPECTED_OWNERSHIP_POLICIES = [
   'leagues.member leagues readable:select',
   'match_predictions.own match_predictions insert:insert',
   'match_predictions.own match_predictions select:select',
-  'match_predictions.own match predictions update:update',
+  'match_predictions.own match_predictions update:update',
   'predicted_group_positions.own predicted_group_positions select:select',
   'predicted_progression.own predicted_progression select:select',
   'predicted_tie_resolutions.own predicted_tie_resolutions:all',
