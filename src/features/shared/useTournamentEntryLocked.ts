@@ -14,6 +14,11 @@ export function useTournamentEntryLocked(fallback = false): boolean {
 
   if (data.status !== 'ready') return fallback
 
+  // A structurally incomplete ready payload cannot safely prove that editing is
+  // still open. Fail closed at the feature boundary rather than passing malformed
+  // repository data into the strict domain resolver.
+  if (!Array.isArray(data.data.groups) || !Array.isArray(data.data.matches)) return true
+
   // Capture time once at the feature boundary and pass it into the pure engine.
   const nowServer = new Date()
   const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
