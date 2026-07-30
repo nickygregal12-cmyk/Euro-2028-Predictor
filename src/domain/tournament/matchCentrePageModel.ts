@@ -1,4 +1,5 @@
 import type { MatchState } from '../competition/matchState'
+import type { MatchLifecycleState } from './matchCentreContract'
 import type { Group, Match, Team } from '../../services/supabase/tournamentData'
 import { adaptRepositoryMatchToCentre } from './matchCentreRepositoryAdapter'
 import { bridgeExternalMatchToLegacyHeader } from './matchCentreLegacyBridge'
@@ -46,6 +47,17 @@ function kickoffLabel(kickoffAt: string): string {
   })}`
 }
 
+const COUNTDOWN_LIFECYCLES = new Set<MatchLifecycleState>([
+  'SCHEDULED',
+  'PRE_MATCH',
+  'POSTPONED',
+  'SUSPENDED',
+])
+
+export function shouldShowMatchCentreCountdown(lifecycle: MatchLifecycleState): boolean {
+  return COUNTDOWN_LIFECYCLES.has(lifecycle)
+}
+
 /**
  * Composes the shared state-aware repository adapter and legacy-screen bridge
  * in one place. A passed kickoff without authoritative feed data remains
@@ -67,8 +79,9 @@ export function createMatchCentrePageModel(
   return {
     ...screen,
     eyebrow: `${stageLabel(input.match, input.groups)} · ${screen.statusPresentation.label}`,
-    countdownLabel:
-      screen.temporalState === 'before' ? kickoffLabel(viewModel.external.kickoffAt) : null,
+    countdownLabel: shouldShowMatchCentreCountdown(viewModel.external.lifecycle)
+      ? kickoffLabel(viewModel.external.kickoffAt)
+      : null,
     venueCountryCodeInput: viewModel.external.venue ?? input.match.venue,
     lifecycleContent: matchCentreLifecycleContent(viewModel.external.lifecycle),
   }

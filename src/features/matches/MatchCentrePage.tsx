@@ -379,7 +379,7 @@ export function MatchCentrePage() {
     fetchedAt: capturedAt,
     matchState: resolvedMatchState ?? undefined,
   })
-  const { home, away, result, temporalState: temporal } = pageModel
+  const { home, away, result } = pageModel
   const actualWinner = authoritativeWinnerSide(match)
 
   // Your stake + this-match score events.
@@ -432,7 +432,6 @@ export function MatchCentrePage() {
       venueCountryCode={venueCountryCode(pageModel.venueCountryCodeInput)}
       home={home}
       away={away}
-      temporalState={temporal}
       lifecycleContent={pageModel.lifecycleContent}
       statusPresentation={pageModel.statusPresentation}
       matchSource={pageModel.matchSource}

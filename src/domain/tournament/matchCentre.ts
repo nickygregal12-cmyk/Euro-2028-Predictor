@@ -7,24 +7,6 @@
 import { calculateScore } from './calculateScore'
 import { KNOCKOUT_STAGE_ORDER, KNOCKOUT_STAGE_POINTS, type KnockoutStage } from './scoringConfig'
 
-// --- Temporal state --------------------------------------------------------
-
-export type MatchTemporalState = 'before' | 'during' | 'after'
-
-/**
- * Which of the three states a fixture is in. `after` once a result exists;
- * `before` otherwise. The `during` member is reserved for a real live-score
- * source: like the Match Centre adapter (matchCentreRepositoryAdapter), this
- * NEVER infers a live period merely because kickoff has passed — an absent or
- * delayed feed fails closed rather than showing a convincing live match.
- */
-export function matchTemporalState(
-  match: { kickoffAt: string | null; homeScore: number | null; awayScore: number | null },
-): MatchTemporalState {
-  if (match.homeScore !== null && match.awayScore !== null) return 'after'
-  return 'before'
-}
-
 // --- Group match outcome ---------------------------------------------------
 
 export type GroupOutcome = 'exact' | 'correct' | 'wrong' | 'unknown'

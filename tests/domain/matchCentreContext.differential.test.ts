@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveMatchState, type MatchState } from '../../src/domain/competition/matchState'
 import type { ResolvedLockState } from '../../src/domain/competition/lockState'
-import { matchTemporalState } from '../../src/domain/tournament/matchCentre'
 import { lifecycleFromResolvedMatchState } from '../../src/domain/tournament/matchCentreRepositoryAdapter'
 import type { Match } from '../../src/services/supabase/tournamentData'
 
@@ -52,14 +51,13 @@ function lifecycle(state: MatchState, now = '2028-06-10T17:30:00Z') {
   return lifecycleFromResolvedMatchState(MATCH, state, now)
 }
 
-describe('Match Centre temporal differential evidence', () => {
+describe('Match Centre captured shared-state evidence', () => {
   it('captures the legacy pre-kickoff state', () => {
     const match = {
       kickoffAt: '2028-06-10T18:00:00Z',
       homeScore: null,
       awayScore: null,
     }
-    expect(matchTemporalState(match)).toBe('before')
     expect(shared({ ...match, now: '2028-06-10T16:00:00Z' })).toBe('scheduled_editable')
   })
 
@@ -69,7 +67,6 @@ describe('Match Centre temporal differential evidence', () => {
       homeScore: null,
       awayScore: null,
     }
-    expect(matchTemporalState(match)).toBe('before')
     expect(shared({ ...match, now: '2028-06-10T18:30:00Z' })).toBe('in_play_no_feed')
   })
 
@@ -79,13 +76,11 @@ describe('Match Centre temporal differential evidence', () => {
       homeScore: 2,
       awayScore: 1,
     }
-    expect(matchTemporalState(match)).toBe('after')
     expect(shared({ ...match, now: '2028-06-10T20:00:00Z' })).toBe('confirmed')
   })
 
   it('captures the legacy missing-kickoff fail-closed state', () => {
     const match = { kickoffAt: null, homeScore: null, awayScore: null }
-    expect(matchTemporalState(match)).toBe('before')
     expect(shared({ ...match, now: '2028-06-10T18:30:00Z' })).toBe('scheduled_locked')
   })
 })

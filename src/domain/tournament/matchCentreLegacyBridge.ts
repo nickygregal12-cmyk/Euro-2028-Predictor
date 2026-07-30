@@ -1,4 +1,3 @@
-import type { MatchTemporalState } from './matchCentre'
 import type { ExternalMatchData } from './matchCentreContract'
 import {
   presentMatchLifecycle,
@@ -6,7 +5,6 @@ import {
 } from './matchCentrePresentation'
 
 export type LegacyMatchCentreHeader = {
-  temporalState: MatchTemporalState
   statusPresentation: MatchCentreStatusPresentation
   matchSource: ExternalMatchData['source']
   home: { name: string; countryCode: string }
@@ -15,27 +13,10 @@ export type LegacyMatchCentreHeader = {
   liveMinute: string | null
 }
 
-const LIVE_STATES = new Set<ExternalMatchData['lifecycle']>([
-  'LIVE_FIRST_HALF',
-  'HALF_TIME',
-  'LIVE_SECOND_HALF',
-  'EXTRA_TIME',
-  'PENALTIES',
-])
-
-export function lifecycleToLegacyTemporalState(
-  lifecycle: ExternalMatchData['lifecycle'],
-): MatchTemporalState {
-  if (lifecycle === 'FULL_TIME' || lifecycle === 'CANCELLED') return 'after'
-  if (LIVE_STATES.has(lifecycle)) return 'during'
-  return 'before'
-}
-
 export function bridgeExternalMatchToLegacyHeader(
   external: ExternalMatchData,
 ): LegacyMatchCentreHeader {
   return {
-    temporalState: lifecycleToLegacyTemporalState(external.lifecycle),
     statusPresentation: presentMatchLifecycle(external.lifecycle),
     matchSource: external.source,
     home: {

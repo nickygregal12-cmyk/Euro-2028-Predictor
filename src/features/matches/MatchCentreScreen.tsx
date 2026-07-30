@@ -7,7 +7,6 @@ import type { MatchSourceMetadata } from '../../domain/tournament/matchCentreCon
 import type { MatchCentreLifecycleContent } from '../../domain/tournament/matchCentreLifecycleContent'
 import type { MatchCentreStatusPresentation } from '../../domain/tournament/matchCentrePresentation'
 import type {
-  MatchTemporalState,
   GroupStake,
   KoStake,
   ScorelineBar,
@@ -49,7 +48,6 @@ export type MatchCentreScreenProps = {
   venueCountryCode: string
   home: { name: string; countryCode: string }
   away: { name: string; countryCode: string }
-  temporalState: MatchTemporalState
   lifecycleContent?: MatchCentreLifecycleContent
   statusPresentation?: MatchCentreStatusPresentation
   matchSource?: MatchSourceMetadata
@@ -212,11 +210,11 @@ function outcomeTag(
 }
 
 export function MatchCentreScreen(props: MatchCentreScreenProps) {
-  const { home, away, result, temporalState } = props
-  const live = props.statusPresentation?.isLive ?? temporalState === 'during'
+  const { home, away, result } = props
+  const live = props.statusPresentation?.isLive ?? false
   const leagueScopesStatus = props.leagueScopesStatus ?? 'ready'
   const showPredictionContext = props.lifecycleContent?.showPredictionContext ?? true
-  const showMatchImpact = props.lifecycleContent?.showMatchImpact ?? temporalState !== 'before'
+  const showMatchImpact = props.lifecycleContent?.showMatchImpact ?? false
 
   return (
     <div className={s.page}>
@@ -297,7 +295,7 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         </div>
       </div>
       {props.koDetail ? <p className={s.koDetail}>{props.koDetail}</p> : null}
-      {temporalState === 'before' && props.countdownLabel ? (
+      {props.countdownLabel ? (
         <p className={s.countdown}>{props.countdownLabel}</p>
       ) : null}
       <p className={s.venue}>
