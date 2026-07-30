@@ -11,6 +11,7 @@ import type { HomePhase } from '../../domain/tournament/homeDashboard'
 import type { Match, TournamentData } from '../../services/supabase/tournamentData'
 
 const ENTRY_LOCK_SCOPE_ID = 'home-entry'
+const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 export type HomeCompetitionContextInput = {
   data: TournamentData
@@ -18,6 +19,7 @@ export type HomeCompetitionContextInput = {
   entryComplete: boolean
   nowServer: Date
   timeZone: string
+  localDateISO?: string
 }
 
 export type HomeCompetitionContextResult = {
@@ -59,6 +61,10 @@ function dateKey(date: Date, timeZone: string): string {
   const month = parts.find((part) => part.type === 'month')?.value
   const day = parts.find((part) => part.type === 'day')?.value
   return year && month && day ? `${year}-${month}-${day}` : date.toISOString().slice(0, 10)
+}
+
+function injectedDateKey(value: string | undefined): string | null {
+  return typeof value === 'string' && ISO_DATE_PATTERN.test(value) ? value : null
 }
 
 function hasStoredResult(match: Match): boolean {
@@ -223,8 +229,8 @@ function legacyPhase(
 
 /**
  * Adapts the current tournament-shaped Home inputs into the shared competition
- * context without changing the legacy HomeModel contract. Time and timezone are
- * explicit inputs; the shared domain remains free of ambient clock reads.
+ * context without changing the legacy HomeModel contract. Time, local date and
+ * timezone are explicit inputs; the shared domain remains free of ambient reads.
  */
 export function resolveHomeCompetitionContext(
   input: HomeCompetitionContextInput,
@@ -256,7 +262,7 @@ export function resolveHomeCompetitionContext(
   return {
     context,
     phase: legacyPhase(context, { hasResults, submitted: input.submitted }),
-    todayISO: dateKey(input.nowServer, timeZone),
+    todayISO: injectedDateKey(input.localDateISO) ?? dateKey(input.nowServer, timeZone),
     // Home already displays the server-authored tournament lock instant. Keep
     // that exact value while the shared resolver becomes the behavioural source.
     lockAt: input.data.tournament.lockAt,
