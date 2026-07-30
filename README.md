@@ -124,7 +124,7 @@ Production remains contract 60 until separate approval.
 | Current implementation, hosted status, blockers and next action | `docs/quality/current-status.md` |
 | Agent, Git and database discipline | `AGENTS.md`; `CLAUDE.md` |
 | Current risks | `docs/quality/risk-register.md` |
-| Migration inventory and hosted applied state | `docs/ops-pending-migrations.md` |
+| Migration inventory and hosted applied state | `docs/ops/ops-pending-migrations.md` |
 | Scoring and entry validity | `docs/scoring-rules.md` |
 | Tournament facts and structure | `docs/tournament-structure.md` |
 | Architecture and tournament states | `docs/architecture-and-tournament-states.md` |
@@ -132,6 +132,6 @@ Production remains contract 60 until separate approval.
 | Competition boundaries | `docs/competition-structure.md` |
 | Future product sequence | `docs/roadmap.md` |
 | Platform architecture decisions | `docs/adr/` |
-| Operations records and repeatable procedures | `docs/ops-*.md` |
+| Operations records and repeatable procedures | `docs/ops/` |
 
 Dated audits and reconciliations remain historical evidence. Roadmap and TODO documents describe future intent and sequencing, not proof that a feature or migration is live.
