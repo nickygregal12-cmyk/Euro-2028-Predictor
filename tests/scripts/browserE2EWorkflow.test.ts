@@ -186,10 +186,15 @@ describe('target-specific production smoke contracts', () => {
     expect(productionSmoke).not.toContain('const APPLICATION_CONTRACT')
   })
 
-  it('keeps production smoke manual and release-specific at contract 60', () => {
+  it('keeps production smoke manual and release-specific at the current contract', () => {
     expect(productionWorkflow).toContain('workflow_dispatch:')
     expect(productionWorkflow).not.toMatch(/^\s+push:/m)
-    expect(productionWorkflow).toContain("EXPECTED_CONTRACT: '60'")
+    // The contract is resolved from config/deployment-contract.json rather
+    // than pinned here; tests/scripts/deploymentContractExpectations.test.ts
+    // owns that assertion.
+    expect(productionWorkflow).not.toMatch(
+      /^\s*EXPECTED_CONTRACT:\s*'?\d+'?\s*$/m,
+    )
     expect(productionWorkflow).toContain(
       'Wait for the exact milestone production release',
     )

@@ -6,6 +6,12 @@ on:
       expected_commit:
         description: Exact published production commit to verify
         required: true
+      expected_contract:
+        description: >-
+          Contract version the published release must report. Leave blank to
+          use the checked-out deployment contract. Set it only when verifying a
+          previously published release whose contract differs from this branch.
+        required: false
 
 permissions:
   contents: read
@@ -38,7 +44,7 @@ jobs:
         env:
           PRODUCTION_ORIGIN: https://euro28predictor.com
           EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
-          EXPECTED_CONTRACT: '60'
+          EXPECTED_CONTRACT_INPUT: ${{ inputs.expected_contract }}
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
         run: |
           set -euo pipefail
@@ -47,6 +53,24 @@ jobs:
             echo 'STOP: expected_commit must be an exact 40-character Git SHA.' >&2
             exit 1
           fi
+
+          # Derive from committed authority by default so this guard cannot
+          # drift behind config/deployment-contract.json. An explicit input
+          # stays available for verifying an already-published older release.
+          if [ -n "${EXPECTED_CONTRACT_INPUT:-}" ]; then
+            EXPECTED_CONTRACT="${EXPECTED_CONTRACT_INPUT}"
+            echo "Using operator-supplied expected contract ${EXPECTED_CONTRACT}."
+          else
+            EXPECTED_CONTRACT="$(node -p "require('./config/deployment-contract.json').contractVersion")"
+            echo "Using deployment-contract expected contract ${EXPECTED_CONTRACT}."
+          fi
+
+          if ! [[ "$EXPECTED_CONTRACT" =~ ^[1-9][0-9]*$ ]]; then
+            echo 'STOP: expected contract must be a positive integer.' >&2
+            exit 1
+          fi
+
+          export EXPECTED_CONTRACT
 
           ready=false
           for attempt in $(seq 1 120); do

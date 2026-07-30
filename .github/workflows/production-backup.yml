@@ -33,9 +33,10 @@ jobs:
 
     env:
       EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
-      EXPECTED_MIGRATION_COUNT: '60'
-      EXPECTED_LATEST_MIGRATION_VERSION: '20260729110000'
-      EXPECTED_LATEST_MIGRATION_NAME: predictor_cup_lint_safe_qualification
+      # EXPECTED_MIGRATION_COUNT, EXPECTED_LATEST_MIGRATION_VERSION and
+      # EXPECTED_LATEST_MIGRATION_NAME are deliberately absent here. They are
+      # derived from committed authority into $GITHUB_ENV below, and a
+      # job-level env key would override that value for every step.
       BACKUP_WORK_DIR: /tmp/production-backup
       LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
@@ -73,6 +74,17 @@ jobs:
           esac
 
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+
+      - name: Derive restore expectations from committed authority
+        run: |
+          set -euo pipefail
+          node scripts/deployment-contract-expectations.mjs >> "$GITHUB_ENV"
+          echo 'Restore rehearsal expectations derived from the deployment contract:'
+          node scripts/deployment-contract-expectations.mjs --json
 
       - uses: supabase/setup-cli@v2
         with:
