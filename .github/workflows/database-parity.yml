@@ -7,7 +7,7 @@ on:
       - 'config/deployment-contract.json'
       - 'fixtures/predicted-group-order.json'
       - 'scripts/database-rollout/**'
-      - 'src/domain/tournament/**'
+      - 'src/domain/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
       - 'tests/scripts/databaseParityWorkflow.test.ts'
