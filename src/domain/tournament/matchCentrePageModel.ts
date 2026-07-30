@@ -1,3 +1,4 @@
+import type { MatchState } from '../competition/matchState'
 import type { Group, Match, Team } from '../../services/supabase/tournamentData'
 import { adaptRepositoryMatchToCentre } from './matchCentreRepositoryAdapter'
 import { bridgeExternalMatchToLegacyHeader } from './matchCentreLegacyBridge'
@@ -18,8 +19,9 @@ export type MatchCentrePageModelInput = {
   match: Match
   teams: Team[]
   groups: Group[]
-  now?: string
-  fetchedAt?: string
+  now: string
+  fetchedAt: string
+  resolvedState: MatchState
 }
 
 export type MatchCentrePageModel = ReturnType<typeof bridgeExternalMatchToLegacyHeader> & {
@@ -46,9 +48,8 @@ function kickoffLabel(kickoffAt: string): string {
 
 /**
  * Composes the repository adapter and legacy-screen bridge in one place. The
- * route can consume this model without re-implementing lifecycle or provider
- * fallback rules. In particular, a passed kickoff with no authoritative feed
- * remains upcoming rather than being presented as live.
+ * route supplies a shared resolved match state and explicit clock/freshness
+ * inputs, while this model preserves the existing screen contract.
  */
 export function createMatchCentrePageModel(
   input: MatchCentrePageModelInput,
@@ -58,6 +59,7 @@ export function createMatchCentrePageModel(
     teams: input.teams,
     now: input.now,
     fetchedAt: input.fetchedAt,
+    resolvedState: input.resolvedState,
   })
   const screen = bridgeExternalMatchToLegacyHeader(viewModel.external)
 
