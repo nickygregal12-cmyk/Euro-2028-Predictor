@@ -21,8 +21,8 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 7. **Control and parity foundation:** PRs #228, #229, #232, #233, #235 and #250 are on `main`.
 8. **Stage C characterisation:** PR #245 pins timezone authority and the current device-dependent day grouping; PR #246 pins the effective account-deletion foreign-key matrix. Both are before-state controls, not fixes.
 9. **Timezone seam:** PR #252 merged as `1ec505a7d423c8d0b2b03327f8893e3954fa2246`; it separates competition/viewer timezone inputs while intentionally preserving viewer fallback until Stage C supplies the persisted season timezone.
-10. **Test-typecheck prerequisite:** PR #255 is fully green and corrects a vacuous timezone lock assertion plus a wrong timezone field while bringing `tests/` under `tsc -b`; it remains open.
-11. **Current baseline:** `main` is `1ec505a7d423c8d0b2b03327f8893e3954fa2246`; draft PR #236 is the active design baseline and no migration exists.
+10. **Test-typecheck control:** PR #255 merged as `cadc7c37e4e5e253e60e2ea31f8f52341d789891`, bringing `tests/` under `tsc -b` and correcting the false-positive timezone assertions.
+11. **Current baseline:** `main` is `cadc7c37e4e5e253e60e2ea31f8f52341d789891`; draft PR #236 is the active design baseline and no migration exists.
 
 ## Delivered baseline
 
@@ -51,24 +51,13 @@ Complete on `main`:
 - PR #232: all Database parity subjects execute under the disposable Supabase harness.
 - PR #233: CSP/application resource parity.
 - PR #235: complete `VITE_*` environment contract plus deployment-RPC/database-privilege parity.
-- PR #245: timezone-free resolver source, the four device-timezone readers, current day-grouping divergence and invalid-zone fail-quiet behaviour; one `activeLock` positive assertion is vacuous until PR #255 lands.
+- PR #245: timezone-free resolver source, the four device-timezone readers, current day-grouping divergence and invalid-zone fail-quiet behaviour.
 - PR #246: effective account-deletion actions across every `auth.users` reference, including history-destroying cascades, deliberate league-owner restrict, audit set-null actions and the undeclared Predictor Cup winner action.
 - PR #250: ordinary CI proves every public table has RLS enabled and every security-definer function pins `search_path`, using schema-aware, comment-safe and latest-definition parsing.
-- PR #252: the domain and surface adapters distinguish `competitionTimeZone` from `viewerTimeZone`, with viewer fallback while the season value is absent.
+- PR #252: domain and surface adapters distinguish `competitionTimeZone` from `viewerTimeZone`, with viewer fallback while the season value is absent.
+- PR #255: TypeScript tests are strict-checked by the ordinary build, and the vacuous `activeLock` assertion plus wrong timezone fixture field are corrected.
 
-PRs #245 and #246 create the reviewable **before-side** of Stage C. PR #252 supplies the compatible application seam. None supplies the Stage C schema or completes the timezone/deletion design.
-
-### Parallel control — PR #255
-
-PR #255 is open, mergeable and fully green across CI, Database parity, exact preview smoke, authenticated journeys, signup and recovery. It:
-
-- adds `tsconfig.test.json` to the existing build so TypeScript tests are strict-checked;
-- changes the vacuous `context.activeLock` comparison to real `lockScopes`;
-- fixes a differential fixture that used `viewerTimeZone` where the config required `competitionTimeZone`;
-- clears fourteen additional stale or incomplete test-fixture/type errors without weakening expectations;
-- leaves `e2e/` and `scripts/` outside the proposed test TypeScript project.
-
-It should land before Stage C relies on new TypeScript contract fixtures, but it does not block design approval and contains no schema or hosted change.
+PRs #245 and #246 create the reviewable **before-side** of Stage C. PR #252 supplies the compatible application seam. PR #255 makes the test contracts statically enforceable. None supplies the Stage C schema or completes the timezone/deletion design.
 
 ### Stage C — active design
 
@@ -91,26 +80,26 @@ It contains no migration or hosted write.
 
 1. Review and intentionally approve draft PR #236 as the consolidated Stage C design baseline. The owner decisions on season tie-breaks, account deletion and timezone authority are already recorded; review now concerns completeness, safety and implementation boundaries.
 2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-019`.
-3. Integrate or otherwise resolve PR #255 before Stage C TypeScript contract fixtures become migration evidence. Preserve its corrected `lockScopes` assertion and `competitionTimeZone` config field; do not restore the false-positive versions.
-4. Treat the landed tests as mandatory before-state contracts:
-   - PR #245 must change from device-dependent day grouping to competition-timezone grouping while preserving timezone-free locks and viewer-local displayed clocks;
+3. Treat the landed tests as mandatory before-state contracts:
+   - PR #245 must change from device-dependent day grouping to competition-timezone grouping while preserving timezone-free `lockScopes` and viewer-local displayed clocks;
    - invalid stored competition timezones must be rejected and any unavailable value must fail closed or surface an explicit unavailable state, not silently produce an empty day;
    - PR #246 must change from direct `auth.users` competitive ownership to the approved pseudonymised-profile model while preserving deliberate audit and housekeeping semantics;
    - every current and future `auth.users` reference must retain an explicit reviewed deletion action;
-   - PR #250's all-public-table RLS and all-definer `search_path` invariants must remain green.
-5. Wire `tournaments.display_timezone` through the landed PR #252 seam at all four surface adapters, remove authoritative viewer fallback and reverse the divergence assertions while retaining viewer-local rendered kickoff time.
-6. After design approval, commit the remaining pre-migration contract tests first:
+   - PR #250's all-public-table RLS and all-definer `search_path` invariants must remain green;
+   - PR #255's TypeScript test project and corrected timezone fixtures must remain green.
+4. Wire `tournaments.display_timezone` through the landed PR #252 seam at all four surface adapters, remove authoritative viewer fallback and reverse the divergence assertions while retaining viewer-local rendered kickoff time.
+5. After design approval, commit the remaining pre-migration contract tests first:
    - complete season-sensitive object coverage;
    - hostile cross-season relationship failures;
    - lock monotonicity and per-fixture late-write rejection;
    - RLS/grant/function-exposure rules;
    - Euro identifier, score, rank, access and Stage B context preservation;
    - account deletion preserving totals, ranks, league membership and settled outcomes.
-7. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when the intentional physical names disappear.
-8. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history schema path.
-9. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
-10. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
-11. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
+6. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when the intentional physical names disappear.
+7. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history schema path.
+8. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
+9. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
+10. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
 
 ## Programme and stage navigation
 
