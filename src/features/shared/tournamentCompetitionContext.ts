@@ -1,6 +1,7 @@
 import {
   resolveCompetitionContext,
   type CompetitionContext,
+  type CompetitionLiveData,
   type CompetitionMatchData,
   type CompetitionProgressData,
   type CompetitionUserData,
@@ -14,6 +15,7 @@ import type { Match, TournamentData } from '../../services/supabase/tournamentDa
 // key would create observable context drift without changing lock semantics.
 const ENTRY_LOCK_SCOPE_ID = 'home-entry'
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
+const NO_LIVE_DATA: CompetitionLiveData = { feedAvailable: false, matches: [] }
 
 export type TournamentCompetitionContextInput = {
   data: TournamentData
@@ -22,6 +24,7 @@ export type TournamentCompetitionContextInput = {
   nowServer: Date
   timeZone: string
   localDateISO?: string
+  liveData?: CompetitionLiveData
 }
 
 export type TournamentCompetitionContextResult = {
@@ -211,7 +214,7 @@ export function resolveTournamentCompetitionContext(
       ],
       matches: competitionMatches(input.data),
     },
-    { feedAvailable: false, matches: [] },
+    input.liveData ?? NO_LIVE_DATA,
     competitionUserData(input),
     input.nowServer,
   )
