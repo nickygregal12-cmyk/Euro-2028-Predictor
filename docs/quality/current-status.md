@@ -35,8 +35,8 @@ The repository is a multi-competition football prediction platform in transition
 | Coverage thresholds and compressed bundle budgets | PR #285; both are CI gates |
 | Lint warnings fail CI | PR #287 — `oxlint --deny-warnings`; three `no-unsafe-finally` defects fixed |
 | Stage C design baseline | **PR #236 merged** 30 July 2026. It approves the design and authorises pre-migration contract-test planning only; it does not authorise a Stage C migration |
-| Stage C contract tests landed | `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation` |
-| Stage C contract tests outstanding | hostile cross-season relationship failures (draft PR #286) and lock monotonicity / per-fixture late-write rejection |
+| Stage C pre-migration contracts | **All seven unblocked suites landed.** Coverage/compatibility, Euro seed preservation and exposure guards were followed by hostile-reference before-state PR #286 and lock/write before-state PR #292. |
+| Stage C implementation block | Issue #272 must record the independent data-protection review before the auth-erasure/pseudonymised-history path, related RLS work or any Stage C migration can proceed. Persisted timezone replacement remains part of Stage C implementation. |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; no development or simulation write path may target production |
 
@@ -65,11 +65,11 @@ The development Supabase inspection was limited to project identity/version and 
 | Database API hardening | **Guarded.** PR #250 proves every public table has RLS and every security-definer function pins `search_path`; PR #265 pins every public view and direct browser relation grant. |
 | Timezone authority | **Seam landed; season value absent.** PR #252 separates `competitionTimeZone` from `viewerTimeZone`, but adapters still fall back to the viewer until Stage C supplies `tournaments.display_timezone`. |
 | Timezone positive control | **Corrected.** PR #255 uses real `lockScopes` and the real `competitionTimeZone` config field. |
-| Account deletion | **Unsafe current behaviour, fully characterised.** Competitive rows still use mixed cascade/restrict/set-null/no-action references to `auth.users`; PR #246 pins the before-state but does not fix it. |
+| Account deletion | **Unsafe current behaviour, fully characterised.** Competitive rows still use mixed cascade/restrict/set-null/no-action references to `auth.users`; PR #246 pins the before-state but does not fix it. Issue #272 is the blocking independent review. |
 | TypeScript/static coverage | **Exhaustive for committed TS/TSX.** PRs #255, #258 and #261 cover application, tests, e2e, production-smoke, tools and configs; PR #261 guards future files and states strictness explicitly. |
 | Deploy-gate JavaScript | **Type-checked.** PR #264 covers the three production-decision gates; remaining JavaScript files are measured in an explicit deferred inventory. |
 | Leaderboard scale | **Measured, not redesigned.** PR #266 confirms full-field aggregation cost scales with `score_events`; about 35 ms/page at the enforced 250-entry synthetic case and about 652 ms mean at 5,000 entries/300,000 events. ACQ-R02 remains open; hosted concurrency is untested and no materialised standings table exists. |
-| Stage C | **Design complete for review; implementation not started.** Draft PR #236 defines the proposed schema and exhaustive current-object coverage without SQL. |
+| Stage C | **Design and all unblocked pre-migration contracts complete; implementation blocked.** PRs #286 and #292 close the final hostile-reference and lock/write before-state gaps. Issue #272 must close before migration work assumes an account-erasure boundary. |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility, legal/client and brand gates remain. |
 | Production mutation | **Prohibited without explicit owner approval and the full milestone process.** |
 
@@ -106,25 +106,26 @@ These are evidence for the first competition. They do not imply that season rule
 - **PR #264:** `checkJs` project for the three deploy-gate JavaScript files and measured deferred JavaScript inventory.
 - **PR #265:** exhaustive public view and direct browser relation-grant guard.
 - **PR #266:** repeatable disposable-local ACQ-R02 scale benchmark and evidence update; no risk closure or schema change.
+- **PR #286:** ten exact hostile-reference failures across groups, matches, teams, players, derived positions, revisions, score events and Golden Boot references.
+- **PR #292:** eleven current lock/write assertions, including inclusive boundaries and the three fail-open/reopening defects Stage C must reverse.
 
-PRs #245 and #246 remain the before-state controls. PR #252 is the application seam. PRs #250, #255, #258, #261, #264 and #265 are preservation invariants. None supplies the Stage C schema or completes the timezone/deletion design.
+PRs #245 and #246 remain the before-state controls. PR #252 is the application seam. PRs #250, #255, #258, #261, #264 and #265 are preservation invariants. PRs #286 and #292 complete the unblocked pre-migration contract set. None supplies the Stage C schema or completes the timezone/deletion design.
 
 ## Stage C — competition-season schema design
 
-Draft PR #236 contains:
+Merged PR #236 contains:
 
 - `docs/architecture/stage-c-competition-season-schema.md`;
 - `docs/architecture/stage-c-schema-coverage.md`;
 - the architecture index update.
 
-It proposes one evolved shared model rather than parallel tournament/season tables; composite competition-season safeguards; explicit rounds and monotonic lock evidence; `profiles` as the durable pseudonymisable competitive anchor; a persisted competition timezone wired through the landed seam; and preservation/hostile-cross-season evidence.
+It defines one evolved shared model rather than parallel tournament/season tables; composite competition-season safeguards; explicit rounds and monotonic lock evidence; `profiles` as the proposed durable pseudonymisable competitive anchor; a persisted competition timezone wired through the landed seam; and preservation/hostile-cross-season evidence.
 
-No migration exists and no hosted schema operation is authorised. Design approval authorises pre-migration contract-test planning only.
+No Stage C migration exists and no hosted schema operation is authorised. Design approval and the landed before-state contracts do not authorise implementation while issue #272 remains open.
 
 ## Open platform gaps
 
-- reviewed and implemented competition-season schema;
-- data-protection review for auth erasure versus pseudonymised competitive history;
+- reviewed and implemented competition-season schema after issue #272 resolves the account-erasure boundary;
 - fixture/result ingestion and provider evidence;
 - season Predictor, Last Man Standing and Cup implementations;
 - cross-competition hub and weekly action surfaces;
