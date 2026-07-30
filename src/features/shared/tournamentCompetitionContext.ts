@@ -158,7 +158,7 @@ function competitionMatches(data: TournamentData): CompetitionMatchData[] {
   return data.matches.map((match) => ({
     id: match.id,
     lockScopeId: ENTRY_LOCK_SCOPE_ID,
-    kickoffAt: match.kickoffAt,
+    kickoffAt: match.kickoffAt ?? null,
     administrationState: 'scheduled',
     officialState: hasStoredResult(match) ? 'confirmed' : 'unconfirmed',
     corrected: match.resultState === 'corrected',
