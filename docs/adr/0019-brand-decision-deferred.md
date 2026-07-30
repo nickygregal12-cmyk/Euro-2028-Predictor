@@ -43,7 +43,7 @@ The repository, application and hosted names remain **Euro 2028 Predictor** thro
 
 ## Consequences
 
-- **D3 leaves the critical path.** It no longer blocks Stage A closing, Stage C, ingestion or any engineering work.
+- **Brand selection and the repository/application rename leave the engineering critical path.** They do not block Stage A closing, Stage C, ingestion or other brand-agnostic engineering work.
 - The repository keeps a name that misdescribes it for roughly a year. This is accepted: internally visible only, and the alternative is an interim rename followed by a real one.
 - **A candidate domain may be registered speculatively at any time.** A few pounds buys an option with no commitment.
 - Phase 0 gains a dependent: brand selection now waits on it, which is an additional reason not to let discovery slip.
@@ -54,4 +54,4 @@ The repository, application and hosted names remain **Euro 2028 Predictor** thro
 - **Proceeding with Scoreline despite the findings.** Rejected on the evidence above. Defensible for a hobby project; not for one whose stated objective includes a sale.
 - **Continuing to generate and check candidates now.** Rejected: it consumes attention during the two days before the rehearsal season starts, to settle a decision with no downstream dependency, and it would produce a name chosen before discovery informs the positioning.
 - **Renaming to an interim such as "predictor-games".** Rejected: two renames cost more than one deferral, and each carries the Supabase authentication redirect risk.
-- **Leaving D3 open with no trigger.** Rejected as the likely failure mode. An open decision with no reopening condition drifts until it is urgent, and is then made badly. The trigger is Phase 0 completion, and the deadline is the closed cohort.
+- **Leaving the brand decision open with no trigger.** Rejected as the likely failure mode. An open decision with no reopening condition drifts until it is urgent, and is then made badly. The trigger is Phase 0 completion, and the deadline is the closed cohort.
