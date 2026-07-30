@@ -109,6 +109,6 @@ describe('Stage C1 schema overlay coverage', () => {
     expect(overlay).toContain('no migration exists')
     expect(overlay).toContain('does not authorise SQL')
     expect(overlay).toContain('a hosted development mutation')
-    expect(overlay).toContain('no production change')
+    expect(overlay).toContain('any production change')
   })
 })
