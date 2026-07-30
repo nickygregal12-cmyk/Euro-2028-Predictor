@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-Stage B is complete on `main` through PR #226 at merge commit `2648540dc001c50305f1effa526fc16e43dcdb26`. PR #228 is the active pre-Stage-C control and tournament-scoping batch; do not duplicate, bypass or partially reimplement it. Stage C competition-season schema work begins only after the PR #228 integration decision, and any hosted schema mutation still requires explicit owner approval and the applicable preflight.
+Stage B is complete on `main` through PR #226 at merge commit `2648540dc001c50305f1effa526fc16e43dcdb26`. The control and cross-tournament scoping batch PR #228 is also on `main` through merge commit `ae78a57b5beabd6a415975b24daae28215ed509d`. PR #229 is active, test-only and independent; do not duplicate its scoring-parity coverage. Stage C competition-season schema **design** is now the next engineering stage. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
