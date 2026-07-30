@@ -21,6 +21,7 @@ import { fetchMyScoreEventPoints } from '../../services/supabase/scoring'
 import { fetchLastSeenRead, updateLastSeen } from '../../services/supabase/profile'
 import { computeHubStatus } from '../predict/hubStatus'
 import { buildBracketPipeline } from '../bracket'
+import { todayISO } from '../../app/time'
 import { resolveHomeCompetitionContext } from './homeCompetitionContext'
 
 export type TodayFixture = {
@@ -143,6 +144,7 @@ export function useHomeData(): HomeState {
       entryComplete: status.reviewUnlocked || submitted,
       nowServer,
       timeZone,
+      localDateISO: todayISO(nowServer),
     })
     const phase = homeCompetition.phase
 
