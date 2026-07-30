@@ -17,10 +17,9 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 3. **Design and instrumentation:** information architecture, prototype testing, visual direction and event taxonomy belong to programme Phase 1 before Stages E–H implement screens.
 4. **Launch and acquisition:** Stage J is launch readiness and go-to-market, with the programme window beginning in February 2027.
 5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games.
-6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; the superseded Stage B stack is closed.
-7. **Control and parity foundation:** PRs #228, #229, #232 and #233 are on `main` through `7af065f414cb25f72ed49309de45ae5d12141e6b`.
-8. **Parallel guard work:** PR #235 is fully green and independent; it does not block Stage C design review.
-9. **Stage C:** draft PR #236 is the active design baseline. No migration exists.
+6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; the superseded Stage B stack is closed and its completed checklist remains in `MASTER-TODO.md`.
+7. **Control and parity foundation:** PRs #228, #229, #232, #233 and #235 are on `main` through `2c57898d2eefed943a24bfe342d6da227bdd5267`.
+8. **Stage C:** draft PR #236 is the active design baseline. No migration exists.
 
 ## Delivered baseline
 
@@ -39,18 +38,16 @@ Complete on `main`:
 - foundation and deterministic clock/state tests through PR #212;
 - Home migration through PR #219;
 - Matches, Match Centre, entry lock and `MatchTemporalState` retirement through PR #226;
-- full clean-main application, database, preview and authenticated-browser gates passed before merge.
+- full clean-main application, database, preview and authenticated-browser gates passed before merge;
+- the Stage B checklist is retained and closed in the master inventory.
 
 ### Landed control and parity work
 
 - PR #228: cross-tournament read scoping, production guard derivation, real 404 routing, RPC/browser-key/reachability contracts.
 - PR #229: Original Predictor scoring parity.
-- PR #232: all Database parity subjects now execute under the disposable Supabase harness.
+- PR #232: all Database parity subjects execute under the disposable Supabase harness.
 - PR #233: CSP/application resource parity.
-
-### Parallel work — PR #235
-
-PR #235 is mergeable and fully green. It completes the `VITE_*` environment contract and relates deployment RPC requirements to database privilege evidence. It changes no schema or competitive behaviour and may integrate independently. Stage C implementation should consume its final assertions if it lands, but design review does not wait on it.
+- PR #235: complete `VITE_*` environment contract plus deployment-RPC/database-privilege parity.
 
 ### Stage C — active design
 
