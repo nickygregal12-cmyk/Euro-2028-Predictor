@@ -14,7 +14,6 @@ function baseProps(
     venueCountryCode: 'gb-sct',
     home: { name: 'Scotland', countryCode: 'gb-sct' },
     away: { name: 'England', countryCode: 'gb-eng' },
-    temporalState: 'before',
     result: null,
     stake: {
       kind: 'group',

@@ -63,7 +63,7 @@ type Options = {
 
 function installClient({ lockAtFails = false, groups }: Options = {}) {
   const queries: { table: string; filters: Row }[] = []
-  const data = { ...DATASET, ...(groups ? { groups } : {}) }
+  const data: Record<string, Row[]> = { ...DATASET, ...(groups ? { groups } : {}) }
 
   mocks.from.mockImplementation((table: string) => {
     const filters: Row = {}

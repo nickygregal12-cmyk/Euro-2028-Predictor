@@ -121,10 +121,7 @@ describe('AdminResultsPage', () => {
     expect(mocks.confirmResult).not.toHaveBeenCalled()
 
     fireEvent.click(
-      within(dialog).getByRole('button', {
-        name: 'Confirm result',
-        exact: true,
-      }),
+      within(dialog).getByRole('button', { name: 'Confirm result' }),
     )
 
     await waitFor(() =>
