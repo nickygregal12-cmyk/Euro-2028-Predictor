@@ -7,6 +7,12 @@ on:
     paths:
       - scripts/retire-match-temporal-state.mjs
       - .github/workflows/one-off-retire-match-temporal-state.yml
+  pull_request:
+    branches:
+      - agent/migrate-entry-lock-context
+    paths:
+      - scripts/retire-match-temporal-state.mjs
+      - .github/workflows/one-off-retire-match-temporal-state.yml
 
 permissions:
   contents: write
