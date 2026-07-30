@@ -69,8 +69,12 @@ export function groupByGroupLetter<T extends FixtureLike>(
  * Which group to scroll into view on open: the first group that still has a
  * match today or in the future (the "current front" of the tournament). Once
  * everything is played, the last group. 0 for an empty list.
+ *
+ * The clock is an explicit input. Rendered consumers use the shared competition
+ * context adapter; this legacy helper remains as the differential oracle until
+ * the Stage B surface sequence is complete.
  */
-export function currentGroupIndex<T extends FixtureLike>(groups: FixtureGroup<T>[], now: Date = new Date()): number {
+export function currentGroupIndex<T extends FixtureLike>(groups: FixtureGroup<T>[], now: Date): number {
   if (groups.length === 0) return 0
   const t = now.getTime()
   const idx = groups.findIndex((g) => g.matches.some((m) => whenOf(m) >= t))

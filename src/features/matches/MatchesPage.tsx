@@ -11,7 +11,7 @@ import {
   authoritativeMatchScore,
   authoritativeWinnerSide,
 } from '../../domain/tournament/authoritativeMatchResult'
-import { groupByMatchday, groupByGroupLetter, currentGroupIndex } from '../../domain/tournament/matchesTab'
+import { groupByMatchday, groupByGroupLetter } from '../../domain/tournament/matchesTab'
 import { sumGroupGoals } from '../../domain/tournament/groupGoals'
 import { MatchesScreen, type FilterKey, type FixtureRowVM, type MatchesGroupVM } from './MatchesScreen'
 import {
@@ -21,6 +21,7 @@ import {
 } from './tournamentInfoPipeline'
 import { MatchesTablesView, MatchesBracketView, MatchesStatsView } from './TournamentInfoViews'
 import { useOpenMatchCentre } from './useOpenMatchCentre'
+import { resolveMatchesCompetitionContext } from './matchesCompetitionContext'
 import { formatShortDate } from '../../app/time'
 import s from '../shared.module.css'
 import m from './MatchesTab.module.css'
@@ -71,6 +72,8 @@ export function MatchesPage() {
     const rowOf = (m: Match): FixtureRowVM => {
       const home = { name: teamName.get(m.homeTeamId ?? '') ?? 'TBC', countryCode: '' }
       const away = { name: teamName.get(m.awayTeamId ?? '') ?? 'TBC', countryCode: '' }
+      // Match-card state remains the legacy Match Centre contract until the next
+      // Stage B surface migration. This slice changes only Matches navigation.
       const state = matchTemporalState(m)
       const result = authoritativeMatchScore(m)
 
@@ -128,7 +131,21 @@ export function MatchesPage() {
       dateLabel: g.matches.length ? dateLabel(g.matches[0]) : '',
       rows: g.matches.map(rowOf),
     }))
-    const scrollToKey = filter === 'all' && vm.length ? vm[currentGroupIndex(groups)].key : null
+
+    let scrollToKey: string | null = null
+    if (filter === 'all' && vm.length > 0) {
+      const nowServer = new Date()
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      const resolved = resolveMatchesCompetitionContext({
+        data: td,
+        groups,
+        submitted: preds.submittedAt !== null,
+        nowServer,
+        timeZone,
+      })
+      scrollToKey = vm[resolved.currentGroupIndex]?.key ?? null
+    }
+
     return { vm, scrollToKey }
   }, [data, preds, teamName, filter])
 
