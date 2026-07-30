@@ -14,18 +14,29 @@
 --   $SHAREDIR/extension/pg_cron.control  (default_version = '1.0')
 --   $SHAREDIR/extension/pg_cron--1.0.sql (cron.schedule / cron.unschedule)
 
-create role anon nologin noinherit;
-create role authenticated nologin noinherit;
-create role service_role nologin noinherit bypassrls;
-create role supabase_auth_admin nologin noinherit;
-grant anon, authenticated, service_role, supabase_auth_admin to postgres;
+-- Roles are cluster-wide, so this must be safe to re-run against a second
+-- database in the same cluster — which is exactly what a verification rebuild
+-- does. `create role anon` on the second database otherwise aborts the shim,
+-- and the migrations then fail with "schema auth does not exist", pointing at
+-- the wrong cause.
+do $$
+declare r text;
+begin
+  foreach r in array array['anon','authenticated','service_role','supabase_auth_admin'] loop
+    if not exists (select 1 from pg_roles where rolname = r) then
+      execute format('create role %I nologin noinherit', r);
+    end if;
+  end loop;
+  execute 'grant anon, authenticated, service_role, supabase_auth_admin to postgres';
+  execute 'alter role service_role bypassrls';
+end $$;
 
 create extension if not exists pgcrypto;
 create schema if not exists auth;
 
 -- Only the columns the migrations and harnesses touch. raw_user_meta_data is
 -- required: public.handle_new_user() reads it to derive a display name.
-create table auth.users (
+create table if not exists auth.users (
   instance_id        uuid,
   id                 uuid primary key,
   aud                varchar(255),
