@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-The active programme is finishing Stage B integration and authority reconciliation. The competition foundation and Home consumer are on `main`; Matches, Match Centre, entry lock and `MatchTemporalState` retirement are implemented and validated in the clean-main integration candidate. Do not begin Stage C until that candidate is verified and intentionally merged. After clean-main integration, Stage C competition-season schema is the next engineering stage.
+Stage B is complete on `main` through PR #226 at merge commit `2648540dc001c50305f1effa526fc16e43dcdb26`. PR #228 is the active pre-Stage-C control and tournament-scoping batch; do not duplicate, bypass or partially reimplement it. Stage C competition-season schema work begins only after the PR #228 integration decision, and any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
