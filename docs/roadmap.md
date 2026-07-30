@@ -20,7 +20,8 @@ The previous roadmap was inconsistent with the reconciled planning hierarchy. Th
 4. **Launch and acquisition:** Stage J is launch readiness **and go-to-market**, with the programme window beginning in **February 2027**.
 5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games; new work covers only new platform and season behaviour.
 6. **Stage B status:** the complete competition-context adoption sequence merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; the superseded Stage B PR stack is closed.
-7. **Concurrent prerequisite:** PR #228 is independently green and unmerged. Its cross-tournament read scoping and guard repairs must be resolved before Stage C creates additional competition-season records.
+7. **Control/scoping status:** PR #228 merged as `ae78a57b5beabd6a415975b24daae28215ed509d`, landing cross-tournament read scoping and the reviewed deployment/environment guard repairs.
+8. **Parallel coverage:** PR #229 is independent, test-only scoring parity work and does not block Stage C design.
 
 ## Delivered baseline
 
@@ -45,20 +46,32 @@ Stage B is complete on `main`:
 - PR #226 merged as `2648540dc001c50305f1effa526fc16e43dcdb26`;
 - the superseded Stage B PRs were closed.
 
-### Active prerequisite — PR #228
+### Landed prerequisite — PR #228
 
-PR #228 at `86a02ab1e7f44cb42718dada13de94e66ea0dcd6` is mergeable and fully green. It is not a Stage C implementation and adds no migration. It repairs production guard derivation, cross-tournament `group_teams` scoping, real 404 routing, RPC contract enforcement, browser-key validation and TypeScript/SQL parity coverage.
+PR #228 merged as `ae78a57b5beabd6a415975b24daae28215ed509d` after green CI, Database parity, exact preview smoke and authenticated Browser E2E. It landed:
 
-The `group_teams` fix is a direct prerequisite to introducing a second competition or season because the current `main` query can blend rows from multiple tournaments. Stage C must not work around or duplicate this pending fix.
+- production guard expectations derived from committed authority;
+- tournament-scoped `group_teams` reads;
+- real 404 responses for unknown SPA routes;
+- RPC contract enforcement;
+- fail-closed browser Supabase key validation;
+- module reachability evidence, two verified retirements and TypeScript/SQL parity coverage.
+
+The exact merge automatically published to Netlify and is ready at deploy `6a6b4e905de2dd0008808d8d`.
+
+### Parallel control coverage — PR #229
+
+PR #229 adds one test file comparing Original Predictor scoring constants with the newest effective SQL scoring definition. It is test-only, mergeable and green, and may integrate independently without blocking Stage C design.
 
 ## Next executable sequence
 
-1. Review PR #228 against current `main` and confirm its exact head remains `86a02ab1e7f44cb42718dada13de94e66ea0dcd6` with green CI, Database parity, exact preview smoke and authenticated Browser E2E.
-2. Obtain an intentional owner merge decision for PR #228. Merging to `main` automatically publishes Netlify and changes routing/environment guard behaviour, so it is not an implicit housekeeping merge.
-3. After PR #228 lands, verify the exact `main` release identity and confirm the guard/scoping changes survived the merge without running a production database write.
-4. Begin Stage C with a reviewed competition-season schema design covering identifiers, scoping, timezone authority, deletion/anonymisation consequences, independent entries/standings/history and existing relationship safeguards.
-5. Implement Stage C as a coherent append-only **development** migration with canonical applied-state, environment-parity, relationship-safeguard and preservation evidence in the same change.
-6. Do not mutate hosted development or production schema without the currently applicable approval, preflight and verification process.
+1. Design the Stage C competition-season schema before creating dependent records. Define competition and season identifiers, lifecycle ownership, timezone authority, fixture/result ownership, deletion/anonymisation consequences and independent entry/standing/history boundaries.
+2. Map every existing tournament relationship that must remain valid when a second competition/season exists, including groups, teams, fixtures, predictions, score events, leagues, rank history, awards and bonus-game references.
+3. Specify same-reference constraints and indexes that prevent cross-competition joins or writes, reusing or strengthening the current relationship safeguards rather than relying on client filters.
+4. Decide the migration boundary: one coherent append-only **development** migration plus tests, with no hosted application in the design PR.
+5. Commit pre-migration contract tests and database-parity fixtures before implementing the migration.
+6. Implement the Stage C development migration only after the schema design is reviewed; prove local rebuild, database lint, pgTAP, TypeScript/PostgreSQL parity, preservation of existing Euro data and environment isolation.
+7. Do not mutate hosted development or production schema without the currently applicable explicit approval, preflight and verification process.
 
 ## Programme and stage navigation
 
