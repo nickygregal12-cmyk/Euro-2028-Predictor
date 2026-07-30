@@ -6,7 +6,6 @@ import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import {
   catchUpSummary,
-  homePhase,
   pointsToday,
   selectBestLeague,
   type CatchUp,
@@ -23,6 +22,7 @@ import { fetchLastSeenRead, updateLastSeen } from '../../services/supabase/profi
 import { computeHubStatus } from '../predict/hubStatus'
 import { buildBracketPipeline } from '../bracket'
 import { todayISO } from '../../app/time'
+import { resolveHomeCompetitionContext } from './homeCompetitionContext'
 
 export type TodayFixture = {
   matchId: string
@@ -122,10 +122,7 @@ export function useHomeData(): HomeState {
       }
     }
 
-    const hasResults = td.matches.some((match) => match.homeScore !== null)
     const submitted = preds.submittedAt !== null
-    const phase = homePhase({ hasResults, submitted })
-
     const status = computeHubStatus(
       td,
       preds.getPrediction,
@@ -139,8 +136,19 @@ export function useHomeData(): HomeState {
       preds.tieResolutions,
       preds.bracketProgression,
     )
+    const nowServer = new Date()
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    const homeCompetition = resolveHomeCompetitionContext({
+      data: td,
+      submitted,
+      entryComplete: status.reviewUnlocked || submitted,
+      nowServer,
+      timeZone,
+      localDateISO: todayISO(nowServer),
+    })
+    const phase = homeCompetition.phase
 
-    const today = todayISO()
+    const today = homeCompetition.todayISO
     const sorted = [...td.matches].sort(
       (a, b) =>
         a.matchDate.localeCompare(b.matchDate) ||
@@ -180,7 +188,7 @@ export function useHomeData(): HomeState {
       submitted,
       champion: bracket.champion ?? null,
       hasAnyLeague: false,
-      lockAt: td.tournament.lockAt,
+      lockAt: homeCompetition.lockAt,
       startsOn: td.tournament.startsOn,
     }
 
