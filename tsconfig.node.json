@@ -1,5 +1,11 @@
 {
   "compilerOptions": {
+    // Stated, not inherited. TypeScript 6 turns `strict` on by default, so
+    // every check below is already in force — but that makes the guarantee a
+    // property of the pinned compiler major rather than of this repository.
+    // Declaring it means a compiler change or a downgrade cannot quietly
+    // switch off strictNullChecks and noImplicitAny with nothing failing.
+    "strict": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "target": "es2023",
     "lib": ["ES2023"],

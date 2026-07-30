@@ -65,8 +65,17 @@ export function deriveContractExpectations({ root = repoRoot } = {}) {
   }
 
   const latest = migrations.at(-1)
-  const [, latestMigrationVersion, latestMigrationName] =
-    MIGRATION_FILE_NAME.exec(latest)
+  // Every name was matched against this same pattern in the loop above, and an
+  // empty list already threw, so this cannot be null. Checked rather than
+  // assumed: if that loop is ever weakened, this fails with a clear message
+  // instead of `null is not iterable` from the destructuring.
+  const latestMatch = latest ? MIGRATION_FILE_NAME.exec(latest) : null
+  if (!latestMatch) {
+    throw new Error(
+      `Could not derive a version and name from the latest migration ${latest}.`,
+    )
+  }
+  const [, latestMigrationVersion, latestMigrationName] = latestMatch
 
   return {
     contractVersion: contract.contractVersion,
@@ -76,6 +85,14 @@ export function deriveContractExpectations({ root = repoRoot } = {}) {
   }
 }
 
+/**
+ * @param {{
+ *   contractVersion: number,
+ *   migrationCount: number,
+ *   latestMigrationVersion: string,
+ *   latestMigrationName: string,
+ * }} expectations
+ */
 export function formatGithubEnv(expectations) {
   return [
     `EXPECTED_CONTRACT=${expectations.contractVersion}`,
