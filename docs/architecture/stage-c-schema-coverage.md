@@ -18,15 +18,28 @@ Stage C generalises the existing physical database contract in place:
 
 Coverage therefore checks **season integrity**, not absence of the word `tournament`.
 
-## 2. Public relations
+## 2. Identity and timezone contract
+
+The owner decisions are closed and implementation coverage must preserve them:
+
+- `profiles.id` becomes the durable competitive identifier;
+- `profiles.auth_user_id` is the nullable link to `auth.users` and resolves authenticated ownership;
+- competitive rows reference `profiles(id)` rather than `auth.users(id)`;
+- `rate_limit_events` remains auth housekeeping and continues to cascade;
+- account deletion erases auth identity and pseudonymises the profile without deleting settled competition history;
+- UTC instants decide locks and outcomes;
+- `tournaments.display_timezone` decides competition calendar/day/matchweek grouping;
+- viewer/device timezone decides displayed kickoff clock time only.
+
+## 3. Public relations
 
 ### Shared root and identity
 
 | Current object | Stage C action |
 | --- | --- |
-| `tournaments` | preserve table/UUID; add competition parent, season key, kind, IANA timezone and lifecycle status |
-| `profiles` | remain private account preferences; remove competitive-history ownership from direct auth identity |
-| `rate_limit_events` | remain account/action housekeeping and continue cascading on account deletion |
+| `tournaments` | preserve table/UUID; add competition parent, season key, kind, IANA competition timezone and lifecycle status |
+| `profiles` | become durable competitive/profile anchor; add nullable unique `auth_user_id`, pseudonymisation timestamp and deletion-safe ownership contract |
+| `rate_limit_events` | remain account/action housekeeping and continue cascading on auth deletion |
 | `entry_totals` view | redefine over season-scoped entries/score events; require explicit season boundary |
 
 ### Direct season scope
@@ -36,10 +49,10 @@ Coverage therefore checks **season integrity**, not absence of the word `tournam
 | `teams` | retain `tournament_id`; add `(tournament_id, id)` key |
 | `groups` | tournament-only season child; add composite season key and parent-kind validator |
 | `matches` | shared fixture/result table; retain scope, add round authority, fixture-administration state and composite participant references |
-| `entries` | retain scope; replace direct `user_id` ownership with `competitor_id`; preserve one Predictor entry per competitor/season |
-| `leagues` | retain scope; replace owner auth id with competitor id; remain Predictor-only |
+| `entries` | retain scope; repoint ownership from auth user to `profiles(id)`; preserve one Predictor entry per profile/season |
+| `leagues` | retain scope; replace owner auth id with profile id; remain Predictor-only |
 | `players` | retain scope; composite same-season team reference |
-| `rank_history` | retain scope; replace user with competitor; bind to a season round where applicable |
+| `rank_history` | retain scope; replace auth user with profile id; bind to a season round where applicable |
 | `actual_third_place_resolutions` | tournament-only season child; preserve scope and behaviour |
 | `actual_third_place_resolution_revisions` | tournament-only season child; preserve scope and immutability |
 | `match_result_revisions` | preserve scope; composite same-season match reference |
@@ -51,7 +64,7 @@ Coverage therefore checks **season integrity**, not absence of the word `tournam
 | Current object | Stage C action |
 | --- | --- |
 | `group_teams` | add explicit scope if required for composite group/team references; preserve tournament-only shape |
-| `league_members` | replace auth user with competitor; league supplies season boundary |
+| `league_members` | replace auth user with profile id; league supplies season boundary |
 | `match_predictions` | add explicit season key; composite entry/match references; preserve current tournament Predictor rules |
 | `predicted_group_positions` | add explicit season key; composite entry/group/team references |
 | `predicted_progression` | add explicit season key; composite entry/team reference |
@@ -63,7 +76,7 @@ Coverage therefore checks **season integrity**, not absence of the word `tournam
 
 | Current object | Stage C action |
 | --- | --- |
-| `bonus_competition_entrants` | replace auth user with competitor; preserve competition/game boundary |
+| `bonus_competition_entrants` | replace auth user with profile id; preserve competition/game boundary |
 | `bonus_competition_windows` | add composite `(competition_id, id)` key; do not store future season round deadlines here |
 | `bonus_window_fixtures` | add season proof; composite window and same-season match references |
 | `bonus_knockout_predictions` | attach to eligible bonus competition; composite season match/team references |
@@ -75,17 +88,18 @@ Coverage therefore checks **season integrity**, not absence of the word `tournam
 | `bonus_cup_fixtures` | composite competition/group/window/entrant references |
 | `bonus_cup_penalty_numbers` | composite competition/window/entrant references |
 
-## 3. New relations required by the design
+## 4. New relations required by the design
 
 | New object | Purpose |
 | --- | --- |
 | `competitions` | stable recurring competition identity |
-| `competitors` | durable anonymisable competitive identity separate from auth account |
 | `competition_rounds` | tournament matchdays/rounds and league matchweeks under one authority; scoped by `tournament_id` |
 | `competition_lock_events` | append-only evidence that a derived scope transitioned to locked; not a stored deadline |
 | `competition_awards` | additive season-scoped award results while current Golden Boot compatibility remains |
 
-## 4. Public functions and RPCs
+No `competitors` table is introduced. The existing `profiles` UUID is reused so the ownership migration does not require a second identity graph or data copy.
+
+## 5. Public functions and RPCs
 
 ### Established season-scope signatures
 
@@ -149,6 +163,7 @@ Review and update in the same migration/application PR:
 
 These are not automatically season-scoped but must be regression-reviewed:
 
+- account deletion/anonymisation routine;
 - `delete_league`
 - `get_league`
 - `get_league_preview`
@@ -158,7 +173,9 @@ These are not automatically season-scoped but must be regression-reviewed:
 - `set_operating_limits`
 - `transfer_ownership`
 
-## 5. Existing triggers and internal validators
+The account-deletion path must clear auth/personal data, pseudonymise the profile, transfer/archive owned leagues and preserve settled competitive rows atomically.
+
+## 6. Existing triggers and internal validators
 
 ### Same-reference validators to generalise
 
@@ -208,7 +225,7 @@ Stage C changes scope, not the current Euro lock or concurrency outcome. No roun
 - automatic-submission outcome mutation block
 - bonus competition audit mutation block
 
-## 6. RLS and grants
+## 7. RLS and grants
 
 Current browser policies are concentrated on:
 
@@ -219,7 +236,8 @@ Current browser policies are concentrated on:
 
 Implementation coverage must include:
 
-- replacing ownership joins with `competitors.user_id = auth.uid()`;
+- replacing direct auth ownership joins with `profiles.auth_user_id = auth.uid()`;
+- ensuring a profile with `auth_user_id is null` cannot authenticate or regain owner-level access merely because historical rows remain;
 - adding season predicates where direct browser reads could otherwise mix seasons;
 - enabling RLS on every new public table;
 - explicit grants for new Data API objects;
@@ -227,15 +245,34 @@ Implementation coverage must include:
 - explicit revocation of `PUBLIC` execute on new security-definer functions;
 - continued parity between deployment RPC declarations and database privilege evidence.
 
-## 7. Existing integrity gaps Stage C must close
+## 8. Timezone and calendar coverage
+
+Implementation and regression coverage must distinguish:
+
+- UTC instant comparison in lock and match-state resolvers;
+- `competitionTimeZone` for day/matchweek/calendar grouping;
+- `viewerTimeZone` for displayed kickoff times.
+
+Required checks:
+
+- travelling changes the rendered kickoff clock time but not the assigned round/matchweek;
+- two viewers in different timezones see the same competition day/matchweek assignment;
+- device timezone cannot change lock state, result state, scoring or eligibility;
+- `tournaments.display_timezone` is a valid IANA zone;
+- no naked local timestamp string becomes an authoritative input.
+
+## 9. Existing integrity gaps Stage C must close
 
 The current database often has separate foreign keys plus a trigger. Add declarative composite protection where possible for:
 
 - match ↔ round/group/home team/away team/winner team;
-- entry ↔ predicted match/group/team/player;
+- entry ↔ profile/season/predicted match/group/team/player;
+- league owner/member ↔ profile/season;
+- rank history ↔ profile/season/round;
 - score event ↔ entry/match/team;
 - result revision ↔ season/match;
 - player ↔ season/team;
+- bonus entrant ↔ profile/competition;
 - bonus competition window ↔ real fixture;
 - LMS selection ↔ competition/window/team;
 - bonus score event ↔ competition/window/match;
@@ -243,15 +280,17 @@ The current database often has separate foreign keys plus a trigger. Add declara
 
 Arrays in predicted and actual tie resolution remain trigger-validated.
 
-## 8. Owner-decision coverage
+## 10. Owner-decision coverage — closed
 
-Before migration tests are committed, review evidence must confirm:
+Pre-migration tests must encode the decided contracts:
 
-- `CS-015` tie-break: exact scores, then correct results, then joint;
-- account deletion: competition rows retained through `competitors`, public label approved, `rate_limit_events` still cascades;
-- timezone: one IANA display timezone per season, with UTC `timestamptz` storage and no device-timezone effect on rules.
+- `CS-015`: exact scores, then correct results, then joint rank;
+- `CS-009`: auth identity erased, profile pseudonymised, historical competition rows preserved, `rate_limit_events` still cascades;
+- `CS-016`: competition timezone controls grouping, viewer timezone controls displayed clock time, UTC instants control rules.
 
-## 9. Coverage gate
+A data-protection review remains a dependency before the account-deletion schema is implemented; it is not an open architectural choice.
+
+## 11. Coverage gate
 
 Before Stage C implementation can exit:
 
@@ -259,7 +298,9 @@ Before Stage C implementation can exit:
 2. repository search finds no unreviewed tournament-only assumption in schema, SQL, TypeScript or tests;
 3. every retained `tournament_id` / `p_tournament_id` use is recognised as the intentional physical season key, not a single-tournament assumption;
 4. every new or changed relationship has hostile cross-season pgTAP coverage;
-5. Euro preservation and RLS-role oracles pass;
-6. the complete `tests/database-parity/` directory runs in the disposable Supabase job;
-7. environment, CSP, deployment RPC and privilege-contract guards remain green;
-8. no compatibility name is removed or changed without a separate atomic caller plan.
+5. identity-erasure/pseudonymisation and anonymous-profile RLS tests pass;
+6. competition/viewer timezone separation tests pass;
+7. Euro preservation and RLS-role oracles pass;
+8. the complete `tests/database-parity/` directory runs in the disposable Supabase job;
+9. environment, CSP, deployment RPC and privilege-contract guards remain green;
+10. no compatibility name is removed or changed without a separate atomic caller plan.
