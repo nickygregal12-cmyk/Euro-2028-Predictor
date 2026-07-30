@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  bridgeExternalMatchToLegacyHeader,
-  lifecycleToLegacyTemporalState,
-} from '../../../src/domain/tournament/matchCentreLegacyBridge'
+import { bridgeExternalMatchToLegacyHeader } from '../../../src/domain/tournament/matchCentreLegacyBridge'
 import type { ExternalMatchData } from '../../../src/domain/tournament/matchCentreContract'
 
 function external(overrides: Partial<ExternalMatchData> = {}): ExternalMatchData {
@@ -33,26 +30,8 @@ function external(overrides: Partial<ExternalMatchData> = {}): ExternalMatchData
   }
 }
 
-describe('lifecycleToLegacyTemporalState', () => {
-  it.each([
-    ['SCHEDULED', 'before'],
-    ['PRE_MATCH', 'before'],
-    ['POSTPONED', 'before'],
-    ['SUSPENDED', 'before'],
-    ['LIVE_FIRST_HALF', 'during'],
-    ['HALF_TIME', 'during'],
-    ['LIVE_SECOND_HALF', 'during'],
-    ['EXTRA_TIME', 'during'],
-    ['PENALTIES', 'during'],
-    ['FULL_TIME', 'after'],
-    ['CANCELLED', 'after'],
-  ] as const)('maps %s to %s', (lifecycle, expected) => {
-    expect(lifecycleToLegacyTemporalState(lifecycle)).toBe(expected)
-  })
-})
-
 describe('bridgeExternalMatchToLegacyHeader', () => {
-  it('maps normalized teams, status and source into existing screen props', () => {
+  it('maps normalized teams, lifecycle presentation and source into screen props', () => {
     const input = external({
       lifecycle: 'LIVE_SECOND_HALF',
       clockLabel: "67'",
@@ -61,8 +40,11 @@ describe('bridgeExternalMatchToLegacyHeader', () => {
 
     const bridged = bridgeExternalMatchToLegacyHeader(input)
 
-    expect(bridged.temporalState).toBe('during')
-    expect(bridged.statusPresentation.label).toBe('Live · second half')
+    expect(bridged.statusPresentation).toMatchObject({
+      label: 'Live · second half',
+      isLive: true,
+      isTerminal: false,
+    })
     expect(bridged.matchSource).toBe(input.source)
     expect(bridged.home).toEqual({ name: 'Scotland', countryCode: 'SCO' })
     expect(bridged.away).toEqual({ name: 'Germany', countryCode: 'GER' })
@@ -70,7 +52,7 @@ describe('bridgeExternalMatchToLegacyHeader', () => {
     expect(bridged.liveMinute).toBe("67'")
   })
 
-  it('normalizes absent country codes and score for the legacy screen', () => {
+  it('normalizes absent country codes and score without inventing temporal state', () => {
     const bridged = bridgeExternalMatchToLegacyHeader(
       external({
         home: { id: null, name: 'Winner Match 1', countryCode: null },
@@ -81,6 +63,10 @@ describe('bridgeExternalMatchToLegacyHeader', () => {
     expect(bridged.home.countryCode).toBe('')
     expect(bridged.away.countryCode).toBe('')
     expect(bridged.result).toBeNull()
-    expect(bridged.temporalState).toBe('before')
+    expect(bridged.statusPresentation).toMatchObject({
+      label: 'Upcoming',
+      isLive: false,
+      isTerminal: false,
+    })
   })
 })
