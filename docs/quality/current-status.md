@@ -20,8 +20,9 @@ The repository is a multi-competition football prediction platform in transition
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current `main` | `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab` |
-| Contract at Euro baseline | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
+| Current `main` | Read it from git. A hand-copied SHA in a live-authority document is stale the next time anything merges, and this row held `ce17a7fd` through roughly twenty-five subsequent merges. Fixed anchors that do *not* move are the `euro-2028-baseline` tag and the dated per-PR rows below. |
+| Repository contract | **64** canonical migrations through `20260730180000_cup_winner_deletion_semantics.sql` |
+| Contract at Euro baseline | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` — the tag is contract 63 and stays there; `main` has moved past it |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
 | Stage B inventory closure | PR #239 → `69f6e364132f6586d5de9ed8706b0802d14ec0fc` |
 | Competition/viewer timezone seam | PR #252 → `1ec505a7d423c8d0b2b03327f8893e3954fa2246` |
@@ -29,7 +30,14 @@ The repository is a multi-competition football prediction platform in transition
 | JavaScript deploy-gate typecheck | PR #264 |
 | Direct Data API exposure guard | PR #265 |
 | ACQ-R02 scale evidence | PR #266; risk remains open |
-| Active Stage C work | Draft PR #236, design and coverage manifest only; no migration exists |
+| ACQ-R03 result-write evidence | PRs #269, #276 and #284 — full group stage, WAL, bloat, knockout cascade and a concurrency probe; risk remains In progress |
+| Enum union/schema freshness guard | PR #279 |
+| Coverage thresholds and compressed bundle budgets | PR #285; both are CI gates |
+| Lint warnings fail CI | PR #287 — `oxlint --deny-warnings`; three `no-unsafe-finally` defects fixed |
+| Stage C design baseline | **PR #236 merged** 30 July 2026. It approves the design and authorises pre-migration contract-test planning only; it does not authorise a Stage C migration |
+| Stage C contract tests landed | `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation` |
+| Stage C contract tests outstanding | hostile cross-season relationship failures (draft PR #286) and lock monotonicity / per-fixture late-write rejection |
+| Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; no development or simulation write path may target production |
 
 ## Hosted evidence boundary
@@ -42,7 +50,7 @@ The development Supabase inspection was limited to project identity/version and 
 | --- | --- | --- |
 | Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17; read-only catalogue showed 34 RLS-enabled public tables plus `entry_totals` and the current validator/function graph. **Contract 64 applied and owner-verified on 30 July 2026**: `bonus_cup_fixtures_winner_user_id_fkey` returns `confdeltype = r`, `condeferrable = false`. Behaviour-preserving — the same delete was measured to fail identically at contract 63 and 64 on a local PostgreSQL 16 cluster built from the committed migrations, naming the same constraint. | **REQUIRES OWNER VERIFICATION:** canonical applied-state and privilege queries before relying on hosted alignment or applying a migration. Development is now one contract ahead of production, which remains at 63 |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight; not freshly inspected here | **REQUIRES OWNER VERIFICATION:** read-only applied-state, privilege and preservation checks before any write |
-| Production Netlify `main` | ready deploy `6a6b84f20937ff0008c07ccd` from exact commit `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab`, published 30 July 2026; 35 redirects and one header rule processed; no secret-scan matches | rerun exact-origin smoke before a production-risk milestone |
+| Production Netlify `main` | ready deploy `6a6b84f20937ff0008c07ccd` from exact commit `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab`, published 30 July 2026; 35 redirects and one header rule processed; no secret-scan matches. **Production deploys are paused from contract 64 onward** — the repository requires 64, production Supabase is at 63, and the prebuild contract gate refuses the build. The last good deploy stays live, so this is a paused pipeline rather than an outage. Owner-accepted on 30 July 2026 | clears when production Supabase receives the migration and the `production` context sets `EURO28_DEPLOYED_DB_CONTRACT=64`; rerun exact-origin smoke before a production-risk milestone |
 | Production data/recovery | owner-verified preserved counts and same-day encrypted backup/restore evidence on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** fresh backup/restore proof before a data-risk milestone |
 
 ## Executive verdicts

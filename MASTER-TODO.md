@@ -97,11 +97,13 @@ Read this section in full on return. Do not re-derive the scope from the then-cu
 
 ## Stage A — decisions, documentation and controls
 
-- [ ] Merge ADRs 0011–0018 after review; do not treat an open branch as repository authority.
-- [ ] Land the repository programme map under `docs/architecture/`.
-- [ ] Reframe roadmap, current status, `AGENTS.md`, `CLAUDE.md` and this inventory.
-- [ ] Reconcile `docs/architecture-and-tournament-states.md` with ADRs 0011–0013 before surface migration.
-- [ ] Broaden Database parity triggering to `src/domain/**` and record the control gap.
+The five closed items below were verified against the repository on 30 July 2026, not assumed. They had remained unticked long after landing, which made this stage read as untouched when it is half done — and hid that everything still open here is an owner decision rather than engineering work.
+
+- [x] Merge ADRs 0011–0018 after review; do not treat an open branch as repository authority. — all eight files present in `docs/adr/`.
+- [x] Land the repository programme map under `docs/architecture/`. — `docs/architecture/programme-plan.md`.
+- [x] Reframe roadmap, current status, `AGENTS.md`, `CLAUDE.md` and this inventory. — all four carry the platform framing.
+- [x] Reconcile `docs/architecture-and-tournament-states.md` with ADRs 0011–0013 before surface migration. — the document cites ADRs 0011, 0012, 0013 and 0016 and states "Where this document and an ADR differ, the ADR wins."
+- [x] Broaden Database parity triggering to `src/domain/**` and record the control gap. — the workflow's `paths:` filter covers `src/domain/**`, and PR #232 additionally made the job run the whole `tests/database-parity/` directory rather than one named file, which was the real gap.
 - [ ] Reconcile stale live status wording while preserving historical evidence.
 - [ ] Complete brand clearance governed by ADR 0017 before any rename.
 - [ ] Complete the closest-competitor product review before final positioning.
