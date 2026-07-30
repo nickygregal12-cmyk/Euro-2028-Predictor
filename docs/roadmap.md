@@ -86,8 +86,8 @@ It contains no migration or hosted write.
 
 - Product phases, discovery, design, instrumentation, cohort thresholds and go-to-market: [`architecture/programme-plan.md`](architecture/programme-plan.md).
 - Engineering Stages A–L and engineering gates: [`architecture/multi-competition-hub-build-plan.md`](architecture/multi-competition-hub-build-plan.md).
-- Stage C proposed schema: [`architecture/stage-c-competition-season-schema.md`](architecture/stage-c-competition-season-schema.md) once PR #236 is merged.
-- Stage C coverage manifest: [`architecture/stage-c-schema-coverage.md`](architecture/stage-c-schema-coverage.md) once PR #236 is merged.
+- Stage C proposed schema: `docs/architecture/stage-c-competition-season-schema.md` in draft PR #236.
+- Stage C coverage manifest: `docs/architecture/stage-c-schema-coverage.md` in draft PR #236.
 - Current implementation and hosted facts: [`quality/current-status.md`](quality/current-status.md).
 - Detailed active and parked tasks: [`../MASTER-TODO.md`](../MASTER-TODO.md).
 - Decisions: [`adr/README.md`](adr/README.md).
