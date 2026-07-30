@@ -83,7 +83,10 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
       .limit(1)
       .single()
     if (tournamentError) throw tournamentError
-    tournamentId = tournament.id
+    // `tournamentId` stays nullable for the catch-block cleanup below; this is
+    // the known-good value to actually work with.
+    const resolvedTournamentId: string = tournament.id
+    tournamentId = resolvedTournamentId
     originalLockAt = tournament.lock_at
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
@@ -114,7 +117,8 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
       .select('id')
       .single()
     if (leagueError) throw leagueError
-    leagueId = league.id
+    const resolvedLeagueId: string = league.id
+    leagueId = resolvedLeagueId
 
     const { error: membershipError } = await admin.from('league_members').insert([
       {
@@ -161,18 +165,18 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
     if (historyError) throw historyError
 
     await setTournamentLock(
-      tournamentId,
+      resolvedTournamentId,
       new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     )
 
     return {
-      leagueId,
+      leagueId: resolvedLeagueId,
       leagueName,
       rivalId,
       rivalDisplayName,
       rivalPoints: RIVAL_POINTS,
       rivalRank: RIVAL_RANK,
-      tournamentId,
+      tournamentId: resolvedTournamentId,
       originalLockAt,
     }
   } catch (error) {
