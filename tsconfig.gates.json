@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.gates.tsbuildinfo",
+    "types": ["node"],
+    // These are JavaScript, so they need both flags to be examined at all.
+    "allowJs": true,
+    "checkJs": true
+  },
+  // The deploy gates only. Each of these decides whether a build reaches
+  // production, so a future edit to one should be checked. The remaining
+  // JavaScript under scripts/ is deferred, with counts recorded in
+  // tests/scripts/typescriptProjectCoverage.test.ts.
+  "files": [
+    "scripts/deployment-contract-expectations.mjs",
+    "scripts/validate-deployment-contract.mjs",
+    "scripts/validate-netlify-environment.mjs"
+  ]
+}
