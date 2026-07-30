@@ -18,7 +18,7 @@ The quality system complements rather than replaces:
 - [`../tournament-structure.md`](../tournament-structure.md) — tournament facts and structural rules.
 - [`../competition-structure.md`](../competition-structure.md) — separation between the Original Predictor and future competitions.
 - [`../design-system.md`](../design-system.md) — approved interface and design-system rules.
-- `../ops-*.md` — operational procedures and environment-specific evidence.
+- `../ops/` — operational procedures and environment-specific evidence.
 
 Do not move their content here or create competing copies. Where actual and intended behaviour conflict, keep the conflict visible until it is repaired or explicitly decided.
 
