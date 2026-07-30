@@ -21,7 +21,7 @@ The repository is a multi-competition prediction platform in transition. The com
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current `main` | `69f6e364132f6586d5de9ed8706b0802d14ec0fc` |
+| Current `main` | `972febd017dbecf0ef3b02b16b55c07c74535038` |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
 | Control/scoping integration | PR #228 → `ae78a57b5beabd6a415975b24daae28215ed509d` |
 | Scoring parity | PR #229 → `5a726c6c2839305182872b0f6cb47ccad9179074` |
@@ -29,9 +29,11 @@ The repository is a multi-competition prediction platform in transition. The com
 | CSP parity | PR #233 → `7af065f414cb25f72ed49309de45ae5d12141e6b` |
 | Environment/privilege contract parity | PR #235 → `2c57898d2eefed943a24bfe342d6da227bdd5267` |
 | Stage B inventory closure | PR #239 → `69f6e364132f6586d5de9ed8706b0802d14ec0fc` |
+| Timezone-authority characterisation | PR #245 → `4d553a8084ebf258bf527d3c7799da77ff5433c8` |
+| Account-deletion characterisation | PR #246 → `972febd017dbecf0ef3b02b16b55c07c74535038` |
 | Recoverable Euro baseline | `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da` |
 | Application/database contract at the tag | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
-| Current development position | Stage B and the required cross-tournament, environment and parity foundations are complete on `main` |
+| Current development position | Stage B and the required cross-tournament, environment and parity foundations are complete on `main`; Stage C before-state characterisations are now pinned |
 | Active Stage C work | Draft PR #236, design and coverage manifest only; no migration exists |
 | Production posture | Controlled pre-launch target; no development or simulation write path is permitted |
 
@@ -45,7 +47,7 @@ The development Supabase inspection was limited to project identity/version and 
 | --- | --- | --- |
 | Development Supabase `iouzoutneyjpugbbtdem` | active healthy, Postgres 17; read-only catalogue shows 34 RLS-enabled public tables plus `entry_totals` and the existing same-tournament validator graph | **REQUIRES OWNER VERIFICATION:** run canonical applied-state and privilege queries before relying on contract alignment or applying a migration |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight; not inspected in this reconciliation | **REQUIRES OWNER VERIFICATION:** run read-only applied-state, privilege and preservation checks before any write |
-| Production Netlify `main` | ready deploy `6a6b5b9de0b58500091764af` from exact commit `69f6e364132f6586d5de9ed8706b0802d14ec0fc`, published 30 July 2026; 35 redirects and one header rule processed successfully; no secret-scan matches | rerun exact-origin smoke before a production-risk milestone |
+| Production Netlify `main` | ready deploy `6a6b670a7c3b8a00082c9fe4` from exact commit `972febd017dbecf0ef3b02b16b55c07c74535038`, published 30 July 2026; 35 redirects and one header rule processed successfully; no secret-scan matches | rerun exact-origin smoke before a production-risk milestone |
 | Production data/recovery | owner-verified preserved counts and same-day encrypted contract-60 backup/restore evidence on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** take a fresh backup/restore proof before a data-risk milestone |
 
 ## Executive verdicts
@@ -58,7 +60,9 @@ The development Supabase inspection was limited to project identity/version and 
 | Context engine | **Complete on `main`.** Home, Matches, Match Centre and entry-lock decisions consume the shared competition context, and the legacy `MatchTemporalState` layer is retired. |
 | Stage B exit | **Met and recorded.** PR #226 merged the complete surface sequence, and PR #239 closed the retained Stage B checklist with the satisfying PRs. |
 | Cross-tournament read safety | **Landed.** `group_teams` reads are scoped through the selected tournament's groups. |
-| Automated control coverage | **Landed.** Original scoring, full Database parity execution, CSP/application requirements, `VITE_*` declarations/templates and deployment-RPC/database-privilege relationships have direct contract tests. |
+| Automated control coverage | **Landed.** Original scoring, full Database parity execution, CSP/application requirements, `VITE_*` declarations/templates, deployment-RPC/database-privilege relationships, timezone authority and effective account-deletion actions have direct tests. |
+| Timezone authority | **Partly conforming, fully characterised.** Locks and match state are UTC-instant-only. Competition-day grouping still receives the viewer/device timezone at four surface boundaries, so two viewers can currently disagree about “today”; PR #245 pins this before-state for Stage C to change. |
+| Account deletion | **Current behaviour is unsafe and fully characterised.** Competitive rows still reference `auth.users` through mixed cascade, restrict, set-null and one undeclared/no-action path. Account deletion can erase settled history or be blocked; PR #246 pins the effective matrix but does not fix it. |
 | Stage C | **Design active; implementation not started.** Draft PR #236 defines the schema direction and complete current-object coverage manifest without adding SQL. |
 | Contract alignment | **Repository contract remains 63; hosted applied-state was not freshly verified.** |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility and legal/client gates remain. |
@@ -97,13 +101,17 @@ Stage B is complete on `main`:
 5. superseded PRs #216, #221, #222, #223, #224 and #225 were closed with links to the merged integration;
 6. PR #239 closed the retained Stage B inventory with the satisfying PR for each item.
 
-### Landed control/parity batches
+### Landed control/parity and Stage C characterisation batches
 
 - **PR #228:** production guard derivation, tournament-scoped `group_teams`, real 404 routing, RPC allowlist enforcement, browser-key validation, reachability and TypeScript/SQL parity.
 - **PR #229:** Original Predictor TypeScript/SQL scoring-value parity.
 - **PR #232:** Database parity executes the entire `tests/database-parity/` directory and guards against future narrowing.
 - **PR #233:** committed CSP requirements are checked against Sentry, Supabase, Turnstile and application resource usage.
 - **PR #235:** `VITE_*` reads, declarations and `.env.example` entries are held in step; deployment RPC requirements are related to database privilege evidence; Sentry environment variables are documented without committing credentials.
+- **PR #245:** timezone-authority tests prove lock and match-state resolvers are timezone-free, pin the four device-timezone readers, and characterise the current device-dependent day grouping and invalid-zone fail-quiet path.
+- **PR #246:** account-deletion tests resolve effective `auth.users` foreign-key actions in migration order, pin the cascade/restrict/set-null/undeclared matrix, and prove that no table currently references `profiles`.
+
+PRs #245 and #246 are **before-state controls**. They make the Stage C changes reviewable; they do not satisfy the Stage C timezone or deletion design themselves.
 
 ### Stage C — competition-season schema design
 
@@ -113,7 +121,7 @@ Draft PR #236 contains:
 - `docs/architecture/stage-c-schema-coverage.md`;
 - the architecture index update.
 
-The design is grounded in ADRs, the Stage C build contract and read-only inspection of the current Postgres constraints, triggers, policies and function graph. It proposes one evolved shared model rather than parallel tournament/season tables, composite competition-season safeguards, explicit rounds and monotonic lock events, durable anonymisable competitor identity and preservation/hostile-cross-season test requirements.
+The design is grounded in ADRs, the Stage C build contract, read-only inspection of the current Postgres constraints, triggers, policies and function graph, and the landed PR #245/#246 characterisations. It proposes one evolved shared model rather than parallel tournament/season tables, composite competition-season safeguards, explicit rounds and monotonic lock events, `profiles` as the durable pseudonymisable competitive anchor, a split competition/viewer timezone contract and preservation/hostile-cross-season test requirements.
 
 No migration exists and no hosted schema operation is authorised. The next decision is review of the design baseline. Only after design approval should pre-migration contract tests be committed and an append-only development migration be created.
 
