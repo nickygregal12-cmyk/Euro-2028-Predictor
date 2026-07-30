@@ -4,7 +4,7 @@
 **Current facts:** [`docs/quality/current-status.md`](docs/quality/current-status.md)  
 **Execution sequence:** [`docs/roadmap.md`](docs/roadmap.md)  
 **Programme map:** [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md)  
-**Decision authority:** [`docs/adr/0011-multi-competition-platform.md`](docs/adr/0011-multi-competition-platform.md) through [`docs/adr/0018-pre-launch-promotion-cadence.md`](docs/adr/0018-pre-launch-promotion-cadence.md)
+**Decision authority:** [`docs/adr/0011-multi-competition-platform.md`](docs/adr/0011-multi-competition-platform.md) through [`docs/adr/0019-brand-decision-deferred.md`](docs/adr/0019-brand-decision-deferred.md)
 
 This is the detailed inventory. It does not replace the roadmap's ordering or the current-status facts. Items are moved between the two sections; they are not silently discarded.
 
@@ -97,15 +97,15 @@ Read this section in full on return. Do not re-derive the scope from the then-cu
 
 ## Stage A — decisions, documentation and controls
 
-The closed items below were verified against the repository on 30 July 2026, not assumed. They had remained unticked long after landing, which made this stage read as untouched when it is half done — and hid that everything still open here is an owner decision rather than engineering work.
+The closed items below were verified against the repository on 30 July 2026, not assumed.
 
-- [x] Merge ADRs 0011–0018 after review; do not treat an open branch as repository authority. — all eight files present in `docs/adr/`.
-- [x] Land the repository programme map under `docs/architecture/`. — `docs/architecture/programme-plan.md`.
-- [x] Reframe roadmap, current status, `AGENTS.md`, `CLAUDE.md` and this inventory. — all four carry the platform framing.
-- [x] Reconcile `docs/architecture-and-tournament-states.md` with ADRs 0011–0013 before surface migration. — the document cites ADRs 0011, 0012, 0013 and 0016 and states "Where this document and an ADR differ, the ADR wins."
-- [x] Broaden Database parity triggering to `src/domain/**` and record the control gap. — the workflow's `paths:` filter covers `src/domain/**`, and PR #232 additionally made the job run the whole `tests/database-parity/` directory rather than one named file, which was the real gap.
-- [x] Reconcile stale live status wording while preserving historical evidence. — PRs #290 and #294 replaced stale contract/PR wording with git-derived authority and an executable Stage C contract-inventory guard.
-- [ ] Complete brand clearance governed by ADR 0017 before any rename.
+- [x] Merge ADRs 0011–0018 after review; do not treat an open branch as repository authority.
+- [x] Land the repository programme map under `docs/architecture/`.
+- [x] Reframe roadmap, current status, `AGENTS.md`, `CLAUDE.md` and this inventory.
+- [x] Reconcile `docs/architecture-and-tournament-states.md` with ADRs 0011–0013 before surface migration.
+- [x] Broaden Database parity triggering to `src/domain/**` and record the control gap.
+- [x] Reconcile stale live status wording while preserving historical evidence.
+- [x] Withdraw Scoreline and defer platform brand selection with a trigger under ADR 0019. The repository/application name stays Euro 2028 Predictor through rehearsal; decide after Phase 0 discovery and before the closed cohort.
 - [ ] Complete the closest-competitor product review before final positioning.
 - [ ] Decide the close-season retention approach before the first exposed close season.
 - [ ] Keep all hosted claims target-specific and freshly verified.
@@ -114,28 +114,46 @@ The closed items below were verified against the repository on 30 July 2026, not
 
 Closed by the intentional merge of PR #226 as `2648540` on 30 July 2026. Retained as the record of what the stage covered.
 
-- [x] Land the isolated pure `src/domain/competition/` foundation and fake-clock suite. — PR #212
+- [x] Land the isolated pure `src/domain/competition/` foundation and fake-clock suite.
 - [x] Keep the existing surfaces untouched until separate migration PRs.
-- [x] Migrate `entryLock.ts` with a differential test proving tagged Euro behaviour unchanged. — PR #223
-- [x] Migrate `matchCentre.ts` without removing legacy compatibility until consumers move. — PR #222
-- [x] Migrate `matchesTab.ts`. — PR #216
-- [x] Migrate `homeDashboard.ts`. — PR #219
+- [x] Migrate `entryLock.ts` with a differential test proving tagged Euro behaviour unchanged.
+- [x] Migrate `matchCentre.ts` without removing legacy compatibility until consumers move.
+- [x] Migrate `matchesTab.ts`.
+- [x] Migrate `homeDashboard.ts`.
 - [x] Ensure no surface reads an ambient clock or computes competition timing independently.
-- [x] Remove legacy timing paths only after all consumers and regression evidence are complete. — PR #224 retired `MatchTemporalState`, which now appears in no file under `src/`.
-- [x] Keep the Database parity and Browser E2E path scopes applicable as new domain siblings appear. — the parity trigger covers `src/domain/**`, and PR #232 made the job run the whole `tests/database-parity/` suite rather than one named file.
+- [x] Remove legacy timing paths only after all consumers and regression evidence are complete.
+- [x] Keep Database parity and Browser E2E path scopes applicable as new domain siblings appear.
 
 ## Stage C — competition-season schema
 
-All seven unblocked pre-migration contract suites are landed through PR #292. The boxes below remain implementation outcomes, not contract-test status. Issue #272 blocks any implementation that assumes the account-erasure/pseudonymised-history boundary.
+All seven pre-migration contract suites are landed through PR #292. The owner-approved [`docs/architecture/stage-c1-c2-governance.md`](docs/architecture/stage-c1-c2-governance.md) amendment divides implementation into C1 and C2.
 
-- [ ] Add competition/season scoping under an approved migration plan.
-- [ ] Broaden same-reference safeguards without weakening them.
+### Stage C1 — unblocked competition-season foundation — issue #303
+
+- [ ] Classify every landed Stage C assertion as C1, C2 or shared before-state.
+- [ ] Add an executable guard proving C1 leaves the effective `auth.users` foreign-key action matrix, competitive ownership and ownership RLS unchanged.
+- [ ] Add competition/season scoping under the reviewed C1 migration plan.
+- [ ] Add stable competition identity and additive season fields on the existing `tournaments` root.
+- [ ] Add generic rounds/matchweeks and monotonic lock-transition evidence.
+- [ ] Broaden same-reference safeguards to same-season safeguards without weakening them.
+- [ ] Persist competition timezone, reject invalid zones and remove authoritative viewer fallback.
 - [ ] Preserve independent entries, standings, honours and historical seasons.
+- [ ] Preserve every Euro identifier, rule, score, rank, access boundary and Stage B context output.
+- [ ] Extend applied-state, RLS/grant and adversarial cross-season tests in the same change.
+- [ ] Prove zero-to-current rebuild, database lint, pgTAP, generated types and full Database parity on disposable infrastructure.
+- [ ] Use preflight, rollback evidence and explicit approval before any hosted development promotion.
+- [ ] Keep production at contract 63 and paused until an intentional release milestone.
+
+### Stage C2 — blocked profile ownership and account erasure — issue #272
+
+- [ ] Obtain the independent UK data-protection review and record the approved lawful basis, erasure boundary, retention schedule and safeguards.
 - [ ] Settle account deletion/anonymisation effects on historical competition integrity.
-- [ ] Settle season tie-breaks before season standings exist.
-- [ ] Store instants in UTC and specify unambiguous rendering rules.
-- [ ] Extend applied-state, RLS and adversarial cross-season tests in the same change.
-- [ ] Use dry-run/preflight and explicit approval for any hosted promotion.
+- [ ] Add nullable profile/auth ownership only if the review approves it.
+- [ ] Repoint competitive ownership and related RLS only under the approved boundary.
+- [ ] Implement and prove account erasure/pseudonymisation, league transfer/archive and backup treatment.
+- [ ] Update the PR #246 before-state to the reviewed after-state without weakening its full action inventory.
+
+No C2 schema, function, policy, ownership or deletion change may enter C1 for convenience.
 
 ## Stage D — ingestion and headless rehearsal
 
@@ -157,7 +175,8 @@ All seven unblocked pre-migration contract suites are landed through PR #292. Th
 - [ ] Extend TypeScript/PostgreSQL parity for season scoring.
 - [ ] Build the fast phone entry and completion flow.
 - [ ] Cover late entry, unbanked rounds, defaults, partial completion, reschedules and corrections.
-- [ ] Measure completion during the closed cohort and record the result.
+- [ ] Build matchweek, monthly and form standings as first-class retention surfaces that never feed back into the canonical total.
+- [ ] Measure completion and low-rank retention during the closed cohort and record the result.
 
 ## Stage F — season Last Man Standing
 
@@ -183,7 +202,9 @@ All seven unblocked pre-migration contract suites are landed through PR #292. Th
 - [ ] Add league/game preferences without changing enrolment.
 - [ ] Add invitations, rerun/copy and “more competitions” discovery.
 - [ ] Add managed-entry bulk operations and claim flow.
-- [ ] **Corrected 30 July 2026 (O3, observed):** make the **league table** worth sharing, and add public read-only invite previews. Players in the World Cup product were already screenshotting league tables into group chats, unprompted — so the growth artefact exists and is being shared; it is simply not designed for it. A purpose-built weekly results card was previously recorded here as the highest-leverage growth feature. It is not superseded outright, but it is now the *second* thing to build, behind improving the artefact people already reach for. See [`docs/architecture/phase-0-world-cup-evidence.md`](docs/architecture/phase-0-world-cup-evidence.md). The `ClubIdentity` requirement in ADR 0017 applies to whichever artefact leaves the product.
+- [ ] Make the league table worth sharing and add public read-only invite previews; a purpose-built weekly results card is secondary to improving the artefact players already share.
+- [ ] Make competition and game separation immediately visible, not only correct in the schema.
+- [ ] Make any score explainable on screen without asking the organiser.
 - [ ] Complete pre-auth invite trust and aggregate-disclosure review.
 - [ ] Complete loading, empty, partial, retry and unavailable-data states.
 - [ ] Complete landing, legal/footer, account deletion/export and analytics decisions.

@@ -21,7 +21,7 @@ The repository is a multi-competition football prediction platform in transition
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current `main` | Read it from git. A hand-copied SHA in a live-authority document is stale the next time anything merges, and this row held `ce17a7fd` through roughly twenty-five subsequent merges. Fixed anchors that do *not* move are the `euro-2028-baseline` tag and the dated per-PR rows below. |
+| Current `main` | Read it from git. A hand-copied SHA in a live-authority document is stale the next time anything merges. Fixed anchors that do not move are the `euro-2028-baseline` tag and dated per-PR evidence. |
 | Repository contract | **64** canonical migrations through `20260730180000_cup_winner_deletion_semantics.sql` |
 | Contract at Euro baseline | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` — the tag is contract 63 and stays there; `main` has moved past it |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
@@ -35,23 +35,27 @@ The repository is a multi-competition football prediction platform in transition
 | Enum union/schema freshness guard | PR #279 |
 | Coverage thresholds and compressed bundle budgets | PR #285; both are CI gates |
 | Lint warnings fail CI | PR #287 — `oxlint --deny-warnings`; three `no-unsafe-finally` defects fixed |
-| Stage C design baseline | **PR #236 merged** 30 July 2026. It approves the design and authorises pre-migration contract-test planning only; it does not authorise a Stage C migration |
-| Stage C pre-migration contracts | **All seven landed.** TypeScript: `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation`. pgTAP: `031_stage_c_reference_scope_before_state.sql` (PR #286), `032_stage_c_lock_before_state.sql` (PR #292). Guarded by `tests/scripts/stageCContractInventory.test.ts` — adding an eighth without recording it here fails CI |
-| Stage C remaining blocker | The data-protection review (issue #272). Roadmap step 4 is complete; step 3 is not, and it gates the migration |
+| Stage C design baseline | **PR #236 merged** 30 July 2026. It is the combined design record and authorises pre-migration contract planning only |
+| Stage C governance | [`stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md): C1 competition-season foundation may progress through review; C2 profile ownership/account erasure remains blocked by issue #272 |
+| Stage C assertion classification | [`stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md): **40 C1, zero authorised C2 after-state and nine shared-before-state assertions**, enforced by `stageC1ContractClassification.test.ts` |
+| Stage C database contracts | Seven original suites plus `stageC1NonInterference`: TypeScript `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation`, `stageC1NonInterference`; pgTAP `031_stage_c_reference_scope_before_state.sql` and `032_stage_c_lock_before_state.sql`. Inventory guarded by `stageCContractInventory.test.ts` |
+| Next executable issue | **#303 — detailed Stage C1 design/coverage reconciliation**, followed by a reviewed development-intent migration. No C2 work belongs in that issue |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
-| Production posture | Controlled pre-launch target; no development or simulation write path may target production |
+| Production posture | Controlled pre-launch target; production remains contract 63 and deploys stay paused until an intentional release milestone |
 
 ## Hosted evidence boundary
 
 This status includes fresh read-only GitHub and Netlify inspection and limited read-only development Supabase catalogue inspection. It does **not** refresh canonical hosted migration applied-state, target privileges, production data or preservation counts.
 
-The development Supabase inspection was limited to project identity/version and catalogue metadata: public relations, columns, constraints, triggers, RLS policies and function definitions. No application rows or personal data were read, and no database write was performed.
+The development Supabase inspection was limited to project identity/version and catalogue metadata. No application rows or personal data were read, and no database write was performed.
 
 | Target | Current evidence | Fresh check required |
 | --- | --- | --- |
-| Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17; read-only catalogue showed 34 RLS-enabled public tables plus `entry_totals` and the current validator/function graph. **Contract 64 applied and owner-verified on 30 July 2026**: `bonus_cup_fixtures_winner_user_id_fkey` returns `confdeltype = r`, `condeferrable = false`. Behaviour-preserving — the same delete was measured to fail identically at contract 63 and 64 on a local PostgreSQL 16 cluster built from the committed migrations, naming the same constraint. | **REQUIRES OWNER VERIFICATION:** canonical applied-state and privilege queries before relying on hosted alignment or applying a migration. Development is now one contract ahead of production, which remains at 63 |
+| Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17. **Contract 64 applied and owner-verified on 30 July 2026**. | **REQUIRES OWNER VERIFICATION:** canonical applied-state and privilege queries before relying on hosted alignment or applying a migration. Development is one contract ahead of production. |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight; not freshly inspected here | **REQUIRES OWNER VERIFICATION:** read-only applied-state, privilege and preservation checks before any write |
-| Production Netlify `main` | ready deploy `6a6b84f20937ff0008c07ccd` from exact commit `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab`, published 30 July 2026; 35 redirects and one header rule processed; no secret-scan matches. **Production deploys are paused from contract 64 onward** — the repository requires 64, production Supabase is at 63, and the prebuild contract gate refuses the build. The last good deploy stays live, so this is a paused pipeline rather than an outage. Owner-accepted on 30 July 2026 | clears when production Supabase receives the migration and the `production` context sets `EURO28_DEPLOYED_DB_CONTRACT=64`; rerun exact-origin smoke before a production-risk milestone |
+| Production Netlify `main` | last good ready deploy remains live. **Production deploys are paused from contract 64 onward** because the repository requires 64 while production Supabase remains 63. This is a paused pipeline, not an outage. | Keep paused until an intentional migration/release milestone with exact-origin smoke and owner approval; do not promote merely to equalise contract numbers |
+| Non-production Turnstile | Netlify `dev`, branch deploys and deploy previews use Cloudflare's always-pass test site key; production retains a separate real key | **OPEN issue #28:** verify/set the matching development Supabase test secret and prove preview sign-up, login and recovery without CAPTCHA errors |
+| Legacy `euro28-predictor-dev` Netlify site | owner chose retirement; anonymous public access was removed on 30 July 2026 and the site now requires Netlify team SSO | **OPEN issue #27:** disable the hourly scheduled function and verify its legacy Supabase disposition; current Euro environments remain untouched |
 | Production data/recovery | owner-verified preserved counts and same-day encrypted backup/restore evidence on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** fresh backup/restore proof before a data-risk milestone |
 
 ## Executive verdicts
@@ -64,15 +68,15 @@ The development Supabase inspection was limited to project identity/version and 
 | Stage B | **Complete and recorded.** PR #226 integrated the surfaces and PR #239 closed the retained checklist. |
 | Cross-tournament read safety | **Landed.** `group_teams` reads are scoped through the selected tournament's groups. |
 | Database API hardening | **Guarded.** PR #250 proves every public table has RLS and every security-definer function pins `search_path`; PR #265 pins every public view and direct browser relation grant. |
-| Timezone authority | **Seam landed; season value absent.** PR #252 separates `competitionTimeZone` from `viewerTimeZone`, but adapters still fall back to the viewer until Stage C supplies `tournaments.display_timezone`. |
-| Timezone positive control | **Corrected.** PR #255 uses real `lockScopes` and the real `competitionTimeZone` config field. |
-| Account deletion | **Unsafe current behaviour, fully characterised.** Competitive rows still use mixed cascade/restrict/set-null/no-action references to `auth.users`; PR #246 pins the before-state but does not fix it. |
-| TypeScript/static coverage | **Exhaustive for committed TS/TSX.** PRs #255, #258 and #261 cover application, tests, e2e, production-smoke, tools and configs; PR #261 guards future files and states strictness explicitly. |
-| Deploy-gate JavaScript | **Type-checked.** PR #264 covers the three production-decision gates; remaining JavaScript files are measured in an explicit deferred inventory. |
-| Leaderboard scale | **Measured, not redesigned.** PR #266 confirms full-field aggregation cost scales with `score_events`; about 35 ms/page at the enforced 250-entry synthetic case and about 652 ms mean at 5,000 entries/300,000 events. ACQ-R02 remains open; hosted concurrency is untested and no materialised standings table exists. |
-| Stage C | **Design complete for review; implementation not started.** Draft PR #236 defines the proposed schema and exhaustive current-object coverage without SQL. |
+| Timezone authority | **Seam landed; persistence belongs to C1.** PR #252 separates `competitionTimeZone` from `viewerTimeZone`, but adapters still fall back to the viewer until C1 supplies `tournaments.display_timezone`. |
+| Account deletion | **Unsafe current behaviour, fully characterised and owned by C2.** PR #246 pins the before-state. C1 now has an executable non-interference guard preventing ownership/deletion changes; issue #272 remains the blocker. |
+| TypeScript/static coverage | **Exhaustive for committed TS/TSX.** PRs #255, #258 and #261 cover application, tests, e2e, production-smoke, tools and configs. |
+| Deploy-gate JavaScript | **Type-checked.** PR #264 covers the three production-decision gates; the remaining JavaScript inventory is explicit. |
+| Leaderboard scale | **Measured, not redesigned.** ACQ-R02 remains open; hosted concurrency is untested and no materialised standings table exists. |
+| Stage C1 | **Assertion classification and C2 non-interference are executable.** Detailed combined-design reconciliation remains before SQL. No migration or hosted write exists. |
+| Stage C2 | **Blocked.** Independent data-protection review issue #272 must approve the retention/erasure boundary before profile ownership, pseudonymisation or related RLS work. |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility, legal/client and brand gates remain. |
-| Production mutation | **Prohibited without explicit owner approval and the full milestone process.** |
+| Production mutation | **Prohibited without action-specific owner approval and the full milestone process.** |
 
 ## Baseline capabilities carried forward
 
@@ -107,32 +111,34 @@ These are evidence for the first competition. They do not imply that season rule
 - **PR #264:** `checkJs` project for the three deploy-gate JavaScript files and measured deferred JavaScript inventory.
 - **PR #265:** exhaustive public view and direct browser relation-grant guard.
 - **PR #266:** repeatable disposable-local ACQ-R02 scale benchmark and evidence update; no risk closure or schema change.
+- **PR #286:** hostile cross-season/reference before-state pgTAP.
+- **PR #292:** lock monotonicity and per-fixture late-write before-state pgTAP.
+- **Stage C1 contract boundary:** `stageC1ContractClassification.test.ts` makes the 49-assertion split executable; `stageC1NonInterference` freezes the current auth FK and ownership-RLS boundary.
 
-PRs #245 and #246 remain the before-state controls. PR #252 is the application seam. PRs #250, #255, #258, #261, #264 and #265 are preservation invariants. None supplies the Stage C schema or completes the timezone/deletion design.
+PRs #245 and #246 remain before-state controls. PR #252 is the application seam. The C1 migration must preserve PR #246 unchanged; C2 later replaces its expected after-state only after issue #272.
 
-## Stage C — competition-season schema design
+## Stage C implementation boundary
 
-Draft PR #236 contains:
+The detailed combined design remains in:
 
-- `docs/architecture/stage-c-competition-season-schema.md`;
-- `docs/architecture/stage-c-schema-coverage.md`;
-- the architecture index update.
+- [`../architecture/stage-c-competition-season-schema.md`](../architecture/stage-c-competition-season-schema.md);
+- [`../architecture/stage-c-schema-coverage.md`](../architecture/stage-c-schema-coverage.md).
 
-It proposes one evolved shared model rather than parallel tournament/season tables; composite competition-season safeguards; explicit rounds and monotonic lock evidence; `profiles` as the durable pseudonymisable competitive anchor; a persisted competition timezone wired through the landed seam; and preservation/hostile-cross-season evidence.
+The accepted governance amendment [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md) controls implementation order, and [`../architecture/stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md) controls the assertion boundary. C1 may implement competition-season identity, rounds, timezone, locks and same-season safeguards while preserving current auth ownership. C2 owns profile ownership, account erasure, pseudonymisation and related RLS and remains blocked.
 
-No migration exists and no hosted schema operation is authorised. Design approval authorises pre-migration contract-test planning only.
+No migration exists and no hosted schema operation is authorised.
 
 ## Open platform gaps
 
-- reviewed and implemented competition-season schema;
-- data-protection review for auth erasure versus pseudonymised competitive history;
+- detailed Stage C1 design/coverage reconciliation and implementation;
+- independent data-protection review and later Stage C2 implementation;
 - fixture/result ingestion and provider evidence;
 - season Predictor, Last Man Standing and Cup implementations;
 - cross-competition hub and weekly action surfaces;
 - hosted/concurrent leaderboard performance evidence before a material cap increase;
 - notification/client distribution;
 - manual accessibility, legal, operations, load and public-launch proof;
-- brand clearance and close-season product decision.
+- brand selection after Phase 0 discovery and before the closed cohort.
 
 ## Documentation authority
 
@@ -140,6 +146,8 @@ No migration exists and no hosted schema operation is authorised. Design approva
 - Parent programme phases and gates: [`../architecture/programme-plan.md`](../architecture/programme-plan.md).
 - Child engineering sequence: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md).
 - Current position and next executable slice: [`../roadmap.md`](../roadmap.md).
+- Stage C split: [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md).
+- Stage C assertion boundary: [`../architecture/stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md).
 - Detailed active/parked inventory: [`../../MASTER-TODO.md`](../../MASTER-TODO.md).
 - Decisions: [`../adr/README.md`](../adr/README.md).
 - Current risks and findings: [`risk-register.md`](risk-register.md).
