@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-The active programme is finishing Stage B integration and authority reconciliation. The competition foundation and Home consumer are on `main`; Matches, Match Centre, entry lock and `MatchTemporalState` retirement are implemented and validated in the clean-main integration candidate. Do not begin Stage C until that candidate is verified and intentionally merged. After clean-main integration, Stage C competition-season schema is the next engineering stage.
+Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C foundation work through PRs #228, #229, #232, #233, #235, #239, #245, #246, #250, #252, #255, #258, #261, #264 and #265 is also on `main`, currently `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab`. PR #252 lands the competition/viewer timezone seam but intentionally keeps the viewer fallback until Stage C supplies `tournaments.display_timezone`; do not claim viewer-dependent grouping is fixed. PRs #255, #258 and #261 make committed TypeScript/TSX compiler-project coverage exhaustive and state strictness explicitly. PR #264 type-checks the three JavaScript deploy gates and keeps the remaining JavaScript backlog measured and explicit. PR #265 pins the complete direct Data API relation/view exposure surface. PR #266 adds disposable-local ACQ-R02 scale evidence only; the risk remains open and no materialised standings migration exists. Draft PR #236 is the active Stage C competition-season schema design; do not create the migration until its design and coverage manifest are reviewed. Draft PR #230 owns the live-authority reconciliation. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
@@ -79,6 +79,8 @@ Rules:
 - The database is authoritative for locks, submission, results, progression, scoring and profile reveal/access boundaries.
 - Competition-season scoping must preserve or strengthen the existing same-reference safeguards.
 - No development, rehearsal or simulation path may write to production.
+- Every new public table must keep RLS enabled, and every security-definer function must pin `search_path`; ordinary CI guards both properties through PR #250.
+- Every public view and direct browser relation grant must remain in the reviewed exposure allowlist landed through PR #265; a view has no independent RLS protection.
 
 ## Architecture rules
 
@@ -98,6 +100,8 @@ Rules:
 - Other-player detail stays within the authenticated co-member boundary unless a later explicit privacy decision changes it.
 - Profile/H2H headline points and ranks come from bounded authoritative server reads; browser logic may derive comparison/accuracy views only.
 - Feeds remain provisional/display-only; official confirmation remains the scoring/progression gate.
+- UTC instants decide locks and match state. Competition timezone decides competition-day and matchweek grouping. Viewer/device timezone may change displayed clock time only.
+- Account deletion must erase personal identity without rewriting settled competition history. The current cascade/restrict/no-action matrix is characterisation evidence, not the target design.
 
 ## Scoring authority
 
@@ -120,6 +124,8 @@ npm audit --omit=dev --audit-level=high
 ```
 
 Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
+
+`tsc -b` now strict-checks application code, TypeScript tests, Playwright/e2e fixtures, production-smoke TypeScript, TypeScript scripts, Playwright configs and the three JavaScript deploy gates through referenced projects landed in PRs #255, #258, #261 and #264. PR #261 also fails ordinary CI if any committed `.ts`/`.tsx` file falls outside that project graph. The remaining JavaScript files under `scripts/` are measured in the explicit deferred allowlist; do not describe them as type-checked or remove them from the inventory without evidence.
 
 ## Production milestones
 
