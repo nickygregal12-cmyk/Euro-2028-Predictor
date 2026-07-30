@@ -57,7 +57,15 @@ function collectAuthUserReferences(): AuthUserReference[] {
 
   for (const migration of readdirSync(migrationsDirectory).sort()) {
     if (!migration.endsWith('.sql')) continue
-    const lines = readFileSync(resolve(migrationsDirectory, migration), 'utf8').split('\n')
+    // Comments are stripped before parsing. These migrations document
+    // themselves by quoting the DDL they describe, and a comment that mentions
+    // `references auth.users (id)` in prose would otherwise parse as a real
+    // declaration and yield a phantom `unknown.unknown` entry. Documentation
+    // must not be able to fail a schema assertion. `schemaSecurityInvariants`
+    // already guards the same hazard on the `create table` side.
+    const lines = readFileSync(resolve(migrationsDirectory, migration), 'utf8')
+      .split('\n')
+      .map((line) => line.replace(/--.*$/, ''))
 
     lines.forEach((line, index) => {
       if (!/references\s+auth\.users/i.test(line)) return
