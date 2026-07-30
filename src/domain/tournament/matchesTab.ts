@@ -3,7 +3,6 @@
 // the same whole-tournament matchday concept as rank_history) or by group letter,
 // and picks the group to auto-scroll to. No React, no DB — data in, data out.
 
-import type { CompetitionContext } from '../competition/context'
 import { MATCHDAY_POINTS, type MatchdayKey } from './rankHistory'
 
 export type FixtureLike = {
@@ -66,23 +65,18 @@ export function groupByGroupLetter<T extends FixtureLike>(
     .map((letter) => ({ key: `G${letter}`, label: `Group ${letter}`, matches: (byLetter.get(letter) ?? []).slice().sort(byWhen) }))
 }
 
-/** Legacy helper retained for differential evidence and isolated callers. */
+/**
+ * Which group to scroll into view on open: the first group that still has a
+ * match today or in the future (the "current front" of the tournament). Once
+ * everything is played, the last group. 0 for an empty list.
+ *
+ * The clock is an explicit input. Rendered consumers use the shared competition
+ * context adapter; this legacy helper remains as the differential oracle until
+ * the Stage B surface sequence is complete.
+ */
 export function currentGroupIndex<T extends FixtureLike>(groups: FixtureGroup<T>[], now: Date): number {
   if (groups.length === 0) return 0
   const t = now.getTime()
   const idx = groups.findIndex((g) => g.matches.some((m) => whenOf(m) >= t))
-  return idx === -1 ? groups.length - 1 : idx
-}
-
-/** Selects the same current front from the shared competition context. */
-export function currentGroupIndexFromContext<T extends FixtureLike>(
-  groups: FixtureGroup<T>[],
-  context: CompetitionContext,
-): number {
-  if (groups.length === 0) return 0
-  if (context.nextMatch === null) return groups.length - 1
-  const idx = groups.findIndex((group) =>
-    group.matches.some((match) => match.id === context.nextMatch?.id),
-  )
   return idx === -1 ? groups.length - 1 : idx
 }
