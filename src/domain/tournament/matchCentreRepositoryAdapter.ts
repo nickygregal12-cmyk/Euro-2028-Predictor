@@ -1,3 +1,4 @@
+import type { MatchState } from '../competition/matchState'
 import type { Match, Team } from '../../services/supabase/tournamentData'
 import {
   calculateSourceMetadata,
@@ -13,6 +14,7 @@ export type RepositoryMatchAdapterInput = {
   teams: Team[]
   now?: string
   fetchedAt?: string
+  matchState?: MatchState
   predictor?: Partial<PredictorMatchData>
 }
 
@@ -26,21 +28,52 @@ const EMPTY_PREDICTOR: PredictorMatchData = {
   bracketImpact: null,
 }
 
-function repositoryLifecycle(match: Match, now: string): MatchLifecycleState {
-  if (hasAuthoritativeResult(match)) return 'FULL_TIME'
+function scheduledLifecycle(match: Match, now: string): MatchLifecycleState {
   if (!match.kickoffAt) return 'SCHEDULED'
-
   const kickoffMs = Date.parse(match.kickoffAt)
   const nowMs = Date.parse(now)
   if (!Number.isFinite(kickoffMs) || !Number.isFinite(nowMs)) return 'SCHEDULED'
-
   const secondsUntilKickoff = Math.floor((kickoffMs - nowMs) / 1000)
-  if (secondsUntilKickoff > 0 && secondsUntilKickoff <= 60 * 60) return 'PRE_MATCH'
+  return secondsUntilKickoff > 0 && secondsUntilKickoff <= 60 * 60
+    ? 'PRE_MATCH'
+    : 'SCHEDULED'
+}
 
-  // The repository fixture record has no authoritative live status. Never infer
-  // a live period only because kickoff has passed: an absent or delayed provider
-  // feed must fail closed rather than showing a convincing live match.
-  return 'SCHEDULED'
+/**
+ * Maps the shared competition-engine match state back to the existing Match
+ * Centre lifecycle contract. No-feed states deliberately remain scheduled: the
+ * legacy screen must not imply a live match or full-time result without an
+ * authoritative provider or confirmed repository result.
+ */
+export function lifecycleFromResolvedMatchState(
+  match: Match,
+  state: MatchState,
+  now: string,
+): MatchLifecycleState {
+  switch (state) {
+    case 'confirmed':
+    case 'scored':
+      return 'FULL_TIME'
+    case 'in_play_feed':
+      return 'LIVE_FIRST_HALF'
+    case 'suspended':
+      return 'SUSPENDED'
+    case 'postponed':
+      return 'POSTPONED'
+    case 'abandoned':
+    case 'cancelled':
+      return 'CANCELLED'
+    case 'scheduled_editable':
+    case 'scheduled_locked':
+      return scheduledLifecycle(match, now)
+    case 'in_play_no_feed':
+    case 'full_time_unconfirmed':
+      return 'SCHEDULED'
+  }
+}
+
+function compatibilityMatchState(match: Match): MatchState {
+  return hasAuthoritativeResult(match) ? 'confirmed' : 'scheduled_locked'
 }
 
 function kickoffFor(match: Match): string {
@@ -66,7 +99,10 @@ function mergePredictor(input?: Partial<PredictorMatchData>): PredictorMatchData
 export function adaptRepositoryMatchToCentre(
   input: RepositoryMatchAdapterInput,
 ): MatchCentreViewModel {
-  const now = input.now ?? new Date().toISOString()
+  // Production callers inject the captured clock and shared state. Isolated
+  // legacy callers without either fail closed deterministically; there is no
+  // ambient Date read hidden in this adapter.
+  const now = input.now ?? input.fetchedAt ?? input.match.kickoffAt ?? kickoffFor(input.match)
   const fetchedAt = input.fetchedAt ?? now
   const teamsById = new Map(input.teams.map((team) => [team.id, team]))
   const homeTeam = input.match.homeTeamId
@@ -76,7 +112,11 @@ export function adaptRepositoryMatchToCentre(
     ? teamsById.get(input.match.awayTeamId)
     : undefined
   const result = authoritativeMatchScore(input.match)
-  const lifecycle = repositoryLifecycle(input.match, now)
+  const lifecycle = lifecycleFromResolvedMatchState(
+    input.match,
+    input.matchState ?? compatibilityMatchState(input.match),
+    now,
+  )
 
   return {
     external: {
