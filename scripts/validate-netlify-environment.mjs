@@ -20,6 +20,10 @@ const NEVER_PUBLISHABLE_PREFIXES = [
   'service_role', // a pasted role name rather than a key
 ]
 
+/**
+ * @param {string} token
+ * @returns {Record<string, unknown> | null}
+ */
 function decodeJwtPayload(token) {
   const segments = token.split('.')
   if (segments.length !== 3) return null
@@ -41,6 +45,11 @@ function decodeJwtPayload(token) {
  * project URL with the other project's key, or with a secret key, and still
  * satisfy them. The signature is deliberately not verified — that needs the
  * project's JWT secret, which must never be present in a build.
+ */
+/**
+ * @param {string} key
+ * @param {string} expectedProjectRef
+ * @param {string} context
  */
 function verifySupabaseKey(key, expectedProjectRef, context) {
   const lowered = key.toLowerCase()

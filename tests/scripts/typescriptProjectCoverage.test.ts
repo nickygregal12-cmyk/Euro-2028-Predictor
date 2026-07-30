@@ -155,15 +155,69 @@ describe('TypeScript project coverage', () => {
     expect(uncovered).toEqual([])
   })
 
-  it('references all four projects from the root config', () => {
+  it('references every project from the root config', () => {
     // The prefixes above are only true because these projects are built. A
     // reference removed here would silently un-cover a whole tree.
     expect(projectReferences().sort()).toEqual([
       './tsconfig.app.json',
+      './tsconfig.gates.json',
       './tsconfig.node.json',
       './tsconfig.test.json',
       './tsconfig.tools.json',
     ])
+  })
+})
+
+describe('JavaScript under scripts/', () => {
+  /**
+   * The deploy gates, checked under `allowJs`/`checkJs` by tsconfig.gates.json.
+   * Each decides whether a build reaches production.
+   */
+  const CHECKED = [
+    'scripts/deployment-contract-expectations.mjs',
+    'scripts/validate-deployment-contract.mjs',
+    'scripts/validate-netlify-environment.mjs',
+  ] as const
+
+  /**
+   * Deliberately not checked yet, with the error count each would contribute
+   * measured on 30 July 2026. None of them is a deploy gate, and between them
+   * they carry 128 errors — almost entirely missing parameter annotations and
+   * nullability on values the surrounding runtime validation already
+   * guarantees. Recorded here so the backlog is a visible decision rather than
+   * an oversight, and so a new script cannot join it silently.
+   */
+  const DEFERRED = [
+    ['scripts/check-fixtures.mjs', 29],
+    ['scripts/check-migration-timestamps.mjs', 10],
+    ['scripts/og/renderAssets.js', 61],
+    ['scripts/production-smoke.mjs', 28],
+  ] as const
+
+  it('accounts for every committed JavaScript file under scripts/', () => {
+    const committed = execFileSync('git', ['ls-files', 'scripts/*.mjs', 'scripts/**/*.mjs', 'scripts/*.js', 'scripts/**/*.js'], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+    })
+      .split('\n')
+      .filter(Boolean)
+      .sort()
+
+    const accounted = [...CHECKED, ...DEFERRED.map(([file]) => file)].sort()
+
+    expect(committed).toEqual(accounted)
+  })
+
+  it('checks exactly the deploy gates', () => {
+    const gates = JSON.parse(
+      stripJsonComments(readFileSync(resolve(repositoryRoot, 'tsconfig.gates.json'), 'utf8')),
+    ) as { files: string[]; compilerOptions: Record<string, unknown> }
+
+    expect(gates.files.sort()).toEqual([...CHECKED].sort())
+    // Without both flags the project would include the files and examine
+    // nothing, which reads exactly like passing.
+    expect(gates.compilerOptions.allowJs).toBe(true)
+    expect(gates.compilerOptions.checkJs).toBe(true)
   })
 })
 
