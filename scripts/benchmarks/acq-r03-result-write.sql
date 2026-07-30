@@ -14,9 +14,10 @@
 --   is what this costs across a full tournament.
 --
 -- WHAT IT MEASURES
---   The latency an administrator actually waits on: a single UPDATE to
---   matches, with the trigger live. Walked across all 36 group results in
---   fixture order, at three field sizes.
+--   The latency an administrator actually waits on: one call to
+--   public.confirm_match_result(), which takes the advisory lock, writes the
+--   revision row and the lifecycle columns, and fires the recompute trigger.
+--   Walked across all 36 group results in fixture order, at three field sizes.
 --
 --   Two things matter, and they are different:
 --     * per-write latency at the last result (does confirming get slower as
@@ -26,6 +27,8 @@
 -- RUN ON A DISPOSABLE LOCAL SUPABASE ONLY.
 --     supabase start && supabase db reset --local
 -- It aborts above 25 auth.users rows, removes its own rows, and rolls back.
+-- It also clears the matchday-1 results that seed.sql ships, so every scale
+-- starts from an unscored tournament.
 -- Paste the whole file as ONE execution; it returns one result set at the end.
 --
 -- Knockout results are NOT measured. Scoring them additionally derives the
@@ -123,9 +126,15 @@ begin
     i := i + 1;
     v_started := clock_timestamp();
 
-    update public.matches
-    set home_score = (i % 4), away_score = ((i + 1) % 3)
-    where id = v_match.id;
+    -- The real administrator path: advisory lock, revision row, lifecycle
+    -- columns and the recompute trigger. A raw UPDATE would measure less than
+    -- what confirming a result actually costs.
+    perform public.confirm_match_result(
+      v_match.id,
+      'regulation',
+      (i % 4)::smallint,
+      ((i + 1) % 3)::smallint
+    );
 
     insert into bench_writes values (
       v_entries, i,
@@ -133,7 +142,14 @@ begin
   end loop;
 end $$;
 
--- Reset results between scales so each run starts from an unscored tournament.
+-- Reset every match to the 'scheduled' shape between scales. ---------------
+-- matches_result_state_shape is a CHECK constraint, and CHECK constraints are
+-- NOT suspended by session_replication_role = replica — only triggers and
+-- foreign keys are. Nulling the scores alone leaves result_state = 'confirmed'
+-- and violates the constraint, so the whole lifecycle column set moves together.
+-- This matters here because `supabase db reset --local` ships matchday 1
+-- already confirmed ("Development Matchday 1 checkpoint seed"), which is very
+-- likely where the register's existing 12-result figure came from.
 create or replace function pg_temp.r03_reset()
 returns void language plpgsql as $$
 declare v_tournament uuid;
@@ -144,8 +160,23 @@ begin
     select id into v_tournament from public.tournaments order by created_at limit 1;
   end if;
 
-  update public.matches set home_score = null, away_score = null
+  update public.matches
+  set result_state    = 'scheduled',
+      result_method   = null,
+      home_score      = null,
+      away_score      = null,
+      home_score_90   = null,
+      away_score_90   = null,
+      home_score_120  = null,
+      away_score_120  = null,
+      home_penalties  = null,
+      away_penalties  = null,
+      winner_team_id  = null,
+      confirmed_at    = null,
+      corrected_at    = null,
+      result_version  = 0
   where tournament_id = v_tournament;
+
   delete from public.score_events se using public.entries e
   where e.id = se.entry_id and e.tournament_id = v_tournament;
 end $$;
@@ -169,7 +200,7 @@ begin
   foreach v_step in array v_steps loop
     set local session_replication_role = replica;
     perform pg_temp.r03_seed(v_step);
-    perform pg_temp.r03_reset();
+    perform pg_temp.r03_reset();   -- also clears the shipped matchday-1 results
 
     -- Triggers live from here: the result write is the thing being measured.
     set local session_replication_role = origin;
