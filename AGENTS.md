@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-The active programme is finishing Stage B integration and authority reconciliation. The competition foundation and Home consumer are on `main`; Matches, Match Centre, entry lock and `MatchTemporalState` retirement are implemented and validated in the remaining draft stack. Do not begin Stage C from an intermediate stack head. After clean-main integration, Stage C competition-season schema is the next engineering stage.
+The active programme is Stage A/B: align authorities and controls, land the pure competition-context foundation, then migrate legacy consumers separately without changing Euro behaviour.
 
 ## Development operating mode
 
@@ -108,3 +108,42 @@ Season Predictor and Last Man Standing rules are governed by [ADR 0012](docs/adr
 Automatic valid-entry submission at the tournament lock is implemented and must continue to reuse the authoritative validator. The recurring season cadence is separate future work, not evidence that the existing mechanism is absent.
 
 ## Verification commands
+
+Normal application checks:
+
+```bash
+npm ci
+npm run build
+npm run lint
+npm run test
+npm audit --omit=dev --audit-level=high
+```
+
+Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
+
+## Production milestones
+
+For a production database or release milestone:
+
+1. confirm the exact repository head, target project and current contract;
+2. create a fresh encrypted backup when the operation could affect stored data;
+3. prove the intended migration/release scope with dry-run or equivalent preflight;
+4. obtain explicit owner approval before the production write;
+5. apply only the approved scope;
+6. verify history, permissions, application contract and environment isolation;
+7. publish the exact approved build and run exact-head production smoke;
+8. lock production again when the milestone is complete;
+9. add one concise dated reconciliation.
+
+Never weaken an environment or deployment-contract guard merely to make a build pass.
+
+## Documentation maintenance
+
+- `docs/quality/current-status.md` is the only live status authority.
+- `docs/roadmap.md` is the only live execution sequence.
+- `MASTER-TODO.md` is the only detailed active/parked inventory.
+- `docs/build-todo.md` is a compatibility pointer, not a separate checklist.
+- Update risk, scoring, architecture or operational runbooks only when their subject changes.
+- Dated audits and reconciliations are immutable historical evidence.
+- Archive superseded controls under the governed history directory; never delete one as cleanup.
+- Do not create a new status, audit or reconciliation document for routine development work.
