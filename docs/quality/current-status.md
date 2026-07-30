@@ -21,7 +21,7 @@ The repository is a multi-competition prediction platform in transition. The com
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current `main` | `cadc7c37e4e5e253e60e2ea31f8f52341d789891` |
+| Current `main` | `873567912a459130ae0690f4ccecba5a27b7f37f` |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
 | Control/scoping integration | PR #228 → `ae78a57b5beabd6a415975b24daae28215ed509d` |
 | Scoring parity | PR #229 → `5a726c6c2839305182872b0f6cb47ccad9179074` |
@@ -34,10 +34,12 @@ The repository is a multi-competition prediction platform in transition. The com
 | RLS/search-path guard | PR #250 → `183544b7b29a5360b1c0a04a2c7007e821cbce97` |
 | Competition/viewer timezone seam | PR #252 → `1ec505a7d423c8d0b2b03327f8893e3954fa2246` |
 | Test-suite typecheck | PR #255 → `cadc7c37e4e5e253e60e2ea31f8f52341d789891` |
+| E2E/tools typecheck | PR #258 → `873567912a459130ae0690f4ccecba5a27b7f37f` |
 | Recoverable Euro baseline | `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da` |
 | Application/database contract at the tag | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
-| Current development position | Stage B and the required cross-tournament, environment, parity, security and TypeScript test controls are complete on `main`; the timezone seam is landed but the persisted season value is absent |
+| Current development position | Stage B and the required cross-tournament, environment, parity, security and broad TypeScript controls are complete on `main`; the timezone seam is landed but the persisted season value is absent |
 | Active Stage C work | Draft PR #236, design and coverage manifest only; no migration exists |
+| Parallel hardening | PR #261, fully green compiler-project coverage/explicit-strict guard; open and unmerged |
 | Production posture | Controlled pre-launch target; no development or simulation write path is permitted |
 
 ## Hosted evidence boundary
@@ -50,7 +52,7 @@ The development Supabase inspection was limited to project identity/version and 
 | --- | --- | --- |
 | Development Supabase `iouzoutneyjpugbbtdem` | active healthy, Postgres 17; read-only catalogue shows 34 RLS-enabled public tables plus `entry_totals` and the existing same-tournament validator graph | **REQUIRES OWNER VERIFICATION:** run canonical applied-state and privilege queries before relying on contract alignment or applying a migration |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight; not inspected in this reconciliation | **REQUIRES OWNER VERIFICATION:** run read-only applied-state, privilege and preservation checks before any write |
-| Production Netlify `main` | ready deploy `6a6b73ba3a5483000825e90c` from exact commit `cadc7c37e4e5e253e60e2ea31f8f52341d789891`, published 30 July 2026; 35 redirects and one header rule processed successfully; no secret-scan matches | rerun exact-origin smoke before a production-risk milestone |
+| Production Netlify `main` | ready deploy `6a6b776513962b00087ba68e` from exact commit `873567912a459130ae0690f4ccecba5a27b7f37f`, published 30 July 2026; 35 redirects and one header rule processed successfully; no secret-scan matches | rerun exact-origin smoke before a production-risk milestone |
 | Production data/recovery | owner-verified preserved counts and same-day encrypted contract-60 backup/restore evidence on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** take a fresh backup/restore proof before a data-risk milestone |
 
 ## Executive verdicts
@@ -68,7 +70,7 @@ The development Supabase inspection was limited to project identity/version and 
 | Timezone authority | **Seam landed, season value absent.** PR #252 separates `competitionTimeZone` from `viewerTimeZone`, but every adapter deliberately falls back to the viewer until Stage C supplies `tournaments.display_timezone`; viewer-dependent authoritative grouping therefore remains. |
 | Timezone positive-control quality | **Corrected.** PR #255 replaces the vacuous nonexistent `activeLock` comparison with real `lockScopes` and corrects a fixture using `viewerTimeZone` where the config requires `competitionTimeZone`. |
 | Account deletion | **Current behaviour is unsafe and fully characterised.** Competitive rows still reference `auth.users` through mixed cascade, restrict, set-null and one undeclared/no-action path. Account deletion can erase settled history or be blocked; PR #246 pins the effective matrix but does not fix it. |
-| Test static typing | **Landed.** PR #255 adds `tsconfig.test.json` to `tsc -b`, clears 16 strict-mode test errors and makes stale TypeScript test fixtures a build failure. `e2e/` and `scripts/` remain covered separately rather than by this project. |
+| TypeScript static coverage | **Broad but not yet exhaustive.** PRs #255 and #258 strict-check application code, `tests/`, Playwright/e2e fixtures, TypeScript scripts and Playwright configs. `production-smoke/anonymous.spec.ts` is still outside a compiler project; fully green PR #261 covers it, states `strict` explicitly and adds a future-directory coverage guard. |
 | Stage C | **Design active; implementation not started.** Draft PR #236 defines the schema direction and complete current-object coverage manifest without adding SQL. |
 | Contract alignment | **Repository contract remains 63; hosted applied-state was not freshly verified.** |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility and legal/client gates remain. |
@@ -118,9 +120,22 @@ Stage B is complete on `main`:
 - **PR #246:** account-deletion tests resolve effective `auth.users` foreign-key actions in migration order, pin the cascade/restrict/set-null/undeclared matrix, and prove that no table currently references `profiles`.
 - **PR #250:** ordinary CI proves all 34 public tables have RLS enabled and all 110 current security-definer functions pin `search_path`, using latest-definition and schema-aware parsing.
 - **PR #252:** application adapters and domain config distinguish `competitionTimeZone` from `viewerTimeZone`; fallback keeps existing behaviour until the persisted season timezone exists.
-- **PR #255:** ordinary build now strict-checks TypeScript tests, and the known false-positive timezone fixtures are corrected.
+- **PR #255:** ordinary build strict-checks TypeScript tests, and the known false-positive timezone fixtures are corrected.
+- **PR #258:** the build also covers Playwright/e2e fixtures, TypeScript scripts and Playwright configs; the H2H local fixture retains its nullable cleanup handles while using a non-null resolved tournament id after setup.
 
-PRs #245 and #246 are **before-state controls**. PR #252 is the application seam. PR #255 makes TypeScript test evidence enforceable. None supplies the Stage C schema or completes the timezone/deletion design.
+PRs #245 and #246 are **before-state controls**. PR #252 is the application seam. PRs #255 and #258 make the relevant TypeScript evidence enforceable. None supplies the Stage C schema or completes the timezone/deletion design.
+
+### Parallel TypeScript project guard — PR #261
+
+PR #261 is open, mergeable and fully green. It:
+
+- adds `production-smoke/anonymous.spec.ts` to the tools TypeScript project;
+- states `strict: true` explicitly in the two base TypeScript projects rather than relying on the TypeScript 6 default;
+- adds a Git-aware test proving every committed `.ts`/`.tsx` file belongs to a referenced compiler project;
+- proves derived projects still extend the strict base;
+- contains no migration, hosted change, scoring change or expectation change.
+
+It may integrate independently and does not block Stage C design approval. Until it lands, compiler-project coverage must not be described as exhaustive.
 
 ### Stage C — competition-season schema design
 
@@ -130,7 +145,7 @@ Draft PR #236 contains:
 - `docs/architecture/stage-c-schema-coverage.md`;
 - the architecture index update.
 
-The design is grounded in ADRs, the Stage C build contract, read-only inspection of the current Postgres constraints, triggers, policies and function graph, and the landed PR #245/#246/#250/#252/#255 foundations. It proposes one evolved shared model rather than parallel tournament/season tables, composite competition-season safeguards, explicit rounds and monotonic lock events, `profiles` as the durable pseudonymisable competitive anchor, a persisted competition timezone wired through the landed seam and preservation/hostile-cross-season test requirements.
+The design is grounded in ADRs, the Stage C build contract, read-only inspection of the current Postgres constraints, triggers, policies and function graph, and the landed PR #245/#246/#250/#252/#255/#258 foundations. It proposes one evolved shared model rather than parallel tournament/season tables, composite competition-season safeguards, explicit rounds and monotonic lock events, `profiles` as the durable pseudonymisable competitive anchor, a persisted competition timezone wired through the landed seam and preservation/hostile-cross-season test requirements.
 
 No migration exists and no hosted schema operation is authorised. The next decision is review of the design baseline. After design approval, remaining pre-migration contracts may be committed before an append-only development migration is created.
 
@@ -141,6 +156,7 @@ The complete inventory is in [`../../MASTER-TODO.md`](../../MASTER-TODO.md). It 
 ## Open platform gaps
 
 - reviewed and implemented competition-season schema;
+- exhaustive TypeScript project coverage guard if PR #261 remains unmerged;
 - fixture/result ingestion and provider evidence;
 - season Predictor, Last Man Standing and Cup implementations;
 - cross-competition hub and weekly action surfaces;
