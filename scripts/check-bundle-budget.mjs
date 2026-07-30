@@ -23,7 +23,14 @@ const BUDGETS = {
   totalCssKb: 45,
 }
 
+/**
+ * Every file under a directory, recursively.
+ *
+ * @param {string} directory
+ * @returns {string[]}
+ */
 function walk(directory) {
+  /** @type {string[]} */
   const out = []
   for (const entry of readdirSync(directory)) {
     const path = join(directory, entry)
@@ -33,10 +40,15 @@ function walk(directory) {
   return out
 }
 
+/**
+ * @param {string} path
+ * @returns {number} gzipped size in KB
+ */
 function gzipKb(path) {
   return gzipSync(readFileSync(path)).length / 1024
 }
 
+/** @type {string[]} */
 let files
 try {
   files = walk(root)
@@ -61,6 +73,7 @@ const entry = js
 const totalJs = js.reduce((sum, file) => sum + gzipKb(file), 0)
 const totalCss = css.reduce((sum, file) => sum + gzipKb(file), 0)
 
+/** @type {[label: string, actual: number, budget: number, detail: string][]} */
 const checks = [
   ['largest JS chunk', entry.kb, BUDGETS.entryChunkKb, entry.file],
   ['all JS', totalJs, BUDGETS.totalJsKb, `${js.length} files`],
