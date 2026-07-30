@@ -8,7 +8,16 @@ export type CompetitionBounds = {
 type CompetitionConfigBase = {
   id: string
   name: string
-  timeZone: string
+  /**
+   * The zone the competition's own calendar is kept in: which day a fixture
+   * belongs to, and — once seasons exist — which matchweek. It is a property of
+   * the competition, not of whoever is looking at it, because standings cannot
+   * tolerate "which matchweek is this?" having two answers.
+   *
+   * A viewer's device zone renders clock times and nothing else. It must never
+   * reach this field. See tests/domain/competition/timeZoneAuthority.test.ts.
+   */
+  competitionTimeZone: string
   bounds: CompetitionBounds
 }
 
@@ -59,7 +68,13 @@ function isPositiveInteger(value: unknown): value is number {
 }
 
 function hasCommonConfig(value: Record<string, unknown>): boolean {
-  if (!isNonEmptyString(value.id) || !isNonEmptyString(value.name) || !isNonEmptyString(value.timeZone)) return false
+  if (
+    !isNonEmptyString(value.id) ||
+    !isNonEmptyString(value.name) ||
+    !isNonEmptyString(value.competitionTimeZone)
+  ) {
+    return false
+  }
   if (!isRecord(value.bounds)) return false
   return isNonEmptyString(value.bounds.startsAt) && isNonEmptyString(value.bounds.endsAt)
 }

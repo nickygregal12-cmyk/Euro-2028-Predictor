@@ -22,7 +22,15 @@ export type TournamentCompetitionContextInput = {
   submitted: boolean
   entryComplete: boolean
   nowServer: Date
-  timeZone: string
+  /** The viewer's device zone. Renders clock times; never decides a day. */
+  viewerTimeZone: string
+  /**
+   * The competition's own calendar zone. Optional until a season row carries it
+   * (Stage C `display_timezone`); until then it falls back to the viewer's zone,
+   * which is the behaviour this seam preserves exactly. Supplying it is the one
+   * change that makes day grouping stop depending on where the viewer is.
+   */
+  competitionTimeZone?: string
   localDateISO?: string
   liveData?: CompetitionLiveData
 }
@@ -88,7 +96,7 @@ function hasStarted(match: Match, nowMs: number): boolean {
 function tournamentConfig(
   data: TournamentData,
   nowServer: Date,
-  timeZone: string,
+  competitionTimeZone: string,
 ): TournamentCompetitionConfig {
   const knownKickoffs = data.matches
     .map((match) => match.kickoffAt)
@@ -110,7 +118,7 @@ function tournamentConfig(
     id: data.tournament.id,
     name: data.tournament.name,
     kind: 'tournament',
-    timeZone,
+    competitionTimeZone,
     bounds: { startsAt, endsAt },
     primaryStage: 'groups',
     progression: 'groups_to_knockout',
@@ -197,11 +205,15 @@ function competitionUserData(input: {
 export function resolveTournamentCompetitionContext(
   input: TournamentCompetitionContextInput,
 ): TournamentCompetitionContextResult {
-  const timeZone = safeTimeZone(input.timeZone)
+  // The fallback is the whole seam: with no season zone supplied, the
+  // competition calendar is kept in the viewer's zone, which is exactly what
+  // this code did before. Supplying `competitionTimeZone` is the only change
+  // needed to make grouping viewer-independent.
+  const competitionTimeZone = safeTimeZone(input.competitionTimeZone ?? input.viewerTimeZone)
   const lockAtMs = parseInstant(input.data.tournament.lockAt)
   const nowMs = input.nowServer.getTime()
   const context = resolveCompetitionContext(
-    tournamentConfig(input.data, input.nowServer, timeZone),
+    tournamentConfig(input.data, input.nowServer, competitionTimeZone),
     {
       progress: competitionProgress(input.data, input.nowServer),
       lockScopes: [
@@ -221,7 +233,7 @@ export function resolveTournamentCompetitionContext(
 
   return {
     context,
-    todayISO: injectedDateKey(input.localDateISO) ?? dateKey(input.nowServer, timeZone),
+    todayISO: injectedDateKey(input.localDateISO) ?? dateKey(input.nowServer, competitionTimeZone),
     lockAt: input.data.tournament.lockAt,
   }
 }

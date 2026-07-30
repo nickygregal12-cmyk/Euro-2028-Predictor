@@ -74,7 +74,7 @@ export function MatchesPage() {
       submitted: preds.submittedAt !== null,
       entryComplete: false,
       nowServer,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+      viewerTimeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     })
     const resolvedMatchState = new Map(
       competition.context.matches.map((candidate) => [candidate.id, candidate.state]),
