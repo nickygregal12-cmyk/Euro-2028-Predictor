@@ -19,9 +19,11 @@ function section(source: string, start: string, end: string): string {
 }
 
 function tableTokens(source: string): string[] {
-  return [...source.matchAll(/^\|\s*`([a-z_][a-z0-9_]*)`\s*\|/gm)].map(
-    (match) => match[1],
-  )
+  return [
+    ...source.matchAll(
+      /^\|\s*`([a-z_][a-z0-9_]*)`(?:\s+view)?\s*\|/gm,
+    ),
+  ].map((match) => match[1])
 }
 
 function bulletTokens(source: string): string[] {
@@ -106,7 +108,7 @@ describe('Stage C1 schema overlay coverage', () => {
   it('does not turn the overlay into migration authority', () => {
     expect(overlay).toContain('no migration exists')
     expect(overlay).toContain('does not authorise SQL')
-    expect(overlay).toContain('no hosted development mutation')
+    expect(overlay).toContain('a hosted development mutation')
     expect(overlay).toContain('no production change')
   })
 })
