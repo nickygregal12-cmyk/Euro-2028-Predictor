@@ -55,7 +55,8 @@ end $$;
 create temporary table bench_writes (
   field_size    integer,
   result_index  integer,
-  ms            numeric
+  ms            numeric,
+  wal_bytes     bigint
 ) on commit drop;
 
 -- Seed N entries, each predicting every group match. -----------------------
@@ -127,6 +128,7 @@ declare
   v_entries integer;
   v_match record;
   v_started timestamptz;
+  v_lsn pg_lsn;
   i integer := 0;
 begin
   select id into v_tournament from public.tournaments
@@ -143,6 +145,9 @@ begin
     order by match_date, match_ref
   loop
     i := i + 1;
+    -- WAL is the second half of the impact ACQ-R03 names, so it is measured
+    -- alongside latency rather than inferred from it.
+    v_lsn := pg_current_wal_lsn();
     v_started := clock_timestamp();
 
     -- The real administrator path: advisory lock, revision row, lifecycle
@@ -157,7 +162,8 @@ begin
 
     insert into bench_writes values (
       v_entries, i,
-      round(extract(epoch from clock_timestamp() - v_started)::numeric * 1000, 1));
+      round(extract(epoch from clock_timestamp() - v_started)::numeric * 1000, 1),
+      pg_wal_lsn_diff(pg_current_wal_lsn(), v_lsn)::bigint);
   end loop;
 end $$;
 
@@ -250,7 +256,9 @@ select
   max(ms) filter (where result_index = 36)            as result_36_ms,
   round(avg(ms), 1)                                   as mean_ms,
   round(max(ms), 1)                                   as worst_ms,
-  round(sum(ms), 1)                                   as all_36_total_ms
+  round(sum(ms), 1)                                   as all_36_total_ms,
+  pg_size_pretty(max(wal_bytes) filter (where result_index = 36)) as wal_result_36,
+  pg_size_pretty(sum(wal_bytes))                      as wal_all_36
 from bench_writes
 group by field_size
 order by field_size;

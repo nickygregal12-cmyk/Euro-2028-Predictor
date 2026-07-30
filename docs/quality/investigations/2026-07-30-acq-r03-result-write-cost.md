@@ -19,6 +19,11 @@
 | 250 | 34.3 ms | 204.7 ms | 571.6 ms | 884.4 ms | 326.5 ms | 884.4 ms | **11.8 s** |
 | 1,000 | 135.5 ms | 763.1 ms | 1,677.8 ms | 4,005.1 ms | 1,339.7 ms | 4,005.1 ms | **48.2 s** |
 
+Latency varies run to run on shared hardware — a second full pass measured
+907.9 ms and 2,985.0 ms for result 36 at 250 and 1,000 entries against the
+884.4 ms and 4,005.1 ms above. The ratios and the compounding shape are stable
+across runs; treat individual milliseconds as indicative.
+
 ## Findings
 
 ### 1. Cost compounds within a tournament
@@ -54,7 +59,26 @@ Only the 36 group results were measured. Knockout scoring additionally derives t
 
 Extrapolating the group-stage model alone to R = 51 at 250 entries gives ~1.3 s for the final confirmation and ~32 s of cumulative recompute. **Treat that as a floor, not an estimate.**
 
-### 4. Rank-history capture is not per-result
+### 4. WAL generation compounds with it
+
+`pg_wal_lsn_diff` taken across each confirmation:
+
+| Field size | WAL at result 36 | WAL across all 36 |
+| --- | --- | --- |
+| 50 | 888 kB | **16 MB** |
+| 250 | 4.7 MB | **87 MB** |
+| 1,000 | 18 MB | **312 MB** |
+
+Scoring one group stage at the enforced 250 cap writes **87 MB of WAL**; at
+1,000 entries, **312 MB**. This is the delete-and-rederive pattern made
+visible — every confirmation rewrites the entire score-event set, so those rows
+are not merely recomputed but re-logged, and replicated, and backed up.
+
+That settles the second half of the impact `ACQ-R03` names. Table bloat follows
+from the same mechanism — 9,000 dead tuples per confirmation at 250 entries by
+result 36 — though autovacuum behaviour under that load was not observed here.
+
+### 5. Rank-history capture is not per-result
 
 A single confirmation on an otherwise unscored tournament wrote 5 score events, 1 revision row and **0** rank-history rows. `capture_rank_history` snapshots at matchday completion, not on every result, so results 12, 24 and 36 carry work the others do not. The measurements at those indices therefore sit at the top of the local range, and the cost between them is not isolated here.
 
@@ -68,7 +92,7 @@ The important point is not the discrepancy but the framing: 12 results is one gr
 
 - **Not the Supabase stack.** PostgreSQL 16 with a shimmed `auth` schema, versus hosted Postgres 17. Migrations applied cleanly, but the planner, hardware and extension set differ.
 - **No concurrency.** A single session, nothing else running. Real confirmations happen while players are reading.
-- **WAL and bloat were not measured.** The register names both. A 4-second transaction that deletes and reinserts 36,000 rows is a strong candidate for both, but this run did not quantify them.
+- **Table bloat and autovacuum were not observed.** WAL is measured above; the dead-tuple accumulation that follows from the same delete-and-rederive pattern was not, nor was autovacuum's ability to keep up under it.
 - **Knockout results untested**, as above.
 - **Synthetic predictions**, deterministic rather than realistic in distribution.
 
@@ -77,5 +101,5 @@ The important point is not the discrepancy but the framing: 12 results is one gr
 - `ACQ-R03` remains **In progress through evidence**, and the evidence is now stronger for acting than for deferring.
 - At the enforced 250-entry cap the operational picture is: **~0.9 s for the final group confirmation and ~12 s of cumulative recompute across the group stage.** Tolerable, but no longer "not currently justification".
 - At 1,000 entries it is **4 s per confirmation** at the end of the group stage and **48 s** cumulative. That is a long write transaction on a live scoring path, which is exactly the impact `ACQ-R03` describes.
-- `DEC-009`'s deferral condition — a full-result-volume benchmark — is **satisfied for the group stage**. The outstanding pieces are knockout results, WAL/bloat measurement, and behaviour under concurrency.
+- `DEC-009`'s deferral condition — a full-result-volume benchmark — is **satisfied for the group stage**, now including WAL. The outstanding pieces are knockout results, table-bloat/autovacuum behaviour, and concurrency.
 - The compounding shape matters more than any single number: the cost is worst at precisely the moment the tournament is busiest.
