@@ -68,6 +68,25 @@ export type TournamentData = {
 }
 
 /**
+ * lock_at is read best-effort: it's a follow-up-migration column, so a database
+ * without that migration applied still loads the app (the entry simply reads as
+ * never-locked until the migration lands).
+ */
+async function fetchLockAt(tournamentId: string): Promise<string | null> {
+  try {
+    const lockRes = await supabase
+      .from('tournaments')
+      .select('lock_at')
+      .eq('id', tournamentId)
+      .single()
+    if (lockRes.error) return null
+    return (lockRes.data as { lock_at: string | null }).lock_at ?? null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Loads the single active tournament plus its groups, teams (with group + slot)
  * and every fixture. One call, joined client-side into the shapes the domain
  * layer and screens consume.
@@ -82,12 +101,8 @@ export async function fetchTournamentData(): Promise<TournamentData> {
   const t = tournaments?.[0]
   if (!t) throw new Error('No tournament found — has the fixture seed been run?')
 
-  const [groupsRes, groupTeamsRes, matchesRes] = await Promise.all([
+  const [groupsRes, matchesRes, lockAt] = await Promise.all([
     supabase.from('groups').select('id, letter').eq('tournament_id', t.id).order('letter'),
-    supabase
-      .from('group_teams')
-      .select('slot, group_id, team:teams(id, name)')
-      .order('slot'),
     supabase
       .from('matches')
       .select(
@@ -95,21 +110,30 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       )
       .eq('tournament_id', t.id)
       .order('match_date'),
+    fetchLockAt(t.id),
   ])
   if (groupsRes.error) throw groupsRes.error
-  if (groupTeamsRes.error) throw groupTeamsRes.error
   if (matchesRes.error) throw matchesRes.error
 
-  // lock_at is fetched best-effort in its own query: it's a follow-up-migration
-  // column, so a DB without that migration applied still loads the app (the
-  // entry simply reads as never-locked until the migration lands).
-  let lockAt: string | null = null
-  try {
-    const lockRes = await supabase.from('tournaments').select('lock_at').eq('id', t.id).single()
-    if (!lockRes.error) lockAt = (lockRes.data as { lock_at: string | null }).lock_at ?? null
-  } catch {
-    lockAt = null
-  }
+  const groupIds = (groupsRes.data ?? []).map((g) => g.id)
+
+  // group_teams has no tournament_id column, so it can only be scoped through
+  // its groups. Without this filter the query returned every tournament's rows
+  // and blended them into one tournament's team list — latent while a single
+  // tournament exists, wrong as soon as a second competition row does. Its
+  // sibling groups/matches selects have always filtered by tournament.
+  //
+  // This runs after groups rather than beside it because it depends on their
+  // ids. Total round trips are unchanged: lock_at moved up into the parallel
+  // batch, where it no longer needs a round trip of its own.
+  const groupTeamsRes = groupIds.length
+    ? await supabase
+        .from('group_teams')
+        .select('slot, group_id, team:teams(id, name)')
+        .in('group_id', groupIds)
+        .order('slot')
+    : { data: [], error: null }
+  if (groupTeamsRes.error) throw groupTeamsRes.error
 
   const teams: Team[] = (groupTeamsRes.data ?? []).flatMap((gt) => {
     // The embedded `team` relation comes back as an object (or array on some
