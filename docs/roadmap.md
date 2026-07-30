@@ -14,16 +14,16 @@ This roadmap does **not** duplicate the programme phases or Stage A–L engineer
 
 - `main`: read the current commit from git rather than from this line. The previous hand-copied SHA stayed here through roughly twenty-five subsequent merges, which is what a pinned SHA in a live document does;
 - repository contract: **64**, development Supabase **64**, production Supabase **63**;
-- production Netlify: ready deploy `6a6b84f20937ff0008c07ccd` from commit `ce17a7fd`. **Deploys are paused from contract 64 onward** by the prebuild contract gate until production Supabase receives the migration. The last good deploy stays live;
+- production Netlify: ready deploy `6a6b84f20937ff0008c07ccd` from commit `ce17a7fd`. **Deploys are paused from contract 64 onward** by the prebuild contract gate until an intentional production migration/release milestone. The last good deploy stays live;
 - Euro 2028: recoverable at `euro-2028-baseline` at contract 63, with remaining tournament work parked until January 2028;
 - Stage B: complete through PR #226, with the retained checklist closed by PR #239;
-- Stage C: **design baseline merged** (PR #236, 30 July 2026). Five of the seven pre-migration contract suites have landed. No Stage C migration exists and none is authorised.
+- Stage C: **design baseline merged** (PR #236) and **all seven pre-migration contract suites landed** through PR #292. The owner-approved governance amendment splits implementation into C1 and C2. No Stage C migration exists and no hosted schema write is authorised.
 
 ## Delivered foundation
 
 ### Stage A — authority and control alignment
 
-The platform ADRs, parent/child planning hierarchy, state architecture and domain controls are established. Brand clearance remains separately governed by ADR 0017.
+The platform ADRs, parent/child planning hierarchy, state architecture and domain controls are established. Brand selection is deferred with a trigger under ADR 0019 and is not on the engineering critical path.
 
 ### Stage B — competition-context foundation and surface migration
 
@@ -52,46 +52,49 @@ Complete on `main`:
 - PR #264: typechecking for the three JavaScript deploy gates and an explicit deferred JavaScript inventory.
 - PR #265: exhaustive public-view and direct browser relation-grant guard.
 - PR #266: disposable-local leaderboard scale evidence; ACQ-R02 remains open and no standings migration was introduced.
+- PR #286: hostile cross-season/reference before-state pgTAP.
+- PR #292: lock monotonicity and per-fixture late-write before-state pgTAP.
 
 PRs #245 and #246 remain before-state contracts. PR #252 is the application seam. PRs #250, #255, #258, #261, #264 and #265 are preservation invariants.
 
-## Stage C design baseline
+## Stage C design and governance
 
-PR #236 — **merged 30 July 2026** — defines:
+PR #236 — **merged 30 July 2026** — records the combined design for:
 
 - stable competition identity and shared competition-season scope;
 - additive in-place evolution of `tournaments`/`tournament_id` rather than a parallel season implementation;
 - generic rounds/matchweeks and monotonic lock-transition evidence;
 - composite same-season relationship safeguards;
-- `profiles.id` as the durable pseudonymisable competitive anchor;
-- persisted competition timezone wired through the landed seam, with viewer-local clock display;
-- invalid competition-timezone rejection and explicit unavailable/fail-closed handling;
-- deletion/archive consequences and the data-protection dependency;
-- complete current table, function, trigger, RLS, grant and RPC coverage;
-- Euro preservation, hostile cross-season and before/after characterisation tests.
+- a proposed profile-owned pseudonymisable competitive anchor;
+- persisted competition timezone wired through the landed seam;
+- complete object coverage and Euro preservation evidence.
 
-It contains no migration or hosted write.
+The accepted [`architecture/stage-c1-c2-governance.md`](architecture/stage-c1-c2-governance.md) amendment controls implementation order:
+
+- **Stage C1:** competition-season identity, fields, rounds, timezone, locks, same-season safeguards and Euro preservation. C1 keeps current auth-owned competitive rows unchanged and is tracked by issue #303.
+- **Stage C2:** profile ownership, account erasure, pseudonymisation and related RLS. C2 remains blocked by the independent data-protection review in issue #272.
+
+Neither document authorises a migration or hosted write.
 
 ## Next executable sequence
 
-1. ~~Intentionally approve and integrate PR #236 as the consolidated Stage C **design baseline only**.~~ **Done** — merged 30 July 2026. It authorises pre-migration contract-test planning, not SQL or a hosted schema operation.
-2. Preserve safeguards `CS-001` through `CS-019` and the landed controls from PRs #245, #246, #250, #252, #255, #258, #261, #264 and #265.
-3. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history path. **This is the critical path.** Stages D through H all sit behind Stage C, and Stage C sits behind this review. It is a decision, not an engineering task.
-4. ~~Commit the remaining pre-migration contract tests first.~~ **Done — all seven have landed.** The inventory below is pinned by `tests/scripts/stageCContractInventory.test.ts`, so an eighth contract cannot appear without this list changing:
-   - ✅ complete season-sensitive object coverage — `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`;
-   - ✅ hostile cross-season relationship failures — `031_stage_c_reference_scope_before_state.sql` (PR #286);
-   - ✅ lock monotonicity and per-fixture late-write rejection — `032_stage_c_lock_before_state.sql` (PR #292);
+1. ~~Approve and integrate PR #236 as the Stage C design baseline.~~ **Done.**
+2. ~~Land the complete pre-migration contract inventory.~~ **Done — all seven landed.** The inventory remains pinned by `tests/scripts/stageCContractInventory.test.ts`:
+   - ✅ season-sensitive object coverage — `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`;
+   - ✅ hostile cross-season/reference failures — `031_stage_c_reference_scope_before_state.sql` (PR #286);
+   - ✅ lock monotonicity and per-fixture rejection — `032_stage_c_lock_before_state.sql` (PR #292);
    - ✅ RLS, grants, function exposure and direct Data API surface — PRs #250 and #265;
    - ✅ Euro identifier, score, rank, access and Stage B context preservation — `stageCEuroSeedPreservation`;
-   - 🟡 account deletion preserving totals, ranks, league membership and settled outcomes — PR #246 pins the before-state and PR #271 declares the last undeclared action; the after-state is blocked on item 3;
-   - 🟡 persisted competition timezone replacing viewer fallback — PR #252 landed the seam; persistence is the Stage C migration itself.
-
-   The two amber items are not missing tests. Both are *before*-state contracts whose after-state cannot be written until the schema exists, and one of them additionally waits on item 3. **The contract-test gate is no longer what holds Stage C.**
-5. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when intentional physical names disappear.
-6. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence. The current benchmark does not justify folding a materialised standings table into Stage C.
-7. Prepare one coherent append-only **development** migration only after the tests, migration plan and data-protection boundary are reviewed.
-8. Before any hosted write, prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
-9. Obtain separate explicit owner approval before mutating hosted development or production schema.
+   - 🟡 account-deletion after-state — deliberately owned by C2 and blocked by issue #272;
+   - 🟡 persisted competition timezone after-state — owned by C1.
+3. ~~Choose whether the legal review blocks all of Stage C or only deletion/profile ownership.~~ **Done — split C1/C2.** The decision is recorded in the governance amendment, issue #303 and issue #272.
+4. **Reconcile the detailed Stage C design/coverage expectations for the split.** Classify every assertion as C1, C2 or shared before-state; preserve PR #246 unchanged through C1; add a guard proving C1 does not alter auth ownership, deletion FKs or ownership RLS.
+5. Maintain the exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. C1 exits when zero unreviewed tournament-only assumptions remain, not when intentional physical names disappear.
+6. Prepare one coherent append-only **development-intent C1 migration** only after item 4 is reviewed. It must contain no profile ownership, erasure, pseudonymisation or C2 RLS change.
+7. Before any hosted write, prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, Euro preservation and environment isolation on disposable infrastructure.
+8. Obtain separate explicit owner approval before mutating hosted development. Production remains at contract 63 and paused.
+9. Complete C2 only after issue #272 records an independent review and the approved retention/erasure boundary is reflected in design and tests.
+10. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence; no materialised standings table belongs in C1 by default.
 
 ## Parked Euro 2028 scope
 
@@ -99,9 +102,10 @@ The complete inventory remains in [`../MASTER-TODO.md`](../MASTER-TODO.md) for J
 
 ## Programme and stage navigation
 
-- Product phases, discovery, design, instrumentation, cohort thresholds and go-to-market: [`architecture/programme-plan.md`](architecture/programme-plan.md).
+- Product phases, discovery, instrumentation, cohort thresholds and go-to-market: [`architecture/programme-plan.md`](architecture/programme-plan.md).
 - Engineering Stages A–L and engineering gates: [`architecture/multi-competition-hub-build-plan.md`](architecture/multi-competition-hub-build-plan.md).
-- Stage C proposed schema and coverage manifest: draft PR #236.
+- Stage C implementation split: [`architecture/stage-c1-c2-governance.md`](architecture/stage-c1-c2-governance.md).
+- Detailed Stage C design and coverage: [`architecture/stage-c-competition-season-schema.md`](architecture/stage-c-competition-season-schema.md) and [`architecture/stage-c-schema-coverage.md`](architecture/stage-c-schema-coverage.md).
 - Current implementation and hosted facts: [`quality/current-status.md`](quality/current-status.md).
 - Detailed active and parked tasks: [`../MASTER-TODO.md`](../MASTER-TODO.md).
 - Decisions: [`adr/README.md`](adr/README.md).

@@ -6,8 +6,9 @@ Read this file and [`docs/quality/current-status.md`](docs/quality/current-statu
 
 This repository is a **multi-competition football prediction platform**. Euro 2028 is the first completed competition baseline and is parked for a January 2028 return; it is not the assumption every new feature is allowed to make.
 
-- Platform direction and competition boundaries are governed by [`docs/adr/0011-multi-competition-platform.md`](docs/adr/0011-multi-competition-platform.md) through [`docs/adr/0018-pre-launch-promotion-cadence.md`](docs/adr/0018-pre-launch-promotion-cadence.md).
+- Platform direction and competition boundaries are governed by [`docs/adr/0011-multi-competition-platform.md`](docs/adr/0011-multi-competition-platform.md) through [`docs/adr/0019-brand-decision-deferred.md`](docs/adr/0019-brand-decision-deferred.md).
 - The detailed Stage A–L programme is [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md).
+- The current Stage C implementation boundary is [`docs/architecture/stage-c1-c2-governance.md`](docs/architecture/stage-c1-c2-governance.md).
 - The recoverable tournament reference is `euro-2028-baseline`.
 - Do not assume one tournament, one lock instant, one scoring model, one standings table or one competition lifecycle unless the governing authority for that competition says so.
 - Do not import features, scoring values or game rules from previous World Cup projects, old branches, prototypes, chats or similarly named modes.
@@ -29,22 +30,27 @@ A planning document never overrides an ADR. Process, prepared tooling or a chat 
 
 The annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc47175c43b6da`, preserving the contract-63 Euro 2028 baseline. Remaining tournament work is parked until January 2028.
 
-The hosted values below are the last owner-verified repository record from 29 July 2026. They are not fresh inspection:
+Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md). At the 30 July 2026 governance decision:
 
-- development Supabase: `iouzoutneyjpugbbtdem`;
-- production Supabase: `vkfnsqdyhvtwyqkisxhk`;
-- repository/application/database contract recorded as 63;
-- production promotion recorded as preserving one Auth user, one profile, one entry, one league, 51 matches and 36 saved predictions, with no synthetic Bonus Games player data.
+- repository and development Supabase are contract **64**;
+- production Supabase and the last published application remain contract **63**;
+- production Netlify deploys are paused by the contract gate by design;
+- no agent may promote production merely to equalise contract numbers.
 
-**REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
+**REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in the live status document. Never copy a stale hosted claim into a new document.
 
-Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C foundation work through PRs #228, #229, #232, #233, #235, #239, #245, #246, #250, #252, #255, #258, #261, #264 and #265 is also on `main`. Do not look for a current `main` SHA here — this paragraph pinned `ce17a7fd` through roughly twenty-five subsequent merges before anyone noticed. Read the commit from git; read the contract from `config/deployment-contract.json`.
+Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C foundation work through PRs #228, #229, #232, #233, #235, #239, #245, #246, #250, #252, #255, #258, #261, #264 and #265 is also on `main`. Read the current commit from git and the contract from `config/deployment-contract.json`.
 
-PR #252 lands the competition/viewer timezone seam but intentionally keeps the viewer fallback until Stage C supplies `tournaments.display_timezone`; do not claim viewer-dependent grouping is fixed. PRs #255, #258 and #261 make committed TypeScript/TSX compiler-project coverage exhaustive and state strictness explicitly. PR #264 type-checks the three JavaScript deploy gates and keeps the remaining JavaScript backlog measured and explicit. PR #265 pins the complete direct Data API relation/view exposure surface. PR #266 adds disposable-local ACQ-R02 scale evidence only; the risk remains open and no materialised standings migration exists. PRs #269, #276 and #284 measure ACQ-R03 across a full group stage, WAL, bloat, the knockout cascade and a concurrency probe. PR #279 freshness-checks the enum surface against the schema. PR #285 makes domain coverage thresholds and compressed bundle budgets CI gates. PR #287 makes `npm run lint` fail on any warning.
+PR #252 lands the competition/viewer timezone seam but intentionally keeps viewer fallback until Stage C1 supplies `tournaments.display_timezone`. PRs #255, #258 and #261 make committed TypeScript/TSX compiler-project coverage exhaustive. PR #264 type-checks the three JavaScript deploy gates. PR #265 pins the complete direct Data API relation/view exposure surface. PR #266 adds disposable-local ACQ-R02 scale evidence only. PRs #269, #276 and #284 measure ACQ-R03. PR #279 freshness-checks the enum surface. PR #285 makes domain coverage thresholds and compressed bundle budgets CI gates. PR #287 makes lint warnings fail CI.
 
-**PR #236 is merged**, so the Stage C competition-season design is the approved baseline rather than a proposal. All seven non-deletion pre-migration contracts have landed through PRs #274, #277, #280, #282, #283, #286 and #292. They cover relation/function/`tournament_id`/trigger inventories, Euro seed preservation, hostile cross-season reference failures, and the current lock/late-write before-state. Issue #272 is now the critical path. **Do not create a Stage C migration or implement profile ownership, account deletion/anonymisation or related RLS changes until that independent data-protection review is completed.** Non-destructive migration planning may continue only where it does not assume the review outcome.
+**PR #236 is merged** and all seven pre-migration contracts have landed through PR #292. The accepted governance amendment splits implementation:
 
-The repository is at **contract 64** — `20260730180000_cup_winner_deletion_semantics.sql`, landed by PR #271. That is **not** a Stage C migration; it declares an omitted `on delete` action and is behaviour-preserving. Development Supabase is at contract 64, applied and owner-verified. Production Supabase remains at contract 63, so production Netlify deploys are paused at the contract gate by design and with owner acceptance. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
+- **Stage C1 — issue #303:** competition-season identity, fields, rounds, timezone, locks, same-season safeguards and Euro preservation. C1 may proceed through design/contract reconciliation and disposable proof, but must leave current auth-owned competitive rows, foreign-key actions and ownership RLS unchanged.
+- **Stage C2 — issue #272:** profile ownership, account erasure, pseudonymisation and related RLS. C2 remains blocked by the independent data-protection review.
+
+Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
+
+The repository is at **contract 64** through `20260730180000_cup_winner_deletion_semantics.sql`. That is not a Stage C migration. Development Supabase is at contract 64; production remains at 63. Any hosted schema mutation requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
@@ -85,21 +91,23 @@ Rules:
 - The database is authoritative for locks, submission, results, progression, scoring and profile reveal/access boundaries.
 - Competition-season scoping must preserve or strengthen the existing same-reference safeguards.
 - No development, rehearsal or simulation path may write to production.
-- Every new public table must keep RLS enabled, and every security-definer function must pin `search_path`; ordinary CI guards both properties through PR #250.
-- Every public view and direct browser relation grant must remain in the reviewed exposure allowlist landed through PR #265; a view has no independent RLS protection.
+- Every new public table must keep RLS enabled, and every security-definer function must pin `search_path`.
+- Every public view and direct browser relation grant must remain in the reviewed exposure allowlist.
+- Stage C1 must preserve the full PR #246 deletion/ownership before-state and add a guard proving it has not changed.
 
 ## Architecture rules
 
 - Shared competition rules live as pure functions under `src/domain/competition/`; follow [ADR 0011](docs/adr/0011-multi-competition-platform.md).
 - Tournament-only rules remain under `src/domain/tournament/`.
-- Season-only rules belong under the future `src/domain/season/` boundary when Stage C/E begins.
+- Season-only rules belong under the future `src/domain/season/` boundary when Stage C1/E begins.
 - `competition/` does not import from `tournament/` or `season/`; tournament and season code do not import one another.
 - All domain layers remain pure: no storage, network or ambient clock reads; time is an input.
 - Components render domain output; they do not invent standings, scoring, lock or bracket rules.
 - All browser Supabase access goes through `src/services/supabase/`.
 - Keep pure response parsing/models separate from configured network wrappers.
 - Do not expose private integrity helpers as browser RPCs.
-- Follow the separation authorities in [ADR 0011](docs/adr/0011-multi-competition-platform.md) and [ADR 0015](docs/adr/0015-commercial-and-social-model.md); never combine competition entries, points or standings.
+- Follow the separation authorities in ADR 0011 and ADR 0015; never combine competition entries, points or standings.
+- Separation must also be visible on the surface, not only true in the schema.
 - Predicted and real brackets never blend.
 - Fail closed on unresolved ties, invalid references, stale/unknown official data and incompatible schemas.
 - Knockout display/social views consume authoritative winner and result-method data.
@@ -107,15 +115,15 @@ Rules:
 - Profile/H2H headline points and ranks come from bounded authoritative server reads; browser logic may derive comparison/accuracy views only.
 - Feeds remain provisional/display-only; official confirmation remains the scoring/progression gate.
 - UTC instants decide locks and match state. Competition timezone decides competition-day and matchweek grouping. Viewer/device timezone may change displayed clock time only.
-- Account deletion must erase personal identity without rewriting settled competition history. The current cascade/restrict/no-action matrix is characterisation evidence, not the target design.
+- Account erasure and retained historical identity belong to Stage C2. Do not describe the proposed pseudonymised-history model as legally approved before issue #272 closes.
 
 ## Scoring authority
 
-[`docs/scoring-rules.md`](docs/scoring-rules.md) is authoritative for the existing Euro 2028 tournament configuration and must stay aligned with `src/domain/tournament/scoringConfig.ts`, SQL scoring logic and tests.
+[`docs/scoring-rules.md`](docs/scoring-rules.md) is authoritative for the existing Euro 2028 tournament configuration and must stay aligned with TypeScript, SQL scoring logic and tests.
 
-Season Predictor and Last Man Standing rules are governed by [ADR 0012](docs/adr/0012-season-predictor-rules.md) and [ADR 0013](docs/adr/0013-last-man-standing-season-rules.md). Do not copy tournament values into a season implementation or merge separate scoring authorities for convenience.
+Season Predictor and Last Man Standing rules are governed by ADR 0012 and ADR 0013. Do not copy tournament values into a season implementation or merge separate scoring authorities for convenience.
 
-Automatic valid-entry submission at the tournament lock is implemented and must continue to reuse the authoritative validator. The recurring season cadence is separate future work, not evidence that the existing mechanism is absent.
+Automatic valid-entry submission at the tournament lock is implemented and must continue to reuse the authoritative validator. The recurring season cadence is separate future work.
 
 ## Verification commands
 
@@ -131,7 +139,7 @@ npm audit --omit=dev --audit-level=high
 
 Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
 
-`tsc -b` now strict-checks application code, TypeScript tests, Playwright/e2e fixtures, production-smoke TypeScript, TypeScript scripts, Playwright configs and the three JavaScript deploy gates through referenced projects landed in PRs #255, #258, #261 and #264. PR #261 also fails ordinary CI if any committed `.ts`/`.tsx` file falls outside that project graph. The remaining JavaScript files under `scripts/` are measured in the explicit deferred allowlist; do not describe them as type-checked or remove them from the inventory without evidence.
+`tsc -b` strict-checks application code, TypeScript tests, Playwright/e2e fixtures, production-smoke TypeScript, TypeScript scripts, Playwright configs and the three JavaScript deploy gates. The remaining JavaScript files under `scripts/` are measured in the explicit deferred allowlist.
 
 ## Production milestones
 
