@@ -43,7 +43,7 @@ An owner with access should verify and date:
 
 ## Related authority
 
-- [`quality/current-status.md`](quality/current-status.md)
-- [`quality/risk-register.md`](quality/risk-register.md)
-- [`quality/investigations/2026-07-29-tag-reconciliation.md`](quality/investigations/2026-07-29-tag-reconciliation.md)
+- [`../quality/current-status.md`](../quality/current-status.md)
+- [`../quality/risk-register.md`](../quality/risk-register.md)
+- [`../quality/investigations/2026-07-29-tag-reconciliation.md`](../quality/investigations/2026-07-29-tag-reconciliation.md)
 - `config/deployment-contract.json`

@@ -1,6 +1,6 @@
 # Ops record — Production Supabase cutover
 
-> **Historical record.** This documents the production Supabase cutover of 22 July 2026 and the contract-35 promotion of 25 July 2026 as they happened. It is **not** a reusable migration script and its environment tables are a dated snapshot — production has since been promoted to contract 38 (see `docs/quality/reconciliations/2026-07-27-contract-38-final-target-promotion.md`) and the repository/development have advanced further. For current facts use `docs/quality/current-status.md` and `docs/ops-pending-migrations.md`; future production milestones follow the gate in `AGENTS.md`.
+> **Historical record.** This documents the production Supabase cutover of 22 July 2026 and the contract-35 promotion of 25 July 2026 as they happened. It is **not** a reusable migration script and its environment tables are a dated snapshot — production has since been promoted to contract 38 (see `docs/quality/reconciliations/2026-07-27-contract-38-final-target-promotion.md`) and the repository/development have advanced further. For current facts use `docs/quality/current-status.md` and `docs/ops/ops-pending-migrations.md`; future production milestones follow the gate in `AGENTS.md`.
 
 ## Verified environment position — as of 25 July 2026 (superseded)
 
@@ -121,7 +121,7 @@ A previous version said an admin bootstrap grant had run. Direct inspection conf
 - no version-controlled administrator model was created;
 - the claimed update did not establish the documented admin state;
 - the issue was tracked under `OPS-002` (since resolved in development by PRs #120 and #126);
-- `docs/ops-admin-bootstrap.md` prohibits the obsolete SQL.
+- `docs/ops/ops-admin-bootstrap.md` prohibits the obsolete SQL.
 
 ## Absolute environment boundary
 
@@ -133,7 +133,7 @@ A previous version said an admin bootstrap grant had run. Direct inspection conf
 - Migration/data failure stops the rollout; it never triggers reset, improvised SQL or cross-environment swapping.
 - Non-production Netlify contexts remain connected to development Supabase.
 
-## Netlify position — as of 25 July 2026 (superseded; see `docs/ops-pending-migrations.md` for current)
+## Netlify position — as of 25 July 2026 (superseded; see `docs/ops/ops-pending-migrations.md` for current)
 
 The production Netlify project was correctly isolated:
 
@@ -192,8 +192,8 @@ The accepted backup/restore proof establishes recovery evidence, but restoration
 - `docs/quality/current-status.md`
 - `docs/quality/reconciliations/2026-07-25-contract-35-production-promotion.md`
 - `docs/quality/reconciliations/2026-07-25-final-recovery-acceptance.md`
-- `docs/ops-hosted-migration-rollout.md`
-- `docs/ops-pending-migrations.md`
-- `docs/ops-production-backup-restore.md`
-- `docs/ops-admin-bootstrap.md`
+- `docs/ops/ops-hosted-migration-rollout.md`
+- `docs/ops/ops-pending-migrations.md`
+- `docs/ops/ops-production-backup-restore.md`
+- `docs/ops/ops-admin-bootstrap.md`
 - `docs/quality/risk-register.md`
