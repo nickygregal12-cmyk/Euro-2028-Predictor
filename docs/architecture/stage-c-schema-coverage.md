@@ -1,17 +1,17 @@
 # Stage C schema coverage manifest
 
-**Status:** Design inventory; no migration exists.  
-**Source:** Read-only development schema introspection plus landed PR #245, PR #246, PR #250, PR #252, PR #255 and PR #258 evidence, 30 July 2026.  
-**Baseline:** `main` at `873567912a459130ae0690f4ccecba5a27b7f37f`.  
+**Status:** Approved design inventory; no migration exists.  
+**Source:** Read-only development schema introspection plus landed PR #245, #246, #250, #252, #255, #258, #261, #264, #265 and #266 evidence, 30 July 2026.  
+**Baseline:** `main` at `1c1aa639009c09357e9ec4c8f5b9f6922e0f8ad2`.  
 **Design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)
 
-This is the minimum implementation coverage. No Stage C change may omit an object because it is dormant, tournament-only or hidden behind an RPC.
+This is the minimum implementation coverage. No Stage C change may omit an object because it is dormant, tournament-only, a view, or hidden behind an RPC.
 
 ## 1. Physical naming rule
 
 - `tournaments` remains the physical season-instance table;
 - `tournament_id` and `p_tournament_id` remain the Stage C season-scope names;
-- architecture/TypeScript may call the row a competition season;
+- architecture and TypeScript may call the row a competition season;
 - no parallel `competition_seasons` table or second scope column is permitted;
 - a cosmetic rename is outside Stage C and requires its own compatibility plan.
 
@@ -29,22 +29,22 @@ Coverage checks season integrity, not absence of the word `tournament`.
 - viewer timezone decides displayed kickoff clock only;
 - invalid competition timezone cannot silently blank a competition day.
 
-## 3. Landed and parallel control evidence
+## 3. Landed control evidence
 
 ### 3.1 Timezone authority and seam — PR #245, #252 and #255
 
 Landed coverage pins:
 
-- timezone-free `lockState.ts` / `matchState.ts`;
+- timezone-free `lockState.ts` and `matchState.ts`;
 - explicit `competitionTimeZone` and `viewerTimeZone` inputs;
 - viewer fallback while the Stage C season value is absent;
 - current viewer-dependent day grouping under fallback;
-- a supplied competition timezone overriding viewer location;
+- supplied competition timezone overriding viewer location;
 - real `lockScopes` equality across zones;
 - current invalid-zone fail-quiet behaviour;
-- TypeScript rejection of the removed `activeLock` and wrong config field fixtures.
+- TypeScript rejection of removed `activeLock` and wrong config-field fixtures.
 
-Stage C must change the fallback/divergence/invalid-zone expectations to the approved after-state without removing or weakening the tests.
+Stage C must change the fallback, divergence and invalid-zone expectations to the approved after-state without removing or weakening the tests.
 
 ### 3.2 Account deletion — PR #246
 
@@ -70,19 +70,47 @@ Additional pinned facts:
 
 Stage C must keep this ordinary-CI guard green alongside database lint.
 
-### 3.4 TypeScript project coverage — PR #255, #258 and open #261
+### 3.4 Views and direct Data API surface — PR #265
 
-Landed `tsc -b` projects cover:
+- the set of public views is explicitly pinned;
+- each public view must be revoked from `anon` and `authenticated` unless deliberately exposed;
+- the `entry_totals` revoke and rationale are load-bearing;
+- direct browser relation grants are explicitly allowlisted;
+- `anon` has no direct relation grant;
+- a new direct grant or view fails ordinary CI until reviewed.
+
+Stage C must update the allowlist atomically with any deliberate new table/view exposure. RLS on tables does not protect a view.
+
+### 3.5 Compiler coverage — PR #255, #258, #261 and #264
+
+The referenced compiler graph covers:
 
 - application code;
 - `tests/`;
 - Playwright/e2e fixtures;
+- `production-smoke/anonymous.spec.ts`;
 - TypeScript scripts;
-- Playwright configs.
+- Playwright configs;
+- the three JavaScript deploy gates.
 
-PR #258 also corrects the H2H fixture to use a narrowed tournament id after setup while retaining nullable cleanup handles.
+The graph also:
 
-Current remaining gap: `production-smoke/anonymous.spec.ts` is outside a compiler project. Fully green open PR #261 covers it, explicitly pins strictness and adds a Git-aware guard that every committed `.ts`/`.tsx` file belongs to a referenced project. Stage C approval does not depend on #261, but project coverage is not exhaustive until it lands or an equivalent replaces it.
+- states strictness explicitly;
+- fails when a committed `.ts`/`.tsx` file falls outside a referenced project;
+- proves derived projects extend a strict base;
+- keeps unconverted JavaScript scripts in a measured deferred allowlist;
+- fails if a new JavaScript gate appears without coverage.
+
+Every Stage C source/test/config file must stay inside this graph.
+
+### 3.6 ACQ-R02 scale evidence — PR #266
+
+- `get_overall_leaderboard` aggregates the full submitted field before pagination;
+- cost scales primarily with `score_events` volume;
+- disposable-local synthetic mean page time was about 35 ms at 250 entries/15,000 events and about 652 ms at 5,000 entries/300,000 events;
+- hosted concurrency remains untested;
+- ACQ-R02 remains open;
+- Stage C does not add a materialised standings table.
 
 ## 4. Public relations
 
@@ -93,7 +121,7 @@ Current remaining gap: `production-smoke/anonymous.spec.ts` is outside a compile
 | `tournaments` | preserve table/UUID; add competition parent, season key, kind, IANA timezone and lifecycle |
 | `profiles` | durable competitive/profile anchor; add nullable unique auth link and pseudonymisation timestamp |
 | `rate_limit_events` | remain auth housekeeping and cascade on auth deletion |
-| `entry_totals` view | redefine over explicit season-scoped entries/events |
+| `entry_totals` view | preserve browser revokes and rationale; redefine over explicit season-scoped entries/events if required by schema change |
 
 ### Direct season scope
 
@@ -150,7 +178,7 @@ Current remaining gap: `production-smoke/anonymous.spec.ts` is outside a compile
 | `competition_lock_events` | append-only observed lock transition, never planned deadline |
 | `competition_awards` | additive season-scoped award results |
 
-No `competitors` table: reuse existing profile UUIDs.
+No `competitors` table is introduced: existing profile UUIDs are reused.
 
 ## 6. Public functions and RPCs
 
@@ -274,7 +302,7 @@ Prefer composite FKs for simple season equality; retain triggers for arrays, con
 - automatic-submission outcome mutation block
 - bonus competition audit mutation block
 
-## 8. RLS, grants and definer coverage
+## 8. RLS, views, grants and definer coverage
 
 Implementation must:
 
@@ -282,13 +310,16 @@ Implementation must:
 - prove null-auth profiles cannot regain owner access;
 - add season predicates to direct reads;
 - enable RLS on every new public table;
-- use explicit grants;
+- explicitly review every public view;
+- preserve `entry_totals` browser revokes unless a separately reviewed bounded replacement exists;
+- keep direct browser relation grants in the PR #265 allowlist;
+- use explicit grants and no blanket browser access;
 - keep internal lock/audit authorities unexposed;
-- revoke `PUBLIC` execute before exact grants;
+- revoke `PUBLIC` execute before exact function grants;
 - pin `search_path` on every security-definer function;
 - keep deployment-RPC/privilege parity;
 - keep every remaining auth FK in the deletion-action allowlist;
-- keep PR #250 green against effective definitions.
+- keep PR #250 and PR #265 green against effective definitions.
 
 ## 9. Timezone and calendar coverage
 
@@ -330,24 +361,26 @@ Tie-resolution arrays remain trigger-validated.
 Pre-migration tests encode:
 
 - `CS-009`: erase auth identity, preserve pseudonymised history;
-- `CS-015`: exact scores → correct results → joint;
+- `CS-011`: tables, views, direct grants and definer security remain explicit;
+- `CS-015`: exact scores → correct results → joint rank;
 - `CS-016`: competition grouping, viewer clock, UTC rules;
 - `CS-017`: invalid zone cannot silently become empty day;
 - `CS-018`: every auth FK has explicit reviewed action;
-- `CS-019`: required current TypeScript sources are compiled; exhaustive future-file coverage follows PR #261 or equivalent.
+- `CS-019`: every committed TS/TSX file and every deploy-gate JavaScript file remains in an enforced compiler project.
 
 Data-protection review remains required before deletion implementation.
 
-## 12. TypeScript coverage
+## 12. Compiler coverage
 
-For every Stage C `.ts`/`.tsx` file:
+For every Stage C source, test or config file:
 
-- place it in a referenced compiler project;
-- preserve strictness, aliases, JSX and environment types;
+- place `.ts`/`.tsx` files in the existing referenced project graph;
+- preserve explicit strictness, aliases, JSX and environment types;
 - fail CI on stale renamed/removed domain fields;
 - keep runtime tests separate;
-- if PR #261 lands, keep its Git-aware project-coverage and explicit-strict guard green;
-- if it remains open, do not add Stage C files under an uncovered directory and keep `production-smoke/` explicitly listed as the one current gap.
+- keep PR #261's Git-aware project-coverage guard green;
+- keep PR #264's `allowJs`/`checkJs` deploy-gate project and deferred JavaScript inventory green;
+- do not add an unaccounted JavaScript production gate.
 
 ## 13. Exit gate
 
@@ -359,13 +392,14 @@ Before Stage C implementation exits:
 4. every changed relationship has hostile cross-season pgTAP;
 5. identity-erasure and anonymous-profile RLS tests pass;
 6. deletion-semantics test has no undeclared auth action;
-7. timezone separation/invalid-zone tests pass;
+7. timezone separation and invalid-zone tests pass;
 8. viewers share grouping while preserving local display and instant-only locks;
 9. PR #252 seam is wired to persisted timezone with no authoritative fallback;
-10. PR #250 security guards remain green;
-11. PR #255/#258 compiler projects remain green;
-12. PR #261 is either landed and green or explicitly parallel without Stage C files outside existing projects;
-13. Euro preservation/RLS-role oracles pass;
-14. full Database parity runs;
-15. environment/CSP/deployment/privilege guards remain green;
-16. no compatibility name changes without an atomic caller plan.
+10. PR #250 proves every effective public table has RLS and every definer pins `search_path`;
+11. PR #265 proves every view and direct browser relation grant is reviewed;
+12. PR #261/#264 compiler coverage remains exhaustive for its declared scope;
+13. Euro preservation and RLS-role oracles pass;
+14. complete Database parity runs;
+15. environment, CSP, deployment, privilege and deploy-gate guards remain green;
+16. no compatibility name changes without an atomic caller plan;
+17. no materialised standings table is introduced without a separately reviewed ACQ-R02 decision.
