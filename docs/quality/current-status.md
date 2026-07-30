@@ -37,7 +37,7 @@ The repository is a multi-competition football prediction platform in transition
 | Lint warnings fail CI | PR #287 — `oxlint --deny-warnings`; three `no-unsafe-finally` defects fixed |
 | Stage C design baseline | **PR #236 merged** 30 July 2026. It approves the design and authorises pre-migration contract-test planning only; it does not authorise a Stage C migration |
 | Stage C pre-migration contracts | **All seven landed.** TypeScript: `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation`. pgTAP: `031_stage_c_reference_scope_before_state.sql` (PR #286), `032_stage_c_lock_before_state.sql` (PR #292). Guarded by `tests/scripts/stageCContractInventory.test.ts` — adding an eighth without recording it here fails CI |
-| Stage C remaining blocker | The data-protection review (issue #272). Roadmap step 4 is complete; step 3 is not, and it gates the migration |
+| Stage C remaining blocker | **The data-protection decision is made** — [ADR 0020](../adr/0020-account-erasure-and-competitive-history.md), 30 July 2026 — so roadmap steps 3 and 4 are both discharged. What remains before a migration is reconciling the Stage C design against ADR 0020, because the design predates it and path B (remove completely, with deterministic recomputation) is a requirement the design was not written to meet |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; no development or simulation write path may target production |
 
@@ -66,7 +66,7 @@ The development Supabase inspection was limited to project identity/version and 
 | Database API hardening | **Guarded.** PR #250 proves every public table has RLS and every security-definer function pins `search_path`; PR #265 pins every public view and direct browser relation grant. |
 | Timezone authority | **Seam landed; season value absent.** PR #252 separates `competitionTimeZone` from `viewerTimeZone`, but adapters still fall back to the viewer until Stage C supplies `tournaments.display_timezone`. |
 | Timezone positive control | **Corrected.** PR #255 uses real `lockScopes` and the real `competitionTimeZone` config field. |
-| Account deletion | **Unsafe current behaviour, fully characterised.** Competitive rows still use mixed cascade/restrict/set-null/no-action references to `auth.users`; PR #246 pins the before-state but does not fix it. |
+| Account deletion | **Unsafe current behaviour, fully characterised; target behaviour now decided.** Competitive rows use mixed `cascade`/`restrict`/`set null` references to `auth.users`. PR #246 pins the before-state and PR #271 removed the one undeclared action, so `no action` no longer appears — the remaining mix is three behaviours, not four, and it is still three too many. [ADR 0020](../adr/0020-account-erasure-and-competitive-history.md) is the target: two user-chosen paths (anonymise-and-remain, remove-completely), both supported by the schema, replacing the mixed actions with one deliberate model. Decided, not implemented. |
 | TypeScript/static coverage | **Exhaustive for committed TS/TSX.** PRs #255, #258 and #261 cover application, tests, e2e, production-smoke, tools and configs; PR #261 guards future files and states strictness explicitly. |
 | Deploy-gate JavaScript | **Type-checked.** PR #264 covers the three production-decision gates; remaining JavaScript files are measured in an explicit deferred inventory. |
 | Leaderboard scale | **Measured, not redesigned.** PR #266 confirms full-field aggregation cost scales with `score_events`; about 35 ms/page at the enforced 250-entry synthetic case and about 652 ms mean at 5,000 entries/300,000 events. ACQ-R02 remains open; hosted concurrency is untested and no materialised standings table exists. |
@@ -125,7 +125,7 @@ No migration exists and no hosted schema operation is authorised. Design approva
 ## Open platform gaps
 
 - reviewed and implemented competition-season schema;
-- data-protection review for auth erasure versus pseudonymised competitive history;
+- ~~data-protection review for auth erasure versus pseudonymised competitive history~~ — **decided 30 July 2026 by [ADR 0020](../adr/0020-account-erasure-and-competitive-history.md); implementation outstanding.** The decision exists, the schema does not. ADR 0020 requires the user to choose between anonymise-and-remain and remove-completely, and **the schema must support both** — path B needs a competitive record to be removable with dependent standings recomputed deterministically, which is a different requirement from pseudonymising an anchor. Not legal advice, and to be confirmed before public launch per ADR 0015;
 - fixture/result ingestion and provider evidence;
 - season Predictor, Last Man Standing and Cup implementations;
 - cross-competition hub and weekly action surfaces;

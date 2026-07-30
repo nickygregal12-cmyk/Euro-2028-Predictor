@@ -32,3 +32,4 @@ Update a record's status line when merged work changes its truth — an ADR desc
 | [0017](0017-brand-and-club-identity.md) | Brand and club identity | Brand half superseded by [0019](0019-brand-decision-deferred.md); club identity half accepted and in force |
 | [0018](0018-pre-launch-promotion-cadence.md) | Pre-launch promotion cadence | Accepted direction — activation requires owner verification |
 | [0019](0019-brand-decision-deferred.md) | Brand decision deferred with a trigger | Accepted — reopens on Phase 0 completion, decided before the closed cohort opens |
+| [0020](0020-account-erasure-and-competitive-history.md) | Account erasure and competitive history | Accepted — two user-chosen erasure paths, both of which the Stage C schema must support; decided, unimplemented |
