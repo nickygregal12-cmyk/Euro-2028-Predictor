@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-Stage B is complete on `main` through PR #226. Control, parity and inventory work from PRs #228, #229, #232, #233, #235 and #239 is also on `main`, currently `69f6e364132f6586d5de9ed8706b0802d14ec0fc`. Draft PR #236 is the active Stage C competition-season schema design; do not create the Stage C migration until that design and coverage manifest are reviewed. Draft PR #230 adds fresh hosted-evidence boundaries and corrects the live roadmap on top of the merged inventory. Do not duplicate either branch. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
+Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C characterisation work from PRs #228, #229, #232, #233, #235, #239, #245 and #246 is also on `main`, currently `972febd017dbecf0ef3b02b16b55c07c74535038`. Draft PR #236 is the active Stage C competition-season schema design; do not create the Stage C migration until that design and coverage manifest are reviewed. Draft PR #230 adds fresh hosted-evidence boundaries and corrects the live roadmap on top of the merged inventory. Do not duplicate either branch. PRs #245 and #246 pin the current timezone and account-deletion behaviour; they do not implement the Stage C fixes. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
@@ -98,6 +98,8 @@ Rules:
 - Other-player detail stays within the authenticated co-member boundary unless a later explicit privacy decision changes it.
 - Profile/H2H headline points and ranks come from bounded authoritative server reads; browser logic may derive comparison/accuracy views only.
 - Feeds remain provisional/display-only; official confirmation remains the scoring/progression gate.
+- UTC instants decide locks and match state. Competition timezone decides competition-day and matchweek grouping. Viewer/device timezone may change displayed clock time only.
+- Account deletion must erase personal identity without rewriting settled competition history. The current cascade/restrict/no-action matrix is characterisation evidence, not the target design.
 
 ## Scoring authority
 
