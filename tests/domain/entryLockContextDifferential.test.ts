@@ -10,7 +10,7 @@ const CONFIG: TournamentCompetitionConfig = {
   id: 'euro-2028',
   name: 'Euro 2028',
   kind: 'tournament',
-  viewerTimeZone: 'Europe/London',
+  competitionTimeZone: 'Europe/London',
   bounds: {
     startsAt: '2028-06-09T00:00:00.000Z',
     endsAt: '2028-07-09T23:59:59.999Z',

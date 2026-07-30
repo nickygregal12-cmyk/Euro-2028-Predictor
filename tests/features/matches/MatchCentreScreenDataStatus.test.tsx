@@ -12,7 +12,6 @@ function baseProps(): MatchCentreScreenProps {
     venueCountryCode: 'gb-eng',
     home: { name: 'Scotland', countryCode: 'gb-sct' },
     away: { name: 'Germany', countryCode: 'de' },
-    temporalState: 'before',
     result: null,
     stake: {
       kind: 'group',
@@ -30,7 +29,6 @@ describe('MatchCentreScreen data status integration', () => {
     render(
       <MatchCentreScreen
         {...baseProps()}
-        temporalState="during"
         statusPresentation={presentMatchLifecycle('LIVE_SECOND_HALF')}
         matchSource={calculateSourceMetadata({
           provider: 'test-provider',

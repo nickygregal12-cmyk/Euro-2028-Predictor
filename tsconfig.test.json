@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    /* Vitest suites read process.env and node:fs, so they need the Node types
+       the application project deliberately does not carry. */
+    "types": ["vite/client", "node"]
+  },
+  /* `src/vite-env.d.ts` supplies the ImportMetaEnv and __EURO28_RELEASE__
+     declarations that application modules imported by these suites rely on;
+     without it every such import fails here but not in the app project. */
+  "include": ["tests", "src/vite-env.d.ts"]
+}
