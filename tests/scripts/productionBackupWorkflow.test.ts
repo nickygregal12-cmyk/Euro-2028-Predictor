@@ -63,18 +63,36 @@ describe('production backup workflow', () => {
     )
   })
 
-  it('verifies restored migration history at the contract-60 head', () => {
-    expect(workflow).toContain("EXPECTED_MIGRATION_COUNT: '60'")
+  it('derives restored migration-history expectations from committed authority', () => {
     expect(workflow).toContain(
-      "EXPECTED_LATEST_MIGRATION_VERSION: '20260729110000'",
-    )
-    expect(workflow).toContain(
-      'EXPECTED_LATEST_MIGRATION_NAME: predictor_cup_lint_safe_qualification',
+      'node scripts/deployment-contract-expectations.mjs >> "$GITHUB_ENV"',
     )
     expect(rehearsalVerification).toContain(
       'supabase_migrations.schema_migrations',
     )
     expect(rehearsalVerification).toContain('expected_migration_count')
+  })
+
+  it('never pins the migration-history expectations as workflow literals', () => {
+    // These were pinned to contract 60 while the deployment contract declared
+    // 63, so the restore rehearsal asserted a superseded migration history.
+    // A job- or step-level env key also overrides $GITHUB_ENV, which would
+    // reintroduce the same silent drift, so absence is asserted rather than
+    // a corrected value.
+    for (const name of [
+      'EXPECTED_MIGRATION_COUNT',
+      'EXPECTED_LATEST_MIGRATION_VERSION',
+      'EXPECTED_LATEST_MIGRATION_NAME',
+    ]) {
+      expect(workflow).not.toMatch(new RegExp(`^\\s*${name}:`, 'm'))
+      expect(workflow).toContain(`\${${name}}`)
+    }
+  })
+
+  it('derives the expectations before the restore rehearsal consumes them', () => {
+    expect(
+      workflow.indexOf('node scripts/deployment-contract-expectations.mjs'),
+    ).toBeLessThan(workflow.indexOf('restore-rehearsal-verification.sql'))
   })
 
   it('prints counts only from the restored copy', () => {

@@ -82,7 +82,6 @@ const routes = [
   '/league',
   '/matches',
   '/more',
-  '/__production-not-found-probe__',
 ]
 
 for (const route of routes) {
@@ -90,6 +89,14 @@ for (const route of routes) {
   assertEqual(response.body, root.body, `SPA shell for ${route}`)
   console.log(`${route}: PASS`)
 }
+
+// An unknown path must serve the same SPA shell but answer 404, not a soft 200
+// (SEO-001). This is the hosted proof of the netlify.toml catch-all status;
+// tests/app/spaRoutingStatus.test.ts only proves the committed configuration.
+const notFoundProbe = '/__production-not-found-probe__'
+const notFoundResponse = await fetchText(notFoundProbe, 404)
+assertEqual(notFoundResponse.body, root.body, `SPA shell for ${notFoundProbe}`)
+console.log(`${notFoundProbe}: PASS (404)`)
 
 const assetPaths = discoverAssets(root.body)
 if (assetPaths.length === 0) stop('No JavaScript or CSS assets were found.')
@@ -138,7 +145,7 @@ if (unexpectedSupabaseUrls.length > 0) {
 console.log('Supabase endpoint isolation: PASS')
 console.log('PRODUCTION ANONYMOUS HTTP SMOKE: PASSED')
 
-async function fetchText(pathname) {
+async function fetchText(pathname, expectedStatus = 200) {
   const url = new URL(pathname, `${origin}/`)
   let response
 
@@ -152,8 +159,10 @@ async function fetchText(pathname) {
     stop(`Request failed for ${url}: ${errorMessage(error)}`)
   }
 
-  if (response.status !== 200) {
-    stop(`${url} returned HTTP ${response.status}.`)
+  if (response.status !== expectedStatus) {
+    stop(
+      `${url} returned HTTP ${response.status}; expected ${expectedStatus}.`,
+    )
   }
 
   const finalUrl = new URL(response.url)

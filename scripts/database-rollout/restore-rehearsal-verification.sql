@@ -6,9 +6,14 @@
 -- row contents — so it is safe for CI logs and job summaries.
 --
 -- Required psql variables:
---   -v expected_migration_count=36
---   -v expected_latest_version=20260725010000
---   -v expected_latest_name=authoritative_reference_integrity
+--   -v expected_migration_count=<count>
+--   -v expected_latest_version=<14-digit migration timestamp>
+--   -v expected_latest_name=<migration name>
+--
+-- Do not copy literal values into a caller. Derive them from committed
+-- authority with `node scripts/deployment-contract-expectations.mjs`, as
+-- .github/workflows/production-backup.yml does; a hand-maintained expectation
+-- drifts behind config/deployment-contract.json and fails this check.
 
 \o /dev/null
 select set_config('rehearsal.expected_migration_count', :'expected_migration_count', false);
