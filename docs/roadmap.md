@@ -14,12 +14,11 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 
 The previous roadmap was inconsistent with the reconciled planning hierarchy. The following corrections are explicit rather than silent:
 
-1. **Parent/child authority:** the programme plan, not the engineering plan, is identified as the parent programme.
-2. **Surface migration order:** Stage B follows the child plan's `homeDashboard → matchesTab → matchCentre → entryLock` sequence, each with pre-migration differential evidence.
+1. **Parent/child authority:** the programme plan, not the engineering plan, is now identified as the parent programme.
+2. **Surface migration order:** the roadmap no longer carries the former `entryLock → matchCentre → matchesTab → homeDashboard` order. Stage B follows the child plan's `homeDashboard → matchesTab → matchCentre → entryLock` sequence, each with pre-migration differential evidence.
 3. **Design and instrumentation:** information architecture, prototype testing, visual direction and event-taxonomy definition belong to programme **Phase 1** before Stages E–H implement screens. Stage H implements validated output rather than designing alongside construction.
 4. **Launch and acquisition:** Stage J is launch readiness **and go-to-market**, with the programme window beginning in **February 2027**.
-5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games; new work covers only new platform and season behaviour.
-6. **Stage B status:** the roadmap no longer says the context engine is unwired. The foundation and Home migration are merged, while Matches, Match Centre, entry lock and temporal-state retirement are implemented and validated in the remaining draft stack.
+5. **Bonus Games Browser E2E:** earlier readiness wording treated this coverage as absent. PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games; new work covers only new platform and season behaviour.
 
 ## Delivered baseline
 
@@ -31,32 +30,22 @@ Remaining tournament-specific work is parked in Part I of [`../MASTER-TODO.md`](
 
 ### Stage A — authority and control alignment
 
-The platform ADRs, parent/child planning hierarchy, state architecture and domain-wide automated controls are established. The current documentation slice reconciles live status and next-step wording with implementation reality. Brand-clearance work remains separately governed by ADR 0017.
+The active pull-request stack contains the platform ADRs, pure context foundation, forward-document reconciliation, state-architecture reconciliation, domain-wide Database parity correction, programme hierarchy and this evidence correction.
 
-### Stage B — competition-context foundation and surface migration
+Stage A is complete only after the intended stack has landed, contradictions are reconciled on `main`, and applicable controls run on the final heads.
 
-Implementation sequence:
+### Stage B — competition-context foundation
 
-- foundation and deterministic clock/state tests merged through PR #212;
-- Home migration merged through PR #219;
-- Matches migration validated in draft PR #216;
-- Match Centre migration validated in draft PR #222;
-- entry-lock migration validated in draft PR #223;
-- `MatchTemporalState` retirement validated in draft PR #224.
-
-All internal gates are green on the final Stage B heads: build/typecheck, lint, full Vitest, production dependency audit, disposable database rebuild/lint/pgTAP/parity and authenticated browser journeys. Exact Netlify PR-preview smoke remains blocked before application loading by the unavailable preview identity.
-
-Stage B implementation is complete, but its exit is not yet recorded on clean `main`. The remaining task is deliberate integration of the validated draft stack and rerunning the applicable clean-head gates.
+The pure engine exists on the open foundation branch but is not on `main` and no rendered surface has migrated. The existing Euro 2028 behaviour remains the baseline contract.
 
 ## Next executable sequence
 
-1. Integrate the remaining Stage B draft stack to clean `main` in dependency order; do not merge or rewrite around conflicts without review.
-2. Resolve the exact Netlify preview-identity blocker or approve a documented alternative preview path; do not misclassify the external 404 as an application failure.
-3. Confirm the shared context consumers and `MatchTemporalState` retirement on clean `main` with the applicable automated gates.
-4. Begin Stage C only from that clean baseline: design the competition-season schema, deletion/anonymisation consequences and timezone contract before dependent records exist.
-5. Implement Stage C as a coherent append-only development migration with canonical applied-state, environment-parity, relationship-safeguard and preservation evidence in the same change.
-6. Do not mutate hosted development or production schema without the currently applicable approval, preflight and verification process.
-7. Continue to Stage D ingestion only after Euro 2028 is represented as one competition season without changing its existing rules, scores or access boundaries.
+1. Resolve the open documentation and engine stack under the reviewed merge plan; do not begin a surface migration from an intermediate stack head.
+2. Confirm the final competition-context engine and planning authorities are present on clean `main` with green checks.
+3. Migrate `homeDashboard.ts`, committing its pre-migration differential fixtures before implementation.
+4. Migrate `matchesTab.ts`, then `matchCentre.ts`, then `entryLock.ts`, each with unchanged fixtures and no weakened test.
+5. Retire `MatchTemporalState` only after all four surfaces have migrated, in a separate pull request.
+6. Continue through the child engineering plan while programme discovery, design and data work proceed according to the parent phases.
 
 ## Programme and stage navigation
 
