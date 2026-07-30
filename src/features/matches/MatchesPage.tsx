@@ -11,7 +11,11 @@ import {
   authoritativeMatchScore,
   authoritativeWinnerSide,
 } from '../../domain/tournament/authoritativeMatchResult'
-import { groupByMatchday, groupByGroupLetter, currentGroupIndex } from '../../domain/tournament/matchesTab'
+import {
+  groupByMatchday,
+  groupByGroupLetter,
+  currentGroupIndexFromContext,
+} from '../../domain/tournament/matchesTab'
 import { sumGroupGoals } from '../../domain/tournament/groupGoals'
 import { MatchesScreen, type FilterKey, type FixtureRowVM, type MatchesGroupVM } from './MatchesScreen'
 import {
@@ -22,13 +26,12 @@ import {
 import { MatchesTablesView, MatchesBracketView, MatchesStatsView } from './TournamentInfoViews'
 import { useOpenMatchCentre } from './useOpenMatchCentre'
 import { formatShortDate } from '../../app/time'
+import { resolveTournamentCompetitionContext } from '../shared/tournamentCompetitionContext'
 import s from '../shared.module.css'
 import m from './MatchesTab.module.css'
 
 const STAGE_UP: Record<string, KnockoutStage> = { r16: 'R16', qf: 'QF', sf: 'SF', final: 'FINAL', champion: 'CHAMPION' }
 
-// The tournament-info sub-views (design-system §Matches). Fixtures keeps its
-// own filter chips; the other three are the "what's happening" views.
 type ViewKey = 'fixtures' | 'tables' | 'bracket' | 'stats'
 
 const VIEWS: { key: ViewKey; label: string }[] = [
@@ -67,73 +70,82 @@ export function MatchesPage() {
     const td = data.data
     const letterOf = (groupId: string | null) => td.groups.find((g) => g.id === groupId)?.letter ?? null
 
-    // Build a row VM for one match from own picks + result.
-    const rowOf = (m: Match): FixtureRowVM => {
-      const home = { name: teamName.get(m.homeTeamId ?? '') ?? 'TBC', countryCode: '' }
-      const away = { name: teamName.get(m.awayTeamId ?? '') ?? 'TBC', countryCode: '' }
-      const state = matchTemporalState(m)
-      const result = authoritativeMatchScore(m)
+    const rowOf = (match: Match): FixtureRowVM => {
+      const home = { name: teamName.get(match.homeTeamId ?? '') ?? 'TBC', countryCode: '' }
+      const away = { name: teamName.get(match.awayTeamId ?? '') ?? 'TBC', countryCode: '' }
+      const state = matchTemporalState(match)
+      const result = authoritativeMatchScore(match)
 
-      if (m.round === 'group') {
-        const p = preds.getPrediction(m.id)
-        const pick = p.homeScore !== null && p.awayScore !== null ? { homeScore: p.homeScore, awayScore: p.awayScore, joker: p.joker } : null
-        const gs = groupStake(pick, result)
-        const outcome = gs.outcome === 'unknown' ? 'neutral' : gs.outcome
+      if (match.round === 'group') {
+        const prediction = preds.getPrediction(match.id)
+        const pick = prediction.homeScore !== null && prediction.awayScore !== null
+          ? { homeScore: prediction.homeScore, awayScore: prediction.awayScore, joker: prediction.joker }
+          : null
+        const stake = groupStake(pick, result)
         return {
-          matchRef: m.matchRef,
+          matchRef: match.matchRef,
           home,
           away,
           state,
-          timeLabel: whenLabel(m),
+          timeLabel: whenLabel(match),
           result,
           yourPick: pick ? `You said ${pick.homeScore}–${pick.awayScore}` : null,
-          points: gs.points,
+          points: stake.points,
           joker: !!pick?.joker,
-          jokerPaid: !!pick?.joker && gs.outcome !== 'wrong',
-          outcome,
+          jokerPaid: !!pick?.joker && stake.outcome !== 'wrong',
+          outcome: stake.outcome === 'unknown' ? 'neutral' : stake.outcome,
         }
       }
 
-      const winner = authoritativeWinnerSide(m)
-      const hs = (m.homeTeamId && preds.bracketProgression[m.homeTeamId] ? STAGE_UP[preds.bracketProgression[m.homeTeamId]] : null) as KnockoutStage | null
-      const as = (m.awayTeamId && preds.bracketProgression[m.awayTeamId] ? STAGE_UP[preds.bracketProgression[m.awayTeamId]] : null) as KnockoutStage | null
-      const ks = koStake(hs, as, m.round, winner)
-      const backedName = ks.backed === 'home' ? home.name : ks.backed === 'away' ? away.name : null
+      const winner = authoritativeWinnerSide(match)
+      const homeStage = (match.homeTeamId && preds.bracketProgression[match.homeTeamId]
+        ? STAGE_UP[preds.bracketProgression[match.homeTeamId]]
+        : null) as KnockoutStage | null
+      const awayStage = (match.awayTeamId && preds.bracketProgression[match.awayTeamId]
+        ? STAGE_UP[preds.bracketProgression[match.awayTeamId]]
+        : null) as KnockoutStage | null
+      const stake = koStake(homeStage, awayStage, match.round, winner)
+      const backedName = stake.backed === 'home' ? home.name : stake.backed === 'away' ? away.name : null
       return {
-        matchRef: m.matchRef,
+        matchRef: match.matchRef,
         home,
         away,
         state,
-        timeLabel: whenLabel(m),
+        timeLabel: whenLabel(match),
         result,
         yourPick: backedName ? `You had ${backedName} through` : null,
-        points: ks.points,
+        points: stake.points,
         joker: false,
-        outcome: ks.correct === true ? 'good' : ks.correct === false ? 'bad' : 'neutral',
+        outcome: stake.correct === true ? 'good' : stake.correct === false ? 'bad' : 'neutral',
       }
     }
 
-    // Apply the filter, then choose the grouping.
     let source = td.matches
-    if (filter === 'jokers') source = td.matches.filter((m) => m.round === 'group' && preds.getPrediction(m.id).joker)
-
-    const groups =
-      filter === 'group'
-        ? groupByGroupLetter(source, letterOf)
-        : groupByMatchday(source)
-
-    const vm: MatchesGroupVM[] = groups.map((g) => ({
-      key: g.key,
-      label: g.label,
-      dateLabel: g.matches.length ? dateLabel(g.matches[0]) : '',
-      rows: g.matches.map(rowOf),
+    if (filter === 'jokers') {
+      source = td.matches.filter((match) => match.round === 'group' && preds.getPrediction(match.id).joker)
+    }
+    const groups = filter === 'group' ? groupByGroupLetter(source, letterOf) : groupByMatchday(source)
+    const viewModels: MatchesGroupVM[] = groups.map((group) => ({
+      key: group.key,
+      label: group.label,
+      dateLabel: group.matches.length ? dateLabel(group.matches[0]) : '',
+      rows: group.matches.map(rowOf),
     }))
-    const scrollToKey = filter === 'all' && vm.length ? vm[currentGroupIndex(groups)].key : null
-    return { vm, scrollToKey }
+
+    const nowServer = new Date()
+    const competition = resolveTournamentCompetitionContext({
+      data: td,
+      submitted: preds.submittedAt !== null,
+      entryComplete: false,
+      nowServer,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    })
+    const scrollToKey = filter === 'all' && viewModels.length
+      ? viewModels[currentGroupIndexFromContext(groups, competition.context)].key
+      : null
+    return { vm: viewModels, scrollToKey }
   }, [data, preds, teamName, filter])
 
-  // The tournament-info view models read confirmed results only — they don't
-  // depend on the filter or (except the goals race) on the user's entry.
   const info = useMemo(() => {
     if (data.status !== 'ready') return null
     const td = data.data
@@ -150,9 +162,7 @@ export function MatchesPage() {
   }, [data])
 
   const predictedGroupGoals = useMemo(() => {
-    if (data.status !== 'ready' || !preds.ready) {
-      return { total: 0, predictedCount: 0, matchCount: 0 }
-    }
+    if (data.status !== 'ready' || !preds.ready) return { total: 0, predictedCount: 0, matchCount: 0 }
     return sumGroupGoals(
       data.data.matches
         .filter((match) => match.round === 'group')
@@ -164,24 +174,16 @@ export function MatchesPage() {
     return (
       <div className={s.page}>
         <EmptyState icon={<CalendarIcon size={22} />} title="Couldn't load fixtures" description={data.message} />
-        <Button variant="secondary" fullWidth onClick={data.reload}>
-          Retry fixtures
-        </Button>
-        <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
-          Back to Home
-        </Button>
+        <Button variant="secondary" fullWidth onClick={data.reload}>Retry fixtures</Button>
+        <Button variant="secondary" fullWidth onClick={() => navigate('/')}>Back to Home</Button>
       </div>
     )
   }
   if (!built || !info) {
     return (
       <div className={s.page} role="status" aria-live="polite" aria-label="Loading fixtures">
-        <div className={s.card}>
-          <Skeleton lines={3} />
-        </div>
-        <div className={s.card}>
-          <Skeleton lines={3} />
-        </div>
+        <div className={s.card}><Skeleton lines={3} /></div>
+        <div className={s.card}><Skeleton lines={3} /></div>
       </div>
     )
   }
@@ -189,23 +191,19 @@ export function MatchesPage() {
   return (
     <div className={m.page}>
       <h1 className={m.title}>Matches</h1>
-
-      {/* Toggle chips, not tabs — same reasoning as the fixture filter (axe
-          wcag131: a tablist requires tab-role children). */}
       <div className={m.filters} role="group" aria-label="Matches view">
-        {VIEWS.map((v) => (
+        {VIEWS.map((item) => (
           <button
-            key={v.key}
+            key={item.key}
             type="button"
-            className={`${m.chip} ${view === v.key ? m.chipOn : ''}`}
-            aria-pressed={view === v.key}
-            onClick={() => setView(v.key)}
+            className={`${m.chip} ${view === item.key ? m.chipOn : ''}`}
+            aria-pressed={view === item.key}
+            onClick={() => setView(item.key)}
           >
-            {v.label}
+            {item.label}
           </button>
         ))}
       </div>
-
       {view === 'fixtures' ? (
         <MatchesScreen
           filter={filter}
