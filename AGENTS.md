@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C characterisation work from PRs #228, #229, #232, #233, #235, #239, #245, #246 and #250 is also on `main`, currently `183544b7b29a5360b1c0a04a2c7007e821cbce97`. Draft PR #236 is the active Stage C competition-season schema design; do not create the Stage C migration until that design and coverage manifest are reviewed. Draft PR #230 adds fresh hosted-evidence boundaries and corrects the live roadmap. PR #252 is a fully green, behaviour-preserving parallel seam that separates `competitionTimeZone` from `viewerTimeZone` but deliberately leaves competition timezone unwired until the Stage C season column exists. Do not claim it has fixed viewer-dependent grouping unless it merges and a season timezone is supplied. Do not duplicate these branches. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
+Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C foundation work through PRs #228, #229, #232, #233, #235, #239, #245, #246, #250 and #252 is also on `main`, currently `1ec505a7d423c8d0b2b03327f8893e3954fa2246`. PR #252 lands the competition/viewer timezone seam but intentionally keeps the viewer fallback until Stage C supplies `tournaments.display_timezone`; do not claim viewer-dependent grouping is fixed. Draft PR #236 is the active Stage C competition-season schema design; do not create the migration until its design and coverage manifest are reviewed. Draft PR #230 owns the live-authority reconciliation. PR #255 is fully green and adds enforced TypeScript checking for `tests/` while correcting two false-positive tests; treat it as the current prerequisite until it lands, and do not duplicate it. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
@@ -124,7 +124,7 @@ npm audit --omit=dev --audit-level=high
 
 Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
 
-`tsconfig.app.json` currently includes only `src`, so passing `tsc -b` does not prove TypeScript test sources are type-correct. Before Stage C relies on new TypeScript contract fixtures, add a dedicated test typecheck or another enforced equivalent; do not mistake Vitest transpilation for static type evidence.
+Current `main` still compiles only `src` and Vite config through `tsc -b`; TypeScript test sources are not yet static evidence. Fully green PR #255 adds `tsconfig.test.json`, makes the existing build enforce it and fixes the vacuous `activeLock` timezone assertion plus a fixture using `viewerTimeZone` where the config required `competitionTimeZone`. Until it lands, do not treat the affected test assertions as trustworthy static proof. `e2e/` and `scripts/` remain outside that proposed test project.
 
 ## Production milestones
 
