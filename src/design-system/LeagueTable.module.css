@@ -1,0 +1,204 @@
+/* Row layout matches GroupTable's contract: one grid, every cell a direct
+   child, no nested flex grouping of mark + name. Columns are sized so twenty
+   rows fit a 360px screen without horizontal scroll — a table that scrolls
+   sideways is a table nobody screenshots. */
+.wrap {
+  width: 100%;
+}
+
+.table {
+  display: block;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.headRow,
+.row {
+  display: grid;
+  grid-template-columns: 30px 26px 1fr 24px 32px 30px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.headRow {
+  height: 30px;
+  border-bottom: 1px solid var(--line);
+  color: var(--mut);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.headRow abbr {
+  text-decoration: none;
+  border: 0;
+}
+
+.posHead {
+  text-align: center;
+}
+
+.clubHead {
+  grid-column: 2 / 4;
+}
+
+.numHead {
+  text-align: right;
+}
+
+.group {
+  display: contents;
+}
+
+.row {
+  min-height: var(--tap-min, 44px);
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.group:last-child .row {
+  border-bottom: 0;
+}
+
+/* Position cell carries the zone bar. The bar sits left of the number rather
+   than behind it, so the number stays legible at every zone colour. */
+.pos {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--mut);
+}
+
+.bar {
+  position: absolute;
+  left: -12px;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: transparent;
+}
+
+.mark {
+  display: flex;
+  align-items: center;
+}
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--mut);
+}
+
+.pts {
+  color: var(--tx);
+  font-weight: 600;
+}
+
+/* Movement is a secondary signal beside the club name, not a column — a column
+   would cost width that twenty rows at 360px cannot spare. Shape and colour
+   both carry it, and it is labelled for assistive technology. */
+.move {
+  font-size: 8px;
+  line-height: 1;
+}
+
+.up {
+  color: var(--acc);
+}
+
+.down {
+  color: var(--red);
+}
+
+/* Zones. Colour is never the only signal: the bar, the position number colour
+   and the legend all carry it, and each row names its zone to assistive
+   technology. */
+.champion .bar {
+  background: var(--gold);
+}
+.champion .pos {
+  color: var(--gold);
+}
+
+.promotion .bar,
+.europe .bar {
+  background: var(--acc);
+}
+.promotion .pos,
+.europe .pos {
+  color: var(--acc);
+}
+
+.playoff .bar {
+  background: var(--amb);
+}
+.playoff .pos {
+  color: var(--amb);
+}
+
+.relegation .bar {
+  background: var(--red);
+}
+.relegation .pos {
+  color: var(--red);
+}
+
+/* The Scottish split. A labelled divider rather than a gap, because a gap alone
+   reads as a rendering fault. Positions continue across it — the split does not
+   restart numbering and points carry through. */
+.divider {
+  display: block;
+  padding: 7px 12px;
+  background: var(--chip);
+  border-bottom: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+}
+
+.dividerLabel {
+  color: var(--mut);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--mut);
+  font-size: 11px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendBar {
+  width: 3px;
+  height: 12px;
+  border-radius: 2px;
+  flex: none;
+}
