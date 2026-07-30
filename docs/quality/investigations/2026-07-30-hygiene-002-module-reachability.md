@@ -2,7 +2,7 @@
 
 **Date:** 30 July 2026
 **Register item:** `HYGIENE-002` — "Some pure modules may be test/reference-only" (Low, **Open; verify before deletion**)
-**Scope:** report only. No module is deleted, moved, renamed or edited by this investigation.
+**Scope:** verification report. The analysis itself changed nothing; the two retirements it cleared in §B were then executed in a separate commit on the same branch, recorded under *Executed retirements* below. Nothing else was deleted, moved or edited.
 **Baseline:** `origin/main` at `a83121dc2e73690b3880e7d6d13b8f06f985fecd`
 
 ## Purpose
@@ -126,7 +126,7 @@ No open branch touches any file in §B, §C or §D. The two safe retirements in 
 
 | Action | Files | Blocked on |
 | --- | --- | --- |
-| Delete | `src/domain/tournament/seedData.ts`, `src/App.css` | nothing — no references, no branch conflict |
+| Delete — **executed, see below** | `src/domain/tournament/seedData.ts`, `src/App.css` | nothing — no references, no branch conflict |
 | Add Database parity coverage, then decide | `src/domain/rateLimit.ts` | parity suite work; relates to `DATA-007` |
 | Refer to scoring authority | `src/domain/tournament/calculateLeagueRank.ts` | owner decision that contract 62 owns the tie-break order |
 | Relocate to `tests/` | the three `src/**/*.test.*` files | Stage B integration on `main` |
@@ -135,10 +135,23 @@ No open branch touches any file in §B, §C or §D. The two safe retirements in 
 
 `HYGIENE-002` should **not** close on this document. Two files can be retired; the two genuinely interesting cases — an unverified parity mirror and a superseded scoring rule — are findings that outlive the deletion question, and both point at coverage rather than cleanup.
 
+## Executed retirements
+
+The two §B files were deleted on this branch after the verification above, on owner instruction:
+
+- `src/domain/tournament/seedData.ts`
+- `src/App.css`
+
+Re-checked immediately before deletion. The only remaining mentions of `seedData` anywhere in the repository are in dated, immutable evidence — [`../audits/2026-07-23-full-audit.md`](../audits/2026-07-23-full-audit.md) and the `../history/` register and baseline snapshots — which are the documents that first raised `HYGIENE-002`. All of those mentions are inline code spans, not links, so no path reference breaks. `src/App.css` had no mention of any kind.
+
+Note that those historical documents also mention `seedData.test.ts`; that is `tests/scripts/seedData.test.ts`, which tests the `scripts/seed-dev/` generator and is retained.
+
+Nothing else in §A, §C, §D or §E was touched.
+
 ## Constraints observed
 
-- No file under `src/`, `tests/`, `supabase/`, `scripts/` or `config/` was created, modified or deleted.
-- No module was deleted, including the two assessed as safe to delete.
+- Apart from the two deletions recorded above, no file under `src/`, `tests/`, `supabase/`, `scripts/` or `config/` was created, modified or deleted.
+- Neither test-only module (`rateLimit.ts`, `calculateLeagueRank.ts`) was deleted; both remain open questions requiring parity coverage or scoring authority.
 - No register row was edited; severity and status remain the owner's call.
 - No hosted Supabase or Netlify access was used, and no hosted claim is made.
 - The analysis script was run from a scratchpad and is not committed; the method section states enough to reproduce it, including the parser defect to check for first.
