@@ -93,7 +93,7 @@ describe('matches tab shared competition-context parity', () => {
       submitted: true,
       entryComplete: true,
       nowServer: now,
-      timeZone: 'Europe/London',
+      viewerTimeZone: 'Europe/London',
     })
     expect(currentGroupIndexFromContext(groups, resolved.context)).toBe(legacy)
   })
@@ -109,7 +109,7 @@ describe('matches tab shared competition-context parity', () => {
       submitted: false,
       entryComplete: false,
       nowServer: new Date('2028-06-01T12:00:00.000Z'),
-      timeZone: 'Europe/London',
+      viewerTimeZone: 'Europe/London',
     })
     expect(currentGroupIndexFromContext(groups, resolved.context)).toBe(groups.length - 1)
   })

@@ -164,7 +164,7 @@ function captureMigratedOutput(input: LegacyPhaseInput) {
     submitted: input.submitted,
     entryComplete: input.submitted,
     nowServer: new Date(input.hasResults ? '2028-06-15T12:00:00Z' : '2028-06-14T12:00:00Z'),
-    timeZone: 'UTC',
+    viewerTimeZone: 'UTC',
   })
 
   return {
@@ -198,7 +198,7 @@ describe('homeDashboard legacy differential fixtures', () => {
       submitted: true,
       entryComplete: true,
       nowServer: new Date('2028-06-14T18:00:00Z'),
-      timeZone: 'UTC',
+      viewerTimeZone: 'UTC',
     })
 
     expect(migrated.context.lockConfigurationValid).toBe(true)
@@ -215,7 +215,7 @@ describe('homeDashboard legacy differential fixtures', () => {
       submitted: true,
       entryComplete: true,
       nowServer: new Date('2028-06-14T23:30:00Z'),
-      timeZone: 'Europe/London',
+      viewerTimeZone: 'Europe/London',
     })
 
     expect(migrated.todayISO).toBe('2028-06-15')
@@ -227,7 +227,7 @@ describe('homeDashboard legacy differential fixtures', () => {
       submitted: false,
       entryComplete: true,
       nowServer: new Date('2028-06-14T20:00:00Z'),
-      timeZone: 'UTC',
+      viewerTimeZone: 'UTC',
     })
 
     expect(migrated.context.entryState).toBe('locked')
@@ -243,7 +243,7 @@ describe('homeDashboard legacy differential fixtures', () => {
       submitted: true,
       entryComplete: true,
       nowServer: new Date('2028-06-14T18:00:00Z'),
-      timeZone: 'UTC',
+      viewerTimeZone: 'UTC',
     })
 
     expect(migrated.phase).toBe('during')

@@ -27,7 +27,7 @@ export function useTournamentEntryLocked(fallback = false): boolean {
     submitted: predictions.submittedAt !== null,
     entryComplete: false,
     nowServer,
-    timeZone,
+    viewerTimeZone: timeZone,
   })
 
   return isEntryLocked(resolved.context)

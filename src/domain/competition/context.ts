@@ -357,12 +357,12 @@ export function resolveCompetitionContext(
   })
 
   const phase = resolveCompetitionPhase(config, competitionData.progress)
-  const today = dateKey(nowServer, config.timeZone)
+  const today = dateKey(nowServer, config.competitionTimeZone)
   const matchesToday = today === null
     ? []
     : matches.filter((match) => {
         const kickoffAt = parseInstant(match.kickoffAt)
-        return kickoffAt !== null && dateKey(new Date(kickoffAt), config.timeZone) === today
+        return kickoffAt !== null && dateKey(new Date(kickoffAt), config.competitionTimeZone) === today
       })
   const liveMatches = matchesToday.filter((match) =>
     ['in_play_feed', 'in_play_no_feed', 'suspended'].includes(match.state),

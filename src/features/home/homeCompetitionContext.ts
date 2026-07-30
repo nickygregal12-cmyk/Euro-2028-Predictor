@@ -8,7 +8,15 @@ export type HomeCompetitionContextInput = {
   submitted: boolean
   entryComplete: boolean
   nowServer: Date
-  timeZone: string
+  /** The viewer's device zone. Renders clock times; never decides a day. */
+  viewerTimeZone: string
+  /**
+   * The competition's own calendar zone. Optional until a season row carries it
+   * (Stage C `display_timezone`); until then it falls back to the viewer's zone,
+   * which is the behaviour this seam preserves exactly. Supplying it is the one
+   * change that makes day grouping stop depending on where the viewer is.
+   */
+  competitionTimeZone?: string
   localDateISO?: string
 }
 

@@ -143,7 +143,7 @@ export function useHomeData(): HomeState {
       submitted,
       entryComplete: status.reviewUnlocked || submitted,
       nowServer,
-      timeZone,
+      viewerTimeZone: timeZone,
       localDateISO: todayISO(nowServer),
     })
     const phase = homeCompetition.phase
