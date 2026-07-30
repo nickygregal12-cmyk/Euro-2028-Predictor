@@ -1,7 +1,7 @@
-# Stage C — competition-season schema design proposal
+# Stage C — competition-season schema design
 
 **Date:** 30 July 2026
-**Status:** **PROPOSAL — REQUIRES OWNER DECISION.** This is not a decision record. It recommends, it does not decide. Sections 5a–5c each end in a question only the owner can close, and no migration should be authored until they are closed.
+**Status:** **DECIDED BY THE OWNER, 30 July 2026.** Sections 5a, 5b and 5c were open questions; all three are now closed and recorded inline. This document is ready to be promoted to an ADR — see §8 for why that is not done here. One dependency remains before §5b is implemented: a data-protection read on the erasure boundary.
 **Baseline:** `main` at [`69f6e36`](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/commit/69f6e36)
 **Stage:** C, authorised because Stage B merged as `2648540` (see [`../quality/current-status.md`](../quality/current-status.md))
 **Governing decisions:** ADR 0011–0014. This document implements them; where it appears to differ, the ADR wins.
@@ -50,11 +50,11 @@ create table tournaments (
 
 `SAFE-008` is enforced by trigger-raised assertions, nine of them across six relationship groups in `20260725010000_authoritative_reference_integrity.sql` — for example *"Match group must belong to the match tournament"* and *"Score event match must belong to the entry tournament"*. These are the assertions that must broaden without weakening.
 
-## 4. Proposed schema shape
+## 4. Schema shape
 
-The recommendation is to **generalise `tournaments` in place rather than introduce a parallel `competition_seasons` table.** Eleven tables and nine trigger assertions already key on `tournament_id`; a second scoping column would mean every safeguard must decide which one governs, and that ambiguity is precisely how a same-scope guard gets weakened by accident.
+**Generalise `tournaments` in place rather than introduce a parallel `competition_seasons` table.** Eleven tables and nine trigger assertions already key on `tournament_id`; a second scoping column would mean every safeguard must decide which one governs, and that ambiguity is precisely how a same-scope guard gets weakened by accident.
 
-Proposed additive changes, all append-only:
+Additive changes, all append-only:
 
 | Change | Purpose |
 | --- | --- |
@@ -67,9 +67,11 @@ Proposed additive changes, all append-only:
 
 **No stored lock instant.** `rounds` deliberately has no `lock_at`. Per ADR 0011 the effective lock is the earliest kickoff among the fixtures currently assigned to the round, resolved by `src/domain/competition/lockState.ts`, which already exists on `main`.
 
-## 5. The three open decisions
+## 5. The three decisions — all closed 30 July 2026
 
-### 5a. Season tie-breaks
+### 5a. Season tie-breaks — **DECIDED**
+
+> **Owner decision, 30 July 2026: exact scores → correct results → joint.** Option 1 below, as recommended.
 
 ADR 0012 makes cumulative total the only ranking that decides the season, and requires matches played to be displayed alongside it. It does not say what happens when two players finish level.
 
@@ -82,11 +84,13 @@ Options:
 3. **Head-to-head across the season, then exact scores.** Defensible in a private league but undefined in the overall standing where two players may share no comparison basis.
 4. **Declare ties joint with no tie-break.** Honest and cheap, but produces joint firsts in a season-long competition where a winner is expected.
 
-**Recommendation: option 1, with explicit joint rank when still level.** It reuses `docs/scoring-rules.md` §5's surviving criteria, needs no new stored data, and is computable from `score_events` as they already exist.
+**Chosen: option 1, with explicit joint rank when still level.** It reuses `docs/scoring-rules.md` §5's surviving criteria, needs no new stored data, and is computable from `score_events` as they already exist. Season standings may therefore compute `rank` from stored totals plus those two counts, with no stored ordering.
 
-> **Decision needed:** confirm option 1, or name the order you want. Until this is closed, season standings must not be built, because the tie-break determines whether `rank` can be computed from stored totals alone or needs a stored ordering.
+### 5b. Account deletion and anonymisation — **DECIDED**
 
-### 5b. Account deletion and anonymisation
+> **Owner decision, 30 July 2026: anonymise the competition record, erase the identity record.** Implemented by decoupling competition data from `auth.users`, per the revised recommendation below. Blocked on one dependency: a data-protection read on the erasure boundary.
+>
+> **Retraction.** An earlier draft of this document recommended changing the competition foreign keys from `on delete cascade` to `on delete restrict`. That was wrong and is withdrawn: `restrict` would *prevent* account deletion outright while a player held entries, which collides with a right-to-erasure request. Decoupling achieves the preservation goal without foreclosing erasure.
 
 This is the decision with a live defect behind it, and it already affects Euro 2028.
 
@@ -103,28 +107,50 @@ ADR 0015 covers the commercial and social model and ADR 0011 requires preserving
 
 Options:
 
-1. **Anonymise, never delete competition rows.** Replace identity on `profiles` (display name → a stable pseudonym such as "Former player 4821", contact fields cleared), keep `entries`, `match_predictions`, `score_events`, `rank_history` and `league_members` intact, and move those three competition-data FKs from `on delete cascade` to `on delete restrict` behind an explicit anonymisation routine — leaving `rate_limit_events` cascading. History stays arithmetically correct.
+1. **Decouple competition history from `auth.users`, then anonymise.** Chosen — detailed below.
 2. **Cascade as today.** Simplest, and wrong: it rewrites completed competitions.
 3. **Tombstone the user and cascade only unsubmitted work.** Middle ground; needs a rule for a partially-played season and adds a state to every read.
 
-**Recommendation: option 1.** It is the only option that satisfies ADR 0011's preservation requirement, and it is the one that gets more expensive with every account deleted before it lands.
+#### The chosen design
 
-> **Decision needed:** confirm anonymise-not-delete, and confirm what an anonymised player is called in a public standing. This also needs a data-protection read — the right to erasure applies to personal data, not to the pseudonymised competition record, but that boundary should be stated deliberately rather than inferred from a schema.
+Two facts make this cheap. `profiles.id` is already the auth user id, and every competition `user_id` already holds that same value — so repointing is a constraint change with **no data movement**. And the actual personal data (email, password hash, auth metadata) lives in `auth.users`, which Supabase manages; `profiles` holds only `display_name`.
 
-### 5c. UTC storage and rendering contract
+1. **Make `profiles` the durable player anchor.** Keep `profiles.id` as the stable player identifier, drop its `on delete cascade` to `auth.users`, and add a nullable `auth_user_id uuid references auth.users (id) on delete set null` alongside.
+2. **Repoint the competition foreign keys from `auth.users (id)` to `profiles (id)`** — `entries`, `league_members`, `rank_history`, and transitively everything cascading from `entries` (`match_predictions`, `score_events`, the predicted tie-resolution tables). Identical values, so a constraint swap.
+3. **Leave `rate_limit_events` cascading from `auth.users`.** Housekeeping with no historical value; it *should* disappear.
+4. **Deletion becomes:** delete the `auth.users` row — genuinely erasing credentials and email — set `profiles.display_name` to a stable pseudonym derived deterministically from the profile id (for example `Former player 4821`, so historical standings stay legible across recomputations), and null `auth_user_id`.
 
-Already partly true in practice and worth making explicit before season fixtures exist: every instant column in the schema is `timestamptz`, and `src/domain/**` is already forbidden from reading an ambient clock — time is an input, which Stage B enforced.
+The result is the legally coherent split: **erasure of the identity record, pseudonymisation of the competition record.** A completed season's table never silently changes, and preserved ranks keep agreeing with a recomputation.
 
-Proposed contract:
+> **Remaining dependency:** a data-protection read on that boundary before implementation. The reasoning here is architectural, not legal advice. What matters is that this design makes the conversation possible, where `restrict` would have foreclosed it.
 
-- **store** every instant as `timestamptz`, always UTC; never a naked `timestamp`, never a local-time string;
-- **store** date-only competition metadata (`starts_on`, `ends_on`) as `date`, with no implied timezone;
+### 5c. UTC storage and rendering contract — **DECIDED**
+
+> **Owner decision, 30 July 2026: split the two concerns.** Calendar grouping uses the competition's timezone; the clock shown to a viewer uses their own device timezone. Both were previously served by a single input, which is the substance of this decision.
+
+#### The distinction that matters
+
+The owner asked the right question: if you go on holiday, shouldn't the app show the correct local time? **Yes — and it already does.** `useTournamentEntryLocked.ts` and `MatchesPage.tsx` both feed in `Intl.DateTimeFormat().resolvedOptions().timeZone`. That behaviour is correct and is kept.
+
+What must *not* depend on the device is calendar grouping. Verified on `main`:
+
+| Concern | Timezone | Evidence |
+| --- | --- | --- |
+| Is a round locked? Has kickoff passed? | **None** — UTC instant comparison | `lockState.ts` and `matchState.ts` contain no timezone reference at all |
+| Which matchweek, or which day, does a fixture belong to? | **Competition** (season row) | `context.ts` uses the timezone only in `dateKey` → `today`, to decide which fixtures are "today" |
+| "Kicks off 16:30" | **Viewer's device** | already the behaviour; travelling shows local time |
+
+So locks are already timezone-independent and need no change. The defect is narrower and specific: **the single `timeZone` input conflates grouping with rendering.** With a UK-centric audience and one tournament that is harmless. For a league season it breaks — a Sunday 16:30 London kickoff is Monday 01:30 in Sydney, so a Sydney viewer would group it under the wrong day, and once matchweeks exist, potentially the wrong matchweek.
+
+#### The contract
+
+- **store** every instant as `timestamptz`, always UTC — already true, 113 such columns and zero naked `timestamp`; date-only competition metadata stays `date`;
 - **derive, never store** the round lock instant, per ADR 0011;
-- **render** in one timezone per competition season, carried as a new `tournaments.display_timezone` (IANA identifier, e.g. `Europe/London`), because a league season's matchweek boundary is a *local* concept — a Sunday 16:30 kickoff is Sunday in London and may not be elsewhere;
-- **resolve** the display timezone at the route boundary and pass it into the domain as an input, matching the pattern Stage B established for the clock;
-- **never** use the viewer's device timezone to decide a lock, a matchweek boundary or a scoring outcome. Device timezone may affect only presentation.
+- **add** `tournaments.display_timezone` — an IANA identifier, validated against a real zone, one per competition season. Season-level rather than on the `competitions` parent because the season is the scoping unit every other decision here uses, and a parent-plus-override needs a resolution rule for no real benefit. In practice it will be constant per competition. Euro 2028 configures as `Europe/London`; the UK and Ireland host nations share offsets, so there is no split-boundary problem;
+- **split** the current single `timeZone` input into a `competitionTimeZone` (grouping, matchweek and day boundaries) and a `viewerTimeZone` (rendered clock times), resolved at the route boundary and passed into the domain as inputs — the same pattern Stage B established for the clock, so no new architectural concept;
+- **never** let device timezone decide a lock, a matchweek boundary or a scoring outcome. Presentation only.
 
-> **Decision needed:** confirm one display timezone per competition season (recommended), rather than per viewer. Per-viewer rendering of matchweek boundaries would make "which matchweek is this?" viewer-dependent, which the standings cannot tolerate.
+Rejected: per-viewer matchweek boundaries. "Which matchweek is this fixture in?" would become viewer-dependent, and standings cannot tolerate that question having two answers.
 
 ## 6. Broadening SAFE-008 without weakening it
 
@@ -157,7 +183,7 @@ Stage C implementation must produce, in the same change:
 - Last Man Standing and Predictor Cup season formats — ADRs 0013 and 0014.
 - Fixture and result ingestion, including provider choice and evidence.
 - Any hosted schema mutation, which requires the applicable approval and preflight process.
-- Converting this proposal into an ADR. That needs an entry in [`../adr/README.md`](../adr/README.md), which is currently in PR #207's diff, so the index edit should wait until #207 lands.
+- Converting this document into an ADR. That needs an entry in [`../adr/README.md`](../adr/README.md), which is currently in PR #207's diff, so the index edit should wait until #207 lands.
 
 ## 9. Concurrency
 
