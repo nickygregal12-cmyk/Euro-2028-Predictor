@@ -25,6 +25,28 @@ Repository assertions in the earlier engineering drafts were checked against cur
 
 External provider, market, legal, season-date and cost claims from earlier drafts were not reclassified as repository facts. They require dated external evidence before implementation depends on them.
 
+### 1a. Corrections forced by Phase 0 evidence — 30 July 2026
+
+[`phase-0-world-cup-evidence.md`](phase-0-world-cup-evidence.md) is the first user evidence this programme has held: owner observation of a live World Cup predictor, roughly sixty users, across a full tournament. The corrections below are recorded rather than silently applied, because each reverses a position this plan previously stated.
+
+The distinction the evidence document draws is carried through here. **Observed** findings are treated as fact. **Stated** findings are the owner's hypothesis — valuable, but not the same thing.
+
+| # | This plan previously assumed | Corrected position | Finding |
+| --- | --- | --- | --- |
+| 1 | Matchweek winners, monthly standings and form give **late joiners** something to win | They are the **primary retention mechanism for the whole field below the top few**. Late joiners are a subset, not the purpose | O1 (observed) |
+| 2 | The weekly pick is the centre of the product | **The match is the event; the pick is the chore.** Live match viewing with league predictions visible is the primary engagement surface | O2 (observed) |
+| 3 | A purpose-built weekly results card is the highest-leverage growth artefact | **The league table is already being shared unprompted.** Make the artefact people already share worth sharing | O3 (observed) |
+| 4 | Competition separation is handled by the separation law | The law is architectural and was **visually invisible**. Separation must be legible on the surface | O4 (observed) |
+| 5 | Per-match point transparency is a nicety | It is a **support-load feature**. The organiser burden was explaining scores, not collecting picks | O5 (observed) |
+| 6 | Email signup is a barrier costing users | Those users are **out of segment**, and are served by managed entrants (ADR 0013). It is a segment boundary, not friction | S1 (stated) |
+
+Corrections 1–5 rest on observed behaviour. Correction 6 rests on the owner's segmentation judgement and is marked accordingly — it is the one most worth revisiting if later evidence disagrees.
+
+**Two ADR-level implications are reported here and deliberately not acted on**, because a substantive change to a decision requires a new ADR rather than an edit:
+
+- **ADR 0012** records secondary rankings as a late-joiner mechanism. O1 makes them load-bearing for most of the field over thirty-eight weeks. That is a change of *purpose*, not emphasis, and plausibly warrants a new ADR.
+- **ADR 0017** states the weekly shareable results card is *"the artefact most likely to be seen outside the product"*. O3 contradicts it: the league table already is. The `ClubIdentity` requirement attached to that consequence still stands whichever artefact wins.
+
 ## 2. Relationship to the product programme
 
 The engineering stages map onto the parent phases:
@@ -55,6 +77,8 @@ The engineering stages map onto the parent phases:
 10. **No speculative abstraction.** Build a shared seam when a second implementation is imminent, not merely imaginable.
 11. **Stable identifiers precede implementation.** New safeguards, surfaces and rules receive IDs before build.
 12. **Superseded controls are archived, not deleted.**
+13. **Separation must be visible, not only enforced.** Principle 9 keeps competitions and games independent in the schema. That is necessary and it is not sufficient: with one extra game, players did not understand it was separate ([Phase 0 evidence](phase-0-world-cup-evidence.md), O4). A surface that does not make the boundary legible fails this principle even when the data model is correct.
+14. **Evidence outranks reasoning.** Where [Phase 0 evidence](phase-0-world-cup-evidence.md) contradicts a position in this plan, the evidence wins and the position is corrected in writing — see §1a. Where it contradicts an ADR, that is reported and settled by a new ADR, never by editing this plan around it.
 
 ## 4. Stage map
 
@@ -142,7 +166,13 @@ Stage D does not pass merely because ingestion is technically correct.
 
 Implement ADR 0012, including recurring lock/submission cadence, an independent season scoring authority, SQL/TypeScript parity, phone-first completion and full-season simulation.
 
-**Exit:** late entry, incomplete rounds, reschedules, corrections and every ADR 0012 rule are proven across a full simulated season.
+**Correction — 30 July 2026 (O1, observed):** this stage previously treated matchweek winners, monthly standings and form as a secondary view serving late joiners. Observed evidence reverses that. Low scorers churned over a **four-week** tournament and were the main retention failure; the season Predictor is a cumulative leaderboard over **thirty-eight**. A player sitting fortieth in October otherwise has seven months with nothing to play for, and that is most of the field, not an edge case.
+
+These rankings are therefore **first-class retention features and must be built as such** — designed, surfaced and tested alongside the cumulative total rather than derived from it as an afterthought. The constraint from ADR 0012 is unchanged and still binding: they are computed from data the leaderboard already produces and **must never feed back into the canonical total**.
+
+The ADR 0012 implication is reported in §1a, not resolved here.
+
+**Exit:** late entry, incomplete rounds, reschedules, corrections and every ADR 0012 rule are proven across a full simulated season, **and the secondary rankings exist as designed surfaces rather than as data that happens to be derivable**.
 
 ## 10. Stage F — season Last Man Standing
 
@@ -169,7 +199,19 @@ Re-plumb the existing Cup machinery to the season points source and formats gove
 
 **Correction — 30 July 2026:** earlier §12/launch-readiness wording treated Bonus Games Browser E2E as absent. That finding is resolved by PR #187 and the recorded authenticated desktop/phone Browser E2E run. Stage H must preserve that tournament proof and add coverage only for genuinely new hub and season behaviour.
 
-**Exit:** the shell matches the tested prototype and a single-game/single-league user sees only their chosen product by default.
+**Correction — 30 July 2026 (O2, observed):** the information architecture behind this stage was reasoned from the weekly pick. Observed usage says otherwise. Peak engagement was **leagues and Match Centre during matches** — watching what everyone in your league predicted, live, with the table moving underneath — and point-change checking immediately after a match ended. Saturday at three, not Friday at the deadline.
+
+**The match is the event; the pick is what earns eligibility for it.** Phase 1 information architecture must start from that position rather than arrive at it.
+
+This records the correction and deliberately **does not redesign the navigation** — that is Phase 1 design work, and doing it here would be exactly the invent-the-shell-while-coding failure principle 3 exists to prevent. What this stage owes Phase 1 is that the corrected premise is written down *before* design begins.
+
+**Correction — 30 July 2026 (O4, observed):** competition and game separation is architecturally enforced under ADRs 0011 and 0015, and this plan treated that as sufficient. It is not. With **one** additional game — KO Predictor in the World Cup product — players did not understand it was separate with separate scoring. The hub carries **three games per competition across two leagues**, so the same confusion multiplies with every competition added.
+
+Separation must be **visible on the surface**, not only true in the schema. A correct separation law that a player cannot see is indistinguishable, to that player, from no separation at all. See also principle 13.
+
+**Correction — 30 July 2026 (O5, observed):** per-match point transparency was treated as a nicety. The observed organiser burden was **explaining scores**, not collecting picks — point breakdowns were unclear enough that players asked a person instead of reading a screen. It is a support-load feature before it is a trust feature, and it should be scoped as one.
+
+**Exit:** the shell matches the tested prototype; a single-game/single-league user sees only their chosen product by default; **a player can tell at a glance which game and which competition a score belongs to; and any score is explainable on screen without asking the organiser**.
 
 ## 13. Stage I — client distribution
 

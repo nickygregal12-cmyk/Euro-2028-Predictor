@@ -183,7 +183,7 @@ All seven unblocked pre-migration contract suites are landed through PR #292. Th
 - [ ] Add league/game preferences without changing enrolment.
 - [ ] Add invitations, rerun/copy and “more competitions” discovery.
 - [ ] Add managed-entry bulk operations and claim flow.
-- [ ] Add shareable weekly results cards and public read-only invite previews.
+- [ ] **Corrected 30 July 2026 (O3, observed):** make the **league table** worth sharing, and add public read-only invite previews. Players in the World Cup product were already screenshotting league tables into group chats, unprompted — so the growth artefact exists and is being shared; it is simply not designed for it. A purpose-built weekly results card was previously recorded here as the highest-leverage growth feature. It is not superseded outright, but it is now the *second* thing to build, behind improving the artefact people already reach for. See [`docs/architecture/phase-0-world-cup-evidence.md`](docs/architecture/phase-0-world-cup-evidence.md). The `ClubIdentity` requirement in ADR 0017 applies to whichever artefact leaves the product.
 - [ ] Complete pre-auth invite trust and aggregate-disclosure review.
 - [ ] Complete loading, empty, partial, retry and unavailable-data states.
 - [ ] Complete landing, legal/footer, account deletion/export and analytics decisions.

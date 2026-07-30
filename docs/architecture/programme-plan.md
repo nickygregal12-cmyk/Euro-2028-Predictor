@@ -38,13 +38,27 @@ Dates are planning windows, not proof of completion. A phase exits only when its
 
 ### Phase 0 — Discovery · Aug–Oct 2026 · parallel to platform work
 
-- Interview 10–15 people who run or play in office, pub and mates' competitions, with organisers treated as the primary acquisition unit.
-- Play the closest competing products for a full cycle and record strengths, friction and genuine differentiation.
-- Observe a real spreadsheet-and-group-chat competition.
-- Define the organiser, committed player and casual participant personas.
-- Define success metrics and thresholds.
+**Partially evidenced as of 30 July 2026.** [`phase-0-world-cup-evidence.md`](phase-0-world-cup-evidence.md) records owner observation of a live World Cup predictor, roughly sixty users, across a full tournament. It is the only user evidence the programme holds and it already corrects six recorded assumptions. It does **not** discharge this phase: the sample is one product, one audience, and all sixty users arrived through one person.
 
-**Gate:** a written research summary, three validated personas and a product-choice hypothesis grounded in direct user evidence. Failure means the product positioning or scope changes before shell design proceeds.
+Outstanding:
+
+- Interview 10–15 people who run or play in office, pub and mates' competitions, with organisers treated as the primary acquisition unit. **Outstanding — and the binding gap is reach, not count: nobody outside the owner's own network has been observed.**
+- Play the closest competing products for a full cycle and record strengths, friction and genuine differentiation. **Outstanding.** Forescore and kicktipp are named and unplayed; the existing evidence does not supersede this.
+- Observe a real spreadsheet-and-group-chat competition. **Outstanding.**
+- Define success metrics and thresholds. **Outstanding**, though the Phase 4 gate below already carries thresholds.
+
+Evidenced:
+
+- ~~Define the organiser, committed player and casual participant personas.~~ **Corrected 30 July 2026 (S1, stated).** The evidence names a different and sharper set, and one of the differences is substantive rather than a rename:
+  - **The regular** — the target. Watches football on a Saturday, comfortable with betting culture but not gambling on this product, gets a buzz from posting into the group chat. Plays weekly across a season, plausibly across several games. Corresponds to the earlier "committed player".
+  - **The organiser** — a role rather than necessarily a distinct person. Carries the score-explanation burden (O5), and remains the primary acquisition unit.
+  - **The tournament-only participant** — **not a casual user to be converted.** Older, wants a sweepstake every two years, was observed refusing email signup. Previously recorded as a signup barrier costing users; the evidence reclassifies them as **out of segment and served by managed entrants** (ADR 0013). This is real evidence for managed entrants rather than speculation about pub competitions.
+
+  Marked *stated* rather than *observed*: the refusal was observed, the segmentation conclusion drawn from it is the owner's judgement. It is the correction most worth revisiting if later evidence disagrees.
+
+**Gate:** a written research summary, three validated personas and a product-choice hypothesis grounded in direct user evidence. **Not yet met.** Personas are now evidence-informed rather than assumed, but the gate requires evidence from outside the owner's network and a full cycle in each competitor product. Failure means the product positioning or scope changes before shell design proceeds.
+
+**Phase 0 now has a dependent it did not have before:** ADR 0019 defers the brand decision until this phase completes, so slippage here delays brand selection as well as design.
 
 ### Phase 1 — Definition and design · Oct 2026–Mar 2027
 
@@ -80,12 +94,14 @@ Run a small invited cohort as a research instrument, not merely a soak test:
 
 **Failable product gate:**
 
-| Metric | Threshold | Meaning if missed |
-| --- | ---: | --- |
-| Weekly Predictor completion | at least 70% by mid-season | Activate the reduced-set fallback already recorded by ADR 0012 |
-| Multi-game entry | at least 50% enter two or more games | The hub thesis is not validated; revisit positioning rather than add features |
-| Group formation | at least one organiser brings four or more people | Rework the organiser proposition and managed-entry assumptions |
-| Week-four retention | at least 40% | Stop public-launch preparation until the underlying problem is understood |
+| Metric | Threshold | Meaning if missed | Evidence position (30 July 2026) |
+| --- | ---: | --- | --- |
+| Weekly Predictor completion | at least 70% by mid-season | Activate the reduced-set fallback already recorded by ADR 0012 | **Weakly supported.** The full World Cup card was completed, and 10–16 matches a week is judged acceptable (S3, stated). Tournament-shaped and owner-judged, so it lowers the risk without testing the threshold |
+| Multi-game entry | at least 50% enter two or more games | The hub thesis is not validated; revisit positioning rather than add features | **No evidence either way.** The World Cup product had one game plus a second that players did not understand was separate (O4). This is the gate metric with the least support and the most riding on it |
+| Group formation | at least one organiser brings four or more people | Rework the organiser proposition and managed-entry assumptions | **Weakly supported.** All ~60 users arrived through one organiser, which evidences the mechanism but in a sample where the organiser was the product's author |
+| Week-four retention | at least 40% | Stop public-launch preparation until the underlying problem is understood | **Contra-indicated, and the threshold may be optimistic.** Low scorers churned across a four-week tournament and it was the main retention failure (O1, observed). A thirty-eight-week season is a harder case, not an easier one — this is the metric most likely to be missed |
+
+**Reading the column:** *observed* findings are behaviour the owner watched; *stated* findings are the owner's judgement. Only O-numbered findings are observed. Nothing here changes a threshold — the thresholds are the gate and moving them because evidence looks unfavourable would defeat the point. It records where the programme is walking in with support and where it is walking in blind.
 
 ### Phase 5 — Launch readiness and go-to-market · Feb–Aug 2027
 
