@@ -29,6 +29,7 @@ import {
 } from '../../domain/tournament/matchCentre'
 import { MatchCentreScreen, type MatchScope, type MatchSaid } from './MatchCentreScreen'
 import { useMatchCentreBackNavigation } from './useMatchCentreBackNavigation'
+import { resolveMatchCentreCompetitionContext } from './matchCentreCompetitionContext'
 import s from '../shared.module.css'
 
 const ROUND_LABEL: Record<string, string> = {
@@ -352,10 +353,24 @@ export function MatchCentrePage() {
   }
 
   const td = data.data
+  const nowServer = new Date()
+  const now = nowServer.toISOString()
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  const resolved = resolveMatchCentreCompetitionContext({
+    data: td,
+    matchId: match.id,
+    submitted: preds.submittedAt !== null,
+    nowServer,
+    timeZone,
+    fetchedAt: now,
+  })
   const pageModel = createMatchCentrePageModel({
     match,
     teams: td.teams,
     groups: td.groups,
+    now,
+    fetchedAt: now,
+    resolvedState: resolved.state,
   })
   const { home, away, result, temporalState: temporal } = pageModel
   const actualWinner = authoritativeWinnerSide(match)
