@@ -1,158 +1,228 @@
-# Multi-competition hub — build plan
+# Multi-competition hub — engineering workstream
 
-**Status:** Forward programme sequence.  
+**Status:** Child engineering plan within the product programme. Proposal, not implementation authority.  
 **Status date:** 29 July 2026  
-**Decision authority:** [`docs/adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`docs/adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).  
-**Implementation authority:** [`docs/quality/current-status.md`](../quality/current-status.md).
+**Parent programme:** [`programme-plan.md`](programme-plan.md)  
+**Decision authority:** [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).  
+**Implementation authority:** [`../quality/current-status.md`](../quality/current-status.md).
 
-This document owns the Stage A–L programme shape only. It does not restate competition, scoring, commercial, client, brand or promotion decisions; the ADRs above win wherever a planning note or older document differs.
+This document owns the Stage A–L engineering sequence. Discovery, research, product design, instrumentation, go-to-market, operations and legal work are governed by the parent programme. Competition rules and strategic decisions are referenced rather than repeated here; the ADRs win wherever this plan or an older document differs.
 
-## Programme framing
+## 1. Repository verification and discrepancies
 
-The repository is transitioning from a completed Euro 2028 tournament baseline into a year-round, multi-competition platform. The recoverable tournament reference is the annotated `euro-2028-baseline` tag. Euro-specific remaining work is parked in [`MASTER-TODO.md`](../../MASTER-TODO.md) and returns in **January 2028**.
+Repository assertions in the earlier engineering drafts were checked against current `main` at `1fb8ffd36ad113079181829a8bcc47175c43b6da`.
 
-The active programme spans three operating periods:
+| Earlier claim | Verified position |
+| --- | --- |
+| Production and repository were at contract 60 | **Stale.** Current `main`, the recorded hosted baseline and the published application are contract 63. |
+| The context engine was unbuilt | **True for current `main`.** Open PR #201 proposes an isolated, unwired foundation; it is not merged implementation. |
+| Automatic submission did not exist | **Stale.** Tournament-wide automatic valid-entry submission exists. Only recurring matchweek scheduling is unbuilt. |
+| Bonus Games lacked Browser E2E | **Stale.** The current risk/feature evidence records authenticated Bonus Games lifecycle coverage. |
+| Both the feature baseline and risk register were several generations stale | **Partly stale.** The risk register is contract-63 aligned; the feature baseline still contains contract-60 classification text. |
+| `844` tests across `144` files were the current safety-net count | **Not retained.** The current quality record reports 149 Vitest files for the exact contract-63 PR head and does not support the earlier count as current. |
+| No fixture/results ingestion adapter existed | **Confirmed on current `main`.** Repository search found no football-data.org, Sportmonks or provider-ingestion implementation. |
+| Browser result-entry administration remained unbuilt | **Stale.** Browser result and qualification administration is implemented and production-hosted. |
 
-1. establish the platform seam and rehearse it against a live domestic-season calendar;
-2. launch and operate the public domestic-season product;
-3. return to Euro 2028 as one configured competition on the platform.
+External provider, market, legal, season-date and cost claims from earlier drafts were not reclassified as repository facts. They require dated external evidence before implementation depends on them.
 
-Exact competition dates, provider behaviour and hosted state remain evidence questions, not assumptions.
+## 2. Relationship to the product programme
 
-## Stage map
+The engineering stages map onto the parent phases:
 
-| Stage | Programme purpose | Primary authority |
+| Engineering stage | Programme phase |
+| --- | --- |
+| A | Phase 0/1/2 enabling work |
+| B–C | Phase 2 Platform, running in parallel with discovery and design |
+| D | Phase 2 headless rehearsal, then Phase 4 closed-cohort evidence |
+| E–H | Phase 3 Product build after the Phase 1 design gate |
+| I–J | Phase 5 Launch readiness and go-to-market |
+| K | Phase 6 Public domestic season |
+| L | Phase 7 Euro 2028 peak |
+
+**Phases 0 and 1 run in parallel with Stages B–C.** Discovery and design do not wait for the platform foundation, and feature screens do not start before the design gate.
+
+## 3. Engineering principles
+
+1. **Evolve, do not rewrite.** Each stage preserves the recoverable Euro 2028 baseline and keeps changes reviewable.
+2. **ADRs are authority.** This plan links to ADR decisions rather than maintaining a second copy of rules.
+3. **Design precedes build.** Stages E–H implement a Phase 1 prototype and design system; they do not invent the shell while coding it.
+4. **Instrument before building.** The Phase 1 event taxonomy is a prerequisite for feature commits and the closed-cohort gate.
+5. **Behaviour-preserving migrations need differential evidence.** Existing tests passing is necessary but not sufficient where ADR 0011 requires identical Euro behaviour.
+6. **Time is an input.** Shared domain rules do not read the ambient clock.
+7. **Feeds remain provisional.** Official confirmation remains the scoring/progression gate.
+8. **Controls fail closed.** Unknown, stale or incompatible reference data cannot create an open or permissive state.
+9. **Competition boundaries remain independent.** See ADRs 0011 and 0015; no combined entry, score or standings authority is introduced.
+10. **No speculative abstraction.** Build a shared seam when a second implementation is imminent, not merely imaginable.
+11. **Stable identifiers precede implementation.** New safeguards, surfaces and rules receive IDs before build.
+12. **Superseded controls are archived, not deleted.**
+
+## 4. Stage map
+
+| Stage | Engineering purpose | Primary authority |
 | --- | --- | --- |
-| **A** | Decisions, documentation reconciliation, brand clearance and current-control repair | ADRs 0011–0018; `docs/quality/` |
-| **B** | Pure competition-context foundation, then behaviour-preserving surface migration | [ADR 0011](../adr/0011-multi-competition-platform.md); [`architecture-and-tournament-states.md`](../architecture-and-tournament-states.md) |
+| **A** | Authority, documentation and control alignment | ADRs 0011–0018; `docs/quality/` |
+| **B** | Competition-context foundation and behaviour-preserving surface migrations | [ADR 0011](../adr/0011-multi-competition-platform.md) |
 | **C** | Competition-season data model and scoping | [ADR 0011](../adr/0011-multi-competition-platform.md) |
-| **D** | Fixture/result ingestion and the headless rehearsal | [ADR 0011](../adr/0011-multi-competition-platform.md); current provider investigation evidence |
+| **D** | Provider ingestion, headless rehearsal and closed-cohort evidence | ADR 0011 plus the programme metrics |
 | **E** | Season Predictor | [ADR 0012](../adr/0012-season-predictor-rules.md) |
 | **F** | Season Last Man Standing | [ADR 0013](../adr/0013-last-man-standing-season-rules.md) |
 | **G** | Season Predictor Cup | [ADR 0014](../adr/0014-predictor-cup-season-formats.md) |
-| **H** | Cross-competition hub, invitations, preferences, managed-entry and sharing surfaces | [ADR 0015](../adr/0015-commercial-and-social-model.md) |
+| **H** | Implement the validated hub shell and social surfaces | [ADR 0015](../adr/0015-commercial-and-social-model.md) |
 | **I** | PWA, notifications and native distribution | [ADR 0016](../adr/0016-client-and-distribution.md) |
-| **J** | Public-launch readiness and operational proof | quality controls and relevant operations runbooks |
-| **K** | Public domestic-season operation | `docs/quality/current-status.md` and dated operational evidence |
-| **L** | Euro 2028 return, final data, rehearsal and release | parked section in [`MASTER-TODO.md`](../../MASTER-TODO.md) |
+| **J** | Launch readiness **and go-to-market**, beginning February 2027 | parent Phase 5 and relevant controls |
+| **K** | Public domestic-season operation | live status and dated operational evidence |
+| **L** | Euro 2028 return and peak | parked Euro inventory and tournament authorities |
 
-## Stage A — decisions, documentation and control alignment
+## 5. Stage A — authority and control alignment
 
 - land and index ADRs 0011–0018;
-- reconcile forward-looking documents and agent instructions with the platform direction;
-- reconcile the architecture contract with the ADRs before any surface consumes the new engine;
-- repair silently inapplicable controls, including domain-wide Database parity triggering;
-- bring the live baseline, risk and status authorities back into agreement;
-- complete the brand-clearance work governed by [ADR 0017](../adr/0017-brand-and-club-identity.md);
-- retain every historical control document and archive rather than delete superseded material.
+- maintain the parent/child planning hierarchy;
+- reconcile architecture wording with the ADRs;
+- repair controls that silently exclude new domain siblings;
+- reconcile current status, risk and feature-baseline assertions;
+- complete the brand-clearance work governed by ADR 0017;
+- retain historical controls and evidence.
 
-**Exit:** the ADR stack is merged, current authority documents agree, open brand work is explicit, and no future agent is instructed to assume a single-tournament product.
+**Exit:** current authorities agree, planning hierarchy is discoverable, remaining contradictions are explicit and every applicable automated gate triggers.
 
-## Stage B — competition-context foundation and migration
+## 6. Stage B — competition-context foundation and surface migration
 
-The pure foundation lives under `src/domain/competition/` and is governed by [ADR 0011](../adr/0011-multi-competition-platform.md). Surface migration remains separate work.
+The shared foundation lives under `src/domain/competition/`, governed by ADR 0011.
 
 Sequence:
 
-1. pure competition kinds, lock resolver, context resolver and match-state resolver;
-2. deterministic fake-clock contract fixtures;
-3. differential adapters for the existing entry lock;
-4. Match Centre migration;
-5. Matches migration;
-6. Home migration;
-7. remove duplicated timing authority only after each consumer has equivalent evidence.
+1. land the pure competition kinds, lock resolver, context resolver and match-state resolver;
+2. land deterministic fake-clock coverage;
+3. migrate `homeDashboard.ts` with a pre-migration differential fixture committed first;
+4. migrate `matchesTab.ts` with identical-output evidence;
+5. migrate `matchCentre.ts` with identical-output evidence;
+6. migrate `entryLock.ts` with identical-output evidence;
+7. retire `MatchTemporalState` only after all four consumers have migrated and that retirement has its own review.
 
-**Exit:** every signed-in surface consumes the shared context contract, while the tagged Euro 2028 behaviour remains unchanged.
+No migration may weaken, skip or rewrite an existing test to manufacture equivalence.
 
-## Stage C — competition-season schema
+**Exit:** every signed-in surface consumes the shared context/lock authority, duplicated timing decisions are removed, and Euro 2028 behaviour is identical to the captured pre-migration fixtures.
 
-- introduce the competition-season scope without weakening existing relationship safeguards;
-- preserve season history and independent standings;
-- settle schema-level privacy, deletion/anonymisation and timezone consequences before entries depend on them;
-- extend canonical applied-state and environment-parity verification in the same change as new objects;
-- keep migrations append-only and production promotion milestone-only.
+## 7. Stage C — competition-season schema
 
-**Exit:** Euro 2028 is represented as one competition season without changing its rules or scoring.
+- introduce competition-season scoping without weakening existing relationship safeguards;
+- preserve independent entries, standings, honours and history;
+- settle deletion/anonymisation and timezone consequences before dependent records exist;
+- extend canonical applied-state and environment-parity checks in the same change as new objects;
+- keep migrations append-only and promotion subject to the currently effective control regime.
 
-## Stage D — ingestion and headless rehearsal
+Competition shape, lock and separation decisions remain in ADR 0011.
 
-- establish provider adapters behind one internal fixture/result model;
-- record raw responses from the first poll;
-- keep feed data provisional and confirmation authoritative;
-- audit fixture-time changes and correction signals;
+**Exit:** Euro 2028 is represented as one competition season while retaining its current rules, scores and access boundaries.
+
+## 8. Stage D — ingestion, rehearsal and closed-cohort gate
+
+- implement provider adapters behind one provisional internal model;
+- record raw provider responses from the first poll;
+- audit fixture-time, state and correction changes;
 - prove replay, idempotency, rescheduling, exception and stale-data behaviour;
-- operate the provisional path without public users before the closed cohort.
+- preserve manual confirmation as the official-result gate;
+- operate the headless provisional path before user exposure;
+- instrument every cohort action from the first exposed build.
 
-Provider selection and exact mappings require dated evidence. Do not infer timezone or exceptional-state vocabulary.
+**Correctness gate:** season-scale provisional ingestion/replay operates without normal manual intervention and every observed or constructed anomaly has evidence.
 
-**Exit:** a season-scale provisional pipeline has an evidence corpus and a zero-manual-intervention replay path.
+**Failable product gate:**
 
-## Stage E — season Predictor
+| Metric | Threshold | Required response if missed |
+| --- | ---: | --- |
+| Weekly Predictor completion | at least 70% by mid-season | Activate the ADR 0012 reduced-set fallback |
+| Multi-game entry | at least 50% enter two or more games | Revisit the hub positioning; do not add features |
+| Group formation | at least one organiser brings four or more people | Rework organiser and managed-entry assumptions |
+| Week-four retention | at least 40% | Stop public-launch progression until the cause is understood |
 
-Build the season Predictor governed by [ADR 0012](../adr/0012-season-predictor-rules.md), including its own scoring/parity authority, recurring lock/submission cadence and phone-first completion path.
+Stage D does not pass merely because ingestion is technically correct.
 
-**Exit:** a full simulated season covers late entry, incomplete rounds, reschedules, corrections and every decided season rule.
+## 9. Stage E — season Predictor
 
-## Stage F — season Last Man Standing
+Implement ADR 0012, including recurring lock/submission cadence, an independent season scoring authority, SQL/TypeScript parity, phone-first completion and full-season simulation.
 
-Build the season Last Man Standing competition governed by [ADR 0013](../adr/0013-last-man-standing-season-rules.md), including public/private lifecycle, managed entrants, exception handling, presets and adversarial failure paths.
+**Exit:** late entry, incomplete rounds, reschedules, corrections and every ADR 0012 rule are proven across a full simulated season.
 
-**Exit:** repeated competitions complete correctly across a simulated season.
+## 10. Stage F — season Last Man Standing
 
-## Stage G — season Predictor Cup
+Implement ADR 0013, including public/private lifecycle, managed-entry boundaries, exception handling, presets, anti-abuse controls and adversarial failure paths.
 
-Re-plumb the existing Cup machinery to the season points source and formats governed by [ADR 0014](../adr/0014-predictor-cup-season-formats.md).
+**Exit:** several consecutive competitions complete correctly across a simulated season, including exceptional and simultaneous-elimination cases required by the ADR.
 
-**Exit:** valid schedules and settlement evidence exist across supported field sizes and partial-season starts.
+## 11. Stage G — season Predictor Cup
 
-## Stage H — hub and social product
+Re-plumb the existing Cup machinery to the season points source and formats governed by ADR 0014.
 
-- build a cross-competition dashboard and weekly action model without combining entries or standings;
-- implement preference as presentation while entry remains voluntary;
-- provide invitations, rerun/copy flows, managed-entry operations and public read-only acquisition views;
-- complete resilient loading, empty, partial, retry and hostile-data states;
-- retain the existing separation, privacy and bounded-read controls.
+**Exit:** supported field sizes, partial-season starts, published schedules and settlement rules have deterministic evidence.
 
-Commercial and social boundaries are governed by [ADR 0015](../adr/0015-commercial-and-social-model.md).
+## 12. Stage H — validated hub-shell implementation
 
-## Stage I — client distribution
+**Rescope:** the earlier plan treated shell design and implementation as one `L` stage. That was an underestimate; combined, it was `XL`. Information architecture, prototyping, usability testing, visual direction and event-taxonomy design move to parent **Phase 1**. Stage H is the `L` implementation of validated output.
 
-Deliver the PWA/native sequence governed by [ADR 0016](../adr/0016-client-and-distribution.md), preserving the web path as the fast operational path and proving notifications, deep links, authentication and rollback.
+- implement the cross-competition dashboard and consolidated weekly actions;
+- implement preference as prominence while entry remains voluntary;
+- implement invitations, rerun/copy, managed entrants and public acquisition views;
+- implement resilient loading, empty, partial, retry and hostile-data states;
+- retain bounded reads, privacy and independent competition standings;
+- emit the Phase 1 analytics events from the first commit.
 
-## Stage J — launch readiness
+**Exit:** the shell matches the tested prototype and a single-game/single-league user sees only their chosen product by default.
+
+## 13. Stage I — client distribution
+
+Deliver the sequence governed by ADR 0016, proving notifications, deep links, authentication, offline locked-entry reading and a rollback path that does not require a same-day store release.
+
+## 14. Stage J — launch readiness and go-to-market
+
+**Window:** February–August 2027.
+
+Engineering and operations:
 
 - close manual accessibility and assistive-technology evidence;
 - prove monitoring, alerting, backup restore, rollback and incident ownership;
-- verify authentication, email, abuse, support and administrator custody;
+- verify authentication, reminder delivery, abuse controls and administrator custody;
 - test realistic concurrency and service ceilings;
-- complete legal, privacy, data-provider and store disclosures;
-- run exact-head release controls without weakening any gate.
+- complete legal, privacy, provider and store disclosures;
+- run exact-head release controls without weakening a gate.
 
-## Stage K — public season operation
+Go-to-market:
 
-Operate the domestic-season platform. Current facts and incidents belong in `docs/quality/current-status.md` and dated quality/operations evidence, not in this plan.
+- implement instrumentation dashboards needed to judge launch;
+- prepare store/web listing assets and acquisition landing surfaces;
+- support the named first-thousand-user plan from the parent programme;
+- provide rules/help/onboarding content and the agreed support route.
 
-## Stage L — Euro 2028 return
+**Exit:** technical launch controls and the owned acquisition/support plan both pass. One cannot substitute for the other.
 
-Return in **January 2028** to the parked inventory in [`MASTER-TODO.md`](../../MASTER-TODO.md). Complete final official data, tournament-only presentation slices, operational rehearsal and the release decision without bypassing the platform seam.
+## 15. Stage K — public domestic-season operation
 
-## Open programme decisions
+Operate, measure and learn. Current facts and incidents belong in `docs/quality/current-status.md` and dated evidence, not in this plan.
 
-The ADRs close the decisions they record. Remaining programme choices stay explicit:
+## 16. Stage L — Euro 2028 return
 
-- final brand clearance under [ADR 0017](../adr/0017-brand-and-club-identity.md);
-- the close-season retention product;
-- operational ownership and sustainable weekend coverage;
-- provider and licensing decisions requiring dated evidence.
+Return in January 2028 to the parked Euro inventory. Complete official data, tournament-only presentation work, full state rehearsal, recovery/rollback evidence and the release decision without bypassing the platform seam.
 
-## Controls carried through every stage
+## 17. Roadmap reconciliation check
 
-- evolve rather than rewrite;
-- time is injected into pure domain rules;
-- feeds never become official truth;
-- competition entries, scoring and standings remain independent;
-- no development or simulation write path reaches production;
-- hosted claims require target-specific evidence;
-- process, intent or prepared tooling is not completion evidence;
-- stable identifiers are assigned before implementation;
-- superseded controls are archived, never deleted.
+`docs/roadmap.md` was intentionally not changed in this task. The following differences must remain visible until a later roadmap reconciliation:
+
+1. its header still calls this engineering plan the **programme map**, while the parent is now `programme-plan.md`;
+2. its Stage B order is `entryLock → matchCentre → matchesTab → homeDashboard`, while the required migration order is now `homeDashboard → matchesTab → matchCentre → entryLock`;
+3. its Stage H still carries design/acquisition/analytics decision work that the parent moves to Phase 1 before feature implementation;
+4. its Stage J is framed only as public-launch readiness and does not identify go-to-market beginning in February 2027.
+
+These are planning contradictions/omissions, not implementation defects. They are reported rather than silently resolved, as required.
+
+## 18. What changed from the earlier long engineering draft
+
+No authoritative rule was deleted. Detailed season Predictor, Last Man Standing, Cup, commercial, client and club-identity decision prose was **superseded by direct references to ADRs 0011–0018**, because maintaining the same decision in two documents creates competing authority.
+
+The following material was genuinely removed from the engineering plan:
+
+- unverified market-positioning and legal-analysis essays;
+- provider pricing/free-tier claims and exact season-date claims not freshly verified in this repository task;
+- obsolete instructions to write ADRs 0011–0018;
+- obsolete contract-60, missing-Browser-E2E and `844/144` repository assertions.
+
+They were removed because they are either external research requiring dated evidence, already governed elsewhere, or factually stale. Their removal does not change an accepted ADR or implemented capability.
