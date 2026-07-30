@@ -9,7 +9,10 @@ import type { TournamentCompetitionConfig } from '../../domain/competition/kinds
 import type { FixtureDataSnapshot } from '../../domain/competition/lockState'
 import type { Match, TournamentData } from '../../services/supabase/tournamentData'
 
-const ENTRY_LOCK_SCOPE_ID = 'tournament-entry'
+// Preserve the identifier captured by Home's pre-migration differential contract.
+// The shared adapter may serve multiple tournament surfaces, but changing this
+// key would create observable context drift without changing lock semantics.
+const ENTRY_LOCK_SCOPE_ID = 'home-entry'
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 
 export type TournamentCompetitionContextInput = {
