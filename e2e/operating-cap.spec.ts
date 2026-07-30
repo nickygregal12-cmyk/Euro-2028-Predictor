@@ -74,6 +74,16 @@ test('create league shows contact-admin guidance at the total league cap', async
   desktopOnly(testInfo)
   const fixtureLeagueId = await fillLeagueCapacity()
 
+  // Cleanup is deliberately not a `finally` that throws. Throwing from one
+  // replaces whatever the test body failed with, so a tidy-up problem would be
+  // reported in place of the assertion that actually failed. But a cleanup
+  // failure on its own still has to fail the test: this spec fills the league
+  // cap, and a leftover fixture league leaves the next spec running against a
+  // full cap for no visible reason.
+  //
+  // So: capture the body's outcome, always run both cleanup steps, then report
+  // the body's error if there is one and the cleanup error otherwise.
+  let bodyError: unknown
   try {
     await page.goto('/league')
     await expect(page.getByRole('heading', { name: 'League' })).toBeVisible()
@@ -86,11 +96,20 @@ test('create league shows contact-admin guidance at the total league cap', async
     await expect(
       dialog.getByText('League limit reached. Contact admin.', { exact: true }),
     ).toBeVisible({ timeout: 15_000 })
-  } finally {
-    if (fixtureLeagueId) {
-      const { error } = await createLocalAdmin().from('leagues').delete().eq('id', fixtureLeagueId)
-      if (error) throw error
-    }
-    await setLocalOperatingLimits(50, 20)
+  } catch (error) {
+    bodyError = error
   }
+
+  let cleanupError: Error | undefined
+  if (fixtureLeagueId) {
+    const { error } = await createLocalAdmin().from('leagues').delete().eq('id', fixtureLeagueId)
+    if (error) cleanupError = new Error(`Fixture league delete failed: ${error.message}`)
+  }
+  await setLocalOperatingLimits(50, 20)
+
+  if (bodyError) {
+    if (cleanupError) console.error('[operating-cap cleanup]', cleanupError.message)
+    throw bodyError
+  }
+  if (cleanupError) throw cleanupError
 })
