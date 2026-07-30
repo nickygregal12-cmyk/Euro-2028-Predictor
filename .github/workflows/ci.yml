@@ -34,8 +34,12 @@ jobs:
         run: |
           set -o pipefail
           npm run build 2>&1 | tee /tmp/euro28-build.log
+      - name: Compressed bundle budgets
+        run: npm run check:bundle-budget
       - name: Lint
         run: npm run lint
+      - name: Domain coverage thresholds
+        run: npm run test:coverage:domain
       - name: Test
         shell: bash
         run: |
