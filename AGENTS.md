@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C foundation work through PRs #228, #229, #232, #233, #235, #239, #245, #246, #250, #252, #255 and #258 is also on `main`, currently `873567912a459130ae0690f4ccecba5a27b7f37f`. PR #252 lands the competition/viewer timezone seam but intentionally keeps the viewer fallback until Stage C supplies `tournaments.display_timezone`; do not claim viewer-dependent grouping is fixed. PRs #255 and #258 bring `tests/`, Playwright/e2e fixtures, TypeScript scripts and Playwright configs under `tsc -b`; keep the corrected `lockScopes`/`competitionTimeZone` fixtures and the non-null H2H fixture capture intact. PR #261 is fully green and non-overlapping but unmerged; it adds `production-smoke/` coverage, explicit `strict` declarations and an exhaustive compiler-project coverage guard. Do not duplicate it or claim its controls are landed. Draft PR #236 is the active Stage C competition-season schema design; do not create the migration until its design and coverage manifest are reviewed. Draft PR #230 owns the live-authority reconciliation. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
+Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C foundation work through PRs #228, #229, #232, #233, #235, #239, #245, #246, #250, #252, #255, #258, #261, #264 and #265 is also on `main`, currently `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab`. PR #252 lands the competition/viewer timezone seam but intentionally keeps the viewer fallback until Stage C supplies `tournaments.display_timezone`; do not claim viewer-dependent grouping is fixed. PRs #255, #258 and #261 make committed TypeScript/TSX compiler-project coverage exhaustive and state strictness explicitly. PR #264 type-checks the three JavaScript deploy gates and keeps the remaining JavaScript backlog measured and explicit. PR #265 pins the complete direct Data API relation/view exposure surface. PR #266 adds disposable-local ACQ-R02 scale evidence only; the risk remains open and no materialised standings migration exists. Draft PR #236 is the active Stage C competition-season schema design; do not create the migration until its design and coverage manifest are reviewed. Draft PR #230 owns the live-authority reconciliation. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
@@ -80,6 +80,7 @@ Rules:
 - Competition-season scoping must preserve or strengthen the existing same-reference safeguards.
 - No development, rehearsal or simulation path may write to production.
 - Every new public table must keep RLS enabled, and every security-definer function must pin `search_path`; ordinary CI guards both properties through PR #250.
+- Every public view and direct browser relation grant must remain in the reviewed exposure allowlist landed through PR #265; a view has no independent RLS protection.
 
 ## Architecture rules
 
@@ -124,7 +125,7 @@ npm audit --omit=dev --audit-level=high
 
 Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
 
-`tsc -b` now strict-checks application code, TypeScript tests, Playwright/e2e fixtures, TypeScript scripts and Playwright configs through the referenced projects landed in PRs #255 and #258. `production-smoke/anonymous.spec.ts` remains outside a compiler project on current `main`; fully green PR #261 covers it, states `strict` explicitly and guards every committed `.ts`/`.tsx` file against future uncovered directories. Until #261 lands, preserve the existing projects and do not describe TypeScript project coverage as exhaustive.
+`tsc -b` now strict-checks application code, TypeScript tests, Playwright/e2e fixtures, production-smoke TypeScript, TypeScript scripts, Playwright configs and the three JavaScript deploy gates through referenced projects landed in PRs #255, #258, #261 and #264. PR #261 also fails ordinary CI if any committed `.ts`/`.tsx` file falls outside that project graph. The remaining JavaScript files under `scripts/` are measured in the explicit deferred allowlist; do not describe them as type-checked or remove them from the inventory without evidence.
 
 ## Production milestones
 
