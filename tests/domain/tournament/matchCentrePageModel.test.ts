@@ -37,15 +37,18 @@ describe('createMatchCentrePageModel', () => {
       now: '2028-06-09T21:00:00.000Z',
     })
 
-    expect(model.temporalState).toBe('before')
-    expect(model.statusPresentation.label).toBe('Upcoming')
+    expect(model.statusPresentation).toMatchObject({
+      label: 'Upcoming',
+      isLive: false,
+      isTerminal: false,
+    })
     expect(model.eyebrow).toBe('Group A · Upcoming')
     expect(model.liveMinute).toBeNull()
     expect(model.lifecycleContent.heading).toBe('Match preview')
     expect(model.lifecycleContent.showMatchImpact).toBe(false)
   })
 
-  it('maps a completed repository result to the existing after state', () => {
+  it('maps a completed repository result to full-time lifecycle presentation', () => {
     const model = createMatchCentrePageModel({
       match: fixture({ homeScore: 2, awayScore: 1 }),
       teams,
@@ -53,9 +56,12 @@ describe('createMatchCentrePageModel', () => {
       now: '2028-06-09T22:00:00.000Z',
     })
 
-    expect(model.temporalState).toBe('after')
     expect(model.result).toEqual({ home: 2, away: 1 })
-    expect(model.statusPresentation.label).toBe('Full-time')
+    expect(model.statusPresentation).toMatchObject({
+      label: 'Full-time',
+      isLive: false,
+      isTerminal: true,
+    })
     expect(model.countdownLabel).toBeNull()
     expect(model.lifecycleContent).toMatchObject({
       heading: 'Match complete',
