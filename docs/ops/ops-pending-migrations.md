@@ -2,12 +2,32 @@
 
 Live source of truth for repository migration count and the verification still required for hosted environments.
 
+## Current repository state — 30 July 2026
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository `main` | **64** | 64 canonical files through `20260730180000_cup_winner_deletion_semantics.sql` | VERIFIED |
+| Development Supabase | **64** | owner-applied and owner-verified 30 July 2026: `bonus_cup_fixtures_winner_user_id_fkey` returns `confdeltype = r`, `condeferrable = false` | VERIFIED |
+| Production Supabase | 63 | unchanged since the 29 July 2026 promotion | `REQUIRES OWNER VERIFICATION` |
+| Netlify `deploy-preview` / `branch-deploy` | **64** | `EURO28_DEPLOYED_DB_CONTRACT=64`; preview build passes the contract gate and the exact-head smoke reports contract 64 | VERIFIED |
+| Netlify `production` | 63 | **production deploys are paused**: the repository requires 64, so the prebuild gate refuses the build. The last good deploy stays live. Owner-accepted 30 July 2026 | BLOCKED BY DESIGN |
+
+### Contract 64
+
+| # | Canonical migration | Repository-side purpose | Hosted status |
+| ---: | --- | --- | --- |
+| 64 | `20260730180000_cup_winner_deletion_semantics.sql` | Declares the omitted `on delete` action on `bonus_cup_fixtures.winner_user_id` as `restrict` | development VERIFIED; production not applied |
+
+Behaviour-preserving. `NO ACTION` and `RESTRICT` are equivalent for a non-deferrable constraint, and the constraint is non-deferrable. Measured rather than argued: the same delete against the same settled cup fixture fails identically on databases built at 63 and at 64 migrations, naming the same constraint in the same message.
+
+**To unblock production:** apply the migration to production Supabase, confirm `confdeltype = 'r'`, then set `EURO28_DEPLOYED_DB_CONTRACT=64` on the `production` context. Do not set the production value before the database is verified — that is the exact inversion the gate exists to prevent.
+
 ## Tagged repository state — 29 July 2026
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | `euro-2028-baseline` | 63 | 63 canonical files through `20260729154931_prediction_consensus_minimum_cohort.sql` | VERIFIED |
-| `main` at reconciliation start | 63 | identical to the tag; zero ahead and zero behind | VERIFIED |
+| `main` at reconciliation start | 63 | identical to the tag; zero ahead and zero behind. Superseded — see the current state above | HISTORICAL |
 | Development Supabase | — | no database access in this task | `REQUIRES OWNER VERIFICATION` |
 | Production Supabase | — | no database access in this task | `REQUIRES OWNER VERIFICATION` |
 | Netlify non-production contexts | — | no Netlify access in this task | `REQUIRES OWNER VERIFICATION` |

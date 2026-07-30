@@ -12,11 +12,12 @@ This roadmap does **not** duplicate the programme phases or Stage A–L engineer
 
 ## Current baseline
 
-- `main`: `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab`;
-- production Netlify: ready deploy `6a6b84f20937ff0008c07ccd` from that exact commit;
-- Euro 2028: recoverable at `euro-2028-baseline`, with remaining tournament work parked until January 2028;
+- `main`: read the current commit from git rather than from this line. The previous hand-copied SHA stayed here through roughly twenty-five subsequent merges, which is what a pinned SHA in a live document does;
+- repository contract: **64**, development Supabase **64**, production Supabase **63**;
+- production Netlify: ready deploy `6a6b84f20937ff0008c07ccd` from commit `ce17a7fd`. **Deploys are paused from contract 64 onward** by the prebuild contract gate until production Supabase receives the migration. The last good deploy stays live;
+- Euro 2028: recoverable at `euro-2028-baseline` at contract 63, with remaining tournament work parked until January 2028;
 - Stage B: complete through PR #226, with the retained checklist closed by PR #239;
-- Stage C: design-only draft PR #236; no migration or hosted schema operation exists.
+- Stage C: **design baseline merged** (PR #236, 30 July 2026). Five of the seven pre-migration contract suites have landed. No Stage C migration exists and none is authorised.
 
 ## Delivered foundation
 
@@ -56,7 +57,7 @@ PRs #245 and #246 remain before-state contracts. PR #252 is the application seam
 
 ## Stage C design baseline
 
-Draft PR #236 defines:
+PR #236 — **merged 30 July 2026** — defines:
 
 - stable competition identity and shared competition-season scope;
 - additive in-place evolution of `tournaments`/`tournament_id` rather than a parallel season implementation;
@@ -73,17 +74,17 @@ It contains no migration or hosted write.
 
 ## Next executable sequence
 
-1. Intentionally approve and integrate PR #236 as the consolidated Stage C **design baseline only**. This authorises pre-migration contract-test planning, not SQL or a hosted schema operation.
+1. ~~Intentionally approve and integrate PR #236 as the consolidated Stage C **design baseline only**.~~ **Done** — merged 30 July 2026. It authorises pre-migration contract-test planning, not SQL or a hosted schema operation.
 2. Preserve safeguards `CS-001` through `CS-019` and the landed controls from PRs #245, #246, #250, #252, #255, #258, #261, #264 and #265.
-3. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history path.
-4. Commit the remaining pre-migration contract tests first:
-   - complete season-sensitive object coverage;
-   - hostile cross-season relationship failures;
-   - lock monotonicity and per-fixture late-write rejection;
-   - RLS, grants, function exposure and direct Data API surface;
-   - Euro identifier, score, rank, access and Stage B context preservation;
-   - account deletion preserving totals, ranks, league membership and settled outcomes;
-   - persisted competition timezone replacing viewer fallback while preserving local clock display.
+3. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history path. **This is the critical path.** Stages D through H all sit behind Stage C, and Stage C sits behind this review. It is a decision, not an engineering task.
+4. Commit the remaining pre-migration contract tests first. Five of seven have landed:
+   - ✅ complete season-sensitive object coverage — `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`;
+   - ⬜ **hostile cross-season relationship failures** — draft PR #286;
+   - ⬜ **lock monotonicity and per-fixture late-write rejection** — not started; buildable against the current schema without waiting on anything;
+   - ✅ RLS, grants, function exposure and direct Data API surface — PRs #250 and #265;
+   - ✅ Euro identifier, score, rank, access and Stage B context preservation — `stageCEuroSeedPreservation`;
+   - 🟡 account deletion preserving totals, ranks, league membership and settled outcomes — PR #246 pins the before-state and PR #271 declares the last undeclared action; the after-state waits on item 3;
+   - 🟡 persisted competition timezone replacing viewer fallback — PR #252 landed the seam; persistence is Stage C itself.
 5. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when intentional physical names disappear.
 6. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence. The current benchmark does not justify folding a materialised standings table into Stage C.
 7. Prepare one coherent append-only **development** migration only after the tests, migration plan and data-protection boundary are reviewed.
