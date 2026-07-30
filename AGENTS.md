@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C characterisation work from PRs #228, #229, #232, #233, #235, #239, #245 and #246 is also on `main`, currently `972febd017dbecf0ef3b02b16b55c07c74535038`. Draft PR #236 is the active Stage C competition-season schema design; do not create the Stage C migration until that design and coverage manifest are reviewed. Draft PR #230 adds fresh hosted-evidence boundaries and corrects the live roadmap on top of the merged inventory. Do not duplicate either branch. PRs #245 and #246 pin the current timezone and account-deletion behaviour; they do not implement the Stage C fixes. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
+Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C characterisation work from PRs #228, #229, #232, #233, #235, #239, #245, #246 and #250 is also on `main`, currently `183544b7b29a5360b1c0a04a2c7007e821cbce97`. Draft PR #236 is the active Stage C competition-season schema design; do not create the Stage C migration until that design and coverage manifest are reviewed. Draft PR #230 adds fresh hosted-evidence boundaries and corrects the live roadmap. PR #252 is a fully green, behaviour-preserving parallel seam that separates `competitionTimeZone` from `viewerTimeZone` but deliberately leaves competition timezone unwired until the Stage C season column exists. Do not claim it has fixed viewer-dependent grouping unless it merges and a season timezone is supplied. Do not duplicate these branches. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
@@ -79,6 +79,7 @@ Rules:
 - The database is authoritative for locks, submission, results, progression, scoring and profile reveal/access boundaries.
 - Competition-season scoping must preserve or strengthen the existing same-reference safeguards.
 - No development, rehearsal or simulation path may write to production.
+- Every new public table must keep RLS enabled, and every security-definer function must pin `search_path`; ordinary CI guards both properties through PR #250.
 
 ## Architecture rules
 
@@ -122,6 +123,8 @@ npm audit --omit=dev --audit-level=high
 ```
 
 Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
+
+`tsconfig.app.json` currently includes only `src`, so passing `tsc -b` does not prove TypeScript test sources are type-correct. Before Stage C relies on new TypeScript contract fixtures, add a dedicated test typecheck or another enforced equivalent; do not mistake Vitest transpilation for static type evidence.
 
 ## Production milestones
 
