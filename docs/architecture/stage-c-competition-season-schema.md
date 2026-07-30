@@ -2,7 +2,7 @@
 
 **Status:** Owner decisions recorded; ready for design review. No migration or hosted change exists.  
 **Status date:** 30 July 2026  
-**Baseline:** `main` at `183544b7b29a5360b1c0a04a2c7007e821cbce97`  
+**Baseline:** `main` at `1ec505a7d423c8d0b2b03327f8893e3954fa2246`  
 **Decision authority:** [ADR 0011](../adr/0011-multi-competition-platform.md), [ADR 0012](../adr/0012-season-predictor-rules.md) and [ADR 0015](../adr/0015-commercial-and-social-model.md)  
 **Engineering sequence:** [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) §7  
 **Implementation truth:** [`../quality/current-status.md`](../quality/current-status.md)
@@ -17,8 +17,7 @@ This document is design-only. It does **not**:
 - change application code or RPC contracts;
 - alter development or production Supabase;
 - change Euro 2028 scoring, locks, results, access or presentation;
-- implement ingestion, season Predictor, Last Man Standing or Predictor Cup;
-- merge or depend on the open PR #252 timezone seam.
+- implement ingestion, season Predictor, Last Man Standing or Predictor Cup.
 
 Those later behaviours remain owned by Stages D–G and ADRs 0012–0014.
 
@@ -26,32 +25,32 @@ Those later behaviours remain owned by Stages D–G and ADRs 0012–0014.
 
 The design is grounded in:
 
-- current `main` through merged PR #250;
+- current `main` through merged PR #252;
 - read-only introspection of development project `iouzoutneyjpugbbtdem` on Postgres 17;
 - 34 RLS-enabled public tables plus the `entry_totals` view;
 - the current foreign-key, unique/check, trigger, RLS-policy and public/internal-function graph;
 - the existing `predictor_internal` same-tournament validators;
 - Stage B's shared competition-context and lock-state authority;
 - the measured findings and owner decisions recorded in the superseded concurrent proposal PR #242;
-- PR #245's timezone-authority characterisation;
+- PR #245's timezone-authority characterisation, with the known vacuous positive assertion identified below;
 - PR #246's effective account-deletion foreign-key characterisation;
 - PR #250's public-table RLS and security-definer `search_path` guard;
-- the fully green but still-open, behaviour-preserving timezone seam in PR #252;
-- direct verification that `tsconfig.app.json` includes only `src`, so TypeScript test sources are not currently compiled by `tsc -b`.
+- PR #252's landed, behaviour-preserving competition/viewer timezone seam;
+- fully green open PR #255, which adds static TypeScript checking for `tests/` and corrects two false-positive timezone-related test defects.
 
 No application rows or personal data were read. Only catalogue metadata and function definitions were inspected.
 
 ### 2.1 Measured timezone before-state
 
-PR #245 proves:
+PR #245 establishes through source and behaviour checks that:
 
-- `lockState.ts` and `matchState.ts` are timezone-free and compare UTC instants only;
+- `lockState.ts` and `matchState.ts` contain no timezone access and compare UTC instants only;
 - exactly four current surfaces read the device timezone: Home, Matches, Match Centre and the shared entry-lock hook;
-- `context.ts` receives a timezone as input and currently uses it for competition-day grouping;
-- because all four surfaces pass the device timezone, two viewers can currently disagree about which fixtures are “today”;
+- `context.ts` receives a timezone as input and uses it for competition-day grouping;
+- because adapters fall back to the viewer timezone, two viewers can currently disagree about which fixtures are “today”;
 - an invalid timezone currently fails quietly to empty day buckets and `no_matches_today`.
 
-The first property is the invariant to preserve. The final two are defects Stage C must change visibly in the landed characterisation test.
+One positive assertion in the landed test is not valid evidence: it compares nonexistent `context.activeLock` fields and therefore passes as `undefined === undefined`. Fully green PR #255 changes the assertion to the real `lockScopes` field. The pure resolver source and other tests continue to support the timezone-free lock design, but the defective assertion must not be cited or preserved.
 
 ### 2.2 Measured account-deletion before-state
 
@@ -76,21 +75,34 @@ PR #250 proves in ordinary CI:
 
 These are preservation gates, not Stage C gaps. Any new table or replaced security-definer function must keep the tests green in the same commit.
 
-### 2.4 Open timezone seam — PR #252
+### 2.4 Landed timezone seam — PR #252
 
-PR #252 is fully green across CI, Database parity, exact preview smoke and authenticated browser journeys, but remains open and unmerged.
+PR #252 is on `main` and passed CI, Database parity, exact preview smoke, authenticated journeys, signup and recovery.
 
-It proposes:
+It provides:
 
-- `CompetitionConfigBase.timeZone` → `competitionTimeZone`;
+- `CompetitionConfigBase.competitionTimeZone` as the domain calendar input;
 - a separate `viewerTimeZone` at surface resolver boundaries;
-- an optional `competitionTimeZone` supplied by adapters;
+- an optional adapter-supplied competition timezone;
 - viewer fallback while the Stage C season column is absent;
-- seam tests proving a supplied competition zone overrides viewer location and that existing behaviour remains unchanged while it is absent.
+- seam tests proving a supplied competition zone overrides viewer location and two viewers agree once it is supplied;
+- an explicit assertion that divergence remains while the competition timezone is absent.
 
-The seam is compatible with this design but deliberately does not finish it. If PR #252 lands first, Stage C wires `tournaments.display_timezone` into the existing seam. If it does not, the Stage C application change implements the same split without creating a second incompatible adapter.
+The seam deliberately does not finish the Stage C slice. Stage C must add, validate and backfill `tournaments.display_timezone`, supply it at each adapter and reverse the authoritative viewer-fallback/divergence expectations while preserving viewer-local displayed clock time.
 
-PR #252 also exposed that `tsc -b` does not type-check tests. Stage C's test-first implementation cannot rely on TypeScript fixtures as static evidence until that control is added.
+### 2.5 Open test-typecheck control — PR #255
+
+Current `main` does not statically type-check TypeScript test sources. PR #255 is open, mergeable and fully green across CI, Database parity, exact preview smoke and Browser E2E.
+
+It:
+
+- adds `tsconfig.test.json` to the existing `tsc -b` project graph;
+- fixes the vacuous `activeLock` assertion by comparing `lockScopes`;
+- fixes an entry-lock differential fixture using `viewerTimeZone` where the config requires `competitionTimeZone`;
+- clears fourteen additional stale or incomplete strict-mode test-fixture/type errors without weakening expectations;
+- leaves `e2e/` and `scripts/` outside the proposed TypeScript test project.
+
+Stage C may be design-approved before #255 lands, but no new TypeScript contract fixture may be treated as migration evidence until an enforced equivalent is on `main`.
 
 ## 3. Adopted constraints
 
@@ -252,12 +264,12 @@ Rules:
 - `tournaments.display_timezone` stores one validated IANA competition timezone;
 - calendar grouping, matchweek boundaries and deadline communication use `competitionTimeZone`;
 - rendered kickoff times use `viewerTimeZone`, preserving correct local display when a user travels;
-- route boundaries provide both inputs explicitly where needed;
+- the landed PR #252 adapters receive the persisted competition value explicitly;
 - device timezone never changes lock state, matchweek assignment, scoring or any authoritative outcome;
 - invalid timezone identifiers are rejected by database/application validation;
 - if a bad or unavailable value reaches context resolution, the result is fail-closed or explicitly unavailable rather than `no_matches_today`.
 
-The current single input must be split where it conflates calendar grouping and clock rendering. Pure lock and match-state resolvers remain timezone-free. PR #245 remains the before/after contract. PR #252, if merged, supplies the compatible seam but not the persisted value or final invalid-zone policy.
+The pure lock and match-state resolvers remain timezone-free. Stage C wires the season value through the landed seam, removes authoritative viewer fallback and reverses the divergence/fallback expectations while preserving viewer-local presentation.
 
 ## 7. Rounds, fixtures and lock evidence
 
@@ -381,22 +393,21 @@ Stage C implementation should be one coherent PR and one ordered append-only **d
 
 Required order:
 
-1. add an enforced TypeScript test typecheck or equivalent and prove the current suite passes it;
+1. integrate PR #255 or land an enforced equivalent, preserving its corrected timezone tests;
 2. commit pre-migration contract tests and preservation oracles;
-3. retain PR #245 and PR #246 as explicit before-state tests;
-4. reconcile PR #252 according to whether it has landed, without duplicating adapters;
-5. capture row counts, identifiers, score totals, leaderboard order and relationship results;
-6. create `competitions`, `competition_rounds`, `competition_lock_events` and `competition_awards`;
-7. add nullable additive columns to existing tables and backfill them;
-8. add composite unique keys and `NOT VALID` foreign keys;
-9. validate every constraint and prove cross-season violation queries return zero rows;
-10. make required columns non-null;
-11. replace functions, triggers, RLS policies, views and application contracts atomically;
-12. update generated TypeScript types and fixtures;
-13. update PR #245 and PR #246 assertions to the approved after-state;
-14. if PR #252 has landed, supply `competitionTimeZone` from the season row and update its seam tests; otherwise implement the same split here;
-15. preserve established physical table/column/RPC names during Stage C;
-16. run the full gate set before proposing any hosted application.
+3. retain PR #245 and PR #246 as explicit before-state tests, with PR #245's false assertion corrected;
+4. capture row counts, identifiers, score totals, leaderboard order and relationship results;
+5. create `competitions`, `competition_rounds`, `competition_lock_events` and `competition_awards`;
+6. add nullable additive columns to existing tables and backfill them;
+7. add composite unique keys and `NOT VALID` foreign keys;
+8. validate every constraint and prove cross-season violation queries return zero rows;
+9. make required columns non-null;
+10. replace functions, triggers, RLS policies, views and application contracts atomically;
+11. update generated TypeScript types and fixtures;
+12. update PR #245 and PR #246 assertions to the approved after-state;
+13. supply `competitionTimeZone` from the season row through the landed PR #252 seam and update its fallback/divergence tests;
+14. preserve established physical table/column/RPC names during Stage C;
+15. run the full gate set before proposing any hosted application.
 
 No hosted development or production migration is authorised by this design.
 
@@ -412,9 +423,10 @@ No hosted development or production migration is authorised by this design.
 - internal security-definer functions are not executable by `PUBLIC` and pin `search_path`;
 - the environment/deployment/database privilege contracts landed through PR #235 remain green;
 - PR #250's exhaustive RLS/search-path guard remains green;
-- PR #245 continues proving lock/match-state timezone independence while changing grouping to competition timezone and invalid-zone handling to fail closed/unavailable;
+- PR #245 continues proving lock/match-state timezone independence through real `lockScopes`, while grouping changes to competition timezone and invalid-zone handling changes to fail closed/unavailable;
 - PR #246 continues enumerating every effective `auth.users` FK while proving competitive history is profile-owned and all deletion actions are explicit;
-- a dedicated CI command statically type-checks TypeScript test sources and fails when a removed/renamed domain field remains in a fixture.
+- PR #252's seam tests show the persisted competition zone overrides viewer location and no authoritative grouping path uses the fallback;
+- an enforced CI command statically type-checks TypeScript test sources and fails when removed or renamed domain fields remain in fixtures.
 
 ### 12.2 Disposable Supabase proof
 
@@ -464,9 +476,9 @@ The design is ready for approval when reviewers agree that:
 - the lock-event record does not violate the derived-deadline rule;
 - every current object is represented in the coverage manifest;
 - the profile-owned deletion design covers every action pinned by PR #246;
-- the timezone split covers every reader and failure path pinned by PR #245 and remains compatible with PR #252;
+- the timezone design wires the persisted value through the landed PR #252 seam and covers every failure path pinned by PR #245;
 - PR #250's RLS and definer invariants are mandatory migration gates;
-- test sources will be statically type-checked before Stage C contract fixtures become migration evidence;
+- PR #255 or an equivalent enforced test typecheck lands before Stage C contract fixtures become migration evidence;
 - preservation and hostile cross-season tests are specified before SQL;
 - no open question permits a parallel tournament/season implementation or weakens an existing safeguard.
 
