@@ -1,12 +1,16 @@
 # Euro 2028 Predictor — Current Risk Register
 
-**Status date:** 29 July 2026  
+**Status date:** 30 July 2026  
 **Live status authority:** [`current-status.md`](current-status.md)  
 **Current baseline:** repository, development Supabase, production Supabase and every Netlify context at contract 63  
 **Current published application:** Netlify deploy `6a6a53af58a0a500096b7cb1`, ready from `ff633396e04eca77ed4456c5537ab361d9d259ee`  
 **Recovery:** same-day encrypted production backup/restore evidence plus exact 60→63 preflight and preserved-data postflight.
 
 Current code, executable tests and verified hosted evidence override older classifications. Production remains a controlled future-tournament target rather than an active Euro 2028 service.
+
+## Correction record — 30 July 2026
+
+`DOC-001` was reopened when direct review found stale contract, Bonus Games Browser E2E, fixed test-count and roadmap-authority claims across live planning documents. This documentation branch records the corrections rather than silently deleting the old assertions. Closure below is conditional on this correction branch landing with green markdown and CI evidence.
 
 ## Current contract movement
 
@@ -20,9 +24,9 @@ Current code, executable tests and verified hosted evidence override older class
 | `MIG-001` | **Resolved.** Pull-request CI fetches `origin/main`, rejects stale/colliding added migrations, enforces strict ordering and passes when no migration is added. |
 | `CI-001` | **Resolved by the domain-root filter.** Database parity previously watched only `src/domain/tournament/**`, so PR #201's new `src/domain/competition/**` engine silently skipped the control. The workflow now watches `src/domain/**`; closure requires the workflow to run successfully on the fixing pull request. |
 | `DATA-003` | **Resolved and hosted.** Same-tournament/reference guards are present in both hosted environments. |
-| `DOC-001` | **Resolved and actively maintained.** Contract-63 production evidence is recorded in the live authority documents. |
+| `DOC-001` | **Reopened and corrected on this branch.** Live documents had restated stale evidence and conflicting sequence. The ADR, programme, engineering plan and roadmap now carry explicit corrections and authoritative links; close only when this branch's CI passes and the change lands. |
 | `FUNC-003` | **Resolved in production.** Canonical Bonus Game cards and the repeatable catalogue prevent silent disappearance. |
-| `TEST-GAP-01` | **Resolved by PR #187.** All three Bonus Games have authenticated desktop/phone browser lifecycle proof. |
+| `TEST-GAP-01` | **Resolved by PR #187.** All three Bonus Games have authenticated desktop/phone browser lifecycle proof. Exact recorded evidence: CI `30442005168` and Browser E2E `30442002202`. |
 | `TEST-GAP-02` | **Resolved by PR #189.** H2H rank-history capture has direct behavioural pgTAP. |
 | `RESULT-AUDIT-01` | **Resolved by PR #191.** Confirm/correct/clear revision content is asserted exactly. |
 | `TEST-001` | **Reduced.** Contract-63 consensus/privacy/final standings have unit, pgTAP, desktop/phone and axe coverage; manual accessibility and later full-volume/rollback rehearsals remain. |
@@ -51,7 +55,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `POSTLOCK-001` | Locked entries lacked a crowd/trends experience | **Resolved and production-hosted** | Contracts 61 and 63 provide bounded post-lock aggregates with cohort suppression. |
 | `LEAGUE-001` | Final standings did not apply the documented tie-break order | **Resolved and production-hosted** | Contract 62 activates the five-step order after all results and preserves live points-only ranks. |
 | `CI-001` | Database parity path filtering excluded new domain siblings while appearing to cover domain changes | **Resolved in workflow configuration; run evidence required** | Root cause was a hard-coded `src/domain/tournament/**` filter. The fix is `src/domain/**`, which also covers future `competition/` and `season/` modules. Verify the parity job runs and passes on this PR. |
-| `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Remaining: manual assistive-technology review, full-volume dress rehearsal and rollback rehearsal. |
+| `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Remaining: manual assistive-technology review, full-volume dress rehearsal and rollback rehearsal. Existing Bonus Games desktop/phone lifecycle proof must not be relisted as absent. |
 | `OPS-003` | Production observability operations incomplete | **Partial** | Name monitoring/backup/Cron owners, retention/escalation and incident procedure. |
 
 ## Medium
@@ -77,7 +81,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `FUNC-003` | Bonus Games rendered as absent when reference data was empty | **Resolved in production** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open; aggregate minimum cohort is implemented, broader invite/abuse review remains** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
-| `DOC-001` | Documentation authority can drift | **Resolved; reopen on contradiction** |
+| `DOC-001` | Documentation authority can drift | **Correction in progress on this branch. Reopen condition was met; close only after explicit corrections and link/CI evidence land.** |
 
 ## Low
 
@@ -100,4 +104,4 @@ Current code, executable tests and verified hosted evidence override older class
 - Do not retain broad findings after the concrete defect is resolved.
 - Contract 63 is the current repository, database, environment and application baseline.
 - A guard blocking incompatible deployment is a safeguard, not a defect to bypass.
-- Historical audits and reconciliations remain immutable.
+- Historical audits and reconciliations remain immutable; corrections are recorded alongside them rather than rewriting history.

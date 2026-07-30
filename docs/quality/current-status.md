@@ -2,7 +2,7 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 29 July 2026
+**Status date:** 30 July 2026
 
 ## Product position
 
@@ -11,7 +11,9 @@ The repository is a multi-competition prediction platform in transition. The com
 - the annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc47175c43b6da`;
 - the remaining Euro 2028 scope is parked in [`../../MASTER-TODO.md`](../../MASTER-TODO.md);
 - the scheduled return date is **January 2028**;
-- forward sequencing is the Stage A–L programme in [`../roadmap.md`](../roadmap.md);
+- product phases and gates are in [`../architecture/programme-plan.md`](../architecture/programme-plan.md);
+- engineering sequencing is in [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md);
+- the thin current-position roadmap is [`../roadmap.md`](../roadmap.md);
 - platform decisions are governed by [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).
 
 ## Repository baseline
@@ -21,7 +23,7 @@ The repository is a multi-competition prediction platform in transition. The com
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Recoverable Euro baseline | `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da` |
 | Application/database contract at the tag | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
-| Forward architecture | ADRs 0011–0018 plus the Stage A–L programme |
+| Forward architecture | ADRs 0011–0018 plus the parent programme and child engineering workstream |
 | Current development position | Stage A documentation/control alignment and Stage B pure context-engine foundation; no rendered surface is migrated by the foundation PR |
 | Production posture | Controlled pre-launch target; no development or simulation write path is permitted |
 
@@ -47,6 +49,7 @@ This documentation task had **no Supabase or Netlify access**. Hosted statements
 | Context engine | **Foundation implemented on the Stage B branch, not wired to surfaces.** Existing rendered behaviour remains unchanged until separate migrations. |
 | Contract alignment | **Last owner-verified at 63 on 29 July 2026; fresh hosted verification required before reliance.** |
 | Recovery and preservation | **Historical evidence exists; refresh at the next production-risk milestone.** |
+| Bonus Games Browser E2E | **Implemented.** PR #187 provides authenticated desktop/phone lifecycle proof for KO Predictor, Last Man Standing and Predictor Cup; it is not an open launch-readiness gap. |
 | Public launch readiness | **Not ready.** The domestic-season platform, ingestion, operations, accessibility and legal/client gates remain. |
 | Production mutation | **Prohibited without explicit owner approval and the full milestone process.** |
 
@@ -60,6 +63,7 @@ This documentation task had **no Supabase or Netlify access**. Hosted statements
 - private Account controls and race-safe Original entry clearing;
 - isolated KO Predictor, Last Man Standing and Predictor Cup tournament implementations;
 - protected browser result/qualification administration;
+- authenticated desktop/phone Bonus Games lifecycle coverage;
 - automated desktop/phone accessibility checks and targeted overflow tests;
 - deployment-contract, migration timestamp, CI, Database parity, Browser E2E and exact-release controls.
 
@@ -73,13 +77,14 @@ These capabilities are evidence for the first competition. They do not imply tha
 2. reframe forward documents and agent instructions;
 3. reconcile the architecture contract with ADRs 0011–0013;
 4. repair the Database parity domain-path gap;
-5. complete brand clearance and remaining documentation-control alignment.
+5. reconcile stale Browser E2E, test-count and roadmap-authority claims;
+6. complete brand clearance and remaining documentation-control alignment.
 
 ### Stage B
 
 1. land the pure `src/domain/competition/` foundation and deterministic tests;
 2. keep it unconsumed until review;
-3. migrate the four legacy timing consumers separately with differential Euro evidence.
+3. migrate the four legacy timing consumers separately with differential Euro evidence, in the order owned by the child engineering plan.
 
 ## Parked Euro 2028 scope
 
@@ -98,9 +103,10 @@ The complete inventory is in [`../../MASTER-TODO.md`](../../MASTER-TODO.md). It 
 ## Documentation authority
 
 - Current facts: this file.
-- Future sequence: [`../roadmap.md`](../roadmap.md).
+- Parent programme phases and gates: [`../architecture/programme-plan.md`](../architecture/programme-plan.md).
+- Child engineering sequence: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md).
+- Current position and next executable slice: [`../roadmap.md`](../roadmap.md).
 - Detailed active/parked inventory: [`../../MASTER-TODO.md`](../../MASTER-TODO.md).
-- Programme map: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md).
 - Decisions: [`../adr/README.md`](../adr/README.md).
 - Current risks and findings: [`risk-register.md`](risk-register.md).
 - Scoring: [`../scoring-rules.md`](../scoring-rules.md).
