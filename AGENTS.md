@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-Stage B is complete on `main` through PR #226. Control and parity work from PRs #228, #229, #232 and #233 is also on `main`, currently `7af065f414cb25f72ed49309de45ae5d12141e6b`. PR #235 is an independent environment/privilege-contract guard batch; do not duplicate it. Stage C competition-season schema design is active in draft PR #236. Do not create the Stage C migration until that design and coverage manifest are reviewed. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
+Stage B is complete on `main` through PR #226. Control and parity work from PRs #228, #229, #232, #233 and #235 is also on `main`, currently `2c57898d2eefed943a24bfe342d6da227bdd5267`. Draft PR #236 is the active Stage C competition-season schema design; do not create the Stage C migration until that design and coverage manifest are reviewed. Draft PR #230 reconciles the live authorities and Stage B inventory. Do not duplicate either branch. Any hosted schema mutation still requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 
