@@ -7,6 +7,8 @@ import {
   type HomePhase,
   type LeagueStanding,
 } from '../../src/domain/tournament/homeDashboard'
+import { resolveHomeCompetitionContext } from '../../src/features/home/homeCompetitionContext'
+import type { TournamentData } from '../../src/services/supabase/tournamentData'
 
 type LegacyPhaseInput = Parameters<typeof homePhase>[0]
 
@@ -109,6 +111,40 @@ const LEAGUES: LeagueStanding[] = [
   },
 ]
 
+function tournamentData(hasResults: boolean): TournamentData {
+  return {
+    tournament: {
+      id: 'tournament',
+      name: 'Euro 2028',
+      year: 2028,
+      startsOn: '2028-06-14',
+      endsOn: '2028-07-14',
+      lockAt: '2028-06-14T19:00:00Z',
+    },
+    groups: [{ id: 'group-a', letter: 'A' }],
+    teams: [],
+    matches: [
+      {
+        id: 'match-1',
+        matchRef: 'M1',
+        round: 'group',
+        groupId: 'group-a',
+        matchday: 1,
+        homeSource: 'A1',
+        awaySource: 'A2',
+        homeTeamId: null,
+        awayTeamId: null,
+        matchDate: '2028-06-14',
+        kickoffAt: '2028-06-14T19:00:00Z',
+        venue: 'Test venue',
+        homeScore: hasResults ? 1 : null,
+        awayScore: hasResults ? 0 : null,
+        resultState: hasResults ? 'confirmed' : 'scheduled',
+      },
+    ],
+  }
+}
+
 function captureLegacyOutput(input: LegacyPhaseInput) {
   return {
     phase: homePhase(input),
@@ -122,13 +158,79 @@ function captureLegacyOutput(input: LegacyPhaseInput) {
   }
 }
 
+function captureMigratedOutput(input: LegacyPhaseInput) {
+  const migrated = resolveHomeCompetitionContext({
+    data: tournamentData(input.hasResults),
+    submitted: input.submitted,
+    entryComplete: input.submitted,
+    nowServer: new Date(input.hasResults ? '2028-06-15T12:00:00Z' : '2028-06-14T12:00:00Z'),
+    timeZone: 'UTC',
+  })
+
+  return {
+    phase: migrated.phase,
+    pointsToday: pointsToday(SCORE_EVENTS, MATCH_DATES, '2028-06-14'),
+    bestLeagueId: selectBestLeague(LEAGUES)?.id ?? null,
+    catchUp: catchUpSummary({
+      lastSeenAt: '2028-06-13T00:00:00Z',
+      lastSeenPoints: 20,
+      currentPoints: 25,
+    }),
+  }
+}
+
 describe('homeDashboard legacy differential fixtures', () => {
   it.each(LEGACY_SCENARIOS)('$name', ({ input, expectedPhase }) => {
-    expect(captureLegacyOutput(input)).toEqual({
+    const expected = {
       phase: expectedPhase,
       pointsToday: 5,
       bestLeagueId: 'older-first',
       catchUp: { pointsDelta: 5, rankDelta: null },
+    }
+
+    expect(captureLegacyOutput(input)).toEqual(expected)
+    expect(captureMigratedOutput(input)).toEqual(expected)
+  })
+
+  it('uses a genuine point-in-time fixture snapshot for the entry lock', () => {
+    const migrated = resolveHomeCompetitionContext({
+      data: tournamentData(false),
+      submitted: true,
+      entryComplete: true,
+      nowServer: new Date('2028-06-14T18:00:00Z'),
+      timeZone: 'UTC',
     })
+
+    expect(migrated.context.lockConfigurationValid).toBe(true)
+    expect(migrated.context.lockScopes['home-entry']).toMatchObject({
+      locked: false,
+      lockAt: '2028-06-14T19:00:00.000Z',
+      reason: 'before_scope_lock',
+    })
+  })
+
+  it('derives the Home date from the injected competition timezone', () => {
+    const migrated = resolveHomeCompetitionContext({
+      data: tournamentData(false),
+      submitted: true,
+      entryComplete: true,
+      nowServer: new Date('2028-06-14T23:30:00Z'),
+      timeZone: 'Europe/London',
+    })
+
+    expect(migrated.todayISO).toBe('2028-06-15')
+  })
+
+  it('preserves the legacy unsubmitted phase after the shared lock resolves', () => {
+    const migrated = resolveHomeCompetitionContext({
+      data: tournamentData(false),
+      submitted: false,
+      entryComplete: true,
+      nowServer: new Date('2028-06-14T20:00:00Z'),
+      timeZone: 'UTC',
+    })
+
+    expect(migrated.context.entryState).toBe('locked')
+    expect(migrated.phase).toBe('preIncomplete')
   })
 })
