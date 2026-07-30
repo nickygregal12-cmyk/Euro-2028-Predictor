@@ -14,6 +14,10 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_VERIFICATION_EVENT?: string
   // Optional public address used to build the Account → Contact admin mail link.
   readonly VITE_SUPPORT_EMAIL?: string
+  // Cloudflare Turnstile on the auth forms; both are PUBLIC values and both are
+  // optional, so auth renders unchanged when they are unset.
+  readonly VITE_TURNSTILE_SITE_KEY?: string
+  readonly VITE_TURNSTILE_DEV_TOKEN?: string
 }
 
 interface ImportMeta {
