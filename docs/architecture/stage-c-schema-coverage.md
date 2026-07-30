@@ -6,54 +6,66 @@
 
 This manifest is the minimum implementation coverage. A Stage C migration or application change must not omit an object because it is dormant, tournament-only or currently hidden behind an RPC.
 
-## 1. Public relations
+## 1. Physical naming rule
+
+Stage C generalises the existing physical database contract in place:
+
+- `tournaments` remains the season-instance table;
+- established `tournament_id` and `p_tournament_id` names remain the physical season-scope contract during Stage C;
+- architecture and TypeScript may describe those rows as competition seasons;
+- no parallel `competition_seasons` table or second scope column is permitted;
+- a future cosmetic rename is outside Stage C and requires its own compatibility plan.
+
+Coverage therefore checks **season integrity**, not absence of the word `tournament`.
+
+## 2. Public relations
 
 ### Shared root and identity
 
 | Current object | Stage C action |
 | --- | --- |
-| `tournaments` | rename/evolve to `competition_seasons`; backfill competition identity, kind, timezone and lifecycle; preserve UUID |
-| `profiles` | remain account preferences; link to durable competitor identity; remove competitive-history ownership from auth UUID |
-| `rate_limit_events` | remain account/action scoped; review whether action keys need season dimension, no automatic rename |
+| `tournaments` | preserve table/UUID; add competition parent, season key, kind, IANA timezone and lifecycle status |
+| `profiles` | remain private account preferences; remove competitive-history ownership from direct auth identity |
+| `rate_limit_events` | remain account/action housekeeping and continue cascading on account deletion |
 | `entry_totals` view | redefine over season-scoped entries/score events; require explicit season boundary |
 
-### Direct competition-season scope
+### Direct season scope
 
 | Current object | Stage C action |
 | --- | --- |
-| `teams` | rename `tournament_id` scope; add `(competition_season_id, id)` key |
-| `groups` | tournament-only season child; add composite season key and kind validator |
-| `matches` | shared fixture/result table; rename scope, add round authority and composite participant references |
-| `entries` | rename scope; replace `user_id` with `competitor_id`; preserve one Predictor entry per competitor/season |
-| `leagues` | rename scope; replace owner auth id with competitor id; remain Predictor-only |
-| `players` | rename scope; composite same-season team reference |
-| `rank_history` | rename scope; replace user with competitor; bind to season round |
-| `actual_third_place_resolutions` | tournament-only season child; rename scope |
-| `actual_third_place_resolution_revisions` | tournament-only season child; rename scope |
-| `match_result_revisions` | rename scope; composite same-season match reference |
-| `entry_automatic_submission_outcomes` | rename scope; composite same-season entry reference |
-| `bonus_competitions` | rename scope; keep game instance independent per season/game |
+| `teams` | retain `tournament_id`; add `(tournament_id, id)` key |
+| `groups` | tournament-only season child; add composite season key and parent-kind validator |
+| `matches` | shared fixture/result table; retain scope, add round authority, fixture-administration state and composite participant references |
+| `entries` | retain scope; replace direct `user_id` ownership with `competitor_id`; preserve one Predictor entry per competitor/season |
+| `leagues` | retain scope; replace owner auth id with competitor id; remain Predictor-only |
+| `players` | retain scope; composite same-season team reference |
+| `rank_history` | retain scope; replace user with competitor; bind to a season round where applicable |
+| `actual_third_place_resolutions` | tournament-only season child; preserve scope and behaviour |
+| `actual_third_place_resolution_revisions` | tournament-only season child; preserve scope and immutability |
+| `match_result_revisions` | preserve scope; composite same-season match reference |
+| `entry_automatic_submission_outcomes` | preserve scope; composite same-season entry reference |
+| `bonus_competitions` | preserve scope; keep game instance independent per season/game |
 
 ### Relationship and prediction scope
 
 | Current object | Stage C action |
 | --- | --- |
-| `group_teams` | add season key; composite group/team references |
+| `group_teams` | add explicit scope if required for composite group/team references; preserve tournament-only shape |
 | `league_members` | replace auth user with competitor; league supplies season boundary |
-| `match_predictions` | add season key; composite entry/match references; preserve group-match rules for tournament Predictor |
-| `predicted_group_positions` | add season key; composite entry/group/team references |
-| `predicted_progression` | add season key; composite entry/team reference |
-| `predicted_tie_resolutions` | add season key; retain internal validation for UUID arrays |
-| `bonus_predictions` | add season key; composite entry/player reference |
-| `score_events` | add season key; composite entry/match/team references |
+| `match_predictions` | add explicit season key; composite entry/match references; preserve current tournament Predictor rules |
+| `predicted_group_positions` | add explicit season key; composite entry/group/team references |
+| `predicted_progression` | add explicit season key; composite entry/team reference |
+| `predicted_tie_resolutions` | add explicit season key; retain internal validation for UUID arrays |
+| `bonus_predictions` | add explicit season key; composite entry/player reference |
+| `score_events` | add explicit season key; composite entry/match/team references |
 
 ### Bonus-game graph
 
 | Current object | Stage C action |
 | --- | --- |
 | `bonus_competition_entrants` | replace auth user with competitor; preserve competition/game boundary |
-| `bonus_competition_windows` | add composite `(competition_id, id)` key; no stored authoritative deadline for future season rounds |
-| `bonus_window_fixtures` | add competition/season keys; composite window and same-season match references |
+| `bonus_competition_windows` | add composite `(competition_id, id)` key; do not store future season round deadlines here |
+| `bonus_window_fixtures` | add season proof; composite window and same-season match references |
 | `bonus_knockout_predictions` | attach to eligible bonus competition; composite season match/team references |
 | `bonus_lms_selections` | composite competition/window/entrant/same-season team references |
 | `bonus_score_events` | composite competition/window/same-season match references |
@@ -63,21 +75,21 @@ This manifest is the minimum implementation coverage. A Stage C migration or app
 | `bonus_cup_fixtures` | composite competition/group/window/entrant references |
 | `bonus_cup_penalty_numbers` | composite competition/window/entrant references |
 
-## 2. New relations required by the design
+## 3. New relations required by the design
 
 | New object | Purpose |
 | --- | --- |
 | `competitions` | stable recurring competition identity |
 | `competitors` | durable anonymisable competitive identity separate from auth account |
-| `competition_rounds` | tournament matchdays/rounds and league matchweeks under one authority |
-| `competition_lock_events` | monotonic fact that a derived scope has locked |
-| `competition_awards` | season-scoped award results without tournament-only columns on the shared root |
+| `competition_rounds` | tournament matchdays/rounds and league matchweeks under one authority; scoped by `tournament_id` |
+| `competition_lock_events` | append-only evidence that a derived scope transitioned to locked; not a stored deadline |
+| `competition_awards` | additive season-scoped award results while current Golden Boot compatibility remains |
 
-## 3. Public functions and RPCs
+## 4. Public functions and RPCs
 
-### Tournament-id signatures requiring season-contract review
+### Established season-scope signatures
 
-The implementation must update semantics and caller payloads, or provide an explicitly temporary compatibility wrapper, for:
+The functions below may retain `p_tournament_id` during Stage C, but their semantics, queries and callers must support both `tournament` and `league_season` rows safely. A retained name is not permission to retain tournament-only assumptions.
 
 - `admin_actual_third_place_tie_revisions(p_tournament_id)`
 - `admin_actual_third_place_tie_status(p_tournament_id)`
@@ -99,7 +111,7 @@ The implementation must update semantics and caller payloads, or provide an expl
 - `get_rival_entry(p_rival_id, p_tournament_id)`
 - `recompute_tournament_scores(p_tournament_id)`
 
-Supabase RPC calls use named JSON arguments. Renaming only the SQL parameter without updating every caller is a breaking API change.
+Supabase RPC calls use named JSON arguments. Any later rename must update every caller atomically or provide an explicit compatibility wrapper.
 
 ### Functions whose bodies carry implicit tournament joins
 
@@ -122,7 +134,7 @@ Review and update in the same migration/application PR:
 - `submit_entry`
 - `trg_recompute_on_result`
 
-### Bonus-game functions requiring competition-season proof
+### Bonus-game functions requiring season proof
 
 - `admin_draw_predictor_cup`
 - `admin_finalise_predictor_cup_groups`
@@ -146,7 +158,7 @@ These are not automatically season-scoped but must be regression-reviewed:
 - `set_operating_limits`
 - `transfer_ownership`
 
-## 4. Existing triggers and internal validators
+## 5. Existing triggers and internal validators
 
 ### Same-reference validators to generalise
 
@@ -177,7 +189,7 @@ Prefer composite foreign keys where the rule is equality of season keys. Retain 
 - prediction save rate limiting
 - bonus window/selection lock checks
 
-Stage C changes scope, not the current Euro lock or concurrency outcome.
+Stage C changes scope, not the current Euro lock or concurrency outcome. No round stores a planned `lock_at`; a lock event may only record the irreversible transition used by the shared resolver.
 
 ### Result/scoring/progression authorities to preserve
 
@@ -196,7 +208,7 @@ Stage C changes scope, not the current Euro lock or concurrency outcome.
 - automatic-submission outcome mutation block
 - bonus competition audit mutation block
 
-## 5. RLS and grants
+## 6. RLS and grants
 
 Current browser policies are concentrated on:
 
@@ -212,13 +224,14 @@ Implementation coverage must include:
 - enabling RLS on every new public table;
 - explicit grants for new Data API objects;
 - no browser grants for internal lock/audit authorities;
-- explicit revocation of `PUBLIC` execute on new security-definer functions.
+- explicit revocation of `PUBLIC` execute on new security-definer functions;
+- continued parity between deployment RPC declarations and database privilege evidence.
 
-## 6. Existing integrity gaps Stage C must close
+## 7. Existing integrity gaps Stage C must close
 
-The current database often has separate foreign keys plus a trigger. The following relationships need declarative composite protection where possible:
+The current database often has separate foreign keys plus a trigger. Add declarative composite protection where possible for:
 
-- match ↔ group/home team/away team/winner team;
+- match ↔ round/group/home team/away team/winner team;
 - entry ↔ predicted match/group/team/player;
 - score event ↔ entry/match/team;
 - result revision ↔ season/match;
@@ -230,13 +243,23 @@ The current database often has separate foreign keys plus a trigger. The followi
 
 Arrays in predicted and actual tie resolution remain trigger-validated.
 
-## 7. Coverage gate
+## 8. Owner-decision coverage
 
-Before the Stage C migration can be declared complete:
+Before migration tests are committed, review evidence must confirm:
+
+- `CS-015` tie-break: exact scores, then correct results, then joint;
+- account deletion: competition rows retained through `competitors`, public label approved, `rate_limit_events` still cascades;
+- timezone: one IANA display timezone per season, with UTC `timestamptz` storage and no device-timezone effect on rules.
+
+## 9. Coverage gate
+
+Before Stage C implementation can exit:
 
 1. every object above has an implementation disposition;
-2. repository search finds no unapproved `tournament_id`, `p_tournament_id` or tournament-only join outside the compatibility allowlist;
-3. the allowlist is empty before Stage C exits;
+2. repository search finds no unreviewed tournament-only assumption in schema, SQL, TypeScript or tests;
+3. every retained `tournament_id` / `p_tournament_id` use is recognised as the intentional physical season key, not a single-tournament assumption;
 4. every new or changed relationship has hostile cross-season pgTAP coverage;
 5. Euro preservation and RLS-role oracles pass;
-6. the complete `tests/database-parity/` directory runs in the disposable Supabase job.
+6. the complete `tests/database-parity/` directory runs in the disposable Supabase job;
+7. environment, CSP, deployment RPC and privilege-contract guards remain green;
+8. no compatibility name is removed or changed without a separate atomic caller plan.
