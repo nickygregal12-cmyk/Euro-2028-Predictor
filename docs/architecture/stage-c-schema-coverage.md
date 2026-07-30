@@ -1,8 +1,8 @@
 # Stage C schema coverage manifest
 
 **Status:** Design inventory; no migration exists.  
-**Source:** Read-only development schema introspection plus landed PR #245 and PR #246 characterisation tests, 30 July 2026.  
-**Baseline:** `main` at `972febd017dbecf0ef3b02b16b55c07c74535038`.  
+**Source:** Read-only development schema introspection plus landed PR #245, PR #246 and PR #250 tests, 30 July 2026.  
+**Baseline:** `main` at `183544b7b29a5360b1c0a04a2c7007e821cbce97`.  
 **Design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)
 
 This manifest is the minimum implementation coverage. A Stage C migration or application change must not omit an object because it is dormant, tournament-only or currently hidden behind an RPC.
@@ -33,7 +33,7 @@ The owner decisions are closed and implementation coverage must preserve them:
 - viewer/device timezone decides displayed kickoff clock time only;
 - invalid competition timezone values are rejected and cannot silently blank the competition day.
 
-## 3. Landed before-state characterisations
+## 3. Landed and parallel control evidence
 
 ### 3.1 Timezone authority — PR #245
 
@@ -71,6 +71,33 @@ Additional pinned facts:
 - every future `auth.users` reference must appear in the test with an explicit action and rationale.
 
 Stage C must update this test to the approved after-state. The effective-action inventory remains exhaustive after migration.
+
+### 3.3 RLS and definer security — PR #250
+
+The landed ordinary-CI guard proves:
+
+- every current `public` table has RLS enabled — 34 of 34;
+- every current security-definer function pins `search_path` — 110 of 110 across `public` and `predictor_internal`;
+- the parser strips comments, captures schema qualifiers, stops at function body delimiters and resolves redefinitions to the latest effective definition.
+
+Stage C must keep this guard green as it creates tables and replaces functions. Passing `supabase db lint` alone is not a substitute because the ordinary-CI test is the immediate hard failure.
+
+### 3.4 Competition/viewer seam — open PR #252
+
+PR #252 is fully green but remains open. It proposes:
+
+- a domain `competitionTimeZone` field;
+- a separate `viewerTimeZone` resolver input;
+- optional adapter-supplied competition timezone;
+- viewer fallback while the Stage C column is absent;
+- tests proving supplied competition timezone overrides viewer location and existing behaviour remains unchanged while absent.
+
+Coverage must be conditional on its final disposition:
+
+- if it lands first, Stage C wires `tournaments.display_timezone` through the existing seam and reverses the fallback/divergence assertions;
+- if it does not land, Stage C implements the same split atomically and must not add a competing second adapter contract.
+
+The PR also exposed that `tsconfig.app.json` includes only `src`; this manifest therefore requires a separate enforced TypeScript test typecheck before migration tests become evidence.
 
 ## 4. Public relations
 
@@ -266,7 +293,7 @@ Stage C changes scope, not the current Euro lock or concurrency outcome. No roun
 - automatic-submission outcome mutation block
 - bonus competition audit mutation block
 
-## 8. RLS and grants
+## 8. RLS, grants and definer coverage
 
 Current browser policies are concentrated on:
 
@@ -284,8 +311,10 @@ Implementation coverage must include:
 - explicit grants for new Data API objects;
 - no browser grants for internal lock/audit authorities;
 - explicit revocation of `PUBLIC` execute on new security-definer functions;
+- pinning `search_path` on every security-definer function;
 - continued parity between deployment RPC declarations and database privilege evidence;
-- an exhaustive allowlist proving every remaining `auth.users` reference has an explicit reviewed action.
+- an exhaustive allowlist proving every remaining `auth.users` reference has an explicit reviewed action;
+- PR #250 remaining green against the effective post-migration schema/function definitions.
 
 ## 9. Timezone and calendar coverage
 
@@ -305,7 +334,8 @@ Required checks:
 - an invalid or unavailable competition timezone fails closed or returns an explicit unavailable state;
 - an invalid timezone cannot silently produce empty day buckets or `no_matches_today`;
 - no naked local timestamp string becomes an authoritative input;
-- the PR #245 characterisation is updated to the approved after-state and remains a positive guard.
+- the PR #245 characterisation is updated to the approved after-state and remains a positive guard;
+- any landed PR #252 seam is supplied from the season row rather than its viewer fallback.
 
 ## 10. Existing integrity gaps Stage C must close
 
@@ -336,11 +366,24 @@ Pre-migration tests must encode the decided contracts:
 - `CS-009`: auth identity erased, profile pseudonymised and historical competition rows preserved;
 - `CS-016`: competition timezone controls grouping, viewer timezone controls displayed clock time and UTC instants control rules;
 - `CS-017`: invalid competition timezones are rejected and cannot silently become an empty competition day;
-- `CS-018`: every `auth.users` reference has an explicit reviewed action, with profile-owned competitive history, set-null audit actors, disposable housekeeping cascades and deliberate blockers only.
+- `CS-018`: every `auth.users` reference has an explicit reviewed action, with profile-owned competitive history, set-null audit actors, disposable housekeeping cascades and deliberate blockers only;
+- `CS-019`: TypeScript contract/parity test sources are statically type-checked by an enforced CI command.
 
 A data-protection review remains a dependency before the account-deletion schema is implemented; it is not an open architectural choice.
 
-## 12. Coverage gate
+## 12. Test static-typing coverage
+
+Before pre-migration TypeScript fixtures are accepted as evidence:
+
+- add a dedicated test TypeScript project or equivalent enforced command that includes the intended test directories;
+- ensure it shares the application aliases, JSX and environment types needed by the suite without weakening strictness;
+- fail CI when a domain field is renamed or removed but stale test fixtures still construct it;
+- keep runtime Vitest execution as separate behavioural evidence;
+- document any deliberately excluded generated, browser-only or fixture files with an exact allowlist and rationale.
+
+The control may land independently, but it must exist before Stage C migration tests become the gate for SQL.
+
+## 13. Coverage gate
 
 Before Stage C implementation can exit:
 
@@ -352,7 +395,10 @@ Before Stage C implementation can exit:
 6. the PR #246 deletion-semantics test enumerates the approved after-state and finds no undeclared `auth.users` action;
 7. competition/viewer timezone separation and invalid-timezone tests pass;
 8. the PR #245 timezone-authority test proves identical competition grouping across viewer zones while preserving viewer-local display and instant-only locks;
-9. Euro preservation and RLS-role oracles pass;
-10. the complete `tests/database-parity/` directory runs in the disposable Supabase job;
-11. environment, CSP, deployment RPC and privilege-contract guards remain green;
-12. no compatibility name is removed or changed without a separate atomic caller plan.
+9. any landed PR #252 seam is wired to persisted competition timezone and no longer relies on viewer fallback for authoritative grouping;
+10. PR #250 proves every effective public table has RLS and every effective security-definer function pins `search_path`;
+11. a dedicated TypeScript test-typecheck command passes and is required in CI;
+12. Euro preservation and RLS-role oracles pass;
+13. the complete `tests/database-parity/` directory runs in the disposable Supabase job;
+14. environment, CSP, deployment RPC and privilege-contract guards remain green;
+15. no compatibility name is removed or changed without a separate atomic caller plan.
