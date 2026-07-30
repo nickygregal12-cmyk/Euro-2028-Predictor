@@ -10,7 +10,7 @@
     "dev": "vite",
     "prebuild": "node scripts/validate-netlify-environment.mjs && node scripts/validate-deployment-contract.mjs",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint --deny-warnings",
     "check:migration-timestamps": "node scripts/check-migration-timestamps.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
