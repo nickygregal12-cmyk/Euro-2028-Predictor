@@ -30,6 +30,7 @@ function countRepositoryMigrations() {
   return readdirSync(migrationsDir).filter((name) => name.endsWith('.sql')).length
 }
 
+/** @param {{ requiredRpcSignatures: string[] }} contract */
 function declaredRpcNames(contract) {
   return contract.requiredRpcSignatures.map((signature) =>
     signature.replace(/^public\./, '').replace(/\(.*$/, ''),
@@ -62,6 +63,7 @@ function calledRpcNames(directory = browserSourceDir, found = new Set()) {
  * migrations in tests/scripts/deploymentContractRpcs.test.ts, where a parsing
  * disagreement fails CI instead of blocking a deploy.
  */
+/** @param {{ requiredRpcSignatures: string[] }} contract */
 function verifyRpcAllowlist(contract) {
   const declared = declaredRpcNames(contract)
 

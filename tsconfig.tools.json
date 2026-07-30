@@ -12,6 +12,7 @@
   // decision with its own backlog.
   "include": [
     "e2e",
+    "production-smoke",
     "scripts/**/*.ts",
     "playwright.config.ts",
     "playwright.auth.config.ts",
