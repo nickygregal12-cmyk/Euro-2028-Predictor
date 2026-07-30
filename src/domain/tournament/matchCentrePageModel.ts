@@ -59,9 +59,9 @@ export function shouldShowMatchCentreCountdown(lifecycle: MatchLifecycleState): 
 }
 
 /**
- * Composes the shared state-aware repository adapter and legacy-screen bridge
- * in one place. A passed kickoff without authoritative feed data remains
- * upcoming on the legacy surface, while the engine state is no longer
+ * Composes the shared state-aware repository adapter and screen compatibility
+ * bridge in one place. A passed kickoff without authoritative feed data remains
+ * upcoming on the existing surface, while the engine state is no longer
  * recomputed or discarded here.
  */
 export function createMatchCentrePageModel(
