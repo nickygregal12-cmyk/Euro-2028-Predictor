@@ -1,15 +1,15 @@
 # Stage C — competition-season schema design
 
-**Status:** Owner decisions recorded; ready for design review. No migration or hosted change exists.  
+**Status:** Approved design baseline. No migration or hosted change exists.  
 **Status date:** 30 July 2026  
-**Baseline:** `main` at `873567912a459130ae0690f4ccecba5a27b7f37f`  
+**Baseline:** `main` at `1c1aa639009c09357e9ec4c8f5b9f6922e0f8ad2`  
 **Decision authority:** [ADR 0011](../adr/0011-multi-competition-platform.md), [ADR 0012](../adr/0012-season-predictor-rules.md) and [ADR 0015](../adr/0015-commercial-and-social-model.md)  
 **Engineering sequence:** [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) §7  
 **Implementation truth:** [`../quality/current-status.md`](../quality/current-status.md)
 
 ## 1. Purpose and boundary
 
-Stage C introduces one database model for bounded tournaments and rolling domestic league seasons without creating parallel implementations.
+Stage C introduces one database model for bounded tournaments and rolling domestic league seasons without creating parallel tournament and season implementations.
 
 This document is design-only. It does **not**:
 
@@ -17,28 +17,32 @@ This document is design-only. It does **not**:
 - change application code or RPC contracts;
 - alter development or production Supabase;
 - change Euro 2028 scoring, locks, results, access or presentation;
-- implement ingestion, season Predictor, Last Man Standing or Predictor Cup.
+- implement ingestion, season Predictor, Last Man Standing or Predictor Cup;
+- introduce a materialised standings table for ACQ-R02.
 
-Those behaviours remain owned by Stages D–G and ADRs 0012–0014. The companion [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md) is the exhaustive object manifest.
+Those behaviours remain owned by later stages and ADRs 0012–0014. The companion [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md) is the exhaustive implementation manifest.
+
+Approval of this document authorises pre-migration contract-test planning only. It does not authorise SQL or a hosted schema operation.
 
 ## 2. Evidence reviewed
 
 The design is grounded in:
 
-- current `main` through merged PR #258;
+- current `main` through merged PR #230 and the control sequence through PR #266;
 - read-only introspection of development project `iouzoutneyjpugbbtdem` on Postgres 17;
 - 34 RLS-enabled public tables plus the `entry_totals` view;
-- the current foreign-key, unique/check, trigger, RLS-policy and public/internal-function graph;
+- the current foreign-key, unique/check, trigger, RLS-policy, grant and public/internal-function graph;
 - the existing `predictor_internal` same-tournament validators;
 - Stage B's shared competition-context and lock-state authority;
-- the measured findings and owner decisions recorded in superseded PR #242;
+- the owner decisions recorded during the superseded concurrent proposal in PR #242;
 - PR #245's timezone-authority characterisation;
 - PR #246's effective account-deletion action characterisation;
 - PR #250's public-table RLS and security-definer `search_path` guard;
 - PR #252's landed competition/viewer timezone seam;
-- PR #255's landed TypeScript test project and corrected timezone fixtures;
-- PR #258's landed Playwright/e2e, TypeScript script and Playwright-config typechecking;
-- fully green open PR #261, which covers the remaining production-smoke TypeScript file and guards future compiler-project coverage.
+- PRs #255, #258 and #261's exhaustive committed TypeScript/TSX compiler-project coverage;
+- PR #264's typechecking of the three JavaScript deploy gates and explicit deferred JavaScript inventory;
+- PR #265's public-view and direct browser relation-grant guard;
+- PR #266's disposable-local ACQ-R02 scale evidence.
 
 No application rows or personal data were read. Only catalogue metadata and function definitions were inspected.
 
@@ -49,11 +53,11 @@ The combined PR #245, PR #252 and PR #255 coverage proves:
 - `lockState.ts` and `matchState.ts` compare UTC instants and do not read a timezone;
 - surface adapters distinguish `competitionTimeZone` from `viewerTimeZone`;
 - domain context receives the competition timezone rather than discovering it;
-- adapters currently fall back to viewer timezone when competition timezone is absent, so two viewers can still disagree about which fixtures are “today”;
-- supplying a competition timezone overrides viewer location and makes both viewers agree;
+- adapters currently fall back to viewer timezone when competition timezone is absent, so viewers can disagree about which fixtures are “today”;
+- supplying a competition timezone overrides viewer location and makes viewers agree;
 - an invalid timezone currently fails quietly to empty day buckets and `no_matches_today`;
-- lock equality is tested through real `lockScopes`, not the removed nonexistent `activeLock` field;
-- fixtures construct the config field `competitionTimeZone`, not `viewerTimeZone`.
+- lock equality is tested through real `lockScopes`, not removed `activeLock` properties;
+- fixtures construct the real config field `competitionTimeZone`.
 
 The timezone-free lock behaviour and landed seam are invariants. Viewer fallback for authoritative grouping and fail-quiet invalid-zone behaviour are Stage C defects.
 
@@ -65,21 +69,39 @@ PR #246 resolves the effective, last-declaration-wins actions of every `auth.use
 - `RESTRICT`: `leagues.owner_id`, with a transfer-first rule;
 - `SET NULL`: `match_result_revisions.actor_id`, `actual_third_place_resolutions.updated_by`, `actual_third_place_resolution_revisions.actor_id`, `bonus_competition_audit.actor_id`;
 - implicit `NO ACTION`: `bonus_cup_fixtures.winner_user_id`;
-- at least seven competition tables cascade from `entries(id)`;
+- at least seven competitive tables cascade from `entries(id)`;
 - no current table references `profiles`;
-- `profiles.id` already equals the stored auth UUID, so competitive ownership can be repointed without remapping row identities.
+- `profiles.id` already equals the stored auth UUID, so ownership can be repointed without remapping row identities.
 
-This is the before-side of the approved pseudonymised-history design. The test must be updated, not removed, when Stage C changes the actions.
+This remains the before-side of the approved pseudonymised-history design. The test must be updated, not removed, when Stage C changes the actions.
 
-### 2.3 Security and TypeScript invariants already true
+### 2.3 Security and compiler invariants already true
 
 PR #250 proves in ordinary CI:
 
 - all 34 current `public` tables have RLS enabled;
 - all 110 current security-definer functions pin `search_path`;
-- comment text, schema qualification, body delimiters and function redefinitions cannot hide an unsafe effective object.
+- effective definitions are parsed comment-safe, schema-aware and last-definition-wins.
 
-PRs #255 and #258 make `tsc -b` cover application code, `tests/`, Playwright/e2e fixtures, TypeScript scripts and Playwright configs. PR #261 is fully green but unmerged; it adds `production-smoke/anonymous.spec.ts`, explicit strictness and an exhaustive future-file coverage guard. Stage C design approval does not depend on #261, but compiler-project coverage must not be described as exhaustive until it lands or an equivalent control replaces it.
+PR #265 proves:
+
+- the public view set is explicitly reviewed;
+- every view is revoked from both `anon` and `authenticated` unless deliberately exposed;
+- the `entry_totals` revoke and rationale remain intact;
+- direct browser relation grants are explicitly allowlisted;
+- `anon` has no direct relation grant.
+
+PRs #255, #258 and #261 make `tsc -b` cover every committed `.ts`/`.tsx` file and fail if a future file falls outside the referenced project graph. Strictness is stated explicitly. PR #264 additionally checks the three JavaScript files that decide whether a build can reach production; the remaining JavaScript backlog is measured and explicit rather than falsely described as checked.
+
+These are preservation gates, not Stage C gaps.
+
+### 2.4 ACQ-R02 performance evidence
+
+PR #266 confirms that `get_overall_leaderboard` aggregates the full submitted field before pagination and scales primarily with `score_events` volume.
+
+The disposable-local synthetic evidence measured about 35 ms per page at the enforced 250-entry case with 15,000 events, and about 652 ms mean per page at 5,000 entries with 300,000 events. Hosted concurrency remains untested.
+
+This does not justify a materialised standings table inside Stage C. ACQ-R02 remains open and must be reviewed before a material cap increase or if rehearsal/hosted evidence becomes adverse.
 
 ## 3. Adopted constraints
 
@@ -87,12 +109,12 @@ ADR 0011 already decides:
 
 - competition shape is data, not code branches;
 - the same context and lock engines serve tournaments and league seasons;
-- round/matchweek deadlines are derived from current fixture kickoffs, not stored as planned timestamps;
+- round/matchweek deadlines derive from current fixture kickoffs, not stored planned timestamps;
 - a per-match server guard rejects predictions at or after kickoff;
 - locks are monotonic and fail closed;
 - same-tournament safeguards widen to same-competition-season without weakening;
 - Euro 2028 remains behaviourally unchanged as one `tournament` configuration;
-- no score or rank aggregates across competitions, seasons or games.
+- scores and ranks never aggregate across competitions, seasons or games.
 
 ## 4. Stable safeguards
 
@@ -110,7 +132,7 @@ These identifiers are permanent references for migration comments, pgTAP and app
 | `CS-008` | Entries, standings, score history and game enrolment remain independent per season and game. |
 | `CS-009` | Account deletion erases auth identity while preserving a pseudonymised competitive record. |
 | `CS-010` | A season with user or settled result data is archived, not hard-deleted. |
-| `CS-011` | Every public table has RLS, browser grants are explicit and every security-definer function pins `search_path`. |
+| `CS-011` | Every public table has RLS, browser relation/view grants are explicit, and every security-definer function pins `search_path`. |
 | `CS-012` | Euro 2028 backfill preserves every identifier, rule, score, result, league, entry and access boundary. |
 | `CS-013` | No aggregate score or rank spans seasons or game authorities. |
 | `CS-014` | Schema, SQL functions, TypeScript models and generated database types change together and pass parity. |
@@ -118,7 +140,7 @@ These identifiers are permanent references for migration comments, pgTAP and app
 | `CS-016` | UTC instants decide locks/outcomes; competition timezone decides grouping; viewer timezone decides displayed clock time. |
 | `CS-017` | Invalid/unavailable competition timezone is rejected or explicitly unavailable; it never silently becomes an empty competition day. |
 | `CS-018` | Every `auth.users` foreign key has an explicit reviewed action; competitive history is profile-owned. |
-| `CS-019` | Required TypeScript sources are statically type-checked; future uncovered `.ts`/`.tsx` files must fail an enforced coverage guard once PR #261 or equivalent lands. |
+| `CS-019` | Every committed TypeScript/TSX source and every production-decision JavaScript gate remains inside an enforced compiler project; passing runtime tests alone is insufficient. |
 
 ## 5. Schema evolution strategy
 
@@ -133,7 +155,7 @@ Reasons:
 - a physical rename would create a large simultaneous API migration without improving integrity;
 - ADR 0011 requires evolution rather than a rewrite.
 
-Architecture and TypeScript may call the row a competition season. The physical names remain a deliberate compatibility contract during Stage C.
+Architecture and TypeScript may call the row a competition season. The physical names remain a deliberate Stage C compatibility contract.
 
 ### 5.2 `competitions` parent
 
@@ -257,7 +279,7 @@ Unique: `(tournament_id, scope_type, scope_key)`. Event existence is an input to
 
 ### 7.3 Matches
 
-- add/backfill/validate `matches.round_id`, then make it non-null;
+- add, backfill and validate `matches.round_id`, then make it non-null;
 - add fixture administration states including `scheduled`, `postponed`, `abandoned`, `void`, `cancelled`;
 - preserve the existing official result lifecycle;
 - validate tournament-only group/bracket fields against `kind = 'tournament'`;
@@ -265,7 +287,7 @@ Unique: `(tournament_id, scope_type, scope_key)`. Event existence is an input to
 
 ## 8. Season-scoped relationships
 
-Every directly scoped parent gains a unique `(tournament_id, id)` key where needed. Children use composite FKs for simple same-season equality; triggers remain for arrays, conditional shape, parent-kind, time and lifecycle logic.
+Every directly scoped parent gains a unique `(tournament_id, id)` key where needed. Children use composite FKs for simple same-season equality; triggers remain for arrays, conditional shape, parent kind, time and lifecycle logic.
 
 Core rules:
 
@@ -282,20 +304,23 @@ Core rules:
 
 The exhaustive table/function/trigger/RPC disposition is in the coverage manifest.
 
-## 9. RLS, grants and function security
+## 9. RLS, grants, views and function security
 
 For every new or changed public object:
 
-- enable RLS;
-- grant browser access only where required;
+- enable RLS on tables;
+- explicitly review every view and revoke it from browser roles unless deliberately exposed;
+- grant browser access only where required and keep direct relation grants in the reviewed allowlist;
 - keep authoritative writes behind RPC/trigger paths;
 - expose no internal lock/audit authority;
 - resolve ownership through `profiles.auth_user_id = auth.uid()`;
 - prove null-auth profiles cannot regain owner access;
-- revoke `PUBLIC` execute before exact grants;
+- revoke `PUBLIC` execute before exact function grants;
 - pin `search_path` on every security-definer function;
-- keep PR #250's exhaustive guards green;
+- keep PR #250 and PR #265 exhaustive guards green;
 - keep every `auth.users` FK in the deletion-action allowlist.
+
+The `entry_totals` view remains unavailable to `anon` and `authenticated`; bounded leaderboard RPCs remain the browser path.
 
 ## 10. Deletion and archival
 
@@ -311,9 +336,9 @@ Stage C should be one coherent PR and one append-only **development** migration 
 
 Required order:
 
-1. commit pre-migration tests/oracles inside the landed TypeScript projects;
-2. retain PR #245/#246 as before-state contracts;
-3. reconcile PR #261 if it has landed; otherwise keep all Stage C TypeScript files inside existing referenced projects;
+1. commit pre-migration tests/oracles inside the landed compiler-project graph;
+2. retain PR #245 and PR #246 as before-state contracts;
+3. preserve PRs #250, #261, #264 and #265 as security/compiler invariants;
 4. capture row counts, ids, totals, ranks and relationships;
 5. create new parent/round/lock-event/award relations;
 6. add nullable fields and backfill;
@@ -337,13 +362,12 @@ No hosted development or production migration is authorised by this design.
 - composite scope protection or named validator for every multi-parent row;
 - no cross-season/game ranking query;
 - no stored round deadline;
-- RLS/grants/search-path guards remain green;
-- deployment/privilege contracts remain green;
+- RLS, view, direct-grant and `search_path` guards remain green;
+- deployment/privilege and deploy-gate compiler contracts remain green;
 - corrected timezone tests prove real `lockScopes`, persisted competition grouping and fail-closed invalid zones;
 - deletion tests enumerate the approved after-state;
 - PR #252 seam no longer uses viewer fallback for authoritative grouping;
-- PR #255/#258 TypeScript projects remain green;
-- if PR #261 lands, its exhaustive file/project and strictness guard remains green.
+- all committed `.ts`/`.tsx` files and the three JavaScript deploy gates remain covered by their referenced projects.
 
 ### Disposable Supabase proof
 
@@ -357,7 +381,7 @@ No hosted development or production migration is authorised by this design.
 - late predictions fail;
 - invalid timezone inserts fail;
 - viewers share competition grouping;
-- account deletion preserves totals/ranks/membership/outcomes;
+- account deletion preserves totals, ranks, membership and outcomes;
 - every auth FK has the approved action;
 - non-empty season deletion fails.
 
@@ -379,20 +403,21 @@ Before/after equality for:
 - recurring Predictor — Stage E;
 - season Last Man Standing and Predictor Cup — Stages F–G;
 - hub/notifications — Stages H–I;
+- ACQ-R02 materialised standings mitigation — only after cap/rehearsal/hosted-concurrency evidence justifies it;
 - hosted migration or production promotion — separate explicit approval.
 
 ## 14. Design exit
 
-The design is ready for approval when reviewers agree that:
+The design is approved because:
 
 - additive in-place evolution is safer than a physical rename;
 - lock events do not violate derived-deadline authority;
 - every current object is represented in the manifest;
 - profile-owned deletion covers PR #246's full action matrix;
 - persisted timezone wiring covers PR #245/#252 failure paths;
-- PR #250 security and PR #255/#258 TypeScript controls are mandatory migration gates;
-- PR #261 is either landed or explicitly treated as parallel non-blocking hardening;
+- PR #250 and PR #265 security controls and PR #261/#264 compiler controls are mandatory migration gates;
 - preservation and hostile cross-season tests precede SQL;
-- no parallel implementation or weakened safeguard remains.
+- no parallel implementation or weakened safeguard remains;
+- ACQ-R02 remains a separately governed performance risk rather than an unapproved Stage C schema addition.
 
 Approval authorises pre-migration test planning only. It does not authorise a migration or hosted schema operation.
