@@ -52,8 +52,9 @@ Complete on `main`:
 - PR #264: typechecking for the three JavaScript deploy gates and an explicit deferred JavaScript inventory.
 - PR #265: exhaustive public-view and direct browser relation-grant guard.
 - PR #266: disposable-local leaderboard scale evidence; ACQ-R02 remains open and no standings migration was introduced.
-- PR #286: hostile cross-season/reference before-state pgTAP.
-- PR #292: lock monotonicity and per-fixture late-write before-state pgTAP.
+- Original Stage C TypeScript contracts: `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility` and `stageCEuroSeedPreservation`.
+- Hostile reference before-state: `031_stage_c_reference_scope_before_state.sql` (PR #286).
+- Lock and late-write before-state: `032_stage_c_lock_before_state.sql` (PR #292).
 - C1 boundary: `stageC1ContractClassification.test.ts` enforces the 40/0/9 assertion split; `stageC1NonInterference` freezes auth ownership, deletion FKs and ownership RLS.
 - C1 overlay: `stageC1SchemaOverlayCoverage.test.ts` proves every original relation and reviewed function has a current C1/C2/shared disposition.
 
