@@ -1,7 +1,7 @@
 # Programme plan — how a product organisation would build this
 
 **Status:** Parent planning document. Proposal, not implementation authority.  
-**Status date:** 29 July 2026  
+**Status date:** 30 July 2026  
 **Child engineering workstream:** [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md)  
 **Decision authority:** [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).  
 **Implementation authority:** [`../quality/current-status.md`](../quality/current-status.md).
@@ -128,7 +128,7 @@ The 2026/27 rehearsal targets zero or near-zero platform cost. Provider, hosting
 - ADRs 0011–0018 own the decisions.
 - This file owns phases, workstreams and product gates.
 - [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) owns engineering sequencing and engineering exit evidence.
-- [`../roadmap.md`](../roadmap.md) remains the live repository execution sequence until it is deliberately reconciled.
+- [`../roadmap.md`](../roadmap.md) records the current position and next executable slice; it points here for programme phases and to the child plan for engineering stages rather than maintaining another complete sequence.
 - [`../quality/current-status.md`](../quality/current-status.md) owns what is actually implemented and hosted.
 
 Where these disagree, keep the disagreement visible. A planning document does not silently override an ADR, executable test, current code or verified hosted evidence.
@@ -140,9 +140,9 @@ Verified against `main` at `1fb8ffd36ad113079181829a8bcc47175c43b6da` on 29 July
 - the repository baseline is contract 63, not contract 60;
 - tournament-wide automatic valid-entry submission exists;
 - the recurring season matchweek scheduler does not exist;
-- Bonus Games browser lifecycle coverage exists;
+- **correction recorded:** authenticated desktop/phone Bonus Games browser lifecycle coverage exists; it must not be listed as a missing launch-readiness control;
 - the current risk register is contract-63 aligned, while the feature baseline still contains contract-60 classification text;
-- the current quality record reports 149 Vitest files for the exact contract-63 PR head, so earlier `844 tests / 144 files` wording is not retained;
+- fixed test-count snapshots are deliberately omitted from planning documents because they become stale; current suite evidence belongs in [`../quality/current-status.md`](../quality/current-status.md), executable CI and dated validation records;
 - no fixture-provider ingestion adapter was found on `main`;
 - the competition-context engine is absent from `main`, while open PR #201 proposes an isolated, unwired foundation.
 
