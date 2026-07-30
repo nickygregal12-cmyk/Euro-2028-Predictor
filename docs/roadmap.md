@@ -8,72 +8,53 @@
 **Detailed inventory:** [`../MASTER-TODO.md`](../MASTER-TODO.md)  
 **Decision authority:** [`adr/README.md`](adr/README.md)
 
-This roadmap does **not** maintain another copy of the programme phases or Stage A–L engineering plan. The parent programme owns phases, workstreams and product gates. The child engineering plan owns stage sequence and engineering exit evidence. This file records where delivery is now and what can execute next.
+This roadmap does **not** duplicate the programme phases or Stage A–L engineering plan. It records where delivery is now and the next executable sequence.
 
-## Correction record — 30 July 2026
+## Current baseline
 
-1. **Parent/child authority:** the programme plan, not the engineering plan, is the parent programme.
-2. **Stage B order:** the implemented sequence was `homeDashboard → matchesTab → matchCentre → entryLock`, each with pre-migration differential evidence.
-3. **Design and instrumentation:** information architecture, prototype testing, visual direction and event taxonomy belong to programme Phase 1 before Stages E–H implement screens.
-4. **Launch and acquisition:** Stage J is launch readiness and go-to-market, with the programme window beginning in February 2027.
-5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games.
-6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; PR #239 closed the retained Stage B checklist with the satisfying PRs.
-7. **Control and parity foundation:** PRs #228, #229, #232, #233, #235 and #250 are on `main`.
-8. **Stage C characterisation:** PR #245 pins timezone authority and the current device-dependent day grouping; PR #246 pins the effective account-deletion foreign-key matrix. Both are before-state controls, not fixes.
-9. **Timezone seam:** PR #252 merged as `1ec505a7d423c8d0b2b03327f8893e3954fa2246`; it separates competition/viewer timezone inputs while intentionally preserving viewer fallback until Stage C supplies the persisted season timezone.
-10. **TypeScript coverage:** PR #255 brings `tests/` under `tsc -b` and corrects the false-positive timezone fixtures; PR #258 extends coverage to Playwright/e2e fixtures, TypeScript scripts and Playwright configs.
-11. **Parallel hardening:** PR #261 is fully green and adds `production-smoke/`, explicit strictness and an exhaustive future compiler-project coverage guard; it remains open.
-12. **Current baseline:** `main` is `873567912a459130ae0690f4ccecba5a27b7f37f`; draft PR #236 is the active design baseline and no migration exists.
+- `main`: `ce17a7fd5e7270ec11f053e3d2cd5b43fe5c8cab`;
+- production Netlify: ready deploy `6a6b84f20937ff0008c07ccd` from that exact commit;
+- Euro 2028: recoverable at `euro-2028-baseline`, with remaining tournament work parked until January 2028;
+- Stage B: complete through PR #226, with the retained checklist closed by PR #239;
+- Stage C: design-only draft PR #236; no migration or hosted schema operation exists.
 
-## Delivered baseline
-
-The completed Euro 2028 tournament product is preserved as the recoverable baseline. Exact implementation and hosted evidence belong in [`quality/current-status.md`](quality/current-status.md). Remaining tournament-specific work stays parked in [`../MASTER-TODO.md`](../MASTER-TODO.md) for January 2028.
-
-## Current position
+## Delivered foundation
 
 ### Stage A — authority and control alignment
 
-The platform ADRs, parent/child planning hierarchy, state architecture and domain-wide controls are established. Brand clearance remains separately governed by ADR 0017.
+The platform ADRs, parent/child planning hierarchy, state architecture and domain controls are established. Brand clearance remains separately governed by ADR 0017.
 
 ### Stage B — competition-context foundation and surface migration
 
 Complete on `main`:
 
-- foundation and deterministic clock/state tests through PR #212;
+- pure context, lock and match-state foundation through PR #212;
 - Home migration through PR #219;
 - Matches, Match Centre, entry lock and `MatchTemporalState` retirement through PR #226;
-- full clean-main application, database, preview and authenticated-browser gates passed before merge;
-- the Stage B checklist is retained and closed in the master inventory through PR #239.
+- clean application, database, preview and authenticated-browser gates before integration;
+- retained inventory closure through PR #239.
 
-### Landed control, parity and Stage C foundation work
+### Landed control and Stage C preparation
 
-- PR #228: cross-tournament read scoping, production guard derivation, real 404 routing, RPC/browser-key/reachability contracts.
+- PR #228: cross-tournament read scoping, production guard derivation, real 404 routing and deployment-contract controls.
 - PR #229: Original Predictor scoring parity.
-- PR #232: all Database parity subjects execute under the disposable Supabase harness.
+- PR #232: complete Database parity directory execution.
 - PR #233: CSP/application resource parity.
-- PR #235: complete `VITE_*` environment contract plus deployment-RPC/database-privilege parity.
-- PR #245: timezone-free resolver source, the four device-timezone readers, current day-grouping divergence and invalid-zone fail-quiet behaviour.
-- PR #246: effective account-deletion actions across every `auth.users` reference, including history-destroying cascades, deliberate league-owner restrict, audit set-null actions and the undeclared Predictor Cup winner action.
-- PR #250: ordinary CI proves every public table has RLS enabled and every security-definer function pins `search_path`, using schema-aware, comment-safe and latest-definition parsing.
-- PR #252: domain and surface adapters distinguish `competitionTimeZone` from `viewerTimeZone`, with viewer fallback while the season value is absent.
-- PR #255: TypeScript tests are strict-checked by the ordinary build, and the vacuous `activeLock` assertion plus wrong timezone fixture field are corrected.
-- PR #258: Playwright/e2e fixtures, TypeScript scripts and Playwright configs are also compiled; the H2H local fixture uses a narrowed tournament id while preserving nullable cleanup handles.
+- PR #235: environment and deployment-RPC/database-privilege parity.
+- PR #245: timezone-authority before-state.
+- PR #246: effective account-deletion action before-state.
+- PR #250: exhaustive public-table RLS and security-definer `search_path` guard.
+- PR #252: `competitionTimeZone`/`viewerTimeZone` seam with temporary viewer fallback.
+- PR #255: TypeScript test project and corrected timezone fixtures.
+- PR #258: Playwright/e2e, TypeScript tool and config coverage.
+- PR #261: production-smoke coverage, explicit strictness and exhaustive committed TS/TSX project guard.
+- PR #264: typechecking for the three JavaScript deploy gates and an explicit deferred JavaScript inventory.
+- PR #265: exhaustive public-view and direct browser relation-grant guard.
+- PR #266: disposable-local leaderboard scale evidence; ACQ-R02 remains open and no standings migration was introduced.
 
-PRs #245 and #246 create the reviewable **before-side** of Stage C. PR #252 supplies the compatible application seam. PRs #255 and #258 make the relevant application/test/tool evidence statically enforceable. None supplies the Stage C schema or completes the timezone/deletion design.
+PRs #245 and #246 remain before-state contracts. PR #252 is the application seam. PRs #250, #255, #258, #261, #264 and #265 are preservation invariants.
 
-### Parallel TypeScript project guard — PR #261
-
-PR #261 is open, mergeable and fully green. It:
-
-- adds `production-smoke/anonymous.spec.ts` to the tools TypeScript project;
-- states `strict: true` explicitly in the base application and Node projects;
-- adds a Git-aware guard proving every committed `.ts`/`.tsx` file belongs to a referenced project;
-- proves all derived projects extend a strict base;
-- changes no behaviour, schema, migration, scoring rule or hosted resource.
-
-It may integrate independently. It does not block design approval, but `CS-019` cannot be described as exhaustive future-project coverage until it lands or an equivalent control replaces it.
-
-### Stage C — active design
+## Stage C design baseline
 
 Draft PR #236 defines:
 
@@ -85,45 +66,41 @@ Draft PR #236 defines:
 - persisted competition timezone wired through the landed seam, with viewer-local clock display;
 - invalid competition-timezone rejection and explicit unavailable/fail-closed handling;
 - deletion/archive consequences and the data-protection dependency;
-- complete current table, function, trigger, RLS and RPC coverage;
+- complete current table, function, trigger, RLS, grant and RPC coverage;
 - Euro preservation, hostile cross-season and before/after characterisation tests.
 
 It contains no migration or hosted write.
 
 ## Next executable sequence
 
-1. Review and intentionally approve draft PR #236 as the consolidated Stage C design baseline. The owner decisions on season tie-breaks, account deletion and timezone authority are already recorded; review now concerns completeness, safety and implementation boundaries.
-2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-019`.
-3. Treat the landed tests as mandatory before-state contracts:
-   - PR #245 must change from device-dependent day grouping to competition-timezone grouping while preserving timezone-free `lockScopes` and viewer-local displayed clocks;
-   - invalid stored competition timezones must be rejected and any unavailable value must fail closed or surface an explicit unavailable state, not silently produce an empty day;
-   - PR #246 must change from direct `auth.users` competitive ownership to the approved pseudonymised-profile model while preserving deliberate audit and housekeeping semantics;
-   - every current and future `auth.users` reference must retain an explicit reviewed deletion action;
-   - PR #250's all-public-table RLS and all-definer `search_path` invariants must remain green;
-   - PR #255/#258 TypeScript projects and corrected fixtures must remain green.
-4. Reconcile PR #261 according to its final landed state. If it lands first, retain its exhaustive compiler-project coverage and explicit strictness. If it remains open, Stage C fixtures must stay within the already referenced projects and `production-smoke/` must remain explicitly identified as the one uncovered current directory.
-5. Wire `tournaments.display_timezone` through the landed PR #252 seam at all four surface adapters, remove authoritative viewer fallback and reverse the divergence assertions while retaining viewer-local rendered kickoff time.
-6. After design approval, commit the remaining pre-migration contract tests first:
+1. Intentionally approve and integrate PR #236 as the consolidated Stage C **design baseline only**. This authorises pre-migration contract-test planning, not SQL or a hosted schema operation.
+2. Preserve safeguards `CS-001` through `CS-019` and the landed controls from PRs #245, #246, #250, #252, #255, #258, #261, #264 and #265.
+3. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history path.
+4. Commit the remaining pre-migration contract tests first:
    - complete season-sensitive object coverage;
    - hostile cross-season relationship failures;
    - lock monotonicity and per-fixture late-write rejection;
-   - RLS/grant/function-exposure rules;
+   - RLS, grants, function exposure and direct Data API surface;
    - Euro identifier, score, rank, access and Stage B context preservation;
-   - account deletion preserving totals, ranks, league membership and settled outcomes.
-7. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when the intentional physical names disappear.
-8. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history schema path.
-9. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
-10. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
-11. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
+   - account deletion preserving totals, ranks, league membership and settled outcomes;
+   - persisted competition timezone replacing viewer fallback while preserving local clock display.
+5. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when intentional physical names disappear.
+6. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence. The current benchmark does not justify folding a materialised standings table into Stage C.
+7. Prepare one coherent append-only **development** migration only after the tests, migration plan and data-protection boundary are reviewed.
+8. Before any hosted write, prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
+9. Obtain separate explicit owner approval before mutating hosted development or production schema.
+
+## Parked Euro 2028 scope
+
+The complete inventory remains in [`../MASTER-TODO.md`](../MASTER-TODO.md) for January 2028. It includes official data, final tournament presentation, administration fit-for-final verification, rehearsal, operational recovery and the published-release decision.
 
 ## Programme and stage navigation
 
 - Product phases, discovery, design, instrumentation, cohort thresholds and go-to-market: [`architecture/programme-plan.md`](architecture/programme-plan.md).
 - Engineering Stages A–L and engineering gates: [`architecture/multi-competition-hub-build-plan.md`](architecture/multi-competition-hub-build-plan.md).
-- Stage C proposed schema: `docs/architecture/stage-c-competition-season-schema.md` in draft PR #236.
-- Stage C coverage manifest: `docs/architecture/stage-c-schema-coverage.md` in draft PR #236.
+- Stage C proposed schema and coverage manifest: draft PR #236.
 - Current implementation and hosted facts: [`quality/current-status.md`](quality/current-status.md).
 - Detailed active and parked tasks: [`../MASTER-TODO.md`](../MASTER-TODO.md).
 - Decisions: [`adr/README.md`](adr/README.md).
 
-When these documents disagree, the conflict remains visible until deliberately reconciled. ADRs decide architecture and rules; current code/tests and verified hosted evidence decide implementation truth.
+When documents disagree, keep the conflict visible until deliberately reconciled. ADRs decide architecture and rules; current code/tests and verified hosted evidence decide implementation truth.
