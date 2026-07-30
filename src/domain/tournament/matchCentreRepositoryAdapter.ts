@@ -1,3 +1,4 @@
+import type { MatchState } from '../competition/matchState'
 import type { Match, Team } from '../../services/supabase/tournamentData'
 import {
   calculateSourceMetadata,
@@ -11,8 +12,9 @@ import { authoritativeMatchScore, hasAuthoritativeResult } from './authoritative
 export type RepositoryMatchAdapterInput = {
   match: Match
   teams: Team[]
-  now?: string
-  fetchedAt?: string
+  now: string
+  fetchedAt: string
+  resolvedState: MatchState
   predictor?: Partial<PredictorMatchData>
 }
 
@@ -26,7 +28,8 @@ const EMPTY_PREDICTOR: PredictorMatchData = {
   bracketImpact: null,
 }
 
-function repositoryLifecycle(match: Match, now: string): MatchLifecycleState {
+/** Immutable legacy oracle retained for differential evidence only. */
+export function legacyRepositoryLifecycle(match: Match, now: string): MatchLifecycleState {
   if (hasAuthoritativeResult(match)) return 'FULL_TIME'
   if (!match.kickoffAt) return 'SCHEDULED'
 
@@ -38,9 +41,50 @@ function repositoryLifecycle(match: Match, now: string): MatchLifecycleState {
   if (secondsUntilKickoff > 0 && secondsUntilKickoff <= 60 * 60) return 'PRE_MATCH'
 
   // The repository fixture record has no authoritative live status. Never infer
-  // a live period only because kickoff has passed: an absent or delayed provider
-  // feed must fail closed rather than showing a convincing live match.
+  // a live period only because kickoff has passed.
   return 'SCHEDULED'
+}
+
+function scheduledLifecycle(match: Match, now: string): MatchLifecycleState {
+  if (!match.kickoffAt) return 'SCHEDULED'
+  const kickoffMs = Date.parse(match.kickoffAt)
+  const nowMs = Date.parse(now)
+  if (!Number.isFinite(kickoffMs) || !Number.isFinite(nowMs)) return 'SCHEDULED'
+  const secondsUntilKickoff = Math.floor((kickoffMs - nowMs) / 1000)
+  return secondsUntilKickoff > 0 && secondsUntilKickoff <= 60 * 60
+    ? 'PRE_MATCH'
+    : 'SCHEDULED'
+}
+
+function repositoryLifecycle(
+  match: Match,
+  resolvedState: MatchState,
+  now: string,
+): MatchLifecycleState {
+  if (hasAuthoritativeResult(match)) return 'FULL_TIME'
+
+  switch (resolvedState) {
+    case 'confirmed':
+    case 'scored':
+      return 'FULL_TIME'
+    case 'postponed':
+      return 'POSTPONED'
+    case 'suspended':
+      return 'SUSPENDED'
+    case 'abandoned':
+    case 'cancelled':
+      return 'CANCELLED'
+    case 'in_play_feed':
+      return 'LIVE_FIRST_HALF'
+    case 'scheduled_editable':
+    case 'scheduled_locked':
+      return scheduledLifecycle(match, now)
+    case 'in_play_no_feed':
+    case 'full_time_unconfirmed':
+      // Preserve the repository contract: without an authoritative feed or
+      // confirmed result, a passed kickoff must not be presented as live or FT.
+      return 'SCHEDULED'
+  }
 }
 
 function kickoffFor(match: Match): string {
@@ -66,8 +110,6 @@ function mergePredictor(input?: Partial<PredictorMatchData>): PredictorMatchData
 export function adaptRepositoryMatchToCentre(
   input: RepositoryMatchAdapterInput,
 ): MatchCentreViewModel {
-  const now = input.now ?? new Date().toISOString()
-  const fetchedAt = input.fetchedAt ?? now
   const teamsById = new Map(input.teams.map((team) => [team.id, team]))
   const homeTeam = input.match.homeTeamId
     ? teamsById.get(input.match.homeTeamId)
@@ -76,7 +118,7 @@ export function adaptRepositoryMatchToCentre(
     ? teamsById.get(input.match.awayTeamId)
     : undefined
   const result = authoritativeMatchScore(input.match)
-  const lifecycle = repositoryLifecycle(input.match, now)
+  const lifecycle = repositoryLifecycle(input.match, input.resolvedState, input.now)
 
   return {
     external: {
@@ -125,8 +167,8 @@ export function adaptRepositoryMatchToCentre(
       source: calculateSourceMetadata({
         provider: 'repository',
         providerFixtureId: null,
-        fetchedAt,
-        now,
+        fetchedAt: input.fetchedAt,
+        now: input.now,
         staleAfterSeconds: Number.MAX_SAFE_INTEGER,
         provisional: lifecycle !== 'FULL_TIME',
       }),
