@@ -6,7 +6,11 @@ import {
 } from './clientObservability'
 import { releaseIdentity, routeCategory } from './releaseIdentity'
 
-const ALLOWED_SENTRY_INGEST_SUFFIXES = [
+// Exported so the committed Content-Security-Policy can be checked against it:
+// netlify.toml's connect-src must permit exactly these hosts, or an accepted DSN
+// produces envelopes the browser blocks with no application-visible error. See
+// tests/scripts/contentSecurityPolicyParity.test.ts.
+export const ALLOWED_SENTRY_INGEST_SUFFIXES = [
   '.ingest.sentry.io',
   '.ingest.us.sentry.io',
   '.ingest.de.sentry.io',
