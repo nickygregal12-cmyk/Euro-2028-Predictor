@@ -9,8 +9,9 @@ This directory separates **programme planning** from **engineering planning**.
 | [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) | Child engineering workstream: Stage A–L implementation sequence and engineering exit evidence |
 | [`stage-c1-c2-governance.md`](stage-c1-c2-governance.md) | **Current Stage C implementation boundary:** C1 competition-season foundation may proceed through review; C2 profile ownership/account erasure remains blocked by issue #272 |
 | [`stage-c1-contract-classification.md`](stage-c1-contract-classification.md) | Executable classification of all 49 Stage C/C2-before-state assertions: 40 C1, zero authorised C2 after-state and nine shared-before-state |
-| [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md) | Approved combined Stage C design record, as amended for implementation order by the C1/C2 governance decision |
-| [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md) | Exhaustive current-table, view, function, trigger, RLS, grant, RPC and compiler-control manifest; C1/C2 disposition follows the governance amendment |
+| [`stage-c1-schema-overlay.md`](stage-c1-schema-overlay.md) | **C1 implementation authority:** relation, function, RLS, migration-order and evidence dispositions that separate the combined design from blocked C2 work |
+| [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md) | Approved combined Stage C design record, retained as reasoning and overlaid for implementation by the C1/C2 governance and C1 schema overlay |
+| [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md) | Exhaustive original object/function inventory; current C1/C2 implementation disposition is in the schema overlay |
 | [`stage-c-tournament-id-compatibility.md`](stage-c-tournament-id-compatibility.md) | Exact pre-migration inventory of the retained physical `public.*.tournament_id` compatibility surface |
 | [`stage-c-trigger-bindings.md`](stage-c-trigger-bindings.md) | Exact pre-migration inventory of every effective non-internal trigger binding on a `public` table |
 | [`stage-c-euro-preservation-oracle.md`](stage-c-euro-preservation-oracle.md) | `CS-012` structural seed oracle plus the required same-database UUID/count/score/access preservation rehearsal |
@@ -23,5 +24,6 @@ A cold reader should use the documents in this order:
 1. programme plan for why, when and how the wider product work is gated;
 2. engineering workstream for implementation sequence;
 3. ADRs for binding decisions;
-4. the Stage C governance amendment and assertion classification, then the detailed Stage-specific design and coverage documents before implementation;
-5. current status for what is actually true now.
+4. the Stage C governance amendment, assertion classification and C1 schema overlay;
+5. the original combined Stage C design/coverage and their detailed inventories;
+6. current status for what is actually true now.
