@@ -69,6 +69,10 @@ function hasStoredResult(match: Match): boolean {
   )
 }
 
+function hasLegacyResult(match: Match): boolean {
+  return match.homeScore !== null
+}
+
 function hasStarted(match: Match, nowMs: number): boolean {
   if (hasStoredResult(match)) return true
   const kickoffAt = parseInstant(match.kickoffAt)
@@ -247,7 +251,7 @@ export function resolveHomeCompetitionContext(
     competitionUserData(input),
     input.nowServer,
   )
-  const hasResults = input.data.matches.some(hasStoredResult)
+  const hasResults = input.data.matches.some(hasLegacyResult)
 
   return {
     context,
