@@ -1,25 +1,12 @@
+import type { ClubIdentityTokens } from '../domain/clubIdentity/clubIdentityTypes'
 import styles from './ClubIdentity.module.css'
 
+export type {
+  ClubIdentityTokens,
+  ClubKitPattern,
+} from '../domain/clubIdentity/clubIdentityTypes'
+
 export type ClubIdentitySize = 'card' | 'table' | 'venue' | 'champion'
-
-export type ClubKitPattern =
-  | 'solid'
-  | 'stripes'
-  | 'hoops'
-  | 'halves'
-  | 'sash'
-
-export type ClubIdentityTokens = {
-  // Three-letter code, e.g. 'NEW'. Uppercased on render.
-  monogram: string
-  // Primary kit colour as a CSS colour value.
-  primary: string
-  // Secondary kit colour. Required for every pattern except 'solid'.
-  secondary?: string
-  pattern?: ClubKitPattern
-  // Set when the monogram is illegible on `primary` — e.g. sky blue, yellow.
-  onPrimary?: 'light' | 'dark'
-}
 
 export type ClubIdentityProps = {
   // Full club name. Always the accessible name; never abbreviated for a11y.
