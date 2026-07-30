@@ -3,6 +3,7 @@
 **Status:** Accepted owner decision  
 **Date:** 30 July 2026  
 **Issue authority:** [#303](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/303) for Stage C1 and [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) for Stage C2  
+**Assertion classification:** [`stage-c1-contract-classification.md`](stage-c1-contract-classification.md)  
 **Amends:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md) and [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
 
 ## Decision
@@ -54,15 +55,16 @@ The stable safeguards remain valid, with implementation ownership divided as fol
 
 ## Contract-test rule
 
-The seven landed pre-migration suites remain evidence and must not be weakened or removed.
+The seven original Stage C suites remain evidence and must not be weakened or removed. The supporting `accountDeletionSemantics.test.ts` suite is the shared C2 before-state and must remain unchanged through C1.
 
-Before C1 SQL:
+The executable split is now:
 
-1. classify each assertion as C1, C2 or shared before-state;
-2. amend after-state expectations that assumed one combined migration;
-3. keep all C2 assertions pinned to the current before-state;
-4. add an executable guard proving the C1 migration does not alter the effective `auth.users` foreign-key action matrix or ownership RLS;
-5. preserve the exact Stage C contract inventory in live status and roadmap documents.
+1. [`stage-c1-contract-classification.md`](stage-c1-contract-classification.md) classifies **40 C1 assertions, zero authorised C2 after-state assertions and nine shared-before-state assertions**;
+2. `tests/scripts/stageC1ContractClassification.test.ts` proves that every assertion in those source suites appears exactly once under the correct classification;
+3. `tests/database-parity/stageC1NonInterference.test.ts` freezes the 13 effective `auth.users` foreign keys, absence of profile-owned dependencies, 14 effective ownership-policy anchors and absence of a C2 deletion function;
+4. `tests/scripts/stageCContractInventory.test.ts` keeps every discovered Stage C database contract named in the roadmap and current status.
+
+Before C1 SQL, the remaining detailed combined-design expectations must be rewritten as C1, C2 or shared-before-state without weakening any original contract. Any C1 migration must keep both executable boundary tests green.
 
 ## Promotion boundary
 
