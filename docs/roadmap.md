@@ -12,73 +12,84 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 
 ## Correction record — 30 July 2026
 
-The previous roadmap was inconsistent with the reconciled planning hierarchy. The following corrections are explicit rather than silent:
-
-1. **Parent/child authority:** the programme plan, not the engineering plan, is identified as the parent programme.
-2. **Surface migration order:** Stage B followed the child plan's `homeDashboard → matchesTab → matchCentre → entryLock` sequence, each with pre-migration differential evidence.
-3. **Design and instrumentation:** information architecture, prototype testing, visual direction and event-taxonomy definition belong to programme **Phase 1** before Stages E–H implement screens. Stage H implements validated output rather than designing alongside construction.
-4. **Launch and acquisition:** Stage J is launch readiness **and go-to-market**, with the programme window beginning in **February 2027**.
-5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games; new work covers only new platform and season behaviour.
-6. **Stage B status:** the complete competition-context adoption sequence merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; the superseded Stage B PR stack is closed.
-7. **Control/scoping status:** PR #228 merged as `ae78a57b5beabd6a415975b24daae28215ed509d`, landing cross-tournament read scoping and the reviewed deployment/environment guard repairs.
-8. **Parallel coverage:** PR #229 is independent, test-only scoring parity work and does not block Stage C design.
+1. **Parent/child authority:** the programme plan, not the engineering plan, is the parent programme.
+2. **Stage B order:** the implemented sequence was `homeDashboard → matchesTab → matchCentre → entryLock`, each with pre-migration differential evidence.
+3. **Design and instrumentation:** information architecture, prototype testing, visual direction and event taxonomy belong to programme Phase 1 before Stages E–H implement screens.
+4. **Launch and acquisition:** Stage J is launch readiness and go-to-market, with the programme window beginning in February 2027.
+5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games.
+6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; the superseded Stage B stack is closed.
+7. **Control and parity foundation:** PRs #228, #229, #232 and #233 are on `main` through `7af065f414cb25f72ed49309de45ae5d12141e6b`.
+8. **Parallel guard work:** PR #235 is fully green and independent; it does not block Stage C design review.
+9. **Stage C:** draft PR #236 is the active design baseline. No migration exists.
 
 ## Delivered baseline
 
-The completed Euro 2028 tournament product is preserved as the recoverable baseline. Its exact capabilities, contract and hosted-evidence boundary belong in [`quality/current-status.md`](quality/current-status.md), not in another roadmap inventory.
-
-Remaining tournament-specific work is parked in Part I of [`../MASTER-TODO.md`](../MASTER-TODO.md) for the January 2028 return.
+The completed Euro 2028 tournament product is preserved as the recoverable baseline. Exact implementation and hosted evidence belong in [`quality/current-status.md`](quality/current-status.md). Remaining tournament-specific work stays parked in [`../MASTER-TODO.md`](../MASTER-TODO.md) for January 2028.
 
 ## Current position
 
 ### Stage A — authority and control alignment
 
-The platform ADRs, parent/child planning hierarchy, state architecture and domain-wide automated controls are established. Brand-clearance work remains separately governed by ADR 0017.
+The platform ADRs, parent/child planning hierarchy, state architecture and domain-wide controls are established. Brand clearance remains separately governed by ADR 0017.
 
 ### Stage B — competition-context foundation and surface migration
 
-Stage B is complete on `main`:
+Complete on `main`:
 
-- foundation and deterministic clock/state tests merged through PR #212;
-- Home migration merged through PR #219;
-- Matches, Match Centre, entry lock and `MatchTemporalState` retirement integrated through PR #226;
-- the clean-main candidate passed build/typecheck, lint, full Vitest, dependency audit, Database parity, exact preview smoke, authenticated journeys, signup and recovery;
-- PR #226 merged as `2648540dc001c50305f1effa526fc16e43dcdb26`;
-- the superseded Stage B PRs were closed.
+- foundation and deterministic clock/state tests through PR #212;
+- Home migration through PR #219;
+- Matches, Match Centre, entry lock and `MatchTemporalState` retirement through PR #226;
+- full clean-main application, database, preview and authenticated-browser gates passed before merge.
 
-### Landed prerequisite — PR #228
+### Landed control and parity work
 
-PR #228 merged as `ae78a57b5beabd6a415975b24daae28215ed509d` after green CI, Database parity, exact preview smoke and authenticated Browser E2E. It landed:
+- PR #228: cross-tournament read scoping, production guard derivation, real 404 routing, RPC/browser-key/reachability contracts.
+- PR #229: Original Predictor scoring parity.
+- PR #232: all Database parity subjects now execute under the disposable Supabase harness.
+- PR #233: CSP/application resource parity.
 
-- production guard expectations derived from committed authority;
-- tournament-scoped `group_teams` reads;
-- real 404 responses for unknown SPA routes;
-- RPC contract enforcement;
-- fail-closed browser Supabase key validation;
-- module reachability evidence, two verified retirements and TypeScript/SQL parity coverage.
+### Parallel work — PR #235
 
-The exact merge automatically published to Netlify and is ready at deploy `6a6b4e905de2dd0008808d8d`.
+PR #235 is mergeable and fully green. It completes the `VITE_*` environment contract and relates deployment RPC requirements to database privilege evidence. It changes no schema or competitive behaviour and may integrate independently. Stage C implementation should consume its final assertions if it lands, but design review does not wait on it.
 
-### Parallel control coverage — PR #229
+### Stage C — active design
 
-PR #229 adds one test file comparing Original Predictor scoring constants with the newest effective SQL scoring definition. It is test-only, mergeable and green, and may integrate independently without blocking Stage C design.
+Draft PR #236 defines:
+
+- stable competition identity and shared competition-season scope;
+- in-place evolution of the existing tournament tables rather than a parallel season implementation;
+- generic rounds/matchweeks and monotonic lock events;
+- composite same-season relationship safeguards;
+- timezone authority;
+- durable anonymisable competitor identity and deletion/archive consequences;
+- complete current table, function, trigger, RLS and RPC coverage;
+- Euro preservation and hostile cross-season exit tests.
+
+It contains no migration or hosted write.
 
 ## Next executable sequence
 
-1. Design the Stage C competition-season schema before creating dependent records. Define competition and season identifiers, lifecycle ownership, timezone authority, fixture/result ownership, deletion/anonymisation consequences and independent entry/standing/history boundaries.
-2. Map every existing tournament relationship that must remain valid when a second competition/season exists, including groups, teams, fixtures, predictions, score events, leagues, rank history, awards and bonus-game references.
-3. Specify same-reference constraints and indexes that prevent cross-competition joins or writes, reusing or strengthening the current relationship safeguards rather than relying on client filters.
-4. Decide the migration boundary: one coherent append-only **development** migration plus tests, with no hosted application in the design PR.
-5. Commit pre-migration contract tests and database-parity fixtures before implementing the migration.
-6. Implement the Stage C development migration only after the schema design is reviewed; prove local rebuild, database lint, pgTAP, TypeScript/PostgreSQL parity, preservation of existing Euro data and environment isolation.
-7. Do not mutate hosted development or production schema without the currently applicable explicit approval, preflight and verification process.
+1. Review draft PR #236 as the Stage C design baseline. Decide whether the shared root, competitor identity, round/lock model, deletion/archive rules and in-place rename strategy are accepted.
+2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-014`.
+3. After design approval, commit pre-migration contract tests first:
+   - complete season-sensitive object coverage;
+   - hostile cross-season relationship failures;
+   - lock monotonicity and per-fixture late-write rejection;
+   - RLS/grant/function-exposure rules;
+   - Euro identifier, score, rank, access and Stage B context preservation.
+4. Define the exact compatibility allowlist for existing `tournament_id` columns, RPC parameters and application callers; the allowlist must be empty before Stage C exits.
+5. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
+6. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
+7. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
 
 ## Programme and stage navigation
 
-- Product phases, workstreams, discovery, design, instrumentation, cohort thresholds and go-to-market: [`architecture/programme-plan.md`](architecture/programme-plan.md).
-- Engineering Stages A–L, migration order and engineering gates: [`architecture/multi-competition-hub-build-plan.md`](architecture/multi-competition-hub-build-plan.md).
-- Current implemented/hosted position: [`quality/current-status.md`](quality/current-status.md).
+- Product phases, discovery, design, instrumentation, cohort thresholds and go-to-market: [`architecture/programme-plan.md`](architecture/programme-plan.md).
+- Engineering Stages A–L and engineering gates: [`architecture/multi-competition-hub-build-plan.md`](architecture/multi-competition-hub-build-plan.md).
+- Stage C proposed schema: [`architecture/stage-c-competition-season-schema.md`](architecture/stage-c-competition-season-schema.md) once PR #236 is merged.
+- Stage C coverage manifest: [`architecture/stage-c-schema-coverage.md`](architecture/stage-c-schema-coverage.md) once PR #236 is merged.
+- Current implementation and hosted facts: [`quality/current-status.md`](quality/current-status.md).
 - Detailed active and parked tasks: [`../MASTER-TODO.md`](../MASTER-TODO.md).
-- Architecture and product decisions: [`adr/README.md`](adr/README.md).
+- Decisions: [`adr/README.md`](adr/README.md).
 
 When these documents disagree, the conflict remains visible until deliberately reconciled. ADRs decide architecture and rules; current code/tests and verified hosted evidence decide implementation truth.
