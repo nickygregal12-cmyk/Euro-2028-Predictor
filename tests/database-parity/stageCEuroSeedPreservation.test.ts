@@ -71,9 +71,10 @@ function parseTuple(tuple: string): Scalar[] {
 
 function parseTuples(block: string): Scalar[][] {
   const tuples: Scalar[][] = []
+  const code = block.replace(/--.*$/gm, '')
   const tuplePattern = /\(([^()]*)\)/g
 
-  for (const match of block.matchAll(tuplePattern)) {
+  for (const match of code.matchAll(tuplePattern)) {
     const values = parseTuple(match[1])
     if (values.length > 0) tuples.push(values)
   }
