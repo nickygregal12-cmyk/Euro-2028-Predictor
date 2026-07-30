@@ -1,5 +1,6 @@
 name: Create C1 migration file
 
+# Temporary branch-only helper. Removed before the migration PR.
 on:
   push:
     branches:
