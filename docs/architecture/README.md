@@ -8,6 +8,7 @@ This directory separates **programme planning** from **engineering planning**.
 | [`programme-plan.md`](programme-plan.md) | Parent product programme: phases, parallel workstreams, discovery, design, instrumentation, go-to-market and failable product gates |
 | [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) | Child engineering workstream: Stage A–L implementation sequence and engineering exit evidence |
 | [`stage-c1-c2-governance.md`](stage-c1-c2-governance.md) | **Current Stage C implementation boundary:** C1 competition-season foundation may proceed through review; C2 profile ownership/account erasure remains blocked by issue #272 |
+| [`stage-c1-contract-classification.md`](stage-c1-contract-classification.md) | Executable classification of all 49 Stage C/C2-before-state assertions: 40 C1, zero authorised C2 after-state and nine shared-before-state |
 | [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md) | Approved combined Stage C design record, as amended for implementation order by the C1/C2 governance decision |
 | [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md) | Exhaustive current-table, view, function, trigger, RLS, grant, RPC and compiler-control manifest; C1/C2 disposition follows the governance amendment |
 | [`stage-c-tournament-id-compatibility.md`](stage-c-tournament-id-compatibility.md) | Exact pre-migration inventory of the retained physical `public.*.tournament_id` compatibility surface |
@@ -22,5 +23,5 @@ A cold reader should use the documents in this order:
 1. programme plan for why, when and how the wider product work is gated;
 2. engineering workstream for implementation sequence;
 3. ADRs for binding decisions;
-4. the Stage C governance amendment, then the detailed Stage-specific design and coverage documents before implementation;
+4. the Stage C governance amendment and assertion classification, then the detailed Stage-specific design and coverage documents before implementation;
 5. current status for what is actually true now.
