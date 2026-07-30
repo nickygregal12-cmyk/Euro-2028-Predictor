@@ -9,7 +9,6 @@ const baseProps = {
   venueCountryCode: 'gb-eng',
   home: { name: 'Scotland', countryCode: 'gb-sct' },
   away: { name: 'Spain', countryCode: 'es' },
-  temporalState: 'before' as const,
   result: null,
   stake: { kind: 'group' as const, stake: groupStake(null, null) },
   scope: { type: 'overall' as const },

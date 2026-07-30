@@ -168,7 +168,12 @@ const manualCases: ParityCase[] = [
 ]
 
 const parityCases: ParityCase[] = [
-  ...(fixtures as Fixture[]).map((fixture) => ({
+  // A JSON import widens `[home, away, homeScore, awayScore]` to
+  // `(string | number)[]`, so TypeScript cannot see the tuple and refuses the
+  // direct cast. The 4-element shape is enforced where the data lives:
+  // scripts/check-fixtures.mjs rejects any match whose length is not 4. This
+  // cast asserts that gate's result; it does not check anything itself.
+  ...(fixtures as unknown as Fixture[]).map((fixture) => ({
     name: fixture.name,
     teams: fixture.teams,
     matches: fixture.matches,

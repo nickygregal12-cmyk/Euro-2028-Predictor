@@ -83,9 +83,12 @@ describe('timezone authority — source shape', () => {
   })
 
   it('reads the device zone in exactly the pinned files', () => {
-    const readers = [...INSTANT_ONLY_MODULES, ...DEVICE_TIME_ZONE_READERS]
-      .concat('src/domain/competition/context.ts')
-      .filter((path) => DEVICE_TIME_ZONE_READ.test(sourceOf(path)))
+    const candidates: readonly string[] = [
+      ...INSTANT_ONLY_MODULES,
+      ...DEVICE_TIME_ZONE_READERS,
+      'src/domain/competition/context.ts',
+    ]
+    const readers = candidates.filter((path) => DEVICE_TIME_ZONE_READ.test(sourceOf(path)))
 
     // Guards the direction of travel: the domain must never resolve the device
     // zone itself, and the surfaces that do are a closed list.
@@ -228,7 +231,7 @@ describe('timezone authority — measured device dependence', () => {
     // confined to day grouping. If a later edit made a deadline zone-sensitive,
     // this fails alongside the source-shape assertions rather than instead of
     // them.
-    expect(auckland.activeLock).toEqual(utc.activeLock)
+    expect(auckland.lockScopes).toEqual(utc.lockScopes)
     expect(auckland.entryState).toBe(utc.entryState)
     expect(auckland.matches.map((match) => match.state)).toEqual(utc.matches.map((match) => match.state))
     expect(auckland.matches.map((match) => match.lockState)).toEqual(utc.matches.map((match) => match.lockState))
