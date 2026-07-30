@@ -1,10 +1,10 @@
 name: Create C1 migration file
 
-# Temporary branch-only helper. Removed before the migration PR.
+# Temporary branch-only helper. Removed before the migration PR leaves draft.
 on:
-  push:
+  pull_request:
     branches:
-      - agent/stage-c1-migration
+      - main
     paths:
       - .github/workflows/create-c1-migration.yml
 
@@ -13,6 +13,7 @@ permissions:
 
 jobs:
   create-migration:
+    if: github.head_ref == 'agent/stage-c1-migration'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
