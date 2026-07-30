@@ -15,11 +15,12 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 The previous roadmap was inconsistent with the reconciled planning hierarchy. The following corrections are explicit rather than silent:
 
 1. **Parent/child authority:** the programme plan, not the engineering plan, is identified as the parent programme.
-2. **Surface migration order:** Stage B follows the child plan's `homeDashboard → matchesTab → matchCentre → entryLock` sequence, each with pre-migration differential evidence.
+2. **Surface migration order:** Stage B followed the child plan's `homeDashboard → matchesTab → matchCentre → entryLock` sequence, each with pre-migration differential evidence.
 3. **Design and instrumentation:** information architecture, prototype testing, visual direction and event-taxonomy definition belong to programme **Phase 1** before Stages E–H implement screens. Stage H implements validated output rather than designing alongside construction.
 4. **Launch and acquisition:** Stage J is launch readiness **and go-to-market**, with the programme window beginning in **February 2027**.
 5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games; new work covers only new platform and season behaviour.
-6. **Stage B status:** the foundation and Home migration are merged, while Matches, Match Centre, entry lock and temporal-state retirement are assembled on the clean-main integration candidate.
+6. **Stage B status:** the complete competition-context adoption sequence merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; the superseded Stage B PR stack is closed.
+7. **Concurrent prerequisite:** PR #228 is independently green and unmerged. Its cross-tournament read scoping and guard repairs must be resolved before Stage C creates additional competition-season records.
 
 ## Delivered baseline
 
@@ -35,27 +36,29 @@ The platform ADRs, parent/child planning hierarchy, state architecture and domai
 
 ### Stage B — competition-context foundation and surface migration
 
-Implementation sequence:
+Stage B is complete on `main`:
 
 - foundation and deterministic clock/state tests merged through PR #212;
 - Home migration merged through PR #219;
-- Matches migration validated in draft PR #216;
-- Match Centre migration validated in draft PR #222;
-- entry-lock migration validated in draft PR #223;
-- `MatchTemporalState` retirement validated in draft PR #224;
-- clean-main integration candidate assembled in draft PR #226.
+- Matches, Match Centre, entry lock and `MatchTemporalState` retirement integrated through PR #226;
+- the clean-main candidate passed build/typecheck, lint, full Vitest, dependency audit, Database parity, exact preview smoke, authenticated journeys, signup and recovery;
+- PR #226 merged as `2648540dc001c50305f1effa526fc16e43dcdb26`;
+- the superseded Stage B PRs were closed.
 
-Stage B implementation is complete. Its exit now depends on green clean-main integration gates and an intentional merge decision; Stage C must not begin from the candidate branch alone.
+### Active prerequisite — PR #228
+
+PR #228 at `86a02ab1e7f44cb42718dada13de94e66ea0dcd6` is mergeable and fully green. It is not a Stage C implementation and adds no migration. It repairs production guard derivation, cross-tournament `group_teams` scoping, real 404 routing, RPC contract enforcement, browser-key validation and TypeScript/SQL parity coverage.
+
+The `group_teams` fix is a direct prerequisite to introducing a second competition or season because the current `main` query can blend rows from multiple tournaments. Stage C must not work around or duplicate this pending fix.
 
 ## Next executable sequence
 
-1. Run the full clean-main gate set on PR #226: build/typecheck, lint, full Vitest, dependency audit, Database parity, authenticated browser journeys and exact Netlify preview smoke.
-2. Resolve only integration-attributable failures; do not weaken differential evidence or bypass the shared context authority.
-3. Review the final PR #226 diff and exact release identity.
-4. Obtain an intentional merge decision for PR #226; do not merge automatically.
-5. After Stage B exists on clean `main`, begin Stage C by designing the competition-season schema, deletion/anonymisation consequences and timezone contract before dependent records exist.
-6. Implement Stage C as a coherent append-only development migration with canonical applied-state, environment-parity, relationship-safeguard and preservation evidence in the same change.
-7. Do not mutate hosted development or production schema without the currently applicable approval, preflight and verification process.
+1. Review PR #228 against current `main` and confirm its exact head remains `86a02ab1e7f44cb42718dada13de94e66ea0dcd6` with green CI, Database parity, exact preview smoke and authenticated Browser E2E.
+2. Obtain an intentional owner merge decision for PR #228. Merging to `main` automatically publishes Netlify and changes routing/environment guard behaviour, so it is not an implicit housekeeping merge.
+3. After PR #228 lands, verify the exact `main` release identity and confirm the guard/scoping changes survived the merge without running a production database write.
+4. Begin Stage C with a reviewed competition-season schema design covering identifiers, scoping, timezone authority, deletion/anonymisation consequences, independent entries/standings/history and existing relationship safeguards.
+5. Implement Stage C as a coherent append-only **development** migration with canonical applied-state, environment-parity, relationship-safeguard and preservation evidence in the same change.
+6. Do not mutate hosted development or production schema without the currently applicable approval, preflight and verification process.
 
 ## Programme and stage navigation
 
