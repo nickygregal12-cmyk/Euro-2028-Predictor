@@ -1,6 +1,6 @@
 # ADR 0017 — Brand and club identity
 
-- **Status:** Provisional — brand pending clearance; identity approach accepted
+- **Status:** **Brand half superseded by [ADR 0019](0019-brand-decision-deferred.md)** (30 July 2026) — Scoreline was withdrawn on clearance evidence and the brand decision is deferred with a trigger. **The club identity half below is unchanged and remains in force.** The brand content in this record is retained as written, for traceability; read 0019 for the current position.
 - **Date:** 29 July 2026
 
 ## Context

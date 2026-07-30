@@ -8,12 +8,13 @@
 
 The repository is a multi-competition football prediction platform in transition. Euro 2028 is the first recoverable competition baseline, not the endpoint of the programme.
 
+- **user evidence:** [`../architecture/phase-0-world-cup-evidence.md`](../architecture/phase-0-world-cup-evidence.md) — owner observation of a live World Cup predictor with roughly 60 users across a full tournament. It is the only user evidence the programme holds, and it corrects six recorded planning assumptions;
 - recoverable Euro baseline: `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da`;
 - remaining Euro-specific work: parked in [`../../MASTER-TODO.md`](../../MASTER-TODO.md) until **January 2028**;
 - product phases and gates: [`../architecture/programme-plan.md`](../architecture/programme-plan.md);
 - engineering sequence: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md);
 - current execution sequence: [`../roadmap.md`](../roadmap.md);
-- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).
+- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0019-brand-decision-deferred.md`](../adr/0019-brand-decision-deferred.md).
 
 ## Repository and release baseline
 

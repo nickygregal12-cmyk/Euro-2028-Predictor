@@ -29,5 +29,6 @@ Update a record's status line when merged work changes its truth — an ADR desc
 | [0014](0014-predictor-cup-season-formats.md) | Predictor Cup season formats | Accepted direction — unimplemented |
 | [0015](0015-commercial-and-social-model.md) | Commercial and social model | Accepted direction — unimplemented |
 | [0016](0016-client-and-distribution.md) | Client and distribution strategy | Accepted direction — unimplemented |
-| [0017](0017-brand-and-club-identity.md) | Brand and club identity | Provisional — brand pending clearance; identity approach accepted |
+| [0017](0017-brand-and-club-identity.md) | Brand and club identity | Brand half superseded by [0019](0019-brand-decision-deferred.md); club identity half accepted and in force |
 | [0018](0018-pre-launch-promotion-cadence.md) | Pre-launch promotion cadence | Accepted direction — activation requires owner verification |
+| [0019](0019-brand-decision-deferred.md) | Brand decision deferred with a trigger | Accepted — reopens on Phase 0 completion, decided before the closed cohort opens |
