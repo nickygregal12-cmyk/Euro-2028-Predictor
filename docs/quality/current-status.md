@@ -36,10 +36,11 @@ The repository is a multi-competition football prediction platform in transition
 | Coverage thresholds and compressed bundle budgets | PR #285; both are CI gates |
 | Lint warnings fail CI | PR #287 — `oxlint --deny-warnings`; three `no-unsafe-finally` defects fixed |
 | Stage C design baseline | **PR #236 merged** 30 July 2026. It is the combined design record and authorises pre-migration contract planning only |
-| Stage C governance | [`stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md): C1 competition-season foundation may progress through review; C2 profile ownership/account erasure remains blocked by issue #272 |
+| Stage C governance | [`stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md): C1 competition-season foundation may progress; C2 profile ownership/account erasure remains blocked by issue #272 |
 | Stage C assertion classification | [`stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md): **40 C1, zero authorised C2 after-state and nine shared-before-state assertions**, enforced by `stageC1ContractClassification.test.ts` |
+| Stage C1 implementation overlay | [`stage-c1-schema-overlay.md`](../architecture/stage-c1-schema-overlay.md): every original relation and reviewed function has a C1/C2/shared disposition; coverage is enforced by `stageC1SchemaOverlayCoverage.test.ts` |
 | Stage C database contracts | Seven original suites plus `stageC1NonInterference`: TypeScript `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation`, `stageC1NonInterference`; pgTAP `031_stage_c_reference_scope_before_state.sql` and `032_stage_c_lock_before_state.sql`. Inventory guarded by `stageCContractInventory.test.ts` |
-| Next executable issue | **#303 — detailed Stage C1 design/coverage reconciliation**, followed by a reviewed development-intent migration. No C2 work belongs in that issue |
+| Next executable issue | **#303 — exact C1 migration planning and disposable proof.** No C2 work belongs in that issue and no hosted write is authorised |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; production remains contract 63 and deploys stay paused until an intentional release milestone |
 
@@ -69,11 +70,11 @@ The development Supabase inspection was limited to project identity/version and 
 | Cross-tournament read safety | **Landed.** `group_teams` reads are scoped through the selected tournament's groups. |
 | Database API hardening | **Guarded.** PR #250 proves every public table has RLS and every security-definer function pins `search_path`; PR #265 pins every public view and direct browser relation grant. |
 | Timezone authority | **Seam landed; persistence belongs to C1.** PR #252 separates `competitionTimeZone` from `viewerTimeZone`, but adapters still fall back to the viewer until C1 supplies `tournaments.display_timezone`. |
-| Account deletion | **Unsafe current behaviour, fully characterised and owned by C2.** PR #246 pins the before-state. C1 now has an executable non-interference guard preventing ownership/deletion changes; issue #272 remains the blocker. |
+| Account deletion | **Unsafe current behaviour, fully characterised and owned by C2.** PR #246 pins the before-state. C1 has executable non-interference and overlay guards preventing ownership/deletion changes; issue #272 remains the blocker. |
 | TypeScript/static coverage | **Exhaustive for committed TS/TSX.** PRs #255, #258 and #261 cover application, tests, e2e, production-smoke, tools and configs. |
 | Deploy-gate JavaScript | **Type-checked.** PR #264 covers the three production-decision gates; the remaining JavaScript inventory is explicit. |
 | Leaderboard scale | **Measured, not redesigned.** ACQ-R02 remains open; hosted concurrency is untested and no materialised standings table exists. |
-| Stage C1 | **Assertion classification and C2 non-interference are executable.** Detailed combined-design reconciliation remains before SQL. No migration or hosted write exists. |
+| Stage C1 | **Pre-SQL governance, assertion classification and detailed schema/coverage reconciliation are complete.** Migration drafting and disposable proof are next; no migration or hosted write exists. |
 | Stage C2 | **Blocked.** Independent data-protection review issue #272 must approve the retention/erasure boundary before profile ownership, pseudonymisation or related RLS work. |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility, legal/client and brand gates remain. |
 | Production mutation | **Prohibited without action-specific owner approval and the full milestone process.** |
@@ -114,23 +115,24 @@ These are evidence for the first competition. They do not imply that season rule
 - **PR #286:** hostile cross-season/reference before-state pgTAP.
 - **PR #292:** lock monotonicity and per-fixture late-write before-state pgTAP.
 - **Stage C1 contract boundary:** `stageC1ContractClassification.test.ts` makes the 49-assertion split executable; `stageC1NonInterference` freezes the current auth FK and ownership-RLS boundary.
+- **Stage C1 schema overlay:** `stageC1SchemaOverlayCoverage.test.ts` proves all 35 current relations/view, four proposed C1 relations and 51 reviewed functions are dispositioned.
 
 PRs #245 and #246 remain before-state controls. PR #252 is the application seam. The C1 migration must preserve PR #246 unchanged; C2 later replaces its expected after-state only after issue #272.
 
 ## Stage C implementation boundary
 
-The detailed combined design remains in:
+The original combined design remains in:
 
 - [`../architecture/stage-c-competition-season-schema.md`](../architecture/stage-c-competition-season-schema.md);
 - [`../architecture/stage-c-schema-coverage.md`](../architecture/stage-c-schema-coverage.md).
 
-The accepted governance amendment [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md) controls implementation order, and [`../architecture/stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md) controls the assertion boundary. C1 may implement competition-season identity, rounds, timezone, locks and same-season safeguards while preserving current auth ownership. C2 owns profile ownership, account erasure, pseudonymisation and related RLS and remains blocked.
+The accepted governance amendment [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md) controls the split, [`../architecture/stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md) controls the assertion boundary, and [`../architecture/stage-c1-schema-overlay.md`](../architecture/stage-c1-schema-overlay.md) is the C1 implementation authority. C1 may implement competition-season identity, rounds, timezone, locks and same-season safeguards while preserving current auth ownership. C2 owns profile ownership, account erasure, pseudonymisation and related RLS and remains blocked.
 
 No migration exists and no hosted schema operation is authorised.
 
 ## Open platform gaps
 
-- detailed Stage C1 design/coverage reconciliation and implementation;
+- Stage C1 migration implementation and disposable proof;
 - independent data-protection review and later Stage C2 implementation;
 - fixture/result ingestion and provider evidence;
 - season Predictor, Last Man Standing and Cup implementations;
@@ -148,6 +150,7 @@ No migration exists and no hosted schema operation is authorised.
 - Current position and next executable slice: [`../roadmap.md`](../roadmap.md).
 - Stage C split: [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md).
 - Stage C assertion boundary: [`../architecture/stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md).
+- Stage C1 implementation authority: [`../architecture/stage-c1-schema-overlay.md`](../architecture/stage-c1-schema-overlay.md).
 - Detailed active/parked inventory: [`../../MASTER-TODO.md`](../../MASTER-TODO.md).
 - Decisions: [`../adr/README.md`](../adr/README.md).
 - Current risks and findings: [`risk-register.md`](risk-register.md).
