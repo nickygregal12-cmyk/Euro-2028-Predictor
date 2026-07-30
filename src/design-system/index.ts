@@ -69,6 +69,22 @@ export type {
 export { GroupTable } from './GroupTable'
 export type { GroupTableProps, GroupTableRow } from './GroupTable'
 
+export { ClubIdentity } from './ClubIdentity'
+export type {
+  ClubIdentityProps,
+  ClubIdentitySize,
+  ClubIdentityTokens,
+  ClubKitPattern,
+} from './ClubIdentity'
+
+export { LeagueTable } from './LeagueTable'
+export type {
+  LeagueTableProps,
+  LeagueTableRow,
+  LeagueZone,
+  LeagueZoneKind,
+} from './LeagueTable'
+
 export { ThirdPlaceTable } from './ThirdPlaceTable'
 export type { ThirdPlaceTableProps, ThirdPlaceRow } from './ThirdPlaceTable'
 

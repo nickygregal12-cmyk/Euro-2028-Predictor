@@ -26,8 +26,13 @@ import {
   TieResolver,
   PlayerChip,
   StatCard,
+  ClubIdentity,
+  LeagueTable,
   type JokerButtonState,
   type TieResolverTeam,
+  type ClubIdentityTokens,
+  type LeagueTableRow,
+  type LeagueZone,
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
 import { PointsBreakdown } from '../features/scoring'
@@ -121,6 +126,130 @@ const SAMPLE_SCORE_EVENTS: ScoreEvent[] = [
     explanation: 'Spain · reached the semi-finals',
     flag: ESP,
     points: 45,
+  },
+]
+
+/**
+ * Club marks for the gallery. Hand-written rather than resolved, because the
+ * gallery's job is to show the component's states — including ones the resolver
+ * would never produce, such as a pattern with no secondary colour.
+ *
+ * The patterned and dark-monogram entries match the reviewed overlay so the
+ * gallery and the resolver do not drift into showing different things.
+ */
+const CLUB: Record<string, ClubIdentityTokens> = {
+  ARS: { monogram: 'ARS', primary: '#EF0107' },
+  NEW: { monogram: 'NEW', primary: '#241F20', secondary: '#FFFFFF', pattern: 'stripes' },
+  CEL: { monogram: 'CEL', primary: '#018749', secondary: '#FFFFFF', pattern: 'hoops' },
+  CRY: { monogram: 'CRY', primary: '#1B458F', secondary: '#C4122E', pattern: 'sash' },
+  BRE: { monogram: 'BRE', primary: '#E30613', secondary: '#FFFFFF', pattern: 'stripes' },
+  WBA: { monogram: 'WBA', primary: '#122F67', secondary: '#FFFFFF', pattern: 'halves' },
+  // Light primaries: the monogram must go dark or it is unreadable.
+  MCI: { monogram: 'MCI', primary: '#6CABDD', onPrimary: 'dark' },
+  WOL: { monogram: 'WOL', primary: '#FDB913', onPrimary: 'dark' },
+  TOT: { monogram: 'TOT', primary: '#FFFFFF', onPrimary: 'dark' },
+  LIV: { monogram: 'LIV', primary: '#C8102E' },
+  CHE: { monogram: 'CHE', primary: '#034694' },
+  EVE: { monogram: 'EVE', primary: '#003399' },
+  MUN: { monogram: 'MUN', primary: '#DA291C' },
+  AVL: { monogram: 'AVL', primary: '#95BFE5', secondary: '#670E36', onPrimary: 'dark' },
+  WHU: { monogram: 'WHU', primary: '#7A263A' },
+  BHA: { monogram: 'BHA', primary: '#0057B8' },
+  FUL: { monogram: 'FUL', primary: '#FFFFFF', onPrimary: 'dark' },
+  NFO: { monogram: 'NFO', primary: '#DD0000' },
+  BOU: { monogram: 'BOU', primary: '#DA291C' },
+  LEI: { monogram: 'LEI', primary: '#003090' },
+  SOU: { monogram: 'SOU', primary: '#D71920' },
+  IPS: { monogram: 'IPS', primary: '#3A64A3' },
+  RAN: { monogram: 'RAN', primary: '#1B458F' },
+  HEA: { monogram: 'HEA', primary: '#7D2B36' },
+  HIB: { monogram: 'HIB', primary: '#005E38' },
+  ABE: { monogram: 'ABE', primary: '#E31B23' },
+  // Degenerate: a pattern with no secondary colour. Must fall back to solid
+  // rather than render a gradient against `undefined`.
+  BAD: { monogram: 'BAD', primary: '#7A5FB0', pattern: 'stripes' },
+}
+
+const PREMIER_LEAGUE_ZONES: LeagueZone[] = [
+  { from: 1, to: 1, kind: 'champion', label: 'Champions' },
+  { from: 2, to: 4, kind: 'europe', label: 'Champions League' },
+  { from: 5, to: 5, kind: 'playoff', label: 'Europa League' },
+  { from: 18, to: 20, kind: 'relegation', label: 'Relegation' },
+]
+
+const PREMIER_LEAGUE_ROWS: LeagueTableRow[] = [
+  { position: 1, name: 'Liverpool', club: CLUB.LIV, played: 38, goalDifference: 45, points: 84, movement: 'none' },
+  { position: 2, name: 'Arsenal', club: CLUB.ARS, played: 38, goalDifference: 39, points: 81, movement: 'up' },
+  { position: 3, name: 'Man City', club: CLUB.MCI, played: 38, goalDifference: 34, points: 76, movement: 'down' },
+  { position: 4, name: 'Chelsea', club: CLUB.CHE, played: 38, goalDifference: 21, points: 69, movement: 'up' },
+  { position: 5, name: 'Newcastle', club: CLUB.NEW, played: 38, goalDifference: 18, points: 66, movement: 'down' },
+  { position: 6, name: 'Aston Villa', club: CLUB.AVL, played: 38, goalDifference: 9, points: 63, movement: 'none' },
+  { position: 7, name: 'Nott’m Forest', club: CLUB.NFO, played: 38, goalDifference: 7, points: 61, movement: 'up' },
+  { position: 8, name: 'Brighton', club: CLUB.BHA, played: 38, goalDifference: 4, points: 58, movement: 'down' },
+  { position: 9, name: 'Bournemouth', club: CLUB.BOU, played: 38, goalDifference: 2, points: 55, movement: 'none' },
+  { position: 10, name: 'Brentford', club: CLUB.BRE, played: 38, goalDifference: 0, points: 51, movement: 'up' },
+  { position: 11, name: 'Fulham', club: CLUB.FUL, played: 38, goalDifference: -1, points: 48, movement: 'down' },
+  { position: 12, name: 'Crystal Palace', club: CLUB.CRY, played: 38, goalDifference: -3, points: 47, movement: 'none' },
+  { position: 13, name: 'Everton', club: CLUB.EVE, played: 38, goalDifference: -6, points: 44, movement: 'up' },
+  { position: 14, name: 'Man United', club: CLUB.MUN, played: 38, goalDifference: -8, points: 42, movement: 'down' },
+  { position: 15, name: 'Tottenham', club: CLUB.TOT, played: 38, goalDifference: -11, points: 39, movement: 'down' },
+  { position: 16, name: 'West Ham', club: CLUB.WHU, played: 38, goalDifference: -17, points: 36, movement: 'up' },
+  { position: 17, name: 'Wolves', club: CLUB.WOL, played: 38, goalDifference: -24, points: 33, movement: 'none' },
+  { position: 18, name: 'Leicester', club: CLUB.LEI, played: 38, goalDifference: -31, points: 25, movement: 'down' },
+  { position: 19, name: 'Ipswich', club: CLUB.IPS, played: 38, goalDifference: -38, points: 22, movement: 'none' },
+  { position: 20, name: 'Southampton', club: CLUB.SOU, played: 38, goalDifference: -40, points: 12, movement: 'down' },
+]
+
+const SCOTTISH_ROWS: LeagueTableRow[] = [
+  { position: 1, name: 'Celtic', club: CLUB.CEL, played: 33, goalDifference: 58, points: 79, movement: 'none' },
+  { position: 2, name: 'Rangers', club: CLUB.RAN, played: 33, goalDifference: 34, points: 65, movement: 'none' },
+  { position: 3, name: 'Hibernian', club: CLUB.HIB, played: 33, goalDifference: 12, points: 54, movement: 'up' },
+  { position: 4, name: 'Aberdeen', club: CLUB.ABE, played: 33, goalDifference: 3, points: 48, movement: 'down' },
+  { position: 5, name: 'Hearts', club: CLUB.HEA, played: 33, goalDifference: -2, points: 41, movement: 'up' },
+  { position: 6, name: 'Dundee United', club: CLUB.WBA, played: 33, goalDifference: -5, points: 40, movement: 'down' },
+  { position: 7, name: 'St Mirren', club: CLUB.EVE, played: 33, goalDifference: -9, points: 36, movement: 'none' },
+  { position: 8, name: 'Motherwell', club: CLUB.WOL, played: 33, goalDifference: -14, points: 33, movement: 'up' },
+  { position: 9, name: 'Kilmarnock', club: CLUB.BHA, played: 33, goalDifference: -18, points: 30, movement: 'down' },
+  { position: 10, name: 'Ross County', club: CLUB.MUN, played: 33, goalDifference: -21, points: 27, movement: 'none' },
+  { position: 11, name: 'Dundee', club: CLUB.NEW, played: 33, goalDifference: -25, points: 24, movement: 'down' },
+  { position: 12, name: 'St Johnstone', club: CLUB.CHE, played: 33, goalDifference: -33, points: 18, movement: 'none' },
+]
+
+const SCOTTISH_ZONES: LeagueZone[] = [
+  { from: 1, to: 1, kind: 'champion', label: 'Champions' },
+  { from: 2, to: 3, kind: 'europe', label: 'European qualification' },
+  { from: 11, to: 11, kind: 'playoff', label: 'Relegation play-off' },
+  { from: 12, to: 12, kind: 'relegation', label: 'Relegation' },
+]
+
+/** Longest registered names, three-digit GD and three-digit points. */
+const HOSTILE_ROWS: LeagueTableRow[] = [
+  {
+    position: 1,
+    name: 'Wolverhampton Wanderers Football Club',
+    club: CLUB.WOL,
+    played: 138,
+    goalDifference: 145,
+    points: 384,
+    movement: 'up',
+  },
+  {
+    position: 2,
+    name: 'Brighton & Hove Albion Football Club',
+    club: CLUB.BHA,
+    played: 138,
+    goalDifference: 0,
+    points: 201,
+    movement: 'none',
+  },
+  {
+    position: 3,
+    name: 'West Bromwich Albion Football Club',
+    club: CLUB.WBA,
+    played: 138,
+    goalDifference: -145,
+    points: 100,
+    movement: 'down',
   },
 ]
 
@@ -803,6 +932,88 @@ function Gallery() {
             { position: 4, team: WAL, played: 3, goalDifference: -5, points: 1 },
           ]}
         />
+      </Section>
+
+      <Section title="ClubIdentity — patterns">
+        <Label>solid · stripes · hoops · halves · sash</Label>
+        <div className={styles.row}>
+          <ClubIdentity name="Arsenal" tokens={CLUB.ARS} />
+          <ClubIdentity name="Newcastle United" tokens={CLUB.NEW} />
+          <ClubIdentity name="Celtic" tokens={CLUB.CEL} />
+          <ClubIdentity name="West Bromwich Albion" tokens={CLUB.WBA} />
+          <ClubIdentity name="Crystal Palace" tokens={CLUB.CRY} />
+        </div>
+
+        <Label>sizes — card 30 · table 26 · venue 18 · champion 38</Label>
+        <div className={styles.row}>
+          <ClubIdentity name="Newcastle United" tokens={CLUB.NEW} size="card" />
+          <ClubIdentity name="Newcastle United" tokens={CLUB.NEW} size="table" />
+          <ClubIdentity name="Newcastle United" tokens={CLUB.NEW} size="venue" />
+          <ClubIdentity name="Newcastle United" tokens={CLUB.NEW} size="champion" />
+        </div>
+
+        <Label>onPrimary=&quot;dark&quot; — light primaries need a dark monogram</Label>
+        <div className={styles.row}>
+          <ClubIdentity name="Manchester City" tokens={CLUB.MCI} />
+          <ClubIdentity name="Wolverhampton Wanderers" tokens={CLUB.WOL} />
+          <ClubIdentity name="Tottenham Hotspur" tokens={CLUB.TOT} />
+          <ClubIdentity name="Aston Villa" tokens={CLUB.AVL} />
+        </div>
+
+        <Label>hideMonogram — adjacent text already names the club</Label>
+        <div className={styles.row}>
+          <ClubIdentity name="Arsenal" tokens={CLUB.ARS} hideMonogram />
+          <ClubIdentity name="Newcastle United" tokens={CLUB.NEW} hideMonogram />
+          <ClubIdentity name="Manchester City" tokens={CLUB.MCI} hideMonogram />
+        </div>
+
+        <Label>
+          degenerate — pattern with no secondary colour must fall back to solid, not render
+          against undefined
+        </Label>
+        <div className={styles.row}>
+          <ClubIdentity name="Pattern without secondary" tokens={CLUB.BAD} />
+          <ClubIdentity name="Pattern without secondary" tokens={CLUB.BAD} size="champion" />
+        </div>
+      </Section>
+
+      <Section title="LeagueTable — full twenty-row league">
+        <LeagueTable
+          caption="Premier League"
+          rows={PREMIER_LEAGUE_ROWS}
+          zones={PREMIER_LEAGUE_ZONES}
+        />
+      </Section>
+
+      <Section title="LeagueTable — Scottish split after 6">
+        <LeagueTable
+          caption="Scottish Premiership"
+          rows={SCOTTISH_ROWS}
+          zones={SCOTTISH_ZONES}
+          splitAfter={6}
+          splitLabels={{ top: 'Championship round', bottom: 'Relegation round' }}
+        />
+      </Section>
+
+      <Section title="LeagueTable — no zones">
+        <LeagueTable caption="Friendly league, no qualification" rows={SCOTTISH_ROWS.slice(0, 6)} />
+      </Section>
+
+      <Section title="LeagueTable — no movement data">
+        <Label>A dash is honest; an arrow that always points up is not.</Label>
+        <LeagueTable
+          caption="Opening weekend, no previous round"
+          rows={PREMIER_LEAGUE_ROWS.slice(0, 6).map(({ movement: _movement, ...rest }) => rest)}
+          zones={PREMIER_LEAGUE_ZONES}
+        />
+      </Section>
+
+      <Section title="LeagueTable — hostile data">
+        <Label>
+          Full registered names, three-digit goal difference and three-digit points. Names truncate
+          rather than wrap: a two-line row breaks the scan down twenty positions.
+        </Label>
+        <LeagueTable caption="Hostile data" rows={HOSTILE_ROWS} zones={PREMIER_LEAGUE_ZONES} />
       </Section>
 
       <Section title="ThirdPlaceTable">
