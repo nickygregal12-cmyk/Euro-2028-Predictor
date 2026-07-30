@@ -24,9 +24,14 @@ import { describe, expect, it } from 'vitest'
  * Note on `import type`. Four files under `tournament/` type-import from
  * `src/services/`. Those are erased at compile time, so they create no runtime
  * dependency and are not purity violations — but they are coupling, and the
- * distinction between a type import and a value import is one character. They
- * are enumerated below so the set cannot grow silently and so a value import
- * cannot arrive disguised as one.
+ * distinction between a type import and a value import is one word. They are
+ * enumerated below so the set cannot grow silently and so a value import cannot
+ * arrive disguised as one.
+ *
+ * The design system is different: it is a presentation layer and may depend on
+ * domain-owned identity tokens, but domain may never import it — not even for a
+ * type. This keeps the dependency direction design-system → domain and prevents
+ * a UI type from becoming the shared model by accident.
  */
 
 const repositoryRoot = process.cwd()
@@ -111,12 +116,19 @@ describe('the domain layer exists at all', () => {
 })
 
 describe('the shared competition layer depends on nothing above it', () => {
-  it('imports no implementation area and no service or feature', () => {
+  it('imports no implementation area, service, feature or design system', () => {
     // `src/domain/competition/` is the shared authority under ADR 0011. If it
     // ever imports an implementation, the dependency inverts: the thing that is
     // supposed to be common to tournament and season starts knowing about one
     // of them, and the next competition kind inherits that assumption.
-    const forbidden = ['tournament', 'season', 'competitions', 'services', 'features']
+    const forbidden = [
+      'tournament',
+      'season',
+      'competitions',
+      'services',
+      'features',
+      'design-system',
+    ]
 
     for (const file of sources.filter((candidate) => candidate.area === 'competition')) {
       for (const specifier of importsOf(file)) {
@@ -156,6 +168,19 @@ describe('implementation areas do not import each other', () => {
 })
 
 describe('domain code takes its dependencies as inputs', () => {
+  it('never imports from the design system, including type-only imports', () => {
+    const offenders = sources.flatMap((file) =>
+      importsOf(file)
+        .filter((specifier) => /(^|\/)design-system\//.test(specifier))
+        .map((specifier) => `${file.path} → ${specifier}`),
+    )
+
+    expect(
+      offenders,
+      'domain owns reusable data/types; the design system may depend on domain, never the reverse',
+    ).toEqual([])
+  })
+
   it('never imports a value from services or features', () => {
     // The purity rule that actually bites. A type import is erased; a value
     // import pulls a configured Supabase client into a module that is supposed
