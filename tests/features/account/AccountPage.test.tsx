@@ -49,6 +49,10 @@ vi.mock('../../../src/app/providers/PredictionsProvider', () => ({
   }),
 }))
 
+vi.mock('../../../src/features/shared/useTournamentEntryLocked', () => ({
+  useTournamentEntryLocked: () => false,
+}))
+
 vi.mock('../../../src/services/supabase/auth', () => ({
   getSessionEmailState: () =>
     Promise.resolve({ email: 'me@example.test', pendingEmail: null }),
