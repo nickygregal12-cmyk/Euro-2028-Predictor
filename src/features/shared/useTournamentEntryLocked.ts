@@ -14,13 +14,15 @@ export function useTournamentEntryLocked(fallback = false): boolean {
 
   if (data.status !== 'ready') return fallback
 
+  // Capture time once at the feature boundary and pass it into the pure engine.
   const nowServer = new Date()
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
   const resolved = resolveTournamentCompetitionContext({
     data: data.data,
     submitted: predictions.submittedAt !== null,
     entryComplete: false,
     nowServer,
-    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    timeZone,
   })
 
   return isEntryLocked(resolved.context)
