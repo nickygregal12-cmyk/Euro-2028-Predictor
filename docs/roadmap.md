@@ -17,8 +17,8 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 3. **Design and instrumentation:** information architecture, prototype testing, visual direction and event taxonomy belong to programme Phase 1 before Stages E–H implement screens.
 4. **Launch and acquisition:** Stage J is launch readiness and go-to-market, with the programme window beginning in February 2027.
 5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games.
-6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; the superseded Stage B stack is closed and its completed checklist remains in `MASTER-TODO.md`.
-7. **Control and parity foundation:** PRs #228, #229, #232, #233 and #235 are on `main` through `2c57898d2eefed943a24bfe342d6da227bdd5267`.
+6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; PR #239 closed the retained Stage B checklist with the satisfying PRs.
+7. **Control and parity foundation:** PRs #228, #229, #232, #233 and #235 are on `main`; current `main` is `69f6e364132f6586d5de9ed8706b0802d14ec0fc` after the inventory reconciliation.
 8. **Stage C:** draft PR #236 is the active design baseline. No migration exists.
 
 ## Delivered baseline
@@ -39,7 +39,7 @@ Complete on `main`:
 - Home migration through PR #219;
 - Matches, Match Centre, entry lock and `MatchTemporalState` retirement through PR #226;
 - full clean-main application, database, preview and authenticated-browser gates passed before merge;
-- the Stage B checklist is retained and closed in the master inventory.
+- the Stage B checklist is retained and closed in the master inventory through PR #239.
 
 ### Landed control and parity work
 
