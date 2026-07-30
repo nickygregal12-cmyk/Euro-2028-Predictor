@@ -1,11 +1,203 @@
 [build.environment]
   NODE_VERSION = "22.22.2"
 
-# Production redeploy marker: contract 60 verified 2026-07-29.
+# SPA routing.
+#
+# Every rule below rewrites to the same SPA entry point; only the HTTP status
+# differs. Known application routes answer 200; anything else falls through to
+# the final catch-all and answers 404, so a nonexistent URL is no longer
+# indexable as a real page (SEO-001, soft 404s).
+#
+# Real files are never shadowed by these rules. Netlify serves an existing file
+# — /assets/*, /release.json, /robots.txt, /sitemap.xml, the favicons — before
+# applying a redirect, unless the rule sets `force = true`. Do not add `force`
+# to any rule here; it would break asset delivery and the release identity that
+# production smoke reads.
+#
+# This list is kept honest by tests/app/spaRoutingStatus.test.ts, which reads
+# the routes out of src/App.tsx and fails if one is missing, unknown or ordered
+# so that a parameterised rule shadows a static sibling. Add a route to
+# src/App.tsx and this file, in the same change.
+#
+# Static routes first, then parameterised ones: Netlify applies the first
+# matching rule, so `/league/:id` must not intercept `/league/overall`.
+
+[[redirects]]
+  from = "/"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/login"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/signup"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/reset"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/auth/update-password"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/welcome"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/third-place"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/bracket"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/jokers"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/review"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/prediction-trends"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/league"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/league/overall"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/matches"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/more"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/more/points"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/more/scoring"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/account"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/knockout"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/ko-predictor"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/lms"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/cup"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/results"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/users"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/join/:code"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/groups/:letter"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/league/:id"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/h2h/:rivalId"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/match/:matchRef"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile/:playerId"
+  to = "/index.html"
+  status = 200
+
+# Unknown path: still render the SPA (which shows NotFoundPage), but answer 404
+# so crawlers and monitoring see a real not-found rather than a soft 200.
 [[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200
+  status = 404
 
 # Security headers, applied to every response.
 #
