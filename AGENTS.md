@@ -38,7 +38,7 @@ The hosted values below are the last owner-verified repository record from 29 Ju
 
 **REQUIRES OWNER VERIFICATION before operational reliance:** run the target-specific applied-state, privilege, environment and release checks in [`docs/quality/current-status.md`](docs/quality/current-status.md). Never copy a stale hosted claim into a new document.
 
-The active programme is Stage A/B: align authorities and controls, land the pure competition-context foundation, then migrate legacy consumers separately without changing Euro behaviour.
+The active programme is finishing Stage B integration and authority reconciliation. The competition foundation and Home consumer are on `main`; Matches, Match Centre, entry lock and `MatchTemporalState` retirement are implemented and validated in the clean-main integration candidate. Do not begin Stage C until that candidate is verified and intentionally merged. After clean-main integration, Stage C competition-season schema is the next engineering stage.
 
 ## Development operating mode
 
