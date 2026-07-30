@@ -43,13 +43,15 @@ function sectionBetween(source: string, start: string, end: string): string {
 }
 
 function tupleBlock(source: string, alias: 'k' | 'm'): string {
-  const pattern = new RegExp(
-    `cross\\s+join\\s*\\(values([\\s\\S]*?)\\)\\s+as\\s+${alias}\\s*\\(`,
-    'i',
-  )
-  const match = source.match(pattern)
-  expect(match, `${alias} fixture values`).toBeTruthy()
-  return match![1]
+  const aliasPattern = new RegExp(`\\)\\s+as\\s+${alias}\\s*\\(`, 'i')
+  const aliasMatch = aliasPattern.exec(source)
+  expect(aliasMatch, `${alias} fixture alias`).toBeTruthy()
+
+  const valuesMarker = 'cross join (values'
+  const valuesStart = source.lastIndexOf(valuesMarker, aliasMatch!.index)
+  expect(valuesStart, `${alias} fixture values start`).toBeGreaterThanOrEqual(0)
+
+  return source.slice(valuesStart + valuesMarker.length, aliasMatch!.index)
 }
 
 function parseTuple(tuple: string): Scalar[] {
