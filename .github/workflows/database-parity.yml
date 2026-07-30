@@ -7,7 +7,8 @@ on:
       - 'config/deployment-contract.json'
       - 'fixtures/predicted-group-order.json'
       - 'scripts/database-rollout/**'
-      - 'src/domain/tournament/**'
+      # Cover every shared domain sibling, including competition and future season modules.
+      - 'src/domain/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
       - 'tests/scripts/databaseParityWorkflow.test.ts'
