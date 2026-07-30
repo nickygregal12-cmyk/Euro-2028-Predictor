@@ -17,6 +17,15 @@ function replaceExact(path, from, to) {
   write(path, content.replace(from, to))
 }
 
+function replaceCount(path, from, to, expected) {
+  const content = read(path)
+  const count = content.split(from).length - 1
+  if (count !== expected) {
+    throw new Error(`${path}: expected ${expected} occurrences, found ${count}: ${JSON.stringify(from)}`)
+  }
+  write(path, content.split(from).join(to))
+}
+
 const domain = 'src/domain/tournament/matchCentre.ts'
 const bridge = 'src/domain/tournament/matchCentreLegacyBridge.ts'
 const pageModel = 'src/domain/tournament/matchCentrePageModel.ts'
@@ -96,7 +105,7 @@ replaceExact(
   "describe('Match Centre temporal differential evidence', () => {",
   "describe('Match Centre captured shared-state evidence', () => {",
 )
-replaceExact(differential, "    expect(matchTemporalState(match)).toBe('before')\n", '')
+replaceCount(differential, "    expect(matchTemporalState(match)).toBe('before')\n", '', 3)
 replaceExact(differential, "    expect(matchTemporalState(match)).toBe('after')\n", '')
 
 for (const path of [domain, bridge, pageModel, screen, page, domainTest, differential]) {
