@@ -21,17 +21,18 @@ The repository is a multi-competition prediction platform in transition. The com
 | Field | Current value |
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
-| Current `main` | `7af065f414cb25f72ed49309de45ae5d12141e6b` |
+| Current `main` | `2c57898d2eefed943a24bfe342d6da227bdd5267` |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
 | Control/scoping integration | PR #228 → `ae78a57b5beabd6a415975b24daae28215ed509d` |
 | Scoring parity | PR #229 → `5a726c6c2839305182872b0f6cb47ccad9179074` |
 | Full Database parity harness | PR #232 → `eba31f34a7d8e9c00282972a82e8c8c043c57047` |
 | CSP parity | PR #233 → `7af065f414cb25f72ed49309de45ae5d12141e6b` |
+| Environment/privilege contract parity | PR #235 → `2c57898d2eefed943a24bfe342d6da227bdd5267` |
 | Recoverable Euro baseline | `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da` |
 | Application/database contract at the tag | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
-| Current development position | Stage B and the required cross-tournament/control foundations are complete on `main` |
+| Current development position | Stage B and the required cross-tournament, environment and parity foundations are complete on `main` |
 | Active Stage C work | Draft PR #236, design and coverage manifest only; no migration exists |
-| Parallel guard work | PR #235 at `1fabeb96226006cbcf03fafd97221b1749d3bb0e`, fully green and unmerged |
+| Active reconciliation | Draft PR #230 updates the live authorities and closes the Stage B inventory |
 | Production posture | Controlled pre-launch target; no development or simulation write path is permitted |
 
 ## Hosted evidence boundary
@@ -44,8 +45,7 @@ The development Supabase inspection was limited to project identity/version and 
 | --- | --- | --- |
 | Development Supabase `iouzoutneyjpugbbtdem` | active healthy, Postgres 17; read-only catalogue shows 34 RLS-enabled public tables plus `entry_totals` and the existing same-tournament validator graph | **REQUIRES OWNER VERIFICATION:** run canonical applied-state and privilege queries before relying on contract alignment or applying a migration |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight; not inspected in this reconciliation | **REQUIRES OWNER VERIFICATION:** run read-only applied-state, privilege and preservation checks before any write |
-| Production Netlify `main` | ready deploy `6a6b53f52822ac0008ee0937` from exact commit `7af065f414cb25f72ed49309de45ae5d12141e6b`, published 30 July 2026; 35 redirects and one header rule processed successfully; no secret-scan matches | rerun exact-origin smoke before a production-risk milestone |
-| PR #235 | CI, full Database parity and Browser E2E all green on `1fabeb96226006cbcf03fafd97221b1749d3bb0e`; still unmerged | repeat only if its head changes |
+| Production Netlify `main` | ready deploy `6a6b58eb31dbcd0008ad068d` from exact commit `2c57898d2eefed943a24bfe342d6da227bdd5267`, published 30 July 2026; 35 redirects and one header rule processed successfully; no secret-scan matches | rerun exact-origin smoke before a production-risk milestone |
 | Production data/recovery | owner-verified preserved counts and same-day encrypted contract-60 backup/restore evidence on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** take a fresh backup/restore proof before a data-risk milestone |
 
 ## Executive verdicts
@@ -57,9 +57,8 @@ The development Supabase inspection was limited to project identity/version and 
 | Platform direction | **Established by ADRs 0011–0018.** Forward documents and agent framing are aligned to the multi-competition programme. |
 | Context engine | **Complete on `main`.** Home, Matches, Match Centre and entry-lock decisions consume the shared competition context, and the legacy `MatchTemporalState` layer is retired. |
 | Cross-tournament read safety | **Landed.** `group_teams` reads are scoped through the selected tournament's groups. |
-| Parity and deployment guards | **Strengthened.** Original scoring, Database parity execution and committed CSP/application requirements now have direct contract tests. |
+| Automated control coverage | **Landed.** Original scoring, full Database parity execution, CSP/application requirements, `VITE_*` declarations/templates and deployment-RPC/database-privilege relationships have direct contract tests. |
 | Stage C | **Design active; implementation not started.** Draft PR #236 defines the schema direction and complete current-object coverage manifest without adding SQL. |
-| Parallel work | **PR #235 is independent and fully green.** It relates environment/deployment declarations to application and database privilege contracts and does not block Stage C design review. |
 | Contract alignment | **Repository contract remains 63; hosted applied-state was not freshly verified.** |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility and legal/client gates remain. |
 | Production mutation | **Prohibited without explicit owner approval and the full milestone process.** |
@@ -94,18 +93,16 @@ Stage B is complete on `main`:
 2. Home migration merged through PR #219;
 3. Matches, Match Centre, entry-lock migration and `MatchTemporalState` retirement integrated through PR #226;
 4. PR #226 passed build/typecheck, lint, full Vitest, dependency audit, Database parity, exact preview smoke, authenticated journeys, signup and recovery;
-5. superseded PRs #216, #221, #222, #223, #224 and #225 were closed with links to the merged integration.
+5. superseded PRs #216, #221, #222, #223, #224 and #225 were closed with links to the merged integration;
+6. `MASTER-TODO.md` retains the completed Stage B checklist with the satisfying PRs rather than deleting the history.
 
 ### Landed control/parity batches
 
 - **PR #228:** production guard derivation, tournament-scoped `group_teams`, real 404 routing, RPC allowlist enforcement, browser-key validation, reachability and TypeScript/SQL parity.
 - **PR #229:** Original Predictor TypeScript/SQL scoring-value parity.
-- **PR #232:** Database parity now executes the entire `tests/database-parity/` directory and guards against future narrowing.
+- **PR #232:** Database parity executes the entire `tests/database-parity/` directory and guards against future narrowing.
 - **PR #233:** committed CSP requirements are checked against Sentry, Supabase, Turnstile and application resource usage.
-
-### Parallel guard batch — PR #235
-
-PR #235 is mergeable and fully green. It adds environment-contract completeness, relates the deployment RPC contract to the database privilege allowlist and documents Sentry variables in `.env.example`. It changes no schema, migration, database privilege or runtime competitive behaviour. It may integrate independently; Stage C must not duplicate its assertions.
+- **PR #235:** `VITE_*` reads, declarations and `.env.example` entries are held in step; deployment RPC requirements are related to database privilege evidence; Sentry environment variables are documented without committing credentials.
 
 ### Stage C — competition-season schema design
 
