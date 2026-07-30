@@ -10,6 +10,7 @@ rows and rolls back.
 | `acq-r02-leaderboard.sql` | `ACQ-R02` — leaderboard read cost | [30 Jul 2026](../../docs/quality/investigations/2026-07-30-acq-r02-leaderboard-scale.md) |
 | `acq-r03-result-write.sql` | `ACQ-R03` / `DEC-009` — result-write cost | [30 Jul 2026](../../docs/quality/investigations/2026-07-30-acq-r03-result-write-cost.md) |
 | `acq-r03-bloat.sh` | `ACQ-R03` — table bloat, commits per result | [30 Jul 2026](../../docs/quality/investigations/2026-07-30-acq-r03-result-write-cost.md) |
+| `acq-r03-knockout.sh` | `ACQ-R03` — knockout cost, run after the group stage | [30 Jul 2026](../../docs/quality/investigations/2026-07-30-acq-r03-result-write-cost.md) |
 | `acq-r03-probe.sql` | diagnostic — 5 entries, one confirm | — |
 
 `acq-r03-bloat.sh` is the exception to the rollback rule: it **commits**, because
