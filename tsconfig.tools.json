@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tools.tsbuildinfo",
+    // Playwright specs, the local fixture harnesses and the seed scripts are
+    // Node programs, so they need the Node types the application project
+    // deliberately does not carry.
+    "types": ["node"]
+  },
+  // TypeScript sources only. The six .mjs deploy-gate validators alongside them
+  // are plain JavaScript and would need allowJs/checkJs, which is a separate
+  // decision with its own backlog.
+  "include": [
+    "e2e",
+    "scripts/**/*.ts",
+    "playwright.config.ts",
+    "playwright.auth.config.ts",
+    "playwright.production.config.ts"
+  ]
+}
