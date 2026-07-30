@@ -1,8 +1,8 @@
 // Pure domain for the Match Centre (design-system §6). Turns raw picks/results
-// into the shapes the per-fixture page renders: temporal state, your stake, the
-// overall distribution (bars), and league member picks (names) for both the
-// group and knockout variants. No React, no DB. Scoring reuses calculateScore
-// via scoreOneMatch-equivalent logic so nothing drifts from score_events.
+// into the shapes the per-fixture page renders: your stake, the overall
+// distribution (bars), and league member picks (names) for both group and
+// knockout variants. No React, no DB. Scoring reuses calculateScore via
+// scoreOneMatch-equivalent logic so nothing drifts from score_events.
 
 import { calculateScore } from './calculateScore'
 import { KNOCKOUT_STAGE_ORDER, KNOCKOUT_STAGE_POINTS, type KnockoutStage } from './scoringConfig'
