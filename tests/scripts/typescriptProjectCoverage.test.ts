@@ -170,10 +170,12 @@ describe('TypeScript project coverage', () => {
 
 describe('JavaScript under scripts/', () => {
   /**
-   * The deploy gates, checked under `allowJs`/`checkJs` by tsconfig.gates.json.
-   * Each decides whether a build reaches production.
+   * The gates, checked under `allowJs`/`checkJs` by tsconfig.gates.json. Each
+   * decides whether a build passes: the three deployment-contract and
+   * environment validators, and the compressed bundle budget.
    */
   const CHECKED = [
+    'scripts/check-bundle-budget.mjs',
     'scripts/deployment-contract-expectations.mjs',
     'scripts/validate-deployment-contract.mjs',
     'scripts/validate-netlify-environment.mjs',

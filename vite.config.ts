@@ -1,6 +1,6 @@
-/// <reference types="vitest/config" />
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import type {} from 'vitest/config'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { configDefaults } from 'vitest/config'
@@ -76,6 +76,32 @@ export default defineConfig(({ command, mode }) => {
       // Playwright owns the real-browser suite. Keeping it out of Vitest prevents
       // either runner from interpreting the other runner's test API.
       exclude: [...configDefaults.exclude, 'e2e/**', 'production-smoke/**'],
+      // ACQ-R20. Thresholds are enforced for `src/domain/**` only, and only by
+      // the dedicated `test:coverage:domain` script. CI runs the main suite one
+      // file per process for memory isolation, where a coverage threshold would
+      // be evaluated per file and fail on every one of them. The domain tier is
+      // also where a threshold means most: it is pure logic with no rendering,
+      // so a drop is a real gap rather than an untested component.
+      // Scoped to what `tests/domain` alone achieves, not what the whole suite
+      // reaches. The full suite covers `src/domain` to 97.6% lines because
+      // feature and service tests exercise it incidentally; domain tests alone
+      // reach 94.7%. Enforcing the narrower figure is the stronger contract —
+      // it asserts the pure logic carries its own tests rather than being
+      // covered by accident from a component render.
+      //
+      // Measured 30 July 2026 from `tests/domain`: statements 92.2%, branches
+      // 85.7%, functions 96.6%, lines 94.7%. Thresholds sit below those as a
+      // ratchet against regression, not as a target.
+      coverage: {
+        provider: 'v8',
+        include: ['src/domain/**'],
+        thresholds: {
+          statements: 90,
+          branches: 83,
+          functions: 95,
+          lines: 92,
+        },
+      },
     },
   }
 })

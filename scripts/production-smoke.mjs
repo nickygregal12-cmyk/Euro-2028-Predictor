@@ -211,7 +211,7 @@ function verifySecurityHeaders(headers) {
 }
 
 function discoverAssets(html) {
-  return [...html.matchAll(/(?:src|href)="(\/assets\/[^\"]+\.(?:js|css))"/g)]
+  return [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/g)]
     .map((match) => match[1])
     .filter((value, index, values) => values.indexOf(value) === index)
     .sort()
