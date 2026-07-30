@@ -226,12 +226,19 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
       if (leagueId) await admin.from('leagues').delete().eq('id', leagueId)
       await deleteUsers(createdUsers.map((user) => user.id))
     } finally {
+      // This `finally` sits inside a `catch` that rethrows, so an error is
+      // *always* in flight here. A throw could therefore only ever discard the
+      // setup failure that caused the cleanup, and the caller would be told the
+      // lock restore failed instead of why the fixture could not be built.
+      // Report and let the original error stand.
       if (tournamentId) {
         const { error: restoreError } = await admin
           .from('tournaments')
           .update({ lock_at: originalLockAt })
           .eq('id', tournamentId)
-        if (restoreError) throw restoreError
+        if (restoreError) {
+          console.error('[private-league cleanup] lock restore failed:', restoreError.message)
+        }
       }
       await setLocalOperatingLimits(DEFAULT_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
     }
@@ -241,16 +248,39 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
 
 export async function clearPrivateLeagueFixture(fixture: PrivateLeagueFixture): Promise<void> {
   const admin = createLocalAdmin()
+
+  // Teardown runs unconditionally, but the two failures it can encounter are not
+  // interchangeable, so neither is thrown from a `finally`.
+  //
+  // The previous shape threw the lock-restore error out of a `finally`. That
+  // replaced whatever the teardown body had failed with, and it also skipped the
+  // operating-limit reset below it — so one failure hid another and left global
+  // state wrong for the next spec.
+  //
+  // Instead: capture, always finish the restore *and* the limit reset, then
+  // report. A restore failure still fails teardown loudly when nothing else
+  // went wrong — leaving a tournament unlocked would break later specs in ways
+  // that are hard to trace back — but it never outranks the original error.
+  let teardownError: unknown
   try {
     const { error: leagueError } = await admin.from('leagues').delete().eq('id', fixture.leagueId)
     if (leagueError) throw leagueError
     await deleteUsers(fixture.syntheticUserIds)
-  } finally {
-    const { error: restoreError } = await admin
-      .from('tournaments')
-      .update({ lock_at: fixture.originalLockAt })
-      .eq('id', fixture.tournamentId)
-    if (restoreError) throw restoreError
-    await setLocalOperatingLimits(DEFAULT_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
+  } catch (error) {
+    teardownError = error
   }
+
+  const { error: restoreError } = await admin
+    .from('tournaments')
+    .update({ lock_at: fixture.originalLockAt })
+    .eq('id', fixture.tournamentId)
+  await setLocalOperatingLimits(DEFAULT_USER_LIMIT, DEFAULT_LEAGUE_LIMIT)
+
+  if (teardownError) {
+    if (restoreError) {
+      console.error('[private-league teardown] lock restore failed:', restoreError.message)
+    }
+    throw teardownError
+  }
+  if (restoreError) throw restoreError
 }
