@@ -454,7 +454,10 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
         </>
       ) : null}
 
-      {showMatchImpact && temporalState === 'after' && props.consequence && props.consequence.casualties > 0 ? (
+      {showMatchImpact &&
+      props.statusPresentation?.isTerminal &&
+      props.consequence &&
+      props.consequence.casualties > 0 ? (
         <section className={s.card}>
           <h2 className={s.cardTitle}>What it changed</h2>
           <p className={s.stakeLine}>

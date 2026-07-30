@@ -6,7 +6,7 @@ import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import type { Match } from '../../services/supabase/tournamentData'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
-import { matchTemporalState, groupStake, koStake } from '../../domain/tournament/matchCentre'
+import { groupStake, koStake } from '../../domain/tournament/matchCentre'
 import {
   authoritativeMatchScore,
   authoritativeWinnerSide,
@@ -68,12 +68,29 @@ export function MatchesPage() {
   const built = useMemo(() => {
     if (data.status !== 'ready' || !preds.ready) return null
     const td = data.data
+    const nowServer = new Date()
+    const competition = resolveTournamentCompetitionContext({
+      data: td,
+      submitted: preds.submittedAt !== null,
+      entryComplete: false,
+      nowServer,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    })
+    const resolvedMatchState = new Map(
+      competition.context.matches.map((candidate) => [candidate.id, candidate.state]),
+    )
     const letterOf = (groupId: string | null) => td.groups.find((g) => g.id === groupId)?.letter ?? null
 
     const rowOf = (match: Match): FixtureRowVM => {
       const home = { name: teamName.get(match.homeTeamId ?? '') ?? 'TBC', countryCode: '' }
       const away = { name: teamName.get(match.awayTeamId ?? '') ?? 'TBC', countryCode: '' }
-      const state = matchTemporalState(match)
+      const sharedState = resolvedMatchState.get(match.id)
+      const state: FixtureRowVM['state'] =
+        sharedState === 'confirmed' || sharedState === 'scored'
+          ? 'after'
+          : sharedState === 'in_play_feed'
+            ? 'during'
+            : 'before'
       const result = authoritativeMatchScore(match)
 
       if (match.round === 'group') {
@@ -132,14 +149,6 @@ export function MatchesPage() {
       rows: group.matches.map(rowOf),
     }))
 
-    const nowServer = new Date()
-    const competition = resolveTournamentCompetitionContext({
-      data: td,
-      submitted: preds.submittedAt !== null,
-      entryComplete: false,
-      nowServer,
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-    })
     const scrollToKey = filter === 'all' && viewModels.length
       ? viewModels[currentGroupIndexFromContext(groups, competition.context)].key
       : null
