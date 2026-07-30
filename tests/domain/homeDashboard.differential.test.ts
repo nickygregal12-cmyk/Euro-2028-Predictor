@@ -233,4 +233,19 @@ describe('homeDashboard legacy differential fixtures', () => {
     expect(migrated.context.entryState).toBe('locked')
     expect(migrated.phase).toBe('preIncomplete')
   })
+
+  it('preserves the legacy partial-result phase edge case', () => {
+    const data = tournamentData(false)
+    data.matches[0].homeScore = 1
+
+    const migrated = resolveHomeCompetitionContext({
+      data,
+      submitted: true,
+      entryComplete: true,
+      nowServer: new Date('2028-06-14T18:00:00Z'),
+      timeZone: 'UTC',
+    })
+
+    expect(migrated.phase).toBe('during')
+  })
 })
