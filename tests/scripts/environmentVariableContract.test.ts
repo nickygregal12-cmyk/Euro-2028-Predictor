@@ -14,11 +14,16 @@ import { describe, expect, it } from 'vitest'
  * application and absent from the interface for exactly that reason: nothing
  * failed.
  *
- * The documentation check deliberately accepts either `.env.example` or a
- * `docs/` runbook. The two are used for different audiences — `.env.example` is
- * the local template, and Sentry configuration lives in `docs/ops-sentry.md` —
- * and deciding which file should own a given variable is not something a test
- * should force.
+ * `.env.example` is required to list every variable the application reads. That
+ * was an owner decision: the three `VITE_SENTRY_*` variables were operational
+ * detail described only in `docs/ops-sentry.md`, so the template silently was not
+ * the complete list its header implies. They now appear in both, and this test
+ * requires the template rather than accepting a runbook instead — otherwise the
+ * template can quietly go incomplete again, which is the failure it exists to
+ * prevent.
+ *
+ * Operational depth still belongs in `docs/ops-*.md`; the template only has to
+ * name the variable and say what it does.
  */
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
@@ -70,29 +75,6 @@ function documentedInTemplate(): Set<string> {
   )
 }
 
-/** Every `VITE_*` mentioned by an operator runbook under docs/. */
-function documentedInRunbooks(): Set<string> {
-  const names = new Set<string>()
-  const docsDir = resolve(repositoryRoot, 'docs')
-  const walk = (directory: string) => {
-    for (const entry of readdirSync(directory)) {
-      const entryPath = join(directory, entry)
-      if (statSync(entryPath).isDirectory()) {
-        walk(entryPath)
-        continue
-      }
-      if (!entry.endsWith('.md')) continue
-      for (const match of readFileSync(entryPath, 'utf8').matchAll(
-        /(VITE_[A-Z0-9_]+)/g,
-      )) {
-        names.add(match[1])
-      }
-    }
-  }
-  walk(docsDir)
-  return names
-}
-
 describe('VITE_* environment variable contract', () => {
   it('finds the variables at all', () => {
     // Without this, a changed access pattern would empty the comparison and make
@@ -120,17 +102,25 @@ describe('VITE_* environment variable contract', () => {
     expect(unread).toEqual([])
   })
 
-  it('documents every variable the application reads', () => {
-    // Either the local template or a docs/ runbook — see the file header for why
-    // this is not narrowed to one of them.
-    const undocumented = [...readByApplication()]
-      .filter(
-        (name) =>
-          !documentedInTemplate().has(name) && !documentedInRunbooks().has(name),
-      )
+  it('lists every variable the application reads in the local template', () => {
+    // `.env.example` says "Copy this file to .env.local and fill in real values",
+    // so a variable the app reads and the template omits makes that header a lie.
+    const missing = [...readByApplication()]
+      .filter((name) => !documentedInTemplate().has(name))
       .sort()
 
-    expect(undocumented).toEqual([])
+    expect(missing).toEqual([])
+  })
+
+  it('names the Sentry variables the template previously omitted', () => {
+    // Pinned so they cannot drop back out of the template into docs-only status.
+    for (const name of [
+      'VITE_SENTRY_ENABLED',
+      'VITE_SENTRY_DSN',
+      'VITE_SENTRY_VERIFICATION_EVENT',
+    ]) {
+      expect([...documentedInTemplate()]).toContain(name)
+    }
   })
 
   it('keeps the local template free of variables nothing reads', () => {
