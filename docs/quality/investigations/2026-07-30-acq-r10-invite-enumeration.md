@@ -40,7 +40,7 @@ This is the least urgent of the four gaps, because exploiting PRNG predictabilit
 
 **The control weakens exactly as the platform succeeds.** At today's scale this is a non-issue. At the scale the multi-competition platform is being built for, a first hit is minutes of unattended probing.
 
-Two extra characters in the same alphabet multiply the keyspace by 961, moving the 50,000-league case from three minutes back to roughly two months at 100/s. Length is the cheap lever.
+Two extra characters in the same alphabet multiply the keyspace by 961, moving the 50,000-league case from three minutes to about 47 hours (roughly two days) at 100/s. Length is the cheap lever.
 
 ## Finding 3 — probing is completely unthrottled, and this is the real gap
 
