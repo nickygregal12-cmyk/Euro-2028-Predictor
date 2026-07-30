@@ -1,8 +1,9 @@
 # Stage C — competition-season schema design
 
-**Status:** Proposed design; no migration or hosted change exists.  
+**Status:** Proposed design; requires owner approval of the three decisions in §6. No migration or hosted change exists.  
 **Status date:** 30 July 2026  
-**Decision authority:** [ADR 0011](../adr/0011-multi-competition-platform.md) and [ADR 0015](../adr/0015-commercial-and-social-model.md)  
+**Baseline:** `main` at `69f6e364132f6586d5de9ed8706b0802d14ec0fc`  
+**Decision authority:** [ADR 0011](../adr/0011-multi-competition-platform.md), [ADR 0012](../adr/0012-season-predictor-rules.md) and [ADR 0015](../adr/0015-commercial-and-social-model.md)  
 **Engineering sequence:** [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) §7  
 **Implementation truth:** [`../quality/current-status.md`](../quality/current-status.md)
 
@@ -16,7 +17,7 @@ This document is design-only. It does **not**:
 - change application code or RPC contracts;
 - alter development or production Supabase;
 - change Euro 2028 scoring, locks, results, access or presentation;
-- introduce provider ingestion, season Predictor rules, Last Man Standing rules or Predictor Cup formats.
+- implement ingestion, season Predictor, Last Man Standing or Predictor Cup.
 
 Those later behaviours remain owned by Stages D–G and ADRs 0012–0014.
 
@@ -24,64 +25,75 @@ Those later behaviours remain owned by Stages D–G and ADRs 0012–0014.
 
 The design is grounded in:
 
-- current `main` through `eba31f34a7d8e9c00282972a82e8c8c043c57047`;
+- current `main` through PR #239;
 - read-only introspection of development project `iouzoutneyjpugbbtdem` on Postgres 17;
 - 34 RLS-enabled public tables plus the `entry_totals` view;
-- the current foreign-key, unique/check, trigger, RLS-policy and public-function graph;
+- the current foreign-key, unique/check, trigger, RLS-policy and public/internal-function graph;
 - the existing `predictor_internal` same-tournament validators;
-- Stage B's shared competition-context and lock-state authority.
+- Stage B's shared competition-context and lock-state authority;
+- the concurrent Stage C proposal in PR #242.
 
 No application rows or personal data were read. Only catalogue metadata and function definitions were inspected.
 
-The present schema already protects several same-tournament relationships with internal triggers, including group/team assignment, match references, entry/match predictions, group positions, progression, score events, player/team references, result revisions and tournament bonus-game links. Stage C must widen those protections to competition season; it must not replace them with client filtering.
+Measured facts that affect the design:
 
-## 3. Stable safeguards
+- four current foreign keys cascade directly from `auth.users`: `entries`, `league_members`, `rank_history` and `rate_limit_events`;
+- `entries` is itself a cascade parent for predictions, score events and tie-resolution data;
+- every current instant column is `timestamptz`; there are no naked `timestamp` columns;
+- current same-tournament protection is partly declarative and partly enforced by internal trigger assertions;
+- public functions and application callers widely use the established `tournament_id` / `p_tournament_id` contract.
+
+## 3. Adopted constraints
+
+ADR 0011 already decides the following and this design does not reopen them:
+
+- competition shape is data, not code branches;
+- the same context and lock engines serve tournaments and league seasons;
+- round/matchweek lock deadlines are derived from current fixture kickoffs and are never stored as planned timestamps;
+- a per-match server guard rejects predictions at or after that match's kickoff;
+- lock outcomes are monotonic and fail closed;
+- same-tournament safeguards widen to same-competition-season without weakening;
+- Euro 2028 remains behaviourally unchanged as one `tournament` configuration;
+- no score or rank aggregates across competitions, seasons or games.
+
+## 4. Stable safeguards
 
 The identifiers below are permanent design references for migration comments, pgTAP tests and application contract tests.
 
 | ID | Safeguard |
 | --- | --- |
 | `CS-001` | One stable competition identity owns one or more separately identified seasons/editions. |
-| `CS-002` | Every season declares `tournament` or `league_season`, an IANA timezone and bounded dates. |
-| `CS-003` | Every season-scoped relationship is proven by a database constraint or internal validator; separate foreign keys are insufficient. |
-| `CS-004` | A fixture, participant, round, prediction, score event, league or bonus-game row cannot cross competition-season boundaries. |
-| `CS-005` | Round deadlines are derived from current fixture kickoffs; an authoritative scheduled lock timestamp is never stored. |
-| `CS-006` | Lock transitions are monotonic: a recorded locked scope never reopens after rescheduling or stale data. |
+| `CS-002` | Every season declares `tournament` or `league_season`, one IANA timezone and bounded dates. |
+| `CS-003` | Every season-scoped relationship is proven by a database constraint or named internal validator; separate foreign keys are insufficient. |
+| `CS-004` | A fixture, participant, round, prediction, score event, league or bonus-game row cannot cross season boundaries. |
+| `CS-005` | Round deadlines are derived from current fixture kickoffs; no round stores an authoritative planned lock timestamp. |
+| `CS-006` | A recorded lock transition is monotonic: a locked scope never reopens after rescheduling or stale data. |
 | `CS-007` | A per-fixture server guard rejects every prediction submitted at or after that fixture's kickoff. |
-| `CS-008` | Entries, standings, score history and game enrolment remain independent per competition season and game. |
+| `CS-008` | Entries, standings, score history and game enrolment remain independent per season and game. |
 | `CS-009` | Account deletion anonymises a durable competitor identity instead of rewriting settled competition history. |
 | `CS-010` | A season with user or settled result data is archived, not hard-deleted. |
-| `CS-011` | New public-schema objects are RLS-enabled and receive explicit Data API grants only when browser access is required. |
+| `CS-011` | New public-schema objects are RLS-enabled and receive explicit Data API grants only where browser access is required. |
 | `CS-012` | Euro 2028 backfill preserves every identifier, rule, score, result, league, entry and access boundary. |
-| `CS-013` | No aggregate score or rank can span competition seasons or game authorities. |
+| `CS-013` | No aggregate score or rank can span seasons or game authorities. |
 | `CS-014` | Schema, SQL functions, TypeScript models and generated database types change together and pass the full parity harness. |
+| `CS-015` | Season Predictor ties resolve by the approved season-only order and never use tournament-only criteria. |
 
-## 4. Chosen evolution strategy
+## 5. Schema evolution strategy
 
-### 4.1 Evolve the existing model in place
+### 5.1 Generalise the existing root in place
 
-Do not add a second season-only set of teams, fixtures, entries or standings beside the tournament tables. That would create the parallel implementation rejected by ADR 0011.
+Stage C will **generalise the existing `tournaments` table in place**. It will not create a parallel `competition_seasons` table and will not rename or drop the existing table or established `tournament_id` / `p_tournament_id` database contract in this migration.
 
-The migration will instead:
+This is a deliberate compatibility decision:
 
-1. add a stable `competitions` identity table;
-2. evolve `tournaments` into the shared `competition_seasons` table;
-3. rename season-scope columns from `tournament_id` to `competition_season_id`;
-4. add a generic round/matchweek authority;
-5. widen current teams, matches, entries, leagues, history and bonus-game relationships to the shared season key;
-6. retain tournament-only columns as explicitly constrained tournament shape, not as assumptions for every season.
+- the existing `tournaments.id` already identifies one bounded edition/season;
+- current validators, RLS policies, RPCs and application calls already agree on `tournament_id`;
+- renaming the physical contract would create a large simultaneous API migration without improving integrity;
+- ADR 0011 requires evolution rather than a rewrite.
 
-PostgreSQL renames preserve row identifiers, foreign-key targets and migration history. Application and RPC callers must be updated atomically in the implementation PR.
+Within architecture and TypeScript, the row is a **competition season**. Within the Stage C database contract, `tournaments` and `tournament_id` remain the stable physical names. The distinction is documented rather than hidden. A future cosmetic rename is outside Stage C and may occur only after every caller has migrated behind compatibility wrappers.
 
-### 4.2 No global club/player master in Stage C
-
-Current `teams` and `players` are season-scoped records. Stage C keeps them season-scoped.
-
-A durable cross-season club/player identity depends on provider ingestion, transfer handling and source reconciliation, which belong to Stage D. Inventing that authority now would be speculative. Stage C leaves room for a later nullable provider/entity link without requiring it.
-
-## 5. Proposed relational model
-
-### 5.1 `competitions`
+### 5.2 New `competitions` parent
 
 Stable identity for the recurring product, such as UEFA European Championship, Premier League or Scottish Premiership.
 
@@ -93,299 +105,242 @@ Stable identity for the recurring product, such as UEFA European Championship, P
 | `sport text` | initially constrained to `football` |
 | `created_at timestamptz` | default `now()` |
 
-Deletion is `RESTRICT` while any season exists.
+Deletion is `RESTRICT` while any season row exists.
 
-No entitlement table is created. The schema avoids coupling competition identity to payment so ADR 0015's future entitlement concept can be added without changing competitive records.
-
-### 5.2 `competition_seasons`
-
-Rename and widen the current `tournaments` table.
+### 5.3 Additive season fields on `tournaments`
 
 | Column | Rule |
 | --- | --- |
-| `id uuid` | existing tournament UUID remains unchanged |
 | `competition_id uuid` | FK to `competitions`, `ON DELETE RESTRICT` |
-| `season_key text` | stable edition key, e.g. `2028` or `2026-27` |
-| `name text` | current display name |
-| `kind text` | `tournament` or `league_season` |
-| `time_zone text` | validated IANA zone; Euro backfill uses `Europe/London` |
-| `starts_on date` / `ends_on date` | interpreted in `time_zone`; end cannot precede start |
+| `season_key text` | stable edition key, e.g. `2028` or `2027-28` |
+| `kind text` | `tournament` or `league_season`, default `tournament` |
+| `display_timezone text` | validated IANA zone; Euro backfill uses `Europe/London` |
 | `status text` | `draft`, `scheduled`, `active`, `complete`, `archived` |
-| `created_at timestamptz` | preserved |
 
 Unique: `(competition_id, season_key)`.
 
-Tournament-only fields must not become generic assumptions:
+Existing `id`, `name`, `year`, `starts_on`, `ends_on`, `created_at` and compatibility fields remain. `year` is not the new season authority; `season_key` supports seasons spanning two calendar years.
 
-- the current stored `lock_at` is deprecated as an authority and retained only during the compatibility transition;
-- `golden_boot_player_id` moves to the award model described below;
-- the implementation may keep compatibility columns for one release only if a database trigger proves parity with the new authority.
+The current stored tournament `lock_at` remains a compatibility field for Euro while Stage C lands. New season/matchweek authority must not read it. Removal or repurposing requires a later separately reviewed compatibility change.
 
-### 5.3 `competitors`
+### 5.4 No global club/player master in Stage C
 
-Durable competitive identity, separated from an authentication account.
+Current `teams` and `players` remain season-scoped records. A durable cross-season club/player identity depends on provider ingestion, transfer handling and source reconciliation, which belong to Stage D.
+
+## 6. Owner decisions required before migration
+
+### 6.1 Season Predictor tie-break
+
+Tournament tie-break criteria include knockout/champion/total-goals predictions that do not exist in the season game.
+
+**Recommended decision:**
+
+1. most exact scores;
+2. most correct results;
+3. joint rank when still level.
+
+Rejected alternatives:
+
+- fewer matchweeks played: rewards late entry and conflicts with rolling-entry fairness;
+- head-to-head: not defined consistently for the overall standing;
+- a tournament-shaped criterion the season game does not produce.
+
+Approval of this design confirms the recommended order and `CS-015`.
+
+### 6.2 Account deletion and anonymisation
+
+**Recommended decision:** anonymise, do not delete settled competitive history.
+
+Add a durable `competitors` table:
 
 | Column | Rule |
 | --- | --- |
-| `id uuid` | primary key; existing user UUID is reused during backfill |
+| `id uuid` | primary key; existing user UUID may be reused during backfill |
 | `user_id uuid null` | unique FK to `auth.users(id) ON DELETE SET NULL` |
 | `display_name text` | competition-visible name |
 | `anonymized_at timestamptz null` | set when the account is removed |
 | `created_at timestamptz` | preserved/backfilled |
 
-Existing account preferences remain in `profiles`. `entries`, league membership, rank history and bonus-game entrant records move from `user_id` to `competitor_id`.
+Existing account preferences remain in `profiles`. Entries, league membership, rank history and bonus-game entrant records move from direct auth ownership to `competitor_id`.
 
-When `user_id` becomes null, an internal trigger replaces the display name with a non-identifying value and clears any future personal fields. Competitive rows remain, so settled standings do not change after account deletion. This is a technical behaviour decision; privacy copy and retention policy still require the later legal/privacy gate.
+On account deletion:
 
-RLS maps an authenticated user through `competitors.user_id = auth.uid()`.
+- authentication and private profile/preferences are removed;
+- `competitors.user_id` becomes null;
+- the public name becomes a stable non-identifying label, recommended format `Former player ####` derived without exposing the UUID;
+- entries, predictions, score events, rank history and settled outcomes remain;
+- league ownership is transferred or the league is archived first;
+- `rate_limit_events` remains disposable housekeeping and continues to cascade.
 
-### 5.4 `competition_rounds`
+Approval confirms this preservation model and the recommended public label. Legal/privacy review remains a later product gate; this design does not claim that pseudonymisation alone settles every data-protection obligation.
 
-One generic sequence authority for tournament matchdays/knockout rounds and league matchweeks.
+### 6.3 Timezone contract
+
+**Recommended decision:** one display timezone per competition season.
+
+- every instant remains `timestamptz` and is stored in UTC;
+- date-only metadata remains `date`;
+- `tournaments.display_timezone` stores one valid IANA identifier;
+- matchweek/day grouping and deadline communication use that season timezone;
+- the timezone is resolved at the route boundary and passed to pure domain code;
+- a viewer's device timezone may affect optional presentation only, never lock, matchweek or scoring decisions.
+
+Approval confirms this contract.
+
+## 7. Rounds, fixtures and lock evidence
+
+### 7.1 `competition_rounds`
 
 | Column | Rule |
 | --- | --- |
 | `id uuid` | primary key |
-| `competition_season_id uuid` | FK to season |
+| `tournament_id uuid` | FK to the season row |
 | `round_key text` | stable key such as `MD1`, `R16`, `MW01` |
-| `sequence integer` | positive tournament/season order |
+| `ordinal integer` | positive order within the season |
 | `kind text` | `group_matchday`, `knockout_round`, `league_matchweek` |
 | `label text` | display label |
 | `created_at timestamptz` | default `now()` |
 
-Unique: `(competition_season_id, round_key)` and `(competition_season_id, sequence)`.
+Unique: `(tournament_id, round_key)` and `(tournament_id, ordinal)`.
 
-No scheduled lock timestamp is stored here.
+A tournament may have many rounds even where its Predictor entry has one tournament-wide lock scope. Round structure and entry lock scope are separate concepts.
 
-### 5.5 `competition_lock_events`
+There is deliberately no `lock_at` column.
 
-Records the irreversible fact that a scope has locked; it does not store the planned deadline.
+### 7.2 Monotonic lock-transition evidence
+
+ADR 0011 rejects storing the **derived deadline** and rejects a surface-owned boolean. It also requires that a scope which has locked never reopen.
+
+Stage C may therefore add an append-only `competition_lock_events` table which records the fact that a transition occurred, not the planned deadline:
 
 | Column | Rule |
 | --- | --- |
 | `id uuid` | primary key |
-| `competition_season_id uuid` | season scope |
+| `tournament_id uuid` | season scope |
 | `scope_type text` | `entry`, `round`, `match` |
 | `scope_key text` | stable key within season |
-| `locked_at timestamptz` | actual transition time |
-| `fixture_basis_hash text` | fixture-set evidence used when transition occurred |
+| `locked_at timestamptz` | actual transition observation |
+| `fixture_basis_hash text` | fixture-set evidence used at transition |
 | `created_at timestamptz` | default `now()` |
 
-Unique: `(competition_season_id, scope_type, scope_key)`.
+Unique: `(tournament_id, scope_type, scope_key)`.
 
-Effective deadline remains a query over current valid fixtures:
+The resolver still derives the current deadline from fixtures and returns the outcome. Event existence is one monotonic input to that resolver; it is not a stored effective deadline or a surface-owned lock boolean.
 
-- season/tournament entry scope: earliest applicable kickoff;
-- league round: earliest kickoff in the round;
-- match guard: that match's kickoff.
+### 7.3 Matches
 
-If fixture data is missing, invalid or stale, write authorities fail closed. Once a lock event exists, the scope remains locked regardless of later fixture changes.
+Add `matches.round_id`, backfill every Euro fixture to a round, validate the composite `(tournament_id, round_id)` reference, then make it non-null.
 
-### 5.6 Season-scoped teams, groups, players and matches
+Add a fixture-administration state distinct from official result state, capable of representing at least:
 
-Existing tables remain the implementation; their scope is renamed to `competition_season_id`.
+- `scheduled`;
+- `postponed`;
+- `abandoned`;
+- `void`;
+- `cancelled`.
 
-Each directly season-scoped table receives a unique `(competition_season_id, id)` key so children can use composite foreign keys.
+The current result lifecycle remains authoritative for confirmation, correction, scores, method and winner.
 
-#### `teams`
+Tournament-only group/bracket columns remain nullable and are validated against `tournaments.kind = 'tournament'`. League-season fixtures require a `league_matchweek` round and no tournament group/bracket source.
 
-- remains one season participant row;
-- unique `(competition_season_id, name)` during the current provider-free phase;
-- no cross-season team identity is asserted.
+## 8. Season-scoped relationships
 
-#### `groups`
+Every directly season-scoped parent receives a unique `(tournament_id, id)` key where needed. Children use composite foreign keys wherever the rule is simple same-season equality.
 
-- tournament-only;
-- composite FK to a `tournament` season;
-- current A–F constraint remains Euro configuration, not the generic group-count law. Before another grouped tournament is added, letter/size configuration must move to data.
+### Teams, groups and players
 
-#### `players`
+- `teams` remains one season participant row;
+- `groups` remains tournament-only and gains kind/scope validation;
+- `players` uses a composite same-season team reference;
+- group letters/counts remain Euro configuration until another grouped tournament requires generalisation.
 
-- composite `(competition_season_id, team_id)` FK;
-- nullable team remains permitted only where current behaviour requires it.
+### Entries, leagues, scores and history
 
-#### `matches`
+- `entries` replaces direct auth ownership with `competitor_id` and remains unique per competitor/season;
+- leagues remain Predictor-only and season-scoped; rerun/copy creates a new target-season league rather than a durable cross-season league object;
+- prediction rows joining entries to matches/groups/teams/players gain explicit season keys and composite references;
+- tie-resolution arrays remain internally validated because PostgreSQL cannot foreign-key array elements;
+- `score_events` and `rank_history` carry explicit season and competitor scope;
+- no view or RPC aggregates points across seasons or game authorities.
 
-The existing table becomes the shared fixture/result store.
+### Awards
 
-Add `round_id` with a composite `(competition_season_id, round_id)` FK. Backfill Euro rounds from current `round` and `matchday` values.
+Add `competition_awards(tournament_id, award_key, winner_player_id, result_version, confirmed_at)` as an additive general award result model. The current Golden Boot compatibility field remains until a later parity-proven cleanup.
 
-Common columns remain authoritative for both kinds:
+### Bonus games
 
-- season, fixture reference, round, home/away team, date/kickoff, venue;
-- result state/method, 90/120/penalty scores, winner and result revision metadata.
+`bonus_competitions.tournament_id` remains the season root. Composite keys strengthen window, fixture, entrant, team, match and Cup-group relationships. Stage C establishes safe scoping only; ADRs 0013–0014 decide season game rules.
 
-Tournament-only shape becomes nullable and kind-validated:
+## 9. Declarative constraints, triggers, RLS and grants
 
-- `group_id`;
-- bracket `home_source` / `away_source`;
-- tournament-stage compatibility values.
+Prefer composite foreign keys and unique keys for simple same-season equality. Retain internal triggers for parent-kind checks, conditional references, arrays, current time and lifecycle logic.
 
-League-season fixtures require a `league_matchweek` round, no tournament group/bracket source, and two teams from the same season.
+The existing same-tournament validators must be generalised, not removed. Coverage includes group/team, match references, predictions, positions, progression, score events, players, awards, result revisions and every bonus-game relationship.
 
-The current result lifecycle remains unchanged.
+For new public objects:
 
-### 5.7 Entries, leagues, scores and history
+- enable RLS explicitly;
+- grant browser access only where the application requires it;
+- grant no direct browser writes where an RPC/trigger authority exists;
+- keep internal lock/audit evidence unexposed;
+- rewrite ownership policies through `competitors.user_id = auth.uid()`;
+- revoke `PUBLIC` execution from internal/security-definer functions before granting exact roles.
 
-#### `entries`
+## 10. Deletion and archival rules
 
-- rename scope to `competition_season_id`;
-- replace `user_id` with `competitor_id`;
-- unique `(competitor_id, competition_season_id)`;
-- remains the Predictor entry authority; bonus games retain separate entrant tables.
+- `competitions`: `RESTRICT` while seasons exist;
+- a `tournaments` season row may be hard-deleted only while `status = 'draft'` and no entry, entrant, confirmed result, score event or rank-history row exists;
+- once competitive or result history exists, the season can only become `archived`;
+- ordinary browser roles receive no season delete grant;
+- an internal admin function may delete an empty draft in one controlled transaction.
 
-#### `leagues` / `league_members`
+Reference rows may continue to cascade beneath an empty draft because the root guard proves there is no durable history.
 
-- leagues remain Predictor-only and season-scoped;
-- owner/member references use `competitor_id`;
-- no durable group entity or cross-season league record is introduced;
-- the later copy/rerun action creates a new league in the target season.
+## 11. Migration implementation boundary
 
-#### `match_predictions`, group/progression/tie predictions, bonus predictions
-
-Every table that joins an entry to a match, group, team or player carries `competition_season_id` and uses composite foreign keys. Arrays such as ordered tie teams keep an internal validator because PostgreSQL cannot foreign-key array elements.
-
-#### `score_events` and `rank_history`
-
-- both carry `competition_season_id` explicitly;
-- score-event entry/match/team links are composite and same-season;
-- rank history uses competitor, season and round keys;
-- no view, RPC or index may aggregate points across seasons or across game authorities.
-
-### 5.8 Awards and honours
-
-Replace `competition_seasons.golden_boot_player_id` with:
-
-`competition_awards(competition_season_id, award_key, winner_player_id, result_version, confirmed_at)`.
-
-For Euro backfill, `award_key = 'golden_boot'` preserves current scoring. Other awards are added only when an accepted rule requires them.
-
-Per-season settled winners may be retained, but ADR 0015 forbids a durable cross-competition friend-group honours board. No such aggregate is introduced.
-
-### 5.9 Bonus-game graph
-
-`bonus_competitions` renames `tournament_id` to `competition_season_id` and remains the game-instance root.
-
-Strengthen existing links with composite keys:
-
-- window ↔ competition;
-- window fixture ↔ competition and same-season match;
-- LMS selection ↔ competition, window, entrant and same-season team;
-- KO prediction ↔ eligible competition and same-season knockout match/team;
-- Cup group/member/fixture ↔ the same bonus competition;
-- bonus score event ↔ competition, window and same-season match.
-
-KO Predictor remains unavailable to a `league_season`; Last Man Standing and Predictor Cup availability is governed later by ADRs 0013–0014. Stage C establishes safe scoping only.
-
-## 6. Declarative constraints versus triggers
-
-Prefer composite foreign keys and unique keys for simple same-season equality. Keep internal triggers for rules that need parent-kind inspection, conditional references, arrays, current time or multi-row lifecycle logic.
-
-The current validator names should evolve rather than disappear. At minimum the implementation must update the authorities corresponding to:
-
-- group/team scope;
-- match reference scope;
-- match prediction scope;
-- group position and progression scope;
-- score-event scope;
-- player/team and award scope;
-- result-revision scope;
-- bonus window/fixture, LMS and KO-prediction scope.
-
-A migration is incomplete if the tables are renamed but a security-definer function, trigger, RLS policy, RPC parameter or application query still assumes `tournament_id`.
-
-## 7. Deletion and archival rules
-
-### Competition and season deletion
-
-- `competitions`: `RESTRICT` while seasons exist.
-- `competition_seasons`: hard deletion allowed only while `status = 'draft'` and no entry, entrant, confirmed result, score event or rank-history row exists.
-- once user or result data exists, the season can only move to `archived`;
-- an internal admin function may delete an empty draft in a controlled transaction;
-- ordinary browser roles receive no delete grant.
-
-Reference rows may retain `ON DELETE CASCADE` beneath a draft season because the guard proves no durable competitive history exists. The season guard, not a casual client delete, controls that path.
-
-### Account deletion
-
-- Auth and private profile/preferences are removed;
-- durable competitor identity is anonymised;
-- entries, settled score events, rank history and competition outcomes remain under the anonymous competitor id;
-- league ownership must be transferred or the league archived before account removal;
-- unsettled private invitations and notification preferences are deleted.
-
-## 8. Timezone contract
-
-- `competition_seasons.time_zone` is a valid IANA identifier checked against PostgreSQL timezone names by an internal validator;
-- all instants remain `timestamptz`;
-- calendar dates and day grouping are interpreted in the season timezone;
-- domain and SQL functions receive the effective instant explicitly for tests where possible;
-- no shared domain code reads the ambient clock;
-- Euro 2028 backfills `Europe/London`; UTC offsets are never stored as the season timezone.
-
-## 9. Data API, RLS and function exposure
-
-Supabase changed new-table exposure behaviour in 2026: new public tables may require explicit grants before the Data API can access them. Stage C must therefore declare grants deliberately rather than rely on project defaults.
-
-- enable RLS on every public table;
-- grant authenticated `SELECT` only for browser-readable reference data;
-- grant no direct browser writes where an RPC/trigger authority is required;
-- keep internal lock/audit tables unexposed;
-- rewrite policies through competitor ownership and season scope;
-- revoke `PUBLIC` execution from new internal/security-definer functions before granting the exact caller roles;
-- run Supabase security and performance advisors after the local migration.
-
-References:
-
-- [Supabase breaking change: new tables are not exposed automatically](https://supabase.com/changelog/45329-breaking-change-tables-not-exposed-to-data-and-graphql-api-automatically)
-- [Supabase Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security)
-- [Supabase database advisors](https://supabase.com/docs/guides/database/database-advisors)
-
-## 10. Migration implementation boundary
-
-The implementation should be one coherent Stage C PR and one ordered append-only development migration unless local rehearsal proves that PostgreSQL lock duration requires a second migration in the same PR.
+Stage C implementation should be one coherent PR and one ordered append-only **development** migration unless local rehearsal proves PostgreSQL lock duration requires a second migration in the same PR.
 
 Required order:
 
-1. capture pre-migration row counts, identifiers, score totals and relationship-oracle results;
-2. create new root/round/competitor/lock/award tables;
-3. backfill competition, Euro season, rounds, competitors and season keys using existing UUIDs;
-4. add nullable season/competitor columns to children and backfill them;
+1. commit pre-migration contract tests and preservation oracles;
+2. capture row counts, identifiers, score totals and relationship results;
+3. create `competitions`, `competitors`, `competition_rounds`, `competition_lock_events` and `competition_awards`;
+4. add nullable additive columns to existing tables and backfill them;
 5. add composite unique keys and `NOT VALID` foreign keys;
-6. validate every new constraint and prove all cross-season violation queries return zero rows;
-7. make new columns non-null where required;
-8. rename the shared table/column authorities and update indexes;
-9. replace functions, triggers, RLS policies, views and RPC argument contracts atomically;
-10. update application queries, generated TypeScript types and test fixtures;
-11. remove compatibility columns only after parity checks pass in the same local rehearsal;
-12. run the full gate set before any hosted application is proposed.
+6. validate every constraint and prove cross-season violation queries return zero rows;
+7. make required columns non-null;
+8. replace functions, triggers, RLS policies, views and application contracts atomically;
+9. update generated TypeScript types and fixtures;
+10. preserve established physical table/column/RPC names during Stage C;
+11. run the full gate set before proposing any hosted application.
 
 No hosted development or production migration is authorised by this design.
 
-## 11. Required pre-migration and exit evidence
+## 12. Required evidence
 
-### Static/database contract tests committed first
+### Static and contract tests committed first
 
-- every season-scoped table is listed in a coverage manifest;
-- no `tournament_id` column/function parameter remains outside an explicit compatibility allowlist;
+- every season-sensitive table/function/trigger/policy/RPC is in the coverage manifest;
 - every multi-parent row has a composite season constraint or named validator;
 - no ranking/score query lacks a season and game boundary;
+- no round stores an authoritative planned deadline;
 - new public tables have RLS and explicit grants;
-- internal security-definer functions are not executable by `PUBLIC`.
+- internal security-definer functions are not executable by `PUBLIC`;
+- the environment/deployment/database privilege contracts landed through PR #235 remain green.
 
-### Disposable Postgres/Supabase proof
+### Disposable Supabase proof
 
-- migration rebuild from zero;
+- zero-to-current migration rebuild;
 - migration timestamp and canonical applied-state checks;
 - database lint and pgTAP;
-- all files under `tests/database-parity/` execute in the Supabase harness;
-- generated TypeScript types match the migrated schema;
+- the complete `tests/database-parity/` directory;
+- generated TypeScript types match the schema;
 - hostile cross-season insert/update attempts fail;
 - stale/missing fixture data fails locks closed;
-- a previously locked round cannot reopen;
+- a previously locked scope cannot reopen;
 - per-match late prediction insertion fails;
 - account deletion anonymises but does not change settled totals/ranks;
-- non-empty season deletion fails; empty draft deletion succeeds only through the internal path.
+- non-empty season deletion fails and empty-draft deletion succeeds only through the internal path.
 
 ### Euro preservation oracle (`CS-012`)
 
@@ -398,25 +353,25 @@ Before and after migration, assert equality for:
 - Golden Boot prediction/result/scoring;
 - group order, third-place resolution and knockout progression;
 - RLS-visible rows for owner, league co-member, unrelated authenticated user and anonymous role;
-- the Stage B competition-context outputs under deterministic clocks.
+- Stage B competition-context outputs under deterministic clocks.
 
-## 12. Explicitly deferred
+## 13. Explicitly deferred
 
-- provider ids and cross-season club/player identity — Stage D;
-- ingestion, rescheduling audit and correction feeds — Stage D;
-- recurring Predictor scoring/submission rules — Stage E / ADR 0012;
-- season Last Man Standing and managed entrants — Stage F / ADR 0013;
-- season Predictor Cup formats — Stage G / ADR 0014;
-- cross-competition UI and notification preferences — Stage H/I;
-- hosted migration, production promotion or data copy — requires a later explicit owner approval.
+- cross-season club/player provider identity — Stage D;
+- ingestion, rescheduling audit and feed correction — Stage D;
+- recurring Predictor submission/scoring implementation — Stage E, after the tie-break decision is approved;
+- season Last Man Standing and Predictor Cup — Stages F–G;
+- cross-competition UI and notification preferences — Stages H–I;
+- hosted migration or production promotion — separate explicit owner approval.
 
-## 13. Design exit
+## 14. Design exit
 
-This design is ready for implementation review when:
+The design is ready for approval when the owner confirms §6.1–§6.3 and reviewers agree that:
 
-- every current table, validator, trigger, RLS policy and RPC affected by scope widening is represented in the migration coverage manifest;
-- the chosen rename/backfill sequence has a reversible local rehearsal plan;
-- the preservation and hostile cross-season tests are specified before SQL is written;
+- additive in-place evolution is safer than a physical rename in Stage C;
+- the lock-event record does not violate the derived-deadline rule;
+- every current object is represented in the coverage manifest;
+- preservation and hostile cross-season tests are specified before SQL;
 - no open question permits a parallel tournament/season implementation or weakens an existing safeguard.
 
-Only then should the append-only Stage C development migration be created.
+Only then should pre-migration tests and the Stage C development migration be created.
