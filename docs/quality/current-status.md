@@ -35,8 +35,8 @@ The repository is a multi-competition football prediction platform in transition
 | Coverage thresholds and compressed bundle budgets | PR #285; both are CI gates |
 | Lint warnings fail CI | PR #287 — `oxlint --deny-warnings`; three `no-unsafe-finally` defects fixed |
 | Stage C design baseline | **PR #236 merged** 30 July 2026. It approves the design and authorises pre-migration contract-test planning only; it does not authorise a Stage C migration |
-| Stage C contract tests landed | `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation` |
-| Stage C contract tests outstanding | hostile cross-season relationship failures (draft PR #286) and lock monotonicity / per-fixture late-write rejection |
+| Stage C pre-migration contracts | **All seven landed.** TypeScript: `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation`. pgTAP: `031_stage_c_reference_scope_before_state.sql` (PR #286), `032_stage_c_lock_before_state.sql` (PR #292). Guarded by `tests/scripts/stageCContractInventory.test.ts` — adding an eighth without recording it here fails CI |
+| Stage C remaining blocker | The data-protection review (issue #272). Roadmap step 4 is complete; step 3 is not, and it gates the migration |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; no development or simulation write path may target production |
 
