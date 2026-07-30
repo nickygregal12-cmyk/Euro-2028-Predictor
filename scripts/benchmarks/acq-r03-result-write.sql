@@ -177,6 +177,14 @@ begin
       result_version  = 0
   where tournament_id = v_tournament;
 
+  -- write_match_result derives the revision as result_version + 1, so zeroing
+  -- result_version without clearing the revision rows collides with revision 1
+  -- on the very first confirm — both against the checkpoint seed's existing
+  -- revisions and against the previous scale's. These rows are immutable audit
+  -- in the product; deleting them is a benchmark-only act on a disposable
+  -- database, inside a transaction that rolls back.
+  delete from public.match_result_revisions where tournament_id = v_tournament;
+
   delete from public.score_events se using public.entries e
   where e.id = se.entry_id and e.tournament_id = v_tournament;
 end $$;
@@ -213,6 +221,12 @@ begin
 end $$;
 
 -- Cleanup, belt and braces alongside the rollback. -------------------------
+-- Returns every match to 'scheduled' and removes the benchmark revisions. Note
+-- this also clears the matchday-1 results seed.sql ships: if the rollback below
+-- is honoured (it should be) none of this matters, but if your client
+-- auto-commits, run `supabase db reset --local` afterwards to restore them.
+select pg_temp.r03_reset();
+
 delete from public.score_events se using public.entries e
 where e.id = se.entry_id and e.user_id::text like 'acb3acb3-0000-0000-0001-%';
 delete from public.match_predictions mp using public.entries e
