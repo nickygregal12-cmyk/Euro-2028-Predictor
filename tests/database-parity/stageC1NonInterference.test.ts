@@ -34,10 +34,6 @@ function stripComments(source: string): string {
     .join('\n')
 }
 
-/* ------------------------------------------------------------------------- */
-/* auth.users foreign-key ownership                                           */
-/* ------------------------------------------------------------------------- */
-
 type DeleteAction = 'cascade' | 'restrict' | 'set null' | 'undeclared'
 type AuthReference = {
   action: DeleteAction
@@ -107,10 +103,6 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'rank_history.user_id -> cascade',
   'rate_limit_events.user_id -> cascade',
 ].sort()
-
-/* ------------------------------------------------------------------------- */
-/* Ownership RLS                                                              */
-/* ------------------------------------------------------------------------- */
 
 type PolicyDefinition = {
   command: string
@@ -190,9 +182,9 @@ const EXPECTED_OWNERSHIP_POLICIES = [
   'leagues.member leagues readable:select',
   'match_predictions.own match_predictions insert:insert',
   'match_predictions.own match_predictions select:select',
-  'match_predictions.own match_predictions update:update',
+  'match_predictions.own match predictions update:update',
   'predicted_group_positions.own predicted_group_positions select:select',
-  'predicted_progression.own predicted progression select:select',
+  'predicted_progression.own predicted_progression select:select',
   'predicted_tie_resolutions.own predicted_tie_resolutions:all',
   'profiles.own profile:all',
   'rank_history.own rank_history readable:select',
@@ -212,10 +204,6 @@ const OWNERSHIP_ANCHOR_BY_TABLE: Record<string, string> = {
   rank_history: 'user_id=(select auth.uid())',
   score_events: 'e.user_id=(select auth.uid())',
 }
-
-/* ------------------------------------------------------------------------- */
-/* C2-only schema/function surface                                            */
-/* ------------------------------------------------------------------------- */
 
 function migrationCode(): string {
   return migrationFiles()
