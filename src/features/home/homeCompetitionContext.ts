@@ -33,8 +33,8 @@ function parseInstant(value: string | null | undefined): number | null {
   return Number.isFinite(parsed) ? parsed : null
 }
 
-function dateOnlyInstant(value: string | null, endOfDay: boolean): string | null {
-  if (value === null || value.trim().length === 0) return null
+function dateOnlyInstant(value: string | null | undefined, endOfDay: boolean): string | null {
+  if (typeof value !== 'string' || value.trim().length === 0) return null
   const parsed = Date.parse(`${value}${endOfDay ? 'T23:59:59.999Z' : 'T00:00:00.000Z'}`)
   return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null
 }
