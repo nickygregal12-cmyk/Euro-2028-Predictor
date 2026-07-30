@@ -24,12 +24,13 @@ The repository is a multi-competition prediction platform in transition. The com
 | Recoverable Euro baseline | `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da` |
 | Application/database contract at the tag | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` |
 | Forward architecture | ADRs 0011–0018 plus the parent programme and child engineering workstream |
-| Current development position | Stage A documentation/control alignment and Stage B pure context-engine foundation; no rendered surface is migrated by the foundation PR |
+| Current development position | Stage B implementation complete across merged foundation/Home work and the validated clean-main integration candidate for Matches, Match Centre, entry lock and temporal-state retirement; intentional merge to `main` is not complete |
+| Next engineering stage | Stage C competition-season schema, only after the Stage B integration candidate is verified and intentionally merged to clean `main` |
 | Production posture | Controlled pre-launch target; no development or simulation write path is permitted |
 
 ## Hosted evidence boundary
 
-This documentation task had **no Supabase or Netlify access**. Hosted statements below are the last owner-verified repository record from **29 July 2026**, not fresh inspection. Run the named target checks again before operational reliance.
+This documentation task had **no fresh Supabase or Netlify inspection**. Hosted statements below are the last owner-verified repository record from **29 July 2026**, not fresh inspection. Run the named target checks again before operational reliance.
 
 | Target | Last recorded state | Fresh check required |
 | --- | --- | --- |
@@ -45,8 +46,10 @@ This documentation task had **no Supabase or Netlify access**. Hosted statements
 | --- | --- |
 | Euro 2028 baseline | **Tagged and recoverable.** Product work through contract 63 is preserved at `euro-2028-baseline`. |
 | Euro 2028 forward work | **Parked.** Remaining tournament data, presentation, rehearsal and release items return in January 2028. |
-| Platform direction | **Established by ADRs 0011–0018.** Forward documents and agent framing are being aligned. |
-| Context engine | **Foundation implemented on the Stage B branch, not wired to surfaces.** Existing rendered behaviour remains unchanged until separate migrations. |
+| Platform direction | **Established by ADRs 0011–0018.** Forward documents and agent framing are aligned to the multi-competition programme. |
+| Context engine | **Foundation and Home are merged; the remaining Stage B consumers are implemented in the clean-main integration candidate.** The candidate is not yet merged to `main`. |
+| Stage B exit | **Implementation complete, integration verification pending.** The shared engine owns Home, Matches, Match Centre and entry-lock decisions in the candidate, and `MatchTemporalState` is retired there. |
+| Preview evidence | **Exact PR preview restored for the clean-main integration candidate.** Application, database and authenticated-browser gates still decide whether Stage B may be intentionally merged. |
 | Contract alignment | **Last owner-verified at 63 on 29 July 2026; fresh hosted verification required before reliance.** |
 | Recovery and preservation | **Historical evidence exists; refresh at the next production-risk milestone.** |
 | Bonus Games Browser E2E | **Implemented.** PR #187 provides authenticated desktop/phone lifecycle proof for KO Predictor, Last Man Standing and Predictor Cup; it is not an open launch-readiness gap. |
@@ -71,20 +74,28 @@ These capabilities are evidence for the first competition. They do not imply tha
 
 ## Active work
 
-### Stage A
+### Stage A — authority and control alignment
 
-1. land the ADR stack;
-2. reframe forward documents and agent instructions;
-3. reconcile the architecture contract with ADRs 0011–0013;
-4. repair the Database parity domain-path gap;
-5. reconcile stale Browser E2E, test-count and roadmap-authority claims;
-6. complete brand clearance and remaining documentation-control alignment.
+The ADR stack, planning hierarchy, domain-path controls and current implementation authorities are established. Brand-clearance work remains governed by ADR 0017 and must not be inferred complete from engineering progress.
 
-### Stage B
+### Stage B — competition-context foundation and surface migration
 
-1. land the pure `src/domain/competition/` foundation and deterministic tests;
-2. keep it unconsumed until review;
-3. migrate the four legacy timing consumers separately with differential Euro evidence, in the order owned by the child engineering plan.
+Completed implementation sequence:
+
+1. pure competition kinds, lock resolver, context resolver and match-state resolver merged through PR #212;
+2. deterministic fake-clock coverage merged with the foundation;
+3. Home migration merged through PR #219;
+4. Matches migration implemented and validated in draft PR #216;
+5. Match Centre migration implemented and validated in draft PR #222;
+6. entry-lock migration implemented and validated in draft PR #223;
+7. legacy `MatchTemporalState` retirement implemented and validated in draft PR #224;
+8. clean-main integration assembled in draft PR #226 with current-main conflict resolutions preserved.
+
+The remaining Stage B task is verification of the clean-main integration candidate and an intentional merge decision. Do not begin Stage C implementation before that baseline exists on `main`.
+
+### Next — Stage C competition-season schema
+
+Stage C has **not started**. After Stage B is verified and intentionally merged on clean `main`, the next authorised engineering slice is to design and review competition-season scoping while preserving existing relationship safeguards, independent entries/standings/history and the effective migration-control regime. Any hosted schema mutation still requires the applicable approval and preflight process.
 
 ## Parked Euro 2028 scope
 

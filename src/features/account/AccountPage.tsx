@@ -13,7 +13,7 @@ import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildBracketPipeline } from '../bracket/bracketPipeline'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { checkDisplayName, DISPLAY_NAME_MAX } from '../auth/displayNamePolicy'
 import { friendlyAuthError } from '../auth/authErrors'
 import { validateNewPassword, hasNewPasswordErrors } from '../auth/authValidation'
@@ -39,9 +39,10 @@ export function AccountPage() {
   const { userId, displayName, signOut, refreshProfile } = useAuth()
   const data = useTournamentData()
   const preds = usePredictions()
+  const entryLocked = useTournamentEntryLocked(true)
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
   const locked =
-    data.status === 'ready' ? isEntryLocked(data.data.tournament.lockAt) : true
+    data.status === 'ready' ? entryLocked : true
 
   // Headline: points + rank (pre-results guard as on the Profile page).
   const [headline, setHeadline] = useState<{

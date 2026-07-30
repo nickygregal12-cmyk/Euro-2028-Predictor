@@ -6,6 +6,7 @@ import {
 } from '../domain/tournament/matchCentreScenarios'
 import { bridgeExternalMatchToLegacyHeader } from '../domain/tournament/matchCentreLegacyBridge'
 import { matchCentreLifecycleContent } from '../domain/tournament/matchCentreLifecycleContent'
+import { shouldShowMatchCentreCountdown } from '../domain/tournament/matchCentrePageModel'
 import {
   MatchCentreScreen,
   type MatchCentreScreenProps,
@@ -40,12 +41,13 @@ export function MatchCentreScenarioPreview() {
       name: scenario.external.away.name,
       countryCode: scenario.external.away.countryCode ?? 'de',
     },
-    temporalState: header.temporalState,
     lifecycleContent: matchCentreLifecycleContent(scenario.external.lifecycle),
     statusPresentation: header.statusPresentation,
     matchSource: scenario.external.source,
     result: header.result,
-    countdownLabel: header.temporalState === 'before' ? 'Kick-off 9 Jun' : null,
+    countdownLabel: shouldShowMatchCentreCountdown(scenario.external.lifecycle)
+      ? 'Kick-off 9 Jun'
+      : null,
     liveMinute: scenario.external.clockLabel,
     stake: {
       kind: 'group',

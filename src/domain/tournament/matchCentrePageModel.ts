@@ -1,3 +1,5 @@
+import type { MatchState } from '../competition/matchState'
+import type { MatchLifecycleState } from './matchCentreContract'
 import type { Group, Match, Team } from '../../services/supabase/tournamentData'
 import { adaptRepositoryMatchToCentre } from './matchCentreRepositoryAdapter'
 import { bridgeExternalMatchToLegacyHeader } from './matchCentreLegacyBridge'
@@ -20,6 +22,7 @@ export type MatchCentrePageModelInput = {
   groups: Group[]
   now?: string
   fetchedAt?: string
+  matchState?: MatchState
 }
 
 export type MatchCentrePageModel = ReturnType<typeof bridgeExternalMatchToLegacyHeader> & {
@@ -44,11 +47,22 @@ function kickoffLabel(kickoffAt: string): string {
   })}`
 }
 
+const COUNTDOWN_LIFECYCLES = new Set<MatchLifecycleState>([
+  'SCHEDULED',
+  'PRE_MATCH',
+  'POSTPONED',
+  'SUSPENDED',
+])
+
+export function shouldShowMatchCentreCountdown(lifecycle: MatchLifecycleState): boolean {
+  return COUNTDOWN_LIFECYCLES.has(lifecycle)
+}
+
 /**
- * Composes the repository adapter and legacy-screen bridge in one place. The
- * route can consume this model without re-implementing lifecycle or provider
- * fallback rules. In particular, a passed kickoff with no authoritative feed
- * remains upcoming rather than being presented as live.
+ * Composes the shared state-aware repository adapter and screen compatibility
+ * bridge in one place. A passed kickoff without authoritative feed data remains
+ * upcoming on the existing surface, while the engine state is no longer
+ * recomputed or discarded here.
  */
 export function createMatchCentrePageModel(
   input: MatchCentrePageModelInput,
@@ -58,14 +72,16 @@ export function createMatchCentrePageModel(
     teams: input.teams,
     now: input.now,
     fetchedAt: input.fetchedAt,
+    matchState: input.matchState,
   })
   const screen = bridgeExternalMatchToLegacyHeader(viewModel.external)
 
   return {
     ...screen,
     eyebrow: `${stageLabel(input.match, input.groups)} · ${screen.statusPresentation.label}`,
-    countdownLabel:
-      screen.temporalState === 'before' ? kickoffLabel(viewModel.external.kickoffAt) : null,
+    countdownLabel: shouldShowMatchCentreCountdown(viewModel.external.lifecycle)
+      ? kickoffLabel(viewModel.external.kickoffAt)
+      : null,
     venueCountryCodeInput: viewModel.external.venue ?? input.match.venue,
     lifecycleContent: matchCentreLifecycleContent(viewModel.external.lifecycle),
   }

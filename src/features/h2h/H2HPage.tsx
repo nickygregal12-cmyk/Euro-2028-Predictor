@@ -6,7 +6,7 @@ import { ChevronLeftIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import {
   computeEntryStats,
   whereYouSplit,
@@ -55,6 +55,7 @@ export function H2HPage() {
   const { displayName } = useAuth()
   const data = useTournamentData()
   const preds = usePredictions()
+  const entryLocked = useTournamentEntryLocked()
   const [state, setState] = useState<State>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
   const [historyState, setHistoryState] = useState<HistoryState>({ status: 'loading' })
@@ -131,9 +132,9 @@ export function H2HPage() {
       ownPreds,
       teamOf,
       knockoutState,
-      locked: isEntryLocked(td.tournament.lockAt),
+      locked: entryLocked,
     }
-  }, [data, preds])
+  }, [data, preds, entryLocked])
 
   useEffect(() => {
     if (data.status === 'error') {

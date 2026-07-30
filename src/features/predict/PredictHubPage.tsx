@@ -17,7 +17,7 @@ import {
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildPredictHubModel, type StageState } from './hubJourney'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { daysUntil, formatLongDate } from '../../app/time'
 import s from '../shared.module.css'
 import hub from './hub.module.css'
@@ -83,6 +83,7 @@ export function PredictHubPage() {
   const navigate = useNavigate()
   const data = useTournamentData()
   const preds = usePredictions()
+  const entryLocked = useTournamentEntryLocked()
 
   if (data.status === 'error') {
     return (
@@ -121,7 +122,7 @@ export function PredictHubPage() {
   const { status } = model
   const startsOn = data.data.tournament.startsOn
   const days = startsOn ? daysUntil(startsOn) : null
-  const locked = isEntryLocked(data.data.tournament.lockAt)
+  const locked = entryLocked
   const submitted = preds.submittedAt !== null
 
   // Spectator: locked out with nothing entered — pitch the games that are

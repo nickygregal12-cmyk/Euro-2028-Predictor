@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { ChevronLeftIcon, LockIcon, TrophyIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import {
   fetchConsensusPlayers,
   fetchPredictionConsensus,
@@ -29,8 +29,9 @@ const pct = (picks: number, total: number) => (total > 0 ? Math.round((picks / t
 export function PredictionTrendsPage() {
   const navigate = useNavigate()
   const tournament = useTournamentData()
+  const entryLocked = useTournamentEntryLocked()
   const tournamentId = tournament.status === 'ready' ? tournament.data.tournament.id : null
-  const locked = tournament.status === 'ready' && isEntryLocked(tournament.data.tournament.lockAt)
+  const locked = tournament.status === 'ready' && entryLocked
   const [state, setState] = useState<State>({ status: 'idle' })
   const [reloadKey, setReloadKey] = useState(0)
 

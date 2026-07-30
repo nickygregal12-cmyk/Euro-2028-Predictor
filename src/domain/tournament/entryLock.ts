@@ -1,18 +1,16 @@
-// Pure entry-lock policy. The whole entry locks at the tournament's opening
-// kickoff (scoring-rules / CLAUDE.md rule 4). This MIRRORS the server-side lock
-// (the enforce_entry_lock_* triggers) so the UI can reflect it — but the
-// database is the authority; browser countdowns are cosmetic. Data in, data out.
-//
-// The lock instant comes from tournament data (tournaments.lock_at), never a
-// client clock. Jokers are exempt: they follow their own per-match
-// kickoff-commitment lock (see jokerPolicy.ts), not this one.
+import type { CompetitionContext } from '../competition/context'
 
 /**
- * True once the entry lock has passed. A tournament with no lock time set
- * (lock_at null) is never locked. The boundary is inclusive — at exactly the
- * lock instant the entry is locked (matches the server's `now() >= lock_at`).
+ * Compatibility adapter for tournament surfaces that still need a simple
+ * locked/unlocked answer. Time and fixture validation are resolved upstream by
+ * the shared competition-context engine; this module performs no clock reads
+ * and derives no deadline of its own.
+ *
+ * `no_valid_entry` is a locked spectator state: once the active entry scope is
+ * closed, the absence of a valid entry must never make the UI appear editable.
  */
-export function isEntryLocked(lockAt: string | null, now: Date = new Date()): boolean {
-  if (!lockAt) return false
-  return now.getTime() >= new Date(lockAt).getTime()
+export function isEntryLocked(
+  context: Pick<CompetitionContext, 'entryState'>,
+): boolean {
+  return context.entryState === 'locked' || context.entryState === 'no_valid_entry'
 }

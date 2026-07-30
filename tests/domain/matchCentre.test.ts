@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import {
-  matchTemporalState,
   groupStake,
   koStake,
   groupDistribution,
@@ -10,23 +9,6 @@ import {
   koLeagueCasualties,
 } from '../../src/domain/tournament/matchCentre'
 
-const AT = (iso: string) => new Date(iso)
-
-describe('matchTemporalState', () => {
-  const kick = '2028-06-10T18:00:00Z'
-  it('is "after" once a result exists (regardless of clock)', () => {
-    expect(matchTemporalState({ kickoffAt: kick, homeScore: 2, awayScore: 1 })).toBe('after')
-  })
-  it('is "before" ahead of kickoff', () => {
-    expect(matchTemporalState({ kickoffAt: kick, homeScore: null, awayScore: null })).toBe('before')
-  })
-  it('never infers a live period from a passed kickoff — it fails closed to "before"', () => {
-    expect(matchTemporalState({ kickoffAt: '2020-01-01T00:00:00Z', homeScore: null, awayScore: null })).toBe('before')
-  })
-  it('is "before" when there is no kickoff time and no result', () => {
-    expect(matchTemporalState({ kickoffAt: null, homeScore: null, awayScore: null })).toBe('before')
-  })
-})
 
 describe('groupStake', () => {
   it('scores an exact hit with joker doubling', () => {

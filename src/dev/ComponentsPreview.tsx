@@ -56,6 +56,8 @@ import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
 import { H2HScreen } from '../features/h2h/H2HScreen'
 import { MatchCentreScreen } from '../features/matches/MatchCentreScreen'
+import { matchCentreLifecycleContent } from '../domain/tournament/matchCentreLifecycleContent'
+import { presentMatchLifecycle } from '../domain/tournament/matchCentrePresentation'
 import { MatchesScreen } from '../features/matches/MatchesScreen'
 import { StatStrip } from '../features/home/StatStrip'
 import { TodayCard } from '../features/home/TodayCard'
@@ -1262,7 +1264,8 @@ function Gallery() {
           venueCountryCode="gb-sct"
           home={SCO}
           away={ENG}
-          temporalState="after"
+          lifecycleContent={matchCentreLifecycleContent('FULL_TIME')}
+          statusPresentation={presentMatchLifecycle('FULL_TIME')}
           result={{ home: 2, away: 1 }}
           stake={{ kind: 'group', stake: { kind: 'group', pick: { homeScore: 2, awayScore: 1, joker: true }, outcome: 'exact', points: 10 } }}
           scope={{ type: 'league', id: 'l1', name: 'The Office Sweepstake' }}
@@ -1289,7 +1292,8 @@ function Gallery() {
           venueCountryCode="gb-sct"
           home={SCO}
           away={ENG}
-          temporalState="after"
+          lifecycleContent={matchCentreLifecycleContent('FULL_TIME')}
+          statusPresentation={presentMatchLifecycle('FULL_TIME')}
           result={{ home: 2, away: 1 }}
           stake={{ kind: 'group', stake: { kind: 'group', pick: { homeScore: 1, awayScore: 1, joker: false }, outcome: 'wrong', points: 0 } }}
           scope={{ type: 'overall' }}
@@ -1316,7 +1320,8 @@ function Gallery() {
           venueCountryCode="gb-wls"
           home={ESP}
           away={FRA}
-          temporalState="before"
+          lifecycleContent={matchCentreLifecycleContent('SCHEDULED')}
+          statusPresentation={presentMatchLifecycle('SCHEDULED')}
           result={null}
           countdownLabel="Kick-off 12 Jun"
           stake={{ kind: 'group', stake: { kind: 'group', pick: { homeScore: 1, awayScore: 0, joker: false }, outcome: 'unknown', points: null } }}
@@ -1334,7 +1339,8 @@ function Gallery() {
           venueCountryCode="ie"
           home={SCO}
           away={GER}
-          temporalState="after"
+          lifecycleContent={matchCentreLifecycleContent('FULL_TIME')}
+          statusPresentation={presentMatchLifecycle('FULL_TIME')}
           result={{ home: 1, away: 0 }}
           koDetail="Scotland win 4–3 on penalties"
           stake={{ kind: 'knockout', stake: { kind: 'knockout', backed: 'home', correct: true, points: 15 }, teamName: 'Scotland' }}
@@ -1364,7 +1370,8 @@ function Gallery() {
           venueCountryCode="gb-eng"
           home={ESP}
           away={FRA}
-          temporalState="during"
+          lifecycleContent={matchCentreLifecycleContent('LIVE_SECOND_HALF')}
+          statusPresentation={presentMatchLifecycle('LIVE_SECOND_HALF')}
           result={null}
           liveMinute="63'"
           stake={{ kind: 'knockout', stake: { kind: 'knockout', backed: 'home', correct: null, points: null }, teamName: 'Spain' }}

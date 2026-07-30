@@ -9,7 +9,7 @@ import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { buildBracketPipeline } from '../bracket'
 import { scoreOneMatch } from '../predict/matchScoring'
 import { profileStats, type OutcomeKind } from '../../domain/tournament/profileStats'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchMyScoreEvents } from '../../services/supabase/scoring'
@@ -38,6 +38,7 @@ export function ProfilePage() {
   const { displayName } = useAuth()
   const data = useTournamentData()
   const preds = usePredictions()
+  const entryLocked = useTournamentEntryLocked()
   const [state, setState] = useState<State>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -57,7 +58,7 @@ export function ProfilePage() {
     setState({ status: 'loading' })
 
     const td = data.data
-    const locked = isEntryLocked(td.tournament.lockAt)
+    const locked = entryLocked
     const bracket = buildBracketPipeline(
       td,
       preds.getPrediction,
@@ -145,7 +146,7 @@ export function ProfilePage() {
     return () => {
       active = false
     }
-  }, [data, preds, ready, reloadKey, tournamentId])
+  }, [data, preds, ready, reloadKey, tournamentId, entryLocked])
 
   const header = (
     <div className={s.header}>

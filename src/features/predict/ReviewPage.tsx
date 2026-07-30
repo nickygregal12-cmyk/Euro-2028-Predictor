@@ -20,7 +20,7 @@ import { submitBlockers } from './reviewSubmit'
 import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { ChampionCard } from '../bracket'
 import { sumGroupGoals } from '../../domain/tournament/groupGoals'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import {
   GOLDEN_BOOT_POINTS,
   TOTAL_GOALS_BANDS,
@@ -43,6 +43,7 @@ export function ReviewPage() {
   const navigate = useNavigate()
   const data = useTournamentData()
   const preds = usePredictions()
+  const entryLocked = useTournamentEntryLocked()
 
   // Golden-boot search state (hooks must run before any early return).
   const [shareOpen, setShareOpen] = useState(false)
@@ -162,7 +163,7 @@ export function ReviewPage() {
   const blockers = blockerList.length
   const firstBlocker = blockerList[0] ?? null
   const submitted = preds.submittedAt !== null
-  const locked = isEntryLocked(data.data.tournament.lockAt)
+  const locked = entryLocked
 
   const finalTie = bracket.rounds.find((round) => round.key === 'FINAL')?.ties[0]
 
