@@ -1,0 +1,47 @@
+# ADR 0016 — Client and distribution strategy
+
+- **Status:** Accepted direction — unimplemented
+- **Date:** 29 July 2026
+
+## Context
+
+The application is a React SPA served by Netlify, reachable only through a browser. The stated long-term objective is a product present in the App Store and Play Store rather than a website people bookmark.
+
+Three things make the client question urgent rather than cosmetic.
+
+**A weekly-deadline product lives on push notifications.** "Your picks lock in two hours" delivered as a push is the single strongest retention mechanism available to this product, and email is a poor substitute. ADR 0011's per-matchweek locking exists partly to make one consolidated weekly notification possible; without a delivery channel, that benefit is theoretical.
+
+**Store presence changes what the asset is.** Discovery, credibility, and a materially stronger position in any acquisition conversation. An app with store listings, ratings and install figures is a different proposition from a URL.
+
+**And the decision constrains work starting now.** Routing, authentication redirects, deep links and storage all behave differently inside a native webview. Honouring those constraints from the first commit costs nothing; retrofitting them costs a great deal.
+
+## Decision
+
+**Capacitor shell over the existing SPA.**
+
+The layer laws already keep business rules pure in `src/domain/**` and data access confined to `src/services/supabase/**`, which is exactly the separation a native shell requires. One codebase, one test suite, one deployment of domain logic, with native push, biometrics, deep links and share sheets available where they matter.
+
+**Delivery is phased, deliberately:**
+
+- **Phase 1 — installable PWA, by the August 2027 launch.** Manifest, service worker, offline shell and web push. Web push works on Android and, for installed progressive web apps, on iOS 16.4 and above. This delivers most of the retention value with none of the store risk, and it ships alongside the public launch rather than blocking it.
+- **Phase 2 — Capacitor shell, September 2027 to March 2028.** Native push via APNs and FCM, biometric unlock, deep links so invite URLs open the app, native share sheet.
+- **Phase 3 — store submission, around March 2028.** Deliberately months ahead of Euro 2028, so a rejection and resubmission costs nothing.
+
+**Every routing, authentication-redirect, deep-link and storage decision from now on must work inside a webview**, whether or not the shell exists yet.
+
+## Consequences
+
+- **Apple guideline 4.2 rejects bare webview wrappers.** The native capabilities above are not polish; they are the admission ticket. Push, deep links and biometric unlock must exist before submission.
+- **Same-day hotfixes end once native shipping begins.** Store review means a native build cannot be relied upon to ship on the day it is needed. Keep the shell thin, keep web as the fast path, and never design an operational recovery that requires a same-day native release. Updates to interpreted JavaScript remain permissible within Apple's rules, but must not be the recovery plan.
+- **Supabase OAuth redirect flows need explicit handling** under a custom scheme or universal links. This must be designed during Stage A rather than discovered during Phase 2.
+- **Store review is straightforward because of ADR 0015.** With no stake and no prize, this is an ordinary free application on both stores — no gambling category, no elevated age rating on that basis, no per-territory gating. Entry fees would have produced substantially stricter review on both platforms.
+- **Developer accounts must be enrolled early.** The Apple Developer Program is an annual fee and Google Play a one-off registration, and enrolment with verification can take weeks. Budget the time, not just the cost.
+- Device smoke testing joins the test surface: push delivery, deep-link resolution and authentication round-trip on both platforms, plus a locked entry rendering offline.
+- Store privacy disclosures and data-use labels become a launch requirement.
+
+## Rejected alternatives
+
+- **Installable PWA only, with no store presence.** Rejected: it forfeits discovery, credibility and the acquisition argument, and iOS web push requires the user to install the progressive web app first, which most never will. Retained as Phase 1 rather than as the destination.
+- **A React Native or Expo rebuild of the interface layer.** Rejected: it forks the UI layer for a solo developer with no proven audience, doubling the maintenance surface before the product has earned it. It remains available later if scale justifies it, and the pure domain layer means such a move would not be a rewrite from nothing.
+- **Building the native shell before the 2027/28 launch.** Rejected: it would place a store review queue on the critical path of a launch that does not need one. The PWA delivers the retention value on time.
+- **Deferring the webview constraints until Phase 2.** Rejected: authentication redirects and deep links are the expensive retrofits, and honouring them from the start costs nothing.

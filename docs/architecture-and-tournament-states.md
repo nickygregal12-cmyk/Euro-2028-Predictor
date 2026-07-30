@@ -4,6 +4,8 @@
 
 **Implementation status (synced 2026-07-27):** the layer laws (§1) and result-confirmation authority (§9) are implemented and enforced today. The tournament-context engine (§3), the 12-state match contract (§4), the phase/day IDs (§5), the Home action queue (§6), competition windows (§7) and competition states (§8) are **adopted design, not yet built** — the shipped state model is `MatchTemporalState = 'before' | 'during' | 'after'` (`src/domain/tournament/matchCentre.ts`), and timing logic currently lives in the individual domain modules (`entryLock.ts`, `matchCentre.ts`, `matchesTab.ts`, `homeDashboard.ts`) pending the engine. Build sequencing stays in `docs/roadmap.md`. This document is authoritative for *how the app understands the tournament*. Visual/interaction specs stay in `design-system.md`; sequencing stays in `roadmap.md`; competition rules stay in `competition-structure.md` + `predictor-cup-rules.md`. Where those docs describe phase- or day-dependent behaviour, they are describing states named HERE.
 
+The multi-competition context and lock generalisation is governed by [ADR 0011](adr/0011-multi-competition-platform.md); client-distribution constraints are governed by [ADR 0016](adr/0016-client-and-distribution.md).
+
 ## 0. The platform framing
 
 The app is not "an Original Predictor with features attached." It is **a tournament platform**: one real football tournament at the centre; several prediction competitions (Original Predictor, KO Predictor, Last Man Standing, Predictor Cup) each owning its own entry, scoring, standings and progression; one shared identity/social layer; and **one authoritative understanding of what is happening now**.
