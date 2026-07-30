@@ -8,6 +8,7 @@ import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { fetchMyLeagues } from '../../services/supabase/leagues'
 import { fetchLeagueMatchPicks, fetchMatchDistribution } from '../../services/supabase/matchCentre'
 import { venueCountryCode } from '../predict/venues'
+import { resolveTournamentCompetitionContext } from '../shared/tournamentCompetitionContext'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import type { ScoreEvent } from '../../domain/tournament/scoreEvents'
@@ -72,6 +73,11 @@ export function MatchCentrePage() {
   const [searchParams] = useSearchParams()
   const data = useTournamentData()
   const preds = usePredictions()
+  const nowServer = useMemo(() => new Date(), [matchRef])
+  const timeZone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    [],
+  )
 
   const [leagueScopes, setLeagueScopes] = useState<LeagueScopesState>({
     status: 'loading',
@@ -146,6 +152,18 @@ export function MatchCentrePage() {
     data.status === 'ready'
       ? data.data.matches.find((candidate) => candidate.matchRef === matchRef)
       : undefined
+
+  const resolvedMatchState = useMemo(() => {
+    if (data.status !== 'ready' || !preds.ready || !match) return null
+    const resolved = resolveTournamentCompetitionContext({
+      data: data.data,
+      submitted: preds.submittedAt !== null && preds.submittedAt !== undefined,
+      entryComplete: preds.ready,
+      nowServer,
+      timeZone,
+    })
+    return resolved.context.matches.find((candidate) => candidate.id === match.id)?.state ?? null
+  }, [data, match, nowServer, preds.ready, preds.submittedAt, timeZone])
 
   const adjacent = useMemo(
     () =>
@@ -352,10 +370,14 @@ export function MatchCentrePage() {
   }
 
   const td = data.data
+  const capturedAt = nowServer.toISOString()
   const pageModel = createMatchCentrePageModel({
     match,
     teams: td.teams,
     groups: td.groups,
+    now: capturedAt,
+    fetchedAt: capturedAt,
+    matchState: resolvedMatchState ?? undefined,
   })
   const { home, away, result, temporalState: temporal } = pageModel
   const actualWinner = authoritativeWinnerSide(match)
