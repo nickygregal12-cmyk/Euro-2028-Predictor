@@ -19,7 +19,7 @@ import { buildGroupTiePrompt } from './groupTiePrompt'
 import { ConflictBanner } from './ConflictBanner'
 import { scoreOneMatch } from './matchScoring'
 import { venueCountryCode } from './venues'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { formatShortDate, countdownToDate } from '../../app/time'
 import s from '../shared.module.css'
 import g from './group.module.css'
@@ -35,6 +35,7 @@ export function GroupPredictorPage() {
   const cardsRef = useRef<HTMLDivElement>(null)
   const data = useTournamentData()
   const preds = usePredictions()
+  const entryLocked = useTournamentEntryLocked()
 
   const teamsById = useMemo(() => {
     if (data.status !== 'ready') return new Map<string, { name: string }>()
@@ -95,7 +96,7 @@ export function GroupPredictorPage() {
     preds.getPrediction,
     preds.tieResolutions,
   )
-  const locked = isEntryLocked(data.data.tournament.lockAt)
+  const locked = entryLocked
   const returnToFinalise = searchParams.get('return') === FINALISE_PATH
 
   // The linear continuation is ALWAYS one tap away (bottom of a group → next

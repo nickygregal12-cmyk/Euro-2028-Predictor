@@ -3,7 +3,7 @@ import { Alert, Button } from '../../design-system'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { useAuth } from '../auth/AuthProvider'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { fetchExistingEntrySubmissionStatus } from '../../services/supabase/entrySubmissionStatus'
 import type { EntrySubmissionStatus } from '../../services/supabase/predictions'
 import { userFacingError } from '../../shared/errors/userFacingError'
@@ -31,15 +31,13 @@ export function ReviewWorkspacePage() {
   const { userId } = useAuth()
   const tournament = useTournamentData()
   const predictions = usePredictions()
+  const entryLocked = useTournamentEntryLocked()
   const [reloadToken, setReloadToken] = useState(0)
   const [state, setState] = useState<OutcomeState>({ status: 'idle' })
 
   const tournamentId =
     tournament.status === 'ready' ? tournament.data.tournament.id : null
-  const locked =
-    tournament.status === 'ready'
-      ? isEntryLocked(tournament.data.tournament.lockAt)
-      : false
+  const locked = tournament.status === 'ready' ? entryLocked : false
 
   useEffect(() => {
     if (!userId || !tournamentId || !predictions.ready) {

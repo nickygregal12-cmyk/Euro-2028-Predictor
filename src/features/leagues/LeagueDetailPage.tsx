@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router'
 import { Alert, Button, ConfirmModal, Skeleton, Toast } from '../../design-system'
 import { ChevronLeftIcon, ShareIcon, UsersIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import {
   deleteLeague,
   fetchLeague,
@@ -46,12 +46,11 @@ export function LeagueDetailPage() {
   const { id: leagueId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const tournament = useTournamentData()
-  const lockAt = tournament.status === 'ready' ? tournament.data.tournament.lockAt : null
+  const revealed = useTournamentEntryLocked()
   const groupMatchCount =
     tournament.status === 'ready'
       ? tournament.data.matches.filter((match) => match.round === 'group').length
       : 36
-  const revealed = isEntryLocked(lockAt)
 
   const [state, setState] = useState<State>({ status: 'loading' })
   const [reloadKey, setReloadKey] = useState(0)

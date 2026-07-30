@@ -3,7 +3,7 @@ import { Button, TeamFlag } from '../../design-system'
 import { CheckIcon, LockIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { buildPredictHubModel } from './hubJourney'
 import { PredictHubPage } from './PredictHubPage'
 import s from '../shared.module.css'
@@ -13,11 +13,12 @@ export function PredictEntryPage() {
   const navigate = useNavigate()
   const tournament = useTournamentData()
   const predictions = usePredictions()
+  const entryLocked = useTournamentEntryLocked()
 
   if (
     tournament.status !== 'ready' ||
     !predictions.ready ||
-    !isEntryLocked(tournament.data.tournament.lockAt) ||
+    !entryLocked ||
     predictions.submittedAt === null
   ) {
     return <PredictHubPage />

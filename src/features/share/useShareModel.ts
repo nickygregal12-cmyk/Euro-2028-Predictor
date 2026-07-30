@@ -10,7 +10,7 @@ import { usePredictions } from '../../app/providers/PredictionsProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { sumGroupGoals } from '../../domain/tournament/groupGoals'
-import { isEntryLocked } from '../../domain/tournament/entryLock'
+import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { survivorsFromRounds } from './buildShareModel'
 import { availableShareVariants, type ShareCardModel, type ShareVariant } from './shareModel'
 
@@ -29,13 +29,14 @@ export function useShareModel(opts: ShareModelOpts = {}): {
   const data = useTournamentData()
   const preds = usePredictions()
   const auth = useAuth()
+  const entryLocked = useTournamentEntryLocked()
 
   if (data.status !== 'ready' || !preds.ready) return { model: null, variants: [] }
   const td = data.data
   const bracket = buildBracketPipeline(td, preds.getPrediction, preds.tieResolutions, preds.bracketProgression)
   const groupMatches = td.matches.filter((m) => m.round === 'group')
   const goals = sumGroupGoals(groupMatches.map((m) => preds.getPrediction(m.id)))
-  const locked = isEntryLocked(td.tournament.lockAt)
+  const locked = entryLocked
 
   const teamsById = new Map(td.teams.map((t) => [t.id, t]))
   const teamOf = (id: string) => {
