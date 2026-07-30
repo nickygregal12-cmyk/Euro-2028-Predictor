@@ -149,6 +149,8 @@ describe('account deletion — declared foreign-key semantics', () => {
       '20260728150000_bonus_games_platform.sql bonus_competition_audit.actor_id → set null',
       '20260728190000_shared_knockout_prediction_store.sql bonus_knockout_predictions.user_id → cascade',
       '20260729050000_predictor_cup_knockouts.sql bonus_cup_fixtures.winner_user_id → undeclared',
+      // Supersedes the line above: contract 64 declares the action explicitly.
+      '20260730180000_cup_winner_deletion_semantics.sql bonus_cup_fixtures.winner_user_id → restrict',
     ])
   })
 
@@ -168,14 +170,13 @@ describe('account deletion — declared foreign-key semantics', () => {
     }
   })
 
-  it('records exactly one reference with no declared action', () => {
+  it('leaves no reference with an undeclared action', () => {
     // PostgreSQL defaults an omitted clause to `no action`, which blocks the
-    // delete. Every other reference in these migrations states its action, so
-    // this is the one place the deletion behaviour is implied rather than
-    // chosen. Pinned, not fixed: changing it is a migration, and a migration
-    // needs the applied-state and pgTAP evidence this environment cannot
-    // currently produce.
-    expect(sitesOf('undeclared')).toEqual(['bonus_cup_fixtures.winner_user_id'])
+    // delete — behaviour arrived at by default rather than chosen.
+    // `bonus_cup_fixtures.winner_user_id` was the last such reference until
+    // contract 64 declared it. Verified against a rebuilt database: 0 of 13
+    // foreign keys into auth.users carry confdeltype 'a'.
+    expect(sitesOf('undeclared')).toEqual([])
   })
 })
 
@@ -183,9 +184,9 @@ describe('account deletion — consequences', () => {
   it('names the references that block deletion outright', () => {
     // Deleting an account is not currently a thing that simply succeeds. Only
     // the first of these has a documented hand-over flow.
-    expect([...sitesOf('restrict'), ...sitesOf('undeclared')]).toEqual([
-      'leagues.owner_id',
+    expect(sitesOf('restrict').sort()).toEqual([
       'bonus_cup_fixtures.winner_user_id',
+      'leagues.owner_id',
     ])
   })
 
