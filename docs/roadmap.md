@@ -18,9 +18,10 @@ This roadmap does **not** maintain another copy of the programme phases or Stage
 4. **Launch and acquisition:** Stage J is launch readiness and go-to-market, with the programme window beginning in February 2027.
 5. **Bonus Games Browser E2E:** PR #187 already supplies authenticated desktop/phone lifecycle proof for all three Bonus Games.
 6. **Stage B:** merged through PR #226 as `2648540dc001c50305f1effa526fc16e43dcdb26`; PR #239 closed the retained Stage B checklist with the satisfying PRs.
-7. **Control and parity foundation:** PRs #228, #229, #232, #233 and #235 are on `main`.
+7. **Control and parity foundation:** PRs #228, #229, #232, #233, #235 and #250 are on `main`.
 8. **Stage C characterisation:** PR #245 pins timezone authority and the current device-dependent day grouping; PR #246 pins the effective account-deletion foreign-key matrix. Both are tests of the current state, not fixes.
-9. **Current baseline:** `main` is `972febd017dbecf0ef3b02b16b55c07c74535038`; draft PR #236 is the active design baseline and no migration exists.
+9. **Current baseline:** `main` is `183544b7b29a5360b1c0a04a2c7007e821cbce97`; draft PR #236 is the active design baseline and no migration exists.
+10. **Parallel seam:** PR #252 is fully green and separates competition/viewer timezone inputs while intentionally preserving the viewer fallback until Stage C supplies the persisted season timezone.
 
 ## Delivered baseline
 
@@ -51,8 +52,22 @@ Complete on `main`:
 - PR #235: complete `VITE_*` environment contract plus deployment-RPC/database-privilege parity.
 - PR #245: lock and match-state timezone independence, the closed set of four device-timezone readers, current day-grouping divergence and invalid-zone fail-quiet behaviour.
 - PR #246: effective account-deletion actions across every `auth.users` reference, including history-destroying cascades, deliberate league-owner restrict, audit set-null actions and the undeclared Predictor Cup winner action.
+- PR #250: ordinary CI proves every public table has RLS enabled and every security-definer function pins `search_path`, using schema-aware, comment-safe and latest-definition parsing.
 
 PRs #245 and #246 create the reviewable **before-side** of Stage C. Their current expectations must change visibly when the design is implemented.
+
+### Parallel application seam — PR #252
+
+PR #252 is open, mergeable and fully green. It:
+
+- renames the domain calendar input to `competitionTimeZone`;
+- introduces `viewerTimeZone` at the surface adapters;
+- lets a supplied competition timezone override viewer location;
+- preserves all existing behaviour while the value is absent by falling back to the viewer;
+- intentionally leaves the day-grouping divergence in place until Stage C adds and supplies `tournaments.display_timezone`;
+- reports that TypeScript test sources are not included in the current `tsc -b` project.
+
+It may integrate independently. It is a useful implementation seam, not the completed Stage C timezone slice.
 
 ### Stage C — active design
 
@@ -64,6 +79,7 @@ Draft PR #236 defines:
 - composite same-season relationship safeguards;
 - `profiles.id` as the durable pseudonymisable competitive anchor;
 - UTC lock/outcome authority, competition-timezone calendar grouping and viewer-local clock display;
+- invalid competition-timezone rejection and explicit unavailable/fail-closed handling;
 - deletion/archive consequences and the data-protection dependency;
 - complete current table, function, trigger, RLS and RPC coverage;
 - Euro preservation, hostile cross-season and before/after characterisation tests.
@@ -73,24 +89,29 @@ It contains no migration or hosted write.
 ## Next executable sequence
 
 1. Review and intentionally approve draft PR #236 as the consolidated Stage C design baseline. The owner decisions on season tie-breaks, account deletion and timezone authority are already recorded; review now concerns completeness, safety and implementation boundaries.
-2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-018`.
+2. Resolve design review comments without creating SQL or weakening safeguards `CS-001` through `CS-019`.
 3. Treat the landed tests as mandatory before-state contracts:
    - PR #245 must change from device-dependent day grouping to competition-timezone grouping while preserving timezone-free locks and viewer-local displayed clocks;
-   - invalid stored competition timezones must fail closed or surface an explicit unavailable state, not silently produce an empty day;
+   - invalid stored competition timezones must be rejected and any unavailable value must fail closed or surface an explicit unavailable state, not silently produce an empty day;
    - PR #246 must change from direct `auth.users` competitive ownership to the approved pseudonymised-profile model while preserving deliberate audit and housekeeping semantics;
-   - every current and future `auth.users` reference must retain an explicit reviewed deletion action.
-4. After design approval, commit the remaining pre-migration contract tests first:
+   - every current and future `auth.users` reference must retain an explicit reviewed deletion action;
+   - PR #250's all-public-table RLS and all-definer `search_path` invariants must remain green.
+4. Reconcile PR #252 according to its final landed state:
+   - if it lands first, Stage C supplies the persisted `competitionTimeZone` at each seam and reverses the fallback/divergence assertions;
+   - if it does not land, Stage C implements the same split in the migration/application PR without duplicating incompatible adapters.
+5. Add an enforced TypeScript test typecheck or equivalent before relying on Stage C's new TypeScript contract fixtures. Passing Vitest alone is not static type evidence because `tsconfig.app.json` currently includes only `src`.
+6. After design approval, commit the remaining pre-migration contract tests first:
    - complete season-sensitive object coverage;
    - hostile cross-season relationship failures;
    - lock monotonicity and per-fixture late-write rejection;
    - RLS/grant/function-exposure rules;
    - Euro identifier, score, rank, access and Stage B context preservation;
    - account deletion preserving totals, ranks, league membership and settled outcomes.
-5. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when the intentional physical names disappear.
-6. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history schema path.
-7. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
-8. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
-9. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
+7. Maintain an exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. Stage C exits when **zero unreviewed tournament-only assumptions** remain, not when the intentional physical names disappear.
+8. Obtain the required data-protection review before implementing the auth-erasure/pseudonymised-history schema path.
+9. Create one coherent append-only **development** migration only after the tests and migration plan are reviewed.
+10. Prove zero-to-current rebuild, database lint, pgTAP, full Database parity, generated TypeScript types, preservation and environment isolation on disposable infrastructure.
+11. Do not mutate hosted development or production schema without a separate explicit approval, preflight and verification process.
 
 ## Programme and stage navigation
 
