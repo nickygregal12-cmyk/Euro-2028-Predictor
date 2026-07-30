@@ -75,6 +75,22 @@ begin
   select count(*)::integer into v_from from public.entries
   where tournament_id = v_tournament;
 
+  -- Real auth.users rows are unavoidable here: recompute_tournament_scores
+  -- calls capture_rank_history, which inserts into rank_history keyed on
+  -- user_id with a live FK to auth.users. The seed can skip that FK under
+  -- replica mode, but the recompute runs under 'origin' and writes a NEW
+  -- user-keyed row, so synthetic ids fail at measurement time.
+  insert into auth.users (
+    instance_id, id, aud, role, email,
+    encrypted_password, email_confirmed_at, created_at, updated_at
+  )
+  select '00000000-0000-0000-0000-000000000000',
+         ('acb3acb3-0000-0000-0001-' || lpad((v_from + n)::text, 12, '0'))::uuid,
+         'authenticated', 'authenticated',
+         'r03-' || (v_from + n) || '@example.local',
+         '', now(), now(), now()
+  from generate_series(1, p_add) as n;
+
   insert into public.profiles (id, display_name)
   select ('acb3acb3-0000-0000-0001-' || lpad((v_from + n)::text, 12, '0'))::uuid,
          'R03 Player ' || (v_from + n)
@@ -184,6 +200,7 @@ begin
   -- in the product; deleting them is a benchmark-only act on a disposable
   -- database, inside a transaction that rolls back.
   delete from public.match_result_revisions where tournament_id = v_tournament;
+  delete from public.rank_history where tournament_id = v_tournament;
 
   delete from public.score_events se using public.entries e
   where e.id = se.entry_id and e.tournament_id = v_tournament;
@@ -233,6 +250,7 @@ delete from public.match_predictions mp using public.entries e
 where e.id = mp.entry_id and e.user_id::text like 'acb3acb3-0000-0000-0001-%';
 delete from public.entries where user_id::text like 'acb3acb3-0000-0000-0001-%';
 delete from public.profiles where id::text like 'acb3acb3-0000-0000-0001-%';
+delete from auth.users where id::text like 'acb3acb3-0000-0000-0001-%';
 
 -- The single result set to send back. --------------------------------------
 select
