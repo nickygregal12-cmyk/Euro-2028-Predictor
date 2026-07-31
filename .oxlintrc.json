@@ -1,0 +1,45 @@
+{
+  // Accessibility linting. Enabled 31 July 2026 to close half of ACQ-R18.
+  //
+  // The plugin catches mistakes at lint time that would otherwise wait for a
+  // browser run, or never surface at all: a missing `alt`, an empty anchor or
+  // heading, an `aria-` attribute that does not exist, an `autoFocus`.
+  //
+  // It does NOT catch the defect class that actually bit this codebase — an
+  // `aria-label` on a roleless div, which shipped in six components. That is
+  // covered by `tests/app/ariaLabelRequiresRole.test.ts`. The plugin is a
+  // second net with different holes, not a replacement for the axe scans.
+  //
+  // Six rules are off. `tests/scripts/lintAccessibilityRules.test.ts` holds this
+  // list to a reason each, so the set cannot grow quietly.
+  "plugins": ["jsx-a11y"],
+  "rules": {
+    // The design system builds tables as CSS grids carrying ARIA roles by hand
+    // (design-system.md §5) because a real <table> cannot produce the layout.
+    // This rule asks for <td>/<tr> and would undo that deliberately. 86 of the
+    // plugin's 92 initial findings were this one rule.
+    "jsx-a11y/prefer-tag-over-role": "off",
+
+    // A scrollable region that no keyboard user can reach fails WCAG 2.1.1, and
+    // axe reports it as `scrollable-region-focusable`. The fix is exactly the
+    // `tabIndex={0}` this rule objects to. Two shipped without it and were
+    // fixed on 31 July 2026; the rule would have argued against the fix.
+    "jsx-a11y/no-noninteractive-tabindex": "off",
+
+    // Backdrop dismissal. Both dialogs close on a click outside, and the
+    // keyboard path is Escape, which the same component handles. Satisfying
+    // these two would mean an interactive role on a full-screen scrim, which
+    // assistive technology announces as one enormous button — worse than the
+    // warning.
+    "jsx-a11y/no-static-element-interactions": "off",
+    "jsx-a11y/no-noninteractive-element-interactions": "off",
+
+    // Both read only direct children, so a <label> or <button> whose text sits
+    // inside nested spans reads as unlabelled. Two do. Adding the `aria-label`
+    // they ask for would override the visible text for screen readers and
+    // break WCAG 2.5.3, so the rules are wrong here in a way that cannot be
+    // fixed at the call site.
+    "jsx-a11y/label-has-associated-control": "off",
+    "jsx-a11y/control-has-associated-label": "off"
+  }
+}
