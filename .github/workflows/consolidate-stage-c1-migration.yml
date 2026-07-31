@@ -1,0 +1,209 @@
+name: Consolidate Stage C1 migration
+
+on:
+  push:
+    branches:
+      - agent/stage-c1-migration
+    paths:
+      - .github/workflows/consolidate-stage-c1-migration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/stage-c1-migration
+          fetch-depth: 0
+      - name: Consolidate contract 65
+        shell: bash
+        run: |
+          set -euo pipefail
+          foundation='supabase/migrations/20260730235602_stage_c1_competition_season_foundation.sql'
+          companion='supabase/migrations/20260730235721_stage_c1_competition_season_compatibility.sql'
+
+          printf '\n\n' >> "$foundation"
+          cat "$companion" >> "$foundation"
+          git rm "$companion"
+          git mv docs/ops/stage-c1-contract-66-rollout-recovery.md docs/ops/stage-c1-contract-65-rollout-recovery.md
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import subprocess
+          from pathlib import Path
+
+          FOUNDATION = '20260730235602_stage_c1_competition_season_foundation.sql'
+          COMPANION = '20260730235721_stage_c1_competition_season_compatibility.sql'
+
+          contract_path = Path('config/deployment-contract.json')
+          contract = json.loads(contract_path.read_text())
+          contract['contractVersion'] = 65
+          contract['requiredMigrationCount'] = 65
+          contract['notes'] = (
+              'Tagged repository baseline euro-2028-baseline resolves to '
+              '1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical '
+              'migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. '
+              'Contract 61 provides tournament-wide post-lock consensus, contract 62 '
+              'activates final standings after all results, and contract 63 gates consensus '
+              'below ten submitted entries. Contract 64 declares '
+              "bonus_cup_fixtures.winner_user_id's ON DELETE action explicitly; it is "
+              'behaviour-preserving, since NO ACTION and RESTRICT are equivalent for this '
+              'non-deferrable constraint. Contract 65 is the coherent Stage C1 '
+              'competition-season foundation: stable competition identity, season metadata '
+              'and timezone authority, explicit rounds, fixture administration state, '
+              'monotonic lock evidence, additive awards, same-season relationship '
+              'constraints, private security-definer lock checks and always-on scope '
+              'preparation while preserving every C2 ownership and auth-deletion boundary. '
+              'Hosted Supabase and Netlify alignment remain unclaimed; this contract is '
+              'repository/disposable-development evidence only until an explicitly approved '
+              'hosted migration run.'
+          )
+          contract_path.write_text(json.dumps(contract, indent=2) + '\n')
+
+          ops_path = Path('docs/ops/ops-pending-migrations.md')
+          ops = ops_path.read_text()
+          ops = ops.replace(
+              f'| Repository PR #317 | **66** | 66 canonical files through `{COMPANION}`; zero-to-current rebuild, lint, pgTAP and TS/Postgres parity pass | DISPOSABLE VERIFIED; HOSTED NOT APPLIED |',
+              f'| Repository PR #317 | **65** | 65 canonical files through `{FOUNDATION}`; zero-to-current rebuild, lint, pgTAP and TS/Postgres parity pass | DISPOSABLE VERIFIED; HOSTED NOT APPLIED |',
+          )
+          ops = ops.replace(
+              '| Netlify `deploy-preview` / `branch-deploy` | **64 hosted declaration** | PR #317 expects repository contract 66, but an exact Netlify preview was unavailable during validation; no hosted contract claim is made | REQUIRES EXACT PREVIEW |',
+              '| Netlify `deploy-preview` / `branch-deploy` | **64 hosted declaration** | PR #317 expects repository contract 65, but an exact Netlify preview was unavailable during validation; no hosted contract claim is made | REQUIRES EXACT PREVIEW |',
+          )
+          ops = ops.replace(
+              '| Netlify `production` | 63 | **production deploys remain paused**. `main` requires 64 today and the PR #317 candidate requires 66; the last good contract-63 deploy stays live | BLOCKED BY DESIGN |',
+              '| Netlify `production` | 63 | **production deploys remain paused**. `main` requires 64 today and the PR #317 candidate requires 65; the last good contract-63 deploy stays live | BLOCKED BY DESIGN |',
+          )
+          old_block = f'''### Contracts 65–66 — Stage C1 repository candidate
+
+| # | Canonical migration | Repository-side purpose | Hosted status |
+| ---: | --- | --- | --- |
+| 65 | `{FOUNDATION}` | Stable competition identity, season metadata/timezone, rounds, fixture administration, lock evidence, awards and same-season relationship constraints | disposable VERIFIED; not hosted |
+| 66 | `{COMPANION}` | Effective lock/Joker compatibility, private trigger authorities and always-on scope preparation discovered by the first rebuild | disposable VERIFIED; not hosted |
+
+Contracts 65–66 preserve the complete C2 auth ownership/deletion boundary. Issue #272 still blocks profile ownership, pseudonymisation and account-erasure changes. No development or production migration is authorised merely because disposable parity passes.'''
+          new_block = f'''### Contract 65 — Stage C1 repository candidate
+
+| # | Canonical migration | Repository-side purpose | Hosted status |
+| ---: | --- | --- | --- |
+| 65 | `{FOUNDATION}` | Coherent competition-season foundation: stable identity, season metadata/timezone, rounds, fixture administration, monotonic locks, awards, same-season constraints, private lock authorities and always-on scope preparation | disposable VERIFIED; not hosted |
+
+Contract 65 preserves the complete C2 auth ownership/deletion boundary. Issue #272 still blocks profile ownership, pseudonymisation and account-erasure changes. No development or production migration is authorised merely because disposable parity passes.'''
+          if old_block not in ops:
+              raise SystemExit('Stage C1 ops migration block not found')
+          ops = ops.replace(old_block, new_block)
+          ops = ops.replace(
+              'Do not apply contract 64, 65 or 66 merely to equalise numbers.',
+              'Do not apply contract 64 or 65 merely to equalise numbers.',
+          )
+          ops = ops.replace('before any contract-65/66 write', 'before any contract-65 write')
+          ops_path.write_text(ops)
+
+          recovery_path = Path('docs/ops/stage-c1-contract-65-rollout-recovery.md')
+          recovery = recovery_path.read_text()
+          recovery = recovery.replace(
+              '- `20260730235602_stage_c1_competition_season_foundation.sql`;\n- `20260730235721_stage_c1_competition_season_compatibility.sql`.',
+              '- `20260730235602_stage_c1_competition_season_foundation.sql`.',
+          )
+          recovery = recovery.replace(
+              'Apply contracts 65 and 66 sequentially to the same approved development target.\nDo not publish a contract-66 application between them.\n\n1. Reconfirm the target identity and contract 64 immediately before the write.\n2. Apply contract 65 using the repository migration runner.\n3. Confirm contract 65 is recorded once and no migration error occurred.\n4. Apply contract 66 using the same runner and connection context.\n5. Confirm the highest canonical version and count are exactly contract 66.\n6. Run the complete postflight before changing any Netlify contract declaration.\n\nDo not manually insert migration-history rows, skip contract 65, replay a migration\nwhose history is uncertain, or run fragments from either file in the SQL editor.',
+              'Apply contract 65 as one coherent migration to the approved development target.\n\n1. Reconfirm the target identity and contract 64 immediately before the write.\n2. Apply contract 65 using the repository migration runner.\n3. Confirm contract 65 is recorded once and no migration error occurred.\n4. Run the complete postflight before changing any Netlify contract declaration.\n\nDo not manually insert migration-history rows, replay a migration whose history is\nuncertain, or run fragments from the file in the SQL editor.',
+          )
+          recovery = recovery.replace(
+              '- the exact two-migration split is accepted or consolidated before merge;',
+              '- the single migration remains coherent and reviewable before merge;',
+          )
+          recovery_path.write_text(recovery)
+
+          security_path = Path('tests/database-parity/schemaSecurityInvariants.test.ts')
+          security = security_path.read_text()
+          security = security.replace(
+              "      '20260730235602_stage_c1_competition_season_foundation.sql',\n      '20260730235721_stage_c1_competition_season_compatibility.sql',",
+              "      '20260730235602_stage_c1_competition_season_foundation.sql',",
+          )
+          security_path.write_text(security)
+
+          tracked = subprocess.check_output(['git', 'ls-files'], text=True).splitlines()
+          replacements = [
+              ('Contracts 65–66', 'Contract 65'),
+              ('contracts 65–66', 'contract 65'),
+              ('Contracts 65-66', 'Contract 65'),
+              ('contracts 65-66', 'contract 65'),
+              ('Contracts 65 and 66', 'Contract 65'),
+              ('contracts 65 and 66', 'contract 65'),
+              ('Contract 66', 'Contract 65'),
+              ('contract 66', 'contract 65'),
+              ('66 canonical migrations', '65 canonical migrations'),
+              ('66 canonical files', '65 canonical files'),
+              ('two ordered append-only migrations', 'one coherent append-only migration'),
+              ('Two ordered C1 migrations', 'One coherent C1 migration'),
+              ('two ordered C1 migrations', 'one coherent C1 migration'),
+              ('two migration checksums', 'migration checksum'),
+              ('both migrations', 'the migration'),
+              ('Contracts 65–66 add', 'Contract 65 adds'),
+              (COMPANION, FOUNDATION),
+          ]
+          text_suffixes = {
+              '.md', '.json', '.ts', '.tsx', '.js', '.mjs', '.cjs', '.sql', '.yml',
+              '.yaml', '.txt', '.toml', '.css', '.html', '.jsx'
+          }
+          for name in tracked:
+              path = Path(name)
+              if not path.exists() or path.suffix.lower() not in text_suffixes:
+                  continue
+              try:
+                  source = path.read_text()
+              except UnicodeDecodeError:
+                  continue
+              updated = source
+              for old, new in replacements:
+                  updated = updated.replace(old, new)
+              if updated != source:
+                  path.write_text(updated)
+
+          # The live authority wording should describe one repository migration.
+          status_path = Path('docs/quality/current-status.md')
+          status = status_path.read_text()
+          status = status.replace(
+              'contracts 65–66 are PR #317 repository/disposable evidence',
+              'contract 65 is PR #317 repository/disposable evidence',
+          )
+          status = status.replace(
+              'Two ordered C1 migrations exist in PR #317 and pass disposable proof.',
+              'One coherent C1 migration exists in PR #317 and passes disposable proof.',
+          )
+          status_path.write_text(status)
+
+          # No tracked source may retain the superseded split after consolidation.
+          forbidden = [
+              'contract 66', 'Contract 66', 'contracts 65–66', 'Contracts 65–66',
+              'contracts 65 and 66', 'Contracts 65 and 66', COMPANION,
+              '"contractVersion": 66', '"requiredMigrationCount": 66',
+          ]
+          failures: list[str] = []
+          for name in subprocess.check_output(['git', 'ls-files'], text=True).splitlines():
+              path = Path(name)
+              if not path.exists() or path.suffix.lower() not in text_suffixes:
+                  continue
+              try:
+                  source = path.read_text()
+              except UnicodeDecodeError:
+                  continue
+              for token in forbidden:
+                  if token in source:
+                      failures.append(f'{name}: {token}')
+          if failures:
+              raise SystemExit('stale split references remain:\n' + '\n'.join(failures))
+          PY
+
+          git rm .github/workflows/consolidate-stage-c1-migration.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Consolidate Stage C1 into contract 65"
+          git push origin HEAD:agent/stage-c1-migration
