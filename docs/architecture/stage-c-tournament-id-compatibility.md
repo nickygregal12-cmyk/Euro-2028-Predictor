@@ -1,30 +1,29 @@
 # Stage C — `tournament_id` compatibility inventory
 
-**Status:** Pre-migration contract; no Stage C schema implementation exists.  
-**Baseline:** `main` at `e878afb1aed7c832c7926da2cf3696c7b627906e`.  
+**Status:** Contract 66 C1 after-state; C2 ownership work remains blocked by issue #272.  
+**Baseline:** PR #317, migrations `20260730235602` and `20260730235721`.  
 **Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)  
 **Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
 
 ## Purpose
 
-Stage C deliberately evolves the existing physical `tournaments` / `tournament_id`
-contract in place. Architecture may call the row a competition season, but the
-migration must not rename or replace a working scope merely to make the physical
-name match the new vocabulary.
+Stage C evolves the existing physical `tournaments` / `tournament_id` contract in
+place. Architecture calls the row a competition season, but working identifiers
+and RPC signatures are not renamed merely to match new vocabulary.
 
-This inventory pins every current direct `public.*.tournament_id` column. A Stage C
-implementation must preserve, generalise or deliberately replace every row below
-in the same reviewed change. The exit condition is **zero unreviewed tournament-only
-assumptions**, not zero retained compatibility names.
+Contract 66 now stores direct season scope wherever a relationship previously had
+to infer it through another parent. Every column below is reviewed, `uuid NOT
+NULL`, backfilled and guarded by composite foreign keys or a preparation/shape
+validator. The exit condition remains zero unreviewed tournament-only assumptions,
+not zero retained compatibility names.
 
 The list is supported by:
 
 - the effective committed migration history;
-- a read-only development catalogue check on 30 July 2026;
+- disposable zero-to-current rebuild and catalogue checks;
 - `tests/database-parity/stageCTournamentIdCompatibility.test.ts`.
 
-The catalogue check read column metadata only. It did not read application rows or
-write to Supabase.
+No hosted database write is claimed by this inventory.
 
 ## Current direct columns
 
@@ -34,15 +33,36 @@ Every current column below is `uuid NOT NULL`.
 | --- | --- |
 | `actual_third_place_resolution_revisions.tournament_id` | retain direct season scope; object remains tournament-only |
 | `actual_third_place_resolutions.tournament_id` | retain direct season scope; object remains tournament-only |
+| `bonus_competition_audit.tournament_id` | explicit season scope for immutable game audit evidence |
+| `bonus_competition_entrants.tournament_id` | explicit season/game entrant scope; auth ownership remains C2 |
+| `bonus_competition_windows.tournament_id` | explicit season/game window scope |
 | `bonus_competitions.tournament_id` | retain as the season scope of each independent bonus-game instance |
+| `bonus_cup_fixtures.tournament_id` | explicit season/game/group/window fixture scope |
+| `bonus_cup_groups.tournament_id` | explicit season/game group scope |
+| `bonus_cup_members.tournament_id` | explicit season/game/group entrant scope; auth ownership remains C2 |
+| `bonus_cup_penalty_numbers.tournament_id` | explicit season/game/window entrant scope; auth ownership remains C2 |
+| `bonus_knockout_predictions.tournament_id` | explicit season/game/match/team scope; auth ownership remains C2 |
+| `bonus_lms_selections.tournament_id` | explicit season/game/window/team scope; auth ownership remains C2 |
+| `bonus_predictions.tournament_id` | explicit entry/player season proof |
+| `bonus_score_events.tournament_id` | explicit season/game/window/match score scope |
+| `bonus_window_fixtures.tournament_id` | explicit same-season window/match proof |
+| `competition_awards.tournament_id` | additive season-scoped award result authority |
+| `competition_lock_events.tournament_id` | append-only observed season lock evidence |
+| `competition_rounds.tournament_id` | round or matchweek parent season |
 | `entries.tournament_id` | retain as the Predictor entry season scope |
 | `entry_automatic_submission_outcomes.tournament_id` | retain and prove composite equality with the entry season |
-| `groups.tournament_id` | retain; groups remain valid only for `kind = 'tournament'` |
+| `group_teams.tournament_id` | explicit same-season group/team proof |
+| `groups.tournament_id` | retain; groups remain valid only for tournament seasons |
 | `leagues.tournament_id` | retain as the league's competition-season scope |
+| `match_predictions.tournament_id` | explicit same-season entry/match proof |
 | `match_result_revisions.tournament_id` | retain and prove composite equality with the revised fixture |
 | `matches.tournament_id` | retain as the shared fixture/result season scope |
 | `players.tournament_id` | retain until provider/global identity work in Stage D |
-| `rank_history.tournament_id` | retain and bind history to the relevant season/round authority |
+| `predicted_group_positions.tournament_id` | explicit entry/group/team season proof |
+| `predicted_progression.tournament_id` | explicit entry/team season proof |
+| `predicted_tie_resolutions.tournament_id` | explicit entry season scope; UUID-array validation remains separate |
+| `rank_history.tournament_id` | retain and bind history to the relevant season authority |
+| `score_events.tournament_id` | explicit entry/match/team season proof |
 | `teams.tournament_id` | retain; teams remain season participants in Stage C |
 
 ## Change rules
@@ -53,7 +73,7 @@ Every current column below is `uuid NOT NULL`.
    compatibility plan; absence alone is not an improvement.
 3. All retained columns remain season identifiers for both bounded tournaments and
    league seasons unless their row is explicitly tournament-only.
-4. Simple parent/child equality should use composite foreign keys where practical;
+4. Simple parent/child equality uses composite foreign keys where practical;
    triggers remain for arrays, conditional shape, parent kind, time and lifecycle.
-5. This inventory does not decide the account-erasure model blocked by issue #272
-   and does not authorise SQL, a migration or a hosted schema operation.
+5. C1 does not change any `auth.users` foreign key, profile ownership policy or
+   account-erasure behaviour. Those remain C2 and blocked by issue #272.
