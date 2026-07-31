@@ -249,3 +249,45 @@ revoke all on function public.enforce_entry_lock_scores()
   from public, anon, authenticated;
 revoke all on function public.enforce_joker_rules()
   from public, anon, authenticated;
+
+-- Season and round scope are integrity guarantees, not ordinary application
+-- side effects. They remain active during controlled replica-mode imports and
+-- rollback-only test fixtures that deliberately suppress unrelated user triggers.
+alter table public.matches
+  enable always trigger a_prepare_match_season_scope;
+alter table public.group_teams
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.match_predictions
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.predicted_group_positions
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.predicted_progression
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.predicted_tie_resolutions
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_predictions
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.score_events
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_competition_entrants
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_competition_windows
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_window_fixtures
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_knockout_predictions
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_lms_selections
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_score_events
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_competition_audit
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_cup_groups
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_cup_members
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_cup_fixtures
+  enable always trigger a_prepare_competition_season_scope;
+alter table public.bonus_cup_penalty_numbers
+  enable always trigger a_prepare_competition_season_scope;
