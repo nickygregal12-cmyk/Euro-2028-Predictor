@@ -235,7 +235,7 @@
 }
 .jokerPaid {
   background: var(--gold-tint);
-  color: var(--gold);
+  color: var(--gold-strong);
 }
 .jokerBurned {
   background: var(--chip);

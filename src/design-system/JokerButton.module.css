@@ -31,6 +31,6 @@
 /* On: tint pill — deliberately quieter status (gold-tint bg, gold border+text). */
 .on {
   background: var(--gold-tint);
-  color: var(--gold);
-  border-color: var(--gold);
+  color: var(--gold-strong);
+  border-color: var(--gold-strong);
 }
