@@ -15,14 +15,14 @@ export type Tournament = {
   // The entry-lock instant (opening kickoff). Server-authoritative; the UI only
   // reflects it. Null until set. Dev overrides this row to exercise locked UI.
   lockAt: string | null // ISO timestamp
-  // Stage C1 metadata is nullable during the repository-first rollout so the
-  // application remains compatible with hosted contract 64 until the reviewed
-  // migration is explicitly applied.
-  competitionId: string | null
-  seasonKey: string | null
-  kind: CompetitionKind | null
-  displayTimeZone: string | null
-  status: CompetitionStatus | null
+  // Optional only during the repository-first rollout so existing isolated
+  // fixtures and hosted contract 64 remain valid. Contract 66 stores every one
+  // of these fields as NOT NULL after backfill.
+  competitionId?: string | null
+  seasonKey?: string | null
+  kind?: CompetitionKind | null
+  displayTimeZone?: string | null
+  status?: CompetitionStatus | null
 }
 
 export type Group = {
