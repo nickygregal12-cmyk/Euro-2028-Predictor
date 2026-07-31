@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { expectNoSeriousAxeViolations } from './axe-scan'
 
 test.describe('Match Centre browser navigation', () => {
   test('opens from Matches and returns to the preserved fixture view', async ({ page }) => {
@@ -12,6 +13,10 @@ test.describe('Match Centre browser navigation', () => {
 
     await expect(page).toHaveURL(/\/match\/[^?#]+$/)
     await expect(page.getByRole('button', { name: 'Back' })).toBeVisible()
+
+    // The Match Centre reached the way a user reaches it, with a real fixture
+    // behind it rather than a /dev preview scenario.
+    await expectNoSeriousAxeViolations(page, '/match/:matchRef')
 
     await page.getByRole('button', { name: 'Back' }).click()
 

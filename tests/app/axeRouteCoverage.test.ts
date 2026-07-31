@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -61,6 +61,27 @@ const scannedRoutes = [axeSource, axeUnauthenticatedSource].flatMap((source) =>
 )
 
 /**
+ * Routes scanned from inside another journey.
+ *
+ * The parameterised routes and the administrator surfaces were deferred for
+ * needing a seeded id or the `results` capability. That was true of a standalone
+ * scan and false of the suite: `profile-h2h-surfaces`, `match-centre-navigation`
+ * and `admin-results` already seed those records and already stand on those
+ * pages. `e2e/axe-scan.ts` scans wherever the caller has navigated, so the scan
+ * goes to the page instead of the page being rebuilt for the scan.
+ *
+ * Collected from the call sites rather than restated here, so a scan that is
+ * added or removed changes this set without anyone maintaining a second list.
+ * The argument is the declared pattern from `App.tsx`, not the concrete path.
+ */
+const inJourneyScannedRoutes = readdirSync(resolve(repositoryRoot, 'e2e'))
+  .filter((entry) => entry.endsWith('.spec.ts'))
+  .flatMap((entry) => [
+    ...read(`e2e/${entry}`).matchAll(/expectNoSeriousAxeViolations\(\s*page,\s*'([^']+)'/g),
+  ])
+  .map((match) => match[1])
+
+/**
  * Routes deliberately not scanned, each with the reason it cannot be today.
  *
  * These are not excuses — each names a specific harness capability that does not
@@ -87,19 +108,17 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
   // shows the pattern: scan one real instance rather than the template.
   ['/predict/groups/:letter', 'parameterised — /predict/groups/A is scanned in its place'],
   ['/join/:code', 'parameterised — /join/NOSUCH is scanned in its place, in the stale-invite state'],
-  ['/league/:id', 'parameterised — needs a seeded league id'],
-  ['/match/:matchRef', 'parameterised — needs a seeded match reference'],
-  ['/h2h/:rivalId', 'parameterised — needs a seeded rival id'],
-  ['/profile/:playerId', 'parameterised — needs a seeded co-member id'],
 
   // Administrator surfaces require the server-owned `results` capability, which
   // the ordinary E2E user does not hold.
   ['/admin', 'requires the protected administrator capability'],
-  ['/admin/results', 'requires the protected administrator capability'],
   ['/admin/users', 'requires the protected administrator capability'],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)
+
+/** A route is covered if either harness sees it, standalone or in a journey. */
+const allScannedRoutes = [...scannedRoutes, ...inJourneyScannedRoutes]
 
 describe('axe scan coverage', () => {
   it('parses both sides, so the comparison is not vacuous', () => {
@@ -107,11 +126,16 @@ describe('axe scan coverage', () => {
     // empty one side and make every assertion below pass by comparing nothing.
     expect(declaredRoutes.length).toBeGreaterThan(20)
     expect(scannedRoutes.length).toBeGreaterThan(10)
+    // The in-journey side has its own idiom and its own way of going quiet: a
+    // renamed helper or a call site passing a concrete path would empty it, and
+    // every route it covers would silently become a gap.
+    expect(inJourneyScannedRoutes.length).toBeGreaterThan(4)
+    expect(inJourneyScannedRoutes.every((route) => route.startsWith('/'))).toBe(true)
   })
 
   it('accounts for every declared route as scanned or deliberately deferred', () => {
     const unaccounted = declaredRoutes.filter(
-      (route) => !scannedRoutes.includes(route) && !deferredRoutes.includes(route),
+      (route) => !allScannedRoutes.includes(route) && !deferredRoutes.includes(route),
     )
 
     expect(
@@ -124,7 +148,7 @@ describe('axe scan coverage', () => {
   it('keeps the deferral list honest — nothing deferred is also scanned', () => {
     // A route that is both deferred and scanned means the deferral is stale and
     // the reason attached to it is no longer true.
-    const contradictory = deferredRoutes.filter((route) => scannedRoutes.includes(route))
+    const contradictory = deferredRoutes.filter((route) => allScannedRoutes.includes(route))
 
     expect(contradictory, 'deferred routes that are actually scanned').toEqual([])
   })

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expectNoSeriousAxeViolations } from './axe-scan'
 import {
   clearPreparedKnockoutFixture,
   clearPreparedThirdPlaceBoundaryTie,
@@ -31,6 +32,11 @@ async function openAdminResults(page: Page) {
   await expect(
     page.getByRole('heading', { name: 'Results Centre' }),
   ).toBeVisible()
+
+  // The administrator surfaces were deferred because the ordinary E2E user does
+  // not hold the `results` capability. This spec creates a user who does, and is
+  // already standing on the page.
+  await expectNoSeriousAxeViolations(page, '/admin/results')
 }
 
 async function chooseGroupFixture(page: Page) {
