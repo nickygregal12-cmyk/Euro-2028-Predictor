@@ -70,7 +70,7 @@ export function LeagueOptionsDisclosure({
       </button>
 
       {open ? (
-        <div id={panelId} className={d.menu} aria-label="League actions">
+        <div id={panelId} className={d.menu} role="group" aria-label="League actions">
           {isOwner ? (
             <>
               <button

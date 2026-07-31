@@ -179,7 +179,7 @@ function TrendsContent({ header, consensus, players, teams, matches }: {
           <span><strong>{consensus.goalsSpread.average ?? '—'}</strong>Average</span>
           <span><strong>{consensus.goalsSpread.maximum ?? '—'}</strong>High</span>
         </div>
-        <div className={t.distribution} aria-label="Predicted group-stage goal totals">
+        <div className={t.distribution} role="group" aria-label="Predicted group-stage goal totals">
           {consensus.goalsSpread.distribution.map((point) => (
             <div key={point.totalGoals} className={t.distributionRow}>
               <span>{point.totalGoals}</span>

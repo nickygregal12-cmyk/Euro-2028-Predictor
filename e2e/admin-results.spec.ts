@@ -31,6 +31,7 @@ async function openAdminResults(page: Page) {
   await expect(
     page.getByRole('heading', { name: 'Results Centre' }),
   ).toBeVisible()
+
 }
 
 async function chooseGroupFixture(page: Page) {
