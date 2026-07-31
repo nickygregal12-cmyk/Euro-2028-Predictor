@@ -2,7 +2,7 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 30 July 2026
+**Status date:** 31 July 2026
 
 ## Product position
 
@@ -22,7 +22,7 @@ The repository is a multi-competition football prediction platform in transition
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Current `main` | Read it from git. A hand-copied SHA in a live-authority document is stale the next time anything merges. Fixed anchors that do not move are the `euro-2028-baseline` tag and dated per-PR evidence. |
-| Repository contract | **64** canonical migrations through `20260730180000_cup_winner_deletion_semantics.sql` |
+| Repository contract | **66** canonical migrations through `20260730235721_stage_c1_competition_season_compatibility.sql`; contracts 65–66 are PR #317 repository/disposable evidence and are not applied to hosted Supabase |
 | Contract at Euro baseline | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` — the tag is contract 63 and stays there; `main` has moved past it |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
 | Stage B inventory closure | PR #239 → `69f6e364132f6586d5de9ed8706b0802d14ec0fc` |
@@ -40,7 +40,7 @@ The repository is a multi-competition football prediction platform in transition
 | Stage C assertion classification | [`stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md): **40 C1, zero authorised C2 after-state and nine shared-before-state assertions**, enforced by `stageC1ContractClassification.test.ts` |
 | Stage C1 implementation overlay | [`stage-c1-schema-overlay.md`](../architecture/stage-c1-schema-overlay.md): every original relation and reviewed function has a C1/C2/shared disposition; coverage is enforced by `stageC1SchemaOverlayCoverage.test.ts` |
 | Stage C database contracts | Seven original suites plus `stageC1NonInterference`: TypeScript `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation`, `stageC1NonInterference`; pgTAP `031_stage_c_reference_scope_before_state.sql` and `032_stage_c_lock_before_state.sql`. Inventory guarded by `stageCContractInventory.test.ts` |
-| Next executable issue | **#303 — exact C1 migration planning and disposable proof.** No C2 work belongs in that issue and no hosted write is authorised |
+| Next executable issue | **PR #317 migration review and recovery/rollout evidence.** C1 repository/disposable implementation exists; no C2 work or hosted write is authorised |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; production remains contract 63 and deploys stay paused until an intentional release milestone |
 
@@ -54,7 +54,7 @@ The development Supabase inspection was limited to project identity/version and 
 | --- | --- | --- |
 | Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17. **Contract 64 applied and owner-verified on 30 July 2026**. | **REQUIRES OWNER VERIFICATION:** canonical applied-state and privilege queries before relying on hosted alignment or applying a migration. Development is one contract ahead of production. |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight; not freshly inspected here | **REQUIRES OWNER VERIFICATION:** read-only applied-state, privilege and preservation checks before any write |
-| Production Netlify `main` | last good ready deploy remains live. **Production deploys are paused from contract 64 onward** because the repository requires 64 while production Supabase remains 63. This is a paused pipeline, not an outage. | Keep paused until an intentional migration/release milestone with exact-origin smoke and owner approval; do not promote merely to equalise contract numbers |
+| Production Netlify `main` | last good ready deploy remains live. **Production deploys are paused from contract 64 onward**; PR #317 raises the repository candidate to contract 66 while production Supabase remains 63. This is a paused pipeline, not an outage. | Keep paused until an intentional migration/release milestone with exact-origin smoke and owner approval; do not promote merely to equalise contract numbers |
 | Non-production Turnstile | Netlify `dev`, branch deploys and deploy previews use Cloudflare's always-pass test site key; production retains a separate real key | **OPEN issue #28:** verify/set the matching development Supabase test secret and prove preview sign-up, login and recovery without CAPTCHA errors |
 | Legacy `euro28-predictor-dev` Netlify site | owner chose retirement; anonymous public access was removed on 30 July 2026 and the site now requires Netlify team SSO | **OPEN issue #27:** disable the hourly scheduled function and verify its legacy Supabase disposition; current Euro environments remain untouched |
 | Production data/recovery | owner-verified preserved counts and same-day encrypted backup/restore evidence on 29 July 2026 | **REQUIRES OWNER VERIFICATION:** fresh backup/restore proof before a data-risk milestone |
@@ -69,12 +69,12 @@ The development Supabase inspection was limited to project identity/version and 
 | Stage B | **Complete and recorded.** PR #226 integrated the surfaces and PR #239 closed the retained checklist. |
 | Cross-tournament read safety | **Landed.** `group_teams` reads are scoped through the selected tournament's groups. |
 | Database API hardening | **Guarded.** PR #250 proves every public table has RLS and every security-definer function pins `search_path`; PR #265 pins every public view and direct browser relation grant. |
-| Timezone authority | **Seam landed; persistence belongs to C1.** PR #252 separates `competitionTimeZone` from `viewerTimeZone`, but adapters still fall back to the viewer until C1 supplies `tournaments.display_timezone`. |
+| Timezone authority | **Persisted in the C1 repository candidate.** PR #317 supplies `tournaments.display_timezone` to the PR #252 seam while retaining a contract-64 hosted fallback until an approved migration rollout. |
 | Account deletion | **Unsafe current behaviour, fully characterised and owned by C2.** PR #246 pins the before-state. C1 has executable non-interference and overlay guards preventing ownership/deletion changes; issue #272 remains the blocker. |
 | TypeScript/static coverage | **Exhaustive for committed TS/TSX.** PRs #255, #258 and #261 cover application, tests, e2e, production-smoke, tools and configs. |
 | Deploy-gate JavaScript | **Type-checked.** PR #264 covers the three production-decision gates; the remaining JavaScript inventory is explicit. |
 | Leaderboard scale | **Measured, not redesigned.** ACQ-R02 remains open; hosted concurrency is untested and no materialised standings table exists. |
-| Stage C1 | **Pre-SQL governance, assertion classification and detailed schema/coverage reconciliation are complete.** Migration drafting and disposable proof are next; no migration or hosted write exists. |
+| Stage C1 | **Implemented in repository/disposable evidence at contract 66.** Zero-to-current rebuild, database lint, pgTAP and TypeScript/PostgreSQL parity pass; hosted development and production remain unchanged pending review and explicit approval. |
 | Stage C2 | **Blocked.** Independent data-protection review issue #272 must approve the retention/erasure boundary before profile ownership, pseudonymisation or related RLS work. |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility, legal/client and brand gates remain. |
 | Production mutation | **Prohibited without action-specific owner approval and the full milestone process.** |
@@ -93,7 +93,7 @@ The development Supabase inspection was limited to project identity/version and 
 - automated desktop/phone accessibility and targeted overflow checks;
 - deployment-contract, migration timestamp, CI, full Database parity, Browser E2E and exact-release controls.
 
-These are evidence for the first competition. They do not imply that season rules, season scoping or multi-competition surfaces already exist.
+These are evidence for the first competition. Contract 66 adds the shared competition-season schema foundation, but domestic-season game rules, ingestion and multi-competition surfaces do not yet exist.
 
 ## Landed control and Stage C foundation sequence
 
@@ -115,7 +115,7 @@ These are evidence for the first competition. They do not imply that season rule
 - **PR #286:** hostile cross-season/reference before-state pgTAP.
 - **PR #292:** lock monotonicity and per-fixture late-write before-state pgTAP.
 - **Stage C1 contract boundary:** `stageC1ContractClassification.test.ts` makes the 49-assertion split executable; `stageC1NonInterference` freezes the current auth FK and ownership-RLS boundary.
-- **Stage C1 schema overlay:** `stageC1SchemaOverlayCoverage.test.ts` proves all 35 current relations/view, four proposed C1 relations and 51 reviewed functions are dispositioned.
+- **Stage C1 schema overlay:** `stageC1SchemaOverlayCoverage.test.ts` proves all 35 current relations/view, four implemented C1 relations and 51 reviewed functions are dispositioned.
 
 PRs #245 and #246 remain before-state controls. PR #252 is the application seam. The C1 migration must preserve PR #246 unchanged; C2 later replaces its expected after-state only after issue #272.
 
@@ -128,11 +128,11 @@ The original combined design remains in:
 
 The accepted governance amendment [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md) controls the split, [`../architecture/stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md) controls the assertion boundary, and [`../architecture/stage-c1-schema-overlay.md`](../architecture/stage-c1-schema-overlay.md) is the C1 implementation authority. C1 may implement competition-season identity, rounds, timezone, locks and same-season safeguards while preserving current auth ownership. C2 owns profile ownership, account erasure, pseudonymisation and related RLS and remains blocked.
 
-No migration exists and no hosted schema operation is authorised.
+Two ordered C1 migrations exist in PR #317 and pass disposable proof. No hosted schema operation is authorised.
 
 ## Open platform gaps
 
-- Stage C1 migration implementation and disposable proof;
+- Stage C1 migration review, recovery evidence and separately approved hosted rollout;
 - independent data-protection review and later Stage C2 implementation;
 - fixture/result ingestion and provider evidence;
 - season Predictor, Last Man Standing and Cup implementations;
