@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
+import { expectNoSeriousAxeViolations } from './axe-scan'
 
 const PASSWORD = 'Trends-local-only-2028!'
 
@@ -181,6 +182,14 @@ test.describe('post-lock prediction trends', () => {
     expect(submittedEntries).toBeGreaterThanOrEqual(10)
 
     await expect(page.getByRole('heading', { name: "The people's final" })).toBeVisible()
+
+    // The route scan reaches `/prediction-trends` before the lock, where there
+    // is no consensus to show. This is the page with data on it: the champion
+    // race, the crowd summary and the goal distribution. `.distribution` is the
+    // element whose prohibited `aria-label` was fixed on 31 July 2026 from a
+    // static sweep — it renders only here, so this is the first scan that has
+    // ever seen it.
+    await expectNoSeriousAxeViolations(page, '/prediction-trends')
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - window.innerWidth,
