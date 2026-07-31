@@ -107,6 +107,15 @@ values (
   'owner'
 );
 
+-- Direct prediction fixtures must include the independent Bonus Game instance
+-- that the production registration RPC creates before accepting KO picks.
+insert into public.bonus_competitions (tournament_id, game_key)
+values (
+  current_setting('test.clear58_tournament')::uuid,
+  'ko_predictor'
+)
+on conflict (tournament_id, game_key) do nothing;
+
 insert into public.bonus_knockout_predictions (
   user_id, match_id, home_score, away_score
 ) values (
