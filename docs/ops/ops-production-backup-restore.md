@@ -46,7 +46,7 @@ GitHub → **Actions** → **Production backup** → **Run workflow** (on `main`
 
 ### Artifact custody
 
-- This repository is public and workflow artifacts are downloadable by anyone, which is why only the age-encrypted file is ever uploaded; the ciphertext is useless without the offline private key.
+- Only the age-encrypted file is ever uploaded, and the ciphertext is useless without the offline private key. **This does not depend on the repository being public.** A workflow artifact is downloadable by everyone with repository read access; that set widens through collaborators and forks, and visibility can change without this document being touched. The encryption is what keeps custody of a full production dump — `auth.users` included — independent of who can reach the artifact, so it does not relax if the repository becomes private.
 - Retention is 7 days. After a green run, download the artifact promptly and store it in private, owner-controlled storage off GitHub.
 - Record custody without secrets: artifact identifier, encrypted checksum, run timestamp, storage location and retention.
 
