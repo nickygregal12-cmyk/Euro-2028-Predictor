@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 import { initialsOf, TeamFlag, type MatchTeam } from '../../design-system'
 import { UsersIcon, ArrowsSplitIcon } from '../../design-system/icons'
 import type { BracketHealth } from '../../domain/tournament/bracketHealth'
@@ -108,6 +108,7 @@ function HealthPanel({ label, health }: { label: string; health: BracketHealth }
  * statistics, rank history, milestone-based knockout health, and major splits.
  */
 export function H2HScreen({ you, rival, split, rankHistory }: H2HScreenProps) {
+  const bracketHealthHeadingId = useId()
   const youHealth = you.bracketHealth ?? EMPTY_BRACKET_HEALTH
   const rivalHealth = rival.bracketHealth ?? EMPTY_BRACKET_HEALTH
 
@@ -131,10 +132,10 @@ export function H2HScreen({ you, rival, split, rankHistory }: H2HScreenProps) {
 
       {rankHistory}
 
-      <section className={h.healthCard} aria-labelledby="h2h-bracket-health-heading">
+      <section className={h.healthCard} aria-labelledby={bracketHealthHeadingId}>
         <div>
           <span className={h.sectionEyebrow}>Bracket health</span>
-          <h2 id="h2h-bracket-health-heading" className={h.sectionTitle}>
+          <h2 id={bracketHealthHeadingId} className={h.sectionTitle}>
             Knockout value secured, alive and lost
           </h2>
         </div>

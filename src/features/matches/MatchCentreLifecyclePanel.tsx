@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { MatchCentreLifecycleContent } from '../../domain/tournament/matchCentreLifecycleContent'
 import s from './MatchCentreLifecyclePanel.module.css'
 
@@ -11,13 +12,15 @@ export type MatchCentreLifecyclePanelProps = {
  * visibility; this component only presents that decision.
  */
 export function MatchCentreLifecyclePanel({ content }: MatchCentreLifecyclePanelProps) {
+  const headingId = useId()
+
   return (
     <section
       className={`${s.panel} ${s[content.emphasis]}`}
-      aria-labelledby="match-centre-lifecycle-heading"
+      aria-labelledby={headingId}
       data-emphasis={content.emphasis}
     >
-      <h2 id="match-centre-lifecycle-heading" className={s.heading}>
+      <h2 id={headingId} className={s.heading}>
         {content.heading}
       </h2>
       <p className={s.summary}>{content.summary}</p>
