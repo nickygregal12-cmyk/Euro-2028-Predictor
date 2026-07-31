@@ -145,7 +145,7 @@ Minimum proof:
 6. all four Auth users and profiles are present;
 7. signup-trigger behavior is tested with a disposable user;
 8. Storage state matches the source inventory;
-9. the migration-33/35 RPCs are absent in the restored pre-rollout baseline;
+9. both migrations-33/35 RPCs are absent in the restored pre-rollout baseline;
 10. disposable target and plaintext staging data are cleaned up after evidence retention.
 
 Preferred additional proof:
