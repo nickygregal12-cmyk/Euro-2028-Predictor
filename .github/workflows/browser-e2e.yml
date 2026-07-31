@@ -16,8 +16,23 @@ on:
       - 'package-lock.json'
       - 'src/**'
       - 'supabase/**'
+      # The deploy-preview-smoke job reads contractVersion out of this file and
+      # requires the preview's release.json to match it on both the application
+      # and hosted sides. A contract bump is the change most likely to break
+      # that match, so it has to be able to trigger the job that checks it.
+      - 'config/deployment-contract.json'
+      # The preview smoke exercises the deployed shell, which these three
+      # produce: the SPA entry document, the static assets served beside it, and
+      # the headers and redirects Netlify applies over the top.
+      - 'index.html'
+      - 'public/**'
+      - 'netlify.toml'
+      # Tests that read this workflow or a Playwright config are guards of this
+      # harness; editing one should re-run what it guards.
       - 'tests/scripts/browserE2EWorkflow.test.ts'
       - 'tests/scripts/authRecoveryE2E.test.ts'
+      - 'tests/scripts/e2eProjectGating.test.ts'
+      - 'tests/scripts/browserE2EPathFilter.test.ts'
   workflow_dispatch:
 
 permissions:
