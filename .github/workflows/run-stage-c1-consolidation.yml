@@ -1,0 +1,45 @@
+name: Run Stage C1 consolidation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/run-stage-c1-consolidation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  run-consolidation:
+    if: github.head_ref == 'agent/stage-c1-migration'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/stage-c1-migration
+          fetch-depth: 0
+      - name: Execute reviewed consolidation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('.github/workflows/consolidate-stage-c1-migration.yml').read_text()
+          marker = '        run: |\n'
+          if marker not in source:
+              raise SystemExit('consolidation run block not found')
+          block = source.split(marker, 1)[1]
+          lines = []
+          for line in block.splitlines():
+              if line.startswith('          '):
+                  lines.append(line[10:])
+              elif line.strip() == '':
+                  lines.append('')
+              else:
+                  raise SystemExit(f'unexpected consolidation indentation: {line!r}')
+          Path('/tmp/consolidate-stage-c1.sh').write_text('\n'.join(lines) + '\n')
+          PY
+          git rm .github/workflows/run-stage-c1-consolidation.yml
+          bash /tmp/consolidate-stage-c1.sh
