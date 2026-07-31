@@ -60,7 +60,7 @@ const SOURCE_CONTRACTS: Record<string, SourceContract> = {
   },
   '032_stage_c_lock_before_state.sql': {
     classification: 'C1',
-    expectedCount: 11,
+    expectedCount: 16,
     kind: 'sql',
     path: 'supabase/tests/032_stage_c_lock_before_state.sql',
   },
@@ -130,10 +130,10 @@ const rows = inventoryRows()
 
 describe('Stage C1 assertion classification', () => {
   it('classifies every assertion without authorising a C2 after-state', () => {
-    expect(rows.filter((row) => row.classification === 'C1')).toHaveLength(40)
+    expect(rows.filter((row) => row.classification === 'C1')).toHaveLength(45)
     expect(rows.filter((row) => row.classification === 'C2')).toHaveLength(0)
     expect(rows.filter((row) => row.classification === 'shared-before-state')).toHaveLength(9)
-    expect(rows).toHaveLength(49)
+    expect(rows).toHaveLength(54)
   })
 
   it('contains no duplicated source/assertion row', () => {
