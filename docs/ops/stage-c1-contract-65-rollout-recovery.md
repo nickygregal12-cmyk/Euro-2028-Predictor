@@ -2,6 +2,7 @@
 
 **Status:** repository/disposable evidence only  
 **Scope:** PR #317, contract 65  
+**Governance:** satisfies issue #303's one coherent migration requirement  
 **Hosted development:** remains contract 64  
 **Production:** remains contract 63 and is out of scope
 
@@ -50,7 +51,7 @@ Passing CI, Database parity or Browser E2E does not satisfy this approval.
 
 ## Hosted development preflight
 
-Before applying either migration, verify read-only:
+Before applying the migration, verify read-only:
 
 - the target is development Supabase project `iouzoutneyjpugbbtdem`;
 - canonical migration history is exactly contract 64 and contains no unknown or
@@ -114,14 +115,14 @@ The hosted development postflight must prove:
 - all composite foreign keys are validated;
 - all 68 reviewed trigger bindings are present, including 18 always-on scope
   preparation bindings;
-- lock events are append-only and lock/Joker functions resolve to the contract-66
+- lock events are append-only and lock/Joker functions resolve to the contract-65
   security-definer definitions with pinned `search_path`;
 - the PR #246 auth/deletion matrix and ownership RLS predicates are unchanged;
 - the preserved Euro and Bonus Game row counts match preflight;
 - authenticated Original, leagues, KO Predictor, LMS and Cup journeys work against
   the migrated development database;
 - only after database and application verification, the non-production Netlify
-  contract declaration may be changed to 66 and an exact-origin preview tested.
+  contract declaration may be changed to 65 and an exact-origin preview tested.
 
 Any mismatch stops the rollout. Do not continue into production.
 
@@ -134,12 +135,12 @@ and that migration history still reports the last fully applied contract. Do not
 mark the migration complete manually. Preserve logs and diagnose in a disposable
 copy before another attempt.
 
-### Database reaches 66 but the application fails
+### Database reaches 65 but the application fails
 
 If database integrity and preservation checks pass, roll the application back to
 the last contract-64-compatible build. The repository adapter deliberately retains
 contract-64 fallback while hosted rollout is staged. Leave the healthy database at
-66 and fix forward in a reviewed PR; do not destructively remove columns merely to
+65 and fix forward in a reviewed PR; do not destructively remove columns merely to
 match an older client.
 
 ### Integrity, privilege or preservation postflight fails
@@ -149,7 +150,7 @@ preflight backup into a separate recovery project or freshly recreated developme
 project, then verify contract 64, preserved counts, privileges and authenticated
 journeys before repointing any environment.
 
-Do not attempt an improvised down migration. Contract 65 add non-null columns,
+Do not attempt an improvised down migration. Contract 65 adds non-null columns,
 composite constraints, triggers and lock evidence; deleting them after writes could
 lose information or reopen prediction boundaries. A tested restore is the rollback
 mechanism for a committed integrity failure.
@@ -168,10 +169,10 @@ Otherwise restore.
 
 ## Production boundary
 
-This document does not authorise contracts 64, 65 or 66 on production. Production
+This document does not authorise contract 64 or 65 on production. Production
 remains contract 63 with deploys paused. A later production milestone requires a
 fresh production-specific preflight, backup/restore proof, explicit approval,
-sequential migration plan, exact approved application build and production smoke.
+ordered migration plan, exact approved application build and production smoke.
 
 ## Exit from PR draft
 
