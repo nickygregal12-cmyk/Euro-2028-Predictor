@@ -26,12 +26,30 @@ const authHarness =
 
 describe('authentication recovery browser E2E', () => {
   it('runs signed-out journeys separately with development auto-login disabled', () => {
-    expect(defaultConfig).toContain(
-      "testIgnore: ['auth-recovery.spec.ts', 'auth-capacity.spec.ts']",
-    )
-    expect(authConfig).toContain(
-      "testMatch: ['auth-recovery.spec.ts', 'auth-capacity.spec.ts']",
-    )
+    // Asserted as set membership rather than an exact literal. The original
+    // form pinned the two spec names in order, so adding a third signed-out
+    // spec — `axe-unauthenticated`, on 31 July 2026 — failed this test for a
+    // change that strengthened the very property it protects. The rule that
+    // matters is the partition: every signed-out spec runs under the auth
+    // config and none of them runs under the default one, where auto-login
+    // would sign them in and `RedirectIfAuthed` would bounce them.
+    const signedOutSpecs = [
+      'auth-recovery.spec.ts',
+      'auth-capacity.spec.ts',
+      'axe-unauthenticated.spec.ts',
+    ]
+
+    const authMatch = /testMatch:\s*\[([^\]]*)\]/.exec(authConfig)?.[1] ?? ''
+    const defaultIgnore = /testIgnore:\s*\[([^\]]*)\]/.exec(defaultConfig)?.[1] ?? ''
+
+    // Positive controls: an unparsed config would make both checks vacuous.
+    expect(authMatch.length).toBeGreaterThan(0)
+    expect(defaultIgnore.length).toBeGreaterThan(0)
+
+    for (const spec of signedOutSpecs) {
+      expect(authMatch, `${spec} must run under the signed-out config`).toContain(spec)
+      expect(defaultIgnore, `${spec} must not run under the signed-in config`).toContain(spec)
+    }
     expect(authConfig).toContain('VITE_DEV_AUTOLOGIN=false')
     expect(authConfig).not.toContain('globalSetup')
     expect(packageJson.scripts['test:e2e:auth']).toBe(

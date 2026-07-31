@@ -35,6 +35,7 @@ function read(path: string): string {
 
 const appSource = read('src/App.tsx')
 const axeSource = read('e2e/axe-accessibility.spec.ts')
+const axeUnauthenticatedSource = read('e2e/axe-unauthenticated.spec.ts')
 
 /**
  * Routes declared in `src/App.tsx`.
@@ -47,31 +48,45 @@ const declaredRoutes = [...appSource.matchAll(/<Route path="([^"]+)"/g)]
   .map((match) => match[1])
   .filter((path) => path !== '*' && !path.startsWith('/dev/'))
 
-/** Route literals in the axe spec's `ROUTES` array. */
-const scannedRoutes = [...axeSource.matchAll(/^\s*'(\/[^']*)',$/gm)].map((match) => match[1])
+/**
+ * Route literals across both axe specs.
+ *
+ * Two specs, because the two harnesses differ: `axe-accessibility` runs signed
+ * in, `axe-unauthenticated` runs under `playwright.auth.config.ts` with
+ * `VITE_DEV_AUTOLOGIN=false`. Coverage is the union — a route is scanned if
+ * either sees it, and reading only one would report the other's routes as gaps.
+ */
+const scannedRoutes = [axeSource, axeUnauthenticatedSource].flatMap((source) =>
+  [...source.matchAll(/^\s*'(\/[^']*)',$/gm)].map((match) => match[1]),
+)
 
 /**
  * Routes deliberately not scanned, each with the reason it cannot be today.
  *
  * These are not excuses — each names a specific harness capability that does not
  * exist yet, so the list is a work queue rather than a permanent exemption.
+ *
+ * The unauthenticated group left this list on 31 July 2026. Their stated reason
+ * — that the harness auto-logs-in — was true of `playwright.config.ts` and not
+ * of `playwright.auth.config.ts`, which already serves the app with
+ * `VITE_DEV_AUTOLOGIN=false`. They are now scanned by
+ * `e2e/axe-unauthenticated.spec.ts`. A deferral reason that names the wrong
+ * blocker keeps work parked longer than the blocker justifies.
  */
 const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
-  // The harness signs in at app boot via VITE_DEV_AUTOLOGIN, and `page.goto`
-  // re-triggers it, so an unauthenticated page needs an explicit sign-out and
-  // client-side navigation. `auth-recovery.spec.ts` has that helper; the axe
-  // spec would need to adopt it. These six are where every new user lands, so
-  // this is the most valuable group to close.
-  ['/auth/login', 'unauthenticated — harness auto-logs-in'],
-  ['/auth/signup', 'unauthenticated — harness auto-logs-in'],
-  ['/auth/reset', 'unauthenticated — harness auto-logs-in'],
-  ['/auth/update-password', 'unauthenticated — reached only from a recovery link'],
-  ['/welcome', 'unauthenticated — harness auto-logs-in'],
-  ['/join/:code', 'unauthenticated, and needs a seeded invite code'],
+  // `/welcome` sits behind RequireAuth, so it is an *authenticated* route that
+  // the scan cannot reach for a different reason: the E2E user has already
+  // completed welcome, and RequireWelcome forwards past it. Reaching it needs a
+  // fixture user in the pre-welcome state.
+  //
+  // Corrected 31 July 2026. This entry previously read "unauthenticated —
+  // harness auto-logs-in", which was simply wrong about the route.
+  ['/welcome', 'authenticated but post-welcome — needs a fixture user who has not completed it'],
 
   // Parameterised routes need a concrete instance from the seed. `/predict/groups/A`
   // shows the pattern: scan one real instance rather than the template.
   ['/predict/groups/:letter', 'parameterised — /predict/groups/A is scanned in its place'],
+  ['/join/:code', 'parameterised — /join/NOSUCH is scanned in its place, in the stale-invite state'],
   ['/league/:id', 'parameterised — needs a seeded league id'],
   ['/match/:matchRef', 'parameterised — needs a seeded match reference'],
   ['/h2h/:rivalId', 'parameterised — needs a seeded rival id'],
@@ -132,8 +147,10 @@ describe('axe scan coverage', () => {
     // The coverage numbers above only matter because the scan fails the build.
     // If it were ever softened to a warning, this file would be measuring the
     // breadth of something that no longer enforces anything.
-    expect(axeSource).toMatch(/wcag2a/)
-    expect(axeSource).toMatch(/critical/)
-    expect(axeSource).toMatch(/expect\(failing/)
+    for (const source of [axeSource, axeUnauthenticatedSource]) {
+      expect(source).toMatch(/wcag2a/)
+      expect(source).toMatch(/critical/)
+      expect(source).toMatch(/expect\(failing/)
+    }
   })
 })
