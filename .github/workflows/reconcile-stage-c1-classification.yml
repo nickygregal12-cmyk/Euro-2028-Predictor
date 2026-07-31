@@ -1,0 +1,132 @@
+name: Reconcile Stage C1 classification
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/reconcile-stage-c1-classification.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.head_ref == 'agent/stage-c1-migration'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/stage-c1-migration
+      - name: Reconcile executable assertion ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path_name: str, old: str, new: str) -> None:
+              path = Path(path_name)
+              source = path.read_text()
+              if old not in source:
+                  raise SystemExit(f'missing expected text in {path_name}: {old}')
+              path.write_text(source.replace(old, new, 1))
+
+          replace_once(
+              'tests/database-parity/stageCRelationCoverage.test.ts',
+              'keeps parser positive controls at the contract-66 schema boundary',
+              'keeps parser positive controls at the contract-65 schema boundary',
+          )
+          replace_once(
+              'tests/database-parity/stageCTriggerBindingCoverage.test.ts',
+              'keeps the parser positive control at the contract-66 trigger boundary',
+              'keeps the parser positive control at the contract-65 trigger boundary',
+          )
+          replace_once(
+              'tests/database-parity/stageCTournamentIdCompatibility.test.ts',
+              'keeps the parser positive control at the contract-66 boundary',
+              'keeps the parser positive control at the contract-65 boundary',
+          )
+
+          test_path = Path('tests/scripts/stageC1ContractClassification.test.ts')
+          test = test_path.read_text()
+          test = test.replace(
+              "    expectedCount: 11,\n    kind: 'sql',\n    path: 'supabase/tests/032_stage_c_lock_before_state.sql',",
+              "    expectedCount: 16,\n    kind: 'sql',\n    path: 'supabase/tests/032_stage_c_lock_before_state.sql',",
+              1,
+          )
+          test = test.replace(
+              "expect(rows.filter((row) => row.classification === 'C1')).toHaveLength(40)",
+              "expect(rows.filter((row) => row.classification === 'C1')).toHaveLength(45)",
+              1,
+          )
+          test = test.replace('expect(rows).toHaveLength(49)', 'expect(rows).toHaveLength(54)', 1)
+          test_path.write_text(test)
+
+          doc_path = Path('docs/architecture/stage-c1-contract-classification.md')
+          doc = doc_path.read_text()
+          doc = doc.replace('**Status:** Executable pre-SQL contract', '**Status:** Executable C1 after-state contract', 1)
+          doc = doc.replace('**Date:** 30 July 2026', '**Date:** 31 July 2026', 1)
+          doc = doc.replace(
+              'This document classifies every assertion in the seven original Stage C pre-migration suites and the supporting account-deletion before-state suite.',
+              'This document classifies every assertion in the seven Stage C1 executable suites and the supporting account-deletion before-state suite. The C1 suites now describe the contract-65 after-state; the shared C2 boundary remains frozen.',
+              1,
+          )
+          doc = doc.replace('| `C1` | 40 |', '| `C1` | 45 |', 1)
+
+          replacements = {
+              'keeps parser positive controls at the current schema boundary': 'keeps parser positive controls at the contract-65 schema boundary',
+              'gives every effective public table/view exactly one current-object disposition': 'gives every effective public table/view one reviewed disposition',
+              'does not mix proposed Stage C relations into the current-object inventory': 'implements exactly the four reviewed C1 relations',
+              'keeps the parser positive control at the current trigger boundary': 'keeps the parser positive control at the contract-65 trigger boundary',
+              'keeps the parser positive control at the current direct-column boundary': 'keeps the parser positive control at the contract-65 boundary',
+          }
+          for old, new in replacements.items():
+              if old not in doc:
+                  raise SystemExit(f'missing classification row: {old}')
+              doc = doc.replace(old, new, 1)
+
+          old_lock_rows = """| `032_stage_c_lock_before_state.sql` | `C1` | a score prediction is writable before the tournament lock |
+| `032_stage_c_lock_before_state.sql` | `C1` | a progression prediction is writable before the tournament lock |
+| `032_stage_c_lock_before_state.sql` | `C1` | the score lock is inclusive at the exact tournament lock instant |
+| `032_stage_c_lock_before_state.sql` | `C1` | the generic prediction lock is inclusive at the exact tournament lock instant |
+| `032_stage_c_lock_before_state.sql` | `C1` | a null tournament lock currently fails open for score writes |
+| `032_stage_c_lock_before_state.sql` | `C1` | moving lock_at into the future currently reopens a previously locked entry |
+| `032_stage_c_lock_before_state.sql` | `C1` | a pure score edit currently remains writable at fixture kickoff while the entry lock is future |
+| `032_stage_c_lock_before_state.sql` | `C1` | a joker cannot be set at the exact fixture kickoff instant |
+| `032_stage_c_lock_before_state.sql` | `C1` | a null fixture kickoff currently leaves the joker editable before the draw is confirmed |
+| `032_stage_c_lock_before_state.sql` | `C1` | a committed joker cannot be cleared at the exact fixture kickoff instant |
+| `032_stage_c_lock_before_state.sql` | `C1` | the entry lock rejects a stale score write before the optimistic-version trigger can mask it |"""
+          new_lock_rows = """| `032_stage_c_lock_before_state.sql` | `C1` | a score prediction is writable before the entry and fixture locks |
+| `032_stage_c_lock_before_state.sql` | `C1` | a progression prediction is writable before the entry lock |
+| `032_stage_c_lock_before_state.sql` | `C1` | crossing the entry deadline records one append-only lock event |
+| `032_stage_c_lock_before_state.sql` | `C1` | the score lock is inclusive at the exact entry deadline |
+| `032_stage_c_lock_before_state.sql` | `C1` | the generic entry lock is inclusive at the exact deadline |
+| `032_stage_c_lock_before_state.sql` | `C1` | moving lock_at into the future cannot reopen an observed entry lock |
+| `032_stage_c_lock_before_state.sql` | `C1` | recorded lock evidence cannot be edited |
+| `032_stage_c_lock_before_state.sql` | `C1` | a missing entry deadline fails closed before an event exists |
+| `032_stage_c_lock_before_state.sql` | `C1` | legacy tournament score predictions remain writable before the entry lock even when a kickoff is not yet known |
+| `032_stage_c_lock_before_state.sql` | `C1` | crossing fixture kickoff records one match lock event |
+| `032_stage_c_lock_before_state.sql` | `C1` | a pure score edit is rejected at the exact fixture kickoff |
+| `032_stage_c_lock_before_state.sql` | `C1` | moving kickoff into the future cannot reopen an observed fixture lock |
+| `032_stage_c_lock_before_state.sql` | `C1` | a joker remains unavailable until authoritative kickoff is known |
+| `032_stage_c_lock_before_state.sql` | `C1` | a joker can be committed before its known fixture kickoff |
+| `032_stage_c_lock_before_state.sql` | `C1` | a committed joker cannot be cleared at the exact fixture kickoff |
+| `032_stage_c_lock_before_state.sql` | `C1` | the entry lock rejects a stale score write before optimistic versioning can mask it |"""
+          if old_lock_rows not in doc:
+              raise SystemExit('old lock classification block not found')
+          doc = doc.replace(old_lock_rows, new_lock_rows, 1)
+
+          doc = doc.replace(
+              'The two pgTAP suites contain deliberately adverse before-state assertions. C1 may reverse only the assertions explicitly describing fail-open, reopening or missing per-fixture protection. It must preserve the inclusive boundaries and every current anti-cross-scope protection while widening them to same-competition-season authority.',
+              'The two pgTAP suites now prove the approved C1 after-state. Reference-scope protections remain hostile-write guards, while lock assertions prove fail-closed missing entry timing, append-only observed lock evidence, inclusive fixture and entry boundaries, and non-reopening reschedules.',
+              1,
+          )
+          doc_path.write_text(doc)
+          PY
+          git rm .github/workflows/reconcile-stage-c1-classification.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Reconcile Stage C1 after-state classification"
+          git push origin HEAD:agent/stage-c1-migration
