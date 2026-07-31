@@ -35,20 +35,29 @@ Defined in `src/styles/tokens.css` as CSS custom properties on `:root` (dark def
 | `--card` | Card surface | `#101E3E` | `#FDFCFA` |
 | `--line` | Borders, dividers | `#26355C` | `#E5E2DA` |
 | `--tx` | Primary text | `#F2F5FB` | `#1C1B16` |
-| `--tx2` | Secondary text | `#9AA6C2` | `#6B6759` |
-| `--tx3` | Muted text, labels | `#7E8BA8` | `#8A8677` |
+| `--tx2` | Secondary text | `#9AA6C2` | `#565247` |
+| `--tx3` | Muted text, labels | `#8793AE` | `#6E6B5F` |
 | `--acc` | Accent green (actions, qualify, saved) | `#22E06C` | `#0F6E56` |
 | `--amb` | Amber (third place, caution) | `#F0B429` | `#BA7517` |
 | `--cyn` | Cyan (live data) | `#38C8E8` | `#0E7C9C` |
 | `--red` | Errors, elimination | `#F06A5E` | `#B3382C` |
 | `--gold` | Jokers only | `#E8C34A` | `#C99A1F` |
 | `--gold-contrast` | Text on solid gold | `#2B2410` | `#2B2410` |
+| `--gold-strong` | Gold text on `--gold-tint` | `#E8C34A` | `#876715` |
 | `--gold-tint` | Gold pill/tint background | `#2B2410` | `#F7EDD0` |
 | `--mut` | Muted bars, disabled | `#2A3757` | `#D8D4C8` |
 | `--chip` | Chip/static-input background | `#1A2B52` | `#EFEDE4` |
 | `--input-bg` | Score input background | `#12203F` | `#FFFFFF` |
 
-**Gold rule:** gold text never sits directly on card backgrounds for interactive elements. Gold ships as solid-fill-with-`--gold-contrast`-text (calls to action) or tint-with-border pill (status). This is a hard rule; it exists because outline-only gold failed visibility review.
+**Gold rule:** gold text never sits directly on card backgrounds for interactive elements. Gold ships as solid-fill-with-`--gold-contrast`-text (calls to action) or tint-with-`--gold-strong`-text-and-`--gold`-border pill (status). This is a hard rule; it exists because outline-only gold failed visibility review.
+
+**Muted ramp and gold text (2026-07-31 audit).** Three token values moved and one was added, all to clear WCAG AA for normal text:
+
+- `--tx3` was `#7E8BA8` dark / `#8A8677` light. The light value was below AA on *every* surface — 3.11:1 on `--chip`, 3.35:1 on `--bg`. The value that fixes it (`#6E6B5F`) is almost exactly the old `--tx2` (`#6B6759`), so `--tx2` moved down to `#565247` in the same change; lifting one alone would have collapsed two levels of the ramp into one. The step between them is now 1.46:1, against 1.55:1 before.
+- Pill text is `--gold-strong`, not `--gold`. `--gold` on `--gold-tint` measured **2.21:1** in the light theme, on real text — the pills read "2× · +5". Darkening `--gold` itself would have fixed the pill and broken `--gold-contrast` *on* `--gold`, which falls from 5.96:1 to 2.92:1, so the fix is a separate text token. `--gold` is unchanged and every other gold surface is exactly as it was.
+- `--gold-strong` equals `--gold` in the dark theme, where the tint is dark brown and the pairing already measured 9.74:1. Only the light theme needed a distinct value.
+
+`tests/design-system/tokenContrast.test.ts` pins the full text-token/surface-token matrix for both themes, and `cssTokenPairings.test.ts` fails any rule that declares a sub-AA pairing. The one number still below 4.5:1 is `--tx3` on `--mut` (3.82:1 dark, 3.60:1 light), which no rule pairs for text.
 
 ## 3. Typography
 
@@ -60,7 +69,7 @@ Self-hosted via `@fontsource` (Inter + Space Grotesk, latin + latin-ext, `font-d
 - Weights: 400 and 500 only. Hierarchy comes from size and colour, not heavier weights.
 - Minimum font size 11px. Body 14px. Score inputs 19px. Result hero score 24px.
 - **Text-input floor — 16px (hard rule, 2026-07-22 audit):** any focusable free-text input (`TextInput` etc.) renders at **≥16px**. Mobile Safari auto-zooms the viewport on focus of any input below 16px — at the built 15px, every auth field caused a zoom-jump that scrolled the CTA out of view mid-signup. Score inputs (19px) already comply. The 11px minimum applies to non-input text only.
-- **Disabled-control text pairing (2026-07-22 audit):** disabled solid buttons use `--tx2` on `--mut`, never `--tx3` on `--mut` (measured 3.4:1 — fails AA; `--tx2` passes). Applies wherever `--mut` is a text background.
+- **Disabled-control text pairing (2026-07-22 audit, remeasured 2026-07-31):** disabled solid buttons use `--tx2` on `--mut`, never `--tx3` on `--mut`. The original note recorded `--tx3` on `--mut` at 3.4:1; after the 2026-07-31 ramp change it is 3.82:1 dark and 3.60:1 light — still under AA, so the rule stands with new numbers. `--tx2` on `--mut` is 4.83:1 dark and 5.26:1 light. Applies wherever `--mut` is a text background. WCAG 1.4.3 exempts inactive controls, so this is a house rule rather than a conformance requirement.
 
 ## 4. Spacing & shape
 
@@ -95,9 +104,9 @@ Anatomy: eyebrow row (group + matchday | date + venue-flag + venue), team row (f
 ### Joker (group-stage matches only)
 - **Counter** (predict screens, always visible): five gold dots — filled = used, outline = remaining — plus "N left"
 - **State loudness INVERTED (2026-07-22 audit).** The original spec made *available* the solid-gold CTA and *on* the quiet tint — which put 36 loudest-treatment-in-the-system pills on screen before the user had done anything (shouting over score entry, the screen's actual job) and made a **placed** joker read quieter than an unplaced one, defeating the one scan that matters ("which of my 5 are live?"). Corrected:
-- **Play joker** (available): **tint pill** (`--gold-tint` bg, `--gold` border+text), cards icon — a quiet, present offer. Remains available on locked cards until that match's kickoff — gold still signals "actionable inside otherwise-locked UI". *(Build check: verify the tint pill carries enough weight on locked cards at review; if it fails the same visibility bar that killed outline-only gold, the locked-card-only available state may take a stronger treatment — decide at the Batch D session, never silently.)*
+- **Play joker** (available): **tint pill** (`--gold-tint` bg, `--gold` border, `--gold-strong` text), cards icon — a quiet, present offer. Remains available on locked cards until that match's kickoff — gold still signals "actionable inside otherwise-locked UI". *(Build check: verify the tint pill carries enough weight on locked cards at review; if it fails the same visibility bar that killed outline-only gold, the locked-card-only available state may take a stronger treatment — decide at the Batch D session, never silently.)*
 - **Joker on** (active): **solid `--gold` fill, `--gold-contrast` text, pill** — the committed decision is the loud state, and it now agrees with the card's 1.5px gold border instead of contradicting it. Card border goes 1.5px gold.
-- Both treatments stay within the Gold rule (§2): solid-fill-with-contrast or tint-with-border only; outline-only gold remains banned.
+- Both treatments stay within the Gold rule (§2): solid-fill-with-contrast or tint-with-border only; outline-only gold remains banned. Tint-pill text is `--gold-strong` rather than `--gold` (§2, 2026-07-31) — the border stays `--gold`, so the pill reads the same and the text clears AA.
 - **Committed** (match kicked off): joker fuses into the points pill; card keeps gold border permanently.
 - Gold is used for nothing else in the app.
 
@@ -427,13 +436,17 @@ Every screen/component ships with: empty, loading (skeleton, not spinner, for co
 
 ## 9. Accessibility
 
-- WCAG AA contrast in both themes (the per-theme accent/gold values exist precisely for this)
+- WCAG AA contrast in both themes (the per-theme accent/gold values exist precisely for this). Enforced rather than intended since 2026-07-31: `tokenContrast.test.ts` pins the token matrix and `cssTokenPairings.test.ts` fails any rule declaring a sub-AA pairing. It was aspirational before — fourteen pairings were below 4.5:1 when the first measurement was taken.
 - Never colour-only signalling (bars + numbers, icons + text)
 - Visible focus states on all interactive elements (2px `--acc` focus ring)
 - Buttons are button elements, links are anchors — no clickable divs
 - All flags get accessible labels; decorative icons aria-hidden
 - prefers-reduced-motion respected for all animation
 - Score inputs labelled per team ("Scotland score")
+- **`aria-label` only where a role permits it.** A roleless `div`/`span` has the generic role, which cannot carry a name, so the label reaches nobody. Six components shipped that way and were fixed on 2026-07-31; `tests/app/ariaLabelRequiresRole.test.ts` sweeps every component for it.
+- **Scrollable regions are keyboard-reachable.** `overflow: auto` without focusable content or `tabIndex` fails WCAG 2.1.1 — a keyboard user cannot scroll it. Two shipped that way (the rank-history chart and table) and were fixed on 2026-07-31.
+- **Every declared route has its own title.** `RouteAccessibility` announces "<title> page loaded" and sets the browser title; a route missing from its list falls back to "Page not found" on a page that rendered fine. Ten were in that state until 2026-07-31; `tests/app/routeTitleCoverage.test.ts` now compares the list to `src/App.tsx`.
+- **Automated scanning.** axe runs over every declared route (`e2e/axe-accessibility.spec.ts`, `e2e/axe-unauthenticated.spec.ts`, and in-journey scans via `e2e/axe-scan.ts`), over the whole component gallery in jsdom, and over component states no route renders. `tests/app/axeRouteCoverage.test.ts` fails if a declared route is neither scanned nor deferred with a reason.
 
 ## 10. CSS architecture
 
