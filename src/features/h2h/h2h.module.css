@@ -310,7 +310,9 @@
   font-family: var(--font-body);
   font-size: 13px;
   line-height: 1.45;
-  color: var(--tx3);
+  /* --tx2, not --tx3: body text on --chip, where --tx3 is 4.07:1 dark and
+     3.11:1 light against the 4.5:1 AA minimum. */
+  color: var(--tx2);
   background: var(--chip);
   border-radius: var(--radius-card);
 }
