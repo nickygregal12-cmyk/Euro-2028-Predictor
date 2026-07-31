@@ -7,18 +7,32 @@
 import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
+// Coverage is guarded by tests/app/axeRouteCoverage.test.ts, which fails when a
+// route declared in src/App.tsx is neither scanned here nor recorded there as a
+// deliberate deferral. Adding a route to the app is therefore a decision about
+// scanning it, rather than something that silently escapes accessibility cover.
 const ROUTES = [
   '/',
   '/predict',
   '/prediction-trends',
   '/predict/groups/A',
   '/predict/review',
+  '/predict/bracket',
+  '/predict/jokers',
+  '/predict/third-place',
   '/matches',
   '/games',
   '/games/cup',
+  '/games/lms',
+  '/games/knockout',
+  '/games/ko-predictor',
+  '/league',
+  '/league/overall',
   '/account',
   '/profile',
   '/more',
+  '/more/points',
+  '/more/scoring',
 ]
 
 const FAIL_IMPACTS = new Set(['critical', 'serious'])
