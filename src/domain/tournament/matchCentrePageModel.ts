@@ -14,6 +14,7 @@ const ROUND_LABEL: Record<Match['round'], string> = {
   qf: 'Quarter-final',
   sf: 'Semi-final',
   final: 'Final',
+  league: 'League match',
 }
 
 export type MatchCentrePageModelInput = {
@@ -78,11 +79,12 @@ export function createMatchCentrePageModel(
 
   return {
     ...screen,
-    eyebrow: `${stageLabel(input.match, input.groups)} · ${screen.statusPresentation.label}`,
-    countdownLabel: shouldShowMatchCentreCountdown(viewModel.external.lifecycle)
-      ? kickoffLabel(viewModel.external.kickoffAt)
-      : null,
-    venueCountryCodeInput: viewModel.external.venue ?? input.match.venue,
-    lifecycleContent: matchCentreLifecycleContent(viewModel.external.lifecycle),
+    eyebrow: stageLabel(input.match, input.groups),
+    countdownLabel:
+      input.match.kickoffAt && shouldShowMatchCentreCountdown(screen.lifecycle)
+        ? kickoffLabel(input.match.kickoffAt)
+        : null,
+    venueCountryCodeInput: input.match.venue,
+    lifecycleContent: matchCentreLifecycleContent(screen.lifecycle),
   }
 }
