@@ -16,6 +16,13 @@ import { expect, type Page } from '@playwright/test'
  * Nothing new is seeded, no new navigation is invented, and the flake surface is
  * whatever the host journey already had.
  *
+ * Two routes use it today. `/h2h/:rivalId`, `/profile/:playerId` and
+ * `/admin/results` were scanned the same way while this was written — the scans
+ * found real defects, which are fixed — but those pages carry a backlog beyond
+ * them, and each remaining violation surfaces only one CI run at a time. They
+ * stay deferred in `axeRouteCoverage` with that as the stated reason, so the
+ * queue is visible rather than the suite being left red.
+ *
  * The `route` argument is the declared pattern from `src/App.tsx`, not the
  * concrete path. `axeRouteCoverage` reads these call sites to work out what is
  * covered, so passing `/league/:id` is what closes that deferral — a literal

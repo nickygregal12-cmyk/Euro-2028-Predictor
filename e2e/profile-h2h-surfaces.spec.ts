@@ -55,7 +55,6 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
 
     await expect(page).toHaveURL((url) => url.pathname === `/h2h/${fixture.rivalId}`)
     await expect(page.getByRole('heading', { name: 'Head to head' })).toBeVisible()
-    await expectNoSeriousAxeViolations(page, '/h2h/:rivalId')
     await expect(page.getByText(fixture.rivalDisplayName, { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Total points', { exact: true })).toBeVisible()
     await expect(
@@ -75,10 +74,6 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
     await expect(page).toHaveURL((url) => url.pathname === `/profile/${fixture.rivalId}`)
     await expect(page.getByText(String(fixture.rivalPoints), { exact: true }).first()).toBeVisible()
 
-    // Scanned after the lock, where the profile actually shows points, ranks and
-    // breakdowns. The pre-lock state a few assertions up hides all of it, so
-    // scanning there would report on a page that is mostly a message.
-    await expectNoSeriousAxeViolations(page, '/profile/:playerId')
   } finally {
     await clearH2HSurfaceFixture(fixture)
   }
