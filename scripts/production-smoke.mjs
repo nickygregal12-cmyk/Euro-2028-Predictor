@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs'
 import process from 'node:process'
+import { fileURLToPath } from 'node:url'
 
 const PRODUCTION_ORIGIN = 'https://euro28predictor.com'
 const PRODUCTION_SUPABASE_REF = 'vkfnsqdyhvtwyqkisxhk'
@@ -176,7 +178,71 @@ async function fetchText(pathname, expectedStatus = 200) {
   }
 }
 
+/**
+ * The security headers committed in netlify.toml.
+ *
+ * Read from the repository the smoke is running out of, so the deployed
+ * response can be compared against what this commit intends to serve rather
+ * than against a second hand-maintained copy.
+ */
+function committedHeaders() {
+  const config = readFileSync(
+    fileURLToPath(new URL('../netlify.toml', import.meta.url)),
+    'utf8',
+  )
+  const block = config.slice(config.indexOf('[headers.values]'))
+  const values = new Map()
+  for (const [, name, value] of block.matchAll(/^\s*([A-Za-z-]+)\s*=\s*"([^"]*)"/gm)) {
+    values.set(name.toLowerCase(), value)
+  }
+  if (values.size === 0) stop('netlify.toml declares no security headers to compare against.')
+  return values
+}
+
+/** A CSP string as directive name → set of sources. */
+function cspDirectives(policy) {
+  const parsed = new Map()
+  for (const directive of policy.split(';')) {
+    const [name, ...sources] = directive.trim().split(/\s+/)
+    if (name) parsed.set(name.toLowerCase(), new Set(sources))
+  }
+  return parsed
+}
+
+/**
+ * Every committed directive must be served, with exactly the sources committed.
+ *
+ * A missing directive and an extra source are both weakenings, and neither was
+ * detectable before: the deployed policy was checked for four named directives
+ * out of thirteen and for the absence of 'unsafe-eval'. A served policy that had
+ * lost `script-src` entirely, or widened `connect-src` to `*`, passed.
+ */
+function verifyContentSecurityPolicyParity(served, committed) {
+  const servedDirectives = cspDirectives(served)
+  const committedDirectives = cspDirectives(committed)
+
+  for (const [name, expected] of committedDirectives) {
+    const actual = servedDirectives.get(name)
+    if (!actual) {
+      stop(`Content-Security-Policy is missing the committed directive ${name}.`)
+    }
+
+    const missing = [...expected].filter((source) => !actual.has(source))
+    const extra = [...actual].filter((source) => !expected.has(source))
+
+    if (missing.length > 0) {
+      stop(`CSP ${name} is missing committed sources: ${missing.join(' ')}.`)
+    }
+    if (extra.length > 0) {
+      stop(`CSP ${name} serves sources that are not committed: ${extra.join(' ')}.`)
+    }
+  }
+}
+
 function verifySecurityHeaders(headers) {
+  // Absolute requirements first. These hold whatever netlify.toml says, so a
+  // change that weakened both the committed policy and the deployment together
+  // still fails here — parity alone would call that a match.
   assertEqual(headers.get('x-frame-options'), 'DENY', 'X-Frame-Options')
   assertEqual(
     headers.get('x-content-type-options'),
@@ -205,6 +271,22 @@ function verifySecurityHeaders(headers) {
 
   if (csp.includes("'unsafe-eval'")) {
     stop("Content-Security-Policy permits 'unsafe-eval'.")
+  }
+
+  // Then parity with what this commit declares. `netlify.toml` is the only
+  // place the policy is written, but it is not the only place a header can come
+  // from — a `_headers` file, a dashboard override or a proxy in front can all
+  // change what a browser actually receives, and only the received policy
+  // protects anyone.
+  const committed = committedHeaders()
+
+  const committedCsp = committed.get('content-security-policy')
+  if (!committedCsp) stop('netlify.toml declares no Content-Security-Policy.')
+  verifyContentSecurityPolicyParity(csp, committedCsp)
+
+  // Two headers were declared and never verified against a real response.
+  for (const name of ['permissions-policy', 'x-xss-protection']) {
+    assertEqual(headers.get(name), committed.get(name), `${name} (committed parity)`)
   }
 
   console.log('Security headers: PASS')
