@@ -5,7 +5,10 @@ const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './e2e',
-  testIgnore: ['auth-recovery.spec.ts', 'auth-capacity.spec.ts'],
+  // `axe-unauthenticated` must run only under playwright.auth.config.ts, which
+// serves the app with VITE_DEV_AUTOLOGIN=false. Here it would be signed in and
+// `RedirectIfAuthed` would bounce it off the routes it exists to scan.
+  testIgnore: ['auth-recovery.spec.ts', 'auth-capacity.spec.ts', 'axe-unauthenticated.spec.ts'],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
