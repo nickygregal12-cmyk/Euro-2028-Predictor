@@ -94,8 +94,23 @@ export function koStake(
 ): KoStake {
   const backed = backedTeam(homeStage, awayStage, matchRound)
   const correct = actualWinner === null || backed === null ? null : backed === actualWinner
+  // `?? null` because the two halves of this function disagreed about unknown
+  // rounds. `backedTeam` defends with `ROUND_ORD[matchRound] ?? -1`, and at -1
+  // every non-null stage counts as "through" — so `backed` is set, `correct`
+  // can be true, and this line reached `NEXT_STAGE_AFTER[<unknown>]`, which is
+  // undefined. `KoStake.points` is declared `number | null`, so the result was
+  // a value the type says cannot happen.
+  //
+  // Callers only pass knockout rounds today — MatchesPage and MatchCentrePage
+  // both return on group matches first — so this was unreachable rather than
+  // broken. Defending in one half and not the other is the part worth removing.
+  const nextStage = NEXT_STAGE_AFTER[matchRound]
   const points =
-    correct === true ? KNOCKOUT_STAGE_POINTS[NEXT_STAGE_AFTER[matchRound]] : correct === false ? 0 : null
+    correct === true
+      ? (nextStage === undefined ? null : KNOCKOUT_STAGE_POINTS[nextStage])
+      : correct === false
+        ? 0
+        : null
   return { kind: 'knockout', backed, correct, points }
 }
 
