@@ -95,19 +95,9 @@ const inJourneyScannedRoutes = readdirSync(resolve(repositoryRoot, 'e2e'))
  * blocker keeps work parked longer than the blocker justifies.
  */
 const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
-  // `/welcome` sits behind RequireAuth, so it is an *authenticated* route that
-  // the scan cannot reach for a different reason: the E2E user has already
-  // completed welcome, and RequireWelcome forwards past it. Reaching it needs a
-  // fixture user in the pre-welcome state.
-  //
-  // Corrected 31 July 2026. This entry previously read "unauthenticated —
-  // harness auto-logs-in", which was simply wrong about the route.
-  ['/welcome', 'authenticated but post-welcome — needs a fixture user who has not completed it'],
-
   // Parameterised routes need a concrete instance from the seed. `/predict/groups/A`
   // shows the pattern: scan one real instance rather than the template.
   ['/predict/groups/:letter', 'parameterised — /predict/groups/A is scanned in its place'],
-  ['/join/:code', 'parameterised — /join/NOSUCH is scanned in its place, in the stale-invite state'],
 
   // Administrator surfaces require the server-owned `results` capability, which
   // the ordinary E2E user does not hold.
@@ -129,7 +119,7 @@ describe('axe scan coverage', () => {
     // The in-journey side has its own idiom and its own way of going quiet: a
     // renamed helper or a call site passing a concrete path would empty it, and
     // every route it covers would silently become a gap.
-    expect(inJourneyScannedRoutes.length).toBeGreaterThan(4)
+    expect(inJourneyScannedRoutes.length).toBeGreaterThan(6)
     expect(inJourneyScannedRoutes.every((route) => route.startsWith('/'))).toBe(true)
   })
 
