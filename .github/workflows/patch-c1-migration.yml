@@ -1,5 +1,6 @@
 name: Patch C1 migration
 
+# One-shot branch helper. Removed immediately after the migration repair commit.
 on:
   pull_request:
     branches:
