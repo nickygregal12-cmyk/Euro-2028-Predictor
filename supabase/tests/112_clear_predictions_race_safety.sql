@@ -48,11 +48,14 @@ update public.tournaments
 set lock_at = now() + interval '1 day'
 where id = current_setting('test.clear58_tournament')::uuid;
 
--- The shared knockout prediction store requires an actual future kickoff. Seed
--- the chosen fixture inside this rollback-only test transaction.
+-- Both stores now require authoritative timing for a joker or knockout pick.
+-- Seed the selected fixtures inside this rollback-only test transaction.
 update public.matches
 set kickoff_at = now() + interval '2 days'
-where id = current_setting('test.clear58_knockout_match')::uuid;
+where id in (
+  current_setting('test.clear58_group_match')::uuid,
+  current_setting('test.clear58_knockout_match')::uuid
+);
 
 set local session_replication_role = replica;
 insert into auth.users (
