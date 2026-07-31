@@ -30,17 +30,17 @@ The absence of C2 after-state assertions is deliberate, not missing coverage. Is
 
 | Source | Classification | Assertion |
 | --- | --- | --- |
-| `stageCRelationCoverage.test.ts` | `C1` | keeps parser positive controls at the contract-66 schema boundary |
+| `stageCRelationCoverage.test.ts` | `C1` | keeps parser positive controls at the contract-65 schema boundary |
 | `stageCRelationCoverage.test.ts` | `C1` | gives every effective public table/view one reviewed disposition |
 | `stageCRelationCoverage.test.ts` | `C1` | implements exactly the four reviewed C1 relations |
 | `stageCFunctionCoverage.test.ts` | `C1` | keeps parser positive controls at the effective function boundary |
 | `stageCFunctionCoverage.test.ts` | `C1` | pins every live public p_tournament_id signature to the manifest inventory |
 | `stageCFunctionCoverage.test.ts` | `C1` | keeps every function named for Stage C review effective in migration history |
 | `stageCFunctionCoverage.test.ts` | `C1` | does not silently resolve a reviewed name to multiple schemas |
-| `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps the parser positive control at the contract-66 trigger boundary |
+| `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps the parser positive control at the contract-65 trigger boundary |
 | `stageCTriggerBindingCoverage.test.ts` | `C1` | reviews every effective public-table trigger binding exactly once |
 | `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps every named Stage C trigger authority attached |
-| `stageCTournamentIdCompatibility.test.ts` | `C1` | keeps the parser positive control at the contract-66 boundary |
+| `stageCTournamentIdCompatibility.test.ts` | `C1` | keeps the parser positive control at the contract-65 boundary |
 | `stageCTournamentIdCompatibility.test.ts` | `C1` | reviews every effective direct tournament_id column exactly once |
 | `stageCTournamentIdCompatibility.test.ts` | `C1` | keeps every current direct tournament_id column non-null UUID |
 | `stageCEuroSeedPreservation.test.ts` | `C1` | pins the Euro tournament identity and bounded dates |
