@@ -86,7 +86,18 @@ export function RankHistoryComparison({
         </p>
       ) : (
         <>
-          <div className={h.historyChartWrap}>
+          {/* Same scrollable-region rule as the table below: `.historyChartWrap`
+              and `.historyTableWrap` share one `overflow-x: auto` declaration, so
+              both need to be reachable by keyboard (WCAG 2.1.1). The table was
+              fixed first because axe named it; this one was named on the next
+              run. The chart's own `role="img"` is not focusable, so the scroll
+              container has to be. */}
+          <div
+            className={h.historyChartWrap}
+            tabIndex={0}
+            role="group"
+            aria-label="Rank history chart, scrollable"
+          >
             <svg
               className={h.historyChart}
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
