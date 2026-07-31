@@ -246,7 +246,7 @@ const effectiveColumns = effectiveTournamentIdColumns()
 const reviewedColumns = inventoryColumns()
 
 describe('Stage C tournament_id compatibility inventory after C1', () => {
-  it('keeps the parser positive control at the contract-66 boundary', () => {
+  it('keeps the parser positive control at the contract-65 boundary', () => {
     expect(effectiveColumns).toHaveLength(33)
     expect(effectiveColumns).toContain('entries.tournament_id uuid not null')
     expect(effectiveColumns).toContain('matches.tournament_id uuid not null')
