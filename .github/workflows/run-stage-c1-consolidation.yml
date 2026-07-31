@@ -33,11 +33,15 @@ jobs:
           block = source.split(marker, 1)[1]
           lines = []
           for line in block.splitlines():
-              # Ordinary shell/Python lines carry the YAML block indentation.
-              # Heredoc payload lines are intentionally flush-left and must be
-              # copied verbatim into the extracted script.
               lines.append(line[10:] if line.startswith('          ') else line)
-          Path('/tmp/consolidate-stage-c1.sh').write_text('\n'.join(lines) + '\n')
+          script = '\n'.join(lines) + '\n'
+          script = script.replace(
+              'git rm .github/workflows/consolidate-stage-c1-migration.yml\n',
+              ': helper already removed by runner\n',
+          )
+          Path('/tmp/consolidate-stage-c1.sh').write_text(script)
           PY
-          git rm .github/workflows/run-stage-c1-consolidation.yml
+          git rm \
+            .github/workflows/run-stage-c1-consolidation.yml \
+            .github/workflows/consolidate-stage-c1-migration.yml
           bash /tmp/consolidate-stage-c1.sh
