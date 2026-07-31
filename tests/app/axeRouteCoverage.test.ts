@@ -99,10 +99,11 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
   // shows the pattern: scan one real instance rather than the template.
   ['/predict/groups/:letter', 'parameterised — /predict/groups/A is scanned in its place'],
 
-  // Administrator surfaces require the server-owned `results` capability, which
-  // the ordinary E2E user does not hold.
-  ['/admin', 'requires the protected administrator capability'],
-  ['/admin/users', 'requires the protected administrator capability'],
+  // `/admin` renders no page of its own — it is `<Navigate to="/admin/results"
+  // replace />`, so scanning it scans a route that is already covered. The old
+  // reason here said it "requires the protected administrator capability",
+  // which was the wrong kind of wrong: there is nothing behind it to reach.
+  ['/admin', 'redirect only — <Navigate> to /admin/results, which is scanned'],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)
@@ -119,7 +120,7 @@ describe('axe scan coverage', () => {
     // The in-journey side has its own idiom and its own way of going quiet: a
     // renamed helper or a call site passing a concrete path would empty it, and
     // every route it covers would silently become a gap.
-    expect(inJourneyScannedRoutes.length).toBeGreaterThan(6)
+    expect(inJourneyScannedRoutes.length).toBeGreaterThan(7)
     expect(inJourneyScannedRoutes.every((route) => route.startsWith('/'))).toBe(true)
   })
 
