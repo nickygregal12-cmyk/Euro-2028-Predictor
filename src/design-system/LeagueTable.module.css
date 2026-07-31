@@ -26,7 +26,7 @@
 .headRow {
   height: 30px;
   border-bottom: 1px solid var(--line);
-  color: var(--mut);
+  color: var(--tx3);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.07em;
@@ -72,7 +72,7 @@
   align-items: center;
   justify-content: center;
   font-variant-numeric: tabular-nums;
-  color: var(--mut);
+  color: var(--tx3);
 }
 
 .bar {
@@ -103,7 +103,7 @@
 .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
-  color: var(--mut);
+  color: var(--tx3);
 }
 
 .pts {
@@ -172,7 +172,7 @@
 }
 
 .dividerLabel {
-  color: var(--mut);
+  color: var(--tx3);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.07em;
@@ -186,7 +186,7 @@
   margin: 10px 0 0;
   padding: 0;
   list-style: none;
-  color: var(--mut);
+  color: var(--tx3);
   font-size: 11px;
 }
 
