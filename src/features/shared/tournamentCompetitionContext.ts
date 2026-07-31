@@ -25,10 +25,8 @@ export type TournamentCompetitionContextInput = {
   /** The viewer's device zone. Renders clock times; never decides a day. */
   viewerTimeZone: string
   /**
-   * The competition's own calendar zone. Optional until a season row carries it
-   * (Stage C `display_timezone`); until then it falls back to the viewer's zone,
-   * which is the behaviour this seam preserves exactly. Supplying it is the one
-   * change that makes day grouping stop depending on where the viewer is.
+   * Explicit test/adapter override. Normal application reads use the persisted
+   * season `display_timezone`; viewer zone remains only the contract-64 fallback.
    */
   competitionTimeZone?: string
   localDateISO?: string
@@ -111,7 +109,9 @@ function tournamentConfig(
       .map((match) => match.matchday),
   )
   const knockoutRounds = new Set(
-    data.matches.filter((match) => match.round !== 'group').map((match) => match.round),
+    data.matches
+      .filter((match) => match.round !== 'group' && match.round !== 'league')
+      .map((match) => match.round),
   )
 
   return {
@@ -143,7 +143,9 @@ function fixtureSnapshot(data: TournamentData, nowServer: Date): FixtureDataSnap
 function competitionProgress(data: TournamentData, nowServer: Date): CompetitionProgressData {
   const nowMs = nowServer.getTime()
   const groupMatches = data.matches.filter((match) => match.round === 'group')
-  const knockoutMatches = data.matches.filter((match) => match.round !== 'group')
+  const knockoutMatches = data.matches.filter(
+    (match) => match.round !== 'group' && match.round !== 'league',
+  )
   const finalMatches = data.matches.filter((match) => match.round === 'final')
   const finalConfirmed = finalMatches.some(hasStoredResult)
 
@@ -205,11 +207,14 @@ function competitionUserData(input: {
 export function resolveTournamentCompetitionContext(
   input: TournamentCompetitionContextInput,
 ): TournamentCompetitionContextResult {
-  // The fallback is the whole seam: with no season zone supplied, the
-  // competition calendar is kept in the viewer's zone, which is exactly what
-  // this code did before. Supplying `competitionTimeZone` is the only change
-  // needed to make grouping viewer-independent.
-  const competitionTimeZone = safeTimeZone(input.competitionTimeZone ?? input.viewerTimeZone)
+  // Explicit overrides support deterministic tests. Normal contract-66 reads
+  // use the persisted season authority; viewer timezone is retained only while
+  // the hosted database is still on contract 64 and the new field is absent.
+  const competitionTimeZone = safeTimeZone(
+    input.competitionTimeZone
+      ?? input.data.tournament.displayTimeZone
+      ?? input.viewerTimeZone,
+  )
   const lockAtMs = parseInstant(input.data.tournament.lockAt)
   const nowMs = input.nowServer.getTime()
   const context = resolveCompetitionContext(
