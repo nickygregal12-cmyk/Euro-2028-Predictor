@@ -3,6 +3,21 @@ import { matchPath, useLocation } from 'react-router'
 
 const APP_NAME = 'Euro 2028 Predictor'
 
+/**
+ * Every route the application declares, ordered so the first `matchPath` hit is
+ * the most specific — `/league/overall` before `/league`, `/games/lms` before
+ * `/games`.
+ *
+ * `getRouteTitle` falls back to 'Page not found', so a route missing from here
+ * does not fail: it sets the browser title to "Page not found | Euro 2028
+ * Predictor" and announces "Page not found page loaded" to a screen reader, on
+ * a page that exists and rendered fine. Ten routes were in that state until 31
+ * July 2026 — the whole Bonus Games section, prediction trends, other players'
+ * profiles and all three admin surfaces.
+ *
+ * `tests/app/routeTitleCoverage.test.ts` now compares this list against the
+ * routes in `App.tsx`, so the fallback catches typos rather than omissions.
+ */
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/', title: 'Home' },
   { path: '/auth/login', title: 'Log in' },
@@ -16,17 +31,27 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/predict/bracket', title: 'Knockout bracket' },
   { path: '/predict/jokers', title: 'Jokers' },
   { path: '/predict/review', title: 'Review predictions' },
+  { path: '/prediction-trends', title: 'Prediction trends' },
   { path: '/league/overall', title: 'Overall standings' },
   { path: '/league/:id', title: 'League details' },
   { path: '/league', title: 'Leagues' },
   { path: '/h2h/:rivalId', title: 'Head-to-head' },
+  { path: '/games/knockout', title: 'Knockout predictions' },
+  { path: '/games/ko-predictor', title: 'KO Predictor' },
+  { path: '/games/lms', title: 'Last Man Standing' },
+  { path: '/games/cup', title: 'Predictor Cup' },
+  { path: '/games', title: 'Bonus Games' },
   { path: '/matches', title: 'Matches' },
   { path: '/match/:matchRef', title: 'Match centre' },
   { path: '/more/scoring', title: 'Scoring rules' },
   { path: '/more/points', title: 'Profile' },
   { path: '/account', title: 'Account' },
   { path: '/more', title: 'More' },
+  { path: '/profile/:playerId', title: 'Player profile' },
   { path: '/profile', title: 'Profile' },
+  { path: '/admin/results', title: 'Results Centre' },
+  { path: '/admin/users', title: 'Users' },
+  { path: '/admin', title: 'Admin' },
   { path: '/dev/components', title: 'Component gallery' },
 ]
 
