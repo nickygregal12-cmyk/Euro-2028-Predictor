@@ -182,7 +182,7 @@ const C1_RELATIONS = [
 ]
 
 describe('Stage C public-relation coverage after C1', () => {
-  it('keeps parser positive controls at the contract-66 schema boundary', () => {
+  it('keeps parser positive controls at the contract-65 schema boundary', () => {
     expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(38)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
