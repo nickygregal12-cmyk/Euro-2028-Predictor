@@ -52,7 +52,6 @@ function stripNonCode(source: string): string {
       let depth = 1
       output += '  '
       index += 2
-
       while (index < source.length && depth > 0) {
         if (source.startsWith('/*', index)) {
           depth += 1
@@ -75,7 +74,6 @@ function stripNonCode(source: string): string {
     if (source[index] === "'") {
       output += ' '
       index += 1
-
       while (index < source.length) {
         if (source[index] === '\\' && index + 1 < source.length) {
           output += ` ${blankCharacter(source[index + 1])}`
@@ -102,16 +100,13 @@ function stripNonCode(source: string): string {
       const dollarTag = source
         .slice(index)
         .match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/)?.[0]
-
       if (dollarTag) {
         output += ' '.repeat(dollarTag.length)
         index += dollarTag.length
-
         while (index < source.length && !source.startsWith(dollarTag, index)) {
           output += blankCharacter(source[index])
           index += 1
         }
-
         if (source.startsWith(dollarTag, index)) {
           output += ' '.repeat(dollarTag.length)
           index += dollarTag.length
@@ -157,7 +152,6 @@ function triggerEvents(source: string): TriggerEvent[] {
     const drop = statement.match(
       /\bdrop\s+trigger\s+(?:if\s+exists\s+)?([a-z_][a-z0-9_]*)\s+on\s+(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\b/i,
     )
-
     if (drop) {
       const table = publicTable(drop[2], drop[3])
       if (table) {
@@ -174,25 +168,17 @@ function triggerEvents(source: string): TriggerEvent[] {
 
 function effectiveTriggerBindings(): string[] {
   const bindings = new Map<string, TriggerBinding>()
-
   for (const migration of readdirSync(migrationsDirectory).sort()) {
     if (!migration.endsWith('.sql')) continue
     const source = readFileSync(resolve(migrationsDirectory, migration), 'utf8')
-
     for (const event of triggerEvents(source)) {
-      if (event.action === 'remove') {
-        bindings.delete(event.bindingKey)
-      } else {
-        bindings.set(event.bindingKey, event.binding)
-      }
+      if (event.action === 'remove') bindings.delete(event.bindingKey)
+      else bindings.set(event.bindingKey, event.binding)
     }
   }
 
   return [...bindings]
-    .map(
-      ([bindingKey, binding]) =>
-        `${bindingKey} -> ${binding.functionName}`,
-    )
+    .map(([bindingKey, binding]) => `${bindingKey} -> ${binding.functionName}`)
     .sort()
 }
 
@@ -204,11 +190,9 @@ function reviewedTriggerBindings(): string[] {
   const bindings: string[] = []
   const rowPattern =
     /^\|\s*`([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)`\s*\|\s*`([a-z_][a-z0-9_]*\.[a-z_][a-z0-9_]*)`\s*\|/gm
-
   for (const match of section!.matchAll(rowPattern)) {
     bindings.push(`${match[1]} -> ${match[2]}`)
   }
-
   return bindings.sort()
 }
 
@@ -233,8 +217,13 @@ const effectiveFunctionNames = effectiveBindings.map((binding) =>
 const manifestFunctions = manifestTriggerAuthorityFunctions()
 
 describe('Stage C trigger binding coverage', () => {
-  it('keeps the parser positive control at the current trigger boundary', () => {
-    expect(effectiveBindings).toHaveLength(43)
+  it('keeps the parser positive control at the contract-66 trigger boundary', () => {
+    expect(effectiveBindings).toHaveLength(68)
+    expect(
+      effectiveBindings.filter((binding) =>
+        binding.endsWith(' -> predictor_internal.prepare_competition_season_scope'),
+      ),
+    ).toHaveLength(18)
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> public.enforce_entry_lock_generic'),
@@ -260,7 +249,6 @@ describe('Stage C trigger binding coverage', () => {
     const unattached = manifestFunctions.filter(
       (functionName) => !effectiveFunctionNames.includes(functionName),
     )
-
     expect(unattached).toEqual([])
   })
 })
