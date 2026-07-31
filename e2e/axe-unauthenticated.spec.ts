@@ -60,7 +60,12 @@ for (const route of ROUTES) {
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze()
 
-    const failing = results.violations.filter(
+    // `incomplete` counts as failing, for the reason set out in
+    // `axe-accessibility.spec.ts`. Verified to be a clean no-op on these five
+    // routes before it was introduced: scanned in a real browser, they report
+    // no unresolved findings at all, so this is a ratchet rather than a change
+    // of what passes today.
+    const failing = [...results.violations, ...results.incomplete].filter(
       (violation) => violation.impact && FAIL_IMPACTS.has(violation.impact),
     )
     const summary = failing

@@ -53,7 +53,14 @@ for (const route of ROUTES) {
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze()
 
-    const failing = results.violations.filter(
+    // `incomplete` is where axe puts findings it could not reach a verdict on.
+    // Reading only `violations` is how the component scan reported clean while
+    // holding a critical `duplicate-id-aria` and a serious
+    // `aria-prohibited-attr` — both real, both fixed on 31 July 2026. Nothing is
+    // exempted here: unlike jsdom, a real browser has the layout and painted
+    // pixels every rule needs, so an unresolved finding is a question for a
+    // person rather than a limit of the harness.
+    const failing = [...results.violations, ...results.incomplete].filter(
       (violation) => violation.impact && FAIL_IMPACTS.has(violation.impact),
     )
     const summary = failing
