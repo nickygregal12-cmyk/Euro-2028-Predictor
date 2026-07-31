@@ -93,8 +93,18 @@ export function ThirdPlaceTable({ rows, qualifyCount = 4, tieResolutionSlot }: T
                 </span>
               </div>
               {r.position === qualifyCount && (
-                <div className={styles.eliminationRow} role="separator" aria-label="Elimination line">
-                  <span className={styles.eliminationLabel} aria-hidden="true">
+                // A `role="table"` may only contain `row`/`rowgroup` children, so
+                // this divider is a row with a single cell rather than a
+                // `separator` — which axe flags as `aria-required-children`
+                // (critical, WCAG 2.0 A / 1.3.1). `LeagueTable`'s split divider
+                // already used this shape; this one predated it.
+                //
+                // The label is real cell text rather than an `aria-label` on an
+                // `aria-hidden` wrapper, so the announcement survives the change
+                // instead of depending on a label the rule would strip meaning
+                // from.
+                <div className={styles.eliminationRow} role="row">
+                  <span className={styles.eliminationLabel} role="cell">
                     Elimination line
                   </span>
                 </div>
