@@ -153,4 +153,18 @@ describe('axe scan coverage', () => {
       expect(source).toMatch(/expect\(failing/)
     }
   })
+
+  it('counts the findings axe could not decide, in both specs', () => {
+    // `results.incomplete` is where axe puts what it could not resolve. A scan
+    // that reads only `violations` reports clean while holding them, which is
+    // how a critical `duplicate-id-aria` and a serious `aria-prohibited-attr`
+    // went unreported by the component scan until 31 July 2026.
+    //
+    // Asserted per spec rather than by sharing a helper: the two specs are
+    // near-duplicates on purpose — each is readable alone — so this is what
+    // stops them drifting apart on the rule that matters most.
+    for (const source of [axeSource, axeUnauthenticatedSource]) {
+      expect(source).toMatch(/\.\.\.results\.incomplete/)
+    }
+  })
 })
