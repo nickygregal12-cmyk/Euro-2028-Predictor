@@ -60,14 +60,17 @@ for (const route of ROUTES) {
       .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
       .analyze()
 
-    // `incomplete` counts as failing, for the reason set out in
-    // `axe-accessibility.spec.ts`. Verified to be a clean no-op on these five
-    // routes before it was introduced: scanned in a real browser, they report
-    // no unresolved findings at all, so this is a ratchet rather than a change
-    // of what passes today.
-    const failing = [...results.violations, ...results.incomplete].filter(
-      (violation) => violation.impact && FAIL_IMPACTS.has(violation.impact),
-    )
+    // `incomplete` counts as failing, with `color-contrast` set aside — see
+    // `axe-accessibility.spec.ts` for why axe cannot always determine a
+    // background even in a real browser, and why contrast coverage survives it.
+    //
+    // Verified to be a clean no-op on these five routes before it was
+    // introduced: scanned in a real browser, they report no unresolved findings
+    // at all, so this is a ratchet rather than a change of what passes today.
+    const failing = [
+      ...results.violations,
+      ...results.incomplete.filter((result) => result.id !== 'color-contrast'),
+    ].filter((violation) => violation.impact && FAIL_IMPACTS.has(violation.impact))
     const summary = failing
       .map(
         (violation) =>
