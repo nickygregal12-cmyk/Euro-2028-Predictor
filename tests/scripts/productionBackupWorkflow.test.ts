@@ -128,4 +128,39 @@ describe('production backup workflow', () => {
     expect(workflow).toContain("! -name '*.backup.tar.gz.age'")
     expect(workflow).toContain('Refuse any non-encrypted upload candidate')
   })
+
+  it('refuses non-encrypted candidates before the upload, not after it', () => {
+    // The assertion above proves the refusal step exists; this one proves it
+    // still runs in time to refuse anything. `shred` is already pinned ahead of
+    // the upload, and this step was not — move it below `actions/upload-artifact`
+    // and every other assertion in this file stays green while the check reports
+    // a plaintext upload that has already happened.
+    expect(workflow.indexOf('Refuse any non-encrypted upload candidate')).toBeLessThan(
+      workflow.indexOf('actions/upload-artifact'),
+    )
+  })
+
+  it('does not make the encryption rule conditional on repository visibility', () => {
+    // The workflow header and the runbook both used to justify encrypting the
+    // artifact "because this repository is public". That is a true fact wired
+    // into a load-bearing position: it reads as a rule that lapses when the
+    // repository turns private, which is exactly when someone would be looking
+    // for reasons to simplify the job. The reason is that a workflow artifact
+    // is readable by everyone with repository read access, which is not the
+    // same set as "the public" and not the same set as "people trusted with a
+    // production dump".
+    //
+    // Asserted as a presence, not an absence. The first version of this test
+    // also forbade the string "because this repository is public" — and failed
+    // immediately, because the header quotes that phrase in order to explain
+    // why it is wrong. A string check cannot tell an assertion from a citation
+    // of the same words, so the negative form was dropped rather than worked
+    // around.
+    //
+    // The presence check is the one that bites anyway: rewriting the header to
+    // make encryption contingent on visibility means deleting this sentence,
+    // and that fails here. What is on the other side of that edit is
+    // `auth.users` in plaintext on a downloadable artifact.
+    expect(workflow).toMatch(/does NOT depend on the repository's visibility/)
+  })
 })
