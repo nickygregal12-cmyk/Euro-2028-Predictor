@@ -1,7 +1,7 @@
-# Stage C1 contract 66 rollout and recovery evidence
+# Stage C1 contract 65 rollout and recovery evidence
 
 **Status:** repository/disposable evidence only  
-**Scope:** PR #317, contracts 65–66  
+**Scope:** PR #317, contract 65  
 **Hosted development:** remains contract 64  
 **Production:** remains contract 63 and is out of scope
 
@@ -13,8 +13,7 @@ repository build as permission to mutate a remote database.
 
 It covers only:
 
-- `20260730235602_stage_c1_competition_season_foundation.sql`;
-- `20260730235721_stage_c1_competition_season_compatibility.sql`.
+- `20260730235602_stage_c1_competition_season_foundation.sql`.
 
 It does not authorise profile ownership, account erasure, pseudonymisation or any
 other Stage C2 change. Issue #272 remains the blocking authority for that work.
@@ -23,7 +22,7 @@ other Stage C2 change. Issue #272 remains the blocking authority for that work.
 
 At the PR #317 repository candidate:
 
-- deployment contract 66 names exactly 66 canonical migrations;
+- deployment contract 65 names exactly 65 canonical migrations;
 - a zero-to-current disposable Supabase rebuild succeeds with the existing Euro seed;
 - database lint succeeds;
 - all pgTAP suites succeed;
@@ -40,7 +39,7 @@ project.
 A hosted development write requires a new explicit owner approval after all of the
 following are attached to the proposed action:
 
-1. exact PR head and the two migration checksums;
+1. exact PR head and the migration checksum;
 2. confirmed target project ID and current hosted contract;
 3. fresh read-only preflight output;
 4. a fresh restorable backup when the target contains data worth preserving;
@@ -91,18 +90,15 @@ isolated destination.
 
 ## Apply sequence
 
-Apply contracts 65 and 66 sequentially to the same approved development target.
-Do not publish a contract-66 application between them.
+Apply contract 65 as one coherent migration to the approved development target.
 
 1. Reconfirm the target identity and contract 64 immediately before the write.
 2. Apply contract 65 using the repository migration runner.
 3. Confirm contract 65 is recorded once and no migration error occurred.
-4. Apply contract 66 using the same runner and connection context.
-5. Confirm the highest canonical version and count are exactly contract 66.
-6. Run the complete postflight before changing any Netlify contract declaration.
+4. Run the complete postflight before changing any Netlify contract declaration.
 
-Do not manually insert migration-history rows, skip contract 65, replay a migration
-whose history is uncertain, or run fragments from either file in the SQL editor.
+Do not manually insert migration-history rows, replay a migration whose history is
+uncertain, or run fragments from the file in the SQL editor.
 
 ## Postflight
 
@@ -153,7 +149,7 @@ preflight backup into a separate recovery project or freshly recreated developme
 project, then verify contract 64, preserved counts, privileges and authenticated
 journeys before repointing any environment.
 
-Do not attempt an improvised down migration. Contracts 65–66 add non-null columns,
+Do not attempt an improvised down migration. Contract 65 add non-null columns,
 composite constraints, triggers and lock evidence; deleting them after writes could
 lose information or reopen prediction boundaries. A tested restore is the rollback
 mechanism for a committed integrity failure.
@@ -185,7 +181,7 @@ PR #317 may leave draft only when:
 - authenticated disposable-browser journeys are green;
 - any unavailable Netlify preview is recorded as external missing evidence rather
   than misreported as a passing smoke;
-- the exact two-migration split is accepted or consolidated before merge;
+- the single migration remains coherent and reviewable before merge;
 - a reviewer confirms this recovery model is adequate for a later hosted
   development proposal;
 - the PR continues to make no hosted-alignment or C2 claim.

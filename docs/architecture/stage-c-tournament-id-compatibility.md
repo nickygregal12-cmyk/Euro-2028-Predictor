@@ -1,6 +1,6 @@
 # Stage C — `tournament_id` compatibility inventory
 
-**Status:** Contract 66 C1 after-state; C2 ownership work remains blocked by issue #272.  
+**Status:** Contract 65 C1 after-state; C2 ownership work remains blocked by issue #272.  
 **Baseline:** PR #317, migrations `20260730235602` and `20260730235721`.  
 **Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)  
 **Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
@@ -11,7 +11,7 @@ Stage C evolves the existing physical `tournaments` / `tournament_id` contract i
 place. Architecture calls the row a competition season, but working identifiers
 and RPC signatures are not renamed merely to match new vocabulary.
 
-Contract 66 now stores direct season scope wherever a relationship previously had
+Contract 65 now stores direct season scope wherever a relationship previously had
 to infer it through another parent. Every column below is reviewed, `uuid NOT
 NULL`, backfilled and guarded by composite foreign keys or a preparation/shape
 validator. The exit condition remains zero unreviewed tournament-only assumptions,

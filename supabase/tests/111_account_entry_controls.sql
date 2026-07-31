@@ -24,7 +24,7 @@ update public.tournaments
 set lock_at = now() + interval '1 day'
 where id = current_setting('test.acct_tournament_id')::uuid;
 
--- This test deliberately creates a joker. Contract 66 requires authoritative
+-- This test deliberately creates a joker. Contract 65 requires authoritative
 -- fixture timing before a joker commitment can exist, so make the rollback-only
 -- fixture catalogue explicit rather than relying on the old null-kickoff seed.
 update public.matches

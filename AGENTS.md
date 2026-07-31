@@ -46,12 +46,12 @@ PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `
 
 **PR #236 is merged** and all seven pre-migration contracts have landed through PR #292. The accepted governance amendment splits implementation:
 
-- **Stage C1 — issue #303 / PR #317:** competition-season identity, fields, rounds, timezone, locks, same-season safeguards and Euro preservation are implemented in repository/disposable evidence at contract 66. The current auth-owned competitive rows, foreign-key actions and ownership RLS remain unchanged; no hosted write is authorised.
+- **Stage C1 — issue #303 / PR #317:** competition-season identity, fields, rounds, timezone, locks, same-season safeguards and Euro preservation are implemented in repository/disposable evidence at contract 65. The current auth-owned competitive rows, foreign-key actions and ownership RLS remain unchanged; no hosted write is authorised.
 - **Stage C2 — issue #272:** profile ownership, account erasure, pseudonymisation and related RLS. C2 remains blocked by the independent data-protection review.
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The PR #317 repository candidate is at **contract 66** through `20260730235721_stage_c1_competition_season_compatibility.sql`. Current `main` and development Supabase remain at contract 64; production remains at 63. Contracts 65–66 are disposable-only C1 evidence until separately reviewed and explicitly approved. Any hosted schema mutation requires explicit owner approval and the applicable preflight.
+The PR #317 repository candidate is at **contract 65** through `20260730235602_stage_c1_competition_season_foundation.sql`. Current `main` and development Supabase remain at contract 64; production remains at 63. Contract 65 are disposable-only C1 evidence until separately reviewed and explicitly approved. Any hosted schema mutation requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 

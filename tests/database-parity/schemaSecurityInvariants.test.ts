@@ -138,7 +138,6 @@ describe('security definer functions', () => {
       '20260723174500_harden_entry_lock_functions.sql',
       '20260727174658_automatic_entry_submission.sql',
       '20260730235602_stage_c1_competition_season_foundation.sql',
-      '20260730235721_stage_c1_competition_season_compatibility.sql',
     ])
 
     expect(sourceOf(occurrences[0])).not.toMatch(

@@ -4,7 +4,7 @@ import type { Match, TournamentData } from '../../src/services/supabase/tourname
 
 /**
  * The seam between the competition's persisted calendar zone and the viewer's
- * device zone. Contract 66 stores `display_timezone` on every season; contract
+ * device zone. Contract 65 stores `display_timezone` on every season; contract
  * 64 fallback remains explicit until the hosted database is deliberately moved.
  */
 

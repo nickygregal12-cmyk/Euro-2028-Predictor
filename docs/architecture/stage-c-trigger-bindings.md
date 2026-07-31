@@ -1,6 +1,6 @@
 # Stage C — trigger binding inventory
 
-**Status:** Contract 66 C1 after-state; C2 ownership work remains blocked by issue #272.  
+**Status:** Contract 65 C1 after-state; C2 ownership work remains blocked by issue #272.  
 **Baseline:** PR #317, migrations `20260730235602` and `20260730235721`.  
 **Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)  
 **Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
@@ -10,7 +10,7 @@
 Stage C changes season scope across a heavily defended schema. Defining a validator
 function is not sufficient: its trigger must remain attached to the intended table.
 This inventory pins every effective non-internal trigger on a `public` table to its
-function after contract 66.
+function after contract 65.
 
 The C1 migration adds preparation, lock-evidence, competition-identity and award
 bindings while preserving the established lock, result, scoring, audit, rate-limit

@@ -16,7 +16,7 @@ export type Tournament = {
   // reflects it. Null until set. Dev overrides this row to exercise locked UI.
   lockAt: string | null // ISO timestamp
   // Optional only during the repository-first rollout so existing isolated
-  // fixtures and hosted contract 64 remain valid. Contract 66 stores every one
+  // fixtures and hosted contract 64 remain valid. Contract 65 stores every one
   // of these fields as NOT NULL after backfill.
   competitionId?: string | null
   seasonKey?: string | null
@@ -106,7 +106,7 @@ async function fetchLockAt(tournamentId: string): Promise<string | null> {
 }
 
 /**
- * Stage C1 lands repository-first. Until contract 66 is explicitly promoted to
+ * Stage C1 lands repository-first. Until contract 65 is explicitly promoted to
  * a hosted database, the old schema must continue loading. Missing columns are
  * therefore treated as migration-not-yet-applied, not as empty authoritative
  * metadata; once present, the persisted timezone becomes the competition-day
@@ -190,7 +190,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
 
   // Stage C1 adds an explicit tournament_id to group_teams. This query remains
   // scoped through the already-loaded group ids as well, so it is compatible
-  // with both contract 64 and contract 66 throughout the repository-first rollout.
+  // with both contract 64 and contract 65 throughout the repository-first rollout.
   const groupTeamsRes = groupIds.length
     ? await supabase
         .from('group_teams')

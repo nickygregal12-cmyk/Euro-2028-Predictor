@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * Every effective public relation must have a reviewed Stage C disposition.
- * Contract 66 has now implemented the four C1 relations, while C2 remains a
+ * Contract 65 has now implemented the four C1 relations, while C2 remains a
  * separate legal/ownership path under issue #272.
  */
 
