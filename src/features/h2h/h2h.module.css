@@ -250,7 +250,12 @@
   font-family: var(--font-body);
   font-size: 10px;
   line-height: 1.2;
-  color: var(--tx3);
+  /* --tx2, not --tx3: these labels sit inside .healthPanel, which is
+     background: var(--chip). --tx3 there is 4.07:1 dark and 3.11:1 light,
+     under the 4.5:1 AA minimum. The pairing is inherited rather than declared
+     in one rule, so cssTokenPairings cannot see it — the browser scan of
+     /h2h/:rivalId found it. */
+  color: var(--tx2);
 }
 .healthStats dd {
   margin: 0;
