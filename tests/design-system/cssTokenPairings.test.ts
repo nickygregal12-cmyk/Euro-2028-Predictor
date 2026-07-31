@@ -122,9 +122,23 @@ function pairingsIn(css: string): Pairing[] {
  *  - **Brand colour.** `--gold` on `--gold-tint` is 2.21:1 in the light theme and
  *    is real body text — the joker pills read "2× · +5". It is a genuine AA
  *    failure and the worst number in the codebase. It is not fixed here because
- *    gold means jokers and nothing else (CLAUDE.md), so the fix is a new light
- *    value for `--gold` or a new pairing for the pills, and both are palette
- *    decisions. Same for `--cyn`, which means live data, at 4.09:1.
+ *    gold means jokers and nothing else (CLAUDE.md), so any fix changes the
+ *    product's visual language. Same for `--cyn`, which means live data, at
+ *    4.09:1.
+ *
+ *    Two options, measured rather than left as "needs a decision":
+ *
+ *      1. Darken the light `--gold` from `#C99A1F` to about `#876715` — same
+ *         hue at 67% — which reaches 4.52:1 on the tint. It also changes every
+ *         other gold surface in the light theme, borders and icons included.
+ *      2. Paint the pill *text* with `--gold-contrast` (`#2B2410`), which is
+ *         13.20:1 on the light tint and already exists for exactly this job.
+ *         The catch is that in the dark theme `--gold-contrast` and
+ *         `--gold-tint` are the same `#2B2410`, so the text would vanish —
+ *         this one needs a per-theme rule rather than a straight swap.
+ *
+ *    Neither is a test's call to make, but the numbers are here so the call
+ *    does not need re-measuring.
  *
  * Recording them beats filtering them: a new failing pairing still fails, and
  * these stay visible with their numbers instead of disappearing into an
