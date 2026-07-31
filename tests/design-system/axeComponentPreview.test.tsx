@@ -31,7 +31,8 @@ import { describe, expect, it, vi } from 'vitest'
  *   composition — landmark structure, heading order across a real layout,
  *   focus order through the app shell — is only visible to the browser scans.
  * - The gallery renders one representative state per component, chosen by
- *   whoever added it, not the states a user reaches.
+ *   whoever added it, not the states a user reaches. `axeComponentStates.test.tsx`
+ *   covers the ones that matter most — every dialog is closed in here.
  *
  * What it does give is breadth and speed: every component, including states a
  * route scan cannot reach, on every run of the unit suite.
