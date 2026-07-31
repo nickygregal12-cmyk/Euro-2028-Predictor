@@ -673,7 +673,7 @@ function Gallery() {
       <Section title="ProgressBar">
         <ProgressBar value={18} max={36} label="Predictions" showValue />
         <ProgressBar value={100} max={100} label="Group A" showValue />
-        <ProgressBar value={0} max={36} />
+        <ProgressBar value={0} max={36} ariaLabel="Predictions complete" />
       </Section>
 
       <Section title="StatusBadge">
