@@ -3,6 +3,9 @@
 
 import { supabase } from './client'
 
+export type CompetitionKind = 'tournament' | 'league_season'
+export type CompetitionStatus = 'draft' | 'scheduled' | 'active' | 'complete' | 'archived'
+
 export type Tournament = {
   id: string
   name: string
@@ -12,6 +15,14 @@ export type Tournament = {
   // The entry-lock instant (opening kickoff). Server-authoritative; the UI only
   // reflects it. Null until set. Dev overrides this row to exercise locked UI.
   lockAt: string | null // ISO timestamp
+  // Stage C1 metadata is nullable during the repository-first rollout so the
+  // application remains compatible with hosted contract 64 until the reviewed
+  // migration is explicitly applied.
+  competitionId: string | null
+  seasonKey: string | null
+  kind: CompetitionKind | null
+  displayTimeZone: string | null
+  status: CompetitionStatus | null
 }
 
 export type Group = {
@@ -26,7 +37,7 @@ export type Team = {
   slot: number // 1..4 within the group
 }
 
-export type MatchRound = 'group' | 'r16' | 'qf' | 'sf' | 'final'
+export type MatchRound = 'group' | 'r16' | 'qf' | 'sf' | 'final' | 'league'
 export type MatchResultState = 'scheduled' | 'confirmed' | 'corrected'
 export type MatchResultMethod = 'regulation' | 'extra_time' | 'penalties'
 
@@ -67,6 +78,14 @@ export type TournamentData = {
   matches: Match[]
 }
 
+type StageCSeasonMetadata = {
+  competitionId: string | null
+  seasonKey: string | null
+  kind: CompetitionKind | null
+  displayTimeZone: string | null
+  status: CompetitionStatus | null
+}
+
 /**
  * lock_at is read best-effort: it's a follow-up-migration column, so a database
  * without that migration applied still loads the app (the entry simply reads as
@@ -87,6 +106,57 @@ async function fetchLockAt(tournamentId: string): Promise<string | null> {
 }
 
 /**
+ * Stage C1 lands repository-first. Until contract 66 is explicitly promoted to
+ * a hosted database, the old schema must continue loading. Missing columns are
+ * therefore treated as migration-not-yet-applied, not as empty authoritative
+ * metadata; once present, the persisted timezone becomes the competition-day
+ * authority used by every shared context adapter.
+ */
+async function fetchStageCSeasonMetadata(tournamentId: string): Promise<StageCSeasonMetadata> {
+  try {
+    const result = await supabase
+      .from('tournaments')
+      .select('competition_id, season_key, kind, display_timezone, status')
+      .eq('id', tournamentId)
+      .single()
+
+    if (result.error || !result.data) {
+      return {
+        competitionId: null,
+        seasonKey: null,
+        kind: null,
+        displayTimeZone: null,
+        status: null,
+      }
+    }
+
+    const row = result.data as {
+      competition_id: string | null
+      season_key: string | null
+      kind: CompetitionKind | null
+      display_timezone: string | null
+      status: CompetitionStatus | null
+    }
+
+    return {
+      competitionId: row.competition_id ?? null,
+      seasonKey: row.season_key ?? null,
+      kind: row.kind ?? null,
+      displayTimeZone: row.display_timezone ?? null,
+      status: row.status ?? null,
+    }
+  } catch {
+    return {
+      competitionId: null,
+      seasonKey: null,
+      kind: null,
+      displayTimeZone: null,
+      status: null,
+    }
+  }
+}
+
+/**
  * Loads the single active tournament plus its groups, teams (with group + slot)
  * and every fixture. One call, joined client-side into the shapes the domain
  * layer and screens consume.
@@ -101,7 +171,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
   const t = tournaments?.[0]
   if (!t) throw new Error('No tournament found — has the fixture seed been run?')
 
-  const [groupsRes, matchesRes, lockAt] = await Promise.all([
+  const [groupsRes, matchesRes, lockAt, stageCMetadata] = await Promise.all([
     supabase.from('groups').select('id, letter').eq('tournament_id', t.id).order('letter'),
     supabase
       .from('matches')
@@ -111,21 +181,16 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       .eq('tournament_id', t.id)
       .order('match_date'),
     fetchLockAt(t.id),
+    fetchStageCSeasonMetadata(t.id),
   ])
   if (groupsRes.error) throw groupsRes.error
   if (matchesRes.error) throw matchesRes.error
 
   const groupIds = (groupsRes.data ?? []).map((g) => g.id)
 
-  // group_teams has no tournament_id column, so it can only be scoped through
-  // its groups. Without this filter the query returned every tournament's rows
-  // and blended them into one tournament's team list — latent while a single
-  // tournament exists, wrong as soon as a second competition row does. Its
-  // sibling groups/matches selects have always filtered by tournament.
-  //
-  // This runs after groups rather than beside it because it depends on their
-  // ids. Total round trips are unchanged: lock_at moved up into the parallel
-  // batch, where it no longer needs a round trip of its own.
+  // Stage C1 adds an explicit tournament_id to group_teams. This query remains
+  // scoped through the already-loaded group ids as well, so it is compatible
+  // with both contract 64 and contract 66 throughout the repository-first rollout.
   const groupTeamsRes = groupIds.length
     ? await supabase
         .from('group_teams')
@@ -151,6 +216,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
       startsOn: t.starts_on,
       endsOn: t.ends_on,
       lockAt,
+      ...stageCMetadata,
     },
     groups: (groupsRes.data ?? []).map((g) => ({ id: g.id, letter: g.letter })),
     teams,
