@@ -14,18 +14,19 @@ import { describe, expect, it } from 'vitest'
  * This measures the palette itself, so a pairing is answerable before anyone
  * writes it and a token edit shows its consequences immediately.
  *
- * ## The table is pinned, not filtered
+ * ## The table is pinned
  *
- * Several pairs are below AA today, and the light theme's `--tx3` is below AA on
- * every surface. Those are recorded rather than quietly excluded: `--tx3` is
- * used in 123 places and choosing a new value for it is a design decision about
- * the palette, not a test fixture. Pinning makes the numbers visible and makes
- * any change to them deliberate. `Button.module.css` already carries a
- * hand-measured note of the same kind — this replaces measuring by hand.
+ * Every text token now clears AA on every surface it is paired with for text.
+ * The one number still under 4.5 is `--tx3` on `--mut`, which no rule declares —
+ * it is in the table because the table is the whole palette, not a list of
+ * problems.
  *
- * What is asserted outright is narrower and is what the code now relies on:
- * `--tx` and `--tx2` clear AA on `--chip` in both themes, because that is the
- * pairing the `/league/:id` fix moved to.
+ * The table was pinned while several pairs were failing, so the numbers were
+ * visible while the palette decision was open. It stays pinned now they pass:
+ * a token edit shows its consequences across every surface at once, which is
+ * what made raising `--tx2` and `--tx3` together an obvious move rather than a
+ * discovery. `Button.module.css` carries a hand-measured note of the same kind
+ * — this replaces measuring by hand.
  */
 
 const tokensCss = readFileSync(
@@ -97,10 +98,15 @@ describe('design token contrast', () => {
   })
 
   it('agrees with axe on a ratio axe actually measured', () => {
-    // The control for the arithmetic. axe reported 4.06 for `--tx3` on `--chip`
-    // in the dark theme when it failed `/league/:id`; anything else here means
-    // the luminance implementation is wrong and every number below is fiction.
-    expect(ratio(dark, 'tx3', 'chip')).toBeCloseTo(4.06, 1)
+    // The control for the arithmetic: anything else here means the luminance
+    // implementation is wrong and every number below is fiction.
+    //
+    // Pinned to the colours rather than to the tokens. axe reported 4.06 for
+    // #7E8BA8 on #1A2B52 when `/league/:id` failed, and those were `--tx3` and
+    // `--chip` at the time. `--tx3` has since been raised, so reading it from
+    // the palette would compare the implementation against a number axe never
+    // produced — the check would survive as a shape while losing its meaning.
+    expect(Number(contrast('#7E8BA8', '#1A2B52').toFixed(2))).toBeCloseTo(4.06, 1)
   })
 
   it('keeps primary and secondary text above AA on a chip', () => {
@@ -132,18 +138,19 @@ describe('design token contrast', () => {
     expect(measure(dark)).toEqual({
       tx: { bg: 17.11, card: 15.05, chip: 12.72, mut: 10.79, 'input-bg': 14.75 },
       tx2: { bg: 7.66, card: 6.74, chip: 5.7, mut: 4.83, 'input-bg': 6.6 },
-      // --tx3 is below AA on --chip and --mut here. Use --tx2 on those surfaces.
-      tx3: { bg: 5.47, card: 4.81, chip: 4.07, mut: 3.45, 'input-bg': 4.71 },
+      // --tx3 was raised on 31 July 2026 and now clears AA everywhere except
+      // --mut, which no rule pairs it with for text.
+      tx3: { bg: 6.06, card: 5.34, chip: 4.51, mut: 3.82, 'input-bg': 5.23 },
     })
 
     expect(measure(light)).toEqual({
       tx: { bg: 15.83, card: 16.82, chip: 14.7, mut: 11.64, 'input-bg': 17.25 },
-      // --tx2 is below AA on --mut in this theme.
-      tx2: { bg: 5.2, card: 5.52, chip: 4.83, mut: 3.82, 'input-bg': 5.66 },
-      // --tx3 is below AA on every surface in this theme. Recorded, not
-      // excused: it is used in 123 places, so raising it is a palette decision
-      // for the owner rather than something a test should settle.
-      tx3: { bg: 3.35, card: 3.56, chip: 3.11, mut: 2.46, 'input-bg': 3.65 },
+      tx2: { bg: 7.16, card: 7.6, chip: 6.65, mut: 5.26, 'input-bg': 7.8 },
+      // Both were raised together on 31 July 2026. --tx3 was below AA on every
+      // surface in this theme; the value that fixes it is almost exactly the
+      // old --tx2, so --tx2 moved down to keep the ramp three levels deep.
+      // --mut is the one surface --tx3 still misses, and no rule pairs them.
+      tx3: { bg: 4.9, card: 5.21, chip: 4.55, mut: 3.6, 'input-bg': 5.34 },
     })
   })
 })

@@ -93,7 +93,7 @@
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 12px;
-  color: var(--gold);
+  color: var(--gold-strong);
   background: var(--gold-tint);
 }
 
@@ -101,9 +101,9 @@
    the same colour but is paired with a lock + permanence copy. */
 .pillOn,
 .pillCommitted {
-  color: var(--gold);
+  color: var(--gold-strong);
   background: var(--gold-tint);
-  border-color: var(--gold);
+  border-color: var(--gold-strong);
 }
 
 .actions {

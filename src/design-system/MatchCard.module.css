@@ -175,9 +175,9 @@
 
 /* Joker committed: gold tint pill with gold border+text (gold rule). */
 .pillGold {
-  color: var(--gold);
+  color: var(--gold-strong);
   background: var(--gold-tint);
-  border-color: var(--gold);
+  border-color: var(--gold-strong);
 }
 
 /* Chevron (Tier 4, feature-flagged) ---------------------------------------- */

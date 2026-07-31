@@ -105,76 +105,38 @@ function pairingsIn(css: string): Pairing[] {
 }
 
 /**
- * Pairings that fail the 4.5:1 check but are not being changed here, each with
- * the verdict and why.
+ * Pairings that fail the 4.5:1 check but are not being changed, each with the
+ * verdict and why.
  *
- * The sweep applies one threshold — normal body text — to every pairing it can
- * see. CSS does not say whether a rule paints text, an icon or a disabled
- * control, and WCAG uses a different bar for each. So a failure here is a
- * question, and these are the answers, reached by reading each one:
+ * The list is empty. It held fourteen entries until the palette was raised on
+ * 31 July 2026 — nine joker pills, a decorative icon, two disabled-button rules
+ * and two icon containers — and every one of them now passes rather than being
+ * excused:
  *
- *  - **Non-text.** WCAG 1.4.11 asks 3:1 of meaningful graphics, and exempts
- *    purely decorative ones. `EmptyState`'s icon is documented in its own props
- *    as decorative, with the heading carrying the meaning; at 4.07:1 and 3.11:1
- *    it clears 3:1 regardless.
- *  - **Inactive controls.** WCAG 1.4.3 exempts them by name. A disabled button
- *    that met AA would be hard to tell from an enabled one.
- *  - **Brand colour.** `--gold` on `--gold-tint` is 2.21:1 in the light theme and
- *    is real body text — the joker pills read "2× · +5". It is a genuine AA
- *    failure and the worst number in the codebase. It is not fixed here because
- *    gold means jokers and nothing else (CLAUDE.md), so any fix changes the
- *    product's visual language. Same for `--cyn`, which means live data, at
- *    4.09:1.
+ *  - The nine gold pills moved to `--gold-strong`, a token added for gold text
+ *    on `--gold-tint`. `--gold` itself is untouched, so the joker identity and
+ *    `--gold-contrast` on top of it are exactly as they were.
+ *  - `EmptyState`'s icon and the disabled buttons were never defects — non-text
+ *    and inactive controls have lower bars — but the raised `--tx3` and `--tx2`
+ *    clear the text threshold anyway, so the exemptions are no longer needed.
  *
- *    Two options, measured rather than left as "needs a decision":
- *
- *      1. Darken the light `--gold` from `#C99A1F` to about `#876715` — same
- *         hue at 67% — which reaches 4.52:1 on the tint. It also changes every
- *         other gold surface in the light theme, borders and icons included.
- *      2. Paint the pill *text* with `--gold-contrast` (`#2B2410`), which is
- *         13.20:1 on the light tint and already exists for exactly this job.
- *         The catch is that in the dark theme `--gold-contrast` and
- *         `--gold-tint` are the same `#2B2410`, so the text would vanish —
- *         this one needs a per-theme rule rather than a straight swap.
- *
- *    Neither is a test's call to make, but the numbers are here so the call
- *    does not need re-measuring.
- *
- * Recording them beats filtering them: a new failing pairing still fails, and
- * these stay visible with their numbers instead of disappearing into an
- * exclusion nobody re-reads.
+ * What remains is two icon containers, and their verdict is a correction. They
+ * were recorded as "live-data cyan — needs a palette decision", which read them
+ * as text. `.globe` holds a `<GlobeIcon>` and nothing else, so WCAG 1.4.11's
+ * 3:1 applies and 4.09:1 clears it. `--cyn` needed no change; the entry needed
+ * reading properly.
  */
 const REVIEWED: ReadonlyArray<readonly [where: string, verdict: string]> = [
   [
-    'src/design-system/EmptyState.module.css .icon',
-    'decorative non-text — WCAG 1.4.11 asks 3:1 of graphics, which 4.07 and 3.11 both clear',
+    'src/features/league/leaderboard.module.css .globe',
+    'icon container — holds only <GlobeIcon>, so 1.4.11 asks 3:1 and 4.09 clears it',
   ],
   [
-    "src/design-system/Button.module.css .btn:disabled:not(.loading)",
-    'inactive control — WCAG 1.4.3 exempts them, and a disabled button meeting AA would read as enabled',
+    'src/features/leagues/hub.module.css .globe',
+    'icon container — holds only <GlobeIcon>, so 1.4.11 asks 3:1 and 4.09 clears it',
   ],
-  ['src/design-system/JokerButton.module.css .on', 'joker gold on gold tint — 2.21:1, palette decision'],
-  ['src/design-system/MatchCard.module.css .pillGold', 'joker gold on gold tint — 2.21:1, palette decision'],
-  ['src/features/matches/MatchCentre.module.css .jokerPaid', 'joker gold on gold tint — 2.21:1, palette decision'],
-  ['src/features/matches/MatchesTab.module.css .jokerPaid', 'joker gold on gold tint — 2.21:1, palette decision'],
-  ['src/features/predict/awards.module.css .points', 'joker gold on gold tint — 2.21:1, palette decision'],
-  ['src/features/predict/placedJoker.module.css .pill', 'joker gold on gold tint — 2.21:1, palette decision'],
-  [
-    'src/features/predict/placedJoker.module.css .pillOn, .pillCommitted',
-    'joker gold on gold tint — 2.21:1, palette decision',
-  ],
-  ['src/features/scoring/pointsBreakdown.module.css .jokerPill', 'joker gold on gold tint — 2.21:1, palette decision'],
-  ['src/features/league/leaderboard.module.css .globe', 'live-data cyan on chip — 4.09:1 light, palette decision'],
-  ['src/features/leagues/hub.module.css .globe', 'live-data cyan on chip — 4.09:1 light, palette decision'],
 ]
 
-/**
- * Keyed by rule, not by pairing.
- *
- * Keyed by pairing, reviewing `--tx3 on --chip` once for a decorative icon would
- * have exempted every future body-text use of it — including the four fixed in
- * this change. An exemption must be no wider than the thing examined.
- */
 const reviewedRules = REVIEWED.map(([where]) => where)
 
 describe('CSS token pairings meet AA', () => {

@@ -131,7 +131,7 @@
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 12px;
-  color: var(--gold);
+  color: var(--gold-strong);
   white-space: nowrap;
 }
 
