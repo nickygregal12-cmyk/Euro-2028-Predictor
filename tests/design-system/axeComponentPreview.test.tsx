@@ -42,6 +42,25 @@ import { describe, expect, it, vi } from 'vitest'
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']
 const FAIL_IMPACTS = new Set(['critical', 'serious'])
 
+/**
+ * Rules jsdom cannot decide, and why that is acceptable here.
+ *
+ * axe reports three outcomes, not two. `incomplete` means it could not reach a
+ * verdict and a human should look — and this scan originally read only
+ * `violations`, so it reported clean while axe was holding a critical
+ * `duplicate-id-aria` and a serious `aria-prohibited-attr` in the pile it
+ * discarded. Both were real: hard-coded ARIA ids that collide when a component
+ * renders twice, and `aria-label` on roleless spans, where ARIA prohibits a name
+ * and the label never reaches the accessibility tree at all.
+ *
+ * So `incomplete` at serious or critical impact now fails, and this list is the
+ * one exception. `color-contrast` needs computed layout and painted pixels;
+ * jsdom has neither, so it can never resolve here and the browser scans in
+ * `e2e/` are what cover it. Nothing else may be added without the same kind of
+ * reason — "it is noisy" is how a discarded pile forms in the first place.
+ */
+const JSDOM_CANNOT_EVALUATE = new Set(['color-contrast'])
+
 describe('component gallery accessibility', () => {
   it(
     'renders every component with no serious or critical WCAG A/AA violations',
@@ -67,9 +86,10 @@ describe('component gallery accessibility', () => {
       expect(container.querySelectorAll('*').length).toBeGreaterThan(500)
       expect(results.passes.length).toBeGreaterThan(10)
 
-      const failing = results.violations.filter(
-        (violation) => violation.impact && FAIL_IMPACTS.has(violation.impact),
-      )
+      const failing = [
+        ...results.violations,
+        ...results.incomplete.filter((result) => !JSDOM_CANNOT_EVALUATE.has(result.id)),
+      ].filter((result) => result.impact && FAIL_IMPACTS.has(result.impact))
       const summary = failing
         .map(
           (violation) =>

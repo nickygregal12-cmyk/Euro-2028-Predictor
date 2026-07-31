@@ -40,6 +40,15 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']
 const FAIL_IMPACTS = new Set(['critical', 'serious'])
 
 /**
+ * `incomplete` counts as failing here, for the reason set out in
+ * `axeComponentPreview.test.tsx`: it is where axe puts findings it could not
+ * decide, and reading only `violations` is how a critical `duplicate-id-aria`
+ * and a serious `aria-prohibited-attr` sat unreported. `color-contrast` is the
+ * one exception, because jsdom has no layout to measure it against.
+ */
+const JSDOM_CANNOT_EVALUATE = new Set(['color-contrast'])
+
+/**
  * Renders, lets the caller drive the component into the state and assert it is
  * there, then scans.
  *
@@ -54,9 +63,10 @@ async function scanState(ui: ReactElement, reach: () => void) {
     reach()
 
     const results = await axe.run(document.body, { runOnly: { type: 'tag', values: TAGS } })
-    const failing = results.violations.filter(
-      (violation) => violation.impact && FAIL_IMPACTS.has(violation.impact),
-    )
+    const failing = [
+      ...results.violations,
+      ...results.incomplete.filter((result) => !JSDOM_CANNOT_EVALUATE.has(result.id)),
+    ].filter((result) => result.impact && FAIL_IMPACTS.has(result.impact))
 
     expect(
       failing,
@@ -74,6 +84,8 @@ async function scanState(ui: ReactElement, reach: () => void) {
     unmount()
   }
 }
+
+const CLUB = { monogram: 'ABC', primary: '#EF0107' }
 
 const OPTIONS = [
   { value: 'pens', label: 'Penalties' },
@@ -207,7 +219,7 @@ describe('component states the gallery does not render', () => {
         rows={[1, 2, 3, 4].map((position) => ({
           position,
           name: `Club ${position}`,
-          club: { monogram: 'ABC', primary: '#EF0107' },
+          club: CLUB,
           played: 33,
           goalDifference: 0,
           points: 40,
@@ -218,6 +230,32 @@ describe('component states the gallery does not render', () => {
       />,
       () => {
         expect(screen.getByText('Bottom half')).toBeInTheDocument()
+      },
+    )
+  })
+
+  it('LeagueTable, with position movement arrows', async () => {
+    await scanState(
+      <LeagueTable
+        caption="Premier League"
+        rows={[
+          { position: 1, name: 'Risen', club: CLUB, played: 33, goalDifference: 0, points: 40, movement: 'up' },
+          { position: 2, name: 'Fallen', club: CLUB, played: 33, goalDifference: 0, points: 39, movement: 'down' },
+          { position: 3, name: 'Static', club: CLUB, played: 33, goalDifference: 0, points: 38, movement: 'none' },
+        ]}
+      />,
+      () => {
+        // The arrows are the only thing conveying movement, so they need a name
+        // that reaches the accessibility tree. They carried `aria-label` on a
+        // roleless span, where ARIA prohibits a name — the glyph was announced
+        // and the label was not. Asserted through the accessible name rather
+        // than the attribute, so the announcement is what is pinned.
+        expect(screen.getByRole('img', { name: 'Up' })).toBeInTheDocument()
+        expect(screen.getByRole('img', { name: 'Down' })).toBeInTheDocument()
+        // `none` renders nothing rather than a silent third glyph. Scoped by
+        // name: each row's ClubIdentity monogram is also a named `img`, so a
+        // bare count here would be counting clubs, not arrows.
+        expect(screen.getAllByRole('img', { name: /^(Up|Down)$/ })).toHaveLength(2)
       },
     )
   })

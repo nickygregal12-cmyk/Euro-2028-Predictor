@@ -137,6 +137,13 @@ export function LeagueTable({
                   {r.movement && r.movement !== 'none' ? (
                     <span
                       className={`${styles.move} ${styles[r.movement]}`}
+                      // `aria-label` is prohibited on a roleless span — its
+                      // implicit role is generic, which cannot carry a name — so
+                      // the label was dropped and only the ▲/▼ glyph reached the
+                      // accessibility tree. `role="img"` makes the name
+                      // permitted, and matches how TeamFlag and ClubIdentity
+                      // already name their glyphs.
+                      role="img"
                       aria-label={r.movement === 'up' ? 'Up' : 'Down'}
                     >
                       {r.movement === 'up' ? '▲' : '▼'}
