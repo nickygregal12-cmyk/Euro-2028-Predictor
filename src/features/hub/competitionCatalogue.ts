@@ -130,6 +130,30 @@ export function competitionPath(competition: HubCompetition): string {
   return `/competitions/${competition.competitionSlug}/${competition.seasonSlug}`
 }
 
+/**
+ * A competition counts as joined while the user holds at least one game entry in
+ * it. Competition membership and game membership are separate records under
+ * ADR 0020, but neither is persisted until the Stage C1b migration, so this
+ * derives the competition half from the game half rather than inventing a
+ * second placeholder that would later disagree with the schema.
+ */
+export function isJoinedCompetition(competition: HubCompetition): boolean {
+  return competition.games.some((game) => game.joined)
+}
+
+/**
+ * Leaving a competition returns it to Discover rather than hiding it.
+ */
+export function partitionHubCompetitions(competitions: HubCompetition[]): {
+  mine: HubCompetition[]
+  discover: HubCompetition[]
+} {
+  return {
+    mine: competitions.filter(isJoinedCompetition),
+    discover: competitions.filter((competition) => !isJoinedCompetition(competition)),
+  }
+}
+
 export function findHubCompetition(
   competitionSlug: string | undefined,
   seasonSlug: string | undefined,

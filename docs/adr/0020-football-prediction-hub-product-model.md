@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 1 August 2026
 - **Supersedes:** the product-positioning and rehearsal-name deferral in ADR 0019. ADR 0019's club-identity and formal clearance cautions remain relevant to any later distinctive brand.
+- **Amends:** five named rules in ADRs 0012, 0013 and 0014, and the lock-policy ownership in ADR 0011. Every other rule in those records remains authoritative — see [§ Rule reconciliation](#rule-reconciliation-with-adrs-0011-0014).
 
 ## Context
 
@@ -59,22 +60,55 @@ Opening a competition always lands on its dashboard, not directly inside one gam
 
 Domestic league seasons use score predictions only. The existing non-cumulative score-prediction principle remains: exact score replaces correct-result points rather than adding to them. Missing predictions score zero and predictions remain editable until the matchweek lock.
 
-A domestic matchweek locks exactly at its earliest kickoff. A fixture moved or postponed after locking reopens and later relocks at its new authoritative kickoff. Abandoned matches wait for the replay or official completion. Admin overrides are permitted and permanently audited.
+A domestic Main Predictor matchweek locks exactly at its earliest kickoff, with no buffer. Abandoned matches wait for the replay or official completion. Admin overrides are permitted and permanently audited.
 
-Domestic Main Predictor has ten Jokers:
+Domestic Main Predictor has **ten whole-matchweek Jokers**:
 
-- five available in matchweeks 1–19;
-- five available in matchweeks 20–38;
+- five available in the first half of the season, five in the second;
 - unused first-half Jokers do not carry forward;
-- more than one Joker may be used in a matchweek;
-- each Joker doubles the normal points;
-- a moved/postponed Joker remains attached to its fixture but can be changed while the fixture is reopened.
+- **a maximum of one Joker per matchweek**;
+- a Joker doubles the points earned from that **whole matchweek**, not from a single fixture;
+- the Joker is declared before the matchweek locks and attaches to the matchweek, never to an individual fixture.
 
-Scottish league implementations must parameterise the season shape rather than assume 38 matchweeks. Their equivalent Joker windows must be configured explicitly before launch.
+Scottish league implementations must parameterise the season shape rather than assume 38 matchweeks, and their half-season Joker boundary is computed from the configured round count rather than inherited from the Premier League. The boundary is derived from competition structure and is deliberately **not** tied to the SPFL post-split phase.
+
+### Fixture exceptions
+
+A fixture postponed or materially rescheduled before it completes **is reassigned to the round its new kickoff falls in**, and its prediction becomes editable again under that round's lock. This reverses ADR 0012's decision to freeze such a prediction indefinitely: a fixture replayed months later is played in a materially different context — form, injuries, and often a title or relegation situation that did not exist when the prediction was made.
+
+**This is reassignment, not unlocking, and the distinction is binding.** ADR 0011's lock law is unchanged and remains authoritative:
+
+- a locked round **never** reopens, whatever subsequently happens to the fixture list;
+- the round lock stays derived from the earliest kickoff among the fixtures **currently assigned** to that round;
+- the per-match guard remains the integrity floor — no prediction is accepted for any match after that match's own kickoff, enforced server-side;
+- locks continue to fail closed on stale, unavailable or invalid fixture data.
+
+What moves is the fixture, not the lock. Completed fixtures and the points already earned from them are never altered, and the originating round's settled points stand.
+
+Because the Joker attaches to the matchweek rather than to a fixture, a departing fixture does not carry a Joker with it. The Joker continues to double whatever that matchweek's remaining fixtures earn, and the round displays that it settled on a reduced fixture set.
+
+### Lock policy is owned by the game, not the competition
+
+`bufferMinutes` must not remain a property of the competition season. Two games inside one competition legitimately need different deadlines, so lock policy moves to the game:
+
+| Game | Lock |
+| --- | --- |
+| Main Predictor (domestic) | exactly at the matchweek's first kickoff; no buffer |
+| Last Man Standing | 30 minutes before the round's first relevant kickoff |
+| Euro Original Predictor | single tournament-start lock |
+| Any other game | explicit game-owned policy; no inherited default |
+
+The derived-lock, monotonicity, per-match-guard and fail-closed rules in ADR 0011 apply to every game policy. A game policy chooses its buffer and scope; it cannot opt out of the integrity floor.
 
 ### Last Man Standing
 
 Users opt into Last Man Standing separately. A global game accepts entry only at its start, while private LMS competitions may be created to begin at a later matchweek. LMS presents survival and selection state rather than pretending to be a points leaderboard.
+
+ADR 0013 remains the domestic LMS authority in full, including entry timing, team reuse, the mandatory team-pool reset, postponement handling, public and private endgames, and the available presets.
+
+**Leave and rejoin, reconciled with ADR 0013.** A user may leave an LMS competition, but may **not** rejoin that same running competition — an entrant returning with an unused team pool while survivors have burned eight teams is a structural advantage, which is why ADR 0013 rejects rolling entry. They may enter the next LMS competition, which open continuously, or a newly created private LMS beginning at a later matchweek.
+
+Main Predictor and Predictor Championship are accumulation games where late or resumed entry is a self-correcting disadvantage, so ordinary leave and rejoin from a later unlocked matchweek applies to them.
 
 ### Predictor Championship
 
@@ -84,7 +118,20 @@ Predictor Championship runs every matchweek of the selected domestic competition
 - draw: 1;
 - loss: 0.
 
-A simple entrant set may use one league table. Larger competitions use groups followed by playoffs. Knockout ties use the already approved extra-time and penalties tie-break sequence. For the Scottish Premiership, playoffs begin once the post-split fixtures are known.
+**Predictor Championship is the interface name for the game the repository implements as the Predictor Cup.** This is a display-label change only. Internal identifiers — `bonus_cup_*` tables, `get_my_cup` and the other RPCs, existing migration filenames — are deliberately left unchanged. A schema rename would consume a migration against contract 64 and add risk without product benefit.
+
+**ADR 0014 remains the format authority in full and is not restated here.** Its deterministic model governs: a group is capped at 20 entrants, `meetings = floor(remaining_rounds / (N − 1))`, an odd meeting count produces a split and an even count a seeded knockout playoff, fields of 21 or more use balanced groups with cross-group ranking by points per game, and the format arithmetic runs on *remaining* rounds so mid-season starts are handled by the same calculation.
+
+Knockout ties use the approved sequence already documented in [`../predictor-cup-rules.md`](../predictor-cup-rules.md): normal points, then the Extra-Time Accuracy Score, then the mandatory Penalty Number, which is opposite-parity and therefore cannot end in a draw.
+
+**Entry timing:**
+
+- the global competition closes entry at Matchday 1;
+- a private competition may start later wherever ADR 0014's scheduling formula proves the remaining calendar completes a valid format.
+
+There is no fixed minimum-matchweek threshold. The deterministic calculator already answers the question, and a hard-coded floor would contradict it at some field sizes.
+
+For the Scottish Premiership, only 33 rounds are known when the season begins because post-split fixtures are not announced until the split occurs. Size the league phase against the known calendar and let the five post-split rounds serve as the finish, per ADR 0014.
 
 ### Entries, leagues and career state
 
@@ -116,6 +163,28 @@ Competition routes use stable slugs:
 
 Game routes are children of the competition season. Existing Euro routes may remain temporarily as compatibility paths while the full competition-scoped routing migration is completed.
 
+## Rule reconciliation with ADRs 0011–0014
+
+An earlier draft of this record was written from the owner brief and contradicted ADRs 0012, 0013 and 0014 while claiming to supersede only ADR 0019. That is corrected here. This section is the complete list of amendments; **anything not named below remains authoritative in its original record.**
+
+| # | Rule | Superseded position | Position now in force |
+| --- | --- | --- | --- |
+| 1 | Joker count | ADR 0012: eight per season, split four and four | **Ten per season, split five and five**, no carry-over between halves |
+| 2 | Joker unit | Earlier draft of this ADR: per fixture, more than one per matchweek | **Whole matchweek, maximum one per matchweek** — ADR 0012's matchweek unit is *upheld*, not superseded |
+| 3 | Postponement after lock | ADR 0012: the prediction stands, locked, and scores whenever played | **The fixture is reassigned to its new round and the prediction is editable under that round's lock**; ADR 0011 monotonicity is preserved |
+| 4 | Lock policy ownership | ADR 0011/0013: buffer carried by the competition season; 30 minutes applied competition-wide | **Buffer and scope are owned by the game.** Main Predictor 0, LMS 30 |
+| 5 | Championship entry close | ADR 0014: entry closes at the draw; the first public Cup opens once the field justifies it | **Global entry closes at Matchday 1**; private starts are governed by the ADR 0014 formula |
+
+Explicitly **unchanged** and still binding: ADR 0012's scoring values, non-cumulative exact-score rule, rolling entry, cumulative-total ranking law and secondary-ranking prohibition on feeding back into the total; every ADR 0013 rule except the buffer ownership in row 4 and the leave/rejoin clarification above; every ADR 0014 format, tie-break, draw-publication and jokers-never-apply-to-Cup rule except row 5; and every ADR 0011 rule including derived locks, monotonicity, the per-match guard and fail-closed behaviour.
+
+### Recorded reversal — the per-fixture Joker
+
+The owner brief specified ten per-fixture Jokers with more than one usable per matchweek. That is reversed here in favour of a single whole-matchweek Joker, on ADR 0012's arithmetic rather than on precedent.
+
+Ten doubled fixtures across roughly 380 in a season contribute about 2.6% of a season total — decorative rather than strategic, and not worth the interface, scoring and parity cost of a per-fixture token. Applied to a whole matchweek the same ten contribute on the order of 20%, which is close to the calibration the shipped tournament game already uses at five Jokers over thirty-six group matches. The matchweek unit is also materially easier to explain, to display and to reason about when a fixture leaves the round.
+
+This is recorded rather than silently applied because it reverses a direct owner instruction, and because ADR 0012 had already reached the same conclusion by the same arithmetic — a second record arriving at the opposite answer would have been the more suspicious outcome.
+
 ## Consequences
 
 - `/` becomes the authenticated competition hub rather than the Euro dashboard.
@@ -124,3 +193,8 @@ Game routes are children of the competition season. Existing Euro routes may rem
 - Stage C1 remains the persistence dependency for real competition-season records.
 - Stage C2 account-erasure/profile-ownership work remains independently blocked by issue #272 and does not block hub surfaces, season configuration or game-rule development.
 - The first implementation should favour a thin end-to-end domestic slice while preserving the Euro baseline, rather than another broad generic abstraction phase.
+- **`lockPolicy` moves off `CompetitionConfig`.** `src/domain/competition/kinds.ts` currently pins `bufferMinutes` to the competition — 0 for `tournament`, exactly 30 for `league_season`, enforced by `isLeagueSeasonCompetitionConfig`. That guard must become a game-owned policy before the domestic Main Predictor is built, or Predictor and LMS can never hold different deadlines inside one competition season. The refactor is behaviour-preserving for Euro 2028, which has one game policy at zero buffer.
+- **Persistence stays split.** Stage C1 (PR #317) carries competitions, rounds, lock events, awards and season-scoping columns only. Competition membership, the game catalogue, game availability, game membership, active/inactive state and join/leave/rejoin audit history belong to a separate **C1b** migration. Folding them into C1 would break `stageC1ContractClassification.test.ts` and `stageC1SchemaOverlayCoverage.test.ts`, which make the approved boundary executable.
+- **Domestic Jokers need their own scoring authority** with SQL-versus-TypeScript parity coverage, and `docs/scoring-rules.md` must state that tournament and domestic Jokers are separate rules for separate competitions. ADR 0012's prohibition on merging them into one implementation is unchanged.
+- **Fixture reassignment becomes a lock-critical path.** Moving a fixture between rounds changes two derived locks at once, so ingestion must audit the old and new round assignment alongside the kickoff change, and the reduced-fixture-set label required by ADR 0014 applies to any round that settles short.
+- Renaming Predictor Cup to Predictor Championship in the interface only means user-facing copy, route labels and help content diverge deliberately from schema identifiers. That divergence should be stated where developers meet it rather than discovered.

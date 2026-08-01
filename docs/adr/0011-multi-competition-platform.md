@@ -19,6 +19,8 @@ This is the decision point. An engine built against a single-tournament assumpti
 
 **Lock state becomes a resolver, not a boolean.** `resolveLockState(scope, now)`, where a scope is an entry, a round, a matchweek or a match. Euro 2028 configures a single scope; a league season configures one per matchweek. No surface computes lock state itself.
 
+> **Amended by [ADR 0020](0020-football-prediction-hub-product-model.md):** lock scope and buffer are owned by the **game**, not by the competition season, because a Main Predictor and a Last Man Standing inside one competition need different deadlines. Every rule in this section — derived locks, monotonicity, the per-match guard and fail-closed behaviour — applies unchanged to every game policy. A game policy chooses its scope and buffer; it cannot opt out of the integrity floor. ADR 0020 also reassigns a post-lock postponed fixture to its new round rather than reopening a locked round, which preserves the monotonicity rule below.
+
 **Season games lock per matchweek**, at the round's first kickoff. Every fixture in a round locks together, before any of it is played.
 
 **The lock instant is derived, never stored.** The effective round lock is the earliest kickoff among the fixtures currently assigned to that round, recomputed on every fixture ingestion. Broadcast rescheduling moves fixtures routinely; a stored lock instant would leave predictions open after a brought-forward fixture had kicked off, which is a complete loss of competition integrity.

@@ -204,7 +204,7 @@ test.describe('authentication and recovery', () => {
       await signOut(page)
       await logIn(page, OLD_PASSWORD)
       await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
-      await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
 
       await signOut(page)
       await clearLocalMailbox(EMAIL)
@@ -240,7 +240,7 @@ test.describe('authentication and recovery', () => {
       await page.getByRole('textbox', { name: 'Password', exact: true }).fill(NEW_PASSWORD)
       await page.getByRole('button', { name: 'Log in', exact: true }).click()
       await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
-      await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
     } finally {
       await cleanupPendingInviteLeague(inviteLeagueId)
     }

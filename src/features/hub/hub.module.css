@@ -8,6 +8,27 @@
   gap: 14px;
 }
 
+.section {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--tx);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.empty {
+  margin: 0;
+  color: var(--tx2);
+  line-height: 1.45;
+}
+
 .competitionCard {
   display: grid;
   gap: 14px;
@@ -30,6 +51,7 @@
 }
 
 .name {
+  margin: 0;
   color: var(--tx);
   font-size: 1.05rem;
   font-weight: 800;
