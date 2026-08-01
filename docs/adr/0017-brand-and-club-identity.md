@@ -1,6 +1,7 @@
 # ADR 0017 — Brand and club identity
 
 - **Status:** **Brand half superseded by [ADR 0019](0019-brand-decision-deferred.md)** (30 July 2026) — Scoreline was withdrawn on clearance evidence and the brand decision is deferred with a trigger. **The club identity half below is unchanged and remains in force.** The brand content in this record is retained as written, for traceability; read 0019 for the current position.
+- **Partially superseded by [ADR 0021](0021-sharing-surface-priority.md)** (1 August 2026): the consequence below claiming the weekly shareable results card is *"the artefact most likely to be seen outside the product"* no longer holds. Observed Phase 0 evidence (O3) found league tables were already being shared unprompted, so standings sharing is primary and the weekly card secondary. **The `ClubIdentity` requirement attached to that consequence still stands** and now applies to the standings share view first.
 - **Date:** 29 July 2026
 
 ## Context

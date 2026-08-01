@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router'
-import { Alert, Button } from '../../design-system'
+import { Alert, Button, EmptyIllustration, Masthead } from '../../design-system'
 import s from '../shared.module.css'
 import h from './hub.module.css'
 import { findHubCompetition, type HubGame } from './competitionCatalogue'
@@ -27,9 +27,14 @@ export function CompetitionDashboardPage() {
   if (!competition) {
     return (
       <div className={s.page}>
-        <div className={s.header}>
-          <span className={s.eyebrow}>Football Prediction Hub</span>
-          <h1 className={s.title}>Competition unavailable</h1>
+        <Masthead>
+          <div className={s.header}>
+            <span className={s.eyebrow}>Football Prediction Hub</span>
+            <h1 className={s.title}>Competition unavailable</h1>
+          </div>
+        </Masthead>
+        <div className={h.empty}>
+          <EmptyIllustration variant="list" />
         </div>
         <Alert variant="warning" title="This competition could not be found">
           Return to the hub and choose an available competition season.
@@ -43,55 +48,71 @@ export function CompetitionDashboardPage() {
 
   return (
     <div className={s.page}>
-      <div className={s.header}>
-        <span className={s.eyebrow}>Football Prediction Hub</span>
-        <h1 className={s.title}>{competition.name}</h1>
-        <p className={s.sub}>{competition.seasonLabel}</p>
-      </div>
-
-      <section className={h.competitionCard}>
-        <div className={h.cardHeader}>
-          <div className={h.cardTitle}>
-            <span className={h.name}>Competition dashboard</span>
-            <span className={h.season}>Your games and next actions</span>
+      <Masthead>
+        <div className={s.header}>
+          <span className={s.eyebrow}>Football Prediction Hub</span>
+          <h1 className={s.title}>{competition.name}</h1>
+          <div className={h.seasonRow}>
+            <span className={h.season}>{competition.seasonLabel}</span>
+            <span className={h.status}>{competition.status}</span>
           </div>
-          <span className={h.status}>{competition.status}</span>
         </div>
-        <p className={h.description}>
-          This dashboard will prioritise incomplete predictions, the next lock, live results,
-          current ranks and active game decisions for this competition.
-        </p>
-      </section>
+      </Masthead>
 
-      <div className={h.gameList}>
-        {competition.games.map((game) => {
-          const path = gamePath(competition.competitionSlug, competition.seasonSlug, game)
-          return (
-            <section className={h.gameCard} key={game.kind}>
-              <div className={h.gameHeader}>
-                <span className={h.gameName}>{game.name}</span>
-                <span className={game.joined ? h.joined : h.status}>
-                  {game.joined ? 'Joined' : game.status === 'coming-soon' ? 'Coming soon' : 'Available'}
-                </span>
-              </div>
-              <span className={h.gameDescription}>{game.description}</span>
-              <div className={h.actions}>
-                <Button
-                  variant={path ? 'primary' : 'secondary'}
-                  fullWidth
-                  disabled={!path}
-                  onClick={() => path && navigate(path)}
-                >
-                  {path ? 'Open game' : 'Build pending'}
-                </Button>
-                <Button variant="secondary" fullWidth disabled={game.status === 'coming-soon'}>
-                  {game.joined ? 'Leave game' : 'Join game'}
-                </Button>
-              </div>
-            </section>
-          )
-        })}
-      </div>
+      <p className={h.dashboardIntro}>
+        This dashboard will prioritise incomplete predictions, the next lock, live results,
+        current ranks and active game decisions for this competition.
+      </p>
+
+      <section className={h.section} aria-labelledby="dashboard-games">
+        <div className={h.sectionHead}>
+          <h2 className={h.sectionTitle} id="dashboard-games">
+            Games
+          </h2>
+          <span className={h.sectionCount}>{competition.games.length}</span>
+        </div>
+
+        <div className={h.gameStack}>
+          {competition.games.map((game) => {
+            const path = gamePath(competition.competitionSlug, competition.seasonSlug, game)
+            const headingId = `game-${game.kind}`
+            return (
+              <section
+                className={`${h.gameCard} ${game.joined ? '' : h.gameCardAvailable}`}
+                key={game.kind}
+                aria-labelledby={headingId}
+              >
+                <div className={h.gameHeader}>
+                  <h3 className={h.gameCardHeading} id={headingId}>
+                    {game.name}
+                  </h3>
+                  {game.joined ? (
+                    <span className={h.joined}>Joined</span>
+                  ) : (
+                    <span className={h.gameMeta}>
+                      {game.status === 'coming-soon' ? 'Coming soon' : 'Available'}
+                    </span>
+                  )}
+                </div>
+                <span className={h.gameDescription}>{game.description}</span>
+                <div className={h.actions}>
+                  <Button
+                    variant={path ? 'primary' : 'secondary'}
+                    fullWidth
+                    disabled={!path}
+                    onClick={() => path && navigate(path)}
+                  >
+                    {path ? 'Open game' : 'Build pending'}
+                  </Button>
+                  <Button variant="secondary" fullWidth disabled={game.status === 'coming-soon'}>
+                    {game.joined ? 'Leave game' : 'Join game'}
+                  </Button>
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      </section>
 
       <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
         Back to all competitions
