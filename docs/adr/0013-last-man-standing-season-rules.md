@@ -2,6 +2,7 @@
 
 - **Status:** Accepted direction — unimplemented
 - **Date:** 29 July 2026
+- **Amended by:** [ADR 0020](0020-football-prediction-hub-product-model.md) — the thirty-minute buffer becomes a property of the Last Man Standing **game** rather than of the competition season, so the Main Predictor in the same competition locks at first kickoff with no buffer. The buffer's value and every other rule below are unchanged. ADR 0020 also records that leaving an LMS competition never permits rejoining that same running competition, consistent with the rolling-entry rejection below.
 
 ## Context
 

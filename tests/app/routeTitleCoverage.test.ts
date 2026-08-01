@@ -60,6 +60,8 @@ const SAMPLE_PARAMS: Record<string, string> = {
   rivalId: '42',
   matchRef: 'R16-1',
   playerId: '42',
+  competitionSlug: 'premier-league',
+  seasonSlug: '2026-27',
 }
 
 function concretePath(route: string): string {
@@ -78,8 +80,6 @@ describe('route titles', () => {
   })
 
   it('still reports a genuinely unknown path as not found', () => {
-    // The fallback has a job; this keeps it doing it. Without this the whole
-    // file would pass if `getRouteTitle` returned a constant.
     expect(getRouteTitle('/no-such-page')).toBe(NOT_FOUND)
     expect(getRouteTitle('/predict/nope/deeper')).toBe(NOT_FOUND)
   })
@@ -98,9 +98,6 @@ describe('route titles', () => {
   })
 
   it('gives each route its own title rather than a parameterised sibling', () => {
-    // The shadowing case: `/league/overall` resolving to "League details"
-    // because `/league/:id` sits above it. That passes the assertion above
-    // while being wrong, and reordering the list is all it takes.
     const shared = new Map<string, string[]>()
     for (const route of declaredRoutes) {
       const title = getRouteTitle(concretePath(route))
@@ -116,9 +113,13 @@ describe('route titles', () => {
   })
 
   it('names the pages it titles', () => {
-    // Spot-checks against what each page actually renders as its heading, so a
-    // plausible-but-wrong title is caught. These were the ten added on 31 July
-    // 2026, every one of which previously read "Page not found".
+    expect(getRouteTitle('/')).toBe('Competitions')
+    expect(getRouteTitle('/competitions/premier-league/2026-27')).toBe(
+      'Premier League 2026/27',
+    )
+    expect(getRouteTitle('/competitions/euro/2028/original')).toBe(
+      'Euro 2028 Original Predictor',
+    )
     expect(getRouteTitle('/games')).toBe('Bonus Games')
     expect(getRouteTitle('/games/lms')).toBe('Last Man Standing')
     expect(getRouteTitle('/games/cup')).toBe('Predictor Cup')

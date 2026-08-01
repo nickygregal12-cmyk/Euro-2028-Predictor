@@ -7,8 +7,8 @@ test('keyboard navigation preserves skip target, route focus and announcements',
 }) => {
   await page.goto('/')
   await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
-  await expect(page).toHaveTitle('Home | Euro 2028 Predictor')
+  await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
+  await expect(page).toHaveTitle('Competitions | Football Prediction Hub')
 
   const skipLink = page.getByRole('link', { name: 'Skip to main content' })
   const main = page.locator('#main-content')
@@ -27,7 +27,7 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL((url) => url.pathname === '/predict')
-  await expect(page).toHaveTitle('Predict | Euro 2028 Predictor')
+  await expect(page).toHaveTitle('Predict | Football Prediction Hub')
   await expect(main).toBeFocused()
   await expect(page.locator(liveRegion)).toHaveText('Predict page loaded')
 
@@ -37,7 +37,7 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL((url) => url.pathname === '/predict/groups/A')
-  await expect(page).toHaveTitle('Group A predictions | Euro 2028 Predictor')
+  await expect(page).toHaveTitle('Group A predictions | Football Prediction Hub')
   await expect(main).toBeFocused()
   await expect(page.locator(liveRegion)).toHaveText(
     'Group A predictions page loaded',

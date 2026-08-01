@@ -2,6 +2,7 @@
 
 - **Status:** Accepted direction — unimplemented
 - **Date:** 29 July 2026
+- **Amended by:** [ADR 0020](0020-football-prediction-hub-product-model.md) — the game is named **Predictor Championship** in the interface, with every internal identifier left unchanged, and global entry closes at Matchday 1 rather than at the draw. Every format rule below — the group cap of twenty, the meetings arithmetic, the split, the seeded playoff, points-per-game cross-group ranking, the published immutable fixture list, the settlement cutoff, the tie-break sequence and the jokers-never-apply law — is **unchanged and remains the format authority**.
 
 ## Context
 

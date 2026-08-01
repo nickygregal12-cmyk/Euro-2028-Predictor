@@ -53,6 +53,11 @@
   status = 200
 
 [[redirects]]
+  from = "/competitions/euro/2028/original"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/predict"
   to = "/index.html"
   status = 200

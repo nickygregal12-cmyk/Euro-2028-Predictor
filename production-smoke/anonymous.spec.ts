@@ -13,6 +13,7 @@ const expectedContract = parseExpectedContract(
 
 const expectedSupabaseHost = `${expectedSupabaseRef}.supabase.co`
 const developmentSupabaseHost = `${developmentSupabaseRef}.supabase.co`
+const appName = 'Football Prediction Hub'
 
 test('anonymous production routes and environment isolation', async ({
   page,
@@ -64,7 +65,7 @@ test('anonymous production routes and environment isolation', async ({
   await expect(
     page.getByRole('heading', { name: 'Log in', exact: true }),
   ).toBeVisible()
-  await expect(page).toHaveTitle('Log in | Euro 2028 Predictor')
+  await expect(page).toHaveTitle(`Log in | ${appName}`)
   await expect(
     page.getByRole('textbox', { name: 'Email', exact: true }),
   ).toBeVisible()
@@ -76,10 +77,10 @@ test('anonymous production routes and environment isolation', async ({
     .getByRole('button', { name: 'Create an account', exact: true })
     .click()
   await expect(page).toHaveURL('/auth/signup')
-  await expect(page).toHaveTitle('Sign up | Euro 2028 Predictor')
+  await expect(page).toHaveTitle(`Sign up | ${appName}`)
 
   await page.goto('/auth/reset', { waitUntil: 'domcontentloaded' })
-  await expect(page).toHaveTitle('Reset password | Euro 2028 Predictor')
+  await expect(page).toHaveTitle(`Reset password | ${appName}`)
 
   await assertSignedOutGate(page, '/')
   await assertSignedOutGate(page, '/predict')
@@ -93,7 +94,7 @@ test('anonymous production routes and environment isolation', async ({
       exact: true,
     }),
   ).toBeVisible()
-  await expect(page).toHaveTitle('Page not found | Euro 2028 Predictor')
+  await expect(page).toHaveTitle(`Page not found | ${appName}`)
 
   expect(pageErrors).toEqual([])
   expect(forbiddenDevelopmentRequests).toEqual([])
@@ -103,7 +104,7 @@ test('anonymous production routes and environment isolation', async ({
 async function assertSignedOutGate(page: Page, pathname: string) {
   await page.goto(pathname, { waitUntil: 'domcontentloaded' })
   await expect(page).toHaveURL('/auth/login')
-  await expect(page).toHaveTitle('Log in | Euro 2028 Predictor')
+  await expect(page).toHaveTitle(`Log in | ${appName}`)
 }
 
 function parseExpectedContract(value: string | undefined): number {
