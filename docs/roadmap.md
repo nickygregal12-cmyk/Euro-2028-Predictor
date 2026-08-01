@@ -75,6 +75,24 @@ Stage C1 keeps current auth-owned competitive rows unchanged and is tracked by i
 
 None of these documents authorises a migration or hosted write.
 
+## Owner-approved delivery order — 1 August 2026
+
+The owner set the following order for the hub conversion. Items 1 and 2 are done.
+
+1. ~~Amending ADR resolving the five conflicting domestic rules.~~ **Done** — ADR 0020, PR #346.
+2. ~~Hub shell: stale E2E assertions, My competitions and Discover.~~ **Done** — PR #346.
+3. Complete the PR #317 migration and recovery review, then merge. One application defect was found and fixed on the branch; the branch is behind `main` and needs reconciling before merge.
+4. Apply contract 65 to **development only**, under a separate approved preflight. Production stays at 63 and paused.
+5. Refactor lock policy to be game-owned, including per-game `bufferMinutes`.
+6. Stage C1b: competition membership, game catalogue, game availability, game membership, active/inactive state and join/leave/rejoin audit history.
+7. Seed Premier League 2026/27 and Scottish Premiership 2026/27.
+8. Build the domestic Main Predictor, then domestic Jokers.
+9. Provider adapters with one provisional primary and two shadow comparators.
+10. Predictor Championship on the existing ADR 0014 format model.
+11. Domestic Last Man Standing on ADR 0013.
+
+Two product decisions remain genuinely open and block none of the above: which football API becomes the long-term primary provider, and the future public hub domain.
+
 ## Next executable sequence
 
 1. ~~Approve and integrate PR #236 as the Stage C design baseline.~~ **Done.**

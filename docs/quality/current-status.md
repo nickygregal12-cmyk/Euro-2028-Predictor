@@ -2,11 +2,13 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 30 July 2026
+**Status date:** 1 August 2026
 
 ## Product position
 
 The repository is a multi-competition football prediction platform in transition. Euro 2028 is the first recoverable competition baseline, not the endpoint of the programme.
+
+The visible product is now the **Football Prediction Hub**: `/` is the authenticated hub with My competitions and Discover, competitions have stable season routes, and the Euro dashboard sits behind `/competitions/euro/2028/original` with its scoring and stored data unchanged. Landed by PR #346 on 1 August 2026. The join and leave controls on those surfaces are non-persistent placeholders until Stage C1b supplies membership.
 
 - **user evidence:** [`../architecture/phase-0-world-cup-evidence.md`](../architecture/phase-0-world-cup-evidence.md) — owner observation of a live World Cup predictor with roughly 60 users across a full tournament. It is the only user evidence the programme holds, and it corrects six recorded planning assumptions;
 - recoverable Euro baseline: `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da`;
@@ -14,7 +16,8 @@ The repository is a multi-competition football prediction platform in transition
 - product phases and gates: [`../architecture/programme-plan.md`](../architecture/programme-plan.md);
 - engineering sequence: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md);
 - current execution sequence: [`../roadmap.md`](../roadmap.md);
-- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0019-brand-decision-deferred.md`](../adr/0019-brand-decision-deferred.md).
+- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0020-football-prediction-hub-product-model.md`](../adr/0020-football-prediction-hub-product-model.md);
+- **domestic rule authority:** ADR 0020 amends five named rules in ADRs 0011–0014 — Joker count, Joker unit, post-lock postponement, lock-policy ownership and Predictor Championship entry close. Its reconciliation table is the list; everything not named there stays authoritative in its original record. Read ADR 0020 before implementing any domestic game rule.
 
 ## Repository and release baseline
 
@@ -74,7 +77,11 @@ The development Supabase inspection was limited to project identity/version and 
 | TypeScript/static coverage | **Exhaustive for committed TS/TSX.** PRs #255, #258 and #261 cover application, tests, e2e, production-smoke, tools and configs. |
 | Deploy-gate JavaScript | **Type-checked.** PR #264 covers the three production-decision gates; the remaining JavaScript inventory is explicit. |
 | Leaderboard scale | **Measured, not redesigned.** ACQ-R02 remains open; hosted concurrency is untested and no materialised standings table exists. |
-| Stage C1 | **Pre-SQL governance, assertion classification and detailed schema/coverage reconciliation are complete.** Migration drafting and disposable proof are next; no migration or hosted write exists. |
+| Football Prediction Hub shell | **Landed (PR #346).** Hub root, My competitions/Discover, competition-season routes and a reusable competition dashboard. The competition catalogue is a static placeholder and membership does not persist. |
+| Domestic rule authority | **Reconciled (PR #346).** ADR 0020 amends five named rules in ADRs 0011–0014 and states what is unchanged. No contradictory ADR pair remains live. |
+| Game-owned lock policy | **Not started, and a prerequisite for the domestic Main Predictor.** `src/domain/competition/kinds.ts` pins `bufferMinutes` to the competition — exactly 30 for `league_season`, enforced by `isLeagueSeasonCompetitionConfig`. ADR 0020 moves buffer and scope to the game so Main Predictor (0) and LMS (30) can differ inside one competition. |
+| Stage C1 | **Migration drafted and proven on disposable infrastructure (PR #317); not merged.** One application defect found and fixed on the branch on 1 August 2026 — see the PostgREST embed row below. No hosted write exists or is authorised. |
+| PostgREST embeds under composite keys | **Guarded.** The C1 migration creates a second foreign key for 39 child/parent pairs, which made the one unqualified embed in the codebase fail with `PGRST201` and took out 37 authenticated browser journeys. Fixed by naming the key; `postgrestEmbedDisambiguation.test.ts` now requires every embed to name its key. Stage C1b adds further composite keys, so this stays load-bearing. |
 | Stage C2 | **Blocked.** Independent data-protection review issue #272 must approve the retention/erasure boundary before profile ownership, pseudonymisation or related RLS work. |
 | Public launch readiness | **Not ready.** Domestic-season implementation, ingestion, operations, accessibility, legal/client and brand gates remain. |
 | Production mutation | **Prohibited without action-specific owner approval and the full milestone process.** |
@@ -132,7 +139,9 @@ No migration exists and no hosted schema operation is authorised.
 
 ## Open platform gaps
 
-- Stage C1 migration implementation and disposable proof;
+- Stage C1 migration merge, then Stage C1b competition/game membership persistence;
+- game-owned lock policy, replacing the competition-level `bufferMinutes`;
+- the competition slug the C1 migration derives for Euro (`uefa-euro`) does not match the hub route slug (`euro`); reconcile before the hub reads real competition records;
 - independent data-protection review and later Stage C2 implementation;
 - fixture/result ingestion and provider evidence;
 - season Predictor, Last Man Standing and Cup implementations;
