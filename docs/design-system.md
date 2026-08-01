@@ -510,6 +510,8 @@ Any decorative graphic on any surface:
 - is inline SVG or CSS gradients/borders — never a raster asset, never a remote URL, never an icon-font;
 - draws only from tokens. No raw hex in decoration CSS, per §2.
 
+**One narrow exemption: `mask-image` alpha stops.** A mask reads alpha, not colour — `#000` in a mask means "fully opaque here" and paints nothing. There is no token for opacity and inventing one would imply a palette value that does not exist. So `transparent` and `#000` are permitted *inside `mask-image` and `-webkit-mask-image` only*, and nowhere else. Any hex that could reach a pixel is still a §2 violation. This is stated because the built CSS does contain `#000`, and a reviewer checking the rule above would otherwise be right to flag it.
+
 If a graphic ever carries meaning, it stops being decoration: it needs `role="img"` and an accessible name, and it belongs in a component with a stated contract — not here.
 
 ### 11.4 Text-safe zones and contrast **[platform]**
