@@ -123,6 +123,8 @@ Rules:
 
 Season Predictor and Last Man Standing rules are governed by ADR 0012 and ADR 0013. Do not copy tournament values into a season implementation or merge separate scoring authorities for convenience.
 
+**[ADR 0020](docs/adr/0020-football-prediction-hub-product-model.md) amends five named rules in ADRs 0011–0014** — Joker count, Joker unit, post-lock postponement, lock-policy ownership and Predictor Championship entry close. Read its reconciliation table before implementing a domestic rule: it is the complete list of amendments, and everything it does not name remains authoritative in its original record. Domestic and tournament Jokers are separate rules for separate competitions and must not share an implementation.
+
 Automatic valid-entry submission at the tournament lock is implemented and must continue to reuse the authoritative validator. The recurring season cadence is separate future work.
 
 ## Verification commands
