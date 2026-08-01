@@ -102,7 +102,7 @@ function typescriptAssertions(source: string): string[] {
 
 function sqlAssertions(source: string): string[] {
   const assertions: string[] = []
-  const callPattern = /select\s+(?:throws_ok|lives_ok)\s*\(([\s\S]*?)^\s*\);\s*$/gim
+  const callPattern = /select\s+(?:throws_ok|lives_ok|is)\s*\(([\s\S]*?)^\s*\);\s*$/gim
 
   for (const call of source.matchAll(callPattern)) {
     const literals = [...call[1].matchAll(/'((?:''|[^'])*)'/g)].map((match) =>
