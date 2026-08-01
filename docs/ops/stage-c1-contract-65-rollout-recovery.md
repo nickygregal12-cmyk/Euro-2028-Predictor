@@ -35,6 +35,40 @@ This proves rebuildability and compatibility in a disposable environment. It doe
 not prove the current contents, privileges, load or recovery point of either hosted
 project.
 
+## First hosted attempt: failed and rolled back
+
+The first attempt to apply contract 65 to development `iouzoutneyjpugbbtdem`
+failed and rolled back atomically. Hosted development stayed at contract 64,
+latest migration `20260730180000`, with no Stage C1 object present and
+preservation counts unchanged.
+
+The failing statement was the `bonus_competition_audit` scope backfill.
+`bonus_competition_audit` is the one backfill target guarded by a row-level
+`before update or delete` immutability trigger, and a row-level trigger does not
+fire when a statement matches no rows. Every disposable rebuild reached Stage C1
+with an empty audit table, so that statement had never run against a row. Hosted
+development held nine audit rows, so it raised SQLSTATE 42501.
+
+The correction amends the unhosted contract-65 migration rather than adding a
+contract 66: every data-bearing database fails while applying contract 65, so it
+can never reach a later repair. Around that one statement — and only that one —
+the named trigger `block_bonus_audit_mutation` is suspended, the derived
+`tournament_id` is written, and the trigger is enabled again before any further
+migration work. The suspension is transactional DDL under `access exclusive`, so
+no concurrent session observes it and a rollback anywhere later in the migration
+restores it.
+
+Recorded audit history is untouched: the statement writes only `tournament_id`,
+only where it is still null, and derives it only through the existing immutable
+`competition_id -> bonus_competitions.tournament_id` relationship. No audit event
+is created to describe the backfill, because a schema-maintenance operation must
+not appear in user-facing audit history.
+
+The gap that let this reach hosted is closed by a migration-transition rehearsal
+that crosses contract 64 to 65 with populated audit tables
+(`tests/migration-transition/`), plus a source-order guard over the suspension
+itself (`tests/scripts/stageC1AuditScopeBackfillSource.test.ts`).
+
 ## Required approval boundary
 
 A hosted development write requires a new explicit owner approval after all of the
@@ -119,6 +153,11 @@ The hosted development postflight must prove:
   security-definer definitions with pinned `search_path`;
 - the PR #246 auth/deletion matrix and ownership RLS predicates are unchanged;
 - the preserved Euro and Bonus Game row counts match preflight;
+- every historical `bonus_competition_audit` row carries a `tournament_id` equal to
+  its competition parent's, with no row deleted, duplicated or added, and with the
+  original ids, actions, details, actors and timestamps unchanged;
+- `block_bonus_audit_mutation` is enabled, no other trigger is left disabled, and a
+  rollback-safe probe proves audit `update` and `delete` still fail with 42501;
 - authenticated Original, leagues, KO Predictor, LMS and Cup journeys work against
   the migrated development database;
 - only after database and application verification, the non-production Netlify

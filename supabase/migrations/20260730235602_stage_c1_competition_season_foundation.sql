@@ -1263,10 +1263,102 @@ set tournament_id = c.tournament_id
 from public.bonus_competitions c
 where c.id = x.competition_id;
 
+-- `bonus_competition_audit` is the one backfill target guarded by a row-level
+-- BEFORE UPDATE OR DELETE immutability trigger. A row-level trigger never fires
+-- when a statement matches zero rows, so every disposable rebuild — which reaches
+-- this point with an empty audit table — passed while a populated database raised
+-- 42501 and rolled the whole migration back.
+--
+-- Adding derived competition-season scope is schema evolution, not a correction to
+-- the historical action, detail, actor or timestamp, so the immutability guarantee
+-- is suspended for exactly this one statement rather than weakened. `alter table
+-- ... disable trigger` is transactional DDL holding ACCESS EXCLUSIVE: no concurrent
+-- session observes the trigger disabled, and a rollback anywhere later in this
+-- migration restores it along with the rest of the Stage C1 schema.
+do $stage_c1_audit_scope_preflight$
+declare
+  v_enabled "char";
+  v_missing_parent bigint;
+  v_unscoped_parent bigint;
+begin
+  select t.tgenabled into v_enabled
+  from pg_catalog.pg_trigger t
+  where t.tgrelid = 'public.bonus_competition_audit'::regclass
+    and t.tgname = 'block_bonus_audit_mutation'
+    and not t.tgisinternal;
+
+  if v_enabled is null then
+    raise exception
+      'Stage C1 audit scope backfill requires trigger block_bonus_audit_mutation on public.bonus_competition_audit';
+  end if;
+
+  if v_enabled <> 'O' then
+    raise exception
+      'Stage C1 audit scope backfill requires block_bonus_audit_mutation to be enabled before the backfill; found tgenabled %',
+      v_enabled;
+  end if;
+
+  select
+    count(*) filter (where c.id is null),
+    count(*) filter (where c.id is not null and c.tournament_id is null)
+  into v_missing_parent, v_unscoped_parent
+  from public.bonus_competition_audit x
+  left join public.bonus_competitions c on c.id = x.competition_id;
+
+  if v_missing_parent > 0 then
+    raise exception
+      '% audit row(s) reference a missing bonus competition; competition-season scope cannot be derived',
+      v_missing_parent;
+  end if;
+
+  if v_unscoped_parent > 0 then
+    raise exception
+      '% audit row(s) have a parent bonus competition without a tournament_id',
+      v_unscoped_parent;
+  end if;
+end
+$stage_c1_audit_scope_preflight$;
+
+alter table public.bonus_competition_audit
+  disable trigger block_bonus_audit_mutation;
+
 update public.bonus_competition_audit x
 set tournament_id = c.tournament_id
 from public.bonus_competitions c
-where c.id = x.competition_id;
+where c.id = x.competition_id
+  and x.tournament_id is null;
+
+alter table public.bonus_competition_audit
+  enable trigger block_bonus_audit_mutation;
+
+do $stage_c1_audit_scope_postflight$
+declare
+  v_enabled "char";
+  v_unscoped bigint;
+begin
+  select count(*) into v_unscoped
+  from public.bonus_competition_audit
+  where tournament_id is null;
+
+  if v_unscoped > 0 then
+    raise exception
+      '% audit row(s) still have no tournament_id after the Stage C1 scope backfill',
+      v_unscoped;
+  end if;
+
+  select t.tgenabled into v_enabled
+  from pg_catalog.pg_trigger t
+  where t.tgrelid = 'public.bonus_competition_audit'::regclass
+    and t.tgname = 'block_bonus_audit_mutation'
+    and not t.tgisinternal;
+
+  if v_enabled is distinct from 'O' then
+    raise exception
+      'Stage C1 audit scope backfill left block_bonus_audit_mutation not enabled; tgenabled is %',
+      coalesce(v_enabled::text, 'missing');
+  end if;
+end
+$stage_c1_audit_scope_postflight$;
 
 update public.bonus_cup_groups x
 set tournament_id = c.tournament_id

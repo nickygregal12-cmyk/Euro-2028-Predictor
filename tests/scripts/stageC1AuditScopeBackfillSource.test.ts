@@ -1,0 +1,182 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+/**
+ * The shape of the Stage C1 audit-scope backfill, read out of the migration.
+ *
+ * `bonus_competition_audit` is append-only: a row-level BEFORE UPDATE OR DELETE
+ * trigger raises 42501 on any mutation. Stage C1 has to write one new derived
+ * column onto the historical rows, which is the single legitimate exception —
+ * adding competition-season scope is schema evolution, not a correction to the
+ * recorded action, detail, actor or timestamp.
+ *
+ * The transition rehearsal proves the migration reaches the right end state. It
+ * cannot prove *how*: `disable trigger all` around the same backfill, or a
+ * permanent bypass inside the trigger function, would reach an identical end
+ * state and pass every one of those assertions. That is what this file is for.
+ * It fixes the mechanism — one named trigger, suspended around one statement
+ * that writes one column — so a broader suspension has to fail here.
+ *
+ * Text-based over the committed migrations, so it needs no database.
+ */
+
+const repositoryRoot = process.cwd()
+const migrationsDirectory = resolve(repositoryRoot, 'supabase/migrations')
+const STAGE_C1 = '20260730235602_stage_c1_competition_season_foundation.sql'
+
+/**
+ * Line comments are stripped before matching. These migrations document
+ * themselves by quoting the DDL they describe, and the commentary above the
+ * backfill names `disable trigger` in prose — documentation must not be able to
+ * satisfy, or fail, a source assertion.
+ */
+function withoutComments(sql: string): string {
+  return sql
+    .split('\n')
+    .map((line) => line.replace(/--.*$/, ''))
+    .join('\n')
+}
+
+function normalise(sql: string): string {
+  return sql.replace(/\s+/g, ' ').trim()
+}
+
+function migrationSource(file: string): string {
+  return withoutComments(readFileSync(resolve(migrationsDirectory, file), 'utf8'))
+}
+
+const migrationFiles = readdirSync(migrationsDirectory)
+  .filter((file) => file.endsWith('.sql'))
+  .sort()
+
+const stageC1 = migrationSource(STAGE_C1)
+
+const DISABLE = 'alter table public.bonus_competition_audit disable trigger block_bonus_audit_mutation;'
+const ENABLE = 'alter table public.bonus_competition_audit enable trigger block_bonus_audit_mutation;'
+const BACKFILL =
+  'update public.bonus_competition_audit x set tournament_id = c.tournament_id ' +
+  'from public.bonus_competitions c where c.id = x.competition_id and x.tournament_id is null;'
+
+const normalised = normalise(stageC1)
+
+describe('Stage C1 audit scope backfill source', () => {
+  it('suspends the audit trigger by name before the backfill', () => {
+    const disableAt = normalised.indexOf(DISABLE)
+    const backfillAt = normalised.indexOf(BACKFILL)
+
+    expect(disableAt, 'the named trigger suspension is missing').toBeGreaterThan(-1)
+    expect(backfillAt, 'the audit scope backfill is missing').toBeGreaterThan(-1)
+    expect(disableAt).toBeLessThan(backfillAt)
+  })
+
+  it('re-enables the audit trigger immediately after the backfill', () => {
+    // Exactly one statement may sit inside the suspension window. Anything else
+    // moving in — another table's backfill, a second update, a stray delete —
+    // changes this slice and fails here.
+    const between = normalised.slice(
+      normalised.indexOf(DISABLE) + DISABLE.length,
+      normalised.indexOf(ENABLE),
+    )
+
+    expect(normalise(between)).toBe(BACKFILL)
+  })
+
+  it('writes only tournament_id, and only where it is still unset', () => {
+    // One update against the audit table across the whole migration set, and its
+    // assignment list is a single column. `recorded_at`, `actor_id`, `action`,
+    // `detail` and `competition_id` are not writable by any of them.
+    const updates = migrationFiles.flatMap((file) =>
+      [
+        ...normalise(migrationSource(file)).matchAll(
+          /update public\.bonus_competition_audit\b[^;]*;/g,
+        ),
+      ].map((match) => match[0]),
+    )
+
+    expect(updates).toHaveLength(1)
+
+    const assignments = updates[0].slice(
+      updates[0].indexOf(' set ') + ' set '.length,
+      updates[0].indexOf(' from '),
+    )
+
+    expect(assignments).toBe('tournament_id = c.tournament_id')
+    expect(updates[0]).toContain('and x.tournament_id is null;')
+  })
+
+  it('derives scope only through the competition parent', () => {
+    const backfill = normalised.slice(
+      normalised.indexOf(BACKFILL),
+      normalised.indexOf(BACKFILL) + BACKFILL.length,
+    )
+
+    expect(backfill).toContain('from public.bonus_competitions c')
+    expect(backfill).toContain('where c.id = x.competition_id')
+  })
+
+  it('suspends nothing beyond that one trigger, anywhere in the migration set', () => {
+    for (const file of migrationFiles) {
+      const source = normalise(migrationSource(file))
+      const suspensions = [...source.matchAll(/disable trigger ([a-z_"* ]+?);/g)].map(
+        (match) => match[1].trim(),
+      )
+
+      if (file === STAGE_C1) {
+        expect(suspensions, `${file} trigger suspensions`).toEqual([
+          'block_bonus_audit_mutation',
+        ])
+        continue
+      }
+
+      expect(suspensions, `${file} must not suspend triggers`).toEqual([])
+    }
+  })
+
+  it('uses no blanket suspension, replication-role switch or RLS relaxation', () => {
+    for (const file of migrationFiles) {
+      const source = normalise(migrationSource(file))
+
+      expect(source, `${file} disable trigger all`).not.toContain('disable trigger all')
+      expect(source, `${file} disable trigger user`).not.toContain('disable trigger user')
+      expect(source, `${file} session_replication_role`).not.toContain(
+        'session_replication_role',
+      )
+      expect(source, `${file} disable row level security`).not.toContain(
+        'disable row level security',
+      )
+    }
+  })
+
+  it('adds no permanent bypass of audit immutability', () => {
+    // The guard function keeps the definition it was created with, and nothing
+    // drops or replaces the trigger to get around it.
+    expect(stageC1).not.toContain('function predictor_internal.block_bonus_audit_mutation')
+    expect(normalised).not.toContain('drop trigger block_bonus_audit_mutation')
+    expect(normalised).not.toContain('drop trigger if exists block_bonus_audit_mutation')
+
+    // No settable escape hatch — a GUC read inside the guard would let any
+    // session with `set` turn immutability off.
+    const guard = migrationSource('20260728150000_bonus_games_platform.sql')
+    const body = guard.slice(
+      guard.indexOf('function predictor_internal.block_bonus_audit_mutation'),
+    )
+    expect(body).toContain("raise exception 'Bonus competition audit entries are immutable'")
+    expect(body.slice(0, body.indexOf('create trigger'))).not.toContain('current_setting')
+  })
+
+  it('grants no role direct mutation access to the audit table', () => {
+    // The suspension is transaction-local and the migration runs as the table
+    // owner. Browser roles and the service role must still hold nothing.
+    const grants = migrationFiles.flatMap((file) => {
+      const source = normalise(migrationSource(file))
+      return [
+        ...source.matchAll(
+          /grant ([a-z, ]+?) on (?:table )?public\.bonus_competition_audit to ([a-z_, ]+);/g,
+        ),
+      ].map((match) => `${file}: ${match[1]} -> ${match[2]}`)
+    })
+
+    expect(grants).toEqual([])
+  })
+})
