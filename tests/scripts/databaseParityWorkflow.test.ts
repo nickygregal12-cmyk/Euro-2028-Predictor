@@ -14,6 +14,16 @@ describe('database parity workflow trigger contract', () => {
     expect(workflow).not.toContain("- 'scripts/database-parity/**'")
   })
 
+  it('watches the Stage C1 hosted execution scripts and development workflow', () => {
+    expect(workflow).toContain("- 'scripts/ops/**'")
+    expect(workflow).toContain(
+      "- '.github/workflows/stage-c1-development-rollout.yml'",
+    )
+    expect(workflow).toContain(
+      "- 'tests/scripts/stageC1DevelopmentRolloutWorkflow.test.ts'",
+    )
+  })
+
   it('watches the application/database deployment contract', () => {
     expect(workflow).toContain("- 'config/deployment-contract.json'")
   })

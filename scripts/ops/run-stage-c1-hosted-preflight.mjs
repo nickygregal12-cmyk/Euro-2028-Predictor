@@ -6,7 +6,8 @@ import {
   writeEvidence,
 } from './stage-c1-evidence-lib.mjs'
 
-const usage = `Usage:
+const usage = `Usage (linked mode by default; CI sets STAGE_C1_TARGET_MODE=db-url
+and consumes SUPABASE_DEV_DB_URL only from the environment):
   SUPABASE_BIN=/absolute/path/to/supabase node scripts/ops/run-stage-c1-hosted-preflight.mjs \\
     --project-ref iouzoutneyjpugbbtdem \\
     --output /secure/path/stage-c1-preflight-UTC.json`
