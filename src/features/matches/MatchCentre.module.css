@@ -235,11 +235,13 @@
 }
 .jokerPaid {
   background: var(--gold-tint);
-  color: var(--gold);
+  color: var(--gold-strong);
 }
 .jokerBurned {
   background: var(--chip);
-  color: var(--tx3);
+  /* --tx2, not --tx3: this sits on --chip, where --tx3 measures 4.07:1 dark and
+     3.11:1 light against the 4.5:1 AA minimum. See tokenContrast.test.ts. */
+  color: var(--tx2);
 }
 .youTag {
   color: var(--acc);

@@ -1,0 +1,46 @@
+/* Empty-state mark — design-system §11.9. Tokens only; decorative strokes stay
+   at or below --line luminance so the illustration never competes with the
+   heading that carries the meaning. */
+
+.illustration {
+  display: block;
+  width: 120px;
+  height: 76px;
+  max-width: 100%;
+}
+
+.mark,
+.line,
+.row,
+.rowFaint,
+.rowDone {
+  fill: none;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.mark {
+  stroke: var(--line);
+}
+
+.line {
+  stroke: var(--line);
+  opacity: 0.7;
+}
+
+.row {
+  stroke: var(--line);
+}
+
+.rowFaint {
+  stroke: var(--line);
+  opacity: 0.45;
+}
+
+/* The only place the accent appears, and only to say "done" — never as
+   decoration for its own sake (design-system §2: accent means the user's
+   world). */
+.rowDone {
+  stroke: var(--acc);
+  opacity: 0.55;
+}

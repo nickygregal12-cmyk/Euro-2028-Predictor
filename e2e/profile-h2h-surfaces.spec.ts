@@ -4,6 +4,7 @@ import {
   lockH2HSurfaceFixture,
   prepareH2HSurfaceFixture,
 } from './h2h-local'
+import { expectNoSeriousAxeViolations } from './axe-scan'
 
 test('secure player profiles cross lock on desktop and phone', async ({ page }, testInfo) => {
   test.setTimeout(150_000)
@@ -20,6 +21,7 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
 
     await page.goto(`/league/${fixture.leagueId}`)
     await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible()
+    await expectNoSeriousAxeViolations(page, '/league/:id')
 
     const rivalRow = page
       .getByRole('button')
@@ -53,6 +55,7 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
 
     await expect(page).toHaveURL((url) => url.pathname === `/h2h/${fixture.rivalId}`)
     await expect(page.getByRole('heading', { name: 'Head to head' })).toBeVisible()
+    await expectNoSeriousAxeViolations(page, '/h2h/:rivalId')
     await expect(page.getByText(fixture.rivalDisplayName, { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Total points', { exact: true })).toBeVisible()
     await expect(
@@ -71,6 +74,10 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
     await page.getByRole('button', { name: 'View player profile', exact: true }).click()
     await expect(page).toHaveURL((url) => url.pathname === `/profile/${fixture.rivalId}`)
     await expect(page.getByText(String(fixture.rivalPoints), { exact: true }).first()).toBeVisible()
+
+    // Scanned after the lock, where the profile shows points, ranks and
+    // breakdowns. The pre-lock state a few assertions up hides all of it.
+    await expectNoSeriousAxeViolations(page, '/profile/:playerId')
   } finally {
     await clearH2HSurfaceFixture(fixture)
   }

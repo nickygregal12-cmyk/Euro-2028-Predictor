@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { TeamFlag } from '../../design-system'
 import { ChevronDownIcon } from '../../design-system/icons'
 import {
@@ -27,6 +27,11 @@ export type PointsBreakdownProps = {
  */
 export function PointsBreakdown({ events, defaultExpanded = false }: PointsBreakdownProps) {
   const { categories, total } = groupScoreEvents(events)
+  // `aria-controls` needs an id that is unique in the document. It used to be
+  // `pb-${category}`, which is unique only while one breakdown is on the page —
+  // a second instance would silently point both expanders at the first one's
+  // list. `useId` is what the rest of the codebase uses for exactly this.
+  const instanceId = useId()
   const [open, setOpen] = useState<Record<string, boolean>>(() =>
     defaultExpanded
       ? Object.fromEntries(categories.filter((c) => !c.pending).map((c) => [c.category, true]))
@@ -38,7 +43,7 @@ export function PointsBreakdown({ events, defaultExpanded = false }: PointsBreak
       <ul className={s.list}>
         {categories.map((cat) => {
           const isOpen = Boolean(open[cat.category]) && !cat.pending
-          const rowId = `pb-${cat.category}`
+          const rowId = `${instanceId}-${cat.category}`
           return (
             <li key={cat.category} className={s.category}>
               <button

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { expectNoSeriousAxeViolations } from './axe-scan'
 import {
   clearPreparedKnockoutFixture,
   clearPreparedThirdPlaceBoundaryTie,
@@ -31,6 +32,10 @@ async function openAdminResults(page: Page) {
   await expect(
     page.getByRole('heading', { name: 'Results Centre' }),
   ).toBeVisible()
+
+  // The administrator surfaces were deferred for needing the `results`
+  // capability. This spec creates a user who holds it and is already here.
+  await expectNoSeriousAxeViolations(page, '/admin/results')
 }
 
 async function chooseGroupFixture(page: Page) {
@@ -291,6 +296,26 @@ test.describe('Admin result workflow', () => {
     }
   })
 
+  test('the user administration surface is accessible', async ({ page }, testInfo) => {
+    desktopOnly(testInfo)
+
+    // `/admin/users` was deferred for "requires the protected administrator
+    // capability". This spec's auto-logged-in user holds it — `openAdminResults`
+    // is a plain `goto` — so the capability was never the blocker.
+    //
+    // Placed before the denial journey below, which signs in as an ordinary
+    // user and would leave no admin session to scan with. It mutates nothing,
+    // so its position is otherwise free.
+    await page.goto('/admin/users')
+    await expect(page).toHaveURL((url) => url.pathname === '/admin/users', {
+      timeout: 15_000,
+    })
+    await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible()
+    await expect(page.getByText('User controls are not enabled yet')).toBeVisible()
+
+    await expectNoSeriousAxeViolations(page, '/admin/users')
+  })
+
   test('ordinary authenticated users are denied the admin route', async ({
     page,
   }, testInfo) => {
@@ -304,7 +329,7 @@ test.describe('Admin result workflow', () => {
       await expect(
         page.getByRole('heading', { name: 'Results Centre' }),
       ).toHaveCount(0)
-      await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
     } finally {
       await deleteOrdinaryUser(ordinary.id)
     }

@@ -74,7 +74,12 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--tx3);
+  /* --tx2, not --tx3: this label sits on --chip, where --tx3 measures 4.07:1
+     dark and 3.11:1 light against the 4.5:1 AA minimum. Found by the axe scan
+     of /league/:id on 31 July 2026, the first time that route was scanned.
+     --tx2 gives 5.70:1 and 4.83:1. Button.module.css records the same swap for
+     the same reason on --mut. */
+  color: var(--tx2);
 }
 
 .code {

@@ -1,0 +1,124 @@
+/* Broadcast Grid masthead — design-system §11.2.
+   Tokens only. Every decorative value resolves to --line or a token derived
+   from it, so both themes work from one implementation (§11.5). */
+
+.masthead {
+  --masthead-accent: var(--line);
+  /* Width reserved for decoration at the inline-end edge. The content is capped
+     to the remainder, so the two regions cannot overlap at any viewport. */
+  --masthead-decoration-width: 64px;
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+
+  /* Bleed to the viewport edge against PageShell's exactly-16px content
+     padding, then re-apply it inside. Width-neutral: the negative margin and
+     the padding cancel, so this cannot introduce horizontal overflow (§11.2). */
+  margin-inline: calc(var(--sp-4) * -1);
+  margin-top: calc(var(--sp-4) * -1);
+  padding: var(--sp-5) var(--sp-4) var(--sp-4);
+
+  border-bottom: 1px solid var(--line);
+}
+
+/* The decoration occupies a reserved band at the inline-end edge and the
+   content is capped so it cannot reach it. This is a structural guarantee
+   rather than a tuned opacity, and it exists because the margin is genuinely
+   thin: `--tx3` on `--bg` measures 4.90:1 in the light theme, so any
+   decoration behind the eyebrow drops it under AA (measured at 4.27:1 before
+   this change). Nothing may paint behind text here. */
+.decoration {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: var(--masthead-decoration-width);
+  z-index: 0;
+  pointer-events: none;
+  color: var(--masthead-accent);
+}
+
+/* The rule field. Anchored to the inline-end edge and masked so it has faded
+   out before the text column begins — decoration never sits under text
+   (§11.4). */
+.rules {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--masthead-accent) 0,
+    var(--masthead-accent) 1px,
+    transparent 1px,
+    transparent 12px
+  );
+  /* Soft inline-start edge so the field emerges rather than starting abruptly. */
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 38%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 38%);
+  opacity: 0.55;
+}
+
+/* A restrained dot field, one step quieter than the rules. */
+.dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(var(--masthead-accent) 0.5px, transparent 0.5px);
+  background-size: 14px 14px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 46%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 46%);
+  opacity: 0.45;
+}
+
+.mark {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: var(--sp-4);
+  translate: 0 -50%;
+  width: 34px;
+  height: 34px;
+  opacity: 0.85;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  /* Capped to the space the decoration does not occupy. Long titles wrap; they
+     never run under the rule field. */
+  max-width: calc(100% - var(--masthead-decoration-width));
+}
+
+/* Below 480px a dense field reads as noise rather than structure, so the rules
+   and dots drop out and the framing mark alone carries the language (§11.6).
+   The reserved width stays, so the mark still cannot collide with a long
+   title. */
+@media (max-width: 479px) {
+  .rules,
+  .dots {
+    display: none;
+  }
+
+  .mark {
+    width: 30px;
+    height: 30px;
+    opacity: 0.7;
+  }
+}
+
+/* Wider viewports have room for the field to read as structure, so the
+   reserved band grows with them — bounded, so it never dominates. */
+@media (min-width: 480px) {
+  .masthead {
+    --masthead-decoration-width: min(38%, 340px);
+  }
+}
+
+@media (min-width: 900px) {
+  .masthead {
+    --masthead-decoration-width: min(42%, 460px);
+    padding-block: var(--sp-6) var(--sp-5);
+  }
+
+  .mark {
+    width: 40px;
+    height: 40px;
+  }
+}

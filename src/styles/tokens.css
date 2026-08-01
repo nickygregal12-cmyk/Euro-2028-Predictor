@@ -16,7 +16,10 @@
   /* text */
   --tx: #F2F5FB;
   --tx2: #9AA6C2;
-  --tx3: #7E8BA8;
+  /* Raised from #7E8BA8 on 31 July 2026: that was 4.07:1 on --chip, under the
+     4.5:1 AA minimum for normal text. #8793AE is 4.51:1 and keeps a visible
+     step below --tx2 (1.26:1, against 1.40:1 before). */
+  --tx3: #8793AE;
 
   /* semantic colour — meanings are app-wide and fixed:
      acc = user actions/predictions/qualify
@@ -29,6 +32,11 @@
   --cyn: #38C8E8;
   --red: #F06A5E;
   --gold: #E8C34A;
+  /* Gold TEXT on --gold-tint. Identical to --gold here, where the tint is dark
+     and --gold already measures 9.74:1; the light theme needs its own value.
+     --gold itself is unchanged so the joker identity, and --gold-contrast on
+     top of it, both stay exactly as they were. */
+  --gold-strong: #E8C34A;
   --gold-contrast: #2B2410;
   --gold-tint: #2B2410;
 
@@ -38,6 +46,11 @@
   /* typography */
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
+  /* One eyebrow size app-wide. design-system §3 retired the 10px variant in the
+     2026-07-22 audit and named this token; the token itself was never added, so
+     `shared.module.css` kept shipping the retired size. Declared here rather
+     than per-theme because it is a size, not a colour. */
+  --fs-eyebrow: 11px;
 
   /* shape */
   --radius-card: 14px;
@@ -67,14 +80,25 @@
   --mut: #D8D4C8;
 
   --tx: #1C1B16;
-  --tx2: #6B6759;
-  --tx3: #8A8677;
+  /* The light muted ramp was raised together on 31 July 2026. --tx3 was
+     #8A8677, below AA on every surface in this theme; the value that fixes it
+     (#6E6B5F) is almost exactly the old --tx2 (#6B6759), so lifting one alone
+     would have collapsed two levels into one. Darkening --tx2 as well keeps a
+     1.46:1 step between them, against 1.55:1 before. */
+  --tx2: #565247;
+  --tx3: #6E6B5F;
 
   --acc: #0F6E56;
   --amb: #BA7517;
   --cyn: #0E7C9C;
   --red: #B3382C;
   --gold: #C99A1F;
+  /* #C99A1F on this theme's pale --gold-tint is 2.21:1 — the worst contrast in
+     the codebase, on real text: the joker pills read "2x . +5". Darkening
+     --gold itself would have fixed it and broken --gold-contrast ON --gold,
+     which falls from 5.96:1 to 2.92:1. A separate text token fixes one without
+     touching the other. #876715 is 4.52:1 on the tint. */
+  --gold-strong: #876715;
   --gold-contrast: #2B2410;
   --gold-tint: #F7EDD0;
   --scrim: rgba(20, 18, 12, 0.45);

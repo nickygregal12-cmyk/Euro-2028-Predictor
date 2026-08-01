@@ -1,6 +1,7 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { clearLocalMailbox, waitForAuthLink } from './local-mail'
 import { createLocalAdmin, DEFAULT_E2E_EMAIL } from './local-supabase'
+import { expectNoSeriousAxeViolations } from './axe-scan'
 
 const EMAIL = 'auth-recovery-e2e@euro28.local'
 const DISPLAY_NAME = 'Auth Recovery Tester'
@@ -175,12 +176,22 @@ test.describe('authentication and recovery', () => {
       await expect(page).toHaveURL((url) => url.pathname === '/welcome', { timeout: 20_000 })
       await expect(page.getByRole('heading', { name: `Welcome, ${DISPLAY_NAME}` })).toBeVisible()
 
+      // `/welcome` was deferred for needing "a fixture user who has not
+      // completed it". This journey creates exactly that user and is standing
+      // on the page — the blocker named a fixture the suite already had.
+      await expectNoSeriousAxeViolations(page, '/welcome')
+
       await page
         .getByRole('button', { name: 'Continue to league invite →', exact: true })
         .click()
       await expect(page).toHaveURL((url) => url.pathname === `/join/${INVITE_CODE}`)
       await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
       await expect(page.getByText('Owner: E2E Tester', { exact: true })).toBeVisible()
+
+      // The valid-invite preview, which is a different page from the stale
+      // `/join/NOSUCH` state `axe-unauthenticated` scans: a league name, an
+      // owner and a join action rather than a not-found message.
+      await expectNoSeriousAxeViolations(page, '/join/:code')
       await waitForWelcomeStamp()
 
       await page.getByRole('button', { name: 'Join league', exact: true }).click()
@@ -193,7 +204,7 @@ test.describe('authentication and recovery', () => {
       await signOut(page)
       await logIn(page, OLD_PASSWORD)
       await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
-      await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
 
       await signOut(page)
       await clearLocalMailbox(EMAIL)
@@ -229,7 +240,7 @@ test.describe('authentication and recovery', () => {
       await page.getByRole('textbox', { name: 'Password', exact: true }).fill(NEW_PASSWORD)
       await page.getByRole('button', { name: 'Log in', exact: true }).click()
       await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
-      await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
     } finally {
       await cleanupPendingInviteLeague(inviteLeagueId)
     }

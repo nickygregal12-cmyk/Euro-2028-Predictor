@@ -432,7 +432,8 @@ export function AdminResultsPage() {
         </p>
       </div>
 
-      <div className={a.summaryGrid} aria-label="Result status summary">
+      {/* role="group" so the aria-label is permitted; see RankHistoryComparison. */}
+      <div className={a.summaryGrid} role="group" aria-label="Result status summary">
         <div className={s.card}>
           <span className={s.eyebrow}>Fixtures</span>
           <strong className={a.metric}>{summary.total}</strong>

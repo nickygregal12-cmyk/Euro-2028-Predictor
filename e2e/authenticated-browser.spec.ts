@@ -92,7 +92,7 @@ async function openFirstGroupMatch(page: Page, prepared: PreparedEntry) {
 test('authenticated user reaches core routes', async ({ page }) => {
   await page.goto('/')
   await expectAuthenticatedPath(page, '/')
-  await expect(page.getByRole('heading', { name: 'Home' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
 
   await page.goto('/predict')
   await expectAuthenticatedPath(page, '/predict')

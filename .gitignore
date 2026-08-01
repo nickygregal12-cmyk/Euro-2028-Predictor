@@ -45,3 +45,8 @@ test-results/
 
 # Coverage output (npm run test:coverage:domain)
 coverage/
+
+# Raw generative-model concept output (Higgsfield and similar). Research only —
+# never a production dependency (design-system §11.10). Retained evidence is
+# converted to WebP and committed under docs/visual/evidence/concepts/.
+creative-source/

@@ -9,8 +9,17 @@
 #
 # The uploaded artifact is age-ENCRYPTED to the owner's recipient public key
 # (BACKUP_AGE_PUBLIC_KEY). The plaintext dump is restore-verified against a
-# disposable local Supabase inside the same job and shredded before upload,
-# because this repository is public and workflow artifacts are downloadable.
+# disposable local Supabase inside the same job and shredded before upload.
+#
+# That rule does NOT depend on the repository's visibility. It was written as
+# "because this repository is public", which reads as lapsing the moment the
+# repository turns private. It does not lapse. A workflow artifact is
+# downloadable by everyone with read access to the repository; read access is
+# not trust, and the set holding it widens through collaborators, forks and any
+# later visibility change without this file being touched. Encrypting to an
+# offline key is what keeps custody of a full production dump — auth.users
+# included — independent of who can reach the artifact. Never relax it.
+#
 # The age PRIVATE key is held offline by the owner and must never appear in
 # this repository, this workflow, CI logs or CI secrets. Decryption is an
 # offline, owner-only act.

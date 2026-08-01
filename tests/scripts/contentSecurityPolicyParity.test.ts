@@ -135,4 +135,30 @@ describe('Content-Security-Policy parity with application requirements', () => {
 
     expect(externalHosts).toEqual(['challenges.cloudflare.com'])
   })
+
+  it('has the smoke compare the served policy against this one', () => {
+    // A third question, distinct from the two above: what a browser actually
+    // receives. `netlify.toml` is the only place the policy is written, but not
+    // the only place a header can come from — a `_headers` file, a dashboard
+    // override or a proxy in front all change the served response while this
+    // file still reads correctly, and only the served policy protects anyone.
+    //
+    // Until 31 July 2026 the smoke checked four of the thirteen committed
+    // directives and the absence of `unsafe-eval`. Measured against a stub
+    // origin, it reported "Security headers: PASS" while serving no `script-src`
+    // at all, and again with `connect-src` widened to an arbitrary host.
+    const smoke = readFileSync(resolve(repositoryRoot, 'scripts/production-smoke.mjs'), 'utf8')
+
+    expect(smoke).toContain('verifyContentSecurityPolicyParity')
+    expect(smoke).toContain('netlify.toml')
+    expect(smoke, 'a missing committed directive must stop the smoke').toMatch(
+      /missing the committed directive/,
+    )
+    expect(smoke, 'an uncommitted source must stop the smoke').toMatch(
+      /sources that are not committed/,
+    )
+    // The two headers that were declared and never verified against a response.
+    expect(smoke).toContain('permissions-policy')
+    expect(smoke).toContain('x-xss-protection')
+  })
 })

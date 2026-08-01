@@ -41,6 +41,21 @@ describe('koStake — backed team + correctness + progression points', () => {
     expect(s.correct).toBe(false)
     expect(s.points).toBe(0)
   })
+  it('reports null points for a round it has no next stage for', () => {
+    // `backedTeam` treats an unknown round as ordinal -1, so every non-null
+    // stage counts as "through" and `backed` is set — which meant `correct`
+    // could be true while `NEXT_STAGE_AFTER[round]` was undefined. `points` is
+    // declared `number | null`, and it used to come back `undefined` here.
+    //
+    // No caller passes a non-knockout round today; both return on group
+    // matches first. This pins the function's own contract rather than the
+    // callers' discipline.
+    const s = koStake('SF', 'R16', 'group', 'home')
+    expect(s.backed).toBe('home')
+    expect(s.correct).toBe(true)
+    expect(s.points).toBeNull()
+  })
+
   it('backs neither when your bracket sent different teams here', () => {
     const s = koStake('R16', 'R16', 'r16', 'home')
     expect(s.backed).toBeNull()

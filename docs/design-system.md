@@ -1,6 +1,16 @@
-# Euro 2028 Predictor — Design System
+# Football Prediction Hub — Design System
 
 Source of truth for all visual and interaction design. Components implement exactly this. If code and this doc disagree, the doc wins — fix the code or consciously update the doc first.
+
+**Scope reframed 1 August 2026.** This document was written as the *Euro 2028 Predictor* design system and, until now, claimed complete authority while describing only one tournament. Under [ADR 0020](adr/0020-football-prediction-hub-product-model.md) the product is the Football Prediction Hub, and the hub, competition dashboards and multi-competition presentation were surfaces this document had never described. §11 now covers them. Nothing tournament-specific was deleted.
+
+**Rule scope markers.** Every rule here is one of three kinds. Where a section is unmarked, treat it as **platform** unless it names a tournament mechanic:
+
+- **[platform]** — applies to every competition, tournament or season. Tokens, typography, spacing, accessibility, navigation, the masthead system.
+- **[competition]** — applies to any competition season, with values supplied per competition. Competition identity, season presentation, game cards.
+- **[euro]** — specific to the Euro 2028 tournament implementation and not generalisable. Groups, best-thirds, the knockout bracket, the tournament Original Predictor entry model, Golden Boot.
+
+The Euro rules remain in force for the Euro competition. They are not defaults for a league season — see [ADR 0012](adr/0012-season-predictor-rules.md) through [ADR 0014](adr/0014-predictor-cup-season-formats.md), as amended by ADR 0020.
 
 **2026-07-22 UI/CRO audit pass (evening — separate from the walkthrough below):** a ruthless interface + conversion audit of the built app produced a set of spec amendments, each marked **"2026-07-22 audit"** inline. Two kinds: (a) genuine spec defects where this doc specified the wrong thing (joker state hierarchy inverted; accent border on every score input; a disabled button carrying the submit instruction) — amended here first per the doc-wins rule; (b) platform/physics rules this doc never stated (viewport-fit, the 16px input floor, overlay tap targets) — now stated. Build sequencing for all of it lives in `build-todo.md` § UI/CRO audit follow-ups (Batches A–D). Findings that merely confirmed already-decided items (continuous journey, public invite preview, landing page) changed nothing here — they're promoted in the roadmap instead.
 
@@ -35,20 +45,29 @@ Defined in `src/styles/tokens.css` as CSS custom properties on `:root` (dark def
 | `--card` | Card surface | `#101E3E` | `#FDFCFA` |
 | `--line` | Borders, dividers | `#26355C` | `#E5E2DA` |
 | `--tx` | Primary text | `#F2F5FB` | `#1C1B16` |
-| `--tx2` | Secondary text | `#9AA6C2` | `#6B6759` |
-| `--tx3` | Muted text, labels | `#7E8BA8` | `#8A8677` |
+| `--tx2` | Secondary text | `#9AA6C2` | `#565247` |
+| `--tx3` | Muted text, labels | `#8793AE` | `#6E6B5F` |
 | `--acc` | Accent green (actions, qualify, saved) | `#22E06C` | `#0F6E56` |
 | `--amb` | Amber (third place, caution) | `#F0B429` | `#BA7517` |
 | `--cyn` | Cyan (live data) | `#38C8E8` | `#0E7C9C` |
 | `--red` | Errors, elimination | `#F06A5E` | `#B3382C` |
 | `--gold` | Jokers only | `#E8C34A` | `#C99A1F` |
 | `--gold-contrast` | Text on solid gold | `#2B2410` | `#2B2410` |
+| `--gold-strong` | Gold text on `--gold-tint` | `#E8C34A` | `#876715` |
 | `--gold-tint` | Gold pill/tint background | `#2B2410` | `#F7EDD0` |
 | `--mut` | Muted bars, disabled | `#2A3757` | `#D8D4C8` |
 | `--chip` | Chip/static-input background | `#1A2B52` | `#EFEDE4` |
 | `--input-bg` | Score input background | `#12203F` | `#FFFFFF` |
 
-**Gold rule:** gold text never sits directly on card backgrounds for interactive elements. Gold ships as solid-fill-with-`--gold-contrast`-text (calls to action) or tint-with-border pill (status). This is a hard rule; it exists because outline-only gold failed visibility review.
+**Gold rule:** gold text never sits directly on card backgrounds for interactive elements. Gold ships as solid-fill-with-`--gold-contrast`-text (calls to action) or tint-with-`--gold-strong`-text-and-`--gold`-border pill (status). This is a hard rule; it exists because outline-only gold failed visibility review.
+
+**Muted ramp and gold text (2026-07-31 audit).** Three token values moved and one was added, all to clear WCAG AA for normal text:
+
+- `--tx3` was `#7E8BA8` dark / `#8A8677` light. The light value was below AA on *every* surface — 3.11:1 on `--chip`, 3.35:1 on `--bg`. The value that fixes it (`#6E6B5F`) is almost exactly the old `--tx2` (`#6B6759`), so `--tx2` moved down to `#565247` in the same change; lifting one alone would have collapsed two levels of the ramp into one. The step between them is now 1.46:1, against 1.55:1 before.
+- Pill text is `--gold-strong`, not `--gold`. `--gold` on `--gold-tint` measured **2.21:1** in the light theme, on real text — the pills read "2× · +5". Darkening `--gold` itself would have fixed the pill and broken `--gold-contrast` *on* `--gold`, which falls from 5.96:1 to 2.92:1, so the fix is a separate text token. `--gold` is unchanged and every other gold surface is exactly as it was.
+- `--gold-strong` equals `--gold` in the dark theme, where the tint is dark brown and the pairing already measured 9.74:1. Only the light theme needed a distinct value.
+
+`tests/design-system/tokenContrast.test.ts` pins the full text-token/surface-token matrix for both themes, and `cssTokenPairings.test.ts` fails any rule that declares a sub-AA pairing. The one number still below 4.5:1 is `--tx3` on `--mut` (3.82:1 dark, 3.60:1 light), which no rule pairs for text.
 
 ## 3. Typography
 
@@ -60,7 +79,7 @@ Self-hosted via `@fontsource` (Inter + Space Grotesk, latin + latin-ext, `font-d
 - Weights: 400 and 500 only. Hierarchy comes from size and colour, not heavier weights.
 - Minimum font size 11px. Body 14px. Score inputs 19px. Result hero score 24px.
 - **Text-input floor — 16px (hard rule, 2026-07-22 audit):** any focusable free-text input (`TextInput` etc.) renders at **≥16px**. Mobile Safari auto-zooms the viewport on focus of any input below 16px — at the built 15px, every auth field caused a zoom-jump that scrolled the CTA out of view mid-signup. Score inputs (19px) already comply. The 11px minimum applies to non-input text only.
-- **Disabled-control text pairing (2026-07-22 audit):** disabled solid buttons use `--tx2` on `--mut`, never `--tx3` on `--mut` (measured 3.4:1 — fails AA; `--tx2` passes). Applies wherever `--mut` is a text background.
+- **Disabled-control text pairing (2026-07-22 audit, remeasured 2026-07-31):** disabled solid buttons use `--tx2` on `--mut`, never `--tx3` on `--mut`. The original note recorded `--tx3` on `--mut` at 3.4:1; after the 2026-07-31 ramp change it is 3.82:1 dark and 3.60:1 light — still under AA, so the rule stands with new numbers. `--tx2` on `--mut` is 4.83:1 dark and 5.26:1 light. Applies wherever `--mut` is a text background. WCAG 1.4.3 exempts inactive controls, so this is a house rule rather than a conformance requirement.
 
 ## 4. Spacing & shape
 
@@ -95,9 +114,9 @@ Anatomy: eyebrow row (group + matchday | date + venue-flag + venue), team row (f
 ### Joker (group-stage matches only)
 - **Counter** (predict screens, always visible): five gold dots — filled = used, outline = remaining — plus "N left"
 - **State loudness INVERTED (2026-07-22 audit).** The original spec made *available* the solid-gold CTA and *on* the quiet tint — which put 36 loudest-treatment-in-the-system pills on screen before the user had done anything (shouting over score entry, the screen's actual job) and made a **placed** joker read quieter than an unplaced one, defeating the one scan that matters ("which of my 5 are live?"). Corrected:
-- **Play joker** (available): **tint pill** (`--gold-tint` bg, `--gold` border+text), cards icon — a quiet, present offer. Remains available on locked cards until that match's kickoff — gold still signals "actionable inside otherwise-locked UI". *(Build check: verify the tint pill carries enough weight on locked cards at review; if it fails the same visibility bar that killed outline-only gold, the locked-card-only available state may take a stronger treatment — decide at the Batch D session, never silently.)*
+- **Play joker** (available): **tint pill** (`--gold-tint` bg, `--gold` border, `--gold-strong` text), cards icon — a quiet, present offer. Remains available on locked cards until that match's kickoff — gold still signals "actionable inside otherwise-locked UI". *(Build check: verify the tint pill carries enough weight on locked cards at review; if it fails the same visibility bar that killed outline-only gold, the locked-card-only available state may take a stronger treatment — decide at the Batch D session, never silently.)*
 - **Joker on** (active): **solid `--gold` fill, `--gold-contrast` text, pill** — the committed decision is the loud state, and it now agrees with the card's 1.5px gold border instead of contradicting it. Card border goes 1.5px gold.
-- Both treatments stay within the Gold rule (§2): solid-fill-with-contrast or tint-with-border only; outline-only gold remains banned.
+- Both treatments stay within the Gold rule (§2): solid-fill-with-contrast or tint-with-border only; outline-only gold remains banned. Tint-pill text is `--gold-strong` rather than `--gold` (§2, 2026-07-31) — the border stays `--gold`, so the pill reads the same and the text clears AA.
 - **Committed** (match kicked off): joker fuses into the points pill; card keeps gold border permanently.
 - Gold is used for nothing else in the app.
 
@@ -427,16 +446,127 @@ Every screen/component ships with: empty, loading (skeleton, not spinner, for co
 
 ## 9. Accessibility
 
-- WCAG AA contrast in both themes (the per-theme accent/gold values exist precisely for this)
+- WCAG AA contrast in both themes (the per-theme accent/gold values exist precisely for this). Enforced rather than intended since 2026-07-31: `tokenContrast.test.ts` pins the token matrix and `cssTokenPairings.test.ts` fails any rule declaring a sub-AA pairing. It was aspirational before — fourteen pairings were below 4.5:1 when the first measurement was taken.
 - Never colour-only signalling (bars + numbers, icons + text)
 - Visible focus states on all interactive elements (2px `--acc` focus ring)
 - Buttons are button elements, links are anchors — no clickable divs
 - All flags get accessible labels; decorative icons aria-hidden
 - prefers-reduced-motion respected for all animation
 - Score inputs labelled per team ("Scotland score")
+- **`aria-label` only where a role permits it.** A roleless `div`/`span` has the generic role, which cannot carry a name, so the label reaches nobody. Six components shipped that way and were fixed on 2026-07-31; `tests/app/ariaLabelRequiresRole.test.ts` sweeps every component for it.
+- **Scrollable regions are keyboard-reachable.** `overflow: auto` without focusable content or `tabIndex` fails WCAG 2.1.1 — a keyboard user cannot scroll it. Two shipped that way (the rank-history chart and table) and were fixed on 2026-07-31.
+- **Every declared route has its own title.** `RouteAccessibility` announces "<title> page loaded" and sets the browser title; a route missing from its list falls back to "Page not found" on a page that rendered fine. Ten were in that state until 2026-07-31; `tests/app/routeTitleCoverage.test.ts` now compares the list to `src/App.tsx`.
+- **Automated scanning.** axe runs over every declared route (`e2e/axe-accessibility.spec.ts`, `e2e/axe-unauthenticated.spec.ts`, and in-journey scans via `e2e/axe-scan.ts`), over the whole component gallery in jsdom, and over component states no route renders. `tests/app/axeRouteCoverage.test.ts` fails if a declared route is neither scanned nor deferred with a reason.
 
 ## 10. CSS architecture
 
 - CSS Modules per component; tokens imported globally
 - No Tailwind, no CSS-in-JS libraries
 - Component files stay presentational: no business logic, no data fetching (per CLAUDE.md architecture rules)
+
+## 11. The hub, competition dashboards and the Broadcast Grid **[platform]**
+
+Added 1 August 2026. This section governs the Football Prediction Hub surfaces introduced by ADR 0020, and the decorative visual language applied to them.
+
+### 11.1 Approved visual direction — Broadcast Grid
+
+Three directions were explored with generated imagery and reviewed in [`visual/higgsfield-concept-review.md`](visual/higgsfield-concept-review.md). **Broadcast Grid is approved.** It is a flat geometric language — fine rules, alignment marks, restrained dot fields, one horizontal sweep — derived from the same structure the tables and score rows already use.
+
+Recorded decisions, all binding:
+
+1. **Broadcast Grid is the approved hub visual direction.**
+2. **It is implemented in CSS and inline SVG only**, computed from existing tokens. It is deterministic and reproduces identically at every viewport.
+3. **Generated imagery is design research, not a production dependency.** The Higgsfield concept assets in `creative-source/` are evidence. They must not be referenced from application code, must not be copied into `public/`, and must not be loaded at runtime.
+4. **No runtime dependency on any image-generation service.** Ever, on these surfaces.
+5. **`--gold` remains reserved for Jokers.** It is not a premium, broadcast, trophy or competition accent. §2's gold rule is unchanged and this section does not relax it.
+6. **Page-wide wallpaper is not part of the approved hub layout.** Measured: the hub content is full-bleed with 16px gutters and opaque cards at every breakpoint, so a page background would be visible only in the gutters and effectively never on phone. Decoration is contained in the masthead instead.
+7. **Mastheads are contained bands, not heroes.** A masthead may not become a marketing hero, may not push content below the fold on a phone, and may not grow to fill space.
+8. **Real UI content stays HTML.** No text is ever rendered inside SVG or a raster image on these surfaces.
+9. **Decorative artwork never determines business or navigation structure.** Decoration is applied to a layout; it does not shape one.
+
+### 11.2 Masthead system **[platform]**
+
+One reusable `Masthead` wraps the existing page header on hub and competition surfaces. It is a decoration band, not a header component.
+
+**It does not own the title.** §6's *one title system* rule stands: page headers are content-owned, and `PageShell`'s legacy `title`/`headerAction` props were retired in 2026-07-28 precisely so no surface could double-header. `Masthead` therefore takes `children` and renders whatever eyebrow/title/season the page already owns. **A masthead that accepts a `title` prop is a violation of §6 and must be rejected in review.**
+
+Anatomy, top to bottom: eyebrow · title · optional season/status row · optional supporting copy. All supplied by the page.
+
+Rules:
+
+- the band bleeds to the viewport edge using `margin-inline: calc(var(--sp-4) * -1)` against `PageShell`'s exactly-16px content padding, and re-applies the same padding inside. This is width-neutral and **must not** produce horizontal overflow;
+- height is content-driven. No fixed or minimum height, no aspect ratio, no viewport units;
+- one hairline `--line` bottom rule separates it from content;
+- the decoration layer is absolutely positioned, `z-index: 0`, behind content at `z-index: 1`, with `overflow: hidden` on the band;
+- the band is never interactive and never focusable.
+
+### 11.3 Decorative CSS and SVG **[platform]**
+
+Any decorative graphic on any surface:
+
+- carries `aria-hidden="true"` **and** `focusable="false"` on the `<svg>` (the second matters for IE/Edge legacy focus order and costs nothing);
+- contains no `<title>`, no `<desc>`, no text nodes and no interactive elements;
+- is `pointer-events: none`;
+- is inline SVG or CSS gradients/borders — never a raster asset, never a remote URL, never an icon-font;
+- draws only from tokens. No raw hex in decoration CSS, per §2.
+
+**One narrow exemption: `mask-image` alpha stops.** A mask reads alpha, not colour — `#000` in a mask means "fully opaque here" and paints nothing. There is no token for opacity and inventing one would imply a palette value that does not exist. So `transparent` and `#000` are permitted *inside `mask-image` and `-webkit-mask-image` only*, and nowhere else. Any hex that could reach a pixel is still a §2 violation. This is stated because the built CSS does contain `#000`, and a reviewer checking the rule above would otherwise be right to flag it.
+
+If a graphic ever carries meaning, it stops being decoration: it needs `role="img"` and an accessible name, and it belongs in a component with a stated contract — not here.
+
+### 11.4 Text-safe zones and contrast **[platform]**
+
+The Broadcast Grid exists partly because it removes the text-over-image contrast problem rather than managing it: decoration is drawn at `--line` luminance on `--bg`, so text in the band sits on `--bg` exactly as it does elsewhere, and inherits the AA-verified pairings §2 already pins.
+
+Binding rules:
+
+- **no decoration element may render above `--line` luminance** in either theme;
+- **decoration is excluded from the text column — structurally, not by tuning.** The decoration occupies a reserved band at the inline-end edge (`--masthead-decoration-width`) and the content is capped to the remainder, so the two cannot overlap at any viewport;
+- **contrast is measured, never judged.** Every text/background pairing introduced here is recorded in `tests/design-system/tokenContrast.test.ts` and any declared CSS pairing is swept by `cssTokenPairings.test.ts`;
+- **no text shadows, no scrims, no post-hoc overlays** to rescue contrast. If a treatment needs one, the treatment is wrong.
+
+**`--tx3` may not be placed over a decorative, translucent or variable background without a fresh measurement.** It has the least headroom of any text token: on `--bg` it measures 6.06:1 dark but only **4.90:1 light** — 0.40 above the AA floor. The first cut of this masthead ran a rule field behind the eyebrow and measured **4.27:1**, a failure produced by decoration that looked, by eye, extremely subtle. That is why the separation above is structural rather than an opacity setting: at that margin, visual judgement is not a safe instrument. Any new surface pairing `--tx3` with anything other than a flat token colour must measure it and record the number.
+
+Measured for the shipped masthead, sampling the rendered pixels behind each glyph with the text hidden — identical at 390, 768 and 1440, and identical to the undecorated baseline, which is what proves the decoration contributes nothing behind text:
+
+| Text | Token | Dark | Light |
+| --- | --- | ---: | ---: |
+| Eyebrow | `--tx3` | 6.06 | 4.90 |
+| Title | `--tx` | 17.11 | 15.83 |
+| Season / status | `--tx2` | 7.66 | 7.16 |
+
+### 11.5 Themes **[platform]**
+
+Decoration is token-derived, so both themes work from one implementation — this is the main practical reason Broadcast Grid was chosen over the image-led directions, which would each have needed a second asset set. No decoration may use a hard-coded colour, and no decoration may assume a dark background.
+
+### 11.6 Responsive behaviour **[platform]**
+
+Phone-first at 360px. The rule field reduces density as width falls; below 480px it drops to the sweep line and corner mark only, because a dense field at phone width reads as noise rather than structure. Nothing about the masthead reflows content or changes the page's column count.
+
+### 11.7 Reduced motion **[platform]**
+
+Decoration is static by default. Any motion added later must be inside `@media (prefers-reduced-motion: no-preference)` — opt-in, not opt-out — so the reduced-motion path is the plain one. Continuous ambient motion is not permitted on these surfaces.
+
+### 11.8 Competition identity **[competition]**
+
+The masthead base carries **no competition branding**. Premier League, Scottish Premiership and Euro identity are not encoded in the reusable component.
+
+Competition variation is supplied as a single optional CSS custom property, `--masthead-accent`, defaulting to `--line`. A competition may later supply its own value through a competition identity token without touching the component. Variation must stay subtle: a shift in the rule field's tint, never a brand colour wash.
+
+Official league logos, club badges and protected marks remain prohibited — [ADR 0017](adr/0017-brand-and-club-identity.md), unchanged. Clubs are represented only through `ClubIdentity`.
+
+### 11.9 Empty-state illustrations **[platform]**
+
+One reusable `EmptyIllustration` renders a geometric, token-derived mark for empty states — no competitions joined, all competitions joined, no game available, competition unavailable.
+
+- geometric and football-adjacent, drawn from the same Broadcast Grid vocabulary;
+- inline SVG, decorative, `aria-hidden`, no text, no marks;
+- the heading and description carry the meaning, per §8 — the illustration never carries it alone;
+- no illustration library, no raster asset.
+
+### 11.10 Generated-image and runtime-asset policy **[platform]**
+
+- Generated imagery may be used for **design research only**.
+- Research assets live under `creative-source/`, are never imported by application code, and are never served.
+- No production surface may load an asset from a generation service at runtime.
+- Any future raster asset needs a stated budget, both-theme variants, and measured contrast before it ships.

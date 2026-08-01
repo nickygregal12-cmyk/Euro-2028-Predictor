@@ -1,0 +1,275 @@
+/* Hub and competition-dashboard surfaces — design-system §11.
+   Tokens only. Weights are 400/500 per §3; radii come from --radius-card per
+   §4. Both were drifting here: the first cut of this file shipped 800 weights,
+   an 18px radius and `var(--grn)`, which is not a token at all. */
+
+.intro {
+  display: grid;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.grid {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+/* --- Sections ------------------------------------------------------------ */
+
+.section {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+}
+
+/* Discover sits below a rule and carries more space above it. The separation
+   is structural, so it does not rest on colour alone. */
+.sectionSecondary {
+  margin-top: var(--sp-6);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tx);
+}
+
+.sectionTitleSecondary {
+  color: var(--tx3);
+}
+
+.sectionCount {
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+.sectionLead {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-6) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+
+.emptyText {
+  margin: 0;
+  max-width: 42ch;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+/* --- Competition card ---------------------------------------------------- */
+
+.competitionCard {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+/* Discover: the same card, recessed rather than raised. Sits on the page
+   surface with only its outline, so it reads as available rather than active —
+   and never as disabled, because nothing is dimmed. */
+.competitionCardSecondary {
+  background: transparent;
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.cardTitle {
+  display: grid;
+  gap: 2px;
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--tx);
+}
+
+.season {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--tx2);
+}
+
+.description {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+.status {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* --- Game list ----------------------------------------------------------- */
+
+/* Rows separated by hairlines rather than nested filled cards. The previous
+   cut put a --chip surface inside a --card surface inside the page, which is
+   three stacked surfaces for two levels of meaning. */
+.gameList {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.gameRow {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.gameRow:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.gameHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.gameName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tx);
+}
+
+.gameDescription {
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+/* Joined is the user's own state, so it is the one place accent belongs here
+   (§2: accent means the user's world). Carries a word, never colour alone. */
+.joined {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--acc);
+}
+
+.gameMeta {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+/* --- Dashboard ----------------------------------------------------------- */
+
+.dashboardIntro {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+/* The dashboard stacks game cards; it does not use the hairline row list above. */
+.gameStack {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.gameCard {
+  display: grid;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+/* A game the user has not joined is recessed rather than dimmed — same
+   affordance, lower priority. Nothing here reduces contrast. */
+.gameCardAvailable {
+  background: transparent;
+}
+
+.gameCardHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--tx);
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+
+.seasonRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+@media (min-width: 760px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

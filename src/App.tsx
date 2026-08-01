@@ -12,6 +12,12 @@ const LoginPage = lazy(() => import('./features/auth/LoginPage').then((m) => ({ 
 const SignUpPage = lazy(() => import('./features/auth/SignUpPage').then((m) => ({ default: m.SignUpPage })))
 const ResetRequestPage = lazy(() => import('./features/auth/ResetRequestPage').then((m) => ({ default: m.ResetRequestPage })))
 const UpdatePasswordPage = lazy(() => import('./features/auth/UpdatePasswordPage').then((m) => ({ default: m.UpdatePasswordPage })))
+const HubPage = lazy(() => import('./features/hub/HubPage').then((m) => ({ default: m.HubPage })))
+const CompetitionDashboardPage = lazy(() =>
+  import('./features/hub/CompetitionDashboardPage').then((m) => ({
+    default: m.CompetitionDashboardPage,
+  })),
+)
 const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })))
 const PredictEntryPage = lazy(() => import('./features/predict/PredictEntryPage').then((m) => ({ default: m.PredictEntryPage })))
 const PredictionTrendsPage = lazy(() => import('./features/trends/PredictionTrendsPage').then((m) => ({ default: m.PredictionTrendsPage })))
@@ -80,7 +86,12 @@ export default function App() {
 
                 <Route element={<RequireWelcome />}>
                   <Route element={<AppShell />}>
-                    <Route path="/" element={<HomePage />} />
+                    <Route path="/" element={<HubPage />} />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug"
+                      element={<CompetitionDashboardPage />}
+                    />
+                    <Route path="/competitions/euro/2028/original" element={<HomePage />} />
                     <Route path="/predict" element={<PredictEntryPage />} />
                     <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
                     <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />

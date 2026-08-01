@@ -71,7 +71,10 @@ export function RankHistoryComparison({
             Seven tournament checkpoints
           </h2>
         </div>
-        <div className={h.historyLegend} aria-label="Rank history legend">
+        {/* `aria-label` is prohibited on a roleless div — the implicit role is
+            generic, which cannot carry a name, so the label reached nobody.
+            `role="group"` permits it. */}
+        <div className={h.historyLegend} role="group" aria-label="Rank history legend">
           <span><i className={h.historyLegendYou} />You</span>
           <span><i className={h.historyLegendRival} />{rivalName}</span>
         </div>
@@ -83,7 +86,18 @@ export function RankHistoryComparison({
         </p>
       ) : (
         <>
-          <div className={h.historyChartWrap}>
+          {/* Same scrollable-region rule as the table below: `.historyChartWrap`
+              and `.historyTableWrap` share one `overflow-x: auto` declaration, so
+              both need to be reachable by keyboard (WCAG 2.1.1). The table was
+              fixed first because axe named it; this one was named on the next
+              run. The chart's own `role="img"` is not focusable, so the scroll
+              container has to be. */}
+          <div
+            className={h.historyChartWrap}
+            tabIndex={0}
+            role="group"
+            aria-label="Rank history chart, scrollable"
+          >
             <svg
               className={h.historyChart}
               viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
@@ -149,7 +163,16 @@ export function RankHistoryComparison({
             </svg>
           </div>
 
-          <div className={h.historyTableWrap}>
+          {/* `overflow-x: auto` makes this a scrollable region, and a scrollable
+              region a keyboard user cannot reach or scroll fails WCAG 2.1.1.
+              `tabIndex={0}` puts it in the tab order; the role and label say what
+              has been focused rather than announcing a bare group. */}
+          <div
+            className={h.historyTableWrap}
+            tabIndex={0}
+            role="group"
+            aria-label="Rank history table, scrollable"
+          >
             <table className={h.historyTable}>
               <caption className={h.visuallyHidden}>Rank and total points at each checkpoint</caption>
               <thead>

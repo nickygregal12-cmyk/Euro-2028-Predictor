@@ -45,7 +45,7 @@ Corrections 1–5 rest on observed behaviour. Correction 6 rests on the owner's 
 **Two ADR-level implications are reported here and deliberately not acted on**, because a substantive change to a decision requires a new ADR rather than an edit:
 
 - **ADR 0012** records secondary rankings as a late-joiner mechanism. O1 makes them load-bearing for most of the field over thirty-eight weeks. That is a change of *purpose*, not emphasis, and plausibly warrants a new ADR.
-- **ADR 0017** states the weekly shareable results card is *"the artefact most likely to be seen outside the product"*. O3 contradicts it: the league table already is. The `ClubIdentity` requirement attached to that consequence still stands whichever artefact wins.
+- **ADR 0017** states the weekly shareable results card is *"the artefact most likely to be seen outside the product"*. O3 contradicts it: the league table already is. The `ClubIdentity` requirement attached to that consequence still stands whichever artefact wins. **Settled 1 August 2026 by [ADR 0021](../adr/0021-sharing-surface-priority.md)** — standings sharing is primary, the weekly personal card secondary, and the shipped champion/bracket renderer stays tournament-only. This report is retained as the record of how the contradiction was found; the decision lives in the ADR.
 
 ## 2. Relationship to the product programme
 

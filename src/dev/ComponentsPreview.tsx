@@ -7,6 +7,8 @@ import {
   Button,
   TextInput,
   EmptyState,
+  EmptyIllustration,
+  Masthead,
   PageShell,
   type NavKey,
   Alert,
@@ -670,10 +672,26 @@ function Gallery() {
         <PageShellDemo />
       </Section>
 
+      <Section title="Masthead">
+        <Masthead>
+          <div>
+            <span style={{ display: 'block' }}>Football Prediction Hub</span>
+            <h3 style={{ margin: 0 }}>Choose your competition</h3>
+          </div>
+        </Masthead>
+      </Section>
+
+      <Section title="EmptyIllustration">
+        <Label>list</Label>
+        <EmptyIllustration variant="list" />
+        <Label>complete</Label>
+        <EmptyIllustration variant="complete" />
+      </Section>
+
       <Section title="ProgressBar">
         <ProgressBar value={18} max={36} label="Predictions" showValue />
         <ProgressBar value={100} max={100} label="Group A" showValue />
-        <ProgressBar value={0} max={36} />
+        <ProgressBar value={0} max={36} ariaLabel="Predictions complete" />
       </Section>
 
       <Section title="StatusBadge">
