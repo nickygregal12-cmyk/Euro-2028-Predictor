@@ -1,5 +1,7 @@
+import { execFileSync, spawnSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
@@ -59,6 +61,28 @@ const BACKFILL =
   'from public.bonus_competitions c where c.id = x.competition_id and x.tournament_id is null;'
 
 const normalised = normalise(stageC1)
+const stageC1OpsRoot = resolve(repositoryRoot, 'supabase/ops/stage-c1')
+const stageC1ScriptRoot = resolve(repositoryRoot, 'scripts/ops')
+const canonicalAuditDigest = readFileSync(
+  resolve(stageC1OpsRoot, 'stage-c1-audit-digest.sql'),
+  'utf8',
+)
+const hostedPreflight = readFileSync(
+  resolve(stageC1OpsRoot, 'stage-c1-hosted-preflight.sql'),
+  'utf8',
+)
+const hostedPostflight = readFileSync(
+  resolve(stageC1OpsRoot, 'stage-c1-hosted-postflight.sql'),
+  'utf8',
+)
+const verifiedBackup = readFileSync(
+  resolve(stageC1ScriptRoot, 'create-verified-supabase-backup.mjs'),
+  'utf8',
+)
+const evidenceLibrary = readFileSync(
+  resolve(stageC1ScriptRoot, 'stage-c1-evidence-lib.mjs'),
+  'utf8',
+)
 
 describe('Stage C1 audit scope backfill source', () => {
   it('suspends the audit trigger by name before the backfill', () => {
@@ -178,5 +202,124 @@ describe('Stage C1 audit scope backfill source', () => {
     })
 
     expect(grants).toEqual([])
+  })
+})
+
+describe('Stage C1 hosted operational evidence', () => {
+  it('defines the canonical historical digest without the new scope field', () => {
+    for (const field of ['id', 'competition_id', 'action', 'detail', 'actor_id']) {
+      expect(canonicalAuditDigest).toContain(`'${field}', ${field}`)
+    }
+    expect(canonicalAuditDigest).toContain("recorded_at at time zone 'UTC'")
+    expect(canonicalAuditDigest).toContain('HH24:MI:SS.US')
+    expect(canonicalAuditDigest).toContain("'[]'::jsonb")
+    expect(canonicalAuditDigest).toContain('order by id')
+    expect(canonicalAuditDigest).toContain("'sha256'")
+    expect(canonicalAuditDigest).not.toContain("'tournament_id', tournament_id")
+  })
+
+  it('pins preflight and postflight to their exact hosted contracts', () => {
+    expect(hostedPreflight).toContain('migration_count <> 64')
+    expect(hostedPreflight).toContain("latest_version is distinct from '20260730180000'")
+    expect(hostedPreflight).toContain("to_regclass('public.competitions') is not null")
+    expect(hostedPreflight).toContain("t.tgname = 'block_bonus_audit_mutation'")
+    expect(hostedPreflight).toContain('stage_c1_preflight')
+
+    expect(hostedPostflight).toContain('migration_count <> 65')
+    expect(hostedPostflight).toContain("latest_version is distinct from '20260730235602'")
+    expect(hostedPostflight).toContain('Expected exactly 33 direct non-null UUID tournament_id columns')
+    expect(hostedPostflight).toContain('Expected 68 reviewed public-table triggers')
+    expect(hostedPostflight).toContain('Expected 18 ENABLE ALWAYS season-scope triggers')
+    expect(hostedPostflight).toContain("when sqlstate '42501' then null")
+    expect(hostedPostflight).toContain('stage_c1_postflight')
+  })
+
+  it('refuses production, drifted main, an unpinned CLI and migration drift', () => {
+    expect(evidenceLibrary).toContain("PRODUCTION_PROJECT_REF = 'vkfnsqdyhvtwyqkisxhk'")
+    expect(evidenceLibrary).toContain('Evidence must run from exact origin/main')
+    expect(evidenceLibrary).toContain("EXPECTED_SUPABASE_VERSION = '2.84.2'")
+    expect(evidenceLibrary).toContain(
+      '010eff888e9a5884d40467802e13a2997ddaa8827e9cf44d659154972e13b656',
+    )
+    expect(evidenceLibrary).toContain('Repository working tree must be clean')
+  })
+
+  it('provides executable evidence runners and rejects preservation drift', () => {
+    for (const script of [
+      'run-stage-c1-hosted-preflight.mjs',
+      'run-stage-c1-hosted-postflight.mjs',
+    ]) {
+      expect(() =>
+        execFileSync(process.execPath, [resolve(stageC1ScriptRoot, script), '--help']),
+      ).not.toThrow()
+    }
+
+    const libraryUrl = pathToFileURL(
+      resolve(stageC1ScriptRoot, 'stage-c1-evidence-lib.mjs'),
+    ).href
+    const evidence = {
+      audit: { digest: 'abc', row_count: 1 },
+      preservation_counts: { entries: 1 },
+      euro_2028: [{ id: 'one' }],
+      auth_foreign_keys: [{ table: 'entries' }],
+      ownership_policies: [{ table: 'entries' }],
+      browser_grants: [{ table: 'entries' }],
+      rls_state: [{ table: 'entries', enabled: true }],
+      function_security: [{ signature: 'f()', security_definer: false }],
+      trigger_bindings: [{ table: 'entries', trigger: 't', enabled: 'O' }],
+    }
+    const artifact = { repository_commit: 'head', evidence }
+    const program = `
+      import { assertEquivalentBeforeState } from ${JSON.stringify(libraryUrl)};
+      const expected = ${JSON.stringify(artifact)};
+      assertEquivalentBeforeState(expected, expected);
+      const changed = structuredClone(expected);
+      changed.evidence.preservation_counts.entries = 2;
+      try {
+        assertEquivalentBeforeState(expected, changed);
+        process.exit(2);
+      } catch (error) {
+        if (!error.message.includes('Preservation row counts')) process.exit(3);
+      }
+    `
+    expect(() =>
+      execFileSync(process.execPath, ['--input-type=module', '--eval', program]),
+    ).not.toThrow()
+  })
+
+  it('fails the verified backup closed without the owner age recipient', () => {
+    const result = spawnSync(
+      process.execPath,
+      [
+        resolve(stageC1ScriptRoot, 'create-verified-supabase-backup.mjs'),
+        '--project-ref',
+        'iouzoutneyjpugbbtdem',
+        '--preflight',
+        '/tmp/preflight.json',
+        '--backup-root',
+        '/tmp/backups',
+      ],
+      { encoding: 'utf8', env: { ...process.env, BACKUP_AGE_PUBLIC_KEY: '' } },
+    )
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('BACKUP_AGE_PUBLIC_KEY')
+  })
+
+  it('restores every required logical path before encrypting and shredding', () => {
+    expect(verifiedBackup).toContain("'--role-only'")
+    expect(verifiedBackup).toContain("'--data-only', '--use-copy'")
+    expect(verifiedBackup).toContain("'--schema', 'supabase_migrations'")
+    expect(verifiedBackup).toContain('auth.users')
+    expect(verifiedBackup).toContain('public.profiles')
+    expect(verifiedBackup).toContain("run(supabase, ['start'])")
+    expect(verifiedBackup).toContain('assertEquivalentBeforeState(source')
+    expect(verifiedBackup.indexOf("run(age, ['-r'")).toBeGreaterThan(
+      verifiedBackup.indexOf('assertEquivalentBeforeState(source'),
+    )
+    expect(verifiedBackup.indexOf('secureRemove(bundle')).toBeGreaterThan(
+      verifiedBackup.indexOf("run(age, ['-r'"),
+    )
+    expect(verifiedBackup).not.toMatch(/db['"],\s*['"]push/)
+    expect(verifiedBackup).not.toContain('migration repair')
   })
 })

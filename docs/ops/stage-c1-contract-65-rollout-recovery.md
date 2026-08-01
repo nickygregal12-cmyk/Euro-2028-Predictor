@@ -1,7 +1,7 @@
 # Stage C1 contract 65 rollout and recovery evidence
 
-**Status:** repository/disposable evidence only  
-**Scope:** PR #317, contract 65  
+**Status:** hosted operational evidence committed; rollout still requires the gates below
+**Scope:** Stage C1 contract 65
 **Governance:** satisfies issue #303's one coherent migration requirement  
 **Hosted development:** remains contract 64  
 **Production:** remains contract 63 and is out of scope
@@ -106,6 +106,28 @@ Before applying the migration, verify read-only:
 Capture the preflight output as a dated artefact. Do not copy the values into a
 permanent live-status document as if they cannot change.
 
+The canonical query and runner are committed at:
+
+- `supabase/ops/stage-c1/stage-c1-hosted-preflight.sql`;
+- `supabase/ops/stage-c1/stage-c1-audit-digest.sql`;
+- `scripts/ops/run-stage-c1-hosted-preflight.mjs`.
+
+From an exact, clean `origin/main`, linked to the approved development project,
+run the pinned Supabase CLI and write the artifact outside the repository:
+
+```bash
+SUPABASE_BIN=/absolute/path/to/supabase \
+node scripts/ops/run-stage-c1-hosted-preflight.mjs \
+  --project-ref iouzoutneyjpugbbtdem \
+  --output /secure/path/stage-c1-preflight-UTC.json
+```
+
+The runner refuses production, a different linked project, repository or
+migration drift, a CLI version other than 2.84.2, an existing output file and a
+repository-local evidence path. The SQL itself refuses anything other than the
+complete, populated contract-64 before-state. The digest returned by this run is
+the only canonical audit baseline; the earlier undefined digest is not a gate.
+
 ## Backup and restore point
 
 If hosted development contains entries, leagues, scores or other data that matters,
@@ -123,12 +145,40 @@ A backup filename alone is not restore evidence. Record the backup checksum, too
 version, target contract and a successful restore or schema/data inspection in an
 isolated destination.
 
+The qualifying development command is committed at
+`scripts/ops/create-verified-supabase-backup.mjs`. It reruns the canonical
+preflight, requires it to match the supplied artifact, captures roles, public and
+managed data (including `auth.users`), migration history and repository
+verification SQL, restores the bundle into a disposable local Supabase, compares
+the restored counts and preservation snapshots with the source, encrypts to the
+owner-controlled age recipient and shreds plaintext staging files. It writes only
+the encrypted artifact and a non-sensitive checksum/evidence sidecar outside the
+repository.
+
+```bash
+BACKUP_AGE_PUBLIC_KEY='age1...' \
+SUPABASE_BIN=/absolute/path/to/supabase \
+SHRED_BIN=/absolute/path/to/shred \
+node scripts/ops/create-verified-supabase-backup.mjs \
+  --project-ref iouzoutneyjpugbbtdem \
+  --preflight /secure/path/stage-c1-preflight-UTC.json \
+  --backup-root /secure/path/development-backups
+```
+
+Do not substitute a newly invented recipient for the owner-controlled recovery
+key. Missing encryption, Docker, PostgreSQL client or secure-deletion tooling is a
+hard stop. A plaintext dump, a failed restore comparison or a cleanup failure is
+not qualifying evidence.
+
 ## Apply sequence
 
 Apply contract 65 as one coherent migration to the approved development target.
 
-1. Reconfirm the target identity and contract 64 immediately before the write.
-2. Apply contract 65 using the repository migration runner.
+1. Reconfirm the target identity and contract 64 immediately before the write by
+   rerunning the canonical preflight and backup comparison above.
+2. Require `supabase db push --linked --dry-run` to name only
+   `20260730235602_stage_c1_competition_season_foundation.sql`, then apply once
+   with `supabase db push --linked` from the same exact main commit.
 3. Confirm contract 65 is recorded once and no migration error occurred.
 4. Run the complete postflight before changing any Netlify contract declaration.
 
@@ -164,6 +214,25 @@ The hosted development postflight must prove:
   contract declaration may be changed to 65 and an exact-origin preview tested.
 
 Any mismatch stops the rollout. Do not continue into production.
+
+The canonical postflight query and comparison runner are committed at:
+
+- `supabase/ops/stage-c1/stage-c1-hosted-postflight.sql`;
+- `scripts/ops/run-stage-c1-hosted-postflight.mjs`.
+
+```bash
+SUPABASE_BIN=/absolute/path/to/supabase \
+node scripts/ops/run-stage-c1-hosted-postflight.mjs \
+  --project-ref iouzoutneyjpugbbtdem \
+  --baseline /secure/path/stage-c1-preflight-UTC.json \
+  --output /secure/path/stage-c1-postflight-UTC.json
+```
+
+The SQL asserts the database-local contract-65 shape and performs rollback-safe
+audit mutation probes. The runner separately compares the audit digest, row
+counts, Euro UUID and stable fields, auth foreign keys, ownership policies,
+browser grants, RLS, function security and pre-existing trigger bindings with the
+canonical preflight. An artifact is written only after every comparison passes.
 
 ## Recovery decisions
 

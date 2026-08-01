@@ -1,0 +1,261 @@
+import { execFileSync } from 'node:child_process'
+import {
+  chmodSync,
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
+import { createHash } from 'node:crypto'
+import { dirname, isAbsolute, relative, resolve, sep } from 'node:path'
+
+export const DEVELOPMENT_PROJECT_REF = 'iouzoutneyjpugbbtdem'
+export const PRODUCTION_PROJECT_REF = 'vkfnsqdyhvtwyqkisxhk'
+export const EXPECTED_SUPABASE_VERSION = '2.84.2'
+export const STAGE_C1_VERSION = '20260730235602'
+export const STAGE_C1_SHA256 =
+  '010eff888e9a5884d40467802e13a2997ddaa8827e9cf44d659154972e13b656'
+
+export const repositoryRoot = resolve(import.meta.dirname, '../..')
+
+export function fail(message) {
+  throw new Error(message)
+}
+
+export function parseArguments(argv, { baseline = false } = {}) {
+  const result = { help: false }
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index]
+    if (argument === '--help' || argument === '-h') {
+      result.help = true
+      continue
+    }
+    if (argument === '--project-ref' || argument === '--output' || argument === '--baseline') {
+      const value = argv[index + 1]
+      if (!value || value.startsWith('--')) fail(`Missing value for ${argument}`)
+      result[argument.slice(2).replace('-', '_')] = value
+      index += 1
+      continue
+    }
+    fail(`Unknown argument: ${argument}`)
+  }
+
+  if (result.help) return result
+  if (!result.project_ref) fail('Pass --project-ref iouzoutneyjpugbbtdem')
+  if (!result.output) fail('Pass --output to a new evidence file outside the repository')
+  if (baseline && !result.baseline) fail('Pass --baseline to the canonical preflight artifact')
+  return result
+}
+
+export function run(binary, arguments_, options = {}) {
+  return execFileSync(binary, arguments_, {
+    cwd: repositoryRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', options.quietStderr ? 'pipe' : 'inherit'],
+    ...options,
+  }).trim()
+}
+
+function git(...arguments_) {
+  return run('git', arguments_)
+}
+
+function pathInside(parent, child) {
+  const pathFromParent = relative(parent, child)
+  return pathFromParent === '' || (!pathFromParent.startsWith(`..${sep}`) && pathFromParent !== '..')
+}
+
+function canonicalOutputPath(path) {
+  if (!isAbsolute(path)) fail('--output must be an absolute path')
+  if (existsSync(path)) fail(`Refusing to overwrite existing evidence: ${path}`)
+
+  const parent = dirname(path)
+  mkdirSync(parent, { recursive: true, mode: 0o700 })
+  if (lstatSync(parent).isSymbolicLink()) fail('--output parent must not be a symbolic link')
+  const resolvedParent = realpathSync(parent)
+  const resolvedRepository = realpathSync(repositoryRoot)
+  if (pathInside(resolvedRepository, resolvedParent)) {
+    fail('--output must be outside the repository')
+  }
+  return resolve(resolvedParent, path.slice(parent.length + 1))
+}
+
+function assertCleanExactMain() {
+  const head = git('rev-parse', 'HEAD')
+  const originMain = git('rev-parse', 'origin/main')
+  if (head !== originMain) {
+    fail(`Evidence must run from exact origin/main (${originMain}); current HEAD is ${head}`)
+  }
+
+  const dirty = git('status', '--porcelain=v1', '--untracked-files=all')
+    .split('\n')
+    .filter(Boolean)
+    .filter((line) => !line.slice(3).startsWith('supabase/.temp/'))
+  if (dirty.length > 0) fail('Repository working tree must be clean except for Supabase link metadata')
+  return head
+}
+
+function assertCanonicalMigration() {
+  const migrationFiles = git('ls-files', 'supabase/migrations/*.sql').split('\n').filter(Boolean)
+  if (migrationFiles.length !== 65) {
+    fail(`Expected 65 canonical migrations; found ${migrationFiles.length}`)
+  }
+  const migrationPath = resolve(
+    repositoryRoot,
+    `supabase/migrations/${STAGE_C1_VERSION}_stage_c1_competition_season_foundation.sql`,
+  )
+  const digest = createHash('sha256').update(readFileSync(migrationPath)).digest('hex')
+  if (digest !== STAGE_C1_SHA256) {
+    fail(`Stage C1 migration checksum mismatch: ${digest}`)
+  }
+}
+
+function assertTarget(projectRef) {
+  if (projectRef === PRODUCTION_PROJECT_REF) fail('Production is explicitly out of scope')
+  if (projectRef !== DEVELOPMENT_PROJECT_REF) {
+    fail(`Expected development project ${DEVELOPMENT_PROJECT_REF}; received ${projectRef}`)
+  }
+  const linkedRefPath = resolve(repositoryRoot, 'supabase/.temp/project-ref')
+  if (!existsSync(linkedRefPath)) fail('Run supabase link for the approved development project first')
+  const linkedRef = readFileSync(linkedRefPath, 'utf8').trim()
+  if (linkedRef !== projectRef) fail(`Linked project is ${linkedRef}; expected ${projectRef}`)
+}
+
+function supabaseBinary() {
+  return process.env.SUPABASE_BIN || 'supabase'
+}
+
+function assertSupabaseVersion(binary) {
+  const versionOutput = run(binary, ['--version'])
+  if (!versionOutput.includes(EXPECTED_SUPABASE_VERSION)) {
+    fail(`Supabase CLI ${EXPECTED_SUPABASE_VERSION} is required; found ${versionOutput}`)
+  }
+  return versionOutput
+}
+
+function extractPayload(raw, column) {
+  let parsed
+  try {
+    parsed = JSON.parse(raw)
+  } catch (error) {
+    fail(`Supabase query did not return JSON: ${error.message}`)
+  }
+  if (!Array.isArray(parsed) || parsed.length !== 1 || !parsed[0]?.[column]) {
+    fail(`Expected exactly one ${column} result row`)
+  }
+  return parsed[0][column]
+}
+
+export function collectEvidence({ projectRef, sqlPath, resultColumn, phase }) {
+  assertTarget(projectRef)
+  const commit = assertCleanExactMain()
+  assertCanonicalMigration()
+  const binary = supabaseBinary()
+  const cliVersion = assertSupabaseVersion(binary)
+  const raw = run(binary, [
+    'db',
+    'query',
+    '--linked',
+    '--file',
+    sqlPath,
+    '--output',
+    'json',
+    '--agent',
+    'no',
+  ])
+  return {
+    artifact_format: 1,
+    captured_at_utc: new Date().toISOString(),
+    phase,
+    project_ref: projectRef,
+    repository_commit: commit,
+    supabase_cli_version: cliVersion,
+    evidence: extractPayload(raw, resultColumn),
+  }
+}
+
+export function writeEvidence(path, artifact) {
+  const outputPath = canonicalOutputPath(path)
+  const temporaryPath = `${outputPath}.tmp-${process.pid}`
+  try {
+    writeFileSync(temporaryPath, `${JSON.stringify(artifact, null, 2)}\n`, {
+      encoding: 'utf8',
+      flag: 'wx',
+      mode: 0o600,
+    })
+    chmodSync(temporaryPath, 0o600)
+    renameSync(temporaryPath, outputPath)
+  } catch (error) {
+    rmSync(temporaryPath, { force: true })
+    throw error
+  }
+  return outputPath
+}
+
+function canonical(value) {
+  return JSON.stringify(value)
+}
+
+function assertEqual(label, before, after) {
+  if (canonical(before) !== canonical(after)) fail(`${label} differs from canonical preflight`)
+}
+
+function assertArraySubset(label, before, after, key) {
+  const afterByKey = new Map(after.map((item) => [key(item), item]))
+  for (const item of before) {
+    const postflightItem = afterByKey.get(key(item))
+    if (!postflightItem || canonical(postflightItem) !== canonical(item)) {
+      fail(`${label} changed for ${key(item)}`)
+    }
+  }
+}
+
+export function readPreflightArtifact(path) {
+  const artifact = JSON.parse(readFileSync(resolve(path), 'utf8'))
+  if (artifact.artifact_format !== 1 || artifact.phase !== 'preflight') {
+    fail('Baseline is not a canonical Stage C1 preflight artifact')
+  }
+  if (artifact.project_ref !== DEVELOPMENT_PROJECT_REF) fail('Baseline targets the wrong project')
+  if (artifact.evidence?.contract?.count !== 64) fail('Baseline is not contract 64')
+  return artifact
+}
+
+export function assertPreserved(preflightArtifact, postflightArtifact) {
+  if (postflightArtifact.repository_commit !== preflightArtifact.repository_commit) {
+    fail('Preflight and postflight must use the same exact main commit')
+  }
+  const before = preflightArtifact.evidence
+  const after = postflightArtifact.evidence
+
+  assertEqual('Audit history digest and count', before.audit, after.audit)
+  assertEqual('Preservation row counts', before.preservation_counts, after.preservation_counts)
+  assertEqual('Euro 2028 stable identity', before.euro_2028, after.euro_2028)
+  assertEqual('Auth foreign-key deletion matrix', before.auth_foreign_keys, after.auth_foreign_keys)
+  assertEqual('Direct ownership policies', before.ownership_policies, after.ownership_policies)
+  assertEqual('Existing browser relation grants', before.browser_grants, after.browser_grants)
+  assertArraySubset('Existing RLS state', before.rls_state, after.rls_state, (item) => item.table)
+  assertArraySubset(
+    'Existing function security',
+    before.function_security,
+    after.function_security,
+    (item) => item.signature,
+  )
+  assertArraySubset(
+    'Existing trigger binding',
+    before.trigger_bindings,
+    after.trigger_bindings,
+    (item) => `${item.table}.${item.trigger}`,
+  )
+}
+
+export function assertEquivalentBeforeState(expectedArtifact, observedArtifact) {
+  const observed = {
+    ...observedArtifact,
+    repository_commit: expectedArtifact.repository_commit,
+  }
+  assertPreserved(expectedArtifact, observed)
+}
