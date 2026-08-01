@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { Button } from '../../design-system'
+import { Button, EmptyIllustration, Masthead } from '../../design-system'
 import s from '../shared.module.css'
 import h from './hub.module.css'
 import {
@@ -13,13 +13,18 @@ type CompetitionCardProps = {
   competition: HubCompetition
   onOpen: (competition: HubCompetition) => void
   action: string
+  /** Discover cards are recessed rather than raised — see hub.module.css. */
+  secondary?: boolean
 }
 
-function CompetitionCard({ competition, onOpen, action }: CompetitionCardProps) {
+function CompetitionCard({ competition, onOpen, action, secondary }: CompetitionCardProps) {
   const headingId = `competition-${competition.competitionSlug}-${competition.seasonSlug}`
 
   return (
-    <section className={h.competitionCard} aria-labelledby={headingId}>
+    <section
+      className={`${h.competitionCard} ${secondary ? h.competitionCardSecondary : ''}`}
+      aria-labelledby={headingId}
+    >
       <div className={h.cardHeader}>
         <div className={h.cardTitle}>
           <h3 className={h.name} id={headingId}>
@@ -34,7 +39,7 @@ function CompetitionCard({ competition, onOpen, action }: CompetitionCardProps) 
 
       <div className={h.gameList}>
         {competition.games.map((game) => (
-          <div className={h.gameCard} key={game.kind}>
+          <div className={h.gameRow} key={game.kind}>
             <div className={h.gameHeader}>
               <span className={h.gameName}>{game.name}</span>
               {game.joined ? <span className={h.joined}>Joined</span> : null}
@@ -44,7 +49,11 @@ function CompetitionCard({ competition, onOpen, action }: CompetitionCardProps) 
         ))}
       </div>
 
-      <Button variant="primary" fullWidth onClick={() => onOpen(competition)}>
+      <Button
+        variant={secondary ? 'secondary' : 'primary'}
+        fullWidth
+        onClick={() => onOpen(competition)}
+      >
         {action} {competition.name}
       </Button>
     </section>
@@ -58,10 +67,12 @@ export function HubPage() {
 
   return (
     <div className={s.page}>
-      <div className={s.header}>
-        <span className={s.eyebrow}>Football Prediction Hub</span>
-        <h1 className={s.title}>Choose your competition</h1>
-      </div>
+      <Masthead>
+        <div className={s.header}>
+          <span className={s.eyebrow}>Football Prediction Hub</span>
+          <h1 className={s.title}>Choose your competition</h1>
+        </div>
+      </Masthead>
 
       <div className={h.intro}>
         <p className={s.sub}>
@@ -71,13 +82,19 @@ export function HubPage() {
       </div>
 
       <section className={h.section} aria-labelledby="hub-my-competitions">
-        <h2 className={h.sectionTitle} id="hub-my-competitions">
-          My competitions
-        </h2>
+        <div className={h.sectionHead}>
+          <h2 className={h.sectionTitle} id="hub-my-competitions">
+            My competitions
+          </h2>
+          <span className={h.sectionCount}>{mine.length}</span>
+        </div>
         {mine.length === 0 ? (
-          <p className={h.empty}>
-            You have not joined a competition yet. Pick one from Discover to get started.
-          </p>
+          <div className={h.empty}>
+            <EmptyIllustration variant="list" />
+            <p className={h.emptyText}>
+              You have not joined a competition yet. Pick one from Discover to get started.
+            </p>
+          </div>
         ) : (
           <div className={h.grid}>
             {mine.map((competition) => (
@@ -92,15 +109,21 @@ export function HubPage() {
         )}
       </section>
 
-      <section className={h.section} aria-labelledby="hub-discover">
-        <h2 className={h.sectionTitle} id="hub-discover">
-          Discover
-        </h2>
+      <section className={`${h.section} ${h.sectionSecondary}`} aria-labelledby="hub-discover">
+        <div className={h.sectionHead}>
+          <h2 className={`${h.sectionTitle} ${h.sectionTitleSecondary}`} id="hub-discover">
+            Discover
+          </h2>
+          <span className={h.sectionCount}>{discover.length}</span>
+        </div>
         {discover.length === 0 ? (
-          <p className={h.empty}>
-            You have joined every competition currently running. New seasons appear here as
-            they open.
-          </p>
+          <div className={h.empty}>
+            <EmptyIllustration variant="complete" />
+            <p className={h.emptyText}>
+              You have joined every competition currently running. New seasons appear here as
+              they open.
+            </p>
+          </div>
         ) : (
           <div className={h.grid}>
             {discover.map((competition) => (
@@ -109,6 +132,7 @@ export function HubPage() {
                 competition={competition}
                 key={competitionPath(competition)}
                 onOpen={open}
+                secondary
               />
             ))}
           </div>

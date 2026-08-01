@@ -15,6 +15,12 @@ export type { StatCardProps } from './StatCard'
 export { EmptyState } from './EmptyState'
 export type { EmptyStateProps } from './EmptyState'
 
+export { EmptyIllustration } from './EmptyIllustration'
+export type { EmptyIllustrationProps } from './EmptyIllustration'
+
+export { Masthead } from './Masthead'
+export type { MastheadProps } from './Masthead'
+
 export { Skeleton } from './Skeleton'
 export type { SkeletonProps } from './Skeleton'
 

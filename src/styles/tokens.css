@@ -46,6 +46,11 @@
   /* typography */
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
+  /* One eyebrow size app-wide. design-system §3 retired the 10px variant in the
+     2026-07-22 audit and named this token; the token itself was never added, so
+     `shared.module.css` kept shipping the retired size. Declared here rather
+     than per-theme because it is a size, not a colour. */
+  --fs-eyebrow: 11px;
 
   /* shape */
   --radius-card: 14px;
