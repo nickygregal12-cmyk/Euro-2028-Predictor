@@ -34,7 +34,7 @@ describe('RouteAccessibility', () => {
     )
 
     await waitFor(() => {
-      expect(document.title).toBe('Matches | Euro 2028 Predictor')
+      expect(document.title).toBe('Matches | Football Prediction Hub')
     })
 
     const announcement = screen.getByText('Matches page loaded')
@@ -50,13 +50,13 @@ describe('RouteAccessibility', () => {
     )
 
     await waitFor(() => {
-      expect(document.title).toBe('Matches | Euro 2028 Predictor')
+      expect(document.title).toBe('Matches | Football Prediction Hub')
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Open group D' }))
 
     await waitFor(() => {
-      expect(document.title).toBe('Group D predictions | Euro 2028 Predictor')
+      expect(document.title).toBe('Group D predictions | Football Prediction Hub')
       expect(document.activeElement).toBe(screen.getByRole('main'))
     })
   })
