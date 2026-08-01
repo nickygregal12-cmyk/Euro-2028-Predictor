@@ -81,7 +81,7 @@ The owner set the following order for the hub conversion. Items 1 and 2 are done
 
 1. ~~Amending ADR resolving the five conflicting domestic rules.~~ **Done** — ADR 0020, PR #346.
 2. ~~Hub shell: stale E2E assertions, My competitions and Discover.~~ **Done** — PR #346.
-3. Complete the PR #317 migration and recovery review, then merge. One application defect was found and fixed on the branch; the branch is behind `main` and needs reconciling before merge.
+3. **Blocked.** Complete the PR #317 migration and recovery review, then merge. The review found two defects. The PostgREST embed defect is fixed on the branch and took the browser suite from 37 failures to 6. The remaining six are one unresolved defect: the migration makes the entry lock irreversible, so a tournament whose `lock_at` has ever passed can never accept a prediction again. Resolving that is a lock-semantics decision and needs owner direction — see the entry-lock row in [`quality/current-status.md`](quality/current-status.md). Reconciling the branch with `main` is separately required and has been proven to merge cleanly with all checks green locally.
 4. Apply contract 65 to **development only**, under a separate approved preflight. Production stays at 63 and paused.
 5. Refactor lock policy to be game-owned, including per-game `bufferMinutes`.
 6. Stage C1b: competition membership, game catalogue, game availability, game membership, active/inactive state and join/leave/rejoin audit history.
