@@ -874,6 +874,20 @@ where m.kickoff_at is not null
   and m.kickoff_at <= clock_timestamp()
 on conflict (tournament_id, scope_type, scope_key) do nothing;
 
+-- FIRST of two definitions of this function in this migration, and both are
+-- required. The season-scope backfill further down issues `update` statements
+-- against `match_predictions`, `predicted_group_positions`,
+-- `predicted_progression` and `predicted_tie_resolutions` to populate
+-- `tournament_id`. Those tables carry the lock triggers, so a definition has to
+-- be in force while the backfill runs; this is it. The second definition then
+-- installs the final rule, which tolerates a not-yet-known kickoff.
+--
+-- The two differ only in that null-kickoff handling. They must never differ in
+-- security or role semantics: both are `security invoker` and both test
+-- `current_user = 'postgres'`. An earlier draft let the second drift to
+-- `security definer` + `session_user`, which silently disabled the trusted
+-- automatic-submission refresh. `stageC1LockFunctionConsistency.test.ts` fails
+-- if they disagree again.
 create or replace function public.enforce_entry_lock_generic()
 returns trigger
 language plpgsql
@@ -1879,7 +1893,6 @@ $$;
 create or replace function public.enforce_entry_lock_scores()
 returns trigger
 language plpgsql
-security definer
 set search_path = ''
 as $$
 declare
@@ -1934,7 +1947,6 @@ $$;
 create or replace function public.enforce_joker_rules()
 returns trigger
 language plpgsql
-security definer
 set search_path = ''
 as $$
 declare
