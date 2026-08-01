@@ -7,8 +7,6 @@ import { describe, expect, it } from 'vitest'
  * This guard compares the reviewed compatibility inventory with the effective
  * committed migration history, so a column cannot be added, removed, renamed or
  * made nullable without an intentional inventory update in the same PR.
- *
- * Text-based and pre-migration only: no database or legal outcome is required.
  */
 
 const repositoryRoot = process.cwd()
@@ -33,7 +31,6 @@ function blankCharacter(character: string): string {
   return character === '\n' ? '\n' : ' '
 }
 
-/** Remove comments, strings and dollar-quoted bodies while preserving offsets. */
 function stripNonCode(source: string): string {
   let output = ''
   let index = 0
@@ -51,7 +48,6 @@ function stripNonCode(source: string): string {
       let depth = 1
       output += '  '
       index += 2
-
       while (index < source.length && depth > 0) {
         if (source.startsWith('/*', index)) {
           depth += 1
@@ -74,7 +70,6 @@ function stripNonCode(source: string): string {
     if (source[index] === "'") {
       output += ' '
       index += 1
-
       while (index < source.length) {
         if (source[index] === '\\' && index + 1 < source.length) {
           output += ` ${blankCharacter(source[index + 1])}`
@@ -98,19 +93,14 @@ function stripNonCode(source: string): string {
     }
 
     if (source[index] === '$') {
-      const dollarTag = source
-        .slice(index)
-        .match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/)?.[0]
-
+      const dollarTag = source.slice(index).match(/^\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$/)?.[0]
       if (dollarTag) {
         output += ' '.repeat(dollarTag.length)
         index += dollarTag.length
-
         while (index < source.length && !source.startsWith(dollarTag, index)) {
           output += blankCharacter(source[index])
           index += 1
         }
-
         if (source.startsWith(dollarTag, index)) {
           output += ' '.repeat(dollarTag.length)
           index += dollarTag.length
@@ -128,13 +118,11 @@ function stripNonCode(source: string): string {
 
 function matchingParenthesis(source: string, openingIndex: number): number {
   let depth = 0
-
   for (let index = openingIndex; index < source.length; index += 1) {
     if (source[index] === '(') depth += 1
     if (source[index] === ')') depth -= 1
     if (depth === 0) return index
   }
-
   return -1
 }
 
@@ -146,61 +134,44 @@ function publicTable(schema: string | undefined, table: string): string | null {
 function columnEvents(source: string): ColumnEvent[] {
   const sql = stripNonCode(source)
   const events: ColumnEvent[] = []
-
-  const createPattern =
-    /\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s*\(/gi
+  const createPattern = /\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s*\(/gi
 
   for (const match of sql.matchAll(createPattern)) {
     const table = publicTable(match[1], match[2])
     if (!table) continue
-
     const openingIndex = match.index + match[0].lastIndexOf('(')
     const closingIndex = matchingParenthesis(sql, openingIndex)
     if (closingIndex < 0) continue
-
     const body = sql.slice(openingIndex + 1, closingIndex)
     const declaration = body.match(/\btournament_id\s+uuid\b([^,]*)/i)
     if (!declaration) continue
-
     events.push({
       action: 'set',
       index: match.index,
-      shape: {
-        dataType: 'uuid',
-        nullable: !/\bnot\s+null\b/i.test(declaration[1]),
-      },
+      shape: { dataType: 'uuid', nullable: !/\bnot\s+null\b/i.test(declaration[1]) },
       table,
     })
   }
 
-  const addPattern =
-    /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+add\s+column\s+(?:if\s+not\s+exists\s+)?tournament_id\s+uuid\b([^;]*)/gi
-
+  const addPattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+add\s+column\s+(?:if\s+not\s+exists\s+)?tournament_id\s+uuid\b([^;]*)/gi
   for (const match of sql.matchAll(addPattern)) {
     const table = publicTable(match[1], match[2])
     if (!table) continue
     events.push({
       action: 'set',
       index: match.index,
-      shape: {
-        dataType: 'uuid',
-        nullable: !/\bnot\s+null\b/i.test(match[3]),
-      },
+      shape: { dataType: 'uuid', nullable: !/\bnot\s+null\b/i.test(match[3]) },
       table,
     })
   }
 
-  const dropColumnPattern =
-    /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+drop\s+column\s+(?:if\s+exists\s+)?tournament_id\b/gi
-
+  const dropColumnPattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+drop\s+column\s+(?:if\s+exists\s+)?tournament_id\b/gi
   for (const match of sql.matchAll(dropColumnPattern)) {
     const table = publicTable(match[1], match[2])
     if (table) events.push({ action: 'remove', index: match.index, table })
   }
 
-  const nullabilityPattern =
-    /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+alter\s+column\s+tournament_id\s+(set|drop)\s+not\s+null\b/gi
-
+  const nullabilityPattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+alter\s+column\s+tournament_id\s+(set|drop)\s+not\s+null\b/gi
   for (const match of sql.matchAll(nullabilityPattern)) {
     const table = publicTable(match[1], match[2])
     if (!table) continue
@@ -212,9 +183,7 @@ function columnEvents(source: string): ColumnEvent[] {
     })
   }
 
-  const typePattern =
-    /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+alter\s+column\s+tournament_id\s+(?:set\s+data\s+)?type\s+([a-z_][a-z0-9_]*)/gi
-
+  const typePattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+alter\s+column\s+tournament_id\s+(?:set\s+data\s+)?type\s+([a-z_][a-z0-9_]*)/gi
   for (const match of sql.matchAll(typePattern)) {
     const table = publicTable(match[1], match[2])
     if (!table) continue
@@ -226,9 +195,7 @@ function columnEvents(source: string): ColumnEvent[] {
     })
   }
 
-  const dropTablePattern =
-    /\bdrop\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\b/gi
-
+  const dropTablePattern = /\bdrop\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\b/gi
   for (const match of sql.matchAll(dropTablePattern)) {
     const table = publicTable(match[1], match[2])
     if (table) events.push({ action: 'remove', index: match.index, table })
@@ -239,38 +206,29 @@ function columnEvents(source: string): ColumnEvent[] {
 
 function effectiveTournamentIdColumns(): string[] {
   const columns = new Map<string, ColumnShape>()
-
   for (const migration of readdirSync(migrationsDirectory).sort()) {
     if (!migration.endsWith('.sql')) continue
     const source = readFileSync(resolve(migrationsDirectory, migration), 'utf8')
-
     for (const event of columnEvents(source)) {
       if (event.action === 'remove') {
         columns.delete(event.table)
-        continue
-      }
-
-      if (event.action === 'set') {
+      } else if (event.action === 'set') {
         columns.set(event.table, event.shape)
-        continue
-      }
-
-      const current = columns.get(event.table)
-      if (!current) continue
-
-      if (event.action === 'set-nullability') {
-        columns.set(event.table, { ...current, nullable: event.nullable })
       } else {
-        columns.set(event.table, { ...current, dataType: event.dataType })
+        const current = columns.get(event.table)
+        if (!current) continue
+        columns.set(
+          event.table,
+          event.action === 'set-nullability'
+            ? { ...current, nullable: event.nullable }
+            : { ...current, dataType: event.dataType },
+        )
       }
     }
   }
 
   return [...columns]
-    .map(
-      ([table, shape]) =>
-        `${table}.tournament_id ${shape.dataType}${shape.nullable ? '' : ' not null'}`,
-    )
+    .map(([table, shape]) => `${table}.tournament_id ${shape.dataType}${shape.nullable ? '' : ' not null'}`)
     .sort()
 }
 
@@ -278,24 +236,21 @@ function inventoryColumns(): string[] {
   const inventory = readFileSync(inventoryPath, 'utf8')
   const section = inventory.split('## Current direct columns')[1]?.split('## Change rules')[0]
   expect(section, 'current tournament_id inventory section').toBeTruthy()
-
   const columns: string[] = []
   const rowPattern = /^\|\s*`([a-z_][a-z0-9_]*\.tournament_id)`\s*\|/gm
-  for (const match of section!.matchAll(rowPattern)) {
-    columns.push(`${match[1]} uuid not null`)
-  }
-
+  for (const match of section!.matchAll(rowPattern)) columns.push(`${match[1]} uuid not null`)
   return columns.sort()
 }
 
 const effectiveColumns = effectiveTournamentIdColumns()
 const reviewedColumns = inventoryColumns()
 
-describe('Stage C tournament_id compatibility inventory', () => {
-  it('keeps the parser positive control at the current direct-column boundary', () => {
-    expect(effectiveColumns).toHaveLength(12)
+describe('Stage C tournament_id compatibility inventory after C1', () => {
+  it('keeps the parser positive control at the contract-65 boundary', () => {
+    expect(effectiveColumns).toHaveLength(33)
     expect(effectiveColumns).toContain('entries.tournament_id uuid not null')
     expect(effectiveColumns).toContain('matches.tournament_id uuid not null')
+    expect(effectiveColumns).toContain('competition_rounds.tournament_id uuid not null')
     expect(effectiveColumns).not.toContain('tournaments.tournament_id uuid not null')
   })
 

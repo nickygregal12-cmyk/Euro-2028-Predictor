@@ -24,6 +24,14 @@ update public.tournaments
 set lock_at = now() + interval '1 day'
 where id = current_setting('test.acct_tournament_id')::uuid;
 
+-- This test deliberately creates a joker. Contract 65 requires authoritative
+-- fixture timing before a joker commitment can exist, so make the rollback-only
+-- fixture catalogue explicit rather than relying on the old null-kickoff seed.
+update public.matches
+set kickoff_at = now() + interval '2 days'
+where tournament_id = current_setting('test.acct_tournament_id')::uuid
+  and round = 'group';
+
 set local session_replication_role = replica;
 insert into auth.users (
   id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at

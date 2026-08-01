@@ -32,7 +32,8 @@ The annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc
 
 Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md). At the 30 July 2026 governance decision:
 
-- repository and development Supabase are contract **64**;
+- the PR #317 repository candidate is contract **66**;
+- current `main` and development Supabase remain contract **64**;
 - production Supabase and the last published application remain contract **63**;
 - production Netlify deploys are paused by the contract gate by design;
 - no agent may promote production merely to equalise contract numbers.
@@ -41,16 +42,16 @@ Read current hosted values from [`docs/quality/current-status.md`](docs/quality/
 
 Stage B is complete on `main` through PR #226. Control, parity, inventory and Stage C foundation work through PRs #228, #229, #232, #233, #235, #239, #245, #246, #250, #252, #255, #258, #261, #264 and #265 is also on `main`. Read the current commit from git and the contract from `config/deployment-contract.json`.
 
-PR #252 lands the competition/viewer timezone seam but intentionally keeps viewer fallback until Stage C1 supplies `tournaments.display_timezone`. PRs #255, #258 and #261 make committed TypeScript/TSX compiler-project coverage exhaustive. PR #264 type-checks the three JavaScript deploy gates. PR #265 pins the complete direct Data API relation/view exposure surface. PR #266 adds disposable-local ACQ-R02 scale evidence only. PRs #269, #276 and #284 measure ACQ-R03. PR #279 freshness-checks the enum surface. PR #285 makes domain coverage thresholds and compressed bundle budgets CI gates. PR #287 makes lint warnings fail CI.
+PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `tournaments.display_timezone` in the contract-65 repository candidate while retaining hosted contract-64 fallback. PRs #255, #258 and #261 make committed TypeScript/TSX compiler-project coverage exhaustive. PR #264 type-checks the three JavaScript deploy gates. PR #265 pins the complete direct Data API relation/view exposure surface. PR #266 adds disposable-local ACQ-R02 scale evidence only. PRs #269, #276 and #284 measure ACQ-R03. PR #279 freshness-checks the enum surface. PR #285 makes domain coverage thresholds and compressed bundle budgets CI gates. PR #287 makes lint warnings fail CI.
 
 **PR #236 is merged** and all seven pre-migration contracts have landed through PR #292. The accepted governance amendment splits implementation:
 
-- **Stage C1 — issue #303:** competition-season identity, fields, rounds, timezone, locks, same-season safeguards and Euro preservation. C1 may proceed through design/contract reconciliation and disposable proof, but must leave current auth-owned competitive rows, foreign-key actions and ownership RLS unchanged.
+- **Stage C1 — issue #303 / PR #317:** competition-season identity, fields, rounds, timezone, locks, same-season safeguards and Euro preservation are implemented in repository/disposable evidence at contract 65. The current auth-owned competitive rows, foreign-key actions and ownership RLS remain unchanged; no hosted write is authorised.
 - **Stage C2 — issue #272:** profile ownership, account erasure, pseudonymisation and related RLS. C2 remains blocked by the independent data-protection review.
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The repository is at **contract 64** through `20260730180000_cup_winner_deletion_semantics.sql`. That is not a Stage C migration. Development Supabase is at contract 64; production remains at 63. Any hosted schema mutation requires explicit owner approval and the applicable preflight.
+The PR #317 repository candidate is at **contract 65** through `20260730235602_stage_c1_competition_season_foundation.sql`. Current `main` and development Supabase remain at contract 64; production remains at 63. Contract 65 are disposable-only C1 evidence until separately reviewed and explicitly approved. Any hosted schema mutation requires explicit owner approval and the applicable preflight.
 
 ## Development operating mode
 

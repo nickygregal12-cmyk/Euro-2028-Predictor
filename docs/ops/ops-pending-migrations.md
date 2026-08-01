@@ -2,15 +2,24 @@
 
 Live source of truth for repository migration count and the verification still required for hosted environments.
 
-## Current repository state — 30 July 2026
+## Current repository state — 31 July 2026
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **64** | 64 canonical files through `20260730180000_cup_winner_deletion_semantics.sql` | VERIFIED |
+| Repository PR #317 | **65** | 65 canonical files through `20260730235602_stage_c1_competition_season_foundation.sql`; zero-to-current rebuild, lint, pgTAP and TS/Postgres parity pass | DISPOSABLE VERIFIED; HOSTED NOT APPLIED |
+| Repository `main` | **64** | 64 canonical files through `20260730180000_cup_winner_deletion_semantics.sql` until PR #317 is reviewed and merged | VERIFIED |
 | Development Supabase | **64** | owner-applied and owner-verified 30 July 2026: `bonus_cup_fixtures_winner_user_id_fkey` returns `confdeltype = r`, `condeferrable = false` | VERIFIED |
 | Production Supabase | 63 | unchanged since the 29 July 2026 promotion | `REQUIRES OWNER VERIFICATION` |
-| Netlify `deploy-preview` / `branch-deploy` | **64** | `EURO28_DEPLOYED_DB_CONTRACT=64`; preview build passes the contract gate and the exact-head smoke reports contract 64 | VERIFIED |
-| Netlify `production` | 63 | **production deploys are paused**: the repository requires 64, so the prebuild gate refuses the build. The last good deploy stays live. Owner-accepted 30 July 2026 | BLOCKED BY DESIGN |
+| Netlify `deploy-preview` / `branch-deploy` | **64 hosted declaration** | PR #317 expects repository contract 65, but an exact Netlify preview was unavailable during validation; no hosted contract claim is made | REQUIRES EXACT PREVIEW |
+| Netlify `production` | 63 | **production deploys remain paused**. `main` requires 64 today and the PR #317 candidate requires 65; the last good contract-63 deploy stays live | BLOCKED BY DESIGN |
+
+### Contract 65 — Stage C1 repository candidate
+
+| # | Canonical migration | Repository-side purpose | Hosted status |
+| ---: | --- | --- | --- |
+| 65 | `20260730235602_stage_c1_competition_season_foundation.sql` | Coherent competition-season foundation: stable identity, season metadata/timezone, rounds, fixture administration, monotonic locks, awards, same-season constraints, private lock authorities and always-on scope preparation | disposable VERIFIED; not hosted |
+
+Contract 65 preserves the complete C2 auth ownership/deletion boundary. Issue #272 still blocks profile ownership, pseudonymisation and account-erasure changes. No development or production migration is authorised merely because disposable parity passes.
 
 ### Contract 64
 
@@ -20,7 +29,7 @@ Live source of truth for repository migration count and the verification still r
 
 Behaviour-preserving. `NO ACTION` and `RESTRICT` are equivalent for a non-deferrable constraint, and the constraint is non-deferrable. Measured rather than argued: the same delete against the same settled cup fixture fails identically on databases built at 63 and at 64 migrations, naming the same constraint in the same message.
 
-**To unblock production:** apply the migration to production Supabase, confirm `confdeltype = 'r'`, then set `EURO28_DEPLOYED_DB_CONTRACT=64` on the `production` context. Do not set the production value before the database is verified — that is the exact inversion the gate exists to prevent.
+**Historical contract-64 release note:** production remains intentionally at 63. Do not apply contract 64 or 65 merely to equalise numbers. The next production milestone requires exact review, backup/recovery evidence, explicit owner approval, sequential migration verification and an exact approved release.
 
 ## Tagged repository state — 29 July 2026
 
@@ -55,7 +64,7 @@ The tag annotation asserts hosted contract-63 alignment and names deploy IDs. Th
 
 An owner with access should verify and date:
 
-1. development migration count/highest version and public/private function privileges;
+1. development migration count/highest version and public/private function privileges before any contract-65 write;
 2. production migration count/highest version and public/private function privileges;
 3. Netlify contract declarations and development/production Supabase separation;
 4. the named product and final-evidence deploy identities;

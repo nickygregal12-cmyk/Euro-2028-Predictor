@@ -14,6 +14,7 @@ const ROUND_LABEL: Record<Match['round'], string> = {
   qf: 'Quarter-final',
   sf: 'Semi-final',
   final: 'Final',
+  league: 'League match',
 }
 
 export type MatchCentrePageModelInput = {

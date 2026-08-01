@@ -1,6 +1,6 @@
 {
-  "contractVersion": 64,
-  "requiredMigrationCount": 64,
+  "contractVersion": 65,
+  "requiredMigrationCount": 65,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -50,5 +50,5 @@
     "public.clear_my_predictions(uuid)",
     "public.get_prediction_consensus(uuid)"
   ],
-  "notes": "Tagged repository baseline euro-2028-baseline resolves to 1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Contract 61 provides tournament-wide post-lock consensus, contract 62 activates final standings after all results, and contract 63 gates consensus below ten submitted entries. Contract 64 declares bonus_cup_fixtures.winner_user_id's ON DELETE action explicitly; it is behaviour-preserving, since NO ACTION and RESTRICT are equivalent for this non-deferrable constraint. Hosted Supabase and Netlify alignment claims are REQUIRES OWNER VERIFICATION in the 29 July 2026 tag reconciliation."
+  "notes": "Tagged repository baseline euro-2028-baseline resolves to 1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Contract 61 provides tournament-wide post-lock consensus, contract 62 activates final standings after all results, and contract 63 gates consensus below ten submitted entries. Contract 64 declares bonus_cup_fixtures.winner_user_id's ON DELETE action explicitly; it is behaviour-preserving, since NO ACTION and RESTRICT are equivalent for this non-deferrable constraint. Contract 65 is the coherent Stage C1 competition-season foundation: stable competition identity, season metadata and timezone authority, explicit rounds, fixture administration state, monotonic lock evidence, additive awards, same-season relationship constraints, private security-definer lock checks and always-on scope preparation while preserving every C2 ownership and auth-deletion boundary. Hosted Supabase and Netlify alignment remain unclaimed; this contract is repository/disposable-development evidence only until an explicitly approved hosted migration run."
 }

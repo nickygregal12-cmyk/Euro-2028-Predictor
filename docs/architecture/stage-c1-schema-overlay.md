@@ -142,7 +142,7 @@ Nothing in this overlay approves a C2 target. Technical research recorded under 
 | --- | --- | --- |
 | `competitions` | Stable recurring competition identity | Read only where required; RLS enabled |
 | `competition_rounds` | Tournament rounds and league matchweeks | Read only where required; RLS enabled |
-| `competition_lock_events` | Internal append-only observed lock transition | No direct browser authority |
+| `competition_lock_events` | Internal append-only observed lock transition. **Evidence only — never an enforcement input.** `lock_at` and `kickoff_at` remain the sole lock authorities, so a corrected deadline reopens the entry or fixture. An earlier draft consulted this table inside `enforce_entry_lock_generic`, `enforce_entry_lock_scores` and `enforce_joker_rules`, which made a lock permanent once observed and left no admin route back — see the entry-lock decision in `docs/quality/current-status.md` | No direct browser authority |
 | `competition_awards` | Additive season-scoped award results | Read through reviewed bounded paths |
 
 No `competitors` table or parallel `competition_seasons` table is introduced.
@@ -262,8 +262,8 @@ C1 does not exit until all of the following pass:
 - every retained physical `tournament_id`/`p_tournament_id` name remains intentional compatibility;
 - hostile cross-season writes fail;
 - null/stale fixture data fails locks closed;
-- an observed locked scope never reopens;
-- every prediction write at or after fixture kickoff fails;
+- an observed locked scope never reopens. Round locks are monotonic; Stage C1 supplies the round, fixture-assignment and append-only lock-evidence primitives required for an *incomplete* rescheduled fixture to be reassigned to the round its new kickoff falls within, where it becomes governed by that destination round's lock (ADR 0020). The ingestion and administrative reassignment workflow is delivered separately, and Stage C1 does not claim to complete that behaviour;
+- every prediction write at or after the fixture's current kickoff fails;
 - invalid competition timezones are rejected or explicitly unavailable;
 - viewers share competition grouping while retaining local display clocks;
 - Euro UUIDs, 51 fixtures, scores, totals, ranks, leagues, Bonus Games and role-visible rows are preserved;

@@ -91,16 +91,22 @@ export function H2HPage() {
 
     const knockoutState = deriveKnockoutState({
       teamIds: td.teams.map((team) => team.id),
-      matches: td.matches.map((match) => ({
-        round: match.round,
-        homeTeamId: match.homeTeamId,
-        awayTeamId: match.awayTeamId,
-        winnerTeamId: match.winnerTeamId ?? null,
-        resulted:
-          match.round === 'group'
-            ? authoritativeMatchScore(match) !== null
-            : Boolean(match.winnerTeamId),
-      })),
+      // H2H bracket health is a tournament authority. League fixtures share
+      // MatchRound at the repository boundary but do not enter this knockout graph.
+      matches: td.matches.flatMap((match) =>
+        match.round === 'league'
+          ? []
+          : [{
+              round: match.round,
+              homeTeamId: match.homeTeamId,
+              awayTeamId: match.awayTeamId,
+              winnerTeamId: match.winnerTeamId ?? null,
+              resulted:
+                match.round === 'group'
+                  ? authoritativeMatchScore(match) !== null
+                  : Boolean(match.winnerTeamId),
+            }],
+      ),
     })
 
     const actuals: H2HActuals = {
