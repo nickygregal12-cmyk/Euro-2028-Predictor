@@ -11,6 +11,7 @@ on:
       - 'src/domain/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
+      - 'tests/migration-transition/**'
       - 'tests/scripts/databaseParityWorkflow.test.ts'
   workflow_dispatch:
 
@@ -73,6 +74,49 @@ jobs:
         # the job appear to cover parity while running a single subject — a new
         # parity test was triggered by, but not executed in, this job.
         run: npx vitest run tests/database-parity/
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup
+
+  # Every job above rebuilds from zero, so it reaches each migration with empty
+  # tables. A row-level trigger does not fire when a statement matches no rows,
+  # which is exactly how the Stage C1 audit-scope backfill passed every rebuild
+  # and then failed on hosted development's nine audit rows. This job is the one
+  # that arrives at a migration with data already in place.
+  migration-transition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Rebuild to canonical contract 64
+        run: supabase db reset --local --version 20260730180000
+
+      - name: Rehearse the contract 64 to 65 transition against populated tables
+        env:
+          DATABASE_PARITY: '1'
+          SUPABASE_DB_CONTAINER: supabase_db_euro-2028-predictor-local
+        # The whole directory: the suite owns which transitions it rehearses, and
+        # the trigger above already fires on any change inside it.
+        run: npx vitest run tests/migration-transition/
 
       - name: Stop and delete disposable local data
         if: always()

@@ -6,6 +6,7 @@ const repositoryRoot = resolve(import.meta.dirname, '../..')
 const workflowPath = resolve(repositoryRoot, '.github/workflows/database-parity.yml')
 const workflow = readFileSync(workflowPath, 'utf8')
 const paritySuiteDir = resolve(repositoryRoot, 'tests/database-parity')
+const transitionSuiteDir = resolve(repositoryRoot, 'tests/migration-transition')
 
 describe('database parity workflow trigger contract', () => {
   it('watches the production rollout SQL directory', () => {
@@ -24,6 +25,31 @@ describe('database parity workflow trigger contract', () => {
 
   it('watches the whole parity suite directory', () => {
     expect(workflow).toContain("- 'tests/database-parity/**'")
+  })
+
+  it('watches the migration-transition suite directory', () => {
+    expect(workflow).toContain("- 'tests/migration-transition/**'")
+  })
+})
+
+describe('database parity workflow migration-transition contract', () => {
+  it('rehearses a transition from a prior contract, not from a rebuild', () => {
+    // Rebuild jobs reach every migration with empty tables, so a statement whose
+    // failure needs a row can only be caught by arriving at it with data. The
+    // reset must therefore stop at the prior canonical version.
+    expect(workflow).toContain('supabase db reset --local --version 20260730180000')
+    expect(workflow).toContain('npx vitest run tests/migration-transition/')
+  })
+
+  it('executes every migration-transition subject that exists', () => {
+    const subjects = readdirSync(transitionSuiteDir).filter((file) =>
+      /\.test\.tsx?$/.test(file),
+    )
+
+    expect(subjects.length).toBeGreaterThan(0)
+    for (const subject of subjects) {
+      expect(workflow).not.toContain(`tests/migration-transition/${subject}`)
+    }
   })
 })
 
