@@ -166,15 +166,17 @@ update public.tournaments
 set lock_at = now() + interval '1 day'
 where id = '00000000-0000-0000-0000-00000000d101';
 
-select throws_ok(
+-- ADR 0020 keeps `lock_at` the sole entry-lock authority, so correcting a
+-- mistakenly early deadline reopens the entry. The lock event below is still
+-- recorded, and is evidence of the observed transition rather than an
+-- enforcement input — see the entry-lock decision in `docs/quality/current-status.md`.
+select lives_ok(
   $sql$
     update public.match_predictions
     set away_score = 1
     where id = '00000000-0000-0000-0000-00000000d601'
   $sql$,
-  '23514',
-  'Predictions are locked — the tournament has started',
-  'moving lock_at into the future cannot reopen an observed entry lock'
+  'moving lock_at into the future reopens the entry, and the observed lock event does not override it'
 );
 
 select throws_ok(
@@ -339,15 +341,16 @@ update public.matches
 set kickoff_at = now() + interval '1 day'
 where id = '00000000-0000-0000-0000-00000000d402';
 
-select throws_ok(
+-- The per-match guard is likewise derived from the current `kickoff_at`. A
+-- fixture genuinely moved to a later date is predictable again; the recorded
+-- lock event does not hold it shut.
+select lives_ok(
   $sql$
     update public.match_predictions
     set away_score = 2
     where id = '00000000-0000-0000-0000-00000000d602'
   $sql$,
-  '23514',
-  'This prediction is locked — the match has kicked off',
-  'moving kickoff into the future cannot reopen an observed fixture lock'
+  'moving kickoff into the future reopens the fixture, and the observed lock event does not override it'
 );
 
 select throws_ok(
@@ -388,6 +391,14 @@ select throws_ok(
   'Joker on match 00000000-0000-0000-0000-00000000d403 is locked at kickoff and cannot be changed',
   'a committed joker cannot be cleared at the exact fixture kickoff'
 );
+
+-- Re-lock the entry, because the deadline correction above deliberately
+-- reopened it. The point of this assertion is the ordering — the lock is
+-- evaluated before optimistic versioning, so a stale write is refused as
+-- locked rather than as a version conflict.
+update public.tournaments
+set lock_at = now()
+where id = '00000000-0000-0000-0000-00000000d101';
 
 select throws_ok(
   $sql$

@@ -885,7 +885,6 @@ declare
   v_tournament uuid;
   v_lock timestamptz;
   v_kickoff timestamptz;
-  v_locked boolean;
   v_server_position_refresh boolean :=
     tg_table_schema = 'public'
     and tg_table_name = 'predicted_group_positions'
@@ -912,21 +911,12 @@ begin
       using errcode = 'foreign_key_violation';
   end if;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'entry'
-      and le.scope_key = 'entry'
-  )
-  into v_locked;
-
-  if v_lock is null and not v_locked and not v_server_position_refresh then
+  if v_lock is null and not v_server_position_refresh then
     raise exception 'Predictions are unavailable — the tournament lock is not configured'
       using errcode = 'check_violation';
   end if;
 
-  if (v_locked or (v_lock is not null and clock_timestamp() >= v_lock))
+  if v_lock is not null and clock_timestamp() >= v_lock
      and not v_server_position_refresh
   then
     raise exception 'Predictions are locked — the tournament has started'
@@ -950,16 +940,7 @@ begin
         using errcode = 'check_violation';
     end if;
 
-    select exists (
-      select 1
-      from public.competition_lock_events le
-      where le.tournament_id = v_tournament
-        and le.scope_type = 'match'
-        and le.scope_key = v_match::text
-    )
-    into v_locked;
-
-    if v_locked or clock_timestamp() >= v_kickoff then
+    if clock_timestamp() >= v_kickoff then
       raise exception 'This prediction is locked — the match has kicked off'
         using errcode = 'check_violation';
     end if;
@@ -981,7 +962,6 @@ declare
   v_tournament uuid;
   v_lock timestamptz;
   v_kickoff timestamptz;
-  v_locked boolean;
   v_score_changed boolean;
 begin
   v_score_changed := tg_op = 'INSERT'
@@ -1003,21 +983,12 @@ begin
       using errcode = 'foreign_key_violation';
   end if;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'entry'
-      and le.scope_key = 'entry'
-  )
-  into v_locked;
-
-  if v_lock is null and not v_locked then
+  if v_lock is null then
     raise exception 'Predictions are unavailable — the tournament lock is not configured'
       using errcode = 'check_violation';
   end if;
 
-  if v_locked or (v_lock is not null and clock_timestamp() >= v_lock) then
+  if v_lock is not null and clock_timestamp() >= v_lock then
     raise exception 'Predictions are locked — the tournament has started'
       using errcode = 'check_violation';
   end if;
@@ -1032,16 +1003,7 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'match'
-      and le.scope_key = new.match_id::text
-  )
-  into v_locked;
-
-  if v_locked or clock_timestamp() >= v_kickoff then
+  if clock_timestamp() >= v_kickoff then
     raise exception 'This prediction is locked — the match has kicked off'
       using errcode = 'check_violation';
   end if;
@@ -1058,7 +1020,6 @@ as $$
 declare
   v_tournament uuid;
   v_kickoff timestamptz;
-  v_locked boolean;
   joker_changed boolean;
 begin
   joker_changed := (tg_op = 'INSERT' and new.joker)
@@ -1078,16 +1039,7 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'match'
-      and le.scope_key = new.match_id::text
-  )
-  into v_locked;
-
-  if v_locked or clock_timestamp() >= v_kickoff then
+  if clock_timestamp() >= v_kickoff then
     raise exception 'Joker on match % is locked at kickoff and cannot be changed', new.match_id
       using errcode = 'check_violation';
   end if;
@@ -1831,7 +1783,6 @@ declare
   v_tournament uuid;
   v_lock timestamptz;
   v_kickoff timestamptz;
-  v_locked boolean;
   v_server_position_refresh boolean :=
     tg_table_schema = 'public'
     and tg_table_name = 'predicted_group_positions'
@@ -1858,21 +1809,12 @@ begin
       using errcode = 'foreign_key_violation';
   end if;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'entry'
-      and le.scope_key = 'entry'
-  )
-  into v_locked;
-
-  if v_lock is null and not v_locked and not v_server_position_refresh then
+  if v_lock is null and not v_server_position_refresh then
     raise exception 'Predictions are unavailable — the tournament lock is not configured'
       using errcode = 'check_violation';
   end if;
 
-  if (v_locked or (v_lock is not null and clock_timestamp() >= v_lock))
+  if v_lock is not null and clock_timestamp() >= v_lock
      and not v_server_position_refresh
   then
     raise exception 'Predictions are locked — the tournament has started'
@@ -1891,21 +1833,10 @@ begin
       from public.matches m
       where m.id = v_match;
 
-    select exists (
-      select 1
-      from public.competition_lock_events le
-      where le.tournament_id = v_tournament
-        and le.scope_type = 'match'
-        and le.scope_key = v_match::text
-    )
-    into v_locked;
-
     -- Euro 2028's original game remains tournament-wide before official
     -- kickoffs are known. Once a kickoff is known or has ever been observed,
     -- the fixture boundary is inclusive and cannot reopen after rescheduling.
-    if v_locked
-       or (v_kickoff is not null and clock_timestamp() >= v_kickoff)
-    then
+    if v_kickoff is not null and clock_timestamp() >= v_kickoff then
       raise exception 'This prediction is locked — the match has kicked off'
         using errcode = 'check_violation';
     end if;
@@ -1928,7 +1859,6 @@ declare
   v_tournament uuid;
   v_lock timestamptz;
   v_kickoff timestamptz;
-  v_locked boolean;
   v_score_changed boolean;
 begin
   v_score_changed := tg_op = 'INSERT'
@@ -1950,21 +1880,12 @@ begin
       using errcode = 'foreign_key_violation';
   end if;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'entry'
-      and le.scope_key = 'entry'
-  )
-  into v_locked;
-
-  if v_lock is null and not v_locked then
+  if v_lock is null then
     raise exception 'Predictions are unavailable — the tournament lock is not configured'
       using errcode = 'check_violation';
   end if;
 
-  if v_locked or (v_lock is not null and clock_timestamp() >= v_lock) then
+  if v_lock is not null and clock_timestamp() >= v_lock then
     raise exception 'Predictions are locked — the tournament has started'
       using errcode = 'check_violation';
   end if;
@@ -1974,18 +1895,7 @@ begin
     from public.matches m
     where m.id = new.match_id;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'match'
-      and le.scope_key = new.match_id::text
-  )
-  into v_locked;
-
-  if v_locked
-     or (v_kickoff is not null and clock_timestamp() >= v_kickoff)
-  then
+  if v_kickoff is not null and clock_timestamp() >= v_kickoff then
     raise exception 'This prediction is locked — the match has kicked off'
       using errcode = 'check_violation';
   end if;
@@ -2003,7 +1913,6 @@ as $$
 declare
   v_tournament uuid;
   v_kickoff timestamptz;
-  v_locked boolean;
   joker_changed boolean;
 begin
   joker_changed := (tg_op = 'INSERT' and new.joker)
@@ -2023,16 +1932,7 @@ begin
       using errcode = 'check_violation';
   end if;
 
-  select exists (
-    select 1
-    from public.competition_lock_events le
-    where le.tournament_id = v_tournament
-      and le.scope_type = 'match'
-      and le.scope_key = new.match_id::text
-  )
-  into v_locked;
-
-  if v_locked or clock_timestamp() >= v_kickoff then
+  if clock_timestamp() >= v_kickoff then
     raise exception 'Joker on match % is locked at kickoff and cannot be changed', new.match_id
       using errcode = 'check_violation';
   end if;

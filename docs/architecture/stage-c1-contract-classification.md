@@ -64,13 +64,13 @@ The absence of C2 after-state assertions is deliberate, not missing coverage. Is
 | `032_stage_c_lock_before_state.sql` | `C1` | crossing the entry deadline records one append-only lock event |
 | `032_stage_c_lock_before_state.sql` | `C1` | the score lock is inclusive at the exact entry deadline |
 | `032_stage_c_lock_before_state.sql` | `C1` | the generic entry lock is inclusive at the exact deadline |
-| `032_stage_c_lock_before_state.sql` | `C1` | moving lock_at into the future cannot reopen an observed entry lock |
+| `032_stage_c_lock_before_state.sql` | `C1` | moving lock_at into the future reopens the entry, and the observed lock event does not override it |
 | `032_stage_c_lock_before_state.sql` | `C1` | recorded lock evidence cannot be edited |
 | `032_stage_c_lock_before_state.sql` | `C1` | a missing entry deadline fails closed before an event exists |
 | `032_stage_c_lock_before_state.sql` | `C1` | legacy tournament score predictions remain writable before the entry lock even when a kickoff is not yet known |
 | `032_stage_c_lock_before_state.sql` | `C1` | crossing fixture kickoff records one match lock event |
 | `032_stage_c_lock_before_state.sql` | `C1` | a pure score edit is rejected at the exact fixture kickoff |
-| `032_stage_c_lock_before_state.sql` | `C1` | moving kickoff into the future cannot reopen an observed fixture lock |
+| `032_stage_c_lock_before_state.sql` | `C1` | moving kickoff into the future reopens the fixture, and the observed lock event does not override it |
 | `032_stage_c_lock_before_state.sql` | `C1` | a joker remains unavailable until authoritative kickoff is known |
 | `032_stage_c_lock_before_state.sql` | `C1` | a joker can be committed before its known fixture kickoff |
 | `032_stage_c_lock_before_state.sql` | `C1` | a committed joker cannot be cleared at the exact fixture kickoff |

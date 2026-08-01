@@ -142,7 +142,7 @@ Nothing in this overlay approves a C2 target. Technical research recorded under 
 | --- | --- | --- |
 | `competitions` | Stable recurring competition identity | Read only where required; RLS enabled |
 | `competition_rounds` | Tournament rounds and league matchweeks | Read only where required; RLS enabled |
-| `competition_lock_events` | Internal append-only observed lock transition | No direct browser authority |
+| `competition_lock_events` | Internal append-only observed lock transition. **Evidence only — never an enforcement input.** `lock_at` and `kickoff_at` remain the sole lock authorities, so a corrected deadline reopens the entry or fixture. An earlier draft consulted this table inside `enforce_entry_lock_generic`, `enforce_entry_lock_scores` and `enforce_joker_rules`, which made a lock permanent once observed and left no admin route back — see the entry-lock decision in `docs/quality/current-status.md` | No direct browser authority |
 | `competition_awards` | Additive season-scoped award results | Read through reviewed bounded paths |
 
 No `competitors` table or parallel `competition_seasons` table is introduced.
