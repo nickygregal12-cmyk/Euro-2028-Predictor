@@ -207,7 +207,7 @@ function competitionUserData(input: {
 export function resolveTournamentCompetitionContext(
   input: TournamentCompetitionContextInput,
 ): TournamentCompetitionContextResult {
-  // Explicit overrides support deterministic tests. Normal contract-66 reads
+  // Explicit overrides support deterministic tests. Normal contract-65 reads
   // use the persisted season authority; viewer timezone is retained only while
   // the hosted database is still on contract 64 and the new field is absent.
   const competitionTimeZone = safeTimeZone(

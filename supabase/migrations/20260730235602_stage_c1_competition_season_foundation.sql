@@ -1771,10 +1771,27 @@ alter table public.bonus_cup_penalty_numbers alter column tournament_id set not 
 grant execute on function predictor_internal.is_valid_timezone(text)
   to anon, authenticated, service_role;
 
+-- The trusted-refresh predicate below is `current_user`, and this function is
+-- deliberately NOT `security definer`. Both matter, and an earlier draft of
+-- this redefinition got both wrong:
+--
+--   * `session_user` is the login role. PostgREST connects as `authenticator`
+--     and then `set role`s, so `session_user` is `authenticator` for every
+--     browser AND every service-role request. It is never `postgres`, which
+--     made the exemption permanently dead and caused automatic submission to
+--     reject its own group-position refresh at the deadline.
+--   * `security definer` here would make `current_user` always `postgres`
+--     inside the trigger. `set_config` is executable by `authenticated`, so
+--     that combination would let any signed-in user set the flag and write
+--     positions after the lock. As `security invoker`, `current_user` is the
+--     real caller, so the flag only helps inside the security-definer
+--     processor chain that already runs as postgres.
+--
+-- The reads below (entries, tournaments, matches) are all granted to
+-- `authenticated`, so no elevation is required. This matches contract 64.
 create or replace function public.enforce_entry_lock_generic()
 returns trigger
 language plpgsql
-security definer
 set search_path = ''
 as $$
 declare
@@ -1786,7 +1803,7 @@ declare
   v_server_position_refresh boolean :=
     tg_table_schema = 'public'
     and tg_table_name = 'predicted_group_positions'
-    and session_user = 'postgres'
+    and current_user = 'postgres'
     and coalesce(
       current_setting('predictor.auto_submission_refresh', true),
       ''
@@ -1834,8 +1851,18 @@ begin
       where m.id = v_match;
 
     -- Euro 2028's original game remains tournament-wide before official
-    -- kickoffs are known. Once a kickoff is known or has ever been observed,
-    -- the fixture boundary is inclusive and cannot reopen after rescheduling.
+    -- kickoffs are known. Once a kickoff is known the per-fixture boundary is
+    -- inclusive, and it is the server-side integrity floor beneath the round
+    -- lock (ADR 0011).
+    --
+    -- It compares against the fixture's *current* kickoff, so it does not
+    -- contradict the ADR 0020 reassignment model. Round locks stay monotonic
+    -- and never reopen; an incomplete rescheduled fixture may later be
+    -- reassigned to the round its new kickoff falls within, and is then
+    -- governed by that destination round's lock. Stage C1 supplies the round,
+    -- fixture-assignment and append-only lock-evidence primitives for that.
+    -- The ingestion and administrative reassignment workflow is delivered
+    -- separately.
     if v_kickoff is not null and clock_timestamp() >= v_kickoff then
       raise exception 'This prediction is locked — the match has kicked off'
         using errcode = 'check_violation';

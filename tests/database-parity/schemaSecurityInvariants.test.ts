@@ -144,8 +144,22 @@ describe('security definer functions', () => {
       /enforce_entry_lock_generic[\s\S]{0,200}set search_path/i,
     )
     expect(definitions.get(redefined)?.migration).toBe(occurrences.at(-1))
-    expect(definitions.get(redefined)?.header).toMatch(/security definer/i)
     expect(definitions.get(redefined)?.header).toMatch(/set search_path/i)
+
+    // This function is deliberately NOT `security definer`, and that is
+    // load-bearing rather than incidental. Its trusted-refresh predicate tests
+    // `current_user = 'postgres'`; under `security definer` that would always
+    // be true inside the trigger, and `set_config` is executable by
+    // `authenticated`, so any signed-in user could set the flag and write
+    // predictions after the lock. As `security invoker`, `current_user` is the
+    // real caller, so only the security-definer processor chain — which already
+    // runs as postgres — can reach it. Proven in
+    // `supabase/tests/033_automatic_submission_trusted_path.sql`.
+    //
+    // This assertion previously read `toMatch(/security definer/i)` against an
+    // earlier Stage C1 draft that had it wrong. It is inverted rather than
+    // dropped, so the property stays pinned in the direction that matters.
+    expect(definitions.get(redefined)?.header).not.toMatch(/security definer/i)
   })
 
   it('stops the header at the function body', () => {
