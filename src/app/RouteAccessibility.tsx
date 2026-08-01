@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { matchPath, useLocation } from 'react-router'
 
-const APP_NAME = 'Euro 2028 Predictor'
+const APP_NAME = 'Football Prediction Hub'
 
 /**
  * Every route the application declares, ordered so the first `matchPath` hit is
@@ -9,17 +9,14 @@ const APP_NAME = 'Euro 2028 Predictor'
  * `/games`.
  *
  * `getRouteTitle` falls back to 'Page not found', so a route missing from here
- * does not fail: it sets the browser title to "Page not found | Euro 2028
- * Predictor" and announces "Page not found page loaded" to a screen reader, on
- * a page that exists and rendered fine. Ten routes were in that state until 31
- * July 2026 — the whole Bonus Games section, prediction trends, other players'
- * profiles and all three admin surfaces.
- *
- * `tests/app/routeTitleCoverage.test.ts` now compares this list against the
+ * does not fail: it sets the browser title and announces a page that does not
+ * exist. `tests/app/routeTitleCoverage.test.ts` compares this list against the
  * routes in `App.tsx`, so the fallback catches typos rather than omissions.
  */
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
-  { path: '/', title: 'Home' },
+  { path: '/', title: 'Competitions' },
+  { path: '/competitions/euro/2028/original', title: 'Euro 2028 Original Predictor' },
+  { path: '/competitions/:competitionSlug/:seasonSlug', title: 'Competition dashboard' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },
   { path: '/auth/reset', title: 'Reset password' },
@@ -59,6 +56,18 @@ export function getRouteTitle(pathname: string): string {
   const groupMatch = matchPath('/predict/groups/:letter', pathname)
   if (groupMatch?.params.letter) {
     return `Group ${groupMatch.params.letter.toUpperCase()} predictions`
+  }
+
+  const competitionMatch = matchPath(
+    '/competitions/:competitionSlug/:seasonSlug',
+    pathname,
+  )
+  if (competitionMatch?.params.competitionSlug && competitionMatch.params.seasonSlug) {
+    const competition = competitionMatch.params.competitionSlug
+      .split('-')
+      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+      .join(' ')
+    return `${competition} ${competitionMatch.params.seasonSlug.replace('-', '/')}`
   }
 
   const match = STATIC_ROUTE_TITLES.find(({ path }) => matchPath({ path, end: true }, pathname))
