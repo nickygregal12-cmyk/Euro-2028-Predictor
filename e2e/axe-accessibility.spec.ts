@@ -13,6 +13,10 @@ import { expect, test } from '@playwright/test'
 // scanning it, rather than something that silently escapes accessibility cover.
 const ROUTES = [
   '/',
+  '/competitions/premier-league/2026-27',
+  '/competitions/scottish-premiership/2026-27',
+  '/competitions/euro/2028',
+  '/competitions/euro/2028/original',
   '/predict',
   '/prediction-trends',
   '/predict/groups/A',
