@@ -191,10 +191,17 @@ export async function fetchTournamentData(): Promise<TournamentData> {
   // Stage C1 adds an explicit tournament_id to group_teams. This query remains
   // scoped through the already-loaded group ids as well, so it is compatible
   // with both contract 64 and contract 65 throughout the repository-first rollout.
+  //
+  // The embed names its foreign key explicitly. Contract 65 adds the composite
+  // same-season `group_teams_tournament_team_fkey` alongside the original
+  // `group_teams_team_id_fkey`, which gives PostgREST two ways to reach `teams`;
+  // an unqualified `teams(...)` embed then fails the whole request with
+  // PGRST201 rather than picking one. Naming the single-column key preserves the
+  // contract-64 result shape exactly, and is valid against both contracts.
   const groupTeamsRes = groupIds.length
     ? await supabase
         .from('group_teams')
-        .select('slot, group_id, team:teams(id, name)')
+        .select('slot, group_id, team:teams!group_teams_team_id_fkey(id, name)')
         .in('group_id', groupIds)
         .order('slot')
     : { data: [], error: null }
