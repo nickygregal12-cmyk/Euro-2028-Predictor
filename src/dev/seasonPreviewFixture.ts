@@ -1,3 +1,8 @@
+import {
+  lastManStandingLockPolicy,
+  mainPredictorLockPolicy,
+  type GameConfig,
+} from '../domain/competition/game'
 import type { LeagueSeasonCompetitionConfig } from '../domain/competition/kinds'
 import {
   resolveCompetitionContext,
@@ -20,10 +25,16 @@ import type { ClubIdentityTokens } from '../domain/clubIdentity/clubIdentityType
  * outside a unit test.
  *
  * This fixture does exactly that. Every rule below comes from
- * `src/domain/competition/` — the matchweek lock scope, the 30-minute buffer, the
- * match-state ladder — and none of it is reimplemented here. What is invented is
- * only the data: twenty clubs, a generated double round-robin and a standings
- * snapshot.
+ * `src/domain/competition/` — the matchweek lock scope, the game-owned lock
+ * policy, the match-state ladder — and none of it is reimplemented here. What is
+ * invented is only the data: twenty clubs, a generated double round-robin and a
+ * standings snapshot.
+ *
+ * The season itself owns no lock buffer. Lock policy belongs to the selected
+ * game (ADR 0020): the Main Predictor locks each matchweek exactly at its
+ * first kickoff, and Last Man Standing locks 30 minutes before it — on the
+ * same season configuration, at the same instant. The preview exposes both so
+ * the difference is visible rather than asserted.
  *
  * ## What this deliberately does not do
  *
@@ -241,11 +252,8 @@ export function fixturesForMatchweek(matchweek: number): readonly SeasonFixture[
 }
 
 /**
- * The competition itself.
- *
- * Every field is checked by `isLeagueSeasonCompetitionConfig`, including the
- * rule that `lockPolicy.scopeCount` equals `matchweeks.count` — a season locks
- * per matchweek, so there are exactly as many lock scopes as matchweeks.
+ * The competition itself: identity, calendar and structure, and nothing about
+ * locks. The season owns no lock buffer — that belongs to the selected game.
  *
  * `competitionTimeZone` is the competition's own calendar and is never the
  * viewer's zone. A season is where that distinction starts to bite: which
@@ -263,8 +271,30 @@ export const SEASON_CONFIG: LeagueSeasonCompetitionConfig = {
   primaryStage: 'league',
   progression: 'rolling_matchweeks',
   matchweeks: { count: MATCHWEEK_COUNT },
-  lockPolicy: { scope: 'matchweek', scopeCount: MATCHWEEK_COUNT, bufferMinutes: 30 },
 }
+
+/**
+ * The two games this season hosts in the preview. Same competition, same
+ * fixtures, two explicit game-owned lock policies — the pairing no single
+ * competition-wide buffer could express, and the reason ADR 0020 moved locks
+ * onto games.
+ */
+export const PREVIEW_GAMES = {
+  'main-predictor': {
+    id: 'main-predictor',
+    name: 'Main Predictor',
+    kind: 'main_predictor',
+    lockPolicy: mainPredictorLockPolicy(MATCHWEEK_COUNT),
+  },
+  'last-man-standing': {
+    id: 'last-man-standing',
+    name: 'Last Man Standing',
+    kind: 'last_man_standing',
+    lockPolicy: lastManStandingLockPolicy(MATCHWEEK_COUNT),
+  },
+} as const satisfies Record<string, GameConfig>
+
+export type PreviewGameKey = keyof typeof PREVIEW_GAMES
 
 /**
  * Fixture data for one matchweek's lock scope.
@@ -299,6 +329,8 @@ function scopeFor(matchweek: number, options: SeasonPreviewOptions): Competition
 export type SeasonPreviewOptions = {
   /** The matchweek whose fixtures are handed to the engine. */
   matchweek: number
+  /** Which game's lock policy governs. Defaults to the Main Predictor. */
+  game?: PreviewGameKey
   /** Drop fixture data entirely — the scope should lock, not stay open. */
   missingFixtureData?: boolean
   /** Expire the fixture data — the scope should lock as stale. */
@@ -321,7 +353,8 @@ export type SeasonPreviewInputs = {
 }
 
 /**
- * The four arguments `resolveCompetitionContext` takes, for a given instant.
+ * The data arguments `resolveCompetitionContext` takes, for a given instant.
+ * The selected game is supplied separately at the resolve call.
  *
  * `now` is a parameter throughout. Nothing here reads a clock — the domain
  * forbids it, and a preview that read one could not be tested or scrubbed.
@@ -418,7 +451,7 @@ export function buildSeasonPreviewInputs(
   }
 }
 
-/** The real engine, on the synthetic season. */
+/** The real engine, on the synthetic season, under the selected game. */
 export function resolveSeasonPreview(
   now: Date,
   options: SeasonPreviewOptions,
@@ -426,6 +459,7 @@ export function resolveSeasonPreview(
   const inputs = buildSeasonPreviewInputs(now, options)
   return resolveCompetitionContext(
     inputs.config,
+    PREVIEW_GAMES[options.game ?? 'main-predictor'],
     inputs.competitionData,
     inputs.liveData,
     inputs.userData,
@@ -436,10 +470,11 @@ export function resolveSeasonPreview(
 /**
  * Instants worth looking at, relative to a matchweek's earliest kickoff.
  *
- * The 30-minute one is the point of the whole exercise: a tournament entry
- * locks once, at the competition's single deadline, while a season locks per
- * matchweek half an hour before its first kickoff and then does it again next
- * week. That is `lockPolicy` doing its job, not a branch anywhere in the UI.
+ * The 29-minute one is the point of the whole exercise: at that instant the
+ * same matchweek of the same season is already shut for Last Man Standing
+ * (30-minute game buffer) and still open for the Main Predictor (zero buffer,
+ * locks at kickoff). That is the game-owned lock policy doing its job, not a
+ * branch anywhere in the UI.
  */
 export const PREVIEW_INSTANTS: readonly {
   key: string
@@ -448,7 +483,7 @@ export const PREVIEW_INSTANTS: readonly {
 }[] = [
   { key: 'week-before', label: 'A week before', offsetMinutes: -7 * 24 * 60 },
   { key: 'hour-before', label: '60 min before', offsetMinutes: -60 },
-  { key: 'buffer', label: '29 min before (locked)', offsetMinutes: -29 },
+  { key: 'buffer', label: '29 min before (LMS shut, Main open)', offsetMinutes: -29 },
   { key: 'kickoff', label: 'First kickoff', offsetMinutes: 0 },
   { key: 'in-play', label: '60 min in', offsetMinutes: 60 },
   { key: 'full-time', label: 'Full time', offsetMinutes: 100 },

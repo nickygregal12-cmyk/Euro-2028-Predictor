@@ -3,6 +3,7 @@ import styles from './SeasonPreview.module.css'
 import { ClubIdentity, LeagueTable, type LeagueTableRow, type LeagueZone } from '../design-system'
 import {
   MATCHWEEK_COUNT,
+  PREVIEW_GAMES,
   PREVIEW_INSTANTS,
   SEASON_CLUBS,
   SEASON_CONFIG,
@@ -11,6 +12,7 @@ import {
   instantFor,
   matchweekScopeId,
   resolveSeasonPreview,
+  type PreviewGameKey,
 } from './seasonPreviewFixture'
 
 /**
@@ -84,6 +86,7 @@ function formatKickoff(iso: string): string {
 
 export function SeasonPreview() {
   const [matchweek, setMatchweek] = useState(5)
+  const [game, setGame] = useState<PreviewGameKey>('main-predictor')
   const [instantKey, setInstantKey] = useState('hour-before')
   const [feedAvailable, setFeedAvailable] = useState(true)
   const [submitted, setSubmitted] = useState(true)
@@ -101,11 +104,31 @@ export function SeasonPreview() {
     () =>
       resolveSeasonPreview(now, {
         matchweek,
+        game,
         feedAvailable,
         submitted,
         missingFixtureData,
         staleFixtureData,
       }),
+    [now, matchweek, game, feedAvailable, submitted, missingFixtureData, staleFixtureData],
+  )
+
+  // The same season and instant under each game's own lock policy, side by
+  // side — the visible proof that the season owns no buffer of its own.
+  const lockComparison = useMemo(
+    () =>
+      (Object.keys(PREVIEW_GAMES) as PreviewGameKey[]).map((key) => ({
+        key,
+        game: PREVIEW_GAMES[key],
+        lock: resolveSeasonPreview(now, {
+          matchweek,
+          game: key,
+          feedAvailable,
+          submitted,
+          missingFixtureData,
+          staleFixtureData,
+        }).lockScopes[matchweekScopeId(matchweek)],
+      })),
     [now, matchweek, feedAvailable, submitted, missingFixtureData, staleFixtureData],
   )
 
@@ -134,6 +157,21 @@ export function SeasonPreview() {
                 {Array.from({ length: MATCHWEEK_COUNT }, (_, index) => index + 1).map((week) => (
                   <option key={week} value={week}>
                     {week}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.control}>
+              Game
+              <select
+                value={game}
+                onChange={(event) => setGame(event.target.value as PreviewGameKey)}
+              >
+                {(Object.keys(PREVIEW_GAMES) as PreviewGameKey[]).map((key) => (
+                  <option key={key} value={key}>
+                    {PREVIEW_GAMES[key].name} — lock buffer{' '}
+                    {PREVIEW_GAMES[key].lockPolicy.bufferMinutes} min
                   </option>
                 ))}
               </select>
@@ -186,12 +224,26 @@ export function SeasonPreview() {
             </div>
           </div>
           <p className={styles.note}>
-            The lock is the thing to watch. A tournament entry locks once, at a single
-            deadline, with no buffer. This season locks per matchweek, 30 minutes before its
-            earliest kickoff, and does it again the following week — and matchweek {matchweek + 1}{' '}
-            stays open while matchweek {matchweek} is shut. No component branches on that;
-            it comes from <code>lockPolicy</code>.
+            The lock is the thing to watch, and it belongs to the game, not the season. The
+            Main Predictor locks each matchweek exactly at its earliest kickoff, with no
+            buffer; Last Man Standing locks the same matchweek 30 minutes earlier — on the
+            same season configuration, at the same instant. Matchweek {matchweek + 1} stays
+            open while matchweek {matchweek} is shut. No component branches on any of that;
+            it comes from the selected game&apos;s own <code>lockPolicy</code>.
           </p>
+
+          <div className={styles.readout}>
+            {lockComparison.map(({ key, game: comparedGame, lock }) => (
+              <div key={key} className={styles.cell}>
+                <span className={styles.cellLabel}>
+                  {comparedGame.name} ({comparedGame.lockPolicy.bufferMinutes}-min buffer)
+                </span>
+                <span className={styles.cellValue}>
+                  {lock ? `${lock.status} — ${lock.reason}` : '—'}
+                </span>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className={styles.section}>
