@@ -5,12 +5,22 @@ import {
   type CompetitionProgressData,
   type CompetitionUserData,
 } from '../../domain/competition/context'
+import { originalPredictorLockPolicy, type GameConfig } from '../../domain/competition/game'
 import type { TournamentCompetitionConfig } from '../../domain/competition/kinds'
 import type { FixtureDataSnapshot } from '../../domain/competition/lockState'
 import type { FixtureGroup } from '../../domain/tournament/matchesTab'
 import type { Match, TournamentData } from '../../services/supabase/tournamentData'
 
 const ENTRY_LOCK_SCOPE_ID = 'matches-entry'
+
+// The game the Matches tab serves. The lock policy lives on the game
+// (ADR 0020): one entry-wide lock, landing exactly at the opening kickoff.
+const ORIGINAL_PREDICTOR_GAME: GameConfig = {
+  id: 'original-predictor',
+  name: 'Original Predictor',
+  kind: 'original_predictor',
+  lockPolicy: originalPredictorLockPolicy(),
+}
 
 export type MatchesCompetitionContextInput = {
   data: TournamentData
@@ -117,11 +127,6 @@ function tournamentConfig(
     },
     knockoutStage: {
       roundCount: Math.max(1, knockoutRounds.size),
-    },
-    lockPolicy: {
-      scope: 'entry',
-      scopeCount: 1,
-      bufferMinutes: 0,
     },
   }
 }
@@ -237,6 +242,7 @@ export function resolveMatchesCompetitionContext(
   const lockAtMs = parseInstant(input.data.tournament.lockAt)
   const context = resolveCompetitionContext(
     tournamentConfig(input.data, input.nowServer, competitionTimeZone),
+    ORIGINAL_PREDICTOR_GAME,
     {
       progress: competitionProgress(input.data, input.nowServer),
       lockScopes: [

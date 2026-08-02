@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveCompetitionContext } from '../../src/domain/competition/context'
+import { originalPredictorLockPolicy, type GameConfig } from '../../src/domain/competition/game'
 import type { TournamentCompetitionConfig } from '../../src/domain/competition/kinds'
 import { isEntryLocked } from '../../src/domain/tournament/entryLock'
 
@@ -19,7 +20,13 @@ const CONFIG: TournamentCompetitionConfig = {
   progression: 'groups_to_knockout',
   groupStage: { groupCount: 6, matchdayCount: 3 },
   knockoutStage: { roundCount: 4 },
-  lockPolicy: { scope: 'entry', scopeCount: 1, bufferMinutes: 0 },
+}
+
+const GAME: GameConfig = {
+  id: 'original-predictor',
+  name: 'Original Predictor',
+  kind: 'original_predictor',
+  lockPolicy: originalPredictorLockPolicy(),
 }
 
 function legacyIsEntryLocked(lockAt: string | null, now: Date): boolean {
@@ -31,6 +38,7 @@ function resolvedContext(now: Date, validEntry = true) {
   const observedAt = now.toISOString()
   return resolveCompetitionContext(
     CONFIG,
+    GAME,
     {
       progress: {
         hasStarted: now.getTime() >= Date.parse(LOCK_AT),

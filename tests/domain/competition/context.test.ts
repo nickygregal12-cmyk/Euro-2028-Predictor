@@ -7,6 +7,11 @@ import {
   type CompetitionStatus,
   type CompetitionUserData,
 } from '../../../src/domain/competition/context'
+import {
+  mainPredictorLockPolicy,
+  originalPredictorLockPolicy,
+  type GameConfig,
+} from '../../../src/domain/competition/game'
 import type {
   CompetitionConfig,
   LeagueSeasonCompetitionConfig,
@@ -23,7 +28,6 @@ const tournamentConfig: TournamentCompetitionConfig = {
   progression: 'groups_to_knockout',
   groupStage: { groupCount: 6, matchdayCount: 3 },
   knockoutStage: { roundCount: 4 },
-  lockPolicy: { scope: 'entry', scopeCount: 1, bufferMinutes: 0 },
 }
 
 const seasonConfig: LeagueSeasonCompetitionConfig = {
@@ -35,10 +39,26 @@ const seasonConfig: LeagueSeasonCompetitionConfig = {
   primaryStage: 'league',
   progression: 'rolling_matchweeks',
   matchweeks: { count: 38 },
-  lockPolicy: { scope: 'matchweek', scopeCount: 38, bufferMinutes: 30 },
 }
 
-const CONFIGS: readonly CompetitionConfig[] = [tournamentConfig, seasonConfig]
+const tournamentGame: GameConfig = {
+  id: 'original-predictor',
+  name: 'Original Predictor',
+  kind: 'original_predictor',
+  lockPolicy: originalPredictorLockPolicy(),
+}
+
+const seasonGame: GameConfig = {
+  id: 'main-predictor',
+  name: 'Main Predictor',
+  kind: 'main_predictor',
+  lockPolicy: mainPredictorLockPolicy(38),
+}
+
+const FIXTURES: readonly { config: CompetitionConfig; game: GameConfig }[] = [
+  { config: tournamentConfig, game: tournamentGame },
+  { config: seasonConfig, game: seasonGame },
+]
 
 const DEFAULT_PROGRESS: CompetitionProgressData = {
   hasStarted: false,
@@ -99,13 +119,13 @@ function match(
   }
 }
 
-function resolveFixture(config: CompetitionConfig, options: ContextOptions = {}) {
+function resolveFixture(config: CompetitionConfig, game: GameConfig, options: ContextOptions = {}) {
   const now = new Date(options.now ?? '2028-06-10T09:00:00Z')
   const matches = options.matches ?? [match('match-1', '2028-06-10T18:00:00Z')]
   const previouslyLocked = new Set(options.previouslyLockedScopeIds ?? [])
   const observedAt = new Date(now.getTime() - 60 * 60_000).toISOString()
   const validUntil = new Date(now.getTime() + 12 * 60 * 60_000).toISOString()
-  const lockScopes = Array.from({ length: config.lockPolicy.scopeCount }, (_, index) => {
+  const lockScopes = Array.from({ length: game.lockPolicy.scopeCount }, (_, index) => {
     const id = `scope-${index + 1}`
     const assigned = matches.filter((item) => item.lockScopeId === id)
     const fixtures = assigned.length > 0
@@ -113,7 +133,7 @@ function resolveFixture(config: CompetitionConfig, options: ContextOptions = {})
       : [{ id: `${id}-fixture`, kickoffAt: new Date(now.getTime() + (index + 2) * 86_400_000).toISOString() }]
     return {
       id,
-      type: config.lockPolicy.scope,
+      type: game.lockPolicy.scope,
       fixtureData: { observedAt, validUntil, fixtures },
       previouslyLocked: previouslyLocked.has(id),
     }
@@ -121,6 +141,7 @@ function resolveFixture(config: CompetitionConfig, options: ContextOptions = {})
 
   return resolveCompetitionContext(
     config,
+    game,
     {
       progress: { ...DEFAULT_PROGRESS, ...options.progress },
       lockScopes,
@@ -139,22 +160,22 @@ function resolveFixture(config: CompetitionConfig, options: ContextOptions = {})
   )
 }
 
-for (const config of CONFIGS) {
+for (const { config, game } of FIXTURES) {
   describe(`architecture §11 fake-clock fixtures — ${config.kind}`, () => {
     it('entries-open incomplete', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         entry: { complete: false, valid: false, submitted: false },
       })
       expect(context.entryState).toBe('incomplete')
     })
 
     it('entries-open submitted', () => {
-      const context = resolveFixture(config)
+      const context = resolveFixture(config, game)
       expect(context.entryState).toBe('submitted')
     })
 
     it('locked with opening match tomorrow', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         matches: [match('match-1', '2028-06-11T18:00:00Z')],
         previouslyLockedScopeIds: ['scope-1'],
       })
@@ -163,13 +184,13 @@ for (const config of CONFIGS) {
     })
 
     it('first match today not started', () => {
-      const context = resolveFixture(config)
+      const context = resolveFixture(config, game)
       expect(context.dayState).toBe('before_first_match')
       expect(context.matches[0].state).toBe('scheduled_editable')
     })
 
     it('one live match', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T18:30:00Z',
         liveMatches: [{ matchId: 'match-1', state: 'in_play', homeScore: 1, awayScore: 0, minute: 30 }],
         actions: { activeLiveMatchIds: ['match-1'] },
@@ -180,7 +201,7 @@ for (const config of CONFIGS) {
     })
 
     it('two simultaneous live', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T18:30:00Z',
         matches: [match('match-1', '2028-06-10T18:00:00Z'), match('match-2', '2028-06-10T18:00:00Z')],
         liveMatches: [
@@ -193,7 +214,7 @@ for (const config of CONFIGS) {
     })
 
     it('between matches', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T14:00:00Z',
         matches: [
           match('match-1', '2028-06-10T10:00:00Z', { officialState: 'scored' }),
@@ -206,7 +227,7 @@ for (const config of CONFIGS) {
     })
 
     it('awaiting confirmation', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T12:15:00Z',
         matches: [match('match-1', '2028-06-10T10:00:00Z')],
         liveMatches: [{ matchId: 'match-1', state: 'full_time', homeScore: 2, awayScore: 1, minute: 90 }],
@@ -216,7 +237,7 @@ for (const config of CONFIGS) {
     })
 
     it('day complete', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T21:00:00Z',
         matches: [match('match-1', '2028-06-10T18:00:00Z', { officialState: 'scored' })],
       })
@@ -224,14 +245,14 @@ for (const config of CONFIGS) {
     })
 
     it('rest day', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         matches: [match('match-1', '2028-06-11T18:00:00Z')],
       })
       expect(context.dayState).toBe('no_matches_today')
     })
 
     it('stage transition', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         progress: { hasStarted: true, regularStageComplete: true, nextStageReady: false },
       })
       expect(context.competitionPhase.state).toBe('stage_transition')
@@ -239,7 +260,7 @@ for (const config of CONFIGS) {
     })
 
     it('knockout window open', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         progress: { hasStarted: true, regularStageComplete: true, nextStageReady: true, knockoutStarted: true },
         competitions: [{ id: 'knockout', candidateStatuses: ['entered', 'action_required'] }],
       })
@@ -248,7 +269,7 @@ for (const config of CONFIGS) {
     })
 
     it('spectator post-lock', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         entry: { exists: false, complete: false, valid: false, submitted: false },
         previouslyLockedScopeIds: ['scope-1'],
       })
@@ -256,14 +277,14 @@ for (const config of CONFIGS) {
     })
 
     it('Cup-eliminated user', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         competitions: [{ id: 'cup', candidateStatuses: ['entered', 'eliminated'] }],
       })
       expect(context.competitions.cup).toBe('eliminated')
     })
 
     it('Cup live knockout tie', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T18:30:00Z',
         competitions: [{ id: 'cup', candidateStatuses: ['entered', 'round_live'] }],
         liveMatches: [{ matchId: 'match-1', state: 'in_play', homeScore: 1, awayScore: 1, minute: 30 }],
@@ -273,7 +294,7 @@ for (const config of CONFIGS) {
     })
 
     it('LMS action required', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         competitions: [{ id: 'lms', candidateStatuses: ['entered', 'action_required'] }],
         actions: { lmsSelectionRequired: true },
       })
@@ -282,7 +303,7 @@ for (const config of CONFIGS) {
     })
 
     it('feed unavailable', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T18:30:00Z',
         feedAvailable: false,
       })
@@ -291,14 +312,14 @@ for (const config of CONFIGS) {
     })
 
     it('postponed match', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         matches: [match('match-1', '2028-06-10T18:00:00Z', { administrationState: 'postponed' })],
       })
       expect(context.matches[0].state).toBe('postponed')
     })
 
     it('corrected result', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T21:00:00Z',
         matches: [match('match-1', '2028-06-10T18:00:00Z', { officialState: 'scored', corrected: true })],
       })
@@ -307,7 +328,7 @@ for (const config of CONFIGS) {
     })
 
     it('final complete', () => {
-      const context = resolveFixture(config, {
+      const context = resolveFixture(config, game, {
         now: '2028-06-10T21:00:00Z',
         matches: [match('match-1', '2028-06-10T18:00:00Z', { officialState: 'scored' })],
         progress: {
@@ -328,8 +349,8 @@ for (const config of CONFIGS) {
 
 describe('one implementation across competition shapes', () => {
   it('resolves one tournament scope and thirty-eight season scopes through the same code path', () => {
-    const tournament = resolveFixture(tournamentConfig)
-    const season = resolveFixture(seasonConfig)
+    const tournament = resolveFixture(tournamentConfig, tournamentGame)
+    const season = resolveFixture(seasonConfig, seasonGame)
 
     expect(tournament.lockConfigurationValid).toBe(true)
     expect(season.lockConfigurationValid).toBe(true)

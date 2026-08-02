@@ -1,3 +1,4 @@
+import { expectedLockScopeCount, isGameConfig, type GameConfig, type GameLockPolicy } from './game'
 import type { CompetitionConfig } from './kinds'
 import {
   resolveLockState,
@@ -284,18 +285,35 @@ function resolveNextUserAction(input: {
   return 'browse'
 }
 
-function validateLockConfiguration(config: CompetitionConfig, scopes: readonly CompetitionLockScopeData[]): boolean {
-  if (scopes.length !== config.lockPolicy.scopeCount) return false
+/**
+ * A lock configuration is valid only when the selected game supplies an
+ * explicit policy the competition supports and the presented scopes match it
+ * exactly. A missing game, an unknown policy shape, an unsupported
+ * scope/competition pairing or a scope-count mismatch all fail closed — the
+ * caller then resolves every lock with no fixture data, which locks it.
+ */
+function validateLockConfiguration(
+  config: CompetitionConfig,
+  game: GameConfig,
+  scopes: readonly CompetitionLockScopeData[],
+): boolean {
+  if (!isGameConfig(game)) return false
+  const expectedScopeCount = expectedLockScopeCount(config, game.lockPolicy)
+  if (expectedScopeCount === null || scopes.length !== expectedScopeCount) return false
   const ids = new Set<string>()
   for (const scope of scopes) {
-    if (scope.id.trim().length === 0 || ids.has(scope.id) || scope.type !== config.lockPolicy.scope) return false
+    if (scope.id.trim().length === 0 || ids.has(scope.id) || scope.type !== game.lockPolicy.scope) return false
     ids.add(scope.id)
   }
   return true
 }
 
+/** The policy used when validation failed: no data ever unlocks under it. */
+const FAIL_CLOSED_LOCK_POLICY: GameLockPolicy = { scope: 'entry', scopeCount: 1, bufferMinutes: 0 }
+
 export function resolveCompetitionContext(
   config: CompetitionConfig,
+  game: GameConfig,
   competitionData: {
     progress: CompetitionProgressData
     lockScopes: readonly CompetitionLockScopeData[]
@@ -306,7 +324,8 @@ export function resolveCompetitionContext(
   nowServer: Date,
 ): CompetitionContext {
   const nowMs = nowServer.getTime()
-  const lockConfigurationValid = validateLockConfiguration(config, competitionData.lockScopes)
+  const lockConfigurationValid = validateLockConfiguration(config, game, competitionData.lockScopes)
+  const lockPolicy = lockConfigurationValid ? game.lockPolicy : FAIL_CLOSED_LOCK_POLICY
 
   const scopeLocks: Record<string, ResolvedLockState> = {}
   for (const scope of competitionData.lockScopes) {
@@ -314,7 +333,7 @@ export function resolveCompetitionContext(
       {
         ...scope,
         fixtureData: lockConfigurationValid ? scope.fixtureData : null,
-        bufferMinutes: config.lockPolicy.bufferMinutes,
+        bufferMinutes: lockPolicy.bufferMinutes,
       },
       nowServer,
     )
@@ -328,9 +347,9 @@ export function resolveCompetitionContext(
     const lockState = resolveLockState(
       {
         id: scope?.id ?? match.lockScopeId,
-        type: scope?.type ?? config.lockPolicy.scope,
+        type: scope?.type ?? lockPolicy.scope,
         fixtureData: lockConfigurationValid ? (scope?.fixtureData ?? null) : null,
-        bufferMinutes: config.lockPolicy.bufferMinutes,
+        bufferMinutes: lockPolicy.bufferMinutes,
         previouslyLocked: scope?.previouslyLocked ?? false,
         matchGuard: { matchId: match.id, kickoffAt: match.kickoffAt },
       },
@@ -385,9 +404,9 @@ export function resolveCompetitionContext(
     ? resolveLockState(
         {
           id: 'missing-active-scope',
-          type: config.lockPolicy.scope,
+          type: lockPolicy.scope,
           fixtureData: null,
-          bufferMinutes: config.lockPolicy.bufferMinutes,
+          bufferMinutes: lockPolicy.bufferMinutes,
           previouslyLocked: false,
         },
         nowServer,
@@ -396,9 +415,9 @@ export function resolveCompetitionContext(
       resolveLockState(
         {
           id: activeScopeId,
-          type: config.lockPolicy.scope,
+          type: lockPolicy.scope,
           fixtureData: null,
-          bufferMinutes: config.lockPolicy.bufferMinutes,
+          bufferMinutes: lockPolicy.bufferMinutes,
           previouslyLocked: false,
         },
         nowServer,
