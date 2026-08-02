@@ -345,12 +345,29 @@ try {
     const lines = sql.split('\n')
     const kept = []
     let skippingUntilTerminator = false
+    // When a protected table (auth.users …) is skewed it may not be skipped:
+    // its rows are the point of the backup. Its COPY block is instead
+    // projected onto the columns the disposable stack has, so every row
+    // still restores and only the platform's newly added columns are
+    // omitted. COPY text format escapes literal tabs and newlines, so
+    // splitting rows on tab is exact.
+    let projectionIndexes = null
     for (const line of lines) {
+      if (projectionIndexes !== null) {
+        if (line.trim() === '\\.') {
+          kept.push(line)
+          projectionIndexes = null
+        } else {
+          const fields = line.split('\t')
+          kept.push(projectionIndexes.map((index) => fields[index]).join('\t'))
+        }
+        continue
+      }
       if (skippingUntilTerminator) {
         if (line.trim() === '\\.') skippingUntilTerminator = false
         continue
       }
-      const copyTarget = line.match(/^COPY\s+([^\s(]+)\s*\(([^)]*)\)/)
+      const copyTarget = line.match(/^COPY\s+([^\s(]+)\s*\(([^)]*)\)(.*)$/)
       if (copyTarget) {
         const table = copyTarget[1].replaceAll('"', '')
         const schema = table.split('.')[0]
@@ -361,7 +378,28 @@ try {
             localColumns !== undefined && dumpedColumns.every((c) => localColumns.has(c))
           if (!fits) {
             if (MUST_RESTORE_TABLES.has(table)) {
-              fail(`Rehearsal cannot skip protected table ${table}; its shape must match`)
+              if (localColumns === undefined) {
+                fail(`Rehearsal target is missing protected table ${table} entirely`)
+              }
+              const keptIndexes = dumpedColumns.flatMap((column, index) =>
+                localColumns.has(column) ? [index] : [],
+              )
+              const dropped = dumpedColumns.filter((column) => !localColumns.has(column))
+              if (keptIndexes.length === 0) {
+                fail(`No dumped column of protected table ${table} exists on the rehearsal target`)
+              }
+              console.log(
+                `Rehearsal projects protected table ${table} onto ` +
+                  `${keptIndexes.length}/${dumpedColumns.length} dumped columns ` +
+                  `(dropping platform columns: ${dropped.join(', ')})`,
+              )
+              kept.push(
+                `COPY ${copyTarget[1]} (${keptIndexes
+                  .map((index) => `"${dumpedColumns[index]}"`)
+                  .join(', ')})${copyTarget[3]}`,
+              )
+              projectionIndexes = keptIndexes
+              continue
             }
             console.log(`Rehearsal skips version-skewed managed table ${table}`)
             skippingUntilTerminator = true
@@ -371,7 +409,9 @@ try {
       }
       kept.push(line)
     }
-    if (skippingUntilTerminator) fail('Unterminated COPY block while preparing the rehearsal data file')
+    if (skippingUntilTerminator || projectionIndexes !== null) {
+      fail('Unterminated COPY block while preparing the rehearsal data file')
+    }
     return kept.join('\n')
   }
   const rehearsalDataPath = resolve(bundle, '..', 'data.rehearsal.sql')
