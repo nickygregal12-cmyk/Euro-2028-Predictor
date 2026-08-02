@@ -259,8 +259,16 @@ try {
   }
   writeChecksums(bundle)
 
-  console.log('Restoring the plaintext bundle into a disposable local Supabase…')
-  run(supabase, ['start'])
+  console.log('Restoring the plaintext bundle into a disposable local Supabase database…')
+  // Database container only. The rehearsal is a SQL-level source-equivalence
+  // proof and needs Postgres with the image's baseline auth/storage schemas —
+  // not Studio, GoTrue, Storage or Edge Runtime. The full stack repeatedly
+  // failed CI health checks in this dump-heavy job (runs 30766302401 through
+  // 30769583713), and a half-started Auth service is exactly what produced
+  // the phantom part-populated auth schemas. Hosted-newer managed columns
+  // relative to the image baseline are handled by the skew projection/skip
+  // above. `supabase stop` covers the db-only container for cleanup.
+  run(supabase, ['db', 'start'])
   localStarted = true
   const localDbUrl = process.env.LOCAL_DB_URL || 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
 
@@ -337,7 +345,7 @@ try {
     const inventorySqlPath = resolve(bundle, '..', 'managed-columns-inventory.sql')
     writeFileSync(
       inventorySqlPath,
-      "select current_database() as database_name, inet_server_port() as port,\n" +
+      "select current_database() || E'\\t' || coalesce(inet_server_port()::text, '?') || E'\\t' ||\n" +
         '  (\n' +
         "    select coalesce(jsonb_object_agg(entry.table_name, entry.columns), '{}'::jsonb)\n" +
         '    from (\n' +
@@ -350,29 +358,35 @@ try {
         '        and a.attnum > 0 and not a.attisdropped\n' +
         '      group by n.nspname, c.relname\n' +
         '    ) entry\n' +
-        '  ) as managed_columns\n',
+        '  )::text\n',
       { mode: 0o600 },
     )
     const deadline = Date.now() + 300_000
     for (;;) {
-      const raw = run(supabase, [
-        'db',
-        'query',
-        '--local',
+      // psql against the db-only container: `db query --local` gates on
+      // full-stack health checks (run 30769583713 returned empty stdout from
+      // behind "Waiting for health checks…"), and the auxiliary services it
+      // waits for no longer exist here.
+      const raw = run(psql, [
+        localDbUrl,
+        '-X',
+        '--no-align',
+        '--tuples-only',
+        '-v',
+        'ON_ERROR_STOP=1',
         '--file',
         inventorySqlPath,
-        '--output',
-        'json',
-        '--agent',
-        'no',
       ])
       let row
       try {
-        const parsed = JSON.parse(raw)
-        if (!Array.isArray(parsed) || parsed.length !== 1) fail('Expected one inventory row')
-        row = parsed[0]
+        const [databaseName, port, managedJson] = raw.split('\t')
+        row = {
+          database_name: databaseName,
+          port,
+          managed_columns: JSON.parse(managedJson),
+        }
       } catch (error) {
-        fail(`Managed-column inventory did not return JSON: ${error.message}`)
+        fail(`Managed-column inventory did not return its JSON payload: ${error.message}`)
       }
       const columnsByTable = new Map(
         Object.entries(row.managed_columns ?? {}).map(([table, columns]) => [
