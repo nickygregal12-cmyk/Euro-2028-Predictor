@@ -35,9 +35,7 @@ function objectAt(provider: ProviderName, value: unknown, path: string): JsonObj
 }
 
 function arrayAt(provider: ProviderName, value: unknown, path: string): unknown[] {
-  if (!Array.isArray(value)) {
-    throw new ProviderDecodeError(provider, path, 'expected an array');
-  }
+  if (!Array.isArray(value)) throw new ProviderDecodeError(provider, path, 'expected an array');
   return value;
 }
 
@@ -56,8 +54,7 @@ function idAt(provider: ProviderName, value: unknown, path: string): string {
 }
 
 function nullableIdAt(provider: ProviderName, value: unknown, path: string): string | null {
-  if (value === null || value === undefined) return null;
-  return idAt(provider, value, path);
+  return value === null || value === undefined ? null : idAt(provider, value, path);
 }
 
 function nullableScoreAt(provider: ProviderName, value: unknown, path: string): number | null {
@@ -71,9 +68,7 @@ function nullableScoreAt(provider: ProviderName, value: unknown, path: string): 
 function isoInstantAt(provider: ProviderName, value: unknown, path: string): string {
   const text = stringAt(provider, value, path);
   const parsed = Date.parse(text);
-  if (!Number.isFinite(parsed)) {
-    throw new ProviderDecodeError(provider, path, 'expected an ISO-8601 instant');
-  }
+  if (!Number.isFinite(parsed)) throw new ProviderDecodeError(provider, path, 'expected an ISO-8601 instant');
   return new Date(parsed).toISOString();
 }
 
@@ -85,9 +80,11 @@ function exactlyTwoParticipants(
   const rows = arrayAt(provider, participants, path).map((row, index) =>
     objectAt(provider, row, `${path}[${index}]`),
   );
-  const home = rows.find((row) => row.meta && objectAt(provider, row.meta, `${path}.meta`).location === 'home');
-  const away = rows.find((row) => row.meta && objectAt(provider, row.meta, `${path}.meta`).location === 'away');
-  if (!home || !away) {
+  const location = (row: JsonObject, index: number): unknown =>
+    objectAt(provider, row.meta, `${path}[${index}].meta`).location;
+  const home = rows.find((row, index) => location(row, index) === 'home');
+  const away = rows.find((row, index) => location(row, index) === 'away');
+  if (!home || !away || home === away) {
     throw new ProviderDecodeError(provider, path, 'expected distinct home and away participants');
   }
   return { home, away };
@@ -100,17 +97,23 @@ export function decodeSportMonks(payload: unknown): NormalizedFixture[] {
     const path = `$.data[${index}]`;
     const row = objectAt(provider, raw, path);
     const { home, away } = exactlyTwoParticipants(provider, row.participants, `${path}.participants`);
+    const homeId = idAt(provider, home.id, `${path}.participants.home.id`);
+    const awayId = idAt(provider, away.id, `${path}.participants.away.id`);
     const scores = row.scores === undefined ? [] : arrayAt(provider, row.scores, `${path}.scores`);
     let homeScore: number | null = null;
     let awayScore: number | null = null;
     for (let scoreIndex = 0; scoreIndex < scores.length; scoreIndex += 1) {
-      const score = objectAt(provider, scores[scoreIndex], `${path}.scores[${scoreIndex}]`);
-      const description = score.description;
-      if (description !== 'CURRENT' && description !== 'FT') continue;
-      const participant = nullableIdAt(provider, score.participant_id, `${path}.scores[${scoreIndex}].participant_id`);
-      const goals = nullableScoreAt(provider, objectAt(provider, score.score, `${path}.scores[${scoreIndex}].score`).goals, `${path}.scores[${scoreIndex}].score.goals`);
-      if (participant === idAt(provider, home.id, `${path}.participants.home.id`)) homeScore = goals;
-      if (participant === idAt(provider, away.id, `${path}.participants.away.id`)) awayScore = goals;
+      const scorePath = `${path}.scores[${scoreIndex}]`;
+      const score = objectAt(provider, scores[scoreIndex], scorePath);
+      if (score.description !== 'CURRENT' && score.description !== 'FT') continue;
+      const participantId = idAt(provider, score.participant_id, `${scorePath}.participant_id`);
+      const goals = nullableScoreAt(
+        provider,
+        objectAt(provider, score.score, `${scorePath}.score`).goals,
+        `${scorePath}.score.goals`,
+      );
+      if (participantId === homeId) homeScore = goals;
+      if (participantId === awayId) awayScore = goals;
     }
     return {
       provider,
@@ -118,10 +121,10 @@ export function decodeSportMonks(payload: unknown): NormalizedFixture[] {
       competitionProviderId: nullableIdAt(provider, row.league_id, `${path}.league_id`),
       seasonProviderId: nullableIdAt(provider, row.season_id, `${path}.season_id`),
       roundProviderId: nullableIdAt(provider, row.round_id, `${path}.round_id`),
-      homeTeamProviderId: idAt(provider, home.id, `${path}.participants.home.id`),
-      awayTeamProviderId: idAt(provider, away.id, `${path}.participants.away.id`),
+      homeTeamProviderId: homeId,
+      awayTeamProviderId: awayId,
       kickoffAt: isoInstantAt(provider, row.starting_at, `${path}.starting_at`),
-      status: stringAt(provider, row.state_id ?? row.result_info ?? 'unknown', `${path}.status`),
+      status: idAt(provider, row.state_id ?? row.result_info ?? 'unknown', `${path}.status`),
       homeScore,
       awayScore,
     };
@@ -168,8 +171,7 @@ export function decodeFootballData(payload: unknown): NormalizedFixture[] {
     const season = row.season === undefined ? null : objectAt(provider, row.season, `${path}.season`);
     const home = objectAt(provider, row.homeTeam, `${path}.homeTeam`);
     const away = objectAt(provider, row.awayTeam, `${path}.awayTeam`);
-    const score = objectAt(provider, row.score, `${path}.score`);
-    const fullTime = objectAt(provider, score.fullTime, `${path}.score.fullTime`);
+    const fullTime = objectAt(provider, objectAt(provider, row.score, `${path}.score`).fullTime, `${path}.score.fullTime`);
     return {
       provider,
       providerFixtureId: idAt(provider, row.id, `${path}.id`),
@@ -188,11 +190,8 @@ export function decodeFootballData(payload: unknown): NormalizedFixture[] {
 
 export function decodeProviderPayload(provider: ProviderName, payload: unknown): NormalizedFixture[] {
   switch (provider) {
-    case 'sportmonks':
-      return decodeSportMonks(payload);
-    case 'api-football':
-      return decodeApiFootball(payload);
-    case 'football-data':
-      return decodeFootballData(payload);
+    case 'sportmonks': return decodeSportMonks(payload);
+    case 'api-football': return decodeApiFootball(payload);
+    case 'football-data': return decodeFootballData(payload);
   }
 }
