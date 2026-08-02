@@ -38,9 +38,9 @@ export function WelcomeScreen({
   return (
     <div className={w.screen}>
       <div className={w.inner}>
-        <span className={w.eyebrow}>Euro 2028 Predictor</span>
+        <span className={w.eyebrow}>Football Prediction Hub</span>
         <h1 className={w.title}>Welcome, {displayName ?? 'player'}</h1>
-        <p className={w.tagline}>One entry. A whole summer of bragging rights.</p>
+        <p className={w.tagline}>Pick your competitions. Play for bragging rights all season.</p>
 
         <div className={w.stepsCard}>
           <Step
