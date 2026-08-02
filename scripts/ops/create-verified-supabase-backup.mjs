@@ -322,24 +322,52 @@ try {
     'storage.objects',
   ])
   function localManagedColumns() {
-    const raw = run(psql, [
-      localDbUrl,
-      '-X',
-      '--no-align',
-      '--tuples-only',
-      '-v',
-      'ON_ERROR_STOP=1',
-      '--command',
-      "select table_schema || '.' || table_name || '|' || string_agg(column_name, ',') " +
-        "from information_schema.columns where table_schema in ('auth', 'storage') " +
-        'group by table_schema, table_name',
-    ])
-    const columnsByTable = new Map()
-    for (const line of raw.split('\n').filter(Boolean)) {
-      const [table, columns] = line.split('|')
-      columnsByTable.set(table, new Set(columns.split(',')))
+    // `supabase start` returns when containers are healthy, but the Auth
+    // service applies its own schema migrations after boot, so the catalog
+    // can briefly lack auth tables (run 30768062149 saw auth.identities but
+    // not auth.users). Poll until every protected table is visible; on
+    // timeout, name exactly what the target had, so a real absence is
+    // diagnosable rather than mysterious. `pg_catalog` rather than
+    // `information_schema` because the latter filters by privilege and this
+    // inventory must reflect existence, not grants.
+    const deadline = Date.now() + 180_000
+    for (;;) {
+      const raw = run(psql, [
+        localDbUrl,
+        '-X',
+        '--no-align',
+        '--tuples-only',
+        '-v',
+        'ON_ERROR_STOP=1',
+        '--command',
+        "select n.nspname || '.' || c.relname || '|' || string_agg(a.attname, ',') " +
+          'from pg_catalog.pg_attribute a ' +
+          'join pg_catalog.pg_class c on c.oid = a.attrelid ' +
+          'join pg_catalog.pg_namespace n on n.oid = c.relnamespace ' +
+          "where n.nspname in ('auth', 'storage') and c.relkind = 'r' " +
+          'and a.attnum > 0 and not a.attisdropped ' +
+          'group by n.nspname, c.relname',
+      ])
+      const columnsByTable = new Map()
+      for (const line of raw.split('\n').filter(Boolean)) {
+        const [table, columns] = line.split('|')
+        columnsByTable.set(table, new Set(columns.split(',')))
+      }
+      const missingProtected = [...MUST_RESTORE_TABLES].filter(
+        (table) => !columnsByTable.has(table),
+      )
+      if (missingProtected.length === 0) return columnsByTable
+      if (Date.now() > deadline) {
+        fail(
+          `Protected tables never appeared in the rehearsal target: ${missingProtected.join(', ')}; ` +
+            `the target has: ${[...columnsByTable.keys()].sort().join(', ') || '(none)'}`,
+        )
+      }
+      console.log(
+        `Waiting for the rehearsal target's managed schemas (missing: ${missingProtected.join(', ')})…`,
+      )
+      run(psql, [localDbUrl, '-X', '-v', 'ON_ERROR_STOP=1', '--command', 'select pg_sleep(3)'])
     }
-    return columnsByTable
   }
   function withoutSkewedManagedCopyBlocks(sql, columnsByTable) {
     const lines = sql.split('\n')
