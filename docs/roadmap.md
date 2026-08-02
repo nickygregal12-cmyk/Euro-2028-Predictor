@@ -1,6 +1,6 @@
 # Multi-competition platform — roadmap
 
-**Status date:** 30 July 2026  
+**Status date:** 2 August 2026  
 **Purpose:** current delivery position and next executable slice.  
 **Current facts:** [`quality/current-status.md`](quality/current-status.md)  
 **Parent programme:** [`architecture/programme-plan.md`](architecture/programme-plan.md)  
@@ -13,11 +13,12 @@ This roadmap does **not** duplicate the programme phases or Stage A–L engineer
 ## Current baseline
 
 - `main`: read the current commit from git rather than from this line. The previous hand-copied SHA stayed here through roughly twenty-five subsequent merges, which is what a pinned SHA in a live document does;
-- repository contract: **64**, development Supabase **64**, production Supabase **63**;
+- repository contract: **65** (Stage C1 merged), development Supabase **64** (Stage C1 hosted apply owner-gated on the `SUPABASE_DEV_DB_URL` Session pooler secret), production Supabase **63**;
 - production Netlify: ready deploy `6a6b84f20937ff0008c07ccd` from commit `ce17a7fd`. **Deploys are paused from contract 64 onward** by the prebuild contract gate until an intentional production migration/release milestone. The last good deploy stays live;
 - Euro 2028: recoverable at `euro-2028-baseline` at contract 63, with remaining tournament work parked until January 2028;
 - Stage B: complete through PR #226, with the retained checklist closed by PR #239;
-- Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. No Stage C migration exists and no hosted schema write is authorised.
+- Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. The Stage C1 migration is merged at repository contract 65 (PRs #317, #349) with hosted rollout tooling and a guarded GitHub workflow (PRs #350, #351); the hosted development apply awaits the owner secret fix. No production write is authorised;
+- lock policy is **game-owned** (ADR 0020, PR #353): the competition supplies identity, calendar and structure; each game supplies its own explicit lock policy, failing closed when missing or incompatible.
 
 ## Delivered foundation
 
@@ -82,13 +83,15 @@ None of these documents authorises a migration or hosted write.
 2. ~~Land the original pre-migration contract inventory and C1 boundary guard.~~ **Done.**
 3. ~~Split C1 from C2 and keep the legal review scoped to profile ownership/deletion.~~ **Done.**
 4. ~~Reconcile every combined Stage C relation, function, RLS and evidence instruction.~~ **Done through the C1 schema overlay and `stageC1SchemaOverlayCoverage.test.ts`.** The overlay covers 35 current relations/view, four proposed C1 relations and 51 reviewed functions, while preserving PR #246 unchanged.
-5. **Prepare and review the exact append-only development-intent C1 migration.** It must follow the overlay sequence, retain all physical compatibility names, and contain no profile ownership, erasure, pseudonymisation or C2 RLS change.
-6. Maintain the exact compatibility inventory for retained `tournament_id` columns, RPC parameters and application callers. C1 exits when zero unreviewed tournament-only assumptions remain, not when intentional physical names disappear.
-7. Prove the proposed migration before any hosted write: zero-to-current rebuild, database lint, all pgTAP, full Database parity, generated TypeScript types, Euro preservation and environment isolation.
-8. Review the exact migration diff and rollback/recovery evidence, then obtain action-specific owner approval before mutating hosted development.
-9. Keep production at contract 63 and paused. Production promotion is a separate intentional release milestone, not part of C1 development completion.
-10. Complete C2 only after issue #272 records an independent review and the approved retention/erasure boundary is reflected in design and tests.
-11. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence; no materialised standings table belongs in C1 by default.
+5. ~~Prepare and review the exact append-only development-intent C1 migration.~~ **Done — merged at contract 65 (PRs #317, #349), proven on disposable infrastructure (rebuild, lint, pgTAP, parity, Euro preservation).**
+6. ~~Move lock policy from the competition to the selected game per ADR 0020.~~ **Done — PR #353.**
+7. **Complete the guarded Stage C1 development rollout** (workflow from PR #351): prepare mode (preflight, encrypted backup, restore rehearsal, one-migration dry run), then apply mode, hosted postflight and authenticated smoke. **Blocked on one owner action:** replace `SUPABASE_DEV_DB_URL` with the raw Session pooler PostgreSQL URI for `iouzoutneyjpugbbtdem`. After postflight, align non-production Netlify (Development, branch deploys, deploy previews) to contract 65; production Netlify stays 63.
+8. **C1b — persistent game catalogue and memberships as contract 66** (after development is hosted at 65): game definitions, per-competition-season availability, one entry per competition-season game with joined/left/disqualified state and append-only join/leave/rejoin evidence; separate membership for Main Predictor, LMS and Predictor Championship; seeds for Premier League 2026/27, Scottish Premiership 2026/27 and Euro 2028. Extend the existing `bonus_competition_*`/`entries` structures where safe rather than duplicating them. No C2 content.
+9. **Provider-ingestion custody as contract 67**: recreate PR #352's strict decoders, archive-before-decode custody, server-only Edge Function and canonical identity mapping on top of C1b; do not merge its stale contract-66 migration.
+10. **Domestic Main Predictor vertical slice** (ADR 0012 as amended by ADR 0020): one generic implementation serving Premier League and Scottish Premiership — entries, matchweeks, score predictions, ten whole-matchweek Jokers split five/five, zero-buffer matchweek locks, automatic submission, separate domestic scoring authority with TypeScript/PostgreSQL parity, standings, audited fixture reassignment.
+11. Keep production at contract 63 and paused. Production promotion is a separate intentional release milestone.
+12. Complete C2 only after issue #272 records an independent review and the approved retention/erasure boundary is reflected in design and tests.
+13. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence.
 
 ## Parked Euro 2028 scope
 
