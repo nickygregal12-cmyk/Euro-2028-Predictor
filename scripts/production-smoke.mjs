@@ -32,7 +32,16 @@ console.log(`Checking ${origin}`)
 
 const root = await fetchText('/')
 assertIncludes(root.body, '<div id="root"></div>', 'React root')
-assertIncludes(root.body, 'Euro 2028 Predictor', 'application title')
+// Contract-65 bundles brand the global shell "Football Prediction Hub"
+// (PR #357); production remains paused on a pre-rename bundle until its next
+// intentional release, so both brands are valid until then. Retire the
+// legacy form when production moves past contract 63.
+if (
+  !root.body.includes('Football Prediction Hub') &&
+  !root.body.includes('Euro 2028 Predictor')
+) {
+  stop('application title is missing both "Football Prediction Hub" and "Euro 2028 Predictor".')
+}
 verifySecurityHeaders(root.headers)
 
 const releaseResponse = await fetchText('/release.json')
