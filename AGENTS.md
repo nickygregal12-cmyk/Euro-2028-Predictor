@@ -46,12 +46,14 @@ PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `
 
 **PR #236 is merged** and all seven pre-migration contracts have landed through PR #292. The accepted governance amendment splits implementation:
 
-- **Stage C1 — issue #303 / PR #317:** competition-season identity, fields, rounds, timezone, locks, same-season safeguards and Euro preservation are implemented in repository/disposable evidence at contract 65. The current auth-owned competitive rows, foreign-key actions and ownership RLS remain unchanged; no hosted write is authorised.
+- **Stage C1 — issue #303:** merged to `main` at repository contract 65 (PR #317 foundation, PR #349 populated-audit hotfix, PRs #350/#351 hosted rollout tooling and guarded workflow). The current auth-owned competitive rows, foreign-key actions and ownership RLS remain unchanged. The hosted development apply runs only through the guarded workflow and is currently owner-gated on the `SUPABASE_DEV_DB_URL` Session pooler secret.
 - **Stage C2 — issue #272:** profile ownership, account erasure, pseudonymisation and related RLS. C2 remains blocked by the independent data-protection review.
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The PR #317 repository candidate is at **contract 65** through `20260730235602_stage_c1_competition_season_foundation.sql`. Current `main` and development Supabase remain at contract 64; production remains at 63. Contract 65 are disposable-only C1 evidence until separately reviewed and explicitly approved. Any hosted schema mutation requires explicit owner approval and the applicable preflight.
+The repository is at **contract 65** through `20260730235602_stage_c1_competition_season_foundation.sql`, merged on `main`. Development Supabase remains hosted at contract 64; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
+
+**Lock policy is game-owned (ADR 0020, PR #353).** `CompetitionConfig` describes identity, calendar and structure only; the selected game supplies its own explicit `lockPolicy` (Original Predictor entry/0, Main Predictor matchweek/0, Last Man Standing matchweek/30). A missing, unknown, stale or incompatible policy fails closed. Do not reintroduce a competition-wide buffer, and do not branch on route, slug, name or UI type to pick a policy.
 
 ## Development operating mode
 

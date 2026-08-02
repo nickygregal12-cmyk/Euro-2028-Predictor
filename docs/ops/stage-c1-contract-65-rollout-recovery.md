@@ -6,6 +6,28 @@
 **Hosted development:** remains contract 64  
 **Production:** remains contract 63 and is out of scope
 
+## Rollout attempts via the guarded GitHub workflow (2 August 2026)
+
+The guarded `Stage C1 development rollout` workflow (PR #351) has been dispatched
+three times from exact `main` and failed each time on the development connection
+secret, before any hosted write:
+
+- run 30724967038 — `SUPABASE_DEV_DB_URL` did not identify the development project;
+- run 30725333555 — the secret was the **direct** `db.iouzoutneyjpugbbtdem.supabase.co`
+  endpoint, which resolves only to IPv6 and is unreachable from GitHub Actions runners;
+- run 30725505316 (dispatched two minutes after a secret update) — still the direct
+  endpoint, same dial failure.
+
+**Owner action required, once:** replace the repository secret `SUPABASE_DEV_DB_URL`
+with the raw **Session pooler** PostgreSQL URI for development project
+`iouzoutneyjpugbbtdem` — scheme `postgres://` or `postgresql://`, hostname
+`*.pooler.supabase.com`, port 5432, username identifying the project ref, no
+surrounding quotes, no `psql` prefix, no production reference. Then dispatch the
+workflow in `prepare` mode and, on a fully green preparation, `apply` mode.
+
+Hosted development remains at contract 64 (re-verified read-only 2 August 2026:
+64 catalogue migrations, latest `20260730180000`, no Stage C1 object present).
+
 ## Purpose
 
 This runbook records how the Stage C1 competition-season foundation can later be

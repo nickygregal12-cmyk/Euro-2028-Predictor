@@ -2,11 +2,11 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 31 July 2026
+**Status date:** 2 August 2026
 
 ## Product position
 
-The repository is a multi-competition football prediction platform in transition. Euro 2028 is the first recoverable competition baseline, not the endpoint of the programme.
+The product is the **Football Prediction Hub** (ADR 0020): a multi-competition football prediction platform. Euro 2028 is the first recoverable competition baseline, not the endpoint of the programme. The first supported domestic competition seasons are Premier League 2026/27 and Scottish Premiership 2026/27, alongside Euro 2028.
 
 - **user evidence:** [`../architecture/phase-0-world-cup-evidence.md`](../architecture/phase-0-world-cup-evidence.md) — owner observation of a live World Cup predictor with roughly 60 users across a full tournament. It is the only user evidence the programme holds, and it corrects six recorded planning assumptions;
 - recoverable Euro baseline: `euro-2028-baseline` → `1fb8ffd36ad113079181829a8bcc47175c43b6da`;
@@ -14,7 +14,7 @@ The repository is a multi-competition football prediction platform in transition
 - product phases and gates: [`../architecture/programme-plan.md`](../architecture/programme-plan.md);
 - engineering sequence: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md);
 - current execution sequence: [`../roadmap.md`](../roadmap.md);
-- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0019-brand-decision-deferred.md`](../adr/0019-brand-decision-deferred.md).
+- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0021-sharing-surface-priority.md`](../adr/0021-sharing-surface-priority.md); the product model is [`../adr/0020-football-prediction-hub-product-model.md`](../adr/0020-football-prediction-hub-product-model.md).
 
 ## Repository and release baseline
 
@@ -22,7 +22,7 @@ The repository is a multi-competition football prediction platform in transition
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Current `main` | Read it from git. A hand-copied SHA in a live-authority document is stale the next time anything merges. Fixed anchors that do not move are the `euro-2028-baseline` tag and dated per-PR evidence. |
-| Repository contract | **66** canonical migrations through `20260730235602_stage_c1_competition_season_foundation.sql`; contract 65 are PR #317 repository/disposable evidence and are not applied to hosted Supabase |
+| Repository contract | **65** — 65 canonical migrations through `20260730235602_stage_c1_competition_season_foundation.sql`. The repository contract and the hosted contracts are distinct facts: development Supabase remains hosted at **64** and production at **63** |
 | Contract at Euro baseline | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` — the tag is contract 63 and stays there; `main` has moved past it |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
 | Stage B inventory closure | PR #239 → `69f6e364132f6586d5de9ed8706b0802d14ec0fc` |
@@ -40,7 +40,11 @@ The repository is a multi-competition football prediction platform in transition
 | Stage C assertion classification | [`stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md): **40 C1, zero authorised C2 after-state and nine shared-before-state assertions**, enforced by `stageC1ContractClassification.test.ts` |
 | Stage C1 implementation overlay | [`stage-c1-schema-overlay.md`](../architecture/stage-c1-schema-overlay.md): every original relation and reviewed function has a C1/C2/shared disposition; coverage is enforced by `stageC1SchemaOverlayCoverage.test.ts` |
 | Stage C database contracts | Seven original suites plus `stageC1NonInterference`: TypeScript `stageCRelationCoverage`, `stageCFunctionCoverage`, `stageCTriggerBindingCoverage`, `stageCTournamentIdCompatibility`, `stageCEuroSeedPreservation`, `stageC1NonInterference`; pgTAP `031_stage_c_reference_scope_before_state.sql`, `032_stage_c_lock_before_state.sql` and `033_automatic_submission_trusted_path.sql`; source-level `stageC1LockFunctionConsistency` compares the entry-lock trigger definitions to each other, which `pg_proc` cannot do because the live database only shows the last of them. Inventory guarded by `stageCContractInventory.test.ts` |
-| Next executable issue | **PR #317 migration review and recovery/rollout evidence.** C1 repository/disposable implementation exists; no C2 work or hosted write is authorised |
+| Stage C1 merge state | **Merged to `main`**: PR #317 (foundation), PR #349 (populated-audit hotfix), PR #350 (hosted evidence tooling), PR #351 (guarded GitHub development rollout workflow). The hosted development apply is prepared but **blocked on one owner action** — see Hosted evidence boundary below |
+| Game-owned lock policy | **PR #353 merged 2 August 2026.** `CompetitionConfig` carries no `lockPolicy`; the selected game supplies its own explicit policy (ADR 0020): Original Predictor entry/0-minute, Main Predictor matchweek/0-minute, Last Man Standing matchweek/30-minute. Missing, unknown, stale or incompatible policies fail closed |
+| LeagueTable contrast guard | PR #344 merged 2 August 2026 — `--mut` is never a foreground; static design-system guard added |
+| DEV season preview | PR #345 recovered under game-owned lock policy: same season resolving Main Predictor (0) and LMS (30) side by side; round-robin, BST/GMT and fail-closed evidence retained; DEV-only, no persistence |
+| Next executable issue | **Hosted Stage C1 rollout (owner-gated), then C1b persistent game catalogue/memberships as contract 66, then provider-ingestion custody (PR #352 recreated on top of C1b) as contract 67, then the domestic Main Predictor vertical slice.** No C2 work or production write is authorised |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; production remains contract 63 and deploys stay paused until an intentional release milestone |
 
@@ -52,7 +56,7 @@ The development Supabase inspection was limited to project identity/version and 
 
 | Target | Current evidence | Fresh check required |
 | --- | --- | --- |
-| Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17. **Contract 64 applied and owner-verified on 30 July 2026**. | **REQUIRES OWNER VERIFICATION:** canonical applied-state and privilege queries before relying on hosted alignment or applying a migration. Development is one contract ahead of production. |
+| Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17. **Contract 64 applied**; re-verified read-only on 2 August 2026 (64 migrations in the catalogue, latest `20260730180000`; no Stage C1 object present). Three Stage C1 rollout workflow runs failed on the connection secret: 30724967038 (invalid identity), 30725333555 and 30725505316 (direct `db.<ref>.supabase.co` endpoint — IPv6-unreachable from GitHub Actions). | **REQUIRES OWNER ACTION:** replace the `SUPABASE_DEV_DB_URL` repository secret with the raw **Session pooler** PostgreSQL URI for `iouzoutneyjpugbbtdem` (`postgresql://`, host `*.pooler.supabase.com`, port 5432, username identifying the project ref, no quotes, no `psql` prefix), then dispatch the Stage C1 development rollout in prepare mode followed by apply mode. |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | owner-verified at contract 63 on 29 July 2026 with preserved-data postflight; not freshly inspected here | **REQUIRES OWNER VERIFICATION:** read-only applied-state, privilege and preservation checks before any write |
 | Production Netlify `main` | last good ready deploy remains live. **Production deploys are paused from contract 64 onward**; PR #317 raises the repository candidate to contract 65 while production Supabase remains 63. This is a paused pipeline, not an outage. | Keep paused until an intentional migration/release milestone with exact-origin smoke and owner approval; do not promote merely to equalise contract numbers |
 | Non-production Turnstile | Netlify `dev`, branch deploys and deploy previews use Cloudflare's always-pass test site key; production retains a separate real key | **OPEN issue #28:** verify/set the matching development Supabase test secret and prove preview sign-up, login and recovery without CAPTCHA errors |

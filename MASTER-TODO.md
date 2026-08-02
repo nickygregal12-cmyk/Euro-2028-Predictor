@@ -1,6 +1,6 @@
 # Multi-competition platform — master TODO
 
-**Status date:** 30 July 2026  
+**Status date:** 2 August 2026  
 **Current facts:** [`docs/quality/current-status.md`](docs/quality/current-status.md)  
 **Execution sequence:** [`docs/roadmap.md`](docs/roadmap.md)  
 **Programme map:** [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md)  
@@ -130,19 +130,27 @@ All seven pre-migration contract suites are landed through PR #292. The owner-ap
 
 ### Stage C1 — unblocked competition-season foundation — issue #303
 
-- [ ] Classify every landed Stage C assertion as C1, C2 or shared before-state.
-- [ ] Add an executable guard proving C1 leaves the effective `auth.users` foreign-key action matrix, competitive ownership and ownership RLS unchanged.
-- [ ] Add competition/season scoping under the reviewed C1 migration plan.
-- [ ] Add stable competition identity and additive season fields on the existing `tournaments` root.
-- [ ] Add generic rounds/matchweeks and monotonic lock-transition evidence.
-- [ ] Broaden same-reference safeguards to same-season safeguards without weakening them.
-- [ ] Persist competition timezone, reject invalid zones and remove authoritative viewer fallback.
-- [ ] Preserve independent entries, standings, honours and historical seasons.
-- [ ] Preserve every Euro identifier, rule, score, rank, access boundary and Stage B context output.
-- [ ] Extend applied-state, RLS/grant and adversarial cross-season tests in the same change.
-- [ ] Prove zero-to-current rebuild, database lint, pgTAP, generated types and full Database parity on disposable infrastructure.
-- [ ] Use preflight, rollback evidence and explicit approval before any hosted development promotion.
+- [x] Classify every landed Stage C assertion as C1, C2 or shared before-state.
+- [x] Add an executable guard proving C1 leaves the effective `auth.users` foreign-key action matrix, competitive ownership and ownership RLS unchanged.
+- [x] Add competition/season scoping under the reviewed C1 migration plan. *(PR #317, hotfixed by PR #349, merged at repository contract 65.)*
+- [x] Add stable competition identity and additive season fields on the existing `tournaments` root.
+- [x] Add generic rounds/matchweeks and monotonic lock-transition evidence.
+- [x] Broaden same-reference safeguards to same-season safeguards without weakening them.
+- [x] Persist competition timezone, reject invalid zones and remove authoritative viewer fallback.
+- [x] Preserve independent entries, standings, honours and historical seasons.
+- [x] Preserve every Euro identifier, rule, score, rank, access boundary and Stage B context output.
+- [x] Extend applied-state, RLS/grant and adversarial cross-season tests in the same change.
+- [x] Prove zero-to-current rebuild, database lint, pgTAP, generated types and full Database parity on disposable infrastructure.
+- [ ] Complete the guarded hosted development rollout (workflow from PR #351). **Blocked on the owner replacing `SUPABASE_DEV_DB_URL` with the development Session pooler URI** — see `docs/ops/stage-c1-contract-65-rollout-recovery.md`. After postflight, align non-production Netlify to contract 65.
 - [ ] Keep production at contract 63 and paused until an intentional release milestone.
+
+### Stage C1b — persistent game catalogue and memberships (next migration after hosted 65)
+
+- [ ] Audit and map existing competitions/tournaments/entries/profiles/leagues/bonus-competition relations, RPCs and browser grants before writing SQL; extend existing structures rather than duplicating them.
+- [ ] Persist game definitions, per-competition-season game availability (active/inactive), one user entry per competition-season game with joined/left/disqualified state and append-only join/leave/rejoin evidence, and game-owned policy references.
+- [ ] Keep membership separate per game (Main Predictor, LMS, Predictor Championship); derive competition membership from game membership with no second membership truth.
+- [ ] Seed Premier League 2026/27, Scottish Premiership 2026/27 and Euro 2028 with each competition's valid game catalogue; preserve Euro game registrations.
+- [ ] No C2 content: no ownership transfer, erasure redesign, pseudonymisation or replacement ownership RLS (issue #272 remains the blocker).
 
 ### Stage C2 — blocked profile ownership and account erasure — issue #272
 
