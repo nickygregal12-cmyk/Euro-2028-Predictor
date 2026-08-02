@@ -322,49 +322,81 @@ try {
     'storage.objects',
   ])
   function localManagedColumns() {
-    // `supabase start` returns when containers are healthy, but the Auth
-    // service applies its own schema migrations after boot, so the catalog
-    // can briefly lack auth tables (run 30768062149 saw auth.identities but
-    // not auth.users). Poll until every protected table is visible; on
-    // timeout, name exactly what the target had, so a real absence is
-    // diagnosable rather than mysterious. `pg_catalog` rather than
-    // `information_schema` because the latter filters by privilege and this
-    // inventory must reflect existence, not grants.
-    const deadline = Date.now() + 180_000
+    // Which database this inventory reads is resolved by the CLI itself
+    // (`db query --local`), not by an assumed host/port: run 30768625474's
+    // first psql inventory against LOCAL_DB_URL hung for over two minutes
+    // and then reported auth and storage empty, minutes after the same
+    // stack had applied migrations that touch auth.users — so the fixed
+    // URL cannot be trusted to name the stack the CLI just started. The
+    // inventory is a single statement, so the db-url prepared-statement
+    // limitation does not apply to --local either. `pg_catalog` rather
+    // than `information_schema` because the latter filters by privilege
+    // and this inventory must reflect existence, not grants. Every poll
+    // line carries the answering server's identity so a wrong target is
+    // visible in the run log, not inferred afterwards.
+    const inventorySqlPath = resolve(bundle, '..', 'managed-columns-inventory.sql')
+    writeFileSync(
+      inventorySqlPath,
+      "select current_database() as database_name, inet_server_port() as port,\n" +
+        '  (\n' +
+        "    select coalesce(jsonb_object_agg(entry.table_name, entry.columns), '{}'::jsonb)\n" +
+        '    from (\n' +
+        "      select n.nspname || '.' || c.relname as table_name,\n" +
+        '        jsonb_agg(a.attname) as columns\n' +
+        '      from pg_catalog.pg_attribute a\n' +
+        '      join pg_catalog.pg_class c on c.oid = a.attrelid\n' +
+        '      join pg_catalog.pg_namespace n on n.oid = c.relnamespace\n' +
+        "      where n.nspname in ('auth', 'storage') and c.relkind = 'r'\n" +
+        '        and a.attnum > 0 and not a.attisdropped\n' +
+        '      group by n.nspname, c.relname\n' +
+        '    ) entry\n' +
+        '  ) as managed_columns\n',
+      { mode: 0o600 },
+    )
+    const deadline = Date.now() + 300_000
     for (;;) {
-      const raw = run(psql, [
-        localDbUrl,
-        '-X',
-        '--no-align',
-        '--tuples-only',
-        '-v',
-        'ON_ERROR_STOP=1',
-        '--command',
-        "select n.nspname || '.' || c.relname || '|' || string_agg(a.attname, ',') " +
-          'from pg_catalog.pg_attribute a ' +
-          'join pg_catalog.pg_class c on c.oid = a.attrelid ' +
-          'join pg_catalog.pg_namespace n on n.oid = c.relnamespace ' +
-          "where n.nspname in ('auth', 'storage') and c.relkind = 'r' " +
-          'and a.attnum > 0 and not a.attisdropped ' +
-          'group by n.nspname, c.relname',
+      const raw = run(supabase, [
+        'db',
+        'query',
+        '--local',
+        '--file',
+        inventorySqlPath,
+        '--output',
+        'json',
+        '--agent',
+        'no',
       ])
-      const columnsByTable = new Map()
-      for (const line of raw.split('\n').filter(Boolean)) {
-        const [table, columns] = line.split('|')
-        columnsByTable.set(table, new Set(columns.split(',')))
+      let row
+      try {
+        const parsed = JSON.parse(raw)
+        if (!Array.isArray(parsed) || parsed.length !== 1) fail('Expected one inventory row')
+        row = parsed[0]
+      } catch (error) {
+        fail(`Managed-column inventory did not return JSON: ${error.message}`)
       }
+      const columnsByTable = new Map(
+        Object.entries(row.managed_columns ?? {}).map(([table, columns]) => [
+          table,
+          new Set(columns),
+        ]),
+      )
+      const identity = `database=${row.database_name} port=${row.port ?? '?'} tables=${columnsByTable.size}`
       const missingProtected = [...MUST_RESTORE_TABLES].filter(
         (table) => !columnsByTable.has(table),
       )
-      if (missingProtected.length === 0) return columnsByTable
+      if (missingProtected.length === 0) {
+        console.log(`Managed-column inventory ready (${identity})`)
+        return columnsByTable
+      }
       if (Date.now() > deadline) {
         fail(
-          `Protected tables never appeared in the rehearsal target: ${missingProtected.join(', ')}; ` +
+          `Protected tables never appeared in the rehearsal target (${identity}): ` +
+            `missing ${missingProtected.join(', ')}; ` +
             `the target has: ${[...columnsByTable.keys()].sort().join(', ') || '(none)'}`,
         )
       }
       console.log(
-        `Waiting for the rehearsal target's managed schemas (missing: ${missingProtected.join(', ')})…`,
+        `Waiting for the rehearsal target's managed schemas (${identity}; missing: ${missingProtected.join(', ')})…`,
       )
       run(psql, [localDbUrl, '-X', '-v', 'ON_ERROR_STOP=1', '--command', 'select pg_sleep(3)'])
     }
