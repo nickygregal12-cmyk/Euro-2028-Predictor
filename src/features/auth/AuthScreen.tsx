@@ -8,7 +8,7 @@ export function AuthScreen({ children }: { children: ReactNode }) {
     <div className={s.screen}>
       <div className={s.inner}>
         <div className={s.brand}>
-          <h1 className={s.title}>Euro 2028 Predictor</h1>
+          <h1 className={s.title}>Football Prediction Hub</h1>
           <p className={s.tagline}>Predict every match. Beat your friends.</p>
         </div>
         {children}

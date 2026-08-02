@@ -90,7 +90,7 @@ export function JoinLandingPage() {
   return (
     <div className={j.page}>
       <div className={j.card}>
-        <p className={j.eyebrow}>Euro 2028 Predictor</p>
+        <p className={j.eyebrow}>Football Prediction Hub</p>
         {state.status === 'loading' && <Skeleton lines={4} />}
 
         {state.status === 'notfound' && (

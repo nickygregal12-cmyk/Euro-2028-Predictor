@@ -36,7 +36,7 @@ export class ApplicationErrorBoundary extends Component<
           aria-labelledby="application-error-title"
           style={{ width: 'min(100%, 32rem)', textAlign: 'center' }}
         >
-          <p style={{ margin: 0, opacity: 0.72 }}>Euro 2028 Predictor</p>
+          <p style={{ margin: 0, opacity: 0.72 }}>Football Prediction Hub</p>
           <h1 id="application-error-title">Something went wrong</h1>
           <p>
             Your account and predictions have not been changed. Reload the app to

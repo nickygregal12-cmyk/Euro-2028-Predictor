@@ -13,7 +13,7 @@ export function buildAdminSupportHref(
   if (!recipient) return null
 
   const account = accountEmail?.trim() || 'Unavailable'
-  const subject = 'Euro 2028 Predictor support'
+  const subject = 'Football Prediction Hub support'
   const body = `Account email: ${account}\n\nHow can we help?`
 
   return `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
