@@ -263,6 +263,44 @@ try {
   run(supabase, ['start'])
   localStarted = true
   const localDbUrl = process.env.LOCAL_DB_URL || 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+
+  // The hosted role dump names platform-managed roles (`ALTER ROLE
+  // supabase_admin …`), and the disposable stack's supautils protection
+  // refuses any modification of a reserved role — run 30765694087 died at
+  // roles.sql:13 exactly there. Those roles exist with platform-managed
+  // configuration on both sides, so they are not part of the application
+  // state this rehearsal proves. The rehearsal restores a filtered copy;
+  // the encrypted evidence bundle keeps the original roles.sql untouched.
+  const PLATFORM_MANAGED_ROLES = [
+    'supabase_admin',
+    'supabase_auth_admin',
+    'supabase_storage_admin',
+    'supabase_functions_admin',
+    'supabase_realtime_admin',
+    'supabase_replication_admin',
+    'supabase_read_only_user',
+    'authenticator',
+    'pgbouncer',
+    'dashboard_user',
+    'postgres',
+    'anon',
+    'authenticated',
+    'service_role',
+  ]
+  const managedAlternation = PLATFORM_MANAGED_ROLES.join('|')
+  const managedRoleStatement = new RegExp(
+    `^\\s*(?:CREATE|ALTER|DROP)\\s+ROLE\\s+"?(?:${managedAlternation})"?\\s*(?:;|\\s)`,
+  )
+  const managedRoleMembership = new RegExp(`^\\s*GRANT\\s+"?(?:${managedAlternation})"?\\s+TO\\s`)
+  const rehearsalRolesPath = resolve(bundle, '..', 'roles.rehearsal.sql')
+  writeFileSync(
+    rehearsalRolesPath,
+    readFileSync(resolve(bundle, 'roles.sql'), 'utf8')
+      .split('\n')
+      .filter((line) => !managedRoleStatement.test(line) && !managedRoleMembership.test(line))
+      .join('\n'),
+    { mode: 0o600 },
+  )
   const prepareSql = `
 begin;
 drop schema if exists predictor_internal cascade;
@@ -275,7 +313,7 @@ truncate table auth.users cascade;
 truncate table storage.objects, storage.buckets cascade;
 commit;`
   run(psql, [localDbUrl, '-X', '-v', 'ON_ERROR_STOP=1', '--command', prepareSql])
-  run(psql, [localDbUrl, '-X', '--single-transaction', '-v', 'ON_ERROR_STOP=1', '--file', resolve(bundle, 'roles.sql')])
+  run(psql, [localDbUrl, '-X', '--single-transaction', '-v', 'ON_ERROR_STOP=1', '--file', rehearsalRolesPath])
   run(psql, [localDbUrl, '-X', '--single-transaction', '-v', 'ON_ERROR_STOP=1', '--file', resolve(bundle, 'schema.sql')])
   run(psql, [
     localDbUrl, '-X', '--single-transaction', '-v', 'ON_ERROR_STOP=1',
