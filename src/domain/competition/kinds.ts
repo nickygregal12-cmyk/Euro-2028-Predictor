@@ -32,11 +32,6 @@ export type TournamentCompetitionConfig = CompetitionConfigBase & {
   knockoutStage: {
     roundCount: number
   }
-  lockPolicy: {
-    scope: 'entry'
-    scopeCount: 1
-    bufferMinutes: 0
-  }
 }
 
 export type LeagueSeasonCompetitionConfig = CompetitionConfigBase & {
@@ -45,11 +40,6 @@ export type LeagueSeasonCompetitionConfig = CompetitionConfigBase & {
   progression: 'rolling_matchweeks'
   matchweeks: {
     count: number
-  }
-  lockPolicy: {
-    scope: 'matchweek'
-    scopeCount: number
-    bufferMinutes: 30
   }
 }
 
@@ -84,14 +74,11 @@ export function isTournamentCompetitionConfig(value: unknown): value is Tourname
   if (value.kind !== 'tournament' || value.primaryStage !== 'groups' || value.progression !== 'groups_to_knockout') {
     return false
   }
-  if (!isRecord(value.groupStage) || !isRecord(value.knockoutStage) || !isRecord(value.lockPolicy)) return false
+  if (!isRecord(value.groupStage) || !isRecord(value.knockoutStage)) return false
   return (
     isPositiveInteger(value.groupStage.groupCount) &&
     isPositiveInteger(value.groupStage.matchdayCount) &&
-    isPositiveInteger(value.knockoutStage.roundCount) &&
-    value.lockPolicy.scope === 'entry' &&
-    value.lockPolicy.scopeCount === 1 &&
-    value.lockPolicy.bufferMinutes === 0
+    isPositiveInteger(value.knockoutStage.roundCount)
   )
 }
 
@@ -100,13 +87,8 @@ export function isLeagueSeasonCompetitionConfig(value: unknown): value is League
   if (value.kind !== 'league_season' || value.primaryStage !== 'league' || value.progression !== 'rolling_matchweeks') {
     return false
   }
-  if (!isRecord(value.matchweeks) || !isRecord(value.lockPolicy)) return false
-  return (
-    isPositiveInteger(value.matchweeks.count) &&
-    value.lockPolicy.scope === 'matchweek' &&
-    value.lockPolicy.scopeCount === value.matchweeks.count &&
-    value.lockPolicy.bufferMinutes === 30
-  )
+  if (!isRecord(value.matchweeks)) return false
+  return isPositiveInteger(value.matchweeks.count)
 }
 
 export function isCompetitionConfig(value: unknown): value is CompetitionConfig {

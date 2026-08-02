@@ -7,6 +7,7 @@ import {
   type CompetitionProgressData,
   type CompetitionUserData,
 } from '../../../src/domain/competition/context'
+import { originalPredictorLockPolicy, type GameConfig } from '../../../src/domain/competition/game'
 import type { CompetitionConfig, TournamentCompetitionConfig } from '../../../src/domain/competition/kinds'
 
 /**
@@ -120,7 +121,13 @@ const BASE_CONFIG: TournamentCompetitionConfig = {
   progression: 'groups_to_knockout',
   groupStage: { groupCount: 6, matchdayCount: 3 },
   knockoutStage: { roundCount: 4 },
-  lockPolicy: { scope: 'entry', scopeCount: 1, bufferMinutes: 0 },
+}
+
+const GAME: GameConfig = {
+  id: 'original-predictor',
+  name: 'Original Predictor',
+  kind: 'original_predictor',
+  lockPolicy: originalPredictorLockPolicy(),
 }
 
 const PROGRESS: CompetitionProgressData = {
@@ -181,6 +188,7 @@ function resolveAt(competitionTimeZone: string) {
 
   return resolveCompetitionContext(
     config,
+    GAME,
     {
       progress: PROGRESS,
       lockScopes: [

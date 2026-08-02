@@ -6,6 +6,7 @@ import {
   type CompetitionProgressData,
   type CompetitionUserData,
 } from '../../domain/competition/context'
+import { originalPredictorLockPolicy, type GameConfig } from '../../domain/competition/game'
 import type { TournamentCompetitionConfig } from '../../domain/competition/kinds'
 import type { FixtureDataSnapshot } from '../../domain/competition/lockState'
 import type { Match, TournamentData } from '../../services/supabase/tournamentData'
@@ -14,6 +15,16 @@ import type { Match, TournamentData } from '../../services/supabase/tournamentDa
 // The shared adapter may serve multiple tournament surfaces, but changing this
 // key would create observable context drift without changing lock semantics.
 const ENTRY_LOCK_SCOPE_ID = 'home-entry'
+
+// The game these tournament surfaces serve. The lock policy lives on the game
+// (ADR 0020): one entry-wide lock, landing exactly at the opening kickoff.
+const ORIGINAL_PREDICTOR_GAME: GameConfig = {
+  id: 'original-predictor',
+  name: 'Original Predictor',
+  kind: 'original_predictor',
+  lockPolicy: originalPredictorLockPolicy(),
+}
+
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/
 const NO_LIVE_DATA: CompetitionLiveData = { feedAvailable: false, matches: [] }
 
@@ -127,7 +138,6 @@ function tournamentConfig(
       matchdayCount: Math.max(1, matchdays.size),
     },
     knockoutStage: { roundCount: Math.max(1, knockoutRounds.size) },
-    lockPolicy: { scope: 'entry', scopeCount: 1, bufferMinutes: 0 },
   }
 }
 
@@ -219,6 +229,7 @@ export function resolveTournamentCompetitionContext(
   const nowMs = input.nowServer.getTime()
   const context = resolveCompetitionContext(
     tournamentConfig(input.data, input.nowServer, competitionTimeZone),
+    ORIGINAL_PREDICTOR_GAME,
     {
       progress: competitionProgress(input.data, input.nowServer),
       lockScopes: [

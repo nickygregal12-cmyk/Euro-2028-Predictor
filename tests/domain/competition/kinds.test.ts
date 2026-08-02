@@ -17,7 +17,6 @@ const tournament: TournamentCompetitionConfig = {
   progression: 'groups_to_knockout',
   groupStage: { groupCount: 6, matchdayCount: 3 },
   knockoutStage: { roundCount: 4 },
-  lockPolicy: { scope: 'entry', scopeCount: 1, bufferMinutes: 0 },
 }
 
 const leagueSeason: LeagueSeasonCompetitionConfig = {
@@ -29,28 +28,31 @@ const leagueSeason: LeagueSeasonCompetitionConfig = {
   primaryStage: 'league',
   progression: 'rolling_matchweeks',
   matchweeks: { count: 38 },
-  lockPolicy: { scope: 'matchweek', scopeCount: 38, bufferMinutes: 30 },
 }
 
 describe('competition kinds', () => {
-  it('recognises a bounded tournament with one entry lock scope', () => {
+  it('recognises a bounded tournament', () => {
     expect(isTournamentCompetitionConfig(tournament)).toBe(true)
     expect(isLeagueSeasonCompetitionConfig(tournament)).toBe(false)
     expect(isCompetitionConfig(tournament)).toBe(true)
   })
 
-  it('recognises a rolling league season with one scope per matchweek', () => {
+  it('recognises a rolling league season', () => {
     expect(isLeagueSeasonCompetitionConfig(leagueSeason)).toBe(true)
     expect(isTournamentCompetitionConfig(leagueSeason)).toBe(false)
     expect(isCompetitionConfig(leagueSeason)).toBe(true)
   })
 
-  it('rejects a season whose declared scope count differs from its matchweek count', () => {
-    expect(
-      isCompetitionConfig({
-        ...leagueSeason,
-        lockPolicy: { ...leagueSeason.lockPolicy, scopeCount: 37 },
-      }),
-    ).toBe(false)
+  it('rejects a season without a positive whole matchweek count', () => {
+    expect(isCompetitionConfig({ ...leagueSeason, matchweeks: { count: 0 } })).toBe(false)
+    expect(isCompetitionConfig({ ...leagueSeason, matchweeks: { count: 38.5 } })).toBe(false)
+  })
+
+  it('carries no lock policy: lock behaviour belongs to the selected game', () => {
+    // The competition describes identity, calendar and structure only. Lock
+    // policy moved to the game (ADR 0020), so the same season can host a
+    // zero-buffer Main Predictor and a 30-minute Last Man Standing at once.
+    expect('lockPolicy' in tournament).toBe(false)
+    expect('lockPolicy' in leagueSeason).toBe(false)
   })
 })
