@@ -316,3 +316,25 @@ PR #317 may leave draft only when:
 - a reviewer confirms this recovery model is adequate for a later hosted
   development proposal;
 - the PR continues to make no hosted-alignment or C2 claim.
+
+## Rollout completed (2–3 August 2026)
+
+The guarded workflow completed after the owner replaced `SUPABASE_DEV_DB_URL`
+with the Session pooler URI and the tooling defects surfaced by the first real
+runs were fixed (PRs #359–#367: psql evidence execution and pooler guard,
+managed-role and version-skew rehearsal handling with protected-table
+projection, db-only rehearsal target, captured inventory reads):
+
+- prepare run 30771110879 — preflight, encrypted backup, source-equivalent
+  restore rehearsal, dry run naming exactly the one Stage C1 migration;
+- apply run 30771280887 — contract 65 pushed once to development;
+- postflight — the canonical DO block passes on hosted; the artifact
+  comparison passes with the single authored `enforce_joker_rules`
+  search-path hardening allowed (PR #368), verified against the real prepare
+  preflight artifact and the captured hosted postflight payload;
+- non-production Netlify contexts aligned to contract 65 with per-context
+  Supabase URL verification; production Netlify remains 63;
+- exact-origin deploy-preview smoke passed (PR #369) against a contract-65
+  preview on the contract-65 database.
+
+Production Supabase and Netlify remain at contract 63 and untouched.
