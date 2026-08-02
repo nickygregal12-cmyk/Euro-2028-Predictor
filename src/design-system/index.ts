@@ -63,6 +63,14 @@ export type { JokerButtonProps, JokerButtonState } from './JokerButton'
 export { JokerCounter } from './JokerCounter'
 export type { JokerCounterProps } from './JokerCounter'
 
+export { ClubMatchCard } from './ClubMatchCard'
+export type {
+  ClubMatchCardProps,
+  ClubMatchCardState,
+  ClubMatchCardScore,
+  MatchClub,
+} from './ClubMatchCard'
+
 export { MatchCard } from './MatchCard'
 export type {
   MatchCardProps,

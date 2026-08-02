@@ -22,6 +22,7 @@ import {
   TeamFlag,
   JokerButton,
   JokerCounter,
+  ClubMatchCard,
   MatchCard,
   GroupTable,
   ThirdPlaceTable,
@@ -937,6 +938,76 @@ function Gallery() {
           result={{ home: 2, away: 1 }}
           score={{ kind: 'exact', points: 10, joker: true }}
           jokerState="committed"
+        />
+      </Section>
+
+      <Section title="ClubMatchCard — editable / locked / scored">
+        <ClubMatchCard
+          state="editable"
+          matchweek={5}
+          kickoff="Sat 15:00"
+          venue="Emirates Stadium"
+          home={{ name: 'Arsenal', tokens: CLUB.ARS }}
+          away={{ name: 'Newcastle', tokens: CLUB.NEW }}
+          homeScore={2}
+          awayScore={1}
+          saveStatus="saved"
+        />
+        <ClubMatchCard
+          state="editable"
+          matchweek={5}
+          kickoff="Sat 15:00"
+          home={{ name: 'Crystal Palace', tokens: CLUB.CRY }}
+          away={{ name: 'Brentford', tokens: CLUB.BRE }}
+          homeScore={null}
+          awayScore={null}
+          saveStatus="error"
+          onRetrySave={() => {}}
+        />
+        <ClubMatchCard
+          state="locked"
+          matchweek={5}
+          kickoff="Sat 17:30"
+          home={{ name: 'Man City', tokens: CLUB.MCI }}
+          away={{ name: 'Arsenal', tokens: CLUB.ARS }}
+          homeScore={1}
+          awayScore={1}
+          countdown="24m"
+        />
+        <ClubMatchCard
+          state="scored"
+          matchweek={4}
+          kickoff="Sat 15:00"
+          home={{ name: 'Newcastle', tokens: CLUB.NEW }}
+          away={{ name: 'Brentford', tokens: CLUB.BRE }}
+          homeScore={2}
+          awayScore={0}
+          result={{ home: 2, away: 0 }}
+          score={{ kind: 'exact', points: 5, jokerDoubled: false }}
+        />
+        <ClubMatchCard
+          state="scored"
+          matchweek={4}
+          kickoff="Sun 14:00"
+          home={{ name: 'Celtic', tokens: CLUB.CEL }}
+          away={{ name: 'Crystal Palace', tokens: CLUB.CRY }}
+          homeScore={1}
+          awayScore={0}
+          result={{ home: 3, away: 1 }}
+          score={{ kind: 'correct', points: 6, jokerDoubled: true }}
+        />
+        <ClubMatchCard
+          state="scored"
+          matchweek={4}
+          kickoff="Mon 20:00"
+          home={{ name: 'West Brom', tokens: CLUB.WBA }}
+          away={{ name: 'Man City', tokens: CLUB.MCI }}
+          homeScore={2}
+          awayScore={2}
+          result={{ home: 0, away: 3 }}
+          score={{ kind: 'wrong', points: 0, jokerDoubled: false }}
+          showChevron
+          onOpen={() => {}}
         />
       </Section>
 

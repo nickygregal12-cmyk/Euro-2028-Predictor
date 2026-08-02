@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react'
 import styles from './SeasonPreview.module.css'
-import { ClubIdentity, LeagueTable, type LeagueTableRow, type LeagueZone } from '../design-system'
+import {
+  ClubIdentity,
+  ClubMatchCard,
+  LeagueTable,
+  type ClubMatchCardState,
+  type LeagueTableRow,
+  type LeagueZone,
+} from '../design-system'
 import {
   MATCHWEEK_COUNT,
   PREVIEW_GAMES,
@@ -92,6 +99,12 @@ export function SeasonPreview() {
   const [submitted, setSubmitted] = useState(true)
   const [missingFixtureData, setMissingFixtureData] = useState(false)
   const [staleFixtureData, setStaleFixtureData] = useState(false)
+  // Page-local draft scores for the editable cards. Deliberately not
+  // persisted: there is no season prediction schema yet, and this preview
+  // must not pretend otherwise.
+  const [draftScores, setDraftScores] = useState<
+    Record<string, { home: number | null; away: number | null }>
+  >({})
 
   const offsetMinutes =
     PREVIEW_INSTANTS.find((instant) => instant.key === instantKey)?.offsetMinutes ?? -60
@@ -270,25 +283,68 @@ export function SeasonPreview() {
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Matchweek {matchweek}</h2>
           <div className={styles.fixtures}>
-            {fixtures.map((fixture) => (
-              <div key={fixture.id} className={styles.fixture}>
-                <span className={styles.kickoff}>{formatKickoff(fixture.kickoffAt)}</span>
-                <span className={styles.state}>{stateByMatch.get(fixture.id)?.state ?? '—'}</span>
-                {[fixture.home, fixture.away].map((club, index) => (
-                  <span key={club.id} className={styles.side}>
-                    <ClubIdentity name={club.name} tokens={club.tokens} size="table" />
-                    {club.name}
-                    {index === 0 ? <span className="sr-only">versus</span> : null}
-                  </span>
-                ))}
-              </div>
-            ))}
+            {fixtures.map((fixture) => {
+              const resolved = stateByMatch.get(fixture.id)
+              const cardState: ClubMatchCardState | null =
+                resolved?.state === 'scheduled_editable'
+                  ? 'editable'
+                  : resolved?.state === 'scheduled_locked'
+                    ? 'locked'
+                    : null
+
+              if (cardState === null) {
+                // In-play, awaiting-confirmation and scored presentation is
+                // Match Centre work; the plain row keeps those states honest.
+                return (
+                  <div key={fixture.id} className={styles.fixture}>
+                    <span className={styles.kickoff}>{formatKickoff(fixture.kickoffAt)}</span>
+                    <span className={styles.state}>{resolved?.state ?? '—'}</span>
+                    {[fixture.home, fixture.away].map((club, index) => (
+                      <span key={club.id} className={styles.side}>
+                        <ClubIdentity name={club.name} tokens={club.tokens} size="table" />
+                        {club.name}
+                        {index === 0 ? <span className="sr-only">versus</span> : null}
+                      </span>
+                    ))}
+                  </div>
+                )
+              }
+
+              const draft = draftScores[fixture.id]
+              return (
+                <ClubMatchCard
+                  key={fixture.id}
+                  state={cardState}
+                  matchweek={matchweek}
+                  kickoff={formatKickoff(fixture.kickoffAt)}
+                  home={{ name: fixture.home.name, tokens: fixture.home.tokens }}
+                  away={{ name: fixture.away.name, tokens: fixture.away.tokens }}
+                  homeScore={draft?.home ?? null}
+                  awayScore={draft?.away ?? null}
+                  onHomeScoreChange={(value) =>
+                    setDraftScores((current) => ({
+                      ...current,
+                      [fixture.id]: { home: value, away: current[fixture.id]?.away ?? null },
+                    }))
+                  }
+                  onAwayScoreChange={(value) =>
+                    setDraftScores((current) => ({
+                      ...current,
+                      [fixture.id]: { home: current[fixture.id]?.home ?? null, away: value },
+                    }))
+                  }
+                  countdown={cardState === 'locked' ? 'soon' : undefined}
+                />
+              )
+            })}
           </div>
           <p className={styles.note}>
-            These rows are preview scaffolding, not a component. A season match card does not
-            exist: <code>MatchCard</code> takes a <code>venueCountryCode</code>, renders a
-            national flag and labels fixtures by group and matchday. A club sibling is real
-            design-system work that has not been done.
+            Editable and locked fixtures now render through <code>ClubMatchCard</code> — the
+            club sibling of the nation-shaped <code>MatchCard</code>: club identity marks
+            instead of flags, a matchweek eyebrow instead of group and matchday, and no
+            per-fixture Joker control because the domestic Joker doubles the whole matchweek.
+            Scores typed here live in this page only; nothing is persisted. In-play and
+            scored presentation remains Match Centre work and stays a plain row.
           </p>
         </section>
 
