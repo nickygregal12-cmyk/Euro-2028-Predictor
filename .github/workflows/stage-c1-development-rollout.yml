@@ -1,0 +1,573 @@
+name: Stage C1 development rollout
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Read-only preparation, or apply after a successful preparation run
+        required: true
+        type: choice
+        options:
+          - prepare
+          - apply
+      project_ref:
+        description: Exact development project ref confirmation
+        required: true
+        default: iouzoutneyjpugbbtdem
+        type: string
+      prepare_run_id:
+        description: Successful prepare run ID (required only for apply)
+        required: false
+        type: string
+      apply_confirmation:
+        description: Exact apply confirmation phrase (required only for apply)
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: stage-c1-development-rollout
+  cancel-in-progress: false
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EXPECTED_PROJECT_REF: iouzoutneyjpugbbtdem
+      PRODUCTION_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+      EXPECTED_CONTRACT: '65'
+      EXPECTED_MIGRATION_COUNT: '65'
+      EXPECTED_SUPABASE_VERSION: 2.84.2
+      STAGE_C1_MIGRATION: 20260730235602_stage_c1_competition_season_foundation.sql
+      STAGE_C1_MIGRATION_SHA256: 010eff888e9a5884d40467802e13a2997ddaa8827e9cf44d659154972e13b656
+      APPLY_CONFIRMATION: APPLY-CONTRACT-65-TO-iouzoutneyjpugbbtdem
+      STAGE_C1_TARGET_MODE: db-url
+      RUN_ROOT: /tmp/stage-c1-development-rollout
+      BACKUP_ROOT: /tmp/stage-c1-development-rollout/backups
+      LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      PSQL_BIN: /usr/lib/postgresql/17/bin/psql
+      SHRED_BIN: /usr/bin/shred
+      AGE_BIN: /usr/bin/age
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_PREPARE_RUN_ID: ${{ inputs.prepare_run_id }}
+          INPUT_APPLY_CONFIRMATION: ${{ inputs.apply_confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || {
+            echo 'ERROR: this workflow runs only from refs/heads/main.'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          head_sha="$(git rev-parse HEAD)"
+          origin_main_sha="$(git rev-parse origin/main)"
+          [ "${head_sha}" = "${origin_main_sha}" ] || {
+            echo 'ERROR: checked-out HEAD is not exact origin/main.'
+            exit 1
+          }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || {
+            echo 'ERROR: checkout is not clean.'
+            exit 1
+          }
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || {
+            echo "ERROR: only development project ${EXPECTED_PROJECT_REF} is permitted."
+            exit 1
+          }
+          case "${INPUT_MODE}" in
+            prepare) ;;
+            apply)
+              [[ "${INPUT_PREPARE_RUN_ID}" =~ ^[0-9]+$ ]] || {
+                echo 'ERROR: apply mode requires a numeric successful preparation run ID.'
+                exit 1
+              }
+              [ "${INPUT_APPLY_CONFIRMATION}" = "${APPLY_CONFIRMATION}" ] || {
+                echo 'ERROR: apply confirmation phrase does not match.'
+                exit 1
+              }
+              ;;
+            *)
+              echo 'ERROR: mode must be prepare or apply.'
+              exit 1
+              ;;
+          esac
+
+          contract="$(node -p "require('./config/deployment-contract.json').contractVersion")"
+          migration_count="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          migration_sha="$(sha256sum "supabase/migrations/${STAGE_C1_MIGRATION}" | cut -d ' ' -f 1)"
+          [ "${contract}" = "${EXPECTED_CONTRACT}" ] || {
+            echo "ERROR: repository contract must be ${EXPECTED_CONTRACT}."
+            exit 1
+          }
+          [ "${migration_count}" = "${EXPECTED_MIGRATION_COUNT}" ] || {
+            echo "ERROR: expected ${EXPECTED_MIGRATION_COUNT} canonical migrations."
+            exit 1
+          }
+          [ "${migration_sha}" = "${STAGE_C1_MIGRATION_SHA256}" ] || {
+            echo 'ERROR: Stage C1 migration checksum mismatch.'
+            exit 1
+          }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Install application and recovery dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          sudo apt-get update
+          sudo apt-get install -y age postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+          docker info >/dev/null
+
+      - name: Prove pinned Supabase CLI capabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "$(supabase --version)" = "${EXPECTED_SUPABASE_VERSION}" ] || {
+            echo "ERROR: Supabase CLI ${EXPECTED_SUPABASE_VERSION} is required."
+            exit 1
+          }
+          supabase db query --help > "${RUNNER_TEMP}/supabase-db-query-help.txt"
+          supabase db dump --help > "${RUNNER_TEMP}/supabase-db-dump-help.txt"
+          supabase db push --help > "${RUNNER_TEMP}/supabase-db-push-help.txt"
+          grep -q -- '--db-url' "${RUNNER_TEMP}/supabase-db-query-help.txt"
+          grep -q -- '--db-url' "${RUNNER_TEMP}/supabase-db-dump-help.txt"
+          grep -q -- '--db-url' "${RUNNER_TEMP}/supabase-db-push-help.txt"
+          grep -q -- '--dry-run' "${RUNNER_TEMP}/supabase-db-push-help.txt"
+
+      - name: Preflight required development secrets without printing values
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_DEV_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_DEV_DB_URL is not set.'
+            exit 1
+          }
+          if [ "${INPUT_MODE}" = 'prepare' ]; then
+            [ -n "${BACKUP_AGE_PUBLIC_KEY}" ] || {
+              echo 'ERROR: repository secret BACKUP_AGE_PUBLIC_KEY is not set.'
+              exit 1
+            }
+            case "${BACKUP_AGE_PUBLIC_KEY}" in
+              age1*) ;;
+              *)
+                echo 'ERROR: BACKUP_AGE_PUBLIC_KEY is not an age recipient public key.'
+                exit 1
+                ;;
+            esac
+          fi
+          node --input-type=module <<'NODE'
+          const development = process.env.EXPECTED_PROJECT_REF
+          const production = process.env.PRODUCTION_PROJECT_REF
+          const raw = process.env.SUPABASE_DEV_DB_URL || ''
+          if (!raw.includes(development) || raw.includes(production)) process.exit(1)
+          let parsed
+          try {
+            parsed = new URL(raw)
+          } catch {
+            process.exit(1)
+          }
+          if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) process.exit(1)
+          const identity = `${parsed.hostname} ${decodeURIComponent(parsed.username)}`
+          if (!identity.includes(development)) process.exit(1)
+          NODE
+
+      - name: Prepare secure working directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "${RUN_ROOT}" "${BACKUP_ROOT}"
+          chmod 700 "${RUN_ROOT}" "${BACKUP_ROOT}"
+
+      - name: Prepare — run canonical hosted preflight
+        if: inputs.mode == 'prepare'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        run: >-
+          node scripts/ops/run-stage-c1-hosted-preflight.mjs
+          --project-ref iouzoutneyjpugbbtdem
+          --output /tmp/stage-c1-development-rollout/stage-c1-preflight.json
+
+      - name: Prepare — restore-rehearse, encrypt, and clean the development backup
+        if: inputs.mode == 'prepare'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        run: >-
+          node scripts/ops/create-verified-supabase-backup.mjs
+          --project-ref iouzoutneyjpugbbtdem
+          --preflight /tmp/stage-c1-development-rollout/stage-c1-preflight.json
+          --backup-root /tmp/stage-c1-development-rollout/backups
+
+      - name: Prepare — dry run the one canonical migration
+        if: inputs.mode == 'prepare'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dry_run_log="${RUN_ROOT}/prepare-dry-run.log"
+          supabase db push --db-url "${SUPABASE_DEV_DB_URL}" --dry-run > "${dry_run_log}" 2>&1
+          DRY_RUN_LOG="${dry_run_log}" node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const raw = readFileSync(process.env.DRY_RUN_LOG, 'utf8')
+          if (raw.includes(process.env.PRODUCTION_PROJECT_REF)) process.exit(1)
+          const migrations = [...new Set(raw.match(/\b\d{14}_[A-Za-z0-9_-]+\.sql\b/g) || [])]
+          if (migrations.length !== 1 || migrations[0] !== process.env.STAGE_C1_MIGRATION) {
+            process.exit(1)
+          }
+          writeFileSync(
+            `${process.env.RUN_ROOT}/prepare-dry-run-migrations.json`,
+            `${JSON.stringify(migrations)}\n`,
+            { mode: 0o600 },
+          )
+          NODE
+          echo "Dry run verified only ${STAGE_C1_MIGRATION}."
+
+      - name: Prepare — write non-sensitive preparation manifest
+        if: inputs.mode == 'prepare'
+        shell: bash
+        run: |
+          set -euo pipefail
+          backup_file="$(find "${BACKUP_ROOT}" -maxdepth 1 -type f -name '*.backup.tar.gz.age' -print -quit)"
+          [ -n "${backup_file}" ] || {
+            echo 'ERROR: encrypted backup is missing.'
+            exit 1
+          }
+          backup_evidence="${backup_file}.evidence.json"
+          [ -s "${backup_evidence}" ] || {
+            echo 'ERROR: backup evidence sidecar is missing.'
+            exit 1
+          }
+          BACKUP_FILE="${backup_file}" BACKUP_EVIDENCE="${backup_evidence}" \
+            node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto'
+          import { basename } from 'node:path'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
+          const preflight = readJson(`${process.env.RUN_ROOT}/stage-c1-preflight.json`)
+          const backup = readJson(process.env.BACKUP_EVIDENCE)
+          const migrations = readJson(`${process.env.RUN_ROOT}/prepare-dry-run-migrations.json`)
+          const encryptedSha = createHash('sha256')
+            .update(readFileSync(process.env.BACKUP_FILE))
+            .digest('hex')
+          if (backup.encrypted_sha256 !== encryptedSha) process.exit(1)
+          if (backup.restore_rehearsal !== 'passed-source-equivalent') process.exit(1)
+          if (backup.plaintext_cleanup !== 'shredded') process.exit(1)
+          const manifest = {
+            artifact_format: 1,
+            workflow_run_id: process.env.GITHUB_RUN_ID,
+            repository_commit: process.env.GITHUB_SHA,
+            project_ref: process.env.EXPECTED_PROJECT_REF,
+            source_contract: preflight.evidence.contract,
+            migration_filename: process.env.STAGE_C1_MIGRATION,
+            migration_sha256: process.env.STAGE_C1_MIGRATION_SHA256,
+            encrypted_artifact_filename: basename(process.env.BACKUP_FILE),
+            encrypted_artifact_sha256: encryptedSha,
+            restore_rehearsal: backup.restore_rehearsal,
+            plaintext_cleanup: backup.plaintext_cleanup,
+            dry_run_migrations: migrations,
+            prepared_at_utc: new Date().toISOString(),
+          }
+          writeFileSync(
+            `${process.env.RUN_ROOT}/stage-c1-preparation-manifest.json`,
+            `${JSON.stringify(manifest, null, 2)}\n`,
+            { mode: 0o600 },
+          )
+          NODE
+
+      - name: Prepare — refuse plaintext backup upload candidates
+        if: inputs.mode == 'prepare'
+        shell: bash
+        run: |
+          set -euo pipefail
+          non_evidence="$(find "${BACKUP_ROOT}" -maxdepth 1 -type f \
+            ! -name '*.backup.tar.gz.age' ! -name '*.backup.tar.gz.age.evidence.json' -print)"
+          [ -z "${non_evidence}" ] || {
+            echo 'ERROR: unexpected backup file exists; refusing artifact upload.'
+            exit 1
+          }
+          encrypted_count="$(find "${BACKUP_ROOT}" -maxdepth 1 -type f -name '*.backup.tar.gz.age' | wc -l | tr -d ' ')"
+          [ "${encrypted_count}" = '1' ] || {
+            echo 'ERROR: expected exactly one encrypted backup artifact.'
+            exit 1
+          }
+          [ ! -e "${BACKUP_ROOT}/bundle" ] || {
+            echo 'ERROR: plaintext backup bundle remains; refusing artifact upload.'
+            exit 1
+          }
+
+      - name: Prepare — shred raw dry-run output before upload
+        if: inputs.mode == 'prepare'
+        run: shred -u "${RUN_ROOT}/prepare-dry-run.log"
+
+      - name: Prepare — upload encrypted backup (7-day retention)
+        if: inputs.mode == 'prepare'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-c1-development-backup-${{ github.run_id }}
+          path: /tmp/stage-c1-development-rollout/backups/*.backup.tar.gz.age
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Prepare — upload non-sensitive evidence (7-day retention)
+        if: inputs.mode == 'prepare'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-c1-development-evidence-${{ github.run_id }}
+          path: |
+            /tmp/stage-c1-development-rollout/stage-c1-preflight.json
+            /tmp/stage-c1-development-rollout/stage-c1-preparation-manifest.json
+            /tmp/stage-c1-development-rollout/prepare-dry-run-migrations.json
+            /tmp/stage-c1-development-rollout/backups/*.backup.tar.gz.age.evidence.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Apply — verify the named successful preparation run
+        if: inputs.mode == 'apply'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREPARE_RUN_ID: ${{ inputs.prepare_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_json="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${PREPARE_RUN_ID}")"
+          RUN_JSON="${run_json}" node --input-type=module <<'NODE'
+          const run = JSON.parse(process.env.RUN_JSON)
+          const valid =
+            run.conclusion === 'success' &&
+            run.event === 'workflow_dispatch' &&
+            run.head_branch === 'main' &&
+            run.head_sha === process.env.GITHUB_SHA &&
+            run.path === '.github/workflows/stage-c1-development-rollout.yml' &&
+            String(run.id) === process.env.PREPARE_RUN_ID
+          if (!valid) process.exit(1)
+          NODE
+
+      - name: Apply — download preparation evidence
+        if: inputs.mode == 'apply'
+        uses: actions/download-artifact@v4
+        with:
+          name: stage-c1-development-evidence-${{ inputs.prepare_run_id }}
+          path: /tmp/stage-c1-development-rollout/prepared
+          run-id: ${{ inputs.prepare_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Apply — download encrypted recovery artifact
+        if: inputs.mode == 'apply'
+        uses: actions/download-artifact@v4
+        with:
+          name: stage-c1-development-backup-${{ inputs.prepare_run_id }}
+          path: /tmp/stage-c1-development-rollout/prepared
+          run-id: ${{ inputs.prepare_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Apply — verify preparation manifest, commit, and encrypted backup
+        if: inputs.mode == 'apply'
+        env:
+          PREPARE_RUN_ID: ${{ inputs.prepare_run_id }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto'
+          import { readFileSync } from 'node:fs'
+          import { resolve } from 'node:path'
+          const root = `${process.env.RUN_ROOT}/prepared`
+          const manifest = JSON.parse(readFileSync(resolve(root, 'stage-c1-preparation-manifest.json'), 'utf8'))
+          const expected =
+            manifest.artifact_format === 1 &&
+            String(manifest.workflow_run_id) === process.env.PREPARE_RUN_ID &&
+            manifest.repository_commit === process.env.GITHUB_SHA &&
+            manifest.project_ref === process.env.EXPECTED_PROJECT_REF &&
+            manifest.source_contract?.count === 64 &&
+            manifest.source_contract?.latest_version === '20260730180000' &&
+            manifest.migration_filename === process.env.STAGE_C1_MIGRATION &&
+            manifest.migration_sha256 === process.env.STAGE_C1_MIGRATION_SHA256 &&
+            manifest.restore_rehearsal === 'passed-source-equivalent' &&
+            manifest.plaintext_cleanup === 'shredded' &&
+            JSON.stringify(manifest.dry_run_migrations) === JSON.stringify([process.env.STAGE_C1_MIGRATION])
+          if (!expected) process.exit(1)
+          const encrypted = resolve(root, manifest.encrypted_artifact_filename)
+          const digest = createHash('sha256').update(readFileSync(encrypted)).digest('hex')
+          if (digest !== manifest.encrypted_artifact_sha256) process.exit(1)
+          NODE
+
+      - name: Apply — rerun canonical preflight and prove unchanged before-state
+        if: inputs.mode == 'apply'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/ops/run-stage-c1-hosted-preflight.mjs \
+            --project-ref iouzoutneyjpugbbtdem \
+            --output "${RUN_ROOT}/apply-preflight.json"
+          node --input-type=module <<'NODE'
+          import {
+            assertEquivalentBeforeState,
+            readPreflightArtifact,
+          } from './scripts/ops/stage-c1-evidence-lib.mjs'
+          const prepared = readPreflightArtifact(`${process.env.RUN_ROOT}/prepared/stage-c1-preflight.json`)
+          const observed = readPreflightArtifact(`${process.env.RUN_ROOT}/apply-preflight.json`)
+          assertEquivalentBeforeState(prepared, observed)
+          NODE
+
+      - name: Apply — rerun the one-migration dry run
+        if: inputs.mode == 'apply'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          dry_run_log="${RUN_ROOT}/apply-dry-run.log"
+          supabase db push --db-url "${SUPABASE_DEV_DB_URL}" --dry-run > "${dry_run_log}" 2>&1
+          DRY_RUN_LOG="${dry_run_log}" node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const raw = readFileSync(process.env.DRY_RUN_LOG, 'utf8')
+          if (raw.includes(process.env.PRODUCTION_PROJECT_REF)) process.exit(1)
+          const migrations = [...new Set(raw.match(/\b\d{14}_[A-Za-z0-9_-]+\.sql\b/g) || [])]
+          if (migrations.length !== 1 || migrations[0] !== process.env.STAGE_C1_MIGRATION) {
+            process.exit(1)
+          }
+          writeFileSync(
+            `${process.env.RUN_ROOT}/apply-dry-run-migrations.json`,
+            `${JSON.stringify(migrations)}\n`,
+            { mode: 0o600 },
+          )
+          NODE
+          echo "Dry run verified only ${STAGE_C1_MIGRATION}."
+
+      - name: Apply — push contract 65 once to development
+        id: apply_migration
+        if: inputs.mode == 'apply'
+        continue-on-error: true
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          apply_log="${RUN_ROOT}/apply.log"
+          if supabase db push --db-url "${SUPABASE_DEV_DB_URL}" > "${apply_log}" 2>&1; then
+            echo 'Stage C1 migration command completed successfully.'
+          else
+            echo 'ERROR: Stage C1 migration command failed; canonical contract-64 verification follows.'
+            exit 1
+          fi
+
+      - name: Apply failure — prove development stayed at contract 64
+        if: inputs.mode == 'apply' && steps.apply_migration.outcome == 'failure'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        run: >-
+          node scripts/ops/run-stage-c1-hosted-preflight.mjs
+          --project-ref iouzoutneyjpugbbtdem
+          --output /tmp/stage-c1-development-rollout/failed-apply-contract-64.json
+
+      - name: Apply failure — stop without retry
+        if: inputs.mode == 'apply' && steps.apply_migration.outcome == 'failure'
+        shell: bash
+        run: |
+          shred -u "${RUN_ROOT}/apply.log" "${RUN_ROOT}/apply-dry-run.log" || true
+          echo 'ERROR: migration failed before commit; development is still contract 64. No retry was attempted.'
+          exit 1
+
+      - name: Apply — run canonical Stage C1 postflight
+        id: postflight
+        if: inputs.mode == 'apply' && steps.apply_migration.outcome == 'success'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        run: >-
+          node scripts/ops/run-stage-c1-hosted-postflight.mjs
+          --project-ref iouzoutneyjpugbbtdem
+          --baseline /tmp/stage-c1-development-rollout/apply-preflight.json
+          --output /tmp/stage-c1-development-rollout/stage-c1-postflight.json
+
+      - name: Apply — write final non-sensitive rollout manifest
+        if: inputs.mode == 'apply' && steps.apply_migration.outcome == 'success'
+        env:
+          PREPARE_RUN_ID: ${{ inputs.prepare_run_id }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const postflight = JSON.parse(readFileSync(`${process.env.RUN_ROOT}/stage-c1-postflight.json`, 'utf8'))
+          if (postflight.evidence?.contract?.count !== 65) process.exit(1)
+          if (postflight.evidence?.contract?.latest_version !== '20260730235602') process.exit(1)
+          if (postflight.preservation_comparison !== 'passed') process.exit(1)
+          const manifest = {
+            artifact_format: 1,
+            workflow_run_id: process.env.GITHUB_RUN_ID,
+            preparation_run_id: process.env.PREPARE_RUN_ID,
+            repository_commit: process.env.GITHUB_SHA,
+            project_ref: process.env.EXPECTED_PROJECT_REF,
+            migration_filename: process.env.STAGE_C1_MIGRATION,
+            migration_sha256: process.env.STAGE_C1_MIGRATION_SHA256,
+            resulting_contract: postflight.evidence.contract,
+            preservation_comparison: postflight.preservation_comparison,
+            production_contacted: false,
+            completed_at_utc: new Date().toISOString(),
+          }
+          writeFileSync(
+            `${process.env.RUN_ROOT}/stage-c1-rollout-manifest.json`,
+            `${JSON.stringify(manifest, null, 2)}\n`,
+            { mode: 0o600 },
+          )
+          NODE
+
+      - name: Apply postflight failure — quarantine application alignment
+        if: failure() && inputs.mode == 'apply' && steps.apply_migration.outcome == 'success'
+        shell: bash
+        run: |
+          {
+            echo '## Stage C1 recovery decision'
+            echo ''
+            echo 'Development reached the migration command but complete preservation/security postflight did not pass.'
+            echo 'Quarantine further application and Netlify alignment.'
+            echo 'Restore only into a separate recovery project or freshly recreated development project; do not improvise a down migration.'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Apply — shred raw CLI output before upload
+        if: always() && inputs.mode == 'apply'
+        shell: bash
+        run: |
+          for path in "${RUN_ROOT}/apply.log" "${RUN_ROOT}/apply-dry-run.log"; do
+            [ ! -f "${path}" ] || shred -u "${path}"
+          done
+
+      - name: Apply — upload postflight and final manifest (7-day retention)
+        if: inputs.mode == 'apply' && steps.apply_migration.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage-c1-development-rollout-${{ github.run_id }}
+          path: |
+            /tmp/stage-c1-development-rollout/apply-preflight.json
+            /tmp/stage-c1-development-rollout/apply-dry-run-migrations.json
+            /tmp/stage-c1-development-rollout/stage-c1-postflight.json
+            /tmp/stage-c1-development-rollout/stage-c1-rollout-manifest.json
+          if-no-files-found: error
+          retention-days: 7

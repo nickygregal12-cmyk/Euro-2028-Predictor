@@ -4,15 +4,18 @@ on:
   pull_request:
     paths:
       - '.github/workflows/database-parity.yml'
+      - '.github/workflows/stage-c1-development-rollout.yml'
       - 'config/deployment-contract.json'
       - 'fixtures/predicted-group-order.json'
       - 'scripts/database-rollout/**'
+      - 'scripts/ops/**'
       # Cover every shared domain sibling, including competition and future season modules.
       - 'src/domain/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
       - 'tests/migration-transition/**'
       - 'tests/scripts/databaseParityWorkflow.test.ts'
+      - 'tests/scripts/stageC1DevelopmentRolloutWorkflow.test.ts'
   workflow_dispatch:
 
 permissions:

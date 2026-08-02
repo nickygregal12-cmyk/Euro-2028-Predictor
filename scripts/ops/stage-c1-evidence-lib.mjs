@@ -114,15 +114,53 @@ function assertCanonicalMigration() {
   }
 }
 
-function assertTarget(projectRef) {
+function assertProjectRef(projectRef) {
   if (projectRef === PRODUCTION_PROJECT_REF) fail('Production is explicitly out of scope')
   if (projectRef !== DEVELOPMENT_PROJECT_REF) {
     fail(`Expected development project ${DEVELOPMENT_PROJECT_REF}; received ${projectRef}`)
   }
+}
+
+function assertDevelopmentDatabaseUrl(rawUrl) {
+  if (!rawUrl) fail('SUPABASE_DEV_DB_URL is required in db-url target mode')
+  if (rawUrl.includes(PRODUCTION_PROJECT_REF)) {
+    fail('SUPABASE_DEV_DB_URL references production; refusing to continue')
+  }
+  if (!rawUrl.includes(DEVELOPMENT_PROJECT_REF)) {
+    fail(`SUPABASE_DEV_DB_URL must reference development project ${DEVELOPMENT_PROJECT_REF}`)
+  }
+
+  let parsed
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    fail('SUPABASE_DEV_DB_URL is not a valid PostgreSQL URL')
+  }
+  if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) {
+    fail('SUPABASE_DEV_DB_URL must use the postgres or postgresql protocol')
+  }
+
+  const databaseIdentity = `${parsed.hostname} ${decodeURIComponent(parsed.username)}`
+  if (!databaseIdentity.includes(DEVELOPMENT_PROJECT_REF)) {
+    fail('SUPABASE_DEV_DB_URL hostname or username does not prove the development project ref')
+  }
+}
+
+export function databaseTargetArguments(projectRef) {
+  assertProjectRef(projectRef)
+  const mode = process.env.STAGE_C1_TARGET_MODE || 'linked'
+  if (mode === 'db-url') {
+    const databaseUrl = process.env.SUPABASE_DEV_DB_URL?.trim()
+    assertDevelopmentDatabaseUrl(databaseUrl)
+    return ['--db-url', databaseUrl]
+  }
+  if (mode !== 'linked') fail(`Unknown STAGE_C1_TARGET_MODE: ${mode}`)
+
   const linkedRefPath = resolve(repositoryRoot, 'supabase/.temp/project-ref')
   if (!existsSync(linkedRefPath)) fail('Run supabase link for the approved development project first')
   const linkedRef = readFileSync(linkedRefPath, 'utf8').trim()
   if (linkedRef !== projectRef) fail(`Linked project is ${linkedRef}; expected ${projectRef}`)
+  return ['--linked']
 }
 
 function supabaseBinary() {
@@ -151,7 +189,7 @@ function extractPayload(raw, column) {
 }
 
 export function collectEvidence({ projectRef, sqlPath, resultColumn, phase }) {
-  assertTarget(projectRef)
+  const targetArguments = databaseTargetArguments(projectRef)
   const commit = assertCleanExactMain()
   assertCanonicalMigration()
   const binary = supabaseBinary()
@@ -159,7 +197,7 @@ export function collectEvidence({ projectRef, sqlPath, resultColumn, phase }) {
   const raw = run(binary, [
     'db',
     'query',
-    '--linked',
+    ...targetArguments,
     '--file',
     sqlPath,
     '--output',

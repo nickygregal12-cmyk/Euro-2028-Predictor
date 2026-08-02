@@ -21,12 +21,14 @@ import {
   DEVELOPMENT_PROJECT_REF,
   assertEquivalentBeforeState,
   collectEvidence,
+  databaseTargetArguments,
   fail,
   readPreflightArtifact,
   repositoryRoot,
 } from './stage-c1-evidence-lib.mjs'
 
-const usage = `Usage:
+const usage = `Usage (linked mode by default; CI sets STAGE_C1_TARGET_MODE=db-url
+and consumes SUPABASE_DEV_DB_URL only from the environment):
   BACKUP_AGE_PUBLIC_KEY=age1... \\
   SUPABASE_BIN=/absolute/path/to/supabase \\
   SHRED_BIN=/absolute/path/to/shred \\
@@ -178,6 +180,7 @@ try {
     phase: 'preflight',
   })
   assertEquivalentBeforeState(baseline, source)
+  const targetArguments = databaseTargetArguments(arguments_.project_ref)
 
   const backupRoot = prepareBackupRoot(arguments_.backup_root)
   const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
@@ -201,19 +204,19 @@ try {
   )
 
   console.log('Capturing roles, schema, data, and migration history from development…')
-  run(supabase, ['db', 'dump', '--linked', '--role-only', '--file', resolve(bundle, 'roles.sql')])
-  run(supabase, ['db', 'dump', '--linked', '--file', resolve(bundle, 'schema.sql')])
+  run(supabase, ['db', 'dump', ...targetArguments, '--role-only', '--file', resolve(bundle, 'roles.sql')])
+  run(supabase, ['db', 'dump', ...targetArguments, '--file', resolve(bundle, 'schema.sql')])
   run(supabase, [
-    'db', 'dump', '--linked', '--data-only', '--use-copy',
+    'db', 'dump', ...targetArguments, '--data-only', '--use-copy',
     '--exclude', 'storage.buckets_vectors', '--exclude', 'storage.vector_indexes',
     '--file', resolve(bundle, 'data.sql'),
   ])
   run(supabase, [
-    'db', 'dump', '--linked', '--schema', 'supabase_migrations',
+    'db', 'dump', ...targetArguments, '--schema', 'supabase_migrations',
     '--file', resolve(bundle, 'migration-history-schema.sql'),
   ])
   run(supabase, [
-    'db', 'dump', '--linked', '--schema', 'supabase_migrations',
+    'db', 'dump', ...targetArguments, '--schema', 'supabase_migrations',
     '--data-only', '--use-copy', '--file', resolve(bundle, 'migration-history-data.sql'),
   ])
 
