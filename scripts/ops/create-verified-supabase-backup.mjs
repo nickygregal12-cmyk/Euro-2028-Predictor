@@ -367,16 +367,24 @@ try {
       // full-stack health checks (run 30769583713 returned empty stdout from
       // behind "Waiting for health checks…"), and the auxiliary services it
       // waits for no longer exist here.
-      const raw = run(psql, [
-        localDbUrl,
-        '-X',
-        '--no-align',
-        '--tuples-only',
-        '-v',
-        'ON_ERROR_STOP=1',
-        '--file',
-        inventorySqlPath,
-      ])
+      // This script's local run() INHERITS stdio unless told to capture —
+      // runs 30766851663 through 30770482169 all read '' here while the
+      // real inventory row went to the workflow log. Capture is the point
+      // of this call.
+      const raw = run(
+        psql,
+        [
+          localDbUrl,
+          '-X',
+          '--no-align',
+          '--tuples-only',
+          '-v',
+          'ON_ERROR_STOP=1',
+          '--file',
+          inventorySqlPath,
+        ],
+        { capture: true },
+      )
       let row
       try {
         const [databaseName, port, managedJson] = raw.split('\t')
