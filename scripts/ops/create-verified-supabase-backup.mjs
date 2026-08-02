@@ -302,16 +302,46 @@ try {
     { mode: 0o600 },
   )
 
-  // Hosted Auth upgrades continuously; the disposable stack's auth image is
-  // pinned by the CLI version. Run 30766302401 failed restoring data because
-  // hosted `auth.custom_oauth_providers` has a `custom_claims_allowlist`
-  // column the pinned image predates. That table is platform-managed auth
-  // configuration, not application state, so the rehearsal restores a copy
-  // of data.sql without its COPY block. The encrypted bundle keeps the full
-  // data.sql, so real recovery against a matching hosted target loses
-  // nothing.
-  const REHEARSAL_SKIPPED_COPY_TABLES = new Set(['auth.custom_oauth_providers'])
-  function withoutSkippedCopyBlocks(sql) {
+  // Hosted Auth and Storage upgrade continuously; the disposable stack's
+  // images are pinned by the CLI version, so platform-managed tables drift a
+  // column at a time (run 30766302401: auth.custom_oauth_providers gained
+  // custom_claims_allowlist; run 30766851663: storage.s3_multipart_uploads
+  // gained metadata). Those tables are platform state, not application
+  // state. The rehearsal therefore compares each managed-schema COPY block
+  // against the columns the disposable stack actually has and skips blocks
+  // that cannot fit — loudly, and only inside auth/storage. Application
+  // schemas are never skipped: a mismatch there still aborts the rehearsal,
+  // and the protected identity/content tables may never be skipped at all.
+  // The encrypted bundle keeps the full data.sql byte-for-byte, so real
+  // recovery against a matching hosted target loses nothing.
+  const MANAGED_SKEW_SCHEMAS = new Set(['auth', 'storage'])
+  const MUST_RESTORE_TABLES = new Set([
+    'auth.users',
+    'auth.identities',
+    'storage.buckets',
+    'storage.objects',
+  ])
+  function localManagedColumns() {
+    const raw = run(psql, [
+      localDbUrl,
+      '-X',
+      '--no-align',
+      '--tuples-only',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '--command',
+      "select table_schema || '.' || table_name || '|' || string_agg(column_name, ',') " +
+        "from information_schema.columns where table_schema in ('auth', 'storage') " +
+        'group by table_schema, table_name',
+    ])
+    const columnsByTable = new Map()
+    for (const line of raw.split('\n').filter(Boolean)) {
+      const [table, columns] = line.split('|')
+      columnsByTable.set(table, new Set(columns.split(',')))
+    }
+    return columnsByTable
+  }
+  function withoutSkewedManagedCopyBlocks(sql, columnsByTable) {
     const lines = sql.split('\n')
     const kept = []
     let skippingUntilTerminator = false
@@ -320,10 +350,24 @@ try {
         if (line.trim() === '\\.') skippingUntilTerminator = false
         continue
       }
-      const copyTarget = line.match(/^COPY\s+([^\s(]+)/)
-      if (copyTarget && REHEARSAL_SKIPPED_COPY_TABLES.has(copyTarget[1].replaceAll('"', ''))) {
-        skippingUntilTerminator = true
-        continue
+      const copyTarget = line.match(/^COPY\s+([^\s(]+)\s*\(([^)]*)\)/)
+      if (copyTarget) {
+        const table = copyTarget[1].replaceAll('"', '')
+        const schema = table.split('.')[0]
+        if (MANAGED_SKEW_SCHEMAS.has(schema)) {
+          const localColumns = columnsByTable.get(table)
+          const dumpedColumns = copyTarget[2].split(',').map((c) => c.trim().replaceAll('"', ''))
+          const fits =
+            localColumns !== undefined && dumpedColumns.every((c) => localColumns.has(c))
+          if (!fits) {
+            if (MUST_RESTORE_TABLES.has(table)) {
+              fail(`Rehearsal cannot skip protected table ${table}; its shape must match`)
+            }
+            console.log(`Rehearsal skips version-skewed managed table ${table}`)
+            skippingUntilTerminator = true
+            continue
+          }
+        }
       }
       kept.push(line)
     }
@@ -333,7 +377,10 @@ try {
   const rehearsalDataPath = resolve(bundle, '..', 'data.rehearsal.sql')
   writeFileSync(
     rehearsalDataPath,
-    withoutSkippedCopyBlocks(readFileSync(resolve(bundle, 'data.sql'), 'utf8')),
+    withoutSkewedManagedCopyBlocks(
+      readFileSync(resolve(bundle, 'data.sql'), 'utf8'),
+      localManagedColumns(),
+    ),
     { mode: 0o600 },
   )
   const prepareSql = `
