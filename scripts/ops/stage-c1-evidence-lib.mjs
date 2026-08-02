@@ -286,14 +286,39 @@ function assertEqual(label, before, after) {
   if (canonical(before) !== canonical(after)) fail(`${label} differs from canonical preflight`)
 }
 
-function assertArraySubset(label, before, after, key) {
+function assertArraySubset(label, before, after, key, allowIntendedChange = null) {
   const afterByKey = new Map(after.map((item) => [key(item), item]))
   for (const item of before) {
     const postflightItem = afterByKey.get(key(item))
     if (!postflightItem || canonical(postflightItem) !== canonical(item)) {
+      if (postflightItem && allowIntendedChange?.(key(item), item, postflightItem)) {
+        console.log(`Allowed authored Stage C1 change: ${key(item)}`)
+        continue
+      }
       fail(`${label} changed for ${key(item)}`)
     }
   }
+}
+
+/**
+ * The one function-security change the Stage C1 migration authors on a
+ * populated contract-64 database: enforce_joker_rules() gains the pinned
+ * empty search_path the other two lock guards already had (the 20260723174500
+ * hardening covered those two only). The change is accepted solely in the
+ * hardening direction, with the exact after-shape the canonical postflight DO
+ * block independently asserts — invoker, `search_path=""`, unchanged owner.
+ * The first hosted apply (run 30771280887) failed postflight on exactly this
+ * intended delta; the database state was verified correct.
+ */
+function allowedStageC1FunctionHardening(signature, before, after) {
+  return (
+    signature === 'enforce_joker_rules()' &&
+    before.security_definer === false &&
+    canonical(before.configuration) === canonical([]) &&
+    after.security_definer === false &&
+    canonical(after.configuration) === canonical(['search_path=""']) &&
+    after.owner === before.owner
+  )
 }
 
 export function readPreflightArtifact(path) {
@@ -325,6 +350,7 @@ export function assertPreserved(preflightArtifact, postflightArtifact) {
     before.function_security,
     after.function_security,
     (item) => item.signature,
+    allowedStageC1FunctionHardening,
   )
   assertArraySubset(
     'Existing trigger binding',
