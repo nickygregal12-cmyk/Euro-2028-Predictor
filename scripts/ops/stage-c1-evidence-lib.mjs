@@ -144,6 +144,17 @@ function assertDevelopmentDatabaseUrl(rawUrl) {
   if (!databaseIdentity.includes(DEVELOPMENT_PROJECT_REF)) {
     fail('SUPABASE_DEV_DB_URL hostname or username does not prove the development project ref')
   }
+
+  // The direct db.<ref>.supabase.co endpoint resolves only to IPv6, which
+  // GitHub Actions runners cannot reach — runs 30725333555 and 30725505316
+  // both dialed it and died at connect. Requiring the Session pooler here
+  // turns that late network failure into an immediate, named refusal.
+  if (!parsed.hostname.endsWith('.pooler.supabase.com')) {
+    fail(
+      'SUPABASE_DEV_DB_URL must be the Session pooler URI (*.pooler.supabase.com); ' +
+        'the direct database endpoint is IPv6-only and unreachable from GitHub Actions',
+    )
+  }
 }
 
 export function databaseTargetArguments(projectRef) {
@@ -188,13 +199,38 @@ function extractPayload(raw, column) {
   return parsed[0][column]
 }
 
-export function collectEvidence({ projectRef, sqlPath, resultColumn, phase }) {
-  const targetArguments = databaseTargetArguments(projectRef)
-  const commit = assertCleanExactMain()
-  assertCanonicalMigration()
-  const binary = supabaseBinary()
-  const cliVersion = assertSupabaseVersion(binary)
-  const raw = run(binary, [
+/**
+ * The evidence SQL files are two top-level statements: a fail-closed DO
+ * assertion block, then the single-row payload SELECT. `supabase db query
+ * --db-url` sends the file as one prepared statement, and Postgres refuses
+ * multiple commands in a prepared statement (SQLSTATE 42601, observed on run
+ * 30764596752 — the first run to get past the connection). psql executes the
+ * same unchanged file over the simple protocol: the DO block still aborts the
+ * run on any assertion failure via ON_ERROR_STOP, and the payload SELECT is
+ * the only output row. Linked mode keeps the CLI path, which executes through
+ * the platform API and accepts the multi-statement file.
+ */
+function queryEvidencePayload(targetArguments, sqlPath, resultColumn) {
+  if (targetArguments[0] === '--db-url') {
+    const psql = process.env.PSQL_BIN || 'psql'
+    const raw = run(psql, [
+      targetArguments[1],
+      '--no-psqlrc',
+      '--set',
+      'ON_ERROR_STOP=1',
+      '--quiet',
+      '--tuples-only',
+      '--no-align',
+      '--file',
+      sqlPath,
+    ])
+    try {
+      return JSON.parse(raw)
+    } catch (error) {
+      fail(`psql did not return the single ${resultColumn} JSON payload: ${error.message}`)
+    }
+  }
+  const raw = run(supabaseBinary(), [
     'db',
     'query',
     ...targetArguments,
@@ -205,6 +241,14 @@ export function collectEvidence({ projectRef, sqlPath, resultColumn, phase }) {
     '--agent',
     'no',
   ])
+  return extractPayload(raw, resultColumn)
+}
+
+export function collectEvidence({ projectRef, sqlPath, resultColumn, phase }) {
+  const targetArguments = databaseTargetArguments(projectRef)
+  const commit = assertCleanExactMain()
+  assertCanonicalMigration()
+  const cliVersion = assertSupabaseVersion(supabaseBinary())
   return {
     artifact_format: 1,
     captured_at_utc: new Date().toISOString(),
@@ -212,7 +256,7 @@ export function collectEvidence({ projectRef, sqlPath, resultColumn, phase }) {
     project_ref: projectRef,
     repository_commit: commit,
     supabase_cli_version: cliVersion,
-    evidence: extractPayload(raw, resultColumn),
+    evidence: queryEvidencePayload(targetArguments, sqlPath, resultColumn),
   }
 }
 
