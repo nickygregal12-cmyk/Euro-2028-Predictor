@@ -301,6 +301,41 @@ try {
       .join('\n'),
     { mode: 0o600 },
   )
+
+  // Hosted Auth upgrades continuously; the disposable stack's auth image is
+  // pinned by the CLI version. Run 30766302401 failed restoring data because
+  // hosted `auth.custom_oauth_providers` has a `custom_claims_allowlist`
+  // column the pinned image predates. That table is platform-managed auth
+  // configuration, not application state, so the rehearsal restores a copy
+  // of data.sql without its COPY block. The encrypted bundle keeps the full
+  // data.sql, so real recovery against a matching hosted target loses
+  // nothing.
+  const REHEARSAL_SKIPPED_COPY_TABLES = new Set(['auth.custom_oauth_providers'])
+  function withoutSkippedCopyBlocks(sql) {
+    const lines = sql.split('\n')
+    const kept = []
+    let skippingUntilTerminator = false
+    for (const line of lines) {
+      if (skippingUntilTerminator) {
+        if (line.trim() === '\\.') skippingUntilTerminator = false
+        continue
+      }
+      const copyTarget = line.match(/^COPY\s+([^\s(]+)/)
+      if (copyTarget && REHEARSAL_SKIPPED_COPY_TABLES.has(copyTarget[1].replaceAll('"', ''))) {
+        skippingUntilTerminator = true
+        continue
+      }
+      kept.push(line)
+    }
+    if (skippingUntilTerminator) fail('Unterminated COPY block while preparing the rehearsal data file')
+    return kept.join('\n')
+  }
+  const rehearsalDataPath = resolve(bundle, '..', 'data.rehearsal.sql')
+  writeFileSync(
+    rehearsalDataPath,
+    withoutSkippedCopyBlocks(readFileSync(resolve(bundle, 'data.sql'), 'utf8')),
+    { mode: 0o600 },
+  )
   const prepareSql = `
 begin;
 drop schema if exists predictor_internal cascade;
@@ -317,7 +352,7 @@ commit;`
   run(psql, [localDbUrl, '-X', '--single-transaction', '-v', 'ON_ERROR_STOP=1', '--file', resolve(bundle, 'schema.sql')])
   run(psql, [
     localDbUrl, '-X', '--single-transaction', '-v', 'ON_ERROR_STOP=1',
-    '--command', 'SET session_replication_role = replica', '--file', resolve(bundle, 'data.sql'),
+    '--command', 'SET session_replication_role = replica', '--file', rehearsalDataPath,
   ])
   run(psql, [
     localDbUrl, '-X', '--single-transaction', '-v', 'ON_ERROR_STOP=1',
