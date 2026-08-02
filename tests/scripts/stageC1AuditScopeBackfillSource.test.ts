@@ -311,7 +311,9 @@ describe('Stage C1 hosted operational evidence', () => {
     expect(verifiedBackup).toContain("'--schema', 'supabase_migrations'")
     expect(verifiedBackup).toContain('auth.users')
     expect(verifiedBackup).toContain('public.profiles')
-    expect(verifiedBackup).toContain("run(supabase, ['start'])")
+    // Database container only: the rehearsal is a SQL-level proof and the
+    // full stack's auxiliary services repeatedly failed CI health checks.
+    expect(verifiedBackup).toContain("run(supabase, ['db', 'start'])")
     expect(verifiedBackup).toContain('assertEquivalentBeforeState(source')
     expect(verifiedBackup.indexOf("run(age, ['-r'")).toBeGreaterThan(
       verifiedBackup.indexOf('assertEquivalentBeforeState(source'),
