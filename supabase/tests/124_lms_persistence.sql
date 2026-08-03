@@ -34,16 +34,22 @@ select is(
 -- A Last Man Standing availability to hang a setup on.
 -- ---------------------------------------------------------------------------
 
-create temporary table lms_probe as
-select (select id from public.tournaments where kind = 'league_season' order by name limit 1) as season_id;
-
-insert into public.bonus_competitions (tournament_id, game_key, published, availability_status)
-select season_id, 'last_man_standing', true, 'active' from lms_probe;
-
+-- C1b already creates main_predictor, last_man_standing and predictor_cup
+-- availabilities for both 2026-27 league seasons, inactive and unpublished.
+-- Inserting another collides on unique (tournament_id, game_key), so the
+-- existing one is selected and activated rather than created.
 create temporary table lms_competition as
-select c.id as competition_id, p.season_id
-  from public.bonus_competitions c, lms_probe p
- where c.tournament_id = p.season_id and c.game_key = 'last_man_standing';
+select competition.id as competition_id, season.id as season_id
+  from public.bonus_competitions competition
+  join public.tournaments season on season.id = competition.tournament_id
+ where season.kind = 'league_season'
+   and competition.game_key = 'last_man_standing'
+ order by season.name
+ limit 1;
+
+update public.bonus_competitions
+   set published = true, availability_status = 'active'
+ where id = (select competition_id from lms_competition);
 
 -- The three presets are all legal.
 select lives_ok(
