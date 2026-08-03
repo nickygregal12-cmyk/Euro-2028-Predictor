@@ -156,18 +156,51 @@ if (unexpectedSupabaseUrls.length > 0) {
 console.log('Supabase endpoint isolation: PASS')
 console.log('PRODUCTION ANONYMOUS HTTP SMOKE: PASSED')
 
+/**
+ * Transport failures are retried; findings are not.
+ *
+ * A dropped socket or a TLS reset says nothing about the deployment — but it
+ * used to fail the whole smoke, including against production. A red that means
+ * nothing is worse than no check, because it teaches people to ignore red.
+ *
+ * Only the `catch` path below retries. A wrong status, a wrong header, a wrong
+ * release identity or an unexpected redirect are real findings and still fail
+ * on the first response: retrying those would mask exactly what this smoke
+ * exists to catch. A genuine outage still fails, a few seconds later.
+ */
+const TRANSPORT_ATTEMPTS = 3
+const TRANSPORT_RETRY_DELAY_MS = 2_000
+
 async function fetchText(pathname, expectedStatus = 200) {
   const url = new URL(pathname, `${origin}/`)
   let response
+  let lastTransportError
 
-  try {
-    response = await fetch(url, {
-      redirect: 'follow',
-      signal: AbortSignal.timeout(30_000),
-      headers: { 'user-agent': 'euro28-production-smoke/1' },
-    })
-  } catch (error) {
-    stop(`Request failed for ${url}: ${errorMessage(error)}`)
+  for (let attempt = 1; attempt <= TRANSPORT_ATTEMPTS; attempt += 1) {
+    try {
+      response = await fetch(url, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(30_000),
+        headers: { 'user-agent': 'euro28-production-smoke/1' },
+      })
+      break
+    } catch (error) {
+      lastTransportError = error
+      if (attempt < TRANSPORT_ATTEMPTS) {
+        console.warn(
+          `Transport failure for ${url} (attempt ${attempt}/${TRANSPORT_ATTEMPTS}): ` +
+            `${errorMessage(error)}. Retrying.`,
+        )
+        await delay(TRANSPORT_RETRY_DELAY_MS)
+      }
+    }
+  }
+
+  if (!response) {
+    stop(
+      `Request failed for ${url} after ${TRANSPORT_ATTEMPTS} attempts: ` +
+        `${errorMessage(lastTransportError)}`,
+    )
   }
 
   if (response.status !== expectedStatus) {
@@ -361,6 +394,13 @@ function assertIncludes(value, expected, label) {
 
 function errorMessage(error) {
   return error instanceof Error ? error.message : String(error)
+}
+
+/** @param {number} ms */
+function delay(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
 }
 
 function stop(message) {
