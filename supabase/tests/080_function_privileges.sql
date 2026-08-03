@@ -74,6 +74,7 @@ insert into expected_authenticated_functions (signature) values
 -- and round settle stay service-only).
 -- Contract 57: the pre-lock own-entry clear.
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
+-- Contract 66: generic game catalogue/membership and game-scoped leagues.
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
@@ -87,7 +88,12 @@ insert into expected_authenticated_functions (signature) values
   ('get_my_cup(uuid)'),
   ('submit_cup_penalty_number(uuid,uuid,smallint,integer)'),
   ('clear_my_predictions(uuid)'),
-  ('get_prediction_consensus(uuid)');
+  ('get_prediction_consensus(uuid)'),
+  ('get_competition_games(uuid)'),
+  ('join_competition_game(uuid)'),
+  ('leave_competition_game(uuid)'),
+  ('create_game_league(uuid,text)'),
+  ('get_my_game_leagues(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
@@ -105,7 +111,13 @@ insert into expected_service_functions (signature) values
   ('admin_finalise_predictor_cup_groups(uuid)'),
   ('admin_settle_predictor_cup_round(uuid,uuid)'),
   ('clear_my_predictions(uuid)'),
-  ('get_prediction_consensus(uuid)');
+  ('get_prediction_consensus(uuid)'),
+  ('get_competition_games(uuid)'),
+  ('join_competition_game(uuid)'),
+  ('leave_competition_game(uuid)'),
+  ('create_game_league(uuid,text)'),
+  ('get_my_game_leagues(uuid)'),
+  ('admin_disqualify_competition_game_entry(uuid,uuid,text)');
 
 create temporary view public_function_privileges as
 select

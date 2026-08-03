@@ -1,6 +1,10 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import { clearLocalMailbox, waitForAuthLink } from './local-mail'
-import { createLocalAdmin, DEFAULT_E2E_EMAIL } from './local-supabase'
+import {
+  createLocalAdmin,
+  DEFAULT_E2E_EMAIL,
+  localTournamentSeason,
+} from './local-supabase'
 import { expectNoSeriousAxeViolations } from './axe-scan'
 
 const EMAIL = 'auth-recovery-e2e@euro28.local'
@@ -49,12 +53,14 @@ async function preparePendingInviteLeague(): Promise<string> {
   const owner = users.users.find((user) => user.email === ownerEmail)
   if (!owner) throw new Error(`Pending invite fixture found no owner ${ownerEmail}.`)
 
-  const { data: tournament, error: tournamentError } = await admin
-    .from('tournaments')
+  const tournament = await localTournamentSeason()
+  const { data: game, error: gameError } = await admin
+    .from('bonus_competitions')
     .select('id')
-    .limit(1)
+    .eq('tournament_id', tournament.id)
+    .eq('game_key', 'original_predictor')
     .single()
-  if (tournamentError) throw tournamentError
+  if (gameError) throw gameError
 
   // Remove a prior interrupted fixture before recreating the deterministic code.
   const { error: priorError } = await admin.from('leagues').delete().eq('invite_code', INVITE_CODE)
@@ -64,6 +70,7 @@ async function preparePendingInviteLeague(): Promise<string> {
     .from('leagues')
     .insert({
       tournament_id: tournament.id,
+      game_competition_id: game.id,
       owner_id: owner.id,
       name: INVITE_LEAGUE_NAME,
       invite_code: INVITE_CODE,
@@ -89,15 +96,14 @@ async function cleanupPendingInviteLeague(leagueId: string): Promise<void> {
 
 async function ensureFutureTournamentLock(): Promise<void> {
   const admin = createLocalAdmin()
-  const { data, error } = await admin.from('tournaments').select('id').limit(1).single()
-  if (error) throw error
+  const tournament = await localTournamentSeason()
 
   const futureLock = new Date()
   futureLock.setUTCFullYear(futureLock.getUTCFullYear() + 10)
   const { error: updateError } = await admin
     .from('tournaments')
     .update({ lock_at: futureLock.toISOString() })
-    .eq('id', data.id)
+    .eq('id', tournament.id)
   if (updateError) throw updateError
 }
 

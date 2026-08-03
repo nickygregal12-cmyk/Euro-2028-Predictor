@@ -18,15 +18,8 @@
  * to make a red test green.
  */
 
-/**
- * The database contract at which the requirements below were last verified
- * to produce a working authenticated user.
- *
- * `tests/scripts/seedContract.test.ts` fails when the repository contract
- * moves past this number. That failure is the point: it says the schema
- * changed and nobody re-checked what a seeded user now needs.
- */
-export const SEED_REVIEWED_AT_CONTRACT = 65
+/** The database contract at which these requirements were last verified. */
+export const SEED_REVIEWED_AT_CONTRACT = 66
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
@@ -73,21 +66,12 @@ export function seedIdentity(key: SeedIdentity['key']): SeedIdentity {
 }
 
 /**
- * What every seeded identity must have for authenticated surfaces to render.
- *
- * This list is the schema-coupled part. When a migration introduces a new
- * gate on authenticated reads — a membership row, an entry container, a
- * scoping link — it belongs here, the provisioning that satisfies it belongs
- * in `global-setup.ts`, and `SEED_REVIEWED_AT_CONTRACT` moves in the same
- * change.
- *
- * At contract 65 an authenticated user needs a confirmed auth account and a
- * profile row. C1b (contract 66) adds canonical game membership per
- * competition-season game; that requirement is deliberately NOT pre-declared
- * here, because the migration is unmerged and guessing its shape is how a
- * seed drifts from the schema it is supposed to track.
+ * What every seeded identity must have for authenticated Euro surfaces to
+ * render under the current schema. These requirements move with the contract.
  */
 export const SEED_REQUIREMENTS: readonly string[] = [
   'a confirmed auth account',
   'a profiles row carrying display_name and welcomed_at',
+  'an active Original Predictor game membership for the seeded tournament season',
+  'an entries row linked to its canonical game availability and membership',
 ]

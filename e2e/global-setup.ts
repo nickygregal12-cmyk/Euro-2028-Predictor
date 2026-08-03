@@ -36,17 +36,21 @@ export default async function globalSetup() {
     },
   })
 
+  // Contract 66 also seeds domestic league seasons. Browser Euro journeys must
+  // select the tournament-format season explicitly rather than insertion order.
+  const { data: tournament, error: tournamentReadError } = await admin
+    .from('tournaments')
+    .select('id')
+    .eq('kind', 'tournament')
+    .eq('name', 'UEFA Euro 2028')
+    .single()
+  if (tournamentReadError) throw tournamentReadError
+  if (!tournament) throw new Error('Browser E2E found no seeded Euro tournament.')
+  const tournamentId = tournament.id
+
   // The hardened write/delete functions fail closed when the tournament has no
   // lock boundary. The provisional seed intentionally omits one, so browser E2E
   // configures a future lock only inside the disposable local database.
-  const { data: tournaments, error: tournamentReadError } = await admin
-    .from('tournaments')
-    .select('id')
-    .limit(1)
-  if (tournamentReadError) throw tournamentReadError
-  const tournamentId = tournaments?.[0]?.id
-  if (!tournamentId) throw new Error('Browser E2E found no seeded tournament.')
-
   const futureLock = new Date()
   futureLock.setUTCFullYear(futureLock.getUTCFullYear() + 10)
   const { error: tournamentUpdateError } = await admin
@@ -61,14 +65,10 @@ export default async function globalSetup() {
   })
   if (listError) throw listError
 
-  /*
-   * Provision the whole declared cast from `seed-contract.ts` rather than a
-   * single inline identity (ADR 0024). The admin keeps the historical
-   * credentials, so `E2E_USER_EMAIL`/`E2E_USER_PASSWORD` overrides and every
-   * existing spec resolve to the same account as before; the ordinary players
-   * are additive and exist so multi-account journeys stop hand-rolling users.
-   */
-  async function provision(identity: SeedIdentity, overrides: { email?: string; password?: string } = {}) {
+  async function provision(
+    identity: SeedIdentity,
+    overrides: { email?: string; password?: string } = {},
+  ) {
     const identityEmail = overrides.email ?? identity.email
     const identityPassword = overrides.password ?? identity.password
 
@@ -98,12 +98,26 @@ export default async function globalSetup() {
     })
     if (profileError) throw profileError
 
-    return created.user.id
+    // Use the ordinary entry path. Contract 66's trigger creates and links the
+    // canonical Original Predictor membership; setup does not hand-write the
+    // new membership tables or guess their shape.
+    const { data: entry, error: entryError } = await admin
+      .from('entries')
+      .insert({
+        user_id: created.user.id,
+        tournament_id: tournamentId,
+      })
+      .select('id, game_competition_id, game_membership_id')
+      .single()
+    if (entryError) throw entryError
+    if (!entry.game_competition_id || !entry.game_membership_id) {
+      throw new Error(
+        `Contract 66 did not link the seeded Original Predictor entry for ${identity.key}.`,
+      )
+    }
   }
 
   for (const identity of SEED_IDENTITIES) {
-    // The admin honours the environment overrides; the rest are fixed so
-    // specs can rely on them by name.
     await provision(
       identity,
       identity.key === 'admin' ? { email, password } : {},

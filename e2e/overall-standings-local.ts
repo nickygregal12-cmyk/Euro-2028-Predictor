@@ -1,4 +1,8 @@
-import { createLocalAdmin, setLocalOperatingLimits } from './local-supabase'
+import {
+  createLocalAdmin,
+  localTournamentSeason,
+  setLocalOperatingLimits,
+} from './local-supabase'
 
 const PASSWORD = 'Standings-local-only-2028!'
 const USER_COUNT = 55
@@ -93,12 +97,7 @@ export async function prepareOverallStandingsFixture(
       await deleteUsers(retryUsers.map((user) => user.id))
     }
 
-    const { data: tournament, error: tournamentError } = await admin
-      .from('tournaments')
-      .select('id')
-      .limit(1)
-      .single()
-    if (tournamentError) throw tournamentError
+    const tournament = await localTournamentSeason()
 
     // The database deliberately serialises Auth inserts to protect the final
     // public slot. Create this disposable scale fixture serially rather than

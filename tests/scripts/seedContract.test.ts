@@ -8,16 +8,6 @@ import {
   seedIdentity,
 } from '../../e2e/seed-contract'
 
-/**
- * ADR 0024 requires development to be deterministically reseedable, and this
- * suite is the guard that makes a forgotten seed visible.
- *
- * Contract 66 moved the membership authority while the browser fixtures did
- * not move with it: every authenticated surface rendered empty and 33 specs
- * failed for one cause, discovered only after a full Browser E2E run. The
- * check below turns that into a fast, unmissable CI failure instead.
- */
-
 const deploymentContract = JSON.parse(
   readFileSync(resolve(process.cwd(), 'config/deployment-contract.json'), 'utf8'),
 ) as { contractVersion: number }
@@ -26,29 +16,28 @@ const globalSetupSource = readFileSync(resolve(process.cwd(), 'e2e/global-setup.
 
 describe('the seed contract tracks the schema', () => {
   it('has been re-verified at or after the current database contract', () => {
-    // If this fails, the schema advanced and nobody confirmed a seeded user is
-    // still functional on it. Re-verify, extend SEED_REQUIREMENTS and the
-    // provisioning that satisfies them, then raise SEED_REVIEWED_AT_CONTRACT.
-    // Raising it to silence this failure is the one thing that defeats it.
     expect(
       SEED_REVIEWED_AT_CONTRACT,
       `the repository is at database contract ${deploymentContract.contractVersion} but the ` +
         `development seed was last verified at ${SEED_REVIEWED_AT_CONTRACT}. A migration ` +
         'may have introduced a new gate on authenticated reads that the seed does not ' +
-        'satisfy — which is exactly how contract 66 emptied every authenticated surface. ' +
-        'Re-verify a seeded user, update e2e/seed-contract.ts, then raise the number.',
+        'satisfy. Re-verify a seeded user, update e2e/seed-contract.ts, then raise the number.',
     ).toBeGreaterThanOrEqual(deploymentContract.contractVersion)
   })
 
-  it('never claims to have been verified against a contract that does not exist', () => {
+  it('never claims verification against a contract that does not exist', () => {
     expect(SEED_REVIEWED_AT_CONTRACT).toBeLessThanOrEqual(deploymentContract.contractVersion)
   })
 
-  it('states what a seeded user actually needs', () => {
-    expect(SEED_REQUIREMENTS.length).toBeGreaterThan(0)
-    for (const requirement of SEED_REQUIREMENTS) {
-      expect(requirement.trim().length).toBeGreaterThan(0)
-    }
+  it('states the contract-66 authenticated requirements explicitly', () => {
+    expect(SEED_REQUIREMENTS).toEqual(
+      expect.arrayContaining([
+        'a confirmed auth account',
+        'a profiles row carrying display_name and welcomed_at',
+        'an active Original Predictor game membership for the seeded tournament season',
+        'an entries row linked to its canonical game availability and membership',
+      ]),
+    )
   })
 })
 
@@ -59,9 +48,6 @@ describe('the declared cast', () => {
 
     expect(admins).toHaveLength(1)
     expect(admins[0].key).toBe('admin')
-    // Two ordinary players, because head-to-head, private-league and
-    // membership journeys need a second real account rather than a
-    // hand-rolled one per spec.
     expect(players.length).toBeGreaterThanOrEqual(2)
   })
 
@@ -71,28 +57,32 @@ describe('the declared cast', () => {
     expect(new Set(SEED_IDENTITIES.map((identity) => identity.key)).size).toBe(
       SEED_IDENTITIES.length,
     )
-    for (const email of emails) {
-      // `.local` only: a seed that could address a real mailbox is a seed that
-      // can email a real person.
-      expect(email.endsWith('@euro28.local')).toBe(true)
-    }
+    for (const email of emails) expect(email.endsWith('@euro28.local')).toBe(true)
   })
 
-  it('preserves the historical admin credentials so existing specs keep resolving', () => {
+  it('preserves the historical admin credentials', () => {
     expect(seedIdentity('admin').email).toBe('e2e@euro28.local')
   })
 })
 
 describe('global setup provisions from the contract', () => {
-  it('imports the declared cast rather than hard-coding identities', () => {
+  it('imports and provisions the declared cast', () => {
     expect(globalSetupSource).toMatch(/from '\.\/seed-contract'/)
     expect(globalSetupSource).toMatch(/for \(const identity of SEED_IDENTITIES\)/)
   })
 
   it('declares no seed email of its own', () => {
-    // Any `@euro28.local` literal in global setup is an identity that escaped
-    // the contract, which is how the two drift apart again.
     const literals = globalSetupSource.match(/'[^']*@euro28\.local'/g) ?? []
     expect(literals).toEqual([])
+  })
+
+  it('selects the Euro tournament explicitly and exercises the ordinary entry path', () => {
+    expect(globalSetupSource).toContain(".eq('kind', 'tournament')")
+    expect(globalSetupSource).toContain(".eq('name', 'UEFA Euro 2028')")
+    expect(globalSetupSource).toContain(".from('entries')")
+    expect(globalSetupSource).toContain(
+      ".select('id, game_competition_id, game_membership_id')",
+    )
+    expect(globalSetupSource).not.toContain(".from('game_memberships')")
   })
 })

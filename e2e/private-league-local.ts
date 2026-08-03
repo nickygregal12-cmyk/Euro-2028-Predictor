@@ -1,4 +1,9 @@
-import { createLocalAdmin, DEFAULT_E2E_EMAIL, setLocalOperatingLimits } from './local-supabase'
+import {
+  createLocalAdmin,
+  DEFAULT_E2E_EMAIL,
+  localTournamentSeason,
+  setLocalOperatingLimits,
+} from './local-supabase'
 
 const PASSWORD = 'Private-league-local-2028!'
 const SYNTHETIC_USER_COUNT = 55
@@ -104,14 +109,17 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
     const defaultUser = listed.users.find((user) => user.email === defaultEmail)
     if (!defaultUser) throw new Error(`Private-league fixture found no E2E user ${defaultEmail}.`)
 
-    const { data: tournament, error: tournamentError } = await admin
-      .from('tournaments')
-      .select('id, lock_at')
-      .limit(1)
-      .single()
-    if (tournamentError) throw tournamentError
+    const tournament = await localTournamentSeason()
     tournamentId = tournament.id
-    originalLockAt = tournament.lock_at
+    originalLockAt = tournament.lockAt
+
+    const { data: game, error: gameError } = await admin
+      .from('bonus_competitions')
+      .select('id')
+      .eq('tournament_id', tournament.id)
+      .eq('game_key', 'original_predictor')
+      .single()
+    if (gameError) throw gameError
 
     const { error: oldLeagueError } = await admin.from('leagues').delete().eq('invite_code', INVITE_CODE)
     if (oldLeagueError) throw oldLeagueError
@@ -138,10 +146,23 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
     if (profileError) throw profileError
 
     const owner = createdUsers[0]
+    const { data: entries, error: entryError } = await admin
+      .from('entries')
+      .insert(
+        createdUsers.map((user) => ({
+          user_id: user.id,
+          tournament_id: tournament.id,
+          submitted_at: new Date().toISOString(),
+        })),
+      )
+      .select('id, user_id')
+    if (entryError) throw entryError
+
     const { data: league, error: leagueError } = await admin
       .from('leagues')
       .insert({
         tournament_id: tournament.id,
+        game_competition_id: game.id,
         owner_id: owner.id,
         name: leagueName,
         invite_code: INVITE_CODE,
@@ -167,18 +188,6 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
       },
     ])
     if (memberError) throw memberError
-
-    const { data: entries, error: entryError } = await admin
-      .from('entries')
-      .insert(
-        createdUsers.map((user) => ({
-          user_id: user.id,
-          tournament_id: tournament.id,
-          submitted_at: new Date().toISOString(),
-        })),
-      )
-      .select('id, user_id')
-    if (entryError) throw entryError
 
     const entryByUser = new Map((entries ?? []).map((entry) => [entry.user_id, entry.id]))
     const { error: scoreError } = await admin.from('score_events').insert(
@@ -218,7 +227,7 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
       h2hRivalId: h2hRival.id,
       h2hRivalDisplayName: h2hRival.displayName,
       tournamentId: tournament.id,
-      originalLockAt: tournament.lock_at,
+      originalLockAt: tournament.lockAt,
       syntheticUserIds: createdUsers.map((user) => user.id),
     }
   } catch (error) {

@@ -1,4 +1,4 @@
-import { createLocalAdmin } from './local-supabase'
+import { createLocalAdmin, localTournamentSeason } from './local-supabase'
 
 const PASSWORD = 'Automatic-local-only-2028!'
 
@@ -66,13 +66,7 @@ export async function prepareAutomaticSubmissionFixture(
   const safeSuffix = suffix.toLowerCase().replace(/[^a-z0-9]+/g, '-')
   const completeEmail = `auto-complete-${safeSuffix}@euro28.local`
   const incompleteEmail = `auto-incomplete-${safeSuffix}@euro28.local`
-
-  const { data: tournament, error: tournamentError } = await admin
-    .from('tournaments')
-    .select('id, lock_at')
-    .limit(1)
-    .single()
-  if (tournamentError) throw tournamentError
+  const tournament = await localTournamentSeason()
 
   const completeUserId = await createUser(completeEmail, 'Auto Complete')
   const incompleteUserId = await createUser(incompleteEmail, 'Auto Incomplete')
@@ -170,7 +164,7 @@ export async function prepareAutomaticSubmissionFixture(
     complete: { email: completeEmail, password: PASSWORD },
     incomplete: { email: incompleteEmail, password: PASSWORD },
     tournamentId: tournament.id,
-    originalLockAt: tournament.lock_at,
+    originalLockAt: tournament.lockAt,
   }
 }
 

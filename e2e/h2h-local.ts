@@ -1,4 +1,8 @@
-import { createLocalAdmin, DEFAULT_E2E_EMAIL } from './local-supabase'
+import {
+  createLocalAdmin,
+  DEFAULT_E2E_EMAIL,
+  localTournamentSeason,
+} from './local-supabase'
 
 const PASSWORD = 'H2h-surface-local-2028!'
 const INVITE_CODE = 'H2H001'
@@ -77,17 +81,18 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
     const caller = listed.users.find((user) => user.email === defaultEmail)
     if (!caller) throw new Error(`H2H fixture found no E2E user ${defaultEmail}.`)
 
-    const { data: tournament, error: tournamentError } = await admin
-      .from('tournaments')
-      .select('id, lock_at')
-      .limit(1)
-      .single()
-    if (tournamentError) throw tournamentError
-    // `tournamentId` stays nullable for the catch-block cleanup below; this is
-    // the known-good value to actually work with.
-    const resolvedTournamentId: string = tournament.id
+    const tournament = await localTournamentSeason()
+    const resolvedTournamentId = tournament.id
     tournamentId = resolvedTournamentId
-    originalLockAt = tournament.lock_at
+    originalLockAt = tournament.lockAt
+
+    const { data: game, error: gameError } = await admin
+      .from('bonus_competitions')
+      .select('id')
+      .eq('tournament_id', resolvedTournamentId)
+      .eq('game_key', 'original_predictor')
+      .single()
+    if (gameError) throw gameError
 
     const { data: created, error: createError } = await admin.auth.admin.createUser({
       email: rivalEmail,
@@ -106,10 +111,22 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
     })
     if (profileError) throw profileError
 
+    const { data: entry, error: entryError } = await admin
+      .from('entries')
+      .insert({
+        user_id: rivalId,
+        tournament_id: resolvedTournamentId,
+        submitted_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+    if (entryError) throw entryError
+
     const { data: league, error: leagueError } = await admin
       .from('leagues')
       .insert({
-        tournament_id: tournamentId,
+        tournament_id: resolvedTournamentId,
+        game_competition_id: game.id,
         owner_id: rivalId,
         name: leagueName,
         invite_code: INVITE_CODE,
@@ -122,28 +139,17 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
 
     const { error: membershipError } = await admin.from('league_members').insert([
       {
-        league_id: leagueId,
+        league_id: resolvedLeagueId,
         user_id: rivalId,
         role: 'owner',
       },
       {
-        league_id: leagueId,
+        league_id: resolvedLeagueId,
         user_id: caller.id,
         role: 'member',
       },
     ])
     if (membershipError) throw membershipError
-
-    const { data: entry, error: entryError } = await admin
-      .from('entries')
-      .insert({
-        user_id: rivalId,
-        tournament_id: tournamentId,
-        submitted_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single()
-    if (entryError) throw entryError
 
     const { error: scoreError } = await admin.from('score_events').insert({
       entry_id: entry.id,
@@ -155,7 +161,7 @@ export async function prepareH2HSurfaceFixture(suffix: string): Promise<H2HSurfa
 
     const { error: historyError } = await admin.from('rank_history').insert({
       user_id: rivalId,
-      tournament_id: tournamentId,
+      tournament_id: resolvedTournamentId,
       matchday_key: 'MD1',
       matchday_ord: 1,
       rank: RIVAL_RANK,

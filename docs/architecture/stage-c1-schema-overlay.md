@@ -161,6 +161,7 @@ The following retained signatures may remain physically named `p_tournament_id`,
 - `clear_my_predictions`
 - `create_league`
 - `get_bonus_games`
+- `get_competition_games`
 - `get_h2h_rank_history`
 - `get_ko_predictor_standings`
 - `get_leaderboard`

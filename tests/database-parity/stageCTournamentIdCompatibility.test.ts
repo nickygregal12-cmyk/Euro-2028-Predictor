@@ -245,10 +245,12 @@ function inventoryColumns(): string[] {
 const effectiveColumns = effectiveTournamentIdColumns()
 const reviewedColumns = inventoryColumns()
 
-describe('Stage C tournament_id compatibility inventory after C1', () => {
-  it('keeps the parser positive control at the contract-65 boundary', () => {
-    expect(effectiveColumns).toHaveLength(33)
+describe('Stage C tournament_id compatibility inventory after C1b', () => {
+  it('keeps the parser positive control at the contract-66 boundary', () => {
+    expect(effectiveColumns).toHaveLength(35)
     expect(effectiveColumns).toContain('entries.tournament_id uuid not null')
+    expect(effectiveColumns).toContain('game_memberships.tournament_id uuid not null')
+    expect(effectiveColumns).toContain('game_membership_events.tournament_id uuid not null')
     expect(effectiveColumns).toContain('matches.tournament_id uuid not null')
     expect(effectiveColumns).toContain('competition_rounds.tournament_id uuid not null')
     expect(effectiveColumns).not.toContain('tournaments.tournament_id uuid not null')

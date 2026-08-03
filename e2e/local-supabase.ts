@@ -30,6 +30,29 @@ export function createLocalAdmin() {
   })
 }
 
+export type LocalTournamentSeason = {
+  id: string
+  lockAt: string | null
+}
+
+/**
+ * Browser journeys in this suite exercise the legacy tournament-format routes.
+ * Contract 66 also seeds draft domestic league seasons into `tournaments`, so a
+ * fixture must select by kind rather than relying on insertion order or year.
+ */
+export async function localTournamentSeason(): Promise<LocalTournamentSeason> {
+  const { data, error } = await createLocalAdmin()
+    .from('tournaments')
+    .select('id, lock_at')
+    .eq('kind', 'tournament')
+    .order('year', { ascending: true })
+    .limit(1)
+    .single()
+  if (error) throw error
+  if (!data) throw new Error('Browser E2E found no seeded tournament-format season.')
+  return { id: data.id, lockAt: data.lock_at }
+}
+
 /** Adjust only the disposable local stack through the service-role-only RPC. */
 export async function setLocalOperatingLimits(
   publicUserLimit: number,
@@ -124,14 +147,7 @@ export type PreparedEntry = {
 export async function prepareCompleteGroupEntry(): Promise<PreparedEntry> {
   const admin = createLocalAdmin()
   const userId = await e2eUserId()
-
-  const { data: tournaments, error: tournamentError } = await admin
-    .from('tournaments')
-    .select('id')
-    .limit(1)
-  if (tournamentError) throw tournamentError
-  const tournamentId = tournaments?.[0]?.id
-  if (!tournamentId) throw new Error('Browser E2E found no seeded tournament.')
+  const tournamentId = (await localTournamentSeason()).id
 
   const { data: existing, error: existingError } = await admin
     .from('entries')

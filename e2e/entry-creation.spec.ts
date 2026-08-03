@@ -108,8 +108,14 @@ test('two first-use tabs converge on one shared entry', async ({ page, browser }
     ])
     await Promise.all([firstLogin, secondLogin])
 
-    expect(firstWrite.ok()).toBe(true)
-    expect(secondWrite.ok()).toBe(true)
+    // Contract 66 can surface the membership unique-key loser as 409. The
+    // service deliberately recovers that response by reading the winner's
+    // committed entry. A future race-safe trigger may make both writes 201, so
+    // accept either shape while requiring one successful creator.
+    const statuses = [firstWrite.status(), secondWrite.status()].sort((a, b) => a - b)
+    expect(statuses[0]).toBe(201)
+    expect([201, 409]).toContain(statuses[1])
+
     await expectAuthenticatedPath(page, '/')
     await expectAuthenticatedPath(secondPage, '/')
 

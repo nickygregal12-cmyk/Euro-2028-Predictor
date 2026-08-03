@@ -43,22 +43,45 @@ describe('database parity workflow trigger contract', () => {
 })
 
 describe('database parity workflow migration-transition contract', () => {
-  it('rehearses a transition from a prior contract, not from a rebuild', () => {
-    // Rebuild jobs reach every migration with empty tables, so a statement whose
-    // failure needs a row can only be caught by arriving at it with data. The
-    // reset must therefore stop at the prior canonical version.
+  it('rehearses each populated transition from its exact prior contract', () => {
+    // Rebuild jobs reach every migration with empty tables, so a backfill whose
+    // failure needs a row can only be caught by arriving with data. Each subject
+    // therefore runs after a reset to the canonical contract immediately before
+    // the migration it owns.
     expect(workflow).toContain('supabase db reset --local --version 20260730180000')
-    expect(workflow).toContain('npx vitest run tests/migration-transition/')
+    expect(workflow).toContain(
+      'npx vitest run tests/migration-transition/stageC1AuditScopeTransition.test.ts',
+    )
+    expect(workflow).toContain('supabase db reset --local --version 20260730235602')
+    expect(workflow).toContain(
+      'npx vitest run tests/migration-transition/c1bGameCatalogueMembershipsTransition.test.ts',
+    )
+
+    expect(
+      workflow.indexOf('supabase db reset --local --version 20260730180000'),
+    ).toBeLessThan(
+      workflow.indexOf(
+        'npx vitest run tests/migration-transition/stageC1AuditScopeTransition.test.ts',
+      ),
+    )
+    expect(
+      workflow.indexOf('supabase db reset --local --version 20260730235602'),
+    ).toBeLessThan(
+      workflow.indexOf(
+        'npx vitest run tests/migration-transition/c1bGameCatalogueMembershipsTransition.test.ts',
+      ),
+    )
   })
 
-  it('executes every migration-transition subject that exists', () => {
+  it('executes every migration-transition subject exactly once', () => {
     const subjects = readdirSync(transitionSuiteDir).filter((file) =>
       /\.test\.tsx?$/.test(file),
     )
 
-    expect(subjects.length).toBeGreaterThan(0)
+    expect(subjects.length).toBeGreaterThan(1)
     for (const subject of subjects) {
-      expect(workflow).not.toContain(`tests/migration-transition/${subject}`)
+      const subjectPath = `tests/migration-transition/${subject}`
+      expect(workflow.split(subjectPath)).toHaveLength(2)
     }
   })
 })

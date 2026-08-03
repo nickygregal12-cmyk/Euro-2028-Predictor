@@ -24,7 +24,7 @@ const classificationPath = resolve(
 const SOURCE_CONTRACTS: Record<string, SourceContract> = {
   'stageCRelationCoverage.test.ts': {
     classification: 'C1',
-    expectedCount: 3,
+    expectedCount: 4,
     kind: 'typescript',
     path: 'tests/database-parity/stageCRelationCoverage.test.ts',
   },
@@ -130,10 +130,10 @@ const rows = inventoryRows()
 
 describe('Stage C1 assertion classification', () => {
   it('classifies every assertion without authorising a C2 after-state', () => {
-    expect(rows.filter((row) => row.classification === 'C1')).toHaveLength(45)
+    expect(rows.filter((row) => row.classification === 'C1')).toHaveLength(46)
     expect(rows.filter((row) => row.classification === 'C2')).toHaveLength(0)
     expect(rows.filter((row) => row.classification === 'shared-before-state')).toHaveLength(9)
-    expect(rows).toHaveLength(54)
+    expect(rows).toHaveLength(55)
   })
 
   it('contains no duplicated source/assertion row', () => {

@@ -5,6 +5,8 @@ import { Alert, Button, Skeleton } from '../../design-system'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthSplash } from '../auth/AuthSplash'
 import { fetchLeaguePreview, joinLeague, type LeaguePreview } from '../../services/supabase/leagues'
+import { getOrCreateEntry } from '../../services/supabase/predictions'
+import { fetchTournamentData } from '../../services/supabase/tournamentData'
 import { LeaguePreviewCard } from './LeaguePreviewCard'
 import { clearPendingJoin, setPendingJoin } from './pendingJoin'
 import j from './join.module.css'
@@ -73,9 +75,18 @@ export function JoinLandingPage() {
   }
 
   async function join() {
-    if (!code) return
+    if (!code || !userId) return
     setJoining(true)
     try {
+      // Contract 66 scopes every private league to its exact Main/Original
+      // Predictor game. The preserved Euro invite preview predates game IDs, so
+      // accepting it is the explicit opt-in that first creates/reuses the
+      // current tournament's Original Predictor entry and canonical membership.
+      // The database still refuses league membership unless that game
+      // membership exists; this compatibility step does not bypass the rule.
+      const { tournament } = await fetchTournamentData()
+      await getOrCreateEntry(userId, tournament.id)
+
       const joined = await joinLeague(code)
       navigate(`/league/${joined.id}`, { replace: true })
     } catch (e) {

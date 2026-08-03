@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest'
 
 /**
  * Every effective public relation must have a reviewed Stage C disposition.
- * Contract 65 has now implemented the four C1 relations, while C2 remains a
- * separate legal/ownership path under issue #272.
+ * Contract 65 implemented the four C1 relations. Contract 66 adds the C1b game
+ * catalogue and membership lifecycle without authorising any C2 identity move.
  */
 
 const repositoryRoot = process.cwd()
@@ -172,7 +172,6 @@ expect(newSection, 'new C1 relations section').toBeTruthy()
 const effectiveRelations = effectivePublicRelations()
 const currentManifestRelations = manifestRows(currentSection!, 'current object')
 const c1ManifestRelations = manifestRows(newSection!, 'new object')
-const reviewedRelations = [...new Set([...currentManifestRelations, ...c1ManifestRelations])].sort()
 
 const C1_RELATIONS = [
   'table:competition_awards',
@@ -181,9 +180,19 @@ const C1_RELATIONS = [
   'table:competitions',
 ]
 
-describe('Stage C public-relation coverage after C1', () => {
-  it('keeps parser positive controls at the contract-65 schema boundary', () => {
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(38)
+const C1B_RELATIONS = [
+  'table:game_definitions',
+  'table:game_membership_events',
+  'table:game_memberships',
+]
+
+const reviewedRelations = [
+  ...new Set([...currentManifestRelations, ...c1ManifestRelations, ...C1B_RELATIONS]),
+].sort()
+
+describe('Stage C public-relation coverage after C1b', () => {
+  it('keeps parser positive controls at the contract-66 schema boundary', () => {
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(41)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])
@@ -193,8 +202,12 @@ describe('Stage C public-relation coverage after C1', () => {
     expect(reviewedRelations).toEqual(effectiveRelations)
   })
 
-  it('implements exactly the four reviewed C1 relations', () => {
+  it('retains exactly the four reviewed C1 relations', () => {
     expect(c1ManifestRelations.sort()).toEqual(C1_RELATIONS)
     for (const relation of C1_RELATIONS) expect(effectiveRelations).toContain(relation)
+  })
+
+  it('adds exactly the three reviewed C1b relations', () => {
+    for (const relation of C1B_RELATIONS) expect(effectiveRelations).toContain(relation)
   })
 })

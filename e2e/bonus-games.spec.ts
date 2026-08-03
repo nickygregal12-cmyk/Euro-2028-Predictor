@@ -1,6 +1,19 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type TestInfo,
+} from '@playwright/test'
 
 type GameName = 'KO Predictor' | 'Last Man Standing' | 'Predictor Cup'
+
+function desktopOnly(testInfo: TestInfo): void {
+  test.skip(
+    testInfo.project.name !== 'desktop-chromium',
+    'The no-rejoin LMS lifecycle is stateful and runs once; route smoke covers both viewports.',
+  )
+}
 
 async function openGamesHub(page: Page): Promise<void> {
   await page.goto('/games')
@@ -125,7 +138,8 @@ test('KO Predictor registration, scoreline save and standings work end to end', 
 
 test('Last Man Standing registration and first-round pick work end to end', async ({
   page,
-}) => {
+}, testInfo) => {
+  desktopOnly(testInfo)
   await withdrawGame(page, 'Last Man Standing')
 
   try {

@@ -45,7 +45,17 @@ insert into auth.users (
 
 select set_config(
   'test.cap_tournament_id',
-  (select id::text from public.tournaments order by created_at, id limit 1),
+  (select id::text from public.tournaments where name = 'UEFA Euro 2028'),
+  true
+);
+select set_config(
+  'test.cap_game_id',
+  (
+    select availability.id::text
+    from public.bonus_competitions availability
+    where availability.tournament_id = current_setting('test.cap_tournament_id')::uuid
+      and availability.game_key = 'original_predictor'
+  ),
   true
 );
 select set_config(
@@ -62,12 +72,14 @@ select set_config(
 insert into public.leagues (
   id,
   tournament_id,
+  game_competition_id,
   owner_id,
   name,
   invite_code
 ) values (
   '43000000-0000-0000-0000-000000000201',
   current_setting('test.cap_tournament_id')::uuid,
+  current_setting('test.cap_game_id')::uuid,
   current_setting('test.cap_owner_id')::uuid,
   'Operating Cap Baseline League',
   'CAPBAS'
@@ -79,6 +91,20 @@ values (
   current_setting('test.cap_owner_id')::uuid,
   'owner'
 );
+
+-- The tournament-scoped compatibility RPC resolves the season's
+-- Main/Original game. Both the owner and the later joiner therefore need the
+-- same canonical game membership as the product flow.
+insert into public.entries (user_id, tournament_id)
+values
+  (
+    current_setting('test.cap_owner_id')::uuid,
+    current_setting('test.cap_tournament_id')::uuid
+  ),
+  (
+    current_setting('test.cap_member_id')::uuid,
+    current_setting('test.cap_tournament_id')::uuid
+  );
 
 select set_config(
   'test.cap_initial_users',

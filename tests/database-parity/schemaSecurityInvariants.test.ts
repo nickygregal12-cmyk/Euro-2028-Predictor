@@ -6,15 +6,8 @@ import { describe, expect, it } from 'vitest'
  * The two schema-wide security invariants, asserted over the committed migrations.
  *
  *   1. Every table in the API-exposed `public` schema has row-level security
- *      enabled. A `public` table without it is readable by anyone holding the
- *      publishable key, through PostgREST, with no policy in the way.
- *   2. Every `security definer` function pins `search_path`. A definer function
- *      that resolves unqualified names through the caller's `search_path` can be
- *      induced to run an attacker's object with the definer's privileges.
- *
- * Both hold today. `supabase db lint` covers both classes, but it runs only
- * inside the path-gated `local-supabase` job and findings can otherwise remain
- * warnings in logs. These assertions run in ordinary CI on every pull request.
+ *      enabled.
+ *   2. Every `security definer` function pins `search_path`.
  */
 
 const repositoryRoot = process.cwd()
@@ -70,7 +63,7 @@ const rlsTables = rowLevelSecurityEnabled()
 
 describe('row-level security', () => {
   it('parses a plausible number of tables at all', () => {
-    expect(publicTables.size).toBeGreaterThanOrEqual(38)
+    expect(publicTables.size).toBeGreaterThanOrEqual(41)
   })
 
   it('enables RLS on every public table', () => {
@@ -111,8 +104,8 @@ const definerFunctions = [...definitions].filter(([, definition]) =>
 
 describe('security definer functions', () => {
   it('parses a plausible number of definer functions at all', () => {
-    expect(definitions.size).toBeGreaterThanOrEqual(132)
-    expect(definerFunctions.length).toBeGreaterThanOrEqual(116)
+    expect(definitions.size).toBeGreaterThanOrEqual(143)
+    expect(definerFunctions.length).toBeGreaterThanOrEqual(127)
   })
 
   it('pins search_path on every one of them', () => {
@@ -138,6 +131,7 @@ describe('security definer functions', () => {
       '20260723174500_harden_entry_lock_functions.sql',
       '20260727174658_automatic_entry_submission.sql',
       '20260730235602_stage_c1_competition_season_foundation.sql',
+      '20260803070000_c1b_game_catalogue_memberships.sql',
     ])
 
     expect(sourceOf(occurrences[0])).not.toMatch(
@@ -146,19 +140,8 @@ describe('security definer functions', () => {
     expect(definitions.get(redefined)?.migration).toBe(occurrences.at(-1))
     expect(definitions.get(redefined)?.header).toMatch(/set search_path/i)
 
-    // This function is deliberately NOT `security definer`, and that is
-    // load-bearing rather than incidental. Its trusted-refresh predicate tests
-    // `current_user = 'postgres'`; under `security definer` that would always
-    // be true inside the trigger, and `set_config` is executable by
-    // `authenticated`, so any signed-in user could set the flag and write
-    // predictions after the lock. As `security invoker`, `current_user` is the
-    // real caller, so only the security-definer processor chain — which already
-    // runs as postgres — can reach it. Proven in
-    // `supabase/tests/033_automatic_submission_trusted_path.sql`.
-    //
-    // This assertion previously read `toMatch(/security definer/i)` against an
-    // earlier Stage C1 draft that had it wrong. It is inverted rather than
-    // dropped, so the property stays pinned in the direction that matters.
+    // This function deliberately remains SECURITY INVOKER. The trusted refresh
+    // predicate therefore observes the real caller rather than the owner.
     expect(definitions.get(redefined)?.header).not.toMatch(/security definer/i)
   })
 

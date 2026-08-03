@@ -29,8 +29,16 @@ export type MatchPrediction = {
   version: number
 }
 
+type DatabaseError = {
+  code?: string
+}
+
 function mapEntry(row: { id: string; submitted_at: string | null }): Entry {
   return { id: row.id, submittedAt: row.submitted_at }
+}
+
+function isConcurrentMembershipInsert(error: DatabaseError | null): boolean {
+  return error?.code === '23505'
 }
 
 /**
@@ -40,6 +48,12 @@ function mapEntry(row: { id: string; submitted_at: string | null }): Entry {
  * INSERT ... ON CONFLICT DO NOTHING lets one tab create the row while any
  * concurrent loser falls through to a normal read instead of surfacing a raw
  * unique-constraint error.
+ *
+ * Contract 66 also creates the canonical game membership from a BEFORE trigger.
+ * Two truly simultaneous first-use inserts can therefore contend on the
+ * membership unique key before the outer entry conflict handler is reached.
+ * PostgreSQL returns that expected loser as 23505 only after the winning
+ * transaction has settled, so it follows the same shared-row read path.
  */
 export async function getOrCreateEntry(userId: string, tournamentId: string): Promise<Entry> {
   const created = await supabase
@@ -54,12 +68,12 @@ export async function getOrCreateEntry(userId: string, tournamentId: string): Pr
     .select('id, submitted_at')
     .maybeSingle()
 
-  if (created.error) throw created.error
+  if (created.error && !isConcurrentMembershipInsert(created.error)) throw created.error
   if (created.data) return mapEntry(created.data)
 
-  // A zero-row RETURNING result means another request won the unique insert.
-  // The follow-up request reads the committed shared row rather than treating
-  // the expected concurrency outcome as an application error.
+  // A zero-row RETURNING result, or the contract-66 membership-trigger race,
+  // means another request won the canonical first-use insert. Read the committed
+  // shared entry instead of exposing an expected concurrency outcome to the UI.
   const existing = await supabase
     .from('entries')
     .select('id, submitted_at')

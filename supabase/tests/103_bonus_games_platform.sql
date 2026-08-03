@@ -201,8 +201,8 @@ select is(
       current_setting('test.bonus_tournament_id')
     )
   ),
-  '23514',
-  'the Original Predictor can never be stored as a bonus competition'
+  '23505',
+  'the canonical Original Predictor availability remains unique per tournament'
 );
 
 -- ---------------------------------------------------------------------------
