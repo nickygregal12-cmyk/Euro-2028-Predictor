@@ -86,6 +86,55 @@ type StageCSeasonMetadata = {
   status: CompetitionStatus | null
 }
 
+type TournamentRow = {
+  id: string
+  name: string
+  year: number
+  starts_on: string | null
+  ends_on: string | null
+}
+
+type QueryError = {
+  code?: string
+  message?: string
+}
+
+function isMissingStageCKindColumn(error: QueryError): boolean {
+  if (error.code === '42703') return true
+  return error.code === 'PGRST204' && /\bkind\b/i.test(error.message ?? '')
+}
+
+async function fetchTournamentRow(): Promise<TournamentRow> {
+  const columns = 'id, name, year, starts_on, ends_on'
+
+  // Stage C stores tournament-format and league-season roots in the same table.
+  // The existing prediction, match and admin routes still consume tournament
+  // groups and knockout fixtures, so a draft domestic league root must never
+  // become their implicit current season merely because its year sorts first.
+  let result = await supabase
+    .from('tournaments')
+    .select(columns)
+    .eq('kind', 'tournament')
+    .order('year', { ascending: true })
+    .limit(1)
+
+  // Repository code must remain safe while an older hosted contract is still in
+  // service. Contract 64 and earlier have no `kind` column; only that exact
+  // compatibility failure may fall back to the historical single-row query.
+  if (result.error && isMissingStageCKindColumn(result.error)) {
+    result = await supabase
+      .from('tournaments')
+      .select(columns)
+      .order('year', { ascending: true })
+      .limit(1)
+  }
+
+  if (result.error) throw result.error
+  const tournament = result.data?.[0] as TournamentRow | undefined
+  if (!tournament) throw new Error('No tournament found — has the fixture seed been run?')
+  return tournament
+}
+
 /**
  * lock_at is read best-effort: it's a follow-up-migration column, so a database
  * without that migration applied still loads the app (the entry simply reads as
@@ -157,19 +206,12 @@ async function fetchStageCSeasonMetadata(tournamentId: string): Promise<StageCSe
 }
 
 /**
- * Loads the single active tournament plus its groups, teams (with group + slot)
- * and every fixture. One call, joined client-side into the shapes the domain
- * layer and screens consume.
+ * Loads the first supported tournament-format season plus its groups, teams
+ * (with group + slot) and every fixture. League-season roots are discovered by
+ * the Games Hub and remain outside this legacy tournament data provider.
  */
 export async function fetchTournamentData(): Promise<TournamentData> {
-  const { data: tournaments, error: tErr } = await supabase
-    .from('tournaments')
-    .select('id, name, year, starts_on, ends_on')
-    .order('year', { ascending: true })
-    .limit(1)
-  if (tErr) throw tErr
-  const t = tournaments?.[0]
-  if (!t) throw new Error('No tournament found — has the fixture seed been run?')
+  const t = await fetchTournamentRow()
 
   const [groupsRes, matchesRes, lockAt, stageCMetadata] = await Promise.all([
     supabase.from('groups').select('id, letter').eq('tournament_id', t.id).order('letter'),
