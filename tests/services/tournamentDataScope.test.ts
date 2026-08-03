@@ -17,12 +17,21 @@ const OTHER_GROUP_A = '40000000-0000-0000-0000-0000000000b1'
 type Row = Record<string, unknown>
 
 /**
- * A two-tournament reference dataset. The fake applies the filters the caller
- * builds, so a query that forgets to scope itself observes the other
- * tournament's rows exactly as PostgREST would return them.
+ * A mixed-format reference dataset. The earlier league-season root is first on
+ * purpose: the legacy tournament provider must select by format, not whichever
+ * row happens to sort first after C1b adds domestic season roots.
  */
 const DATASET: Record<string, Row[]> = {
   tournaments: [
+    {
+      id: OTHER,
+      name: 'Scottish Premiership 2026/27',
+      year: 2026,
+      starts_on: null,
+      ends_on: null,
+      lock_at: null,
+      kind: 'league_season',
+    },
     {
       id: EURO,
       name: 'Euro 2028',
@@ -30,14 +39,7 @@ const DATASET: Record<string, Row[]> = {
       starts_on: '2028-06-09',
       ends_on: '2028-07-09',
       lock_at: '2028-06-09T19:00:00Z',
-    },
-    {
-      id: OTHER,
-      name: 'Other competition',
-      year: 2029,
-      starts_on: null,
-      ends_on: null,
-      lock_at: null,
+      kind: 'tournament',
     },
   ],
   groups: [
@@ -57,23 +59,38 @@ const DATASET: Record<string, Row[]> = {
 }
 
 type Options = {
+  kindColumnFails?: boolean
   lockAtFails?: boolean
   groups?: Row[]
+  tournaments?: Row[]
 }
 
-function installClient({ lockAtFails = false, groups }: Options = {}) {
+function installClient({
+  kindColumnFails = false,
+  lockAtFails = false,
+  groups,
+  tournaments,
+}: Options = {}) {
   const queries: { table: string; filters: Row }[] = []
-  const data: Record<string, Row[]> = { ...DATASET, ...(groups ? { groups } : {}) }
+  const data: Record<string, Row[]> = {
+    ...DATASET,
+    ...(groups ? { groups } : {}),
+    ...(tournaments ? { tournaments } : {}),
+  }
 
   mocks.from.mockImplementation((table: string) => {
     const filters: Row = {}
     const record = { table, filters }
     queries.push(record)
 
+    let selected = ''
     let single = false
 
     const builder: Record<string, unknown> = {
-      select: () => builder,
+      select: (columns: string) => {
+        selected = columns
+        return builder
+      },
       order: () => builder,
       limit: (n: number) => {
         filters.limit = n
@@ -97,9 +114,28 @@ function installClient({ lockAtFails = false, groups }: Options = {}) {
       then: (
         resolve: (result: { data: unknown; error: unknown }) => unknown,
       ) => {
+        if (
+          table === 'tournaments' &&
+          !single &&
+          kindColumnFails &&
+          filters.kind === 'tournament'
+        ) {
+          return resolve({
+            data: null,
+            error: { code: '42703', message: 'column tournaments.kind does not exist' },
+          })
+        }
+
         if (table === 'tournaments' && single) {
+          if (kindColumnFails && /\bkind\b/.test(selected)) {
+            return resolve({
+              data: null,
+              error: { code: '42703', message: 'column tournaments.kind does not exist' },
+            })
+          }
+
           return resolve(
-            lockAtFails
+            lockAtFails && selected === 'lock_at'
               ? { data: null, error: { message: 'column lock_at does not exist' } }
               : {
                   data: data.tournaments.find((r) => r.id === filters.id) ?? null,
@@ -133,6 +169,38 @@ function installClient({ lockAtFails = false, groups }: Options = {}) {
 describe('tournament reference data is scoped to one tournament', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('keeps legacy tournament routes on tournament-format seasons', async () => {
+    const queries = installClient()
+
+    const result = await fetchTournamentData()
+
+    const selection = queries.find(
+      (query) => query.table === 'tournaments' && query.filters.limit === 1,
+    )
+    expect(selection?.filters.kind).toBe('tournament')
+    expect(result.tournament.id).toBe(EURO)
+    expect(result.tournament.name).toBe('Euro 2028')
+  })
+
+  it('falls back only when a pre-Stage-C schema has no kind column', async () => {
+    const legacyTournaments = [
+      { ...DATASET.tournaments[1] },
+      { ...DATASET.tournaments[0] },
+    ]
+    const queries = installClient({ kindColumnFails: true, tournaments: legacyTournaments })
+
+    const result = await fetchTournamentData()
+
+    const selections = queries.filter(
+      (query) => query.table === 'tournaments' && query.filters.limit === 1,
+    )
+    expect(selections).toHaveLength(2)
+    expect(selections[0]?.filters.kind).toBe('tournament')
+    expect(selections[1]?.filters.kind).toBeUndefined()
+    expect(result.tournament.id).toBe(EURO)
+    expect(result.tournament.kind).toBeNull()
   })
 
   it('never blends another tournament’s group teams into the team list', () => {
