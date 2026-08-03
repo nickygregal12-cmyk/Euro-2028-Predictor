@@ -45,6 +45,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The journey selector diffs against the base ref. A shallow clone
+          # has no merge base with origin/main, so the diff fails, the selector
+          # fails open, and the narrowing silently never happens — green, slow
+          # and inert. Full history is what makes the selection real.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -107,7 +113,7 @@ jobs:
       - name: Select the journeys this change requires
         id: journeys
         run: |
-          git fetch --no-tags --depth=50 origin "${{ github.base_ref }}" || true
+          git fetch --no-tags origin "${{ github.base_ref }}"
           SELECTED="$(node scripts/select-browser-journeys.mjs "origin/${{ github.base_ref }}")"
           echo "BROWSER_JOURNEYS=${SELECTED}" >> "$GITHUB_ENV"
 

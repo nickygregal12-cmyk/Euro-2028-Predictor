@@ -161,6 +161,20 @@ describe('the workflow actually uses the selector', () => {
     expect(workflow).toContain('npm run test:e2e:auth')
   })
 
+  it('checks out enough history for the diff to have a merge base', () => {
+    // A shallow checkout has no merge base with origin/main, so the diff step
+    // fails, the selector fails open, and the narrowing never happens: green,
+    // slow, and inert. This was the state of the first run of this feature.
+    const authenticatedJob = workflow.slice(
+      workflow.indexOf('authenticated-browser:'),
+      workflow.indexOf('deploy-preview-smoke:'),
+    )
+    expect(authenticatedJob).toMatch(/fetch-depth:\s*0/)
+    // A `|| true` on the base fetch would restore the same silent failure by
+    // letting a failed fetch look like a successful one.
+    expect(authenticatedJob).not.toMatch(/git fetch[^\n]*\|\|\s*true/)
+  })
+
   it('treats empty selector output as the full suite', () => {
     // The selector prints nothing to mean "everything". If the workflow passed
     // that straight through as a spec filter, Playwright would run zero specs
