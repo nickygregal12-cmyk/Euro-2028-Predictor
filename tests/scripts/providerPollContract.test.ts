@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 const edgeSource = readFileSync('supabase/functions/provider-poll/index.ts', 'utf8')
 const migrationSource = readFileSync(
-  'supabase/migrations/20260803234500_provider_ingestion_custody.sql',
+  'supabase/migrations/20260804004500_provider_ingestion_custody.sql',
   'utf8',
 )
 const supabaseConfig = readFileSync('supabase/config.toml', 'utf8')
