@@ -6,7 +6,8 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **72** | 72 canonical migrations through `20260803233000_lms_persistence.sql`; contract 72 adds the LMS setup and entrant state the resolution rule spends | MERGED; HOSTED NOT APPLIED |
+| Repository `main` | **73** | 73 canonical migrations through `20260804003000_lms_round_conclusion.sql`; contract 73 adds how an LMS round and season end, with TypeScript parity | MERGED; HOSTED NOT APPLIED |
+| Development Supabase at contract 72 | **72** | contract 72 applied 3 August 2026 through the ADR 0024 fast lane, run 30852527116 | VERIFIED |
 | Development Supabase at contract 71 | **71** | contract 71 applied 3 August 2026 through the ADR 0024 fast lane, run 30848868220 | VERIFIED |
 | Development Supabase at contract 70 | **70** | contract 70 applied 3 August 2026 through the ADR 0024 fast lane, run 30847250038 | VERIFIED |
 | Development Supabase at contract 69 | **69** | contract 69 applied 3 August 2026 through the ADR 0024 fast lane, run 30845804899 | VERIFIED |
