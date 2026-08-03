@@ -184,7 +184,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 begin
   if new.kind = 'tournament' then
     insert into public.bonus_competitions (
@@ -218,7 +218,7 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 revoke all on function predictor_internal.ensure_original_predictor_availability()
   from public, anon, authenticated, service_role;
@@ -1154,7 +1154,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_uid uuid := (select auth.uid());
   v_competition public.bonus_competitions%rowtype;
@@ -1198,7 +1198,7 @@ begin
     'outcome', 'active'
   );
 end;
-$;
+$$;
 
 create or replace function public.withdraw_bonus_competition(
   p_competition_id uuid
@@ -1207,7 +1207,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_uid uuid := (select auth.uid());
   v_competition public.bonus_competitions%rowtype;
@@ -1253,7 +1253,7 @@ begin
     'withdrawn', true
   );
 end;
-$;
+$$;
 
 create or replace function public.create_game_league(
   p_game_competition_id uuid,
