@@ -7,7 +7,7 @@ import {
 } from '../../supabase/functions/provider-poll/providerDecoders'
 
 describe('provider fixture decoders', () => {
-  it('decodes SportMonks participants and current scores', () => {
+  it('decodes SportMonks participants, UTC timestamp and CURRENT scores', () => {
     expect(
       decodeSportMonks({
         data: [
@@ -16,13 +16,16 @@ describe('provider fixture decoders', () => {
             league_id: 20,
             season_id: 30,
             round_id: 40,
-            starting_at: '2026-08-02T15:00:00Z',
+            starting_at: '2026-08-02 15:00:00',
+            starting_at_timestamp: 1785682800,
             state_id: 5,
             participants: [
               { id: 1, meta: { location: 'home' } },
               { id: 2, meta: { location: 'away' } },
             ],
             scores: [
+              { participant_id: 1, description: '1ST_HALF', score: { goals: 1 } },
+              { participant_id: 2, description: '1ST_HALF', score: { goals: 0 } },
               { participant_id: 1, description: 'CURRENT', score: { goals: 2 } },
               { participant_id: 2, description: 'CURRENT', score: { goals: 1 } },
             ],
@@ -135,7 +138,7 @@ describe('provider fixture decoders', () => {
     ).toThrow(/home and away teams must differ/)
   })
 
-  it('requires kickoff timestamps to carry an explicit timezone', () => {
+  it('requires the official SportMonks UTC timestamp instead of guessing its timezone-free display value', () => {
     expect(() =>
       decodeSportMonks({
         data: [
@@ -149,6 +152,6 @@ describe('provider fixture decoders', () => {
           },
         ],
       }),
-    ).toThrow(/with timezone/)
+    ).toThrow(/Unix timestamp in seconds/)
   })
 })
