@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 import { expectNoSeriousAxeViolations } from './axe-scan'
+import { localTournamentSeason } from './local-supabase'
 
 const PASSWORD = 'Trends-local-only-2028!'
 
@@ -29,14 +30,7 @@ async function prepareFixture(): Promise<Fixture> {
   const admin = createClient(url, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
-  const { data: tournaments, error: tournamentError } = await admin
-    .from('tournaments')
-    .select('id, lock_at')
-    .order('year')
-    .limit(1)
-  if (tournamentError) throw tournamentError
-  const tournament = tournaments?.[0]
-  if (!tournament) throw new Error('Prediction trends fixture found no tournament.')
+  const tournament = await localTournamentSeason()
 
   const { data: teams, error: teamError } = await admin
     .from('teams')
@@ -133,7 +127,7 @@ async function prepareFixture(): Promise<Fixture> {
   return {
     admin,
     tournamentId: tournament.id,
-    originalLock: tournament.lock_at,
+    originalLock: tournament.lockAt,
     userIds,
   }
 }
