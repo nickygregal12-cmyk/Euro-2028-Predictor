@@ -54,7 +54,7 @@ jobs:
           # green. `vitest list` exits 0 on an empty result, so nothing else here
           # notices. `tests/scripts/ciTestDiscoveryFloor.test.ts` keeps this
           # number honest against the files actually on disk.
-          minimum_test_files=201
+          minimum_test_files=202
           if [ "$test_count" -lt "$minimum_test_files" ]; then
             echo "Vitest discovered ${test_count} test files; at least ${minimum_test_files} are expected." >&2
             echo "Refusing to report a pass on a suite that did not run." >&2
