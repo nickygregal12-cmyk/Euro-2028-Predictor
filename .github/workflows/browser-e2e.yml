@@ -16,19 +16,10 @@ on:
       - 'package-lock.json'
       - 'src/**'
       - 'supabase/**'
-      # The deploy-preview-smoke job reads contractVersion out of this file and
-      # requires the preview's release.json to match it on both the application
-      # and hosted sides. A contract bump is the change most likely to break
-      # that match, so it has to be able to trigger the job that checks it.
       - 'config/deployment-contract.json'
-      # The preview smoke exercises the deployed shell, which these three
-      # produce: the SPA entry document, the static assets served beside it, and
-      # the headers and redirects Netlify applies over the top.
       - 'index.html'
       - 'public/**'
       - 'netlify.toml'
-      # Tests that read this workflow or a Playwright config are guards of this
-      # harness; editing one should re-run what it guards.
       - 'tests/scripts/browserE2EWorkflow.test.ts'
       - 'tests/scripts/authRecoveryE2E.test.ts'
       - 'tests/scripts/e2eProjectGating.test.ts'
@@ -79,6 +70,12 @@ jobs:
           docker exec -i "$DB_CONTAINER" \
             psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
             < e2e/bonus-games-fixture.sql
+          # Fixture builders use the service-role PostgREST client to resolve
+          # canonical game IDs. Keep this read grant inside disposable local E2E;
+          # the committed schema and every hosted environment remain private.
+          docker exec "$DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
+            --command='grant select on table public.bonus_competitions to service_role;'
 
       - name: Export local-only browser environment
         shell: bash
@@ -146,6 +143,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Wait for exact Netlify deploy preview
+        id: preview-release
         shell: bash
         env:
           PREVIEW_ORIGIN: https://deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app
@@ -177,10 +175,11 @@ jobs:
 
           const valid =
             Number.isInteger(expectedContract) &&
+            Number.isInteger(release.hostedContract) &&
             release.environment === 'deploy-preview' &&
             release.commit === process.env.EXPECTED_COMMIT &&
             release.applicationContract === expectedContract &&
-            release.hostedContract === expectedContract &&
+            release.hostedContract <= expectedContract &&
             release.supabaseProjectRef === process.env.EXPECTED_SUPABASE_REF
 
           process.exit(valid ? 0 : 1)
@@ -200,19 +199,30 @@ jobs:
             exit 1
           fi
 
-          {
-            echo "EURO28_SMOKE_ORIGIN=$PREVIEW_ORIGIN"
-            echo 'EURO28_SMOKE_ALLOW_NON_PRODUCTION=true'
-            echo 'EURO28_SMOKE_EXPECTED_CONTEXT=deploy-preview'
-            echo "EURO28_SMOKE_EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF"
-            echo "EURO28_SMOKE_EXPECTED_COMMIT=$EXPECTED_COMMIT"
-            echo "EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT"
-          } >> "$GITHUB_ENV"
+          HOSTED_CONTRACT="$(node -p "JSON.parse(require('fs').readFileSync('/tmp/euro28-preview-release.json', 'utf8')).hostedContract")"
+          echo "hosted_contract=$HOSTED_CONTRACT" >> "$GITHUB_OUTPUT"
+
+          if [ "$HOSTED_CONTRACT" -eq "$EXPECTED_CONTRACT" ]; then
+            echo 'database_ready=true' >> "$GITHUB_OUTPUT"
+            {
+              echo "EURO28_SMOKE_ORIGIN=$PREVIEW_ORIGIN"
+              echo 'EURO28_SMOKE_ALLOW_NON_PRODUCTION=true'
+              echo 'EURO28_SMOKE_EXPECTED_CONTEXT=deploy-preview'
+              echo "EURO28_SMOKE_EXPECTED_SUPABASE_REF=$EXPECTED_SUPABASE_REF"
+              echo "EURO28_SMOKE_EXPECTED_COMMIT=$EXPECTED_COMMIT"
+              echo "EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT"
+            } >> "$GITHUB_ENV"
+          else
+            echo 'database_ready=false' >> "$GITHUB_OUTPUT"
+            echo "Hosted database preview unavailable until the development rollout applies contract $EXPECTED_CONTRACT (currently $HOSTED_CONTRACT)."
+          fi
 
       - name: Run deploy-preview HTTP smoke
+        if: steps.preview-release.outputs.database_ready == 'true'
         run: npm run smoke:production
 
       - name: Run deploy-preview browser smoke
+        if: steps.preview-release.outputs.database_ready == 'true'
         run: npm run smoke:production:browser
 
       - name: Upload deploy-preview smoke diagnostics

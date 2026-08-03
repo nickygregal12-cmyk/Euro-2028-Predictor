@@ -1,119 +1,172 @@
-import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
-function gameCard(page: Page, name: string): Locator {
+type GameName = 'KO Predictor' | 'Last Man Standing' | 'Predictor Cup'
+
+async function openGamesHub(page: Page): Promise<void> {
+  await page.goto('/games')
+  await expect(page).toHaveURL((url) => url.pathname === '/games', { timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'Bonus Games', exact: true })).toBeVisible()
+  await expect(page.getByText('More ways to play Euro 2028', { exact: true })).toBeVisible()
+}
+
+function gameCard(page: Page, name: GameName): Locator {
   return page
     .getByRole('heading', { name, exact: true })
     .locator('xpath=ancestor::section[1]')
 }
 
-function desktopOnly(testInfo: TestInfo) {
-  test.skip(
-    testInfo.project.name !== 'desktop-chromium',
-    'The no-rejoin LMS lifecycle is stateful and runs once; route smoke covers both viewports.',
-  )
-}
-
-async function withdrawGame(page: Page, name: string) {
-  await page.goto('/games')
-  await expect(page).toHaveURL((url) => url.pathname === '/games')
+async function enterGame(page: Page, name: GameName): Promise<Locator> {
+  await openGamesHub(page)
   const card = gameCard(page, name)
   await expect(card).toBeVisible()
-  const withdraw = card.getByRole('button', { name: 'Withdraw', exact: true })
-  if (await withdraw.isVisible()) await withdraw.click()
-}
 
-async function enterGame(page: Page, name: string) {
-  await page.goto('/games')
-  await expect(page).toHaveURL((url) => url.pathname === '/games')
-  const card = gameCard(page, name)
-  await expect(card).toBeVisible()
   const enter = card.getByRole('button', { name: 'Enter', exact: true })
-  if (await enter.isVisible()) await enter.click()
+  if (await enter.isVisible()) {
+    await enter.click()
+  }
+
   await expect(card.getByRole('button', { name: 'Withdraw', exact: true })).toBeVisible({
+    timeout: 15_000,
+  })
+  await expect(card.getByText('Entered', { exact: true })).toBeVisible()
+  return card
+}
+
+async function withdrawGame(page: Page, name: GameName): Promise<void> {
+  await openGamesHub(page)
+  const card = gameCard(page, name)
+  const withdraw = card.getByRole('button', { name: 'Withdraw', exact: true })
+
+  if (!(await withdraw.isVisible())) return
+
+  await withdraw.click()
+  const dialog = page.getByRole('dialog', { name: 'Withdraw from this game?' })
+  await expect(dialog).toBeVisible()
+  await dialog.getByRole('button', { name: 'Withdraw', exact: true }).click()
+  await expect(card.getByRole('button', { name: 'Enter', exact: true })).toBeVisible({
     timeout: 15_000,
   })
 }
 
-test('bonus games catalogue exposes independent entry actions', async ({ page }) => {
-  await page.goto('/games')
+function firstKnockoutCard(page: Page): Locator {
+  return page
+    .getByRole('heading', { name: 'Round of 16 · R16-1', exact: true })
+    .locator('xpath=ancestor::section[1]')
+}
 
-  await expect(page).toHaveURL((url) => url.pathname === '/games')
-  await expect(page.getByRole('heading', { name: 'Games' })).toBeVisible()
-  await expect(gameCard(page, 'KO Predictor')).toBeVisible()
-  await expect(gameCard(page, 'Last Man Standing')).toBeVisible()
-  await expect(gameCard(page, 'Predictor Championship')).toBeVisible()
-})
-
-test('KO Predictor registration and withdrawal work end to end', async ({ page }) => {
-  await withdrawGame(page, 'KO Predictor')
-  await enterGame(page, 'KO Predictor')
-
-  await page.getByRole('link', { name: 'Open KO Predictor' }).click()
-  await expect(page).toHaveURL((url) => url.pathname === '/games/ko')
-  await expect(page.getByRole('heading', { name: 'KO Predictor' })).toBeVisible()
-  await expect(page.getByText('Registration confirmed', { exact: true })).toBeVisible()
-  await expect(page.getByText('Round of 16', { exact: true })).toBeVisible()
-
-  await withdrawGame(page, 'KO Predictor')
+async function openKnockoutPredictions(page: Page): Promise<Locator> {
+  await page.goto('/games/knockout')
+  await expect(page).toHaveURL((url) => url.pathname === '/games/knockout', {
+    timeout: 15_000,
+  })
   await expect(
-    gameCard(page, 'KO Predictor').getByRole('button', { name: 'Enter', exact: true }),
+    page.getByRole('heading', { name: 'Knockout predictions', exact: true }),
   ).toBeVisible()
-})
+  const card = firstKnockoutCard(page)
+  await expect(card).toBeVisible()
+  return card
+}
 
-test('KO Predictor saves and clears a protected knockout pick', async ({ page }) => {
+async function clearFirstKnockoutPrediction(page: Page): Promise<void> {
+  const card = await openKnockoutPredictions(page)
+  const clear = card.getByRole('button', { name: 'Clear', exact: true })
+  if (!(await clear.isVisible())) return
+
+  await clear.click()
+  await expect(card.getByText('Saved', { exact: true })).toHaveCount(0, {
+    timeout: 15_000,
+  })
+}
+
+async function saveFirstKnockoutPrediction(
+  page: Page,
+  homeScore: string,
+  awayScore: string,
+): Promise<void> {
+  const card = await openKnockoutPredictions(page)
+  const clear = card.getByRole('button', { name: 'Clear', exact: true })
+  if (await clear.isVisible()) {
+    await clear.click()
+    await expect(card.getByText('Saved', { exact: true })).toHaveCount(0, {
+      timeout: 15_000,
+    })
+  }
+
+  const scoreInputs = card.getByRole('textbox')
+  await expect(scoreInputs).toHaveCount(2)
+  await scoreInputs.nth(0).fill(homeScore)
+  await scoreInputs.nth(1).fill(awayScore)
+  await card.getByRole('button', { name: 'Save', exact: true }).click()
+  await expect(card.getByText('Saved', { exact: true })).toBeVisible({ timeout: 15_000 })
+}
+
+test('KO Predictor registration, scoreline save and standings work end to end', async ({
+  page,
+}) => {
   await withdrawGame(page, 'KO Predictor')
-  await enterGame(page, 'KO Predictor')
 
-  await page.getByRole('link', { name: 'Open KO Predictor' }).click()
-  const tie = page.getByRole('group', { name: 'R16-1' })
-  await expect(tie).toBeVisible()
-  await tie.getByLabel('Select Team A').check()
-  await expect(tie.getByLabel('Select Team A')).toBeChecked()
-  await expect(tie.getByText('Saved', { exact: true })).toBeVisible()
+  try {
+    const card = await enterGame(page, 'KO Predictor')
+    await expect(card.getByRole('button', { name: 'Predictions', exact: true })).toBeVisible()
+    await expect(card.getByRole('button', { name: 'Standings', exact: true })).toBeVisible()
 
-  await page.reload()
-  await expect(page.getByRole('group', { name: 'R16-1' }).getByLabel('Select Team A')).toBeChecked()
+    await saveFirstKnockoutPrediction(page, '2', '1')
 
-  await page.getByRole('group', { name: 'R16-1' }).getByLabel('Select Team A').check()
-  await expect(page.getByRole('group', { name: 'R16-1' }).getByText('Cleared', { exact: true })).toBeVisible()
-
-  await withdrawGame(page, 'KO Predictor')
+    await page.goto('/games/ko-predictor')
+    await expect(page).toHaveURL((url) => url.pathname === '/games/ko-predictor')
+    await expect(page.getByRole('heading', { name: 'KO Predictor', exact: true })).toBeVisible()
+    await expect(page.getByText('E2E Tester (you)', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Rank 1 · 0 points/)).toBeVisible()
+  } finally {
+    await clearFirstKnockoutPrediction(page)
+    await withdrawGame(page, 'KO Predictor')
+  }
 })
 
 test('Last Man Standing registration and first-round pick work end to end', async ({
   page,
-}, testInfo) => {
-  desktopOnly(testInfo)
-  await enterGame(page, 'Last Man Standing')
+}) => {
+  await withdrawGame(page, 'Last Man Standing')
 
-  await page.getByRole('link', { name: 'Open Last Man Standing' }).click()
-  await expect(page).toHaveURL((url) => url.pathname === '/games/lms')
-  await expect(page.getByRole('heading', { name: 'Last Man Standing' })).toBeVisible()
-  await expect(page.getByText('Registration confirmed', { exact: true })).toBeVisible()
+  try {
+    const card = await enterGame(page, 'Last Man Standing')
+    await card.getByRole('button', { name: 'Play', exact: true }).click()
 
-  await page.getByLabel('Round 1 pick').selectOption({ label: 'Team A' })
-  await page.getByRole('button', { name: 'Save pick' }).click()
-  await expect(page.getByText('Round pick saved', { exact: true })).toBeVisible()
+    await expect(page).toHaveURL((url) => url.pathname === '/games/lms')
+    await expect(
+      page.getByRole('heading', { name: 'Last Man Standing', exact: true }),
+    ).toBeVisible()
+    await expect(page.getByText('1 of 1 still standing', { exact: true })).toBeVisible()
 
-  await page.reload()
-  await expect(page.getByLabel('Round 1 pick')).toHaveValue('50000000-0000-0000-0000-000000000001')
+    const picker = page.getByRole('group', { name: 'Pick for Round 1 — Matchday 1' })
+    await expect(picker).toBeVisible()
+    await picker.getByRole('button', { name: 'Team A1', exact: true }).click()
+
+    await expect(page.getByText('Picked', { exact: true })).toBeVisible({ timeout: 15_000 })
+    await expect(page.getByText(/Your pick:\s*Team A1/)).toBeVisible()
+  } finally {
+    await withdrawGame(page, 'Last Man Standing')
+  }
 })
 
-test('Predictor Championship registration exposes penalty-number setup', async ({ page }) => {
-  await withdrawGame(page, 'Predictor Championship')
-  await enterGame(page, 'Predictor Championship')
+test('Predictor Cup registration shares knockout predictions and reaches the draw state', async ({
+  page,
+}) => {
+  await withdrawGame(page, 'Predictor Cup')
 
-  await page.getByRole('link', { name: 'Open Predictor Championship' }).click()
-  await expect(page).toHaveURL((url) => url.pathname === '/games/cup')
-  await expect(page.getByRole('heading', { name: 'Predictor Championship' })).toBeVisible()
-  await expect(page.getByText('Registration confirmed', { exact: true })).toBeVisible()
+  try {
+    const card = await enterGame(page, 'Predictor Cup')
+    await expect(card.getByRole('button', { name: 'My Cup', exact: true })).toBeVisible()
 
-  await page.getByLabel('Penalty number').fill('17')
-  await page.getByRole('button', { name: 'Save penalty number' }).click()
-  await expect(page.getByText('Penalty number saved', { exact: true })).toBeVisible()
+    await saveFirstKnockoutPrediction(page, '1', '0')
 
-  await page.reload()
-  await expect(page.getByLabel('Penalty number')).toHaveValue('17')
-
-  await withdrawGame(page, 'Predictor Championship')
+    await page.goto('/games/cup')
+    await expect(page).toHaveURL((url) => url.pathname === '/games/cup')
+    await expect(page.getByRole('heading', { name: 'Predictor Cup', exact: true })).toBeVisible()
+    await expect(page.getByText('Waiting for the draw', { exact: true })).toBeVisible()
+    await expect(page.getByText(/The field \(1 so far\) closes/)).toBeVisible()
+  } finally {
+    await clearFirstKnockoutPrediction(page)
+    await withdrawGame(page, 'Predictor Cup')
+  }
 })

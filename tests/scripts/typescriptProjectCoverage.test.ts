@@ -174,9 +174,16 @@ describe('JavaScript under scripts/', () => {
    * decides whether a build passes: the three deployment-contract and
    * environment validators, and the compressed bundle budget.
    */
+  /**
+   * Typechecked JavaScript. Originally the three deploy gates plus the
+   * environment validator; it now also carries scripts that typecheck cleanly
+   * on arrival, because adding a new script to the deferred backlog when it
+   * has zero errors would record a debt that does not exist.
+   */
   const CHECKED = [
     'scripts/check-bundle-budget.mjs',
     'scripts/deployment-contract-expectations.mjs',
+    'scripts/reset-development-seed.mjs',
     'scripts/validate-deployment-contract.mjs',
     'scripts/validate-netlify-environment.mjs',
   ] as const
@@ -215,7 +222,7 @@ describe('JavaScript under scripts/', () => {
     expect(committed).toEqual(accounted)
   })
 
-  it('checks exactly the deploy gates', () => {
+  it('checks exactly the declared typechecked inventory', () => {
     const gates = JSON.parse(
       stripJsonComments(readFileSync(resolve(repositoryRoot, 'tsconfig.gates.json'), 'utf8')),
     ) as { files: string[]; compilerOptions: Record<string, unknown> }
