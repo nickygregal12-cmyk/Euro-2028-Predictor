@@ -140,7 +140,9 @@ npm run test
 npm audit --omit=dev --audit-level=high
 ```
 
-Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys. Hosted claims require target-specific hosted verification.
+Migration or database-backed domain changes also require the disposable workflow represented by `.github/workflows/database-parity.yml`. Browser-critical changes require relevant Playwright journeys — `scripts/select-browser-journeys.mjs` chooses them from the change and widens to the full suite on anything it does not recognise. Hosted claims require target-specific hosted verification.
+
+How work reaches the **development** environment — disposable data, the additive-migration fast lane, and the informational preview contract gap — is [ADR 0024](docs/adr/0024-development-environment-operating-model.md). It relaxes nothing about production.
 
 `tsc -b` strict-checks application code, TypeScript tests, Playwright/e2e fixtures, production-smoke TypeScript, TypeScript scripts, Playwright configs and the three JavaScript deploy gates. The remaining JavaScript files under `scripts/` are measured in the explicit deferred allowlist.
 

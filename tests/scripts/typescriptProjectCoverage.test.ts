@@ -170,12 +170,8 @@ describe('TypeScript project coverage', () => {
 
 describe('JavaScript under scripts/', () => {
   /**
-   * The gates, checked under `allowJs`/`checkJs` by tsconfig.gates.json. Each
-   * decides whether a build passes: the three deployment-contract and
-   * environment validators, and the compressed bundle budget.
-   */
-  /**
-   * Typechecked JavaScript. Originally the three deploy gates plus the
+   * Typechecked JavaScript under `allowJs`/`checkJs` in tsconfig.gates.json.
+   * Originally the three deploy gates plus the
    * environment validator; it now also carries scripts that typecheck cleanly
    * on arrival, because adding a new script to the deferred backlog when it
    * has zero errors would record a debt that does not exist.
@@ -184,6 +180,7 @@ describe('JavaScript under scripts/', () => {
     'scripts/check-bundle-budget.mjs',
     'scripts/deployment-contract-expectations.mjs',
     'scripts/reset-development-seed.mjs',
+    'scripts/select-browser-journeys.mjs',
     'scripts/validate-deployment-contract.mjs',
     'scripts/validate-netlify-environment.mjs',
   ] as const

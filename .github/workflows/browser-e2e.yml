@@ -45,6 +45,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The journey selector diffs against the base ref. A shallow clone
+          # has no merge base with origin/main, so the diff fails, the selector
+          # fails open, and the narrowing silently never happens — green, slow
+          # and inert. Full history is what makes the selection real.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -104,8 +110,26 @@ jobs:
             echo 'VITE_DEV_USER_PASSWORD=E2e-local-only-2028!'
           } >> "$GITHUB_ENV"
 
+      - name: Select the journeys this change requires
+        id: journeys
+        run: |
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          SELECTED="$(node scripts/select-browser-journeys.mjs "origin/${{ github.base_ref }}")"
+          echo "BROWSER_JOURNEYS=${SELECTED}" >> "$GITHUB_ENV"
+
       - name: Run authenticated application journeys
-        run: npm run test:e2e
+        run: |
+          # Empty means the full suite (ADR 0024). Passing an empty filter to
+          # Playwright would run zero specs and exit 0, which reports green
+          # while testing nothing — so the emptiness is branched on explicitly
+          # rather than interpolated into the command.
+          if [ -z "${BROWSER_JOURNEYS}" ]; then
+            echo 'Running the full authenticated suite.'
+            npm run test:e2e
+          else
+            echo "Running targeted journeys: ${BROWSER_JOURNEYS}"
+            npm run test:e2e -- ${BROWSER_JOURNEYS}
+          fi
 
       - name: Run signup and password-recovery journeys
         run: npm run test:e2e:auth

@@ -1,0 +1,199 @@
+name: Development fast-lane rollout
+
+# ADR 0024: an ADDITIVE, non-destructive development migration applies through
+# this lane — CI, rebuild and the populated transition having already passed on
+# the merged commit — instead of the full encrypted-backup, restore-rehearsal
+# and manual-approval ceremony that belongs to production.
+#
+# What this lane does NOT relax:
+#   - it runs only from main, only against the development project, and refuses
+#     production outright;
+#   - it PROVES the pending migrations are additive by reading them, rather
+#     than trusting the person who dispatched it. Anything destructive is
+#     refused and sent to `stage-c1-development-rollout.yml`, which keeps the
+#     backup and rehearsal;
+#   - it takes a lightweight snapshot first, which ADR 0024 requires even here.
+#
+# Production has no fast lane and never will.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact development project ref confirmation
+        required: true
+      confirmation:
+        description: Type APPLY-DEVELOPMENT-FAST-LANE to proceed
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  EXPECTED_PROJECT_REF: iouzoutneyjpugbbtdem
+  FORBIDDEN_PRODUCTION_REF: vkfnsqdyhvtwyqkisxhk
+  CONFIRMATION_PHRASE: APPLY-DEVELOPMENT-FAST-LANE
+
+jobs:
+  fast-lane:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || {
+            echo 'ERROR: this workflow runs only from refs/heads/main.'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || {
+            echo 'ERROR: checked-out HEAD is not exact origin/main.'
+            exit 1
+          }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || {
+            echo 'ERROR: checkout is not clean.'
+            exit 1
+          }
+          if [ "${INPUT_PROJECT_REF}" = "${FORBIDDEN_PRODUCTION_REF}" ]; then
+            echo 'ERROR: production has no fast lane. Use the guarded production process.'
+            exit 1
+          fi
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || {
+            echo "ERROR: only development project ${EXPECTED_PROJECT_REF} is permitted."
+            exit 1
+          }
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || {
+            echo 'ERROR: confirmation phrase does not match.'
+            exit 1
+          }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.84.2
+
+      - name: Preflight the development secret without printing it
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_DEV_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_DEV_DB_URL is not set.'
+            exit 1
+          }
+          case "${SUPABASE_DEV_DB_URL}" in
+            *"${FORBIDDEN_PRODUCTION_REF}"*)
+              echo 'ERROR: the development secret resolves to the production project.'
+              exit 1
+              ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *)
+              echo 'ERROR: the development secret names neither known project.'
+              exit 1
+              ;;
+          esac
+
+      - name: Determine and prove the pending migrations are additive
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Everything the hosted database has not yet applied.
+          supabase migration list --db-url "${SUPABASE_DEV_DB_URL}" > /tmp/migration-list.txt 2>&1 || {
+            echo 'ERROR: could not read the hosted migration state.'
+            exit 1
+          }
+          pending="$(awk -F'|' '$3 ~ /[0-9]/ && $2 !~ /[0-9]/ { gsub(/ /, "", $3); print $3 }' /tmp/migration-list.txt || true)"
+          if [ -z "${pending}" ]; then
+            echo 'Nothing pending; the development database already matches the repository.'
+            echo 'FAST_LANE_PENDING=' >> "$GITHUB_ENV"
+            exit 0
+          fi
+          echo "Pending migrations:"
+          echo "${pending}"
+
+          # ADR 0024 admits only additive migrations here. Read them rather than
+          # trusting the dispatcher: a destructive statement in a "fast lane"
+          # run is exactly the case the full process exists for.
+          destructive=0
+          for version in ${pending}; do
+            file="$(git ls-files "supabase/migrations/${version}_*.sql" | head -1)"
+            [ -n "${file}" ] || { echo "ERROR: no committed file for ${version}."; exit 1; }
+            if grep -Eiq '(drop[[:space:]]+(table|column|schema|type|function|trigger|policy)|truncate[[:space:]]|delete[[:space:]]+from|alter[[:space:]]+table[[:space:]]+[^;]*drop[[:space:]]+column)' "${file}"; then
+              echo "REFUSED: ${file} contains a destructive statement."
+              destructive=1
+            fi
+          done
+          if [ "${destructive}" = '1' ]; then
+            echo 'ERROR: destructive migrations do not use the fast lane.'
+            echo 'Use stage-c1-development-rollout.yml, which keeps the backup and restore rehearsal.'
+            exit 1
+          fi
+          echo 'FAST_LANE_PENDING=1' >> "$GITHUB_ENV"
+
+      - name: Take the lightweight pre-apply snapshot
+        if: env.FAST_LANE_PENDING == '1'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ADR 0024 keeps a snapshot even in the fast lane. It is a plain dump,
+          # not the encrypted, restore-rehearsed artefact production requires.
+          mkdir -p /tmp/fast-lane
+          supabase db dump --db-url "${SUPABASE_DEV_DB_URL}" --data-only -f /tmp/fast-lane/pre-apply-data.sql
+          supabase db dump --db-url "${SUPABASE_DEV_DB_URL}" -f /tmp/fast-lane/pre-apply-schema.sql
+          echo "Snapshot bytes: $(wc -c < /tmp/fast-lane/pre-apply-data.sql) data, $(wc -c < /tmp/fast-lane/pre-apply-schema.sql) schema"
+
+      - name: Apply the pending migrations
+        if: env.FAST_LANE_PENDING == '1'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_DEV_DB_URL}"
+
+      - name: Confirm the hosted contract now matches the repository
+        if: env.FAST_LANE_PENDING == '1'
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --db-url "${SUPABASE_DEV_DB_URL}" > /tmp/migration-list-after.txt
+          if awk -F'|' '$3 ~ /[0-9]/ && $2 !~ /[0-9]/ { found=1 } END { exit !found }' /tmp/migration-list-after.txt; then
+            echo 'ERROR: migrations remain unapplied after the push.'
+            exit 1
+          fi
+          expected="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          [ "${committed}" = "${expected}" ] || {
+            echo "ERROR: repository has ${committed} migrations but the contract requires ${expected}."
+            exit 1
+          }
+          echo "Development is at contract ${expected}."
+
+      - name: Upload the snapshot and logs
+        if: ${{ !cancelled() && env.FAST_LANE_PENDING == '1' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: development-fast-lane-evidence
+          path: |
+            /tmp/fast-lane/
+            /tmp/migration-list.txt
+            /tmp/migration-list-after.txt
+          retention-days: 7
