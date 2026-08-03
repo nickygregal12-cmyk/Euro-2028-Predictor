@@ -16,7 +16,13 @@ The server-only poller supports three explicit provider contracts:
 - API-Football;
 - football-data.org.
 
-Each provider has a strict decoder. Missing required objects, identities, timezone-qualified kickoff instants, distinct participants or valid score values fail closed with a path-specific `ProviderDecodeError`. Duplicate fixture identities in one response are rejected. Provider payloads are never treated as application domain objects.
+Each provider has a strict decoder. Missing required objects, identities, authoritative kickoff instants, distinct participants or valid score values fail closed with a path-specific `ProviderDecodeError`. Duplicate fixture identities in one response are rejected. Provider payloads are never treated as application domain objects.
+
+The contract follows the current provider shapes rather than guessing from display strings:
+
+- SportMonks uses `starting_at_timestamp` for the UTC instant because `starting_at` is timezone-free, and uses the `CURRENT` score rows;
+- API-Football uses `fixture.date`, whose official contract includes a timezone offset, plus `status.short` and `goals.home` / `goals.away`;
+- football-data.org uses `utcDate` and `score.fullTime.home` / `score.fullTime.away`.
 
 ## Service authentication
 
@@ -25,7 +31,7 @@ Each provider has a strict decoder. Missing required objects, identities, timezo
 - `verify_jwt = false` is deliberate: current Supabase secret keys are API keys, not JWTs.
 - The caller sends the named `provider-poll` secret key in the `apikey` header.
 - The function reads that named key from `SUPABASE_SECRET_KEYS` and compares it in constant time before parsing the request or making a provider call.
-- Disposable local Supabase may fall back to the legacy `SUPABASE_SERVICE_ROLE_KEY`; hosted rollout requires the named key.
+- Disposable local Supabase may fall back to the legacy `SUPABASE_SERVICE_ROLE_KEY` only when `SUPABASE_URL` resolves to an allowlisted local hostname. A hosted legacy fallback is refused.
 - The same secret key is sent to the Data API in the `apikey` header when calling the two custody RPCs. It is never sent as an `Authorization: Bearer` value.
 
 The function must not be deployed until the named secret key exists. The key belongs to Supabase API-key configuration, not the repository, Netlify or a browser environment.
@@ -39,7 +45,8 @@ The caller selects a provider and supplies a bounded provider-relative path. The
 - rejects absolute URLs, protocol-relative paths, parent traversal, fragments and credentials;
 - refuses redirects;
 - applies a bounded request timeout;
-- never places a provider credential in a URL.
+- never places a provider credential in a URL;
+- uses the provider's documented authentication header: raw `Authorization` token for SportMonks, `x-apisports-key` for API-Football and `X-Auth-Token` for football-data.org.
 
 The database independently constrains archived request URLs to the matching provider origin.
 
@@ -49,12 +56,12 @@ The Edge Function must:
 
 1. authenticate the caller before any provider request;
 2. fetch only from the selected provider's fixed HTTPS origin;
-3. read the exact response body as text;
-4. archive that text, selected response headers and request evidence through `archive_provider_response`;
-5. only after the archive succeeds, enforce the processing-size limit, parse JSON and run the provider decoder;
+3. stream the response through a 12 MiB hard archive bound rather than using an unbounded `response.text()` read;
+4. archive the complete response text, selected response headers and request evidence through `archive_provider_response`;
+5. only after the archive succeeds, enforce the 10 MiB processing limit, parse JSON and run the provider decoder;
 6. append a success or failure attempt through `record_provider_response_processing`.
 
-If archival fails, decoding must not run. Provider HTTP errors and bounded oversized responses are archived and receive failed processing evidence. A transport failure has no response body to archive and returns a transport error with a correlation id.
+If archival fails, decoding must not run. Provider HTTP errors and successful responses between 10 MiB and 12 MiB are archived and receive failed processing evidence. A transport failure or a body that breaches the 12 MiB hard archive bound has no complete response text to archive and returns a correlation id without decoding.
 
 ## Database boundary
 
@@ -109,9 +116,9 @@ A first poll may occur only on hosted development after contract 66 is verified 
 - database lint;
 - complete pgTAP, including executable custody, grant, origin and append-only tests;
 - migration and RPC-signature parity;
-- strict decoder unit tests;
-- source guard proving authentication and archive-before-decode order;
+- strict decoder unit tests based on current official provider fields;
+- source guard proving authentication, bounded reading and archive-before-decode order;
 - TypeScript coverage of every Edge Function source;
-- Edge Function startup/bundle through disposable local Supabase;
+- Edge Function startup plus an unauthorised 401 request through disposable local Supabase, with no caller key or provider credential supplied;
 - full authenticated browser regression proving the new internal tables do not change seeded application behavior;
 - no hosted write, provider call, key/secret change, Netlify change or production action.
