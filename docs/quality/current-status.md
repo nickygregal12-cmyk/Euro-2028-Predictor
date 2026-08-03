@@ -2,7 +2,7 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 2 August 2026
+**Status date:** 3 August 2026
 
 ## Product position
 
@@ -14,7 +14,7 @@ The product is the **Football Prediction Hub** (ADR 0020): a multi-competition f
 - product phases and gates: [`../architecture/programme-plan.md`](../architecture/programme-plan.md);
 - engineering sequence: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md);
 - current execution sequence: [`../roadmap.md`](../roadmap.md);
-- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0021-sharing-surface-priority.md`](../adr/0021-sharing-surface-priority.md); the product model is [`../adr/0020-football-prediction-hub-product-model.md`](../adr/0020-football-prediction-hub-product-model.md).
+- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0022-season-preset-threshold-and-shared-cup-machinery.md`](../adr/0022-season-preset-threshold-and-shared-cup-machinery.md); the product model is [`../adr/0020-football-prediction-hub-product-model.md`](../adr/0020-football-prediction-hub-product-model.md).
 
 ## Repository and release baseline
 
@@ -44,7 +44,10 @@ The product is the **Football Prediction Hub** (ADR 0020): a multi-competition f
 | Game-owned lock policy | **PR #353 merged 2 August 2026.** `CompetitionConfig` carries no `lockPolicy`; the selected game supplies its own explicit policy (ADR 0020): Original Predictor entry/0-minute, Main Predictor matchweek/0-minute, Last Man Standing matchweek/30-minute. Missing, unknown, stale or incompatible policies fail closed |
 | LeagueTable contrast guard | PR #344 merged 2 August 2026 — `--mut` is never a foreground; static design-system guard added |
 | DEV season preview | PR #345 recovered under game-owned lock policy: same season resolving Main Predictor (0) and LMS (30) side by side; round-robin, BST/GMT and fail-closed evidence retained; DEV-only, no persistence |
-| Next executable issue | **Hosted Stage C1 rollout (owner-gated), then C1b persistent game catalogue/memberships as contract 66, then provider-ingestion custody (PR #352 recreated on top of C1b) as contract 67, then the domestic Main Predictor vertical slice.** No C2 work or production write is authorised |
+| Season rule authorities | **Complete in pure domain, 3 August 2026.** PRs #372, #373, #375, #377, #379, #381 and #383 took `src/domain/season/` from three modules to thirteen, encoding every rule ADRs 0012, 0013 and 0014 pin down. **These are authorities with no consumers**: no persistence, no surface, no SQL counterpart and no `tests/database-parity/` coverage. See the season-domain row below |
+| Season/Cup SQL parity | **Absent and required.** The season domain modules have no PostgreSQL counterpart, so no parity suite exists for season scoring, LMS or the Cup. ADR 0012 requires season scoring parity and ADR 0022 (as corrected) records the Cup case. This gap closes only when the corresponding SQL lands |
+| ADR 0022 | Merged 3 August 2026 (PR #383), **corrected the same day** (PR #384). Supplies the three LMS presets ADR 0013 mandated but left undefined, and the 100-entrant public Cup threshold ADR 0014 left open — both now executable. Its Cup-machinery decision was corrected on two wrong premises: there is no live entrant history, and the machinery is PostgreSQL (`predictor_internal.cup_*`) rather than TypeScript, so nothing in `src/domain` was extractable and ADR 0011's separation law was never at risk |
+| Next executable issue | **C1b persistent game catalogue/memberships as contract 66 (PR #371, in flight and not merged — its Browser E2E fails across authenticated surfaces), then the owner-approved guarded contract-66 development rollout, then provider-ingestion custody (PR #352 recreated on top of C1b) as contract 67, then wiring the season authorities to persistence with SQL parity.** No C2 work or production write is authorised |
 | Cup winner deletion semantics | PR #271 → contract **64**. Not a Stage C migration; an independent declaration of an omitted `on delete` action, applied to development and owner-verified |
 | Production posture | Controlled pre-launch target; production remains contract 63 and deploys stay paused until an intentional release milestone |
 
@@ -97,7 +100,21 @@ The development Supabase inspection was limited to project identity/version and 
 - automated desktop/phone accessibility and targeted overflow checks;
 - deployment-contract, migration timestamp, CI, full Database parity, Browser E2E and exact-release controls.
 
-These are evidence for the first competition. Contract 65 adds the shared competition-season schema foundation, but domestic-season game rules, ingestion and multi-competition surfaces do not yet exist.
+These are evidence for the first competition. Contract 65 adds the shared competition-season schema foundation. As of 3 August 2026 the domestic-season **rules** exist as pure domain authorities (below); their **persistence, surfaces, SQL parity and ingestion do not**.
+
+## Season domain authorities — rules without consumers
+
+Landed 3 August 2026 across PRs #372, #373, #375, #377, #379, #381 and #383. Thirteen modules under `src/domain/season/`, all pure: no storage, no network, no ambient clock, no tournament imports, each with source-level guards proving that.
+
+| Area | Modules | Authority |
+| --- | --- | --- |
+| Main Predictor | `scoring`, `standings`, `matchweekSettlement`, `cardSubmission`, `fixtureReassignment` | ADR 0012 as amended by ADR 0020 |
+| Last Man Standing | `lmsEligibility`, `lmsRoundResolution`, `lmsPresets` | ADR 0013 as amended by ADR 0020 and ADR 0022 |
+| Predictor Cup | `cupFormat`, `cupTieSettlement`, `cupSchedule`, `cupGroupTable`, `cupLaunch` | ADR 0014 as amended by ADR 0020 and ADR 0022 |
+
+**What this is not.** No entry, membership, matchweek, prediction or standing is persisted by any of it; no surface renders it; no PostgreSQL implementation mirrors it and therefore no parity suite guards it. Treating these modules as a working season product would be a category error — they are the rule layer a future vertical slice consumes, and the slice is blocked on C1b.
+
+**Deliberately not built, for want of authority:** `maxRemainingPoints` generalisation to a rolling season context (ADR 0012 names the consequence but not the semantics), and any season Cup qualification, seeding or bracket implementation (ADR 0022 as corrected: that machinery is SQL, and rescoping it follows C1b).
 
 ## Landed control and Stage C foundation sequence
 

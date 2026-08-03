@@ -1,24 +1,20 @@
-# Euro 2028 Predictor
+# Football Prediction Hub
 
-A mobile-first Euro 2028 football predictor web app built with React 19, TypeScript, Vite, Supabase (Postgres, Auth, RLS and RPCs) and Netlify.
+A mobile-first, multi-competition football prediction platform built with React 19, TypeScript, Vite, Supabase (Postgres, Auth, RLS and RPCs) and Netlify.
+
+Euro 2028 is the preserved first tournament baseline. The platform now targets reusable domestic league seasons and tournament competitions through separately joined games including Match/Original Predictor, Last Man Standing, Predictor Championship and KO Predictor.
 
 ## Current position
 
-Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work.
+Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before starting work. It is the only live authority for:
 
-A controlled environment split is active for PR #193:
+- current repository and hosted contracts;
+- merged implementation;
+- open blockers and risks;
+- the next executable action;
+- production/development release posture.
 
-- the repository candidate and development Supabase are at **contract 62** through `20260729122200_final_standings_tiebreaks.sql`;
-- Netlify `dev`, `branch-deploy` and `deploy-preview` declare 62 and use development Supabase;
-- production Supabase and Netlify production remain aligned and re-locked at **contract 60**;
-- no contract-61/62 production migration or application deploy has been authorised;
-- the verified production release remains the PR #184 Bonus Games application.
-
-Contract 61 adds bounded authenticated post-lock prediction consensus. Contract 62 activates the approved final standings tie-break order after every tournament result while preserving points-only live ranks.
-
-Normal work continues against development Supabase. Production remains milestone-only and requires a fresh backup/preflight, explicit approval and exact release verification.
-
-This does **not** mean the product is tournament-launch-ready. Official Euro 2028 data, operational ownership, Auth/SMTP decisions, manual accessibility review and the full tournament/rollback dress rehearsal remain.
+Do not copy contract numbers or hosted claims from this README into operational work. Normal development uses the development environment; production promotion is an explicit milestone with its own guarded process.
 
 ## Setup
 
@@ -30,92 +26,87 @@ npm run lint
 npm run build
 ```
 
-Copy `.env.example` to `.env.local` and use development Supabase values only. Never point local development, deploy previews or branch deploys at the final-target Supabase project.
+Copy `.env.example` to `.env.local` and use development Supabase values only. Never point local development, deploy previews or branch deploys at the final-target production project.
+
+## Product hierarchy
+
+```text
+Football Prediction Hub
+└── Competition season
+    ├── competition dashboard and real football information
+    ├── Match or Original Predictor
+    ├── Last Man Standing
+    ├── Predictor Championship
+    ├── KO Predictor where supported
+    └── game-scoped private leagues/competitions
+```
+
+Following a competition and joining a game are separate actions. Every game owns its own entry, rules, scoring/state and standings.
 
 ## Project structure
 
 ```text
 src/
-  app/            # app shell, routing, providers
-  design-system/  # shared UI primitives and token-driven components
+  app/            # shell, routing and providers
+  design-system/  # shared token-driven UI primitives
   dev/            # dev-only component gallery
   domain/
-    tournament/   # pure tournament rules and calculations
-  features/       # auth, predict, trends, leagues, matches, games, profile, etc.
+    competition/  # shared pure context, timing and neutral competition rules
+    tournament/   # tournament-only rules
+    season/       # season-only rules
+  features/       # hub, auth, predictions, matches, games, leagues, profiles, admin
   services/
     supabase/     # browser database queries and RPC wrappers
-  styles/         # tokens, fonts, flags
+  styles/         # tokens, fonts and identity assets
+
 tests/
   domain/
   database-parity/
   features/ services/ scripts/ app/
+
 supabase/
   migrations/     # append-only repository migration chain
   tests/          # local pgTAP behaviour and permission tests
   seed.sql
   prod-baseline.sql
+
 scripts/
   seed-dev/
   database-parity/
   database-rollout/
+
 docs/
-  quality/        # audits, risk register, reconciliations and live status
+  adr/            # architecture/product decisions
+  architecture/   # programme, engineering and information architecture
+  quality/        # live status, risks and evidence
+  ops/            # repeatable operational procedures
 ```
 
 ## Domain and database principles
 
-Tournament rules are implemented first as pure functions under `src/domain/tournament/`. Components render domain results rather than inventing standings, scoring or bracket behaviour.
+- Domain rules are pure: no storage, network or ambient clock reads; time is an input.
+- Shared competition rules live under `src/domain/competition/`.
+- Tournament and season implementations do not import one another.
+- One game's scoring code never imports another's.
+- Components render domain/read-model output and never call Supabase directly.
+- Browser data access goes through `src/services/supabase/`.
+- The database is authoritative for locks, submissions, official results, progression, scoring and server-enforced reveal/access.
+- Live feeds are provisional. Protected confirmation/correction remains the permanent scoring/progression gate.
+- Competition/game separation must be visible in the interface as well as true in storage.
 
-The predicted group-order contract is mirrored by a private PostgreSQL implementation in `predictor_internal`. Database parity rebuilds disposable local Supabase, runs database lint and pgTAP, and compares normalized TypeScript/PostgreSQL outputs fixture by fixture.
+## Scoring
 
-The repository contract is authoritative for locks, submission, derived group positions, result lifecycle, scoring recomputation, winner propagation, bracket validation, race-safe clearing, function execution boundaries, reference integrity, administrator control, automatic submission, bounded reads, operating caps, Account controls, Bonus Games, post-lock consensus and final standings.
+Scoring is game-specific.
 
-## Scoring and final ranking
-
-`docs/scoring-rules.md` is the scoring source of truth. Values are transcribed into `src/domain/tournament/scoringConfig.ts` and mirrored in SQL.
-
-During the tournament, standings are ranked by points. Once every result is confirmed, equal points are separated by:
-
-1. exact group-stage scores;
-2. correct group-stage outcomes;
-3. correct knockout teams;
-4. correct champion;
-5. closest predicted group-stage goals total.
-
-Players still equal after all five share the position.
+[`docs/scoring-rules.md`](docs/scoring-rules.md) is authoritative for the preserved Euro Original Predictor configuration and stays aligned with TypeScript, SQL and tests. Domestic Match Predictor, season LMS and Predictor Championship rules are governed by their ADRs and dedicated authorities; tournament values are not platform defaults.
 
 ## Verification
 
-Application CI runs:
+Application CI includes reproducible install, build/type-check, zero-warning lint, application tests and high-severity production dependency audit.
 
-- reproducible install;
-- build/type-check;
-- lint;
-- application tests;
-- high-severity production dependency audit.
+Database-backed changes additionally use disposable local Supabase for full migration rebuild, database lint, pgTAP, permission/contract checks and TypeScript/PostgreSQL parity.
 
-Database parity CI runs:
-
-- disposable local Supabase start;
-- full migration rebuild through the current repository contract;
-- database lint;
-- all pgTAP suites, including privilege allowlists, consensus and final standings;
-- TypeScript/PostgreSQL differential parity;
-- clean teardown.
-
-Browser E2E covers authenticated desktop/mobile prediction, submission, clearing, bracket conflicts, post-lock rejection, private leagues, Auth recovery, Match Centre, Profile/H2H privacy, Account, Bonus Games, tournament-information states and Prediction Trends. Exact deploy-preview smoke is contract-gated.
-
-## Current contract-62 development candidate
-
-The candidate supports everything in production contract 60 plus:
-
-- a richer locked My Entry state with champion, review, Trends, joker, profile and standings actions;
-- bounded post-lock consensus covering champion race, predicted final, awards, agreement/division, trusted team, goals spread and caller-only unique picks;
-- final overall/private standings using the approved five-step tie-break order;
-- explicit final-standings explanation UI;
-- desktop/phone Trends Browser E2E, mobile overflow proof and axe coverage.
-
-Production remains contract 60 until separate approval.
+Browser-critical journeys use authenticated desktop/phone Playwright coverage. Exact deploy-preview/production smoke is contract-gated. Hosted claims require target-specific evidence.
 
 ## Documentation authority
 
@@ -125,13 +116,14 @@ Production remains contract 60 until separate approval.
 | Agent, Git and database discipline | `AGENTS.md`; `CLAUDE.md` |
 | Current risks | `docs/quality/risk-register.md` |
 | Migration inventory and hosted applied state | `docs/ops/ops-pending-migrations.md` |
-| Scoring and entry validity | `docs/scoring-rules.md` |
-| Tournament facts and structure | `docs/tournament-structure.md` |
-| Architecture and tournament states | `docs/architecture-and-tournament-states.md` |
-| Interface and design system | `docs/design-system.md` |
-| Competition boundaries | `docs/competition-structure.md` |
+| Platform/product decisions | `docs/adr/README.md` |
+| Hub routes, navigation, onboarding and page ownership | `docs/architecture/hub-information-architecture.md` |
+| Competition context, locks and match/game states | `docs/architecture-and-tournament-states.md` |
+| Interface and visual design system | `docs/design-system.md` |
+| Competition/game separation and private-container structure | `docs/competition-structure.md` |
+| Euro tournament facts and structure | `docs/tournament-structure.md` |
 | Future product sequence | `docs/roadmap.md` |
-| Platform architecture decisions | `docs/adr/` |
-| Operations records and repeatable procedures | `docs/ops/` |
+| Detailed active/parked inventory | `MASTER-TODO.md` |
+| Operations records and procedures | `docs/ops/` |
 
-Dated audits and reconciliations remain historical evidence. Roadmap and TODO documents describe future intent and sequencing, not proof that a feature or migration is live.
+Dated audits and reconciliations are historical evidence. Planning documents describe target intent and sequencing; code/tests and verified hosted evidence decide implementation truth.
