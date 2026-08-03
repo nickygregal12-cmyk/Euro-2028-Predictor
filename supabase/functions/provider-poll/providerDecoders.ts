@@ -91,6 +91,18 @@ function isoInstantAt(provider: ProviderName, value: unknown, path: string): str
   return new Date(parsed).toISOString()
 }
 
+function unixInstantAt(provider: ProviderName, value: unknown, path: string): string {
+  if (
+    typeof value !== 'number'
+    || !Number.isSafeInteger(value)
+    || value < 0
+    || value > 253402300799
+  ) {
+    throw new ProviderDecodeError(provider, path, 'expected a valid Unix timestamp in seconds')
+  }
+  return new Date(value * 1000).toISOString()
+}
+
 function exactlyTwoParticipants(
   provider: ProviderName,
   participants: unknown,
@@ -163,7 +175,7 @@ export function decodeSportMonks(payload: unknown): NormalizedFixture[] {
     for (let scoreIndex = 0; scoreIndex < scores.length; scoreIndex += 1) {
       const scorePath = `${path}.scores[${scoreIndex}]`
       const score = objectAt(provider, scores[scoreIndex], scorePath)
-      if (score.description !== 'CURRENT' && score.description !== 'FT') continue
+      if (score.description !== 'CURRENT') continue
       const participantId = idAt(provider, score.participant_id, `${scorePath}.participant_id`)
       const goals = nullableScoreAt(
         provider,
@@ -195,7 +207,11 @@ export function decodeSportMonks(payload: unknown): NormalizedFixture[] {
       roundProviderId: nullableIdAt(provider, row.round_id, `${path}.round_id`),
       homeTeamProviderId: homeId,
       awayTeamProviderId: awayId,
-      kickoffAt: isoInstantAt(provider, row.starting_at, `${path}.starting_at`),
+      kickoffAt: unixInstantAt(
+        provider,
+        row.starting_at_timestamp,
+        `${path}.starting_at_timestamp`,
+      ),
       status: idAt(provider, row.state_id ?? row.result_info ?? 'unknown', `${path}.status`),
       homeScore,
       awayScore,
