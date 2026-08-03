@@ -30,10 +30,10 @@ A planning document never overrides an ADR. Process, prepared tooling or a chat 
 
 The annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc47175c43b6da`, preserving the contract-63 Euro 2028 baseline. Remaining tournament work is parked until January 2028.
 
-Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md). At the 30 July 2026 governance decision:
+Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md). As of 3 August 2026:
 
-- the PR #317 repository candidate is contract **66**;
-- current `main` and development Supabase remain contract **64**;
+- the repository is contract **67**;
+- development Supabase is hosted at contract **66**, so the repository leads it by one additive migration;
 - production Supabase and the last published application remain contract **63**;
 - production Netlify deploys are paused by the contract gate by design;
 - no agent may promote production merely to equalise contract numbers.
@@ -46,12 +46,12 @@ PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `
 
 **PR #236 is merged** and all seven pre-migration contracts have landed through PR #292. The accepted governance amendment splits implementation:
 
-- **Stage C1 — issue #303:** merged to `main` at repository contract 65 (PR #317 foundation, PR #349 populated-audit hotfix, PRs #350/#351 hosted rollout tooling and guarded workflow). The current auth-owned competitive rows, foreign-key actions and ownership RLS remain unchanged. The hosted development apply runs only through the guarded workflow and is currently owner-gated on the `SUPABASE_DEV_DB_URL` Session pooler secret.
+- **Stage C1 — issue #303:** merged to `main` at repository contract 65 (PR #317 foundation, PR #349 populated-audit hotfix, PRs #350/#351 hosted rollout tooling and guarded workflow). The current auth-owned competitive rows, foreign-key actions and ownership RLS remain unchanged. The hosted development apply is complete: contract 65 on 2 August 2026 through the guarded workflow, contract 66 on 3 August 2026 through the ADR 0024 additive fast lane. Nothing is owner-gated.
 - **Stage C2 — issue #272:** profile ownership, account erasure, pseudonymisation and related RLS. C2 remains blocked by the independent data-protection review.
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The repository is at **contract 65** through `20260730235602_stage_c1_competition_season_foundation.sql`, merged on `main`. Development Supabase remains hosted at contract 64; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
+The repository is at **contract 67** through `20260803180000_matchweek_lock_scope.sql`, merged on `main`. Development Supabase is hosted at contract 66; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
 
 **Lock policy is game-owned (ADR 0020, PR #353).** `CompetitionConfig` describes identity, calendar and structure only; the selected game supplies its own explicit `lockPolicy` (Original Predictor entry/0, Main Predictor matchweek/0, Last Man Standing matchweek/30). A missing, unknown, stale or incompatible policy fails closed. Do not reintroduce a competition-wide buffer, and do not branch on route, slug, name or UI type to pick a policy.
 

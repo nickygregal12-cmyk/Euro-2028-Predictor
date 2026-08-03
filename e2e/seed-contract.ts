@@ -18,8 +18,18 @@
  * to make a red test green.
  */
 
-/** The database contract at which these requirements were last verified. */
-export const SEED_REVIEWED_AT_CONTRACT = 66
+/**
+ * The database contract at which these requirements were last verified.
+ *
+ * Raised to 67 after checking what contract 67 actually changes: it moves
+ * `game_definitions.lock_scope` for `main_predictor` and `last_man_standing`
+ * from 'round' to 'matchweek'. That column is only ever *emitted* — passed
+ * outward in the `lock_policy` payload of `get_competition_games` — and no SQL
+ * function branches on it (the gating branches on `requires_prediction_entry`),
+ * nor does any browser code read it. It therefore cannot gate an authenticated
+ * read, which is the failure this number exists to catch.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 67
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
