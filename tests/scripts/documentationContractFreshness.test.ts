@@ -244,6 +244,59 @@ const delegatingDocuments = execFileSync('git', ['ls-files', '*.md'], {
   .filter((file) => !(LIVE_AUTHORITIES as readonly string[]).includes(file))
   .filter((file) => DELEGATES.test(read(file)))
 
+/**
+ * The two documents that both state the development contract must agree.
+ *
+ * `current-status.md` says "Development Supabase is hosted at N" and
+ * `ops-pending-migrations.md` carries a row per applied contract. Nothing
+ * related them, and on 3 August 2026 they drifted apart twice in one sitting:
+ * the current-status number stopped being updated at 74 while its own evidence
+ * list grew to 76, and a rollout row claimed contract 77 had been applied
+ * through the fast lane when that run had never been dispatched — work had
+ * moved straight from the merge into the next slice.
+ *
+ * The second is the worse failure. "No hosted claim without evidence" is a hard
+ * boundary in this repository, and a document asserting an apply that did not
+ * happen is exactly the claim that boundary exists to prevent. A human reading
+ * it would have believed development was two contracts further along than it
+ * was.
+ *
+ * Both numbers are mechanical, so this compares them. The highest development
+ * contract named in the rollout inventory is the current one, because rows are
+ * only ever added.
+ */
+describe('the two documents that state the development contract agree', () => {
+  it('current-status and the rollout inventory name the same development contract', () => {
+    const stated = /Development Supabase is hosted at \*\*(\d+)\*\*/.exec(
+      read('docs/quality/current-status.md'),
+    )?.[1]
+    expect(stated, 'current-status.md no longer states a development contract').toBeDefined()
+
+    const inventoryRows = [
+      ...read('docs/ops/ops-pending-migrations.md').matchAll(
+        /\|\s*Development Supabase[^|]*\|\s*\*\*(\d+)\*\*/g,
+      ),
+    ].map((match) => Number(match[1]))
+    expect(inventoryRows.length, 'the rollout inventory names no development contract').toBeGreaterThan(0)
+
+    expect(
+      Number(stated),
+      'current-status.md and ops-pending-migrations.md disagree about the development contract',
+    ).toBe(Math.max(...inventoryRows))
+  })
+
+  it('never claims development is ahead of the repository', () => {
+    // Development can legitimately trail between a merge and its fast-lane
+    // run. It can never lead: a migration cannot be applied before it exists.
+    const stated = Number(
+      /Development Supabase is hosted at \*\*(\d+)\*\*/.exec(
+        read('docs/quality/current-status.md'),
+      )?.[1],
+    )
+    expect(stated).toBeLessThanOrEqual(contract.contractVersion)
+  })
+})
+
 describe('a document that delegates its facts does not restate them', () => {
   it('finds the delegating documents', () => {
     // If this drops to nothing the suite below is silently inert.
