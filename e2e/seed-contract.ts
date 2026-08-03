@@ -43,8 +43,11 @@
  * Contract 70 adds two `predictor_internal` scoring functions, both revoked
  * from every browser role. It creates no table, no trigger and no policy, and
  * changes no existing relation, so nothing a seeded user reads is gated by it.
+ *
+ * Contract 71 adds one further `predictor_internal` function on the same
+ * terms: immutable, revoked from every browser role, touching no relation.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 70
+export const SEED_REVIEWED_AT_CONTRACT = 71
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
