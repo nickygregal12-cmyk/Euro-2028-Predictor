@@ -46,18 +46,42 @@ jobs:
           set -euo pipefail
           : > /tmp/euro28-vitest.log
           test_files="$(mktemp)"
-          npx vitest list --filesOnly --static-parse > "$test_files"
+          committed_files="$(mktemp)"
+          npx vitest list --filesOnly --static-parse | sed 's|^\./||' | sort > "$test_files"
+          git ls-files '*.test.ts' '*.test.tsx' | sort > "$committed_files"
           test_count="$(wc -l < "$test_files" | tr -d ' ')"
-          # Discovery floor. The loop below runs whatever `vitest list` found, so
-          # a config change that finds nothing makes it iterate zero times and
-          # the step exit 0 — the whole suite silently not running, reported as
-          # green. `vitest list` exits 0 on an empty result, so nothing else here
-          # notices. `tests/scripts/ciTestDiscoveryFloor.test.ts` keeps this
-          # number honest against the files actually on disk.
-          minimum_test_files=220
-          if [ "$test_count" -lt "$minimum_test_files" ]; then
-            echo "Vitest discovered ${test_count} test files; at least ${minimum_test_files} are expected." >&2
-            echo "Refusing to report a pass on a suite that did not run." >&2
+          committed_count="$(wc -l < "$committed_files" | tr -d ' ')"
+
+          # The loop below runs whatever `vitest list` found, so a config change
+          # that finds nothing makes it iterate zero times and the step exit 0 —
+          # the whole suite silently not running, reported as green. `vitest
+          # list` exits 0 on an empty result, so nothing else here notices.
+          #
+          # The expectation is derived from `git ls-files` rather than written
+          # down as a number. Two reasons:
+          #
+          #   1. A hardcoded floor had to be raised by hand every time a test
+          #      file was added, which made this one line collide with every
+          #      concurrent branch that added tests. It re-conflicted the C1b
+          #      PR three times in one day.
+          #   2. Set equality is a stronger check than a count. A committed test
+          #      file that vitest stops discovering is the same silent-skip bug
+          #      as discovering nothing, only quieter — and no floor, at any
+          #      value, can see it.
+          #
+          # `git ls-files` is independent of the Vitest config, so a config that
+          # breaks discovery cannot also move the expectation.
+          sanity_floor=100
+          if [ "$committed_count" -lt "$sanity_floor" ]; then
+            echo "Only ${committed_count} committed test files found; expected at least ${sanity_floor}." >&2
+            echo "The expectation itself looks wrong, so the comparison below would be meaningless." >&2
+            exit 1
+          fi
+          if ! diff -u "$committed_files" "$test_files"; then
+            echo "Vitest discovery does not match the committed test files " >&2
+            echo "(${test_count} discovered, ${committed_count} committed)." >&2
+            echo "Lines starting '-' are committed but not discovered: they would not run." >&2
+            echo "Refusing to report a pass on a suite that did not run in full." >&2
             exit 1
           fi
           echo "Running ${test_count} Vitest files in isolated processes." | tee -a /tmp/euro28-vitest.log

@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -23,9 +24,19 @@ import { describe, expect, it } from 'vitest'
  * stay green too: the build, the lint, the bundle budget and the domain coverage
  * run against the source, not the suite.
  *
- * So the workflow now refuses to proceed below a floor, and this file keeps the
- * floor honest. A floor nobody checks drifts to a number that cannot fail, which
- * is the same defect one level up.
+ * So the workflow refuses to proceed unless what Vitest discovered matches the
+ * committed test files exactly, and this file keeps that mechanism honest.
+ *
+ * The expectation used to be a hand-written number, `minimum_test_files`. Two
+ * things were wrong with it. It had to be raised by hand whenever a test file
+ * was added, so that single line collided with every concurrent branch that
+ * added tests — it re-conflicted the C1b PR three times in one day. And a count
+ * cannot see a committed test file that discovery quietly stops returning,
+ * which is the same silent-skip defect one level down.
+ *
+ * `git ls-files` supplies the expectation instead. It is independent of the
+ * Vitest config, so a config change that breaks discovery cannot also move the
+ * thing discovery is measured against.
  */
 
 const root = resolve(import.meta.dirname, '../..')
@@ -70,21 +81,8 @@ function countTestFiles(directory: string): string[] {
 
 const testFilesOnDisk = countTestFiles(root)
 
-/** The floor the workflow enforces, read back out of the workflow itself. */
-const declaredFloor = Number(/minimum_test_files=(\d+)/.exec(workflow)?.[1] ?? Number.NaN)
-
-/**
- * How far below the real count the floor may sit.
- *
- * Wide enough that deleting or consolidating a handful of files does not fail
- * CI for a legitimate change; narrow enough that the floor cannot quietly become
- * a number the suite would clear even after most of it stopped running. Crossing
- * it means raising the floor in `ci.yml` — a one-line, deliberate act.
- */
-const MAXIMUM_SLACK = 25
-
-describe('CI unit-test discovery floor', () => {
-  it('finds the suite on disk, so the comparison below is against something real', () => {
+describe('CI unit-test discovery expectation', () => {
+  it('finds the suite on disk, so the comparisons below are against something real', () => {
     // Without this, a walk that returned nothing would make every assertion
     // below compare zero to zero and pass.
     expect(testFilesOnDisk.length).toBeGreaterThan(100)
@@ -92,45 +90,70 @@ describe('CI unit-test discovery floor', () => {
     expect(testFilesOnDisk.filter((path) => path.startsWith('e2e/'))).toEqual([])
   })
 
-  it('enforces a floor at all', () => {
+  it('derives the expectation from git rather than from a hand-written number', () => {
+    expect(workflow).toMatch(/git ls-files '\*\.test\.ts' '\*\.test\.tsx'/)
+    // The number is gone. If it comes back, it brings the per-branch conflict
+    // and the blind spot back with it.
     expect(
-      Number.isInteger(declaredFloor),
-      'ci.yml no longer sets minimum_test_files — the Test step will report a ' +
-        'pass on a suite that discovered nothing',
-    ).toBe(true)
-
-    expect(workflow, 'the floor must fail the step rather than warn').toMatch(
-      /if \[ "\$test_count" -lt "\$minimum_test_files" \]; then[\s\S]*?exit 1/,
-    )
+      workflow,
+      'a hardcoded floor has returned; the expectation must stay derived',
+    ).not.toMatch(/minimum_test_files=\d+/)
   })
 
-  it('checks the floor before running the loop, not after', () => {
+  it('compares the two sets and fails the step rather than warning', () => {
+    expect(workflow).toMatch(/diff -u "\$committed_files" "\$test_files"/)
+    expect(
+      workflow,
+      'the comparison must fail the step, not print and continue',
+    ).toMatch(/if ! diff -u[\s\S]*?exit 1/)
+  })
+
+  it('requires exact equality, so a file discovery drops is caught', () => {
+    // A count comparison would pass if one file stopped being discovered while
+    // another was added. Set equality is what closes that.
+    const compareAt = workflow.indexOf('diff -u "$committed_files" "$test_files"')
+    expect(compareAt).toBeGreaterThan(-1)
+    expect(workflow).not.toMatch(/\$test_count" -lt/)
+  })
+
+  it('checks discovery before running the loop, not after', () => {
     // Ordering is the whole point: a check after the loop would run against a
-    // count that has already been trusted to decide how much work to do.
-    const floorAt = workflow.indexOf('minimum_test_files=')
+    // list that has already been trusted to decide how much work to do.
+    const compareAt = workflow.indexOf('diff -u "$committed_files" "$test_files"')
     const loopAt = workflow.indexOf('while IFS= read -r test_file')
 
-    expect(floorAt).toBeGreaterThan(-1)
     expect(loopAt).toBeGreaterThan(-1)
-    expect(floorAt, 'the floor check must precede the per-file loop').toBeLessThan(loopAt)
+    expect(compareAt, 'the comparison must precede the per-file loop').toBeLessThan(loopAt)
   })
 
-  it('sets a floor the suite can actually clear', () => {
+  it('refuses an expectation that is itself obviously wrong', () => {
+    // If `git ls-files` returned almost nothing — not a checkout, a broken
+    // pathspec — an empty expectation would match an empty discovery and the
+    // step would pass having run no tests at all. This floor never needs
+    // maintaining because it sits far below the real count and only catches
+    // that collapse.
+    const sanityFloor = Number(/sanity_floor=(\d+)/.exec(workflow)?.[1] ?? Number.NaN)
+
+    expect(Number.isInteger(sanityFloor)).toBe(true)
+    expect(sanityFloor).toBeGreaterThan(0)
     expect(
-      declaredFloor,
-      `ci.yml requires at least ${declaredFloor} test files but only ` +
-        `${testFilesOnDisk.length} exist — CI cannot pass`,
+      sanityFloor,
+      'the sanity floor must stay below the real suite or CI cannot pass',
     ).toBeLessThanOrEqual(testFilesOnDisk.length)
   })
 
-  it('keeps the floor close enough to the suite to mean something', () => {
-    const slack = testFilesOnDisk.length - declaredFloor
+  it('agrees with git about what the suite is', () => {
+    // The workflow compares Vitest against git; this compares the on-disk walk
+    // against git. If those two ever disagree, the workflow's expectation is
+    // not the set this file has been reasoning about.
+    const fromGit = execFileSync('git', ['ls-files', '*.test.ts', '*.test.tsx'], {
+      cwd: root,
+      encoding: 'utf8',
+    })
+      .split('\n')
+      .filter(Boolean)
+      .sort()
 
-    expect(
-      slack,
-      `the floor is ${declaredFloor} against ${testFilesOnDisk.length} test files ` +
-        `on disk, so ${slack} files could stop being discovered before CI noticed. ` +
-        `Raise minimum_test_files in .github/workflows/ci.yml.`,
-    ).toBeLessThanOrEqual(MAXIMUM_SLACK)
+    expect(fromGit).toEqual([...testFilesOnDisk].sort())
   })
 })
