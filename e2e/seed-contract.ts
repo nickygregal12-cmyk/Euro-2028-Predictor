@@ -39,8 +39,13 @@
  * keys on `entries` and `season_fixtures` that add a key rather than
  * restricting an existing one. Its triggers fire only on the two new tables,
  * so no path a seeded Euro user takes is affected.
+ *
+ * Contract 70 adds private append-only provider custody in the unexposed
+ * `predictor_internal` schema plus two service-role-only append RPCs. It adds
+ * no browser grant, policy, seeded row or authoritative provider write path.
+ * The exact-head browser suite re-verifies the existing seeded Euro journeys.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 69
+export const SEED_REVIEWED_AT_CONTRACT = 70
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

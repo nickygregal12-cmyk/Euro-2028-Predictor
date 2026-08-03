@@ -1,6 +1,6 @@
 {
-  "contractVersion": 69,
-  "requiredMigrationCount": 69,
+  "contractVersion": 70,
+  "requiredMigrationCount": 70,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -54,7 +54,9 @@
     "public.leave_competition_game(uuid)",
     "public.admin_disqualify_competition_game_entry(uuid,uuid,text)",
     "public.create_game_league(uuid,text)",
-    "public.get_my_game_leagues(uuid)"
+    "public.get_my_game_leagues(uuid)",
+    "public.archive_provider_response(text,text,text,integer,jsonb,text,uuid)",
+    "public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)"
   ],
-  "notes": "Tagged repository baseline euro-2028-baseline resolves to 1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Contracts 64 and 65 preserve the historical Cup deletion boundary and establish the hosted competition-season foundation. Contract 66 is C1b: it generalises the existing Bonus Games platform into the persistent game catalogue and per-season availability root, adds canonical per-game membership lifecycle and immutable join/leave/rejoin/disqualification evidence, links Original/Main entries and bonus entrants to that one membership truth, scopes private leagues to a game, seeds the Premier League and Scottish Premiership 2026/27 rehearsal seasons, and keeps every C2 ownership and auth-deletion boundary unchanged. Hosted deployment remains separately guarded and is not claimed by this repository contract."
+  "notes": "Tagged repository baseline euro-2028-baseline resolves to 1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Contracts 64 and 65 preserve the historical Cup deletion boundary and establish the hosted competition-season foundation. Contract 66 adds the persistent game catalogue, per-season availability, canonical game memberships and game-scoped private leagues. Contract 67 aligns Main Predictor and Last Man Standing to the matchweek lock scope. Contract 68 adds the empty season-scoped domestic fixture container. Contract 69 adds the domestic season card: one scoreline per fixture and one Joker per matchweek, with same-season references, allowance limits and fail-closed locks enforced by PostgreSQL. Contract 70 adds repository-only provider-ingestion custody: exact raw responses and decoder attempts remain in predictor_internal, two service-role-only RPCs append evidence, and a server-only Edge Function authenticates before provider I/O, archives before parsing and applies strict provider decoders. Contract 70 creates no write path into authoritative fixtures, results, locks, scores or standings. Hosted migration, Edge Function deployment, keys, credentials, provider requests, Netlify and production remain separately guarded and unclaimed."
 }
