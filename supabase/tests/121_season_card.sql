@@ -42,6 +42,14 @@ insert into public.competition_rounds (tournament_id, round_key, ordinal, kind, 
 select season_id, 'MW' || n, n, 'league_matchweek', 'Matchweek ' || n
   from card_probe, generate_series(1, 4) as n;
 
+-- A league season needs a Main Predictor availability before any card can
+-- exist: creating an `entries` row fires C1b's prepare_entry_game_membership,
+-- which resolves the membership through that availability. Contract 66 seeds a
+-- hidden availability only for tournament-shaped seasons, so a league season's
+-- is created deliberately — here, and by an administrator in production.
+insert into public.bonus_competitions (tournament_id, game_key, published, availability_status)
+select season_id, 'main_predictor', true, 'active' from card_probe;
+
 insert into public.entries (user_id, tournament_id)
 select (select id from auth.users order by created_at limit 1), season_id from card_probe;
 
