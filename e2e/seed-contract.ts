@@ -18,8 +18,12 @@
  * to make a red test green.
  */
 
-/** The database contract at which these requirements were last verified. */
-export const SEED_REVIEWED_AT_CONTRACT = 66
+/**
+ * Contract 67 adds isolated internal provider custody and no seeded-user,
+ * membership, entry, fixture or application-read dependency. Full schema and
+ * authenticated browser gates still re-verify the unchanged seed requirements.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 67
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
