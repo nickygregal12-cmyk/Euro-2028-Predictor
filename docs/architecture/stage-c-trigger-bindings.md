@@ -3,7 +3,7 @@
 **Status:** Repository contract 66 C1b after-state; C2 ownership work remains blocked by issue #272.  
 **Baseline:** Contract 65 competition-season foundation plus migration `20260803070000_c1b_game_catalogue_memberships.sql`.  
 **Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)  
-**Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-competition-season-schema.md)
+**Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
 
 ## Purpose
 
