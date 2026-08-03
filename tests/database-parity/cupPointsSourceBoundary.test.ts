@@ -59,6 +59,8 @@ function lastBody(name: string): string {
 
 const windowScores = lastBody('cup_window_scores')
 const pointsSource = lastBody('cup_tournament_fixture_points')
+const windowSettled = lastBody('cup_window_settled')
+const settlementSource = lastBody('cup_tournament_window_unsettled')
 const finalGroupTables = lastBody('cup_final_group_tables')
 const bracketOrder = lastBody('cup_bracket_order')
 
@@ -231,4 +233,60 @@ describe('the tournament ordering stays out of the season rules', () => {
       expect(pointsSource).not.toContain(fn)
     },
   )
+})
+
+/**
+ * Contract 76 finished the rescoping, and it was smaller than it looked.
+ *
+ * Tracing the call graph after contract 75 showed that split had CASCADED:
+ * `cup_final_group_tables` reaches the tournament only through
+ * `cup_window_scores`, so making that neutral made the group table neutral too,
+ * with no pass of its own. Of the four functions that remained, three needed
+ * nothing and one did.
+ */
+describe('the shared Cup machinery is free of tournament relations', () => {
+  const TOURNAMENT_SHAPED = [
+    /public\.matches\b/,
+    /match_predictions\b/,
+    /bonus_knockout_predictions\b/,
+    /tournament_id/,
+    /home_score_90/,
+    /round = 'group'/,
+  ]
+
+  it.each([
+    ['cup_window_scores', () => windowScores],
+    ['cup_window_settled', () => windowSettled],
+    ['cup_final_group_tables', () => finalGroupTables],
+    ['cup_bracket_order', () => bracketOrder],
+  ])('%s reads nothing tournament-shaped', (name, body) => {
+    for (const pattern of TOURNAMENT_SHAPED) {
+      expect(body(), `${name} still matches ${pattern}`).not.toMatch(pattern)
+    }
+  })
+
+  it('keeps the settlement vocabulary in the tournament source', () => {
+    // 'confirmed' and 'corrected' are the tournament's administrative result
+    // lifecycle. A season answers the same question from
+    // `season_fixtures.status = 'played'`. Different vocabularies, one question,
+    // which is exactly what belongs behind a seam.
+    expect(settlementSource).toMatch(/result_state not in \('confirmed', 'corrected'\)/)
+    expect(settlementSource).toMatch(/join public\.matches\b/)
+  })
+
+  it('negates the source rather than inverting a condition mid-conjunction', () => {
+    // The extracted function reports UNSETTLED so this stays a direct
+    // substitution for the `not exists (...)` it replaced. Flipping the
+    // polarity inside a four-way conjunction is where a sign error would hide.
+    expect(windowSettled).toMatch(/not predictor_internal\.cup_tournament_window_unsettled\(win\.id\)/)
+  })
+
+  it('keeps window timing with the shared decision, because it is not a competition rule', () => {
+    // A window is settled only once it has locked, only once it has passed any
+    // settles_at, and never when it holds no fixtures. Those are properties of
+    // the Bonus Games window, not of the tournament or the season.
+    expect(windowSettled).toMatch(/win\.locks_at is not null/)
+    expect(windowSettled).toMatch(/win\.settles_at is null or now\(\) >= win\.settles_at/)
+    expect(windowSettled).toMatch(/exists \(\s*select 1 from public\.bonus_window_fixtures/)
+  })
 })
