@@ -1,7 +1,7 @@
 # Stage C — `tournament_id` compatibility inventory
 
-**Status:** Contract 65 C1 after-state; C2 ownership work remains blocked by issue #272.  
-**Baseline:** PR #317, migrations `20260730235602` and `20260730235721`.  
+**Status:** Repository contract 66 C1b after-state; C2 ownership work remains blocked by issue #272.  
+**Baseline:** Contract 65 competition-season foundation plus migration `20260803070000_c1b_game_catalogue_memberships.sql`.  
 **Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)  
 **Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
 
@@ -11,11 +11,12 @@ Stage C evolves the existing physical `tournaments` / `tournament_id` contract i
 place. Architecture calls the row a competition season, but working identifiers
 and RPC signatures are not renamed merely to match new vocabulary.
 
-Contract 65 now stores direct season scope wherever a relationship previously had
-to infer it through another parent. Every column below is reviewed, `uuid NOT
-NULL`, backfilled and guarded by composite foreign keys or a preparation/shape
-validator. The exit condition remains zero unreviewed tournament-only assumptions,
-not zero retained compatibility names.
+Contract 66 stores direct season scope wherever a relationship previously had
+to infer it through another parent, including the C1b game-membership lifecycle.
+Every column below is reviewed, `uuid NOT NULL`, backfilled where applicable and
+guarded by composite foreign keys or a preparation/shape validator. The exit
+condition remains zero unreviewed tournament-only assumptions, not zero retained
+compatibility names.
 
 The list is supported by:
 
@@ -36,7 +37,7 @@ Every current column below is `uuid NOT NULL`.
 | `bonus_competition_audit.tournament_id` | explicit season scope for immutable game audit evidence |
 | `bonus_competition_entrants.tournament_id` | explicit season/game entrant scope; auth ownership remains C2 |
 | `bonus_competition_windows.tournament_id` | explicit season/game window scope |
-| `bonus_competitions.tournament_id` | retain as the season scope of each independent bonus-game instance |
+| `bonus_competitions.tournament_id` | retain as the season scope of each independent game availability |
 | `bonus_cup_fixtures.tournament_id` | explicit season/game/group/window fixture scope |
 | `bonus_cup_groups.tournament_id` | explicit season/game group scope |
 | `bonus_cup_members.tournament_id` | explicit season/game/group entrant scope; auth ownership remains C2 |
@@ -51,6 +52,8 @@ Every current column below is `uuid NOT NULL`.
 | `competition_rounds.tournament_id` | round or matchweek parent season |
 | `entries.tournament_id` | retain as the Predictor entry season scope |
 | `entry_automatic_submission_outcomes.tournament_id` | retain and prove composite equality with the entry season |
+| `game_membership_events.tournament_id` | immutable membership-event season proof, composite-bound to its membership |
+| `game_memberships.tournament_id` | canonical user/game membership season scope, composite-bound to game availability |
 | `group_teams.tournament_id` | explicit same-season group/team proof |
 | `groups.tournament_id` | retain; groups remain valid only for tournament seasons |
 | `leagues.tournament_id` | retain as the league's competition-season scope |
@@ -75,5 +78,5 @@ Every current column below is `uuid NOT NULL`.
    league seasons unless their row is explicitly tournament-only.
 4. Simple parent/child equality uses composite foreign keys where practical;
    triggers remain for arrays, conditional shape, parent kind, time and lifecycle.
-5. C1 does not change any `auth.users` foreign key, profile ownership policy or
+5. C1b does not change any `profiles.auth_user_id`, profile ownership policy or
    account-erasure behaviour. Those remain C2 and blocked by issue #272.
