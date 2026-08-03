@@ -75,6 +75,7 @@ insert into expected_authenticated_functions (signature) values
 -- Contract 57: the pre-lock own-entry clear.
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
 -- Contract 66: generic game catalogue/membership and game-scoped leagues.
+-- Contract 73: server-only provider response and processing custody.
 insert into expected_authenticated_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),
@@ -117,7 +118,9 @@ insert into expected_service_functions (signature) values
   ('leave_competition_game(uuid)'),
   ('create_game_league(uuid,text)'),
   ('get_my_game_leagues(uuid)'),
-  ('admin_disqualify_competition_game_entry(uuid,uuid,text)');
+  ('admin_disqualify_competition_game_entry(uuid,uuid,text)'),
+  ('archive_provider_response(text,text,text,integer,jsonb,text,uuid)'),
+  ('record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)');
 
 create temporary view public_function_privileges as
 select
