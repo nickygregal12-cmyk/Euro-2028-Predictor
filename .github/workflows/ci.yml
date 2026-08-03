@@ -6,69 +6,7 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-
 jobs:
-  repair-c1b-final:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.event.pull_request.number == 371 &&
-      github.head_ref == 'agent/c1b-game-catalogue-memberships'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-      - name: Apply exact-head final C1b repair once
-        shell: bash
-        env:
-          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          git fetch --no-tags origin agent/c1b-game-catalogue-memberships
-          remote_head="$(git rev-parse origin/agent/c1b-game-catalogue-memberships)"
-          [ "${remote_head}" = "${EXPECTED_HEAD_SHA}" ] || {
-            echo "ERROR: C1b branch moved concurrently; refusing repair push."
-            exit 1
-          }
-          [ "$(git rev-parse HEAD)" = "${EXPECTED_HEAD_SHA}" ] || {
-            echo "ERROR: checkout is not the exact PR head."
-            exit 1
-          }
-          if [ -f .c1b-final-repair-applied ]; then
-            echo "Final C1b repair already applied."
-            exit 0
-          fi
-          node --input-type=module <<'NODE'
-          import { readFileSync, writeFileSync } from 'node:fs'
-          const path = 'scripts/ops/apply-c1b-final-repair.mjs'
-          const source = readFileSync(path, 'utf8')
-          const guard = /\n\s*if \(source\.indexOf\(before, first \+ before\.length\) >= 0\) \{\s*throw new Error\(`Non-unique target: \$\{label\}`\)\s*\}\n/
-          const matches = source.match(new RegExp(guard.source, 'g')) ?? []
-          if (matches.length !== 1) {
-            throw new Error(`Expected one replaceOnce uniqueness guard, found ${matches.length}`)
-          }
-          writeFileSync(path, source.replace(guard, '\n'))
-          NODE
-          node scripts/ops/apply-c1b-final-repair.mjs
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            docs/architecture/stage-c-schema-coverage.md \
-            supabase/migrations/20260803070000_c1b_game_catalogue_memberships.sql \
-            supabase/tests/100_operating_cap_enforcement.sql \
-            supabase/tests/102_other_player_profiles.sql \
-            supabase/tests/118_c1b_game_catalogue_memberships.sql \
-            .c1b-final-repair-applied
-          git commit -m "Repair final C1b compatibility gates"
-          git push origin "HEAD:agent/c1b-game-catalogue-memberships"
-
   ci:
     runs-on: ubuntu-latest
 
