@@ -44,10 +44,16 @@
  * from every browser role. It creates no table, no trigger and no policy, and
  * changes no existing relation, so nothing a seeded user reads is gated by it.
  *
- * Contract 71 adds one further `predictor_internal` function on the same
- * terms: immutable, revoked from every browser role, touching no relation.
+ * Contract 71 adds one further `predictor_internal` LMS survival-resolution
+ * function on the same terms: immutable, revoked from every browser role and
+ * touching no relation.
+ *
+ * Contract 72 adds private append-only provider custody in the unexposed
+ * `predictor_internal` schema plus two service-role-only append RPCs. It adds
+ * no browser grant, policy, seeded row or authoritative provider write path.
+ * The exact-head browser suite re-verifies the existing seeded Euro journeys.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 71
+export const SEED_REVIEWED_AT_CONTRACT = 72
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
