@@ -6,44 +6,7 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-
 jobs:
-  repair-c1b:
-    if: >-
-      github.event_name == 'pull_request' &&
-      github.head_ref == 'agent/c1b-game-catalogue-memberships'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.22.2
-      - name: Apply exact C1b compatibility repair once
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -f .c1b-ci-repair-applied ]; then
-            echo "C1b repair already applied."
-            exit 0
-          fi
-          node scripts/ops/apply-c1b-ci-repair.mjs
-          git diff --check
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            supabase/migrations/20260803070000_c1b_game_catalogue_memberships.sql \
-            supabase/tests/103_bonus_games_platform.sql \
-            supabase/tests/118_c1b_game_catalogue_memberships.sql \
-            tests/database-parity/rpcAllowlistParity.test.ts \
-            .c1b-ci-repair-applied
-          git commit -m "Repair C1b compatibility contracts"
-          git push origin "HEAD:${{ github.head_ref }}"
-
   ci:
     runs-on: ubuntu-latest
 
