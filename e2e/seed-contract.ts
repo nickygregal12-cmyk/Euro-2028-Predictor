@@ -21,15 +21,14 @@
 /**
  * The database contract at which these requirements were last verified.
  *
- * Raised to 67 after checking what contract 67 actually changes: it moves
- * `game_definitions.lock_scope` for `main_predictor` and `last_man_standing`
- * from 'round' to 'matchweek'. That column is only ever *emitted* — passed
- * outward in the `lock_policy` payload of `get_competition_games` — and no SQL
- * function branches on it (the gating branches on `requires_prediction_entry`),
- * nor does any browser code read it. It therefore cannot gate an authenticated
- * read, which is the failure this number exists to catch.
+ * Contract 67 moves `main_predictor` and `last_man_standing` from the
+ * fail-closed knockout `round` scope to the league-season `matchweek` scope.
+ * Contract 68 then adds isolated provider custody in `predictor_internal` and
+ * two service-role-only RPCs. Neither change adds a seeded-user requirement or
+ * changes the Original Predictor membership, entry or authenticated read path.
+ * The full exact-head browser suite still re-verifies those requirements.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 67
+export const SEED_REVIEWED_AT_CONTRACT = 68
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
