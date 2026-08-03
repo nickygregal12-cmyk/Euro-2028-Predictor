@@ -6,7 +6,8 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **77** | 77 canonical migrations through `20260804043000_season_cup_sources.sql`; contract 77 gives the season Cup its own points and settlement sources and unions them into the shared machinery | MERGED; HOSTED NOT APPLIED |
+| Repository `main` | **78** | 78 canonical migrations through `20260804053000_cup_league_schedule.sql`; contract 78 adds the season Cup's circle-method league schedule, closing the second parity suite deferred at contract 74 | MERGED; HOSTED NOT APPLIED |
+| Development Supabase at contract 77 | **77** | contract 77 applied 3 August 2026 through the ADR 0024 fast lane, run 30862293279; one migration pushed, postflight reported `Development is at contract 77.` This rollout was initially MISSED — work moved straight from the contract 77 merge into the next slice, and the inventory briefly claimed an apply that had not happened. `documentationContractFreshness.test.ts` now cross-checks this row against `current-status.md` so the two cannot disagree silently | VERIFIED |
 | Development Supabase at contract 76 | **76** | contract 76 applied 3 August 2026 through the ADR 0024 fast lane, run 30860514107 | VERIFIED |
 | Development Supabase at contract 75 | **75** | contract 75 applied 3 August 2026 through the ADR 0024 fast lane, run 30859357998 | VERIFIED |
 | Development Supabase at contract 74 | **74** | contract 74 applied 3 August 2026 through the ADR 0024 fast lane, run 30855978136; additive proof passed, pre-apply snapshot taken, one migration pushed, postflight reported `Development is at contract 74.` | VERIFIED |

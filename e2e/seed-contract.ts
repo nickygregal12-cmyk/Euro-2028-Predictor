@@ -78,8 +78,12 @@
  * with the season link empty the union is the identity, proven over 300
  * randomised tournament scenarios, so a seeded Euro user's Cup reads are
  * unchanged. No existing relation, trigger, policy or grant is altered.
+ *
+ * Contract 78 adds one immutable `predictor_internal` function, revoked from
+ * every browser role, creating no relation, trigger, policy or grant and
+ * altering none. Nothing a seeded user reads is gated by it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 77
+export const SEED_REVIEWED_AT_CONTRACT = 78
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
