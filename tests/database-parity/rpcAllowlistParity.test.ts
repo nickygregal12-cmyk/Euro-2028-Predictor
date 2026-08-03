@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest'
  * never contract-declared falls outside the deploy guarantee, and a contract
  * entry the database grants to nobody is a requirement no environment satisfies.
  *
- * The invariant is not equality. The contract legitimately declares five
+ * The invariant is not equality. The contract legitimately declares six
  * service-role-only RPCs the browser never calls — the Cron-invoked submission
  * sweep, the operating-limit setter and the three Predictor Cup administration
  * functions — so:
@@ -109,6 +109,7 @@ describe('deployment contract and database privilege allow-list parity', () => {
       .sort()
 
     expect(serviceOnly).toEqual([
+      'admin_disqualify_competition_game_entry(uuid,uuid,text)',
       'admin_draw_predictor_cup(uuid,text)',
       'admin_finalise_predictor_cup_groups(uuid)',
       'admin_settle_predictor_cup_round(uuid,uuid)',

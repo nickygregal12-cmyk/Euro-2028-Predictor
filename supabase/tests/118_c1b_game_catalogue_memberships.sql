@@ -244,7 +244,7 @@ select is(
 );
 
 select is(
-  (select jsonb_agg(event_type order by recorded_at,id)
+  (select jsonb_agg(event.event_type order by event.recorded_at,event.id)
    from public.game_membership_events event
    join public.game_memberships membership on membership.id=event.membership_id
    where membership.game_competition_id=current_setting('test.c1b_main_game')::uuid

@@ -176,10 +176,59 @@ from (values
 join public.competitions competition on competition.slug = seed.slug
 on conflict (competition_id, season_key) do nothing;
 
--- The Original Predictor becomes an explicit Euro game availability. Existing
--- KO/LMS/Cup availability rows are preserved and linked through the catalogue;
--- absent historical rows are not invented because their registration windows
--- are operational data owned by the existing bonus-game setup.
+-- Tournament-shaped seasons always own one hidden Original Predictor
+-- availability. It is active for the generic Hub and deliberately unpublished
+-- so the legacy Bonus Games read remains limited to KO/LMS/Championship.
+create or replace function predictor_internal.ensure_original_predictor_availability()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+begin
+  if new.kind = 'tournament' then
+    insert into public.bonus_competitions (
+      tournament_id,
+      game_key,
+      published,
+      availability_status,
+      registration_opens_at,
+      registration_closes_at,
+      draw_required
+    ) values (
+      new.id,
+      'original_predictor',
+      false,
+      'active',
+      case
+        when new.lock_at is not null and new.lock_at <= new.created_at
+          then new.lock_at - interval '1 second'
+        else new.created_at
+      end,
+      new.lock_at,
+      false
+    )
+    on conflict (tournament_id, game_key) do update
+      set registration_closes_at = excluded.registration_closes_at,
+          availability_status = 'active',
+          updated_at = now()
+      where public.bonus_competitions.game_key = 'original_predictor'
+        and not public.bonus_competitions.published;
+  end if;
+
+  return new;
+end;
+$;
+
+revoke all on function predictor_internal.ensure_original_predictor_availability()
+  from public, anon, authenticated, service_role;
+
+create trigger ensure_original_predictor_availability
+after insert or update of kind, lock_at
+on public.tournaments
+for each row
+execute function predictor_internal.ensure_original_predictor_availability();
+
 insert into public.bonus_competitions (
   tournament_id,
   game_key,
@@ -194,16 +243,15 @@ select
   'original_predictor',
   false,
   'active',
-  coalesce(
-    (select min(existing.registration_opens_at)
-       from public.bonus_competitions existing
-      where existing.tournament_id = season.id),
-    season.created_at
-  ),
+  case
+    when season.lock_at is not null and season.lock_at <= season.created_at
+      then season.lock_at - interval '1 second'
+    else season.created_at
+  end,
   season.lock_at,
   false
 from public.tournaments season
-where season.name = 'UEFA Euro 2028'
+where season.kind = 'tournament'
 on conflict (tournament_id, game_key) do nothing;
 
 -- Domestic availability is intentionally inactive until its persistent
@@ -476,9 +524,9 @@ alter table public.entries
   validate constraint entries_tournament_game_fkey,
   validate constraint entries_membership_fkey;
 
-alter table public.entries
-  alter column game_competition_id set not null,
-  alter column game_membership_id set not null;
+-- These linkage columns remain nullable for trusted legacy/import fixtures
+-- that deliberately run with triggers disabled. Every ordinary C1b write and
+-- every preserved row is populated and constrained by the scoped foreign keys.
 
 alter table public.bonus_competition_entrants
   add column game_membership_id uuid;
@@ -500,8 +548,8 @@ alter table public.bonus_competition_entrants
 alter table public.bonus_competition_entrants
   validate constraint bonus_entrants_membership_fkey;
 
-alter table public.bonus_competition_entrants
-  alter column game_membership_id set not null;
+-- Legacy/import fixtures may bypass triggers; ordinary Bonus Games and Hub
+-- writes always populate this linkage through the preparation trigger.
 
 create or replace function predictor_internal.prepare_entry_game_membership()
 returns trigger
@@ -534,6 +582,7 @@ begin
     join public.game_definitions definition on definition.game_key = availability.game_key
     where availability.id = v_game_id
       and availability.tournament_id = new.tournament_id
+      and availability.availability_status = 'active'
       and definition.requires_prediction_entry
   ) then
     raise exception 'Entry must belong to the season Main or Original Predictor'
@@ -743,7 +792,8 @@ alter table public.leagues
     not valid;
 
 alter table public.leagues validate constraint leagues_tournament_game_fkey;
-alter table public.leagues alter column game_competition_id set not null;
+-- Existing trusted fixtures may remain tournament-scoped when they bypass the
+-- RPC boundary. New Hub league creation always persists game_competition_id.
 
 create or replace function public.get_competition_games(
   p_tournament_id uuid
@@ -1101,23 +1151,109 @@ create or replace function public.register_bonus_competition(
   p_competition_id uuid
 )
 returns jsonb
-language sql
+language plpgsql
 security definer
 set search_path = ''
-as $$
-  select public.join_competition_game(p_competition_id);
-$$;
+as $
+declare
+  v_uid uuid := (select auth.uid());
+  v_competition public.bonus_competitions%rowtype;
+  v_joined_at timestamptz;
+begin
+  if v_uid is null then
+    raise exception 'Authentication is required'
+      using errcode = 'insufficient_privilege';
+  end if;
+
+  select *
+    into v_competition
+    from public.bonus_competitions competition
+    where competition.id = p_competition_id
+    for update;
+
+  if not found or not v_competition.published then
+    raise exception 'Competition not found'
+      using errcode = 'no_data_found';
+  end if;
+
+  perform public.join_competition_game(p_competition_id);
+
+  select entrant.joined_at
+    into v_joined_at
+    from public.bonus_competition_entrants entrant
+    where entrant.competition_id = p_competition_id
+      and entrant.user_id = v_uid;
+
+  insert into public.bonus_competition_audit (competition_id, action, detail, actor_id)
+  values (
+    p_competition_id,
+    'entrant_registered',
+    jsonb_build_object('user_id', v_uid),
+    v_uid
+  );
+
+  return jsonb_build_object(
+    'competition_id', p_competition_id,
+    'joined_at', v_joined_at,
+    'outcome', 'active'
+  );
+end;
+$;
 
 create or replace function public.withdraw_bonus_competition(
   p_competition_id uuid
 )
 returns jsonb
-language sql
+language plpgsql
 security definer
 set search_path = ''
-as $$
-  select public.leave_competition_game(p_competition_id);
-$$;
+as $
+declare
+  v_uid uuid := (select auth.uid());
+  v_competition public.bonus_competitions%rowtype;
+begin
+  if v_uid is null then
+    raise exception 'Authentication is required'
+      using errcode = 'insufficient_privilege';
+  end if;
+
+  select *
+    into v_competition
+    from public.bonus_competitions competition
+    where competition.id = p_competition_id
+    for update;
+
+  if not found or not v_competition.published then
+    raise exception 'Competition not found'
+      using errcode = 'no_data_found';
+  end if;
+
+  if not exists (
+    select 1
+    from public.bonus_competition_entrants entrant
+    where entrant.competition_id = p_competition_id
+      and entrant.user_id = v_uid
+  ) then
+    raise exception 'You have not entered this competition'
+      using errcode = 'no_data_found';
+  end if;
+
+  perform public.leave_competition_game(p_competition_id);
+
+  insert into public.bonus_competition_audit (competition_id, action, detail, actor_id)
+  values (
+    p_competition_id,
+    'entrant_withdrawn',
+    jsonb_build_object('user_id', v_uid),
+    v_uid
+  );
+
+  return jsonb_build_object(
+    'competition_id', p_competition_id,
+    'withdrawn', true
+  );
+end;
+$;
 
 create or replace function public.create_game_league(
   p_game_competition_id uuid,
