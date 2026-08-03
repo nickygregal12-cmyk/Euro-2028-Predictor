@@ -6,11 +6,11 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository PR #371 | **66** | 66 canonical migrations through `20260803070000_c1b_game_catalogue_memberships.sql`; contract 66 adds the persistent game catalogue, per-season availability, canonical membership lifecycle and game-scoped league boundary | DISPOSABLE REVALIDATION IN PROGRESS AFTER MAIN SYNC; HOSTED NOT APPLIED |
-| Repository `main` | **65** | 65 canonical migrations through `20260730235602_stage_c1_competition_season_foundation.sql` | VERIFIED |
-| Development Supabase | **65** | migration ledger directly verified at 65 through `20260730235602`; Stage C1 hosted rollout and preservation evidence completed | VERIFIED |
+| Repository `main` | **67** | 67 canonical migrations through `20260803180000_matchweek_lock_scope.sql`; contract 67 moves `main_predictor` and `last_man_standing` onto the `matchweek` lock scope the engine can resolve | MERGED; HOSTED NOT APPLIED |
+| Repository at contract 66 | **66** | 66 canonical migrations through `20260803070000_c1b_game_catalogue_memberships.sql`; PR #371 merged 3 August 2026 | VERIFIED |
+| Development Supabase | **66** | contract 66 applied 3 August 2026 through the ADR 0024 additive fast lane, run 30837677979: dispatch guards, secret preflight, additive proof, pre-apply snapshot, `supabase db push`, postflight reporting `Development is at contract 66.` | VERIFIED |
 | Production Supabase | **63** | migration ledger directly verified at 63 through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
-| Netlify `dev` / `branch-deploy` / `deploy-preview` | **65 hosted declaration** | all three non-production contexts point to the development Supabase project and declare contract 65 | VERIFIED FOR CURRENT HOSTED DEVELOPMENT; CONTRACT 66 PREVIEWS MUST WAIT FOR ROLLOUT |
+| Netlify `dev` / `branch-deploy` / `deploy-preview` | **hosted declaration from last alignment** | all three non-production contexts point to the development Supabase project; a declaration trailing the repository contract is reported as informational rather than failing the build (ADR 0024) | VERIFIED FOR PROJECT REF; CONTRACT DECLARATION MAY TRAIL |
 | Netlify `production` | **63 hosted declaration** | production points to the production Supabase project and remains on contract 63 | BLOCKED BY DESIGN |
 
 ### Contract 66 — C1b repository candidate

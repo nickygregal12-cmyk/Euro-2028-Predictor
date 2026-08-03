@@ -24,6 +24,11 @@ select is(
   'the five current game definitions are seeded exactly once'
 );
 
+-- Contract 67 moved main_predictor and last_man_standing from 'round' to
+-- 'matchweek'. pgTAP runs against the rebuilt database, so this describes the
+-- current state rather than what contract 66's insert said: the engine returns
+-- null for 'round' and fails those two games closed. The contract-66 source
+-- text is asserted separately, unchanged, in c1bGameCatalogueContract.test.ts.
 select is(
   (select jsonb_agg(jsonb_build_object(
     'key', game_key,
@@ -31,7 +36,7 @@ select is(
     'buffer', buffer_minutes,
     'rejoin', allow_rejoin
   ) order by game_key) from public.game_definitions),
-  '[{"key":"ko_predictor","scope":"match","buffer":0,"rejoin":true},{"key":"last_man_standing","scope":"round","buffer":30,"rejoin":false},{"key":"main_predictor","scope":"round","buffer":0,"rejoin":true},{"key":"original_predictor","scope":"entry","buffer":0,"rejoin":true},{"key":"predictor_cup","scope":"round","buffer":0,"rejoin":true}]'::jsonb,
+  '[{"key":"ko_predictor","scope":"match","buffer":0,"rejoin":true},{"key":"last_man_standing","scope":"matchweek","buffer":30,"rejoin":false},{"key":"main_predictor","scope":"matchweek","buffer":0,"rejoin":true},{"key":"original_predictor","scope":"entry","buffer":0,"rejoin":true},{"key":"predictor_cup","scope":"round","buffer":0,"rejoin":true}]'::jsonb,
   'game-owned lock policies and rejoin rules are persisted explicitly'
 );
 
