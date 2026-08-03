@@ -94,6 +94,8 @@ select throws_ok(
            (select id from public.teams where tournament_id = p.season_id and name = 'Probe Club B')
       from season_fixture_probe p
   $$,
+  '23514',
+  null,
   'a tournament season cannot hold a league fixture'
 );
 
@@ -109,6 +111,8 @@ select throws_ok(
            (select id from public.teams where tournament_id = p.season_id and name = 'Probe Club C')
       from season_fixture_probe p
   $$,
+  '23503',
+  null,
   'a club from another season cannot be named in a fixture'
 );
 
