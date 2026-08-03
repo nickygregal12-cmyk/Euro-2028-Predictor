@@ -217,14 +217,27 @@ const effectiveFunctionNames = effectiveBindings.map((binding) =>
 const manifestFunctions = manifestTriggerAuthorityFunctions()
 
 describe('Stage C trigger binding coverage after C1b', () => {
-  it('keeps the parser positive control at the contract-68 trigger boundary', () => {
-    expect(effectiveBindings).toHaveLength(76)
+  it('keeps the parser positive control at the contract-69 trigger boundary', () => {
+    expect(effectiveBindings).toHaveLength(79)
     // Contract 68: the season fixture's cross-table invariants — league season,
     // league matchweek, and one appearance per club per matchweek — none of
     // which a column CHECK can express.
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.assert_season_fixture_shape'),
+      ),
+    ).toHaveLength(1)
+    // Contract 69: the Joker allowance, and the matchweek lock on both card
+    // tables. The lock is one function bound twice because the rule is the
+    // same whichever half of the card is written.
+    expect(
+      effectiveBindings.filter((binding) =>
+        binding.endsWith(' -> predictor_internal.enforce_season_matchweek_lock'),
+      ),
+    ).toHaveLength(2)
+    expect(
+      effectiveBindings.filter((binding) =>
+        binding.endsWith(' -> predictor_internal.assert_season_joker_allowance'),
       ),
     ).toHaveLength(1)
     expect(

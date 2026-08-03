@@ -191,7 +191,14 @@ const C1B_RELATIONS = [
  * fixture, and `matches` defends a tournament shape that widening would have
  * broken (see the migration header).
  */
-const SEASON_RELATIONS = ['table:season_fixtures']
+const SEASON_RELATIONS = [
+  'table:season_fixtures',
+  // Contract 69. The season card: a scoreline per fixture, and a Joker keyed
+  // by matchweek because ADR 0012 doubles the whole matchweek, never one
+  // fixture — which a per-fixture flag cannot express.
+  'table:season_predictions',
+  'table:season_matchweek_jokers',
+]
 
 const reviewedRelations = [
   ...new Set([
@@ -203,8 +210,8 @@ const reviewedRelations = [
 ].sort()
 
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
-  it('keeps parser positive controls at the contract-68 schema boundary', () => {
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(42)
+  it('keeps parser positive controls at the contract-69 schema boundary', () => {
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(44)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])
