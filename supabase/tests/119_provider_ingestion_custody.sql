@@ -1,6 +1,6 @@
 begin;
 
-select plan(24);
+select plan(26);
 
 create or replace function pg_temp.capture_sqlstate(p_sql text)
 returns text
@@ -242,6 +242,36 @@ select is(
   $sql$),
   '23514',
   'the database rejects a provider response from an unapproved origin'
+);
+select is(
+  pg_temp.capture_sqlstate($sql$
+    select public.archive_provider_response(
+      'sportmonks',
+      'https://api.sportmonks.com/v3/football/fixtures?api_token=must-not-be-archived',
+      'GET',
+      200,
+      '{}'::jsonb,
+      '{}',
+      gen_random_uuid()
+    )
+  $sql$),
+  '23514',
+  'the database rejects credential-shaped provider query parameters'
+);
+select is(
+  pg_temp.capture_sqlstate($sql$
+    select public.archive_provider_response(
+      'sportmonks',
+      'https://api.sportmonks.com/v3/football/fixtures?date=2026-08-03',
+      'GET',
+      200,
+      '{"authorization":"must-not-be-archived"}'::jsonb,
+      '{}',
+      gen_random_uuid()
+    )
+  $sql$),
+  '23514',
+  'the database rejects response-header keys outside the safe evidence allowlist'
 );
 select is(
   pg_temp.capture_sqlstate(format(
