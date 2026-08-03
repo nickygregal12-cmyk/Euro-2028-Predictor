@@ -60,8 +60,14 @@
  * policy or grant and altering no existing relation. It notably does NOT touch
  * the existing `predictor_internal.cup_*` functions, which the tournament
  * surfaces do reach; a seeded Euro user's reads are unchanged.
+ *
+ * Contract 75 splits `cup_window_scores` into a tournament points source and
+ * shared arithmetic. Both are `predictor_internal`, revoked from every browser
+ * role, and the split is behaviour-preserving with the signature unchanged, so
+ * every existing caller and every seeded read is unaffected. It creates no
+ * relation, trigger, policy or grant.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 74
+export const SEED_REVIEWED_AT_CONTRACT = 75
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

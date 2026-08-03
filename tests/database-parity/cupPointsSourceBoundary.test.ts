@@ -3,44 +3,41 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * A BEFORE-STATE CONTRACT for the tournament Cup's points source.
+ * The boundary between the Cup's points source and its shared arithmetic.
  *
- * ADR 0022's 3 August correction directs that `predictor_internal.cup_*` be
- * generalised from tournament scope to competition-season scope, so one
- * implementation serves both, and that the work is sequenced after C1b. C1b
- * has landed and been applied, so that work is now startable — and reading the
- * functions first changes what "rescoping" means.
+ * Written at contract 74 as a BEFORE-STATE contract, and updated at contract
+ * 75 to its after state. Both halves of that history matter, so both are kept.
  *
- * `cup_window_scores` is NOT tournament-scoped by a parameter. Its signature
- * already takes `p_competition_id`; the tournament lives in the body, which
- * reads `public.matches`, `public.match_predictions`,
- * `public.bonus_knockout_predictions` and `entries.tournament_id` directly. A
- * season Cup cannot reach any of those — its fixtures are `season_fixtures`
- * (contract 68) and its predictions `season_predictions` (contract 69).
+ * BEFORE (contract 74). `cup_window_scores` was not tournament-scoped by a
+ * parameter — its signature already took `p_competition_id` — but its body read
+ * `public.matches`, `public.match_predictions`,
+ * `public.bonus_knockout_predictions` and `entries.tournament_id` directly, and
+ * branched on the tournament round vocabulary. A season Cup could reach none of
+ * it: season fixtures are `season_fixtures` (contract 68) and season
+ * predictions are `season_predictions` (contract 69).
  *
- * So the function conflates two responsibilities:
+ * So the function was doing two jobs — a tournament-specific POINTS SOURCE, and
+ * competition-agnostic AGGREGATION into points, exacts, corrects, scoreline
+ * error and submitted. Only the second is what ADR 0022's correction wants to
+ * become one implementation, which made the generalisation a SPLIT rather than
+ * a parameter swap.
  *
- *   1. a POINTS SOURCE — find this member's prediction for this fixture and
- *      score it raw 5/3/0. Tournament-specific;
- *   2. SHARED ARITHMETIC — aggregate per user into points, exacts, corrects,
- *      scoreline error and submitted. Competition-agnostic, and precisely what
- *      ADR 0022 wants to become one implementation.
+ * AFTER (contract 75). The source is `cup_tournament_fixture_points` and the
+ * arithmetic stayed in `cup_window_scores`, consuming a neutral
+ * per-member-per-fixture relation of derived facts — never scorelines — so a
+ * season source returning the same shape is a drop-in. `cup_window_scores`
+ * kept its signature, so all sixteen call sites were untouched.
  *
- * The generalisation is therefore a SPLIT, not a parameter swap: the shared
- * half consumes a neutral per-user-per-fixture raw-points relation, and each
- * competition kind supplies it. That is the same neutral contract ADR 0022
- * requires be preserved, and the one `settleCupTie` already implements by
- * taking fixture points as an input rather than computing them.
- *
- * This file pins the before state so the split cannot quietly change the
- * tournament answer while moving it. It asserts what is true TODAY. When the
- * rescoping lands, these assertions must be updated deliberately and visibly —
- * that is the point of a before-state contract, and it is the pattern PRs
- * #245, #246, #286 and #292 already established here.
+ * This file asserts what is true NOW. When a season source lands, or the
+ * remaining `cup_*` functions are rescoped, these assertions must be updated
+ * deliberately and visibly — that is what a boundary contract is for, and it is
+ * the pattern PRs #245, #246, #286 and #292 established here.
  *
  * What this cannot check, stated so the coverage is not overread: it reads SQL
  * text. Behaviour against a real database is proven by
- * `108`–`114_predictor_cup_*.sql`, which stay authoritative for that.
+ * `108`–`114_predictor_cup_*.sql`, which stay authoritative for that and which
+ * exercise `cup_window_scores` through the admin RPCs across 54 assertions —
+ * unchanged by the split, and therefore its regression evidence.
  */
 
 const migrationsDirectory = resolve(process.cwd(), 'supabase/migrations')
@@ -61,6 +58,7 @@ function lastBody(name: string): string {
 }
 
 const windowScores = lastBody('cup_window_scores')
+const pointsSource = lastBody('cup_tournament_fixture_points')
 const finalGroupTables = lastBody('cup_final_group_tables')
 const bracketOrder = lastBody('cup_bracket_order')
 
@@ -82,32 +80,52 @@ describe('the tournament Cup bodies are readable', () => {
   })
 })
 
-describe('the points source is tournament-coupled today', () => {
-  // Each of these is a place the rescoping has to do something about. Naming
-  // them individually means a partial job fails here rather than passing with
-  // one coupling left behind.
+describe('the tournament coupling lives in the points source', () => {
+  // AFTER STATE, contract 75. Every one of these was asserted of
+  // `cup_window_scores` when this contract was written; the split moved them
+  // into `cup_tournament_fixture_points` and this is the deliberate, visible
+  // edit that records it. Naming them individually still means a partial job
+  // fails here rather than passing with one coupling left behind.
   it.each([
     ['tournament fixtures', /join public\.matches\b/],
     ['tournament group predictions', /public\.match_predictions\b/],
     ['tournament knockout predictions', /public\.bonus_knockout_predictions\b/],
     ['the tournament scope on entries', /entry\.tournament_id\s*=/],
-  ])('cup_window_scores reads %s', (_label, pattern) => {
-    expect(windowScores).toMatch(pattern)
+  ])('cup_tournament_fixture_points reads %s', (_label, pattern) => {
+    expect(pointsSource).toMatch(pattern)
   })
 
-  it('reaches no season relation, because it cannot', () => {
-    // The season tables exist from contract 68 onward. If one appears here
-    // without this contract being rewritten, a rescoping happened by accident.
+  it.each([
+    ['tournament fixtures', /join public\.matches\b/],
+    ['tournament group predictions', /public\.match_predictions\b/],
+    ['tournament knockout predictions', /public\.bonus_knockout_predictions\b/],
+    ['the tournament scope on entries', /entry\.tournament_id\s*=/],
+  ])('cup_window_scores no longer reads %s', (_label, pattern) => {
+    expect(windowScores).not.toMatch(pattern)
+  })
+
+  it('reaches no season relation, because the tournament source cannot', () => {
+    // The season tables exist from contract 68 onward. A season Cup gets its
+    // own source returning the same neutral shape; it does not widen this one.
     for (const relation of SEASON_RELATIONS) {
-      expect(windowScores, `cup_window_scores now reads ${relation}`).not.toContain(relation)
+      expect(pointsSource, `the tournament source now reads ${relation}`).not.toContain(relation)
     }
   })
 
   it('uses the tournament round vocabulary the season does not share', () => {
     // 'group' rounds and the 90-minute columns are tournament concepts. A
     // league season has matchweeks and no extra time.
-    expect(windowScores).toMatch(/round = 'group'/)
-    expect(windowScores).toMatch(/home_score_90/)
+    expect(pointsSource).toMatch(/round = 'group'/)
+    expect(pointsSource).toMatch(/home_score_90/)
+  })
+
+  it('leaves the shared arithmetic consuming the neutral relation only', () => {
+    expect(windowScores).toMatch(/cup_tournament_fixture_points\(p_competition_id, p_window_id\)/)
+    expect(windowScores).toMatch(/group by source\.user_id/)
+    // The seam that makes a season source a drop-in.
+    for (const fact of ['points', 'is_exact', 'is_correct', 'scoreline_error', 'has_prediction']) {
+      expect(windowScores).toContain(`source.${fact}`)
+    }
   })
 })
 
@@ -116,16 +134,16 @@ describe('the raw scale is already the neutral contract', () => {
     // The same 5/3/0 the season Championship settles on. This is why the
     // neutral contract is a real seam and not an aspiration: the two
     // competitions already agree on the value of a fixture.
-    expect(windowScores).toMatch(/then 5\b/)
-    expect(windowScores).toMatch(/then 3\b/)
-    expect(windowScores).toMatch(/else 0\b/)
+    expect(pointsSource).toMatch(/then 5\b/)
+    expect(pointsSource).toMatch(/then 3\b/)
+    expect(pointsSource).toMatch(/else 0\b/)
   })
 
   it('tests the exact score before the result, so an exact never scores 3', () => {
     // Ordering is the whole rule. Reversed, every exact score silently becomes
     // a correct result, and the totals stay plausible.
-    const exact = windowScores.indexOf('then 5')
-    const correct = windowScores.indexOf('then 3')
+    const exact = pointsSource.indexOf('then 5')
+    const correct = pointsSource.indexOf('then 3')
     expect(exact).toBeGreaterThan(-1)
     expect(
       exact,
@@ -134,13 +152,13 @@ describe('the raw scale is already the neutral contract', () => {
   })
 
   it('scores an unconfirmed fixture as nothing rather than as a miss', () => {
-    expect(windowScores).toMatch(/not mp\.confirmed or mp\.predicted_home is null then 0/)
+    expect(pointsSource).toMatch(/not mp\.confirmed or mp\.predicted_home is null then 0/)
   })
 
   it('sentinels a missing prediction in the scoreline error rather than treating it as exact', () => {
     // 999 is deliberate: absent predictions must sort last on the tie-break,
     // and a zero error would sort them first — ahead of everyone who played.
-    expect(windowScores).toMatch(/predicted_home is null then 999/)
+    expect(pointsSource).toMatch(/predicted_home is null then 999/)
   })
 })
 
@@ -152,8 +170,12 @@ describe('the shared half is the part worth generalising', () => {
     },
   )
 
+  it('has a body at all after the split', () => {
+    expect(pointsSource, 'cup_tournament_fixture_points body not found').not.toBe('')
+  })
+
   it('groups by the member, so the shared arithmetic is per entrant', () => {
-    expect(windowScores).toMatch(/group by mp\.user_id/)
+    expect(windowScores).toMatch(/group by source\.user_id/)
   })
 
   it('keeps the bracket order free of any competition scope already', () => {
@@ -206,7 +228,7 @@ describe('the tournament ordering stays out of the season rules', () => {
     'the tournament tables do not call %s',
     (fn) => {
       expect(finalGroupTables).not.toContain(fn)
-      expect(windowScores).not.toContain(fn)
+      expect(pointsSource).not.toContain(fn)
     },
   )
 })
