@@ -66,8 +66,13 @@
  * role, and the split is behaviour-preserving with the signature unchanged, so
  * every existing caller and every seeded read is unaffected. It creates no
  * relation, trigger, policy or grant.
+ *
+ * Contract 76 does the same for `cup_window_settled`, on the same terms:
+ * `predictor_internal` only, revoked from every browser role,
+ * behaviour-preserving, signature unchanged, no relation, trigger, policy or
+ * grant created or altered.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 75
+export const SEED_REVIEWED_AT_CONTRACT = 76
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
