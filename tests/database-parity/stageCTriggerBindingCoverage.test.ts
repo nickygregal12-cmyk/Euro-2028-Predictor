@@ -217,8 +217,16 @@ const effectiveFunctionNames = effectiveBindings.map((binding) =>
 const manifestFunctions = manifestTriggerAuthorityFunctions()
 
 describe('Stage C trigger binding coverage after C1b', () => {
-  it('keeps the parser positive control at the contract-66 trigger boundary', () => {
-    expect(effectiveBindings).toHaveLength(75)
+  it('keeps the parser positive control at the contract-68 trigger boundary', () => {
+    expect(effectiveBindings).toHaveLength(76)
+    // Contract 68: the season fixture's cross-table invariants — league season,
+    // league matchweek, and one appearance per club per matchweek — none of
+    // which a column CHECK can express.
+    expect(
+      effectiveBindings.filter((binding) =>
+        binding.endsWith(' -> predictor_internal.assert_season_fixture_shape'),
+      ),
+    ).toHaveLength(1)
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.prepare_competition_season_scope'),

@@ -28,8 +28,13 @@
  * function branches on it (the gating branches on `requires_prediction_entry`),
  * nor does any browser code read it. It therefore cannot gate an authenticated
  * read, which is the failure this number exists to catch.
+ *
+ * Contract 68 adds `season_fixtures`, revoked from every browser role and
+ * created empty, plus two composite unique constraints on `teams` and
+ * `competition_rounds` that add a key rather than restricting an existing one.
+ * Nothing a seeded Euro user reads changes.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 67
+export const SEED_REVIEWED_AT_CONTRACT = 68
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

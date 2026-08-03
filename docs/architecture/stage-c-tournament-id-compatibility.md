@@ -65,6 +65,7 @@ Every current column below is `uuid NOT NULL`.
 | `predicted_progression.tournament_id` | explicit entry/team season proof |
 | `predicted_tie_resolutions.tournament_id` | explicit entry season scope; UUID-array validation remains separate |
 | `rank_history.tournament_id` | retain and bind history to the relevant season authority |
+| `season_fixtures.tournament_id` | contract 68; the league-season fixture carries the same season scope as every other competition-season object, and its composite keys make a cross-season club or matchweek impossible |
 | `score_events.tournament_id` | explicit entry/match/team season proof |
 | `teams.tournament_id` | retain; teams remain season participants in Stage C |
 
