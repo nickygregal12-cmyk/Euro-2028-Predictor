@@ -30,11 +30,9 @@ A planning document never overrides an ADR. Process, prepared tooling or a chat 
 
 The annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc47175c43b6da`, preserving the contract-63 Euro 2028 baseline. Remaining tournament work is parked until January 2028.
 
-Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md). As of 3 August 2026:
+Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md), and the repository contract from `config/deployment-contract.json`. This section used to restate both, and drifted two contracts behind the sentence further down this same file — one document giving two answers is worse than one document giving none.
 
-- the repository is contract **73**;
-- development Supabase is hosted at contract **72**, so the repository leads it by one additive migration;
-- production Supabase and the last published application remain contract **63**;
+- production Supabase and the last published application remain at the Euro baseline contract;
 - production Netlify deploys are paused by the contract gate by design;
 - no agent may promote production merely to equalise contract numbers.
 
@@ -51,7 +49,7 @@ PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The repository is at **contract 74** through `20260804013000_season_cup_rules.sql`, merged on `main`. Development Supabase is hosted at contract 73; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
+The repository is at **contract 74** through `20260804013000_season_cup_rules.sql`, merged on `main`. Development Supabase is hosted at contract 74; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
 
 **Lock policy is game-owned (ADR 0020, PR #353).** `CompetitionConfig` describes identity, calendar and structure only; the selected game supplies its own explicit `lockPolicy` (Original Predictor entry/0, Main Predictor matchweek/0, Last Man Standing matchweek/30). A missing, unknown, stale or incompatible policy fails closed. Do not reintroduce a competition-wide buffer, and do not branch on route, slug, name or UI type to pick a policy.
 

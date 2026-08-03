@@ -10,11 +10,11 @@ This document owns the Stage A–L engineering sequence. Discovery, research, pr
 
 ## 1. Repository verification and corrections
 
-Repository assertions in the earlier engineering drafts were checked against current `main` at `1fb8ffd36ad113079181829a8bcc47175c43b6da`.
+Repository assertions in the earlier engineering drafts were checked against `main` as it stood on 30 July 2026, at the `euro-2028-baseline` commit. That is a dated verification, not a claim about where `main` is now.
 
 | Earlier claim | Verified position |
 | --- | --- |
-| Production and repository were at contract 60 | **Stale.** Current `main`, the recorded hosted baseline and the published application are contract 63. |
+| Production and repository were at contract 60 | **Stale.** The repository and hosted contracts have all moved past 60. This row used to restate them and went stale in turn; the current values are in [`../quality/current-status.md`](../quality/current-status.md). |
 | The context engine was unbuilt | **True for current `main`.** Open PR #201 proposes an isolated, unwired foundation; it is not merged implementation. |
 | Automatic submission did not exist | **Stale.** Tournament-wide automatic valid-entry submission exists. Only recurring matchweek scheduling is unbuilt. |
 | Bonus Games lacked Browser E2E | **Stale and corrected 30 July 2026.** PR #187 provides authenticated desktop/phone lifecycle coverage for KO Predictor, Last Man Standing and Predictor Cup. `TEST-GAP-01` is resolved in the risk register. |
