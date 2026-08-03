@@ -13,11 +13,17 @@ import { CUP_TIE_MATCH_POINTS, settleCupTie } from '../../src/domain/season/cupT
 /**
  * The season Predictor Championship's pure rules, in both languages.
  *
- * `predictor_internal.cup_*` already existed before this, but it implements the
- * TOURNAMENT Cup — §6.3 wildcard normalisation across differently sized groups.
- * The season Championship ranks by an eight-step tie-break. Two rule sets for
- * two competitions, so the parity here is against the new functions only, and
- * nothing asserts the tournament machinery.
+ * `predictor_internal.cup_*` already existed before this. The parity here is
+ * against the NEW functions only, and nothing asserts the tournament machinery.
+ *
+ * CORRECTION. This block originally said the season "ranks by an eight-step
+ * tie-break" against the tournament's §6.3 normalisation — "two rule sets for
+ * two competitions". Comparing the actual comparator against the actual
+ * `order by` showed the group-table rankings are IDENTICAL, nine keys in the
+ * same sequence; see `cupGroupTableParity.test.ts`, which now pins them
+ * together. The §6.3 wildcard normalisation is real but lives in the
+ * QUALIFICATION path, not the ordering, so the guard below still correctly
+ * excludes it from the season bodies.
  *
  * The rule most worth protecting is the neutral-points contract: a Cup tie
  * settles on RAW fixture points, 0/3/5. A Joker-doubled value must be refused,
