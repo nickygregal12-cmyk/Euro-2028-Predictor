@@ -14,6 +14,16 @@ const CALLER_KEY_NAME = 'provider-poll'
 const PROCESSING_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 const ARCHIVE_MAX_RESPONSE_BYTES = 12 * 1024 * 1024
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' }
+const FORBIDDEN_CREDENTIAL_PARAMETERS = new Set([
+  'api_token',
+  'api_key',
+  'apikey',
+  'token',
+  'key',
+  'authorization',
+  'x-auth-token',
+  'x-apisports-key',
+])
 
 type PollRequest = {
   provider: ProviderName
@@ -163,6 +173,11 @@ function providerUrl(config: ProviderConfig, path: string): URL {
   ) {
     throw new Error('provider path escaped its fixed HTTPS origin')
   }
+  for (const parameter of target.searchParams.keys()) {
+    if (FORBIDDEN_CREDENTIAL_PARAMETERS.has(parameter.toLowerCase())) {
+      throw new Error('provider credentials must be supplied only through headers')
+    }
+  }
   return target
 }
 
@@ -193,6 +208,7 @@ async function readBoundedResponseText(
   if (declaredLength && /^\d+$/.test(declaredLength)) {
     const declaredBytes = Number(declaredLength)
     if (Number.isSafeInteger(declaredBytes) && declaredBytes > byteLimit) {
+      await response.body?.cancel('provider response exceeded archive limit')
       throw new ProviderResponseTooLargeError(byteLimit, declaredBytes)
     }
   }
@@ -298,14 +314,22 @@ Deno.serve(async (request) => {
   const config = PROVIDERS[poll.provider]
   let supabaseUrl: string
   let providerSecret: string
-  let target: URL
   try {
     supabaseUrl = requiredEnvironment('SUPABASE_URL')
     providerSecret = requiredEnvironment(config.secretName)
-    target = providerUrl(config, poll.path)
   } catch (error) {
     return json(500, {
       error: 'function_not_configured',
+      detail: error instanceof Error ? error.message : String(error),
+    })
+  }
+
+  let target: URL
+  try {
+    target = providerUrl(config, poll.path)
+  } catch (error) {
+    return json(400, {
+      error: 'invalid_request',
       detail: error instanceof Error ? error.message : String(error),
     })
   }
