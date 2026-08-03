@@ -186,13 +186,25 @@ const C1B_RELATIONS = [
   'table:game_memberships',
 ]
 
+/**
+ * Contract 68. The season fixture container: a league season could not hold a
+ * fixture, and `matches` defends a tournament shape that widening would have
+ * broken (see the migration header).
+ */
+const SEASON_RELATIONS = ['table:season_fixtures']
+
 const reviewedRelations = [
-  ...new Set([...currentManifestRelations, ...c1ManifestRelations, ...C1B_RELATIONS]),
+  ...new Set([
+    ...currentManifestRelations,
+    ...c1ManifestRelations,
+    ...C1B_RELATIONS,
+    ...SEASON_RELATIONS,
+  ]),
 ].sort()
 
-describe('Stage C public-relation coverage after C1b', () => {
-  it('keeps parser positive controls at the contract-66 schema boundary', () => {
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(41)
+describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
+  it('keeps parser positive controls at the contract-68 schema boundary', () => {
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(42)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

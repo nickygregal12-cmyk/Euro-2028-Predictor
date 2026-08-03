@@ -6,7 +6,8 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **67** | 67 canonical migrations through `20260803180000_matchweek_lock_scope.sql`; contract 67 moves `main_predictor` and `last_man_standing` onto the `matchweek` lock scope the engine can resolve | MERGED; HOSTED NOT APPLIED |
+| Repository `main` | **68** | 68 canonical migrations through `20260803193000_season_fixtures.sql`; contract 68 adds the league-season fixture container on `competition_rounds` and `teams`, inventing no fixtures or dates | MERGED; HOSTED NOT APPLIED |
+| Development Supabase at contract 67 | **67** | contract 67 applied 3 August 2026 through the ADR 0024 fast lane, run 30840592967 | VERIFIED |
 | Repository at contract 66 | **66** | 66 canonical migrations through `20260803070000_c1b_game_catalogue_memberships.sql`; PR #371 merged 3 August 2026 | VERIFIED |
 | Development Supabase | **66** | contract 66 applied 3 August 2026 through the ADR 0024 additive fast lane, run 30837677979: dispatch guards, secret preflight, additive proof, pre-apply snapshot, `supabase db push`, postflight reporting `Development is at contract 66.` | VERIFIED |
 | Production Supabase | **63** | migration ledger directly verified at 63 through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |

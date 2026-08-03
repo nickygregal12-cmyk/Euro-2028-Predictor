@@ -95,6 +95,7 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `score_events.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate entry/match/team score scope |
 | `score_events.validate_score_event_scope` | `predictor_internal.validate_score_event_scope` | preserve score-event validation |
 | `tournaments.a_prepare_tournament_season` | `predictor_internal.prepare_tournament_season` | derive and validate competition-season metadata |
+| `season_fixtures.assert_season_fixture_shape` | `predictor_internal.assert_season_fixture_shape` | contract 68; enforce league-season kind, league-matchweek round, and one appearance per club per matchweek — none expressible as a column CHECK |
 | `tournaments.ensure_original_predictor_availability` | `predictor_internal.ensure_original_predictor_availability` | ensure every tournament season has its hidden Original availability |
 | `tournaments.recompute_scores_on_golden_boot` | `public.trg_recompute_on_golden_boot` | preserve tournament award scoring authority |
 | `tournaments.record_tournament_lock_transition` | `predictor_internal.record_tournament_lock_transition` | persist first observed entry lock transition |
