@@ -198,6 +198,10 @@ const SEASON_RELATIONS = [
   // fixture — which a per-fixture flag cannot express.
   'table:season_predictions',
   'table:season_matchweek_jokers',
+  // Contract 72. Last Man Standing setup and entrant state: contract 71 added
+  // the rule as a pure function because nothing stored what it spends.
+  'table:season_lms_setups',
+  'table:season_lms_entrant_state',
 ]
 
 const reviewedRelations = [
@@ -210,8 +214,8 @@ const reviewedRelations = [
 ].sort()
 
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
-  it('keeps parser positive controls at the contract-69 schema boundary', () => {
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(44)
+  it('keeps parser positive controls at the contract-72 schema boundary', () => {
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(46)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

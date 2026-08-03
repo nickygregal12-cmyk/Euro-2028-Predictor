@@ -98,6 +98,8 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `season_matchweek_jokers.assert_season_joker_allowance` | `predictor_internal.assert_season_joker_allowance` | contract 69; ten Jokers per season and five per half, with no carry-over between halves |
 | `season_matchweek_jokers.enforce_season_matchweek_lock` | `predictor_internal.enforce_season_matchweek_lock` | contract 69; a Joker cannot be played on a locked matchweek |
 | `season_predictions.enforce_season_matchweek_lock` | `predictor_internal.enforce_season_matchweek_lock` | contract 69; a scoreline cannot be written after its matchweek locks, and unconfirmed kickoffs lock rather than open |
+| `season_lms_entrant_state.assert_lms_entrant_allowance` | `predictor_internal.assert_lms_entrant_allowance` | contract 72; an entrant never holds more lives or saves than their competition's setup granted |
+| `season_lms_setups.assert_lms_setup_game` | `predictor_internal.assert_lms_setup_game` | contract 72; a Last Man Standing setup belongs to a last_man_standing competition |
 | `season_fixtures.assert_season_fixture_shape` | `predictor_internal.assert_season_fixture_shape` | contract 68; enforce league-season kind, league-matchweek round, and one appearance per club per matchweek — none expressible as a column CHECK |
 | `tournaments.ensure_original_predictor_availability` | `predictor_internal.ensure_original_predictor_availability` | ensure every tournament season has its hidden Original availability |
 | `tournaments.recompute_scores_on_golden_boot` | `public.trg_recompute_on_golden_boot` | preserve tournament award scoring authority |

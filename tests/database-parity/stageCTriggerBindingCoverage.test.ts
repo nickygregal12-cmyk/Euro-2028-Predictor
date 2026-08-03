@@ -217,8 +217,20 @@ const effectiveFunctionNames = effectiveBindings.map((binding) =>
 const manifestFunctions = manifestTriggerAuthorityFunctions()
 
 describe('Stage C trigger binding coverage after C1b', () => {
-  it('keeps the parser positive control at the contract-69 trigger boundary', () => {
-    expect(effectiveBindings).toHaveLength(79)
+  it('keeps the parser positive control at the contract-72 trigger boundary', () => {
+    expect(effectiveBindings).toHaveLength(81)
+    // Contract 72: the setup belongs to a last_man_standing competition, and an
+    // entrant never holds more than that setup granted.
+    expect(
+      effectiveBindings.filter((binding) =>
+        binding.endsWith(' -> predictor_internal.assert_lms_setup_game'),
+      ),
+    ).toHaveLength(1)
+    expect(
+      effectiveBindings.filter((binding) =>
+        binding.endsWith(' -> predictor_internal.assert_lms_entrant_allowance'),
+      ),
+    ).toHaveLength(1)
     // Contract 68: the season fixture's cross-table invariants — league season,
     // league matchweek, and one appearance per club per matchweek — none of
     // which a column CHECK can express.
