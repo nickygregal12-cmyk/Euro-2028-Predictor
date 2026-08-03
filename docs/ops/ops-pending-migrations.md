@@ -6,7 +6,8 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **76** | 76 canonical migrations through `20260804033000_cup_neutral_settlement_source.sql`; contract 76 moves the last tournament coupling out of the shared Cup machinery, completing the ADR 0022 rescoping | MERGED; HOSTED NOT APPLIED |
+| Repository `main` | **77** | 77 canonical migrations through `20260804043000_season_cup_sources.sql`; contract 77 gives the season Cup its own points and settlement sources and unions them into the shared machinery | MERGED; HOSTED NOT APPLIED |
+| Development Supabase at contract 76 | **76** | contract 76 applied 3 August 2026 through the ADR 0024 fast lane, run 30860514107 | VERIFIED |
 | Development Supabase at contract 75 | **75** | contract 75 applied 3 August 2026 through the ADR 0024 fast lane, run 30859357998 | VERIFIED |
 | Development Supabase at contract 74 | **74** | contract 74 applied 3 August 2026 through the ADR 0024 fast lane, run 30855978136; additive proof passed, pre-apply snapshot taken, one migration pushed, postflight reported `Development is at contract 74.` | VERIFIED |
 | Development Supabase at contract 73 | **73** | contract 73 applied 3 August 2026 through the ADR 0024 fast lane, run 30853872967 | VERIFIED |

@@ -61,6 +61,8 @@ const windowScores = lastBody('cup_window_scores')
 const pointsSource = lastBody('cup_tournament_fixture_points')
 const windowSettled = lastBody('cup_window_settled')
 const settlementSource = lastBody('cup_tournament_window_unsettled')
+const seasonPointsSource = lastBody('cup_season_fixture_points')
+const seasonSettlementSource = lastBody('cup_season_window_unsettled')
 const finalGroupTables = lastBody('cup_final_group_tables')
 const bracketOrder = lastBody('cup_bracket_order')
 
@@ -288,5 +290,77 @@ describe('the shared Cup machinery is free of tournament relations', () => {
     expect(windowSettled).toMatch(/win\.locks_at is not null/)
     expect(windowSettled).toMatch(/win\.settles_at is null or now\(\) >= win\.settles_at/)
     expect(windowSettled).toMatch(/exists \(\s*select 1 from public\.bonus_window_fixtures/)
+  })
+})
+
+/**
+ * Contract 77: the season supplies its own sources, and the shared machinery
+ * does not change shape to accept them.
+ *
+ * The two sources must be INTERCHANGEABLE — same eight derived facts, same raw
+ * scale, same sentinel — because the shared arithmetic cannot tell them apart
+ * and must not need to. Proven end to end by scoring an identical scenario
+ * through each: byte-identical output, 1998 sentinel included.
+ */
+describe('the season Cup supplies the same neutral shape', () => {
+  it('returns the same eight derived facts', () => {
+    for (const fact of [
+      'user_id', 'match_id', 'confirmed', 'has_prediction',
+      'points', 'is_exact', 'is_correct', 'scoreline_error',
+    ]) {
+      expect(seasonPointsSource, `season source is missing ${fact}`).toContain(fact)
+      expect(pointsSource, `tournament source is missing ${fact}`).toContain(fact)
+    }
+  })
+
+  it('uses the identical raw scale and sentinel', () => {
+    // A season Joker never reaches here: Jokers multiply Main Predictor
+    // matchweek totals, and this reads `season_predictions` directly rather
+    // than any scored total.
+    expect(seasonPointsSource).toMatch(/then 5\b/)
+    expect(seasonPointsSource).toMatch(/then 3\b/)
+    expect(seasonPointsSource).toMatch(/predicted_home is null then 999/)
+    const exact = seasonPointsSource.indexOf('then 5')
+    const correct = seasonPointsSource.indexOf('then 3')
+    expect(
+      exact,
+      'the season source tests the result before the exact score, so an exact would score 3',
+    ).toBeLessThan(correct)
+  })
+
+  it('speaks the season vocabulary, never the tournament one', () => {
+    expect(seasonPointsSource).toMatch(/sf\.status = 'played'/)
+    expect(seasonSettlementSource).toMatch(/sf\.status <> 'played'/)
+    for (const pattern of [/public\.matches\b/, /result_state/, /home_score_90/, /round = 'group'/]) {
+      expect(seasonPointsSource, `season source matches ${pattern}`).not.toMatch(pattern)
+      expect(seasonSettlementSource, `season settlement matches ${pattern}`).not.toMatch(pattern)
+    }
+  })
+
+  it('reads season fixtures through the season link, not bonus_window_fixtures', () => {
+    // `bonus_window_fixtures.match_id` is NOT NULL against `public.matches`
+    // with a primary key over it. Serving a season from it would mean
+    // destructive change to a production-hosted tournament table, so the
+    // season gets its own link — the same answer contract 68 gave when season
+    // fixtures became `season_fixtures` rather than a widening of `matches`.
+    expect(seasonPointsSource).toMatch(/public\.season_cup_window_fixtures\b/)
+    expect(seasonPointsSource).not.toMatch(/bonus_window_fixtures/)
+  })
+
+  it('combines the two sources by union, so it stays one implementation', () => {
+    // A branch on competition kind would quietly become two implementations
+    // sharing a name. Union with an empty relation is the identity, so each
+    // window is scored by exactly one source and the tournament path is
+    // untouched.
+    expect(windowScores).toMatch(/union all/)
+    expect(windowScores).toMatch(/cup_tournament_fixture_points\(p_competition_id, p_window_id\)/)
+    expect(windowScores).toMatch(/cup_season_fixture_points\(p_competition_id, p_window_id\)/)
+    expect(windowScores).not.toMatch(/case when .*competition_kind|if .*is_season/i)
+  })
+
+  it('requires both sources to be settled, and either to have fixtures', () => {
+    expect(windowSettled).toMatch(/not predictor_internal\.cup_tournament_window_unsettled/)
+    expect(windowSettled).toMatch(/not predictor_internal\.cup_season_window_unsettled/)
+    expect(windowSettled).toMatch(/season_cup_window_fixtures/)
   })
 })
