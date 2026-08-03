@@ -82,14 +82,14 @@ jobs:
         if: always()
         run: supabase stop --no-backup
 
-  # Every job above rebuilds from zero, so it reaches each migration with empty
-  # tables. A row-level trigger does not fire when a statement matches no rows,
-  # which is exactly how the Stage C1 audit-scope backfill passed every rebuild
-  # and then failed on hosted development's nine audit rows. This job is the one
-  # that arrives at a migration with data already in place.
+  # Zero-to-current rebuilds reach every migration with empty tables. Transition
+  # subjects instead arrive at the exact prior contract with representative rows
+  # already present. Each subject owns one baseline and rolls its probes back, so
+  # they run explicitly after a reset to that baseline rather than as one mixed
+  # directory whose tests could silently exercise the wrong schema version.
   migration-transition:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
 
     steps:
       - uses: actions/checkout@v4
@@ -113,13 +113,20 @@ jobs:
       - name: Rebuild to canonical contract 64
         run: supabase db reset --local --version 20260730180000
 
-      - name: Rehearse the contract 64 to 65 transition against populated tables
+      - name: Rehearse populated contract 64 to 65 Stage C1 transition
         env:
           DATABASE_PARITY: '1'
           SUPABASE_DB_CONTAINER: supabase_db_euro-2028-predictor-local
-        # The whole directory: the suite owns which transitions it rehearses, and
-        # the trigger above already fires on any change inside it.
-        run: npx vitest run tests/migration-transition/
+        run: npx vitest run tests/migration-transition/stageC1AuditScopeTransition.test.ts
+
+      - name: Rebuild to canonical contract 65
+        run: supabase db reset --local --version 20260730235602
+
+      - name: Rehearse populated contract 65 to 66 C1b transition
+        env:
+          DATABASE_PARITY: '1'
+          SUPABASE_DB_CONTAINER: supabase_db_euro-2028-predictor-local
+        run: npx vitest run tests/migration-transition/c1bGameCatalogueMembershipsTransition.test.ts
 
       - name: Stop and delete disposable local data
         if: always()
