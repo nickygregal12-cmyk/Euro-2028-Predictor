@@ -216,9 +216,9 @@ const effectiveFunctionNames = effectiveBindings.map((binding) =>
 )
 const manifestFunctions = manifestTriggerAuthorityFunctions()
 
-describe('Stage C trigger binding coverage', () => {
-  it('keeps the parser positive control at the contract-65 trigger boundary', () => {
-    expect(effectiveBindings).toHaveLength(68)
+describe('Stage C trigger binding coverage after C1b', () => {
+  it('keeps the parser positive control at the contract-66 trigger boundary', () => {
+    expect(effectiveBindings).toHaveLength(75)
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.prepare_competition_season_scope'),
