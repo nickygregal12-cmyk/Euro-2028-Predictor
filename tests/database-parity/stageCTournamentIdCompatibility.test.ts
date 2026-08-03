@@ -246,13 +246,15 @@ const effectiveColumns = effectiveTournamentIdColumns()
 const reviewedColumns = inventoryColumns()
 
 describe('Stage C tournament_id compatibility inventory after C1b', () => {
-  it('keeps the parser positive control at the contract-68 boundary', () => {
-    expect(effectiveColumns).toHaveLength(36)
+  it('keeps the parser positive control at the contract-69 boundary', () => {
+    expect(effectiveColumns).toHaveLength(38)
     expect(effectiveColumns).toContain('entries.tournament_id uuid not null')
     expect(effectiveColumns).toContain('game_memberships.tournament_id uuid not null')
     // Contract 68: the season fixture carries the same season scope every other
     // competition-season object does, so a fixture cannot drift between seasons.
     expect(effectiveColumns).toContain('season_fixtures.tournament_id uuid not null')
+    expect(effectiveColumns).toContain('season_predictions.tournament_id uuid not null')
+    expect(effectiveColumns).toContain('season_matchweek_jokers.tournament_id uuid not null')
     expect(effectiveColumns).toContain('game_membership_events.tournament_id uuid not null')
     expect(effectiveColumns).toContain('matches.tournament_id uuid not null')
     expect(effectiveColumns).toContain('competition_rounds.tournament_id uuid not null')

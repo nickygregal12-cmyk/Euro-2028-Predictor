@@ -33,8 +33,14 @@
  * created empty, plus two composite unique constraints on `teams` and
  * `competition_rounds` that add a key rather than restricting an existing one.
  * Nothing a seeded Euro user reads changes.
+ *
+ * Contract 69 adds `season_predictions` and `season_matchweek_jokers`, both
+ * revoked from every browser role and created empty, plus composite unique
+ * keys on `entries` and `season_fixtures` that add a key rather than
+ * restricting an existing one. Its triggers fire only on the two new tables,
+ * so no path a seeded Euro user takes is affected.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 68
+export const SEED_REVIEWED_AT_CONTRACT = 69
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
