@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 import {
   computeSeasonStandings,
   matchweekWinners,
+  monthlyStandings,
+  pointsPerMatchweekPlayed,
   rollingFormPoints,
   type SeasonEntryTotals,
 } from '../../../src/domain/season/standings'
@@ -120,6 +122,70 @@ describe('rolling form', () => {
     expect(
       rollingFormPoints({ entryId: 'amara', matchweeks: [{ matchweek: 1, points: 0.5 }] }, 3),
     ).toBeNull()
+  })
+})
+
+describe('points per matchweek played', () => {
+  it('returns the exact quotient — display owns rounding', () => {
+    expect(pointsPerMatchweekPlayed(entry('amara', [10, 20, 30]))).toBe(20)
+    expect(pointsPerMatchweekPlayed(entry('bea', [10, 15]))).toBe(12.5)
+  })
+
+  it('has no average for an entry with nothing settled — absent, not zero', () => {
+    expect(pointsPerMatchweekPlayed(entry('amara', []))).toBeNull()
+  })
+
+  it('fails closed on malformed input', () => {
+    expect(
+      pointsPerMatchweekPlayed({ entryId: 'amara', matchweeks: [{ matchweek: 0, points: 3 }] }),
+    ).toBeNull()
+  })
+})
+
+describe('monthly standings', () => {
+  // August holds matchweeks 1–2, September holds 3.
+  const calendar = { 1: '2026-08', 2: '2026-08', 3: '2026-09' }
+  const entries = [
+    entry('amara', [10, 12, 8]),
+    entry('bea', [20, 2]),
+    entry('chidi', [5, 5, 30]),
+  ]
+
+  it('ranks each calendar month independently with shared-rank rules', () => {
+    expect(monthlyStandings(entries, calendar)).toEqual([
+      {
+        month: '2026-08',
+        rows: [
+          { entryId: 'amara', rank: 1, points: 22, matchweeksPlayed: 2 },
+          { entryId: 'bea', rank: 1, points: 22, matchweeksPlayed: 2 },
+          { entryId: 'chidi', rank: 3, points: 10, matchweeksPlayed: 2 },
+        ],
+      },
+      {
+        month: '2026-09',
+        rows: [
+          { entryId: 'chidi', rank: 1, points: 30, matchweeksPlayed: 1 },
+          { entryId: 'amara', rank: 2, points: 8, matchweeksPlayed: 1 },
+        ],
+      },
+    ])
+  })
+
+  it('leaves an entry out of a month it did not play — absent, not on zero', () => {
+    const september = monthlyStandings(entries, calendar)?.find(
+      (table) => table.month === '2026-09',
+    )
+    expect(september?.rows.map((row) => row.entryId)).not.toContain('bea')
+  })
+
+  it('fails closed when the calendar cannot place a settled matchweek', () => {
+    expect(monthlyStandings(entries, { 1: '2026-08', 2: '2026-08' })).toBeNull()
+  })
+
+  it('fails closed on malformed month keys or entries', () => {
+    expect(monthlyStandings(entries, { ...calendar, 3: '2026-13' })).toBeNull()
+    expect(monthlyStandings(entries, { ...calendar, 3: 'September' })).toBeNull()
+    expect(monthlyStandings([entry('amara', [1]), entry('amara', [2])], calendar)).toBeNull()
   })
 })
 
