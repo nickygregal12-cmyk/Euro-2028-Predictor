@@ -2,7 +2,7 @@
 
 **Status date:** 30 July 2026  
 **Live status authority:** [`current-status.md`](current-status.md)  
-**Current baseline:** repository and development Supabase at contract 64; production Supabase and the last published application at contract 63; production deploys intentionally paused by the contract gate  
+**Current baseline:** stated in [`current-status.md`](current-status.md), not here — repository contract, hosted contracts and the deploy-gate position all live there. Production deploys are intentionally paused by the contract gate. This line used to restate those numbers and drifted ten contracts behind while doing it  
 **Current published application:** last good Netlify production deploy recorded in [`current-status.md`](current-status.md)  
 **Recovery:** same-day encrypted production backup/restore evidence plus exact 60→63 preflight and preserved-data postflight.
 
