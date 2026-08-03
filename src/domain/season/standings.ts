@@ -56,6 +56,34 @@ function validEntry(entry: SeasonEntryTotals): boolean {
   return true
 }
 
+function uniqueValidEntries(entries: readonly SeasonEntryTotals[]): boolean {
+  const ids = new Set<string>()
+  for (const entry of entries) {
+    if (!validEntry(entry) || ids.has(entry.entryId)) return false
+    ids.add(entry.entryId)
+  }
+  return true
+}
+
+function rankByPoints(
+  rows: readonly Omit<SeasonStandingRow, 'rank'>[],
+): SeasonStandingRow[] {
+  const sorted = [...rows].sort((left, right) =>
+    right.points === left.points
+      ? left.entryId.localeCompare(right.entryId)
+      : right.points - left.points,
+  )
+
+  let previousPoints = -1
+  let previousRank = 0
+  return sorted.map((row, index) => {
+    const rank = row.points === previousPoints ? previousRank : index + 1
+    previousPoints = row.points
+    previousRank = rank
+    return { ...row, rank }
+  })
+}
+
 /**
  * The season table. Ranked by cumulative points alone; equal points share a
  * rank and the next rank skips (standard competition ranking). Returns `null`
@@ -65,32 +93,15 @@ function validEntry(entry: SeasonEntryTotals): boolean {
 export function computeSeasonStandings(
   entries: readonly SeasonEntryTotals[],
 ): SeasonStandingRow[] | null {
-  const ids = new Set<string>()
-  for (const entry of entries) {
-    if (!validEntry(entry) || ids.has(entry.entryId)) return null
-    ids.add(entry.entryId)
-  }
+  if (!uniqueValidEntries(entries)) return null
 
-  const rows = entries
-    .map((entry) => ({
+  return rankByPoints(
+    entries.map((entry) => ({
       entryId: entry.entryId,
       points: entry.matchweeks.reduce((sum, total) => sum + total.points, 0),
       matchweeksPlayed: entry.matchweeks.length,
-    }))
-    .sort((left, right) =>
-      right.points === left.points
-        ? left.entryId.localeCompare(right.entryId)
-        : right.points - left.points,
-    )
-
-  let previousPoints = -1
-  let previousRank = 0
-  return rows.map((row, index) => {
-    const rank = row.points === previousPoints ? previousRank : index + 1
-    previousPoints = row.points
-    previousRank = rank
-    return { ...row, rank }
-  })
+    })),
+  )
 }
 
 export type MatchweekWinners = {
@@ -148,4 +159,67 @@ export function rollingFormPoints(
     .sort((left, right) => right.matchweek - left.matchweek)
     .slice(0, windowSize)
     .reduce((sum, total) => sum + total.points, 0)
+}
+
+/**
+ * Points per matchweek played — the like-for-like comparison ADR 0012 pairs
+ * with games in hand. An entry with no settled matchweek has no average, not
+ * an average of zero. Returns `null` on malformed input or no matchweeks;
+ * the exact quotient is returned and display owns any rounding.
+ */
+export function pointsPerMatchweekPlayed(entry: SeasonEntryTotals): number | null {
+  if (!validEntry(entry) || entry.matchweeks.length === 0) return null
+  const points = entry.matchweeks.reduce((sum, total) => sum + total.points, 0)
+  return points / entry.matchweeks.length
+}
+
+export type MonthlyStandings = {
+  /** Calendar month key, `YYYY-MM`. */
+  month: string
+  rows: readonly SeasonStandingRow[]
+}
+
+const MONTH_KEY = /^\d{4}-(0[1-9]|1[0-2])$/
+
+/**
+ * Monthly tables: one ranked table per calendar month, over each entry's
+ * settled matchweeks in that month. Month membership comes from the supplied
+ * matchweek→month calendar — the caller derives it from fixture kickoffs;
+ * this module reads no clock. Entries with nothing settled in a month are
+ * absent from it, not on zero. Fails closed (`null`) on malformed entries,
+ * malformed month keys, or a settled matchweek the calendar cannot place —
+ * a table that silently drops a matchweek misranks the month.
+ */
+export function monthlyStandings(
+  entries: readonly SeasonEntryTotals[],
+  matchweekMonth: Readonly<Record<number, string>>,
+): MonthlyStandings[] | null {
+  if (!uniqueValidEntries(entries)) return null
+  for (const month of Object.values(matchweekMonth)) {
+    if (!MONTH_KEY.test(month)) return null
+  }
+
+  const byMonth = new Map<string, Map<string, { points: number; matchweeksPlayed: number }>>()
+  for (const entry of entries) {
+    for (const total of entry.matchweeks) {
+      const month = matchweekMonth[total.matchweek]
+      if (month === undefined) return null
+      const monthEntries = byMonth.get(month) ?? new Map()
+      byMonth.set(month, monthEntries)
+      const current = monthEntries.get(entry.entryId) ?? { points: 0, matchweeksPlayed: 0 }
+      monthEntries.set(entry.entryId, {
+        points: current.points + total.points,
+        matchweeksPlayed: current.matchweeksPlayed + 1,
+      })
+    }
+  }
+
+  return [...byMonth.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([month, monthEntries]) => ({
+      month,
+      rows: rankByPoints(
+        [...monthEntries.entries()].map(([entryId, totals]) => ({ entryId, ...totals })),
+      ),
+    }))
 }
