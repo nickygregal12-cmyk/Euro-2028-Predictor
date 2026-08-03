@@ -9,3 +9,9 @@ additional_redirect_urls = ["http://127.0.0.1:4173/**", "http://127.0.0.1:4174/*
 
 [auth.email]
 enable_confirmations = true
+
+# Service-to-service calls use a named Supabase secret key in the `apikey`
+# header. New secret keys are not JWTs, so the function performs its own
+# constant-time key check before any provider request.
+[functions.provider-poll]
+verify_jwt = false

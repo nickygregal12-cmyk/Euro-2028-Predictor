@@ -16,10 +16,9 @@ import { describe, expect, it } from 'vitest'
  * never contract-declared falls outside the deploy guarantee, and a contract
  * entry the database grants to nobody is a requirement no environment satisfies.
  *
- * The invariant is not equality. The contract legitimately declares six
- * service-role-only RPCs the browser never calls — the Cron-invoked submission
- * sweep, the operating-limit setter and the three Predictor Cup administration
- * functions — so:
+ * The invariant is not equality. The contract legitimately declares
+ * service-role-only RPCs the browser never calls — scheduled processing,
+ * administration, operating controls and internal provider custody — so:
  *
  *   contract = pgTAP-authenticated ∪ (some subset of pgTAP-service-role)
  *
@@ -113,7 +112,9 @@ describe('deployment contract and database privilege allow-list parity', () => {
       'admin_draw_predictor_cup(uuid,text)',
       'admin_finalise_predictor_cup_groups(uuid)',
       'admin_settle_predictor_cup_round(uuid,uuid)',
+      'archive_provider_response(text,text,text,integer,jsonb,text,uuid)',
       'process_due_entry_submissions(timestampwithtimezone)',
+      'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',
       'set_operating_limits(integer,integer)',
     ])
   })

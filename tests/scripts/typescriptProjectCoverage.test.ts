@@ -25,13 +25,14 @@ import { describe, expect, it } from 'vitest'
 
 const repositoryRoot = process.cwd()
 
-/** Roots covered by the four referenced projects, as declared in their `include`. */
+/** Roots covered by the referenced projects, as declared in their `include`. */
 const COVERED_PREFIXES = [
   'src/',
   'tests/',
   'e2e/',
   'production-smoke/',
   'scripts/',
+  'supabase/functions/',
 ] as const
 
 /** Individually-named root files. */
@@ -207,10 +208,14 @@ describe('JavaScript under scripts/', () => {
   ] as const
 
   it('accounts for every committed JavaScript file under scripts/', () => {
-    const committed = execFileSync('git', ['ls-files', 'scripts/*.mjs', 'scripts/**/*.mjs', 'scripts/*.js', 'scripts/**/*.js'], {
-      cwd: repositoryRoot,
-      encoding: 'utf8',
-    })
+    const committed = execFileSync(
+      'git',
+      ['ls-files', 'scripts/*.mjs', 'scripts/**/*.mjs', 'scripts/*.js', 'scripts/**/*.js'],
+      {
+        cwd: repositoryRoot,
+        encoding: 'utf8',
+      },
+    )
       .split('\n')
       .filter(Boolean)
       .sort()

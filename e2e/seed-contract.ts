@@ -21,20 +21,15 @@
 /**
  * The database contract at which these requirements were last verified.
  *
- * Raised to 67 after checking what contract 67 actually changes: it moves
- * `game_definitions.lock_scope` for `main_predictor` and `last_man_standing`
- * from 'round' to 'matchweek'. That column is only ever *emitted* — passed
- * outward in the `lock_policy` payload of `get_competition_games` — and no SQL
- * function branches on it (the gating branches on `requires_prediction_entry`),
- * nor does any browser code read it. It therefore cannot gate an authenticated
- * read, which is the failure this number exists to catch.
- *
- * Contract 68 adds `season_fixtures`, revoked from every browser role and
- * created empty, plus two composite unique constraints on `teams` and
- * `competition_rounds` that add a key rather than restricting an existing one.
- * Nothing a seeded Euro user reads changes.
+ * Contract 67 moves `main_predictor` and `last_man_standing` onto the
+ * league-season `matchweek` scope. Contract 68 adds `season_fixtures`, revoked
+ * from browser roles and created empty, plus composite keys that strengthen
+ * season isolation without changing seeded Euro reads. Contract 69 adds only
+ * isolated provider custody in `predictor_internal` and two service-role-only
+ * append RPCs. It creates no seeded-user requirement or authenticated browser
+ * read path. The exact-head browser suite still re-verifies those requirements.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 68
+export const SEED_REVIEWED_AT_CONTRACT = 69
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
