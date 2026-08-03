@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -120,5 +121,72 @@ describe('the full guarded process is still available', () => {
   it('leaves the Stage C1 rollout workflow in place', () => {
     expect(guarded).toContain('name: Stage C1 development rollout')
     expect(guarded).toContain('BACKUP_AGE_PUBLIC_KEY')
+  })
+})
+
+describe('it reads the pending versions out of the CLI table correctly', () => {
+  /**
+   * This parsing was never exercised until a real dispatch, and it was wrong:
+   * it printed the human-readable TIME column instead of the version, so the
+   * run reported a pending migration of "2026-08-0307:00:00" and then failed
+   * to find a committed file for it. No database was touched — the step runs
+   * before the snapshot and the apply — but the lane could not carry anything.
+   *
+   * The awk program is lifted out of the workflow and run against a realistic
+   * table, so the assertion is about the code that actually ships.
+   */
+  const program = /awk -F'\|' '([\s\S]*?)' \/tmp\/migration-list\.txt/.exec(workflow)?.[1]
+
+  function pendingFrom(table: string): string[] {
+    expect(program, 'could not extract the awk program from the workflow').toBeTruthy()
+    return execFileSync('awk', ['-F|', String(program)], { input: table, encoding: 'utf8' })
+      .split('\n')
+      .filter(Boolean)
+  }
+
+  const table = [
+    '',
+    '  LOCAL          | REMOTE         | TIME (UTC)          ',
+    ' ----------------|----------------|---------------------',
+    '  20260729154931 | 20260729154931 | 2026-07-29 15:49:31 ',
+    '  20260730235602 | 20260730235602 | 2026-07-30 23:56:02 ',
+    '  20260803070000 |                | 2026-08-03 07:00:00 ',
+    '',
+  ].join('\n')
+
+  it('returns the 14-digit version, not the formatted time', () => {
+    expect(pendingFrom(table)).toEqual(['20260803070000'])
+  })
+
+  it('names a file that exists in the repository', () => {
+    // The failure mode was a version string no migration could match, so this
+    // closes the loop the workflow itself closes.
+    const [version] = pendingFrom(table)
+    const files = execFileSync('git', ['ls-files', `supabase/migrations/${version}_*.sql`], {
+      encoding: 'utf8',
+    })
+      .split('\n')
+      .filter(Boolean)
+
+    expect(files).toHaveLength(1)
+  })
+
+  it('reports nothing pending when every migration is applied', () => {
+    const applied = [
+      '  LOCAL          | REMOTE         | TIME (UTC)          ',
+      ' ----------------|----------------|---------------------',
+      '  20260729154931 | 20260729154931 | 2026-07-29 15:49:31 ',
+    ].join('\n')
+
+    expect(pendingFrom(applied)).toEqual([])
+  })
+
+  it('ignores the header and rule rows rather than treating them as versions', () => {
+    const headerOnly = [
+      '  LOCAL          | REMOTE         | TIME (UTC)          ',
+      ' ----------------|----------------|---------------------',
+    ].join('\n')
+
+    expect(pendingFrom(headerOnly)).toEqual([])
   })
 })
