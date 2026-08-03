@@ -4,7 +4,12 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
     /* Vitest suites read process.env and node:fs, so they need the Node types
        the application project deliberately does not carry. */
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node"],
+    /* `browserJourneySelection.test.ts` imports the journey selector, which is
+       JSDoc-typed JavaScript under scripts/ (also checked by tsconfig.gates).
+       Without allowJs the import resolves to `any` and the guard's own
+       assertions stop being typechecked. */
+    "allowJs": true
   },
   /* `src/vite-env.d.ts` supplies the ImportMetaEnv and __EURO28_RELEASE__
      declarations that application modules imported by these suites rely on;

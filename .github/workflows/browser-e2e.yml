@@ -104,8 +104,26 @@ jobs:
             echo 'VITE_DEV_USER_PASSWORD=E2e-local-only-2028!'
           } >> "$GITHUB_ENV"
 
+      - name: Select the journeys this change requires
+        id: journeys
+        run: |
+          git fetch --no-tags --depth=50 origin "${{ github.base_ref }}" || true
+          SELECTED="$(node scripts/select-browser-journeys.mjs "origin/${{ github.base_ref }}")"
+          echo "BROWSER_JOURNEYS=${SELECTED}" >> "$GITHUB_ENV"
+
       - name: Run authenticated application journeys
-        run: npm run test:e2e
+        run: |
+          # Empty means the full suite (ADR 0024). Passing an empty filter to
+          # Playwright would run zero specs and exit 0, which reports green
+          # while testing nothing — so the emptiness is branched on explicitly
+          # rather than interpolated into the command.
+          if [ -z "${BROWSER_JOURNEYS}" ]; then
+            echo 'Running the full authenticated suite.'
+            npm run test:e2e
+          else
+            echo "Running targeted journeys: ${BROWSER_JOURNEYS}"
+            npm run test:e2e -- ${BROWSER_JOURNEYS}
+          fi
 
       - name: Run signup and password-recovery journeys
         run: npm run test:e2e:auth
