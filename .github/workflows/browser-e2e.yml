@@ -16,10 +16,16 @@ on:
       - 'package-lock.json'
       - 'src/**'
       - 'supabase/**'
+      # The deploy-preview-smoke job reads contractVersion out of this file and
+      # requires the preview's release.json to match the application contract.
       - 'config/deployment-contract.json'
+      # The preview smoke exercises the deployed shell, which these three
+      # produce: the SPA entry document, static assets and Netlify rules.
       - 'index.html'
       - 'public/**'
       - 'netlify.toml'
+      # Tests that read this workflow or a Playwright config are guards of this
+      # harness; editing one should re-run what it guards.
       - 'tests/scripts/browserE2EWorkflow.test.ts'
       - 'tests/scripts/authRecoveryE2E.test.ts'
       - 'tests/scripts/e2eProjectGating.test.ts'
@@ -36,6 +42,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The journey selector diffs against the base ref. A shallow clone
+          # has no merge base with origin/main, so narrowing silently never
+          # becomes real. Full history makes the selection authoritative.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -70,9 +81,10 @@ jobs:
           docker exec -i "$DB_CONTAINER" \
             psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
             < e2e/bonus-games-fixture.sql
-          # Fixture builders use the service-role PostgREST client to resolve
-          # canonical game IDs. Keep this read grant inside disposable local E2E;
-          # the committed schema and every hosted environment remain private.
+          # Contract 66 fixture builders use the service-role PostgREST client
+          # to resolve canonical game IDs. Keep this read grant inside the
+          # disposable local browser database only; the committed schema and
+          # every hosted environment remain private.
           docker exec "$DB_CONTAINER" \
             psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
             --command='grant select on table public.bonus_competitions to service_role;'
@@ -101,8 +113,24 @@ jobs:
             echo 'VITE_DEV_USER_PASSWORD=E2e-local-only-2028!'
           } >> "$GITHUB_ENV"
 
+      - name: Select the journeys this change requires
+        id: journeys
+        run: |
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          SELECTED="$(node scripts/select-browser-journeys.mjs "origin/${{ github.base_ref }}")"
+          echo "BROWSER_JOURNEYS=${SELECTED}" >> "$GITHUB_ENV"
+
       - name: Run authenticated application journeys
-        run: npm run test:e2e
+        run: |
+          # Empty means the full suite (ADR 0024). Passing an empty filter to
+          # Playwright would run zero specs and exit 0, so branch explicitly.
+          if [ -z "${BROWSER_JOURNEYS}" ]; then
+            echo 'Running the full authenticated suite.'
+            npm run test:e2e
+          else
+            echo "Running targeted journeys: ${BROWSER_JOURNEYS}"
+            npm run test:e2e -- ${BROWSER_JOURNEYS}
+          fi
 
       - name: Run signup and password-recovery journeys
         run: npm run test:e2e:auth

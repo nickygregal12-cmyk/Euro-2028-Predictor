@@ -4,7 +4,9 @@ import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
-// @ts-expect-error -- plain ESM script with no type declarations
+// The suppression this import used to carry is gone: `tsconfig.test.json` now
+// sets `allowJs`, so the script's own JSDoc types reach this suite instead of
+// the import silently resolving to `any`.
 import { deriveContractExpectations } from '../../scripts/deployment-contract-expectations.mjs'
 
 const repositoryRoot = process.cwd()

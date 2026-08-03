@@ -14,7 +14,7 @@ The product is the **Football Prediction Hub** (ADR 0020): a multi-competition f
 - product phases and gates: [`../architecture/programme-plan.md`](../architecture/programme-plan.md);
 - engineering sequence: [`../architecture/multi-competition-hub-build-plan.md`](../architecture/multi-competition-hub-build-plan.md);
 - current execution sequence: [`../roadmap.md`](../roadmap.md);
-- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0022-season-preset-threshold-and-shared-cup-machinery.md`](../adr/0022-season-preset-threshold-and-shared-cup-machinery.md); the product model is [`../adr/0020-football-prediction-hub-product-model.md`](../adr/0020-football-prediction-hub-product-model.md).
+- platform decisions: [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0024-development-environment-operating-model.md`](../adr/0024-development-environment-operating-model.md); the product model is [`../adr/0020-football-prediction-hub-product-model.md`](../adr/0020-football-prediction-hub-product-model.md).
 
 ## Repository and release baseline
 
@@ -115,6 +115,20 @@ Landed 3 August 2026 across PRs #372, #373, #375, #377, #379, #381 and #383. Thi
 **What this is not.** No entry, membership, matchweek, prediction or standing is persisted by any of it; no surface renders it; no PostgreSQL implementation mirrors it and therefore no parity suite guards it. Treating these modules as a working season product would be a category error — they are the rule layer a future vertical slice consumes, and the slice is blocked on C1b.
 
 **Deliberately not built, for want of authority:** `maxRemainingPoints` generalisation to a rolling season context (ADR 0012 names the consequence but not the semantics), and any season Cup qualification, seeding or bracket implementation (ADR 0022 as corrected: that machinery is SQL, and rescoping it follows C1b).
+
+## Development operating model — implemented controls
+
+[ADR 0024](../adr/0024-development-environment-operating-model.md), landed 3 August 2026 (PRs #390, #392). Each control below exists in the repository and is guarded by an executable test; none of them changes a production boundary.
+
+| Control | Implementation | Guard |
+| --- | --- | --- |
+| Additive development migrations skip the production-grade ceremony | `.github/workflows/development-fast-lane-rollout.yml` — dispatch-only, main-only, clean-checkout-only, confirmation phrase, refuses the production ref by name, checks the *secret* resolves to development rather than trusting the typed input, greps each pending migration for destructive statements, snapshots before applying | `tests/scripts/developmentFastLaneRollout.test.ts` |
+| A trailing hosted database no longer fails a preview build | `scripts/validate-deployment-contract.mjs` — non-production contexts report the gap and build; `production` still throws | `tests/scripts/deploymentContractExpectations.test.ts` |
+| Browser journeys are selected from the change | `scripts/select-browser-journeys.mjs` — unmapped path, mixed change, empty change or contract/schema change all widen to the full suite | `tests/scripts/browserJourneySelection.test.ts`, which additionally proves no spec is unreachable, no mapped prefix is stale, and the workflow checks out enough history for the diff to have a merge base |
+| Development data is reseedable | `npm run reset:development` (`scripts/reset-development-seed.mjs`) — refuses both hosted project refs and any non-local host | `tests/scripts/seedContract.test.ts` |
+| The browser seed states which contract it was reviewed against | `e2e/seed-contract.ts` — `SEED_REVIEWED_AT_CONTRACT` with the identity cast and requirements declared in one place | `tests/scripts/seedContract.test.ts` |
+
+**Known follow-up.** `SEED_REVIEWED_AT_CONTRACT` is 65. C1b moves membership authority, so it must be raised to 66 and membership added to `SEED_REQUIREMENTS` once contract 66 lands.
 
 ## Landed control and Stage C foundation sequence
 
