@@ -42,16 +42,17 @@ insert into public.competition_rounds (tournament_id, round_key, ordinal, kind, 
 select season_id, 'MW' || n, n, 'league_matchweek', 'Matchweek ' || n
   from card_probe, generate_series(1, 4) as n;
 
--- A league season needs a Main Predictor availability before any card can
--- exist: creating an `entries` row fires C1b's prepare_entry_game_membership,
--- which resolves the membership through that availability. Contract 66 seeds a
--- hidden availability only for tournament-shaped seasons, so a league season's
--- is created deliberately — here, and by an administrator in production.
-insert into public.bonus_competitions (tournament_id, game_key, published, availability_status)
-select season_id, 'main_predictor', true, 'active' from card_probe;
+-- The seed creates no auth.users, so a card needs one made here. Creating an
+-- `entries` row fires C1b's prepare_entry_game_membership, which resolves the
+-- canonical membership through the season's Main Predictor availability —
+-- C1b already creates that for every league season, so nothing else is needed.
+set local session_replication_role = replica;
+insert into auth.users(id,email,aud,role,raw_app_meta_data,raw_user_meta_data,created_at,updated_at)
+values (md5('season-card-user')::uuid,'season-card@example.test','authenticated','authenticated','{}','{}',now(),now());
+set local session_replication_role = origin;
 
 insert into public.entries (user_id, tournament_id)
-select (select id from auth.users order by created_at limit 1), season_id from card_probe;
+select md5('season-card-user')::uuid, season_id from card_probe;
 
 create temporary table card_entry as
 select e.id as entry_id, p.season_id
