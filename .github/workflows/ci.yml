@@ -48,13 +48,12 @@ jobs:
           import { readFileSync, writeFileSync } from 'node:fs'
           const path = 'scripts/ops/apply-c1b-final-repair.mjs'
           const source = readFileSync(path, 'utf8')
-          const guard = `  if (source.indexOf(before, first + before.length) >= 0) {
-            throw new Error(\`Non-unique target: \${label}\`)
+          const guard = /\n\s*if \(source\.indexOf\(before, first \+ before\.length\) >= 0\) \{\s*throw new Error\(`Non-unique target: \$\{label\}`\)\s*\}\n/
+          const matches = source.match(new RegExp(guard.source, 'g')) ?? []
+          if (matches.length !== 1) {
+            throw new Error(`Expected one replaceOnce uniqueness guard, found ${matches.length}`)
           }
-          `
-          const matches = source.split(guard).length - 1
-          if (matches !== 1) throw new Error(`Expected one replaceOnce uniqueness guard, found ${matches}`)
-          writeFileSync(path, source.replace(guard, ''))
+          writeFileSync(path, source.replace(guard, '\n'))
           NODE
           node scripts/ops/apply-c1b-final-repair.mjs
           git diff --check
