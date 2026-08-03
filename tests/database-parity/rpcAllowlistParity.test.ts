@@ -10,11 +10,20 @@ import { describe, expect, it } from 'vitest'
  * 080_function_privileges.sql` declares what the *database* grants, and asserts
  * that exhaustively in both directions against `pg_proc`.
  *
+ * Each is separately enforced — the contract by `validate-deployment-contract.mjs`
+ * and pgTAP by the parity job — but nothing related them. They can drift into
+ * disagreeing about the same function: an RPC granted to `authenticated` but
+ * never contract-declared falls outside the deploy guarantee, and a contract
+ * entry the database grants to nobody is a requirement no environment satisfies.
+ *
  * The invariant is not equality. The contract legitimately declares
  * service-role-only RPCs the browser never calls — scheduled processing,
  * administration, operating controls and internal provider custody — so:
  *
  *   contract = pgTAP-authenticated ∪ (some subset of pgTAP-service-role)
+ *
+ * Text-based, so it needs no database and runs in ordinary CI alongside the
+ * execution-based parity subjects.
  */
 
 const repositoryRoot = process.cwd()
@@ -30,10 +39,15 @@ const privilegeTest = readFileSync(
   'utf8',
 )
 
+/** Compare signatures without whitespace or the `public.` qualifier. */
 function normalise(signature: string): string {
   return signature.replace(/^public\./, '').replace(/\s+/g, '')
 }
 
+/**
+ * Signatures inserted into one of the pgTAP expectation tables. The table is
+ * populated by several `insert … values` statements, so all of them are read.
+ */
 function pgTapExpectations(table: string): Set<string> {
   const found = new Set<string>()
   const pattern = new RegExp(
@@ -54,12 +68,16 @@ const serviceRole = pgTapExpectations('expected_service_functions')
 
 describe('deployment contract and database privilege allow-list parity', () => {
   it('parses both allow-lists at all', () => {
+    // Without this, a renamed pgTAP table would empty the comparison and make
+    // every assertion below pass vacuously.
     expect(contract.size).toBeGreaterThan(30)
     expect(authenticated.size).toBeGreaterThan(30)
     expect(serviceRole.size).toBeGreaterThan(10)
   })
 
   it('contract-declares every RPC the database grants to authenticated', () => {
+    // A browser-callable RPC outside the contract is outside the deploy
+    // guarantee: nothing fails the build when the target database lacks it.
     const undeclared = [...authenticated]
       .filter((signature) => !contract.has(signature))
       .sort()
@@ -68,6 +86,9 @@ describe('deployment contract and database privilege allow-list parity', () => {
   })
 
   it('declares nothing the database grants to no one', () => {
+    // The other direction. A contract entry that neither role can execute is a
+    // requirement no environment can satisfy, so it would never fail loudly —
+    // it would just never be true.
     const grantedToNobody = [...contract]
       .filter(
         (signature) =>
@@ -79,6 +100,9 @@ describe('deployment contract and database privilege allow-list parity', () => {
   })
 
   it('keeps the non-browser contract entries service-role only', () => {
+    // Pinned so that a function moving from service-role-only to
+    // browser-callable has to be a deliberate, visible change here as well as in
+    // the privilege test.
     const serviceOnly = [...contract]
       .filter((signature) => !authenticated.has(signature))
       .sort()
@@ -96,6 +120,8 @@ describe('deployment contract and database privilege allow-list parity', () => {
   })
 
   it('agrees on the anonymous surface being the capacity read alone', () => {
+    // The one function anonymous visitors may execute. Anything else appearing
+    // here is a pre-auth data exposure.
     expect([...pgTapExpectations('expected_anon_functions')]).toEqual([
       'get_public_capacity()',
     ])
