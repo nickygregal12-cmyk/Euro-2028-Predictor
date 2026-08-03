@@ -14,7 +14,7 @@ create table predictor_internal.provider_raw_responses (
   response_headers jsonb not null default '{}'::jsonb,
   raw_body text not null,
   raw_body_sha256 text generated always as (
-    encode(digest(convert_to(raw_body, 'UTF8'), 'sha256'), 'hex')
+    pg_catalog.encode(extensions.digest(raw_body, 'sha256'), 'hex')
   ) stored,
   fetched_at timestamptz not null default clock_timestamp(),
   correlation_id uuid not null default gen_random_uuid(),
