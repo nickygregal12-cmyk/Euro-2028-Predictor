@@ -20,6 +20,7 @@
     "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
     "test:e2e:install": "playwright install --with-deps chromium",
     "smoke:production": "node scripts/production-smoke.mjs",
+    "reset:development": "node scripts/reset-development-seed.mjs",
     "smoke:production:browser": "playwright test --config=playwright.production.config.ts",
     "test:coverage:domain": "vitest run tests/domain --coverage",
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs"
