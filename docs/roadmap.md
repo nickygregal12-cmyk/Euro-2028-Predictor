@@ -1,6 +1,6 @@
 # Multi-competition platform — roadmap
 
-**Status date:** 2 August 2026  
+**Status date:** 3 August 2026  
 **Purpose:** current delivery position and next executable slice.  
 **Current facts:** [`quality/current-status.md`](quality/current-status.md)  
 **Parent programme:** [`architecture/programme-plan.md`](architecture/programme-plan.md)  
@@ -13,11 +13,11 @@ This roadmap does **not** duplicate the programme phases or Stage A–L engineer
 ## Current baseline
 
 - `main`: read the current commit from git rather than from this line. The previous hand-copied SHA stayed here through roughly twenty-five subsequent merges, which is what a pinned SHA in a live document does;
-- repository contract: **65** (Stage C1 merged), development Supabase **64** (Stage C1 hosted apply owner-gated on the `SUPABASE_DEV_DB_URL` Session pooler secret), production Supabase **63**;
+- repository contract: **65** (Stage C1 merged), development Supabase **65** (applied and postflight-verified 2–3 August 2026; the `SUPABASE_DEV_DB_URL` blocker is resolved), production Supabase **63**;
 - production Netlify: ready deploy `6a6b84f20937ff0008c07ccd` from commit `ce17a7fd`. **Deploys are paused from contract 64 onward** by the prebuild contract gate until an intentional production migration/release milestone. The last good deploy stays live;
 - Euro 2028: recoverable at `euro-2028-baseline` at contract 63, with remaining tournament work parked until January 2028;
 - Stage B: complete through PR #226, with the retained checklist closed by PR #239;
-- Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. The Stage C1 migration is merged at repository contract 65 (PRs #317, #349) with hosted rollout tooling and a guarded GitHub workflow (PRs #350, #351); the hosted development apply awaits the owner secret fix. No production write is authorised;
+- Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. The Stage C1 migration is merged at repository contract 65 (PRs #317, #349) with hosted rollout tooling and a guarded GitHub workflow (PRs #350, #351); the hosted development apply **completed and was postflight-verified 2–3 August 2026** (PRs #359–#368 hardened the tooling en route). No production write is authorised;
 - lock policy is **game-owned** (ADR 0020, PR #353): the competition supplies identity, calendar and structure; each game supplies its own explicit lock policy, failing closed when missing or incompatible.
 
 ## Delivered foundation
@@ -89,6 +89,8 @@ None of these documents authorises a migration or hosted write.
 8. **C1b — persistent game catalogue and memberships as contract 66** (after development is hosted at 65): game definitions, per-competition-season availability, one entry per competition-season game with joined/left/disqualified state and append-only join/leave/rejoin evidence; separate membership for Main Predictor, LMS and Predictor Championship; seeds for Premier League 2026/27, Scottish Premiership 2026/27 and Euro 2028. Extend the existing `bonus_competition_*`/`entries` structures where safe rather than duplicating them. No C2 content.
 9. **Provider-ingestion custody as contract 67**: recreate PR #352's strict decoders, archive-before-decode custody, server-only Edge Function and canonical identity mapping on top of C1b; do not merge its stale contract-66 migration.
 10. **Domestic Main Predictor vertical slice** (ADR 0012 as amended by ADR 0020): one generic implementation serving Premier League and Scottish Premiership — entries, matchweeks, score predictions, ten whole-matchweek Jokers split five/five, zero-buffer matchweek locks, automatic submission, separate domestic scoring authority with TypeScript/PostgreSQL parity, standings, audited fixture reassignment.
+
+    **Rule layer done, 3 August 2026.** PRs #372, #373, #375, #377, #379, #381 and #383 landed ten further pure authorities, thirteen in total, under `src/domain/season/` covering every pinned rule in ADRs 0012, 0013 and 0014 — scoring and Jokers, standings and derived views, matchweek settlement, card submission and auto-completion, fixture reassignment, LMS eligibility/reset/round resolution/presets, and the Cup's format selector, tie settlement, schedule generation, table/split and launch threshold. What remains in this step is everything else: persistence, the recurring matchweek scheduler, surfaces, and the SQL counterparts with parity coverage. **None of it can start before C1b.**
 11. Keep production at contract 63 and paused. Production promotion is a separate intentional release milestone.
 12. Complete C2 only after issue #272 records an independent review and the approved retention/erasure boundary is reflected in design and tests.
 13. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence.
