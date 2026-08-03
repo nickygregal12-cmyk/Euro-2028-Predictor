@@ -6,6 +6,26 @@ const PRODUCTION_ORIGIN = 'https://euro28predictor.com'
 const PRODUCTION_SUPABASE_REF = 'vkfnsqdyhvtwyqkisxhk'
 const DEVELOPMENT_SUPABASE_REF = 'iouzoutneyjpugbbtdem'
 
+/**
+ * Transport failures are retried; findings are not.
+ *
+ * A dropped socket or a TLS reset says nothing about the deployment — but it
+ * used to fail the whole smoke, including against production. A red that means
+ * nothing is worse than no check, because it teaches people to ignore red.
+ *
+ * Only the `catch` path in `fetchText` retries. A wrong status, a wrong header,
+ * a wrong release identity or an unexpected redirect are real findings and
+ * still fail on the first response: retrying those would mask exactly what this
+ * smoke exists to catch. A genuine outage still fails, a few seconds later.
+ *
+ * These live at the top of the module on purpose. The checks below run at
+ * import time, so a `const` declared next to `fetchText` further down is still
+ * in its temporal dead zone when the first check calls it — the function
+ * declaration hoists, the constant does not.
+ */
+const TRANSPORT_ATTEMPTS = 3
+const TRANSPORT_RETRY_DELAY_MS = 2_000
+
 const origin = normaliseOrigin(
   process.env.EURO28_SMOKE_ORIGIN || PRODUCTION_ORIGIN,
 )
@@ -155,21 +175,6 @@ if (unexpectedSupabaseUrls.length > 0) {
 
 console.log('Supabase endpoint isolation: PASS')
 console.log('PRODUCTION ANONYMOUS HTTP SMOKE: PASSED')
-
-/**
- * Transport failures are retried; findings are not.
- *
- * A dropped socket or a TLS reset says nothing about the deployment — but it
- * used to fail the whole smoke, including against production. A red that means
- * nothing is worse than no check, because it teaches people to ignore red.
- *
- * Only the `catch` path below retries. A wrong status, a wrong header, a wrong
- * release identity or an unexpected redirect are real findings and still fail
- * on the first response: retrying those would mask exactly what this smoke
- * exists to catch. A genuine outage still fails, a few seconds later.
- */
-const TRANSPORT_ATTEMPTS = 3
-const TRANSPORT_RETRY_DELAY_MS = 2_000
 
 async function fetchText(pathname, expectedStatus = 200) {
   const url = new URL(pathname, `${origin}/`)

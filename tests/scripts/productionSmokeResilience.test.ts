@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -80,6 +81,58 @@ describe('findings are never retried', () => {
     expect(fetchText.indexOf('finalUrl.origin !== origin')).toBeGreaterThan(loopEnd)
   })
 })
+
+describe('the script actually runs', () => {
+  /**
+   * Reading the source is not enough, and this suite learned that the
+   * expensive way: the first version of the retry declared TRANSPORT_ATTEMPTS
+   * beside `fetchText`, near the bottom of the file. Every source assertion
+   * above passed. The script still died on its first request with
+   * `ReferenceError: Cannot access 'TRANSPORT_ATTEMPTS' before initialization`,
+   * because the checks run at import time — the function declaration hoists,
+   * the constant does not.
+   *
+   * So this drives the real script. Nothing listens on 127.0.0.1:1, so every
+   * attempt fails at the transport layer immediately: it exercises
+   * initialisation, the retry loop and the give-up path, and needs no network.
+   * The origin must still be HTTPS and the contract explicit, because those
+   * guards run before the first request and are not relaxed for tests.
+   */
+  const run = spawnSync(
+    process.execPath,
+    [resolve(process.cwd(), 'scripts/production-smoke.mjs')],
+    {
+      encoding: 'utf8',
+      timeout: 60_000,
+      env: {
+        ...process.env,
+        EURO28_SMOKE_ORIGIN: 'https://127.0.0.1:1',
+        EURO28_SMOKE_ALLOW_NON_PRODUCTION: 'true',
+        EURO28_SMOKE_EXPECTED_CONTRACT: '65',
+      },
+    },
+  )
+  const output = `${run.stdout ?? ''}${run.stderr ?? ''}`
+
+  it('initialises without a temporal-dead-zone error', () => {
+    expect(output).not.toMatch(/ReferenceError/)
+    expect(output).not.toMatch(/before initialization/)
+  })
+
+  it('retries the unreachable origin, then gives up and fails', () => {
+    expect(output).toContain('Retrying')
+    expect(output).toMatch(new RegExp(`after ${/\d+/.source} attempts`))
+    expect(output).toContain('STOP:')
+    expect(run.status).toBe(1)
+  })
+
+  it('reports every attempt it made', () => {
+    const retries = output.match(/attempt \d+\//g) ?? []
+    // One fewer warning than attempts: the last failure is the give-up, not a
+    // retry. A run that logged nothing would mean the retry went silent.
+    expect(retries.length).toBeGreaterThan(0)
+  })
+}, 60_000)
 
 describe('the smoke still fails closed', () => {
   it('exits non-zero on any stop', () => {
