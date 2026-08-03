@@ -32,8 +32,8 @@ The annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc
 
 Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md). As of 3 August 2026:
 
-- the repository is contract **69**;
-- development Supabase is hosted at contract **68**, so the repository leads it by one additive migration;
+- the repository is contract **70**;
+- development Supabase is hosted at contract **69**, so the repository leads it by one additive migration;
 - production Supabase and the last published application remain contract **63**;
 - production Netlify deploys are paused by the contract gate by design;
 - no agent may promote production merely to equalise contract numbers.
@@ -51,7 +51,7 @@ PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The repository is at **contract 69** through `20260803203000_season_predictions.sql`, merged on `main`. Development Supabase is hosted at contract 68; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
+The repository is at **contract 70** through `20260803213000_season_scoring.sql`, merged on `main`. Development Supabase is hosted at contract 69; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
 
 **Lock policy is game-owned (ADR 0020, PR #353).** `CompetitionConfig` describes identity, calendar and structure only; the selected game supplies its own explicit `lockPolicy` (Original Predictor entry/0, Main Predictor matchweek/0, Last Man Standing matchweek/30). A missing, unknown, stale or incompatible policy fails closed. Do not reintroduce a competition-wide buffer, and do not branch on route, slug, name or UI type to pick a policy.
 
