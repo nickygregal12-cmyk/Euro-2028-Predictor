@@ -276,6 +276,12 @@ select is(
   'the private league stores its game availability explicitly'
 );
 
+select set_config(
+  'test.c1b_main_league_code',
+  (select invite_code from public.leagues where name='C1b Main League'),
+  true
+);
+
 select is(
   public.join_competition_game(current_setting('test.c1b_lms_game')::uuid)->>'status',
   'active',
@@ -342,7 +348,7 @@ select is(
 -- A different user cannot join the private league without joining its game.
 select set_config('request.jwt.claim.sub',md5('c1b-user-two'),true);
 select is(
-  pg_temp.capture_sqlstate($sql$select * from public.join_league((select invite_code from public.leagues where name='C1b Main League'))$sql$),
+  pg_temp.capture_sqlstate($sql$select * from public.join_league(current_setting('test.c1b_main_league_code'))$sql$),
   '42501',
   'private league entry requires active membership in that exact game'
 );
@@ -354,7 +360,7 @@ select is(
 );
 
 select lives_ok(
-  $sql$select * from public.join_league((select invite_code from public.leagues where name='C1b Main League'))$sql$,
+  $sql$select * from public.join_league(current_setting('test.c1b_main_league_code'))$sql$,
   'an active game member can join its private league'
 );
 

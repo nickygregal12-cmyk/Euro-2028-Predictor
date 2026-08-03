@@ -194,6 +194,7 @@ These names may remain but their semantics must support both kinds safely:
 - `clear_my_predictions`
 - `create_league`
 - `get_bonus_games`
+- `get_competition_games`
 - `get_h2h_rank_history`
 - `get_ko_predictor_standings`
 - `get_leaderboard`

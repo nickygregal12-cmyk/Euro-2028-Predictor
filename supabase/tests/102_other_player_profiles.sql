@@ -18,7 +18,7 @@ select public.set_operating_limits(250, 20);
 
 select set_config(
   'test.player_profile_tournament',
-  (select id::text from public.tournaments order by created_at, id limit 1),
+  (select id::text from public.tournaments where name = 'UEFA Euro 2028'),
   true
 );
 

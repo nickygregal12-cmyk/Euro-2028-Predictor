@@ -402,6 +402,7 @@ set search_path = ''
 as $$
 declare
   v_event text;
+  v_recorded_at timestamptz;
 begin
   if tg_op = 'INSERT' then
     v_event := 'joined';
@@ -414,6 +415,17 @@ begin
   else
     return new;
   end if;
+
+  select greatest(
+    case when tg_op = 'INSERT' then new.joined_at else clock_timestamp() end,
+    coalesce(
+      max(event.recorded_at) + interval '1 microsecond',
+      '-infinity'::timestamptz
+    )
+  )
+    into v_recorded_at
+    from public.game_membership_events event
+    where event.membership_id = new.id;
 
   insert into public.game_membership_events (
     membership_id,
@@ -436,7 +448,7 @@ begin
       'reason', nullif(current_setting('predictor.membership_event_reason', true), '')
     )),
     (select auth.uid()),
-    case when tg_op = 'INSERT' then new.joined_at else now() end
+    v_recorded_at
   );
 
   return new;
@@ -1435,6 +1447,7 @@ set search_path = ''
 as $$
 declare
   v_tournament uuid;
+  v_membership_id uuid;
   v_membership_status text;
   v_lock timestamptz;
   v_kickoff timestamptz;
@@ -1448,10 +1461,14 @@ begin
     return new;
   end if;
 
-  select entry.tournament_id, membership.status, tournament.lock_at
-    into v_tournament, v_membership_status, v_lock
+  select
+    entry.tournament_id,
+    entry.game_membership_id,
+    membership.status,
+    tournament.lock_at
+    into v_tournament, v_membership_id, v_membership_status, v_lock
     from public.entries entry
-    join public.game_memberships membership on membership.id = entry.game_membership_id
+    left join public.game_memberships membership on membership.id = entry.game_membership_id
     join public.tournaments tournament on tournament.id = entry.tournament_id
     where entry.id = new.entry_id;
 
@@ -1460,7 +1477,8 @@ begin
       using errcode = 'foreign_key_violation';
   end if;
 
-  if v_membership_status <> 'active' then
+  if v_membership_id is not null
+     and v_membership_status is distinct from 'active' then
     raise exception 'Join or rejoin this game before editing predictions'
       using errcode = 'insufficient_privilege';
   end if;
@@ -1496,6 +1514,7 @@ declare
   v_entry uuid;
   v_match uuid;
   v_tournament uuid;
+  v_membership_id uuid;
   v_membership_status text;
   v_lock timestamptz;
   v_kickoff timestamptz;
@@ -1507,10 +1526,14 @@ declare
 begin
   v_entry := case when tg_op = 'DELETE' then old.entry_id else new.entry_id end;
 
-  select entry.tournament_id, membership.status, tournament.lock_at
-    into v_tournament, v_membership_status, v_lock
+  select
+    entry.tournament_id,
+    entry.game_membership_id,
+    membership.status,
+    tournament.lock_at
+    into v_tournament, v_membership_id, v_membership_status, v_lock
     from public.entries entry
-    join public.game_memberships membership on membership.id = entry.game_membership_id
+    left join public.game_memberships membership on membership.id = entry.game_membership_id
     join public.tournaments tournament on tournament.id = entry.tournament_id
     where entry.id = v_entry;
 
@@ -1519,7 +1542,9 @@ begin
       using errcode = 'foreign_key_violation';
   end if;
 
-  if v_membership_status <> 'active' and not v_server_position_refresh then
+  if v_membership_id is not null
+     and v_membership_status is distinct from 'active'
+     and not v_server_position_refresh then
     raise exception 'Join or rejoin this game before editing predictions'
       using errcode = 'insufficient_privilege';
   end if;
