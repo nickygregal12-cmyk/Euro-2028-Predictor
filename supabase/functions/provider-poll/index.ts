@@ -11,7 +11,8 @@ declare const Deno: {
 
 const DECODER_VERSION = 'contract-67-v1'
 const CALLER_KEY_NAME = 'provider-poll'
-const MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+const PROCESSING_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
+const ARCHIVE_MAX_RESPONSE_BYTES = 12 * 1024 * 1024
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' }
 
 type PollRequest = {
@@ -25,11 +26,23 @@ type ProviderConfig = {
   secretName: string
 }
 
+class ProviderResponseTooLargeError extends Error {
+  readonly byteLimit: number
+  readonly observedBytes: number | null
+
+  constructor(byteLimit: number, observedBytes: number | null) {
+    super(`Provider response exceeded the ${byteLimit}-byte archive limit`)
+    this.name = 'ProviderResponseTooLargeError'
+    this.byteLimit = byteLimit
+    this.observedBytes = observedBytes
+  }
+}
+
 const PROVIDERS: Record<ProviderName, ProviderConfig> = {
   sportmonks: {
     baseUrl: 'https://api.sportmonks.com/v3/football/',
     secretName: 'SPORTMONKS_API_TOKEN',
-    headers: (secret) => ({ Authorization: `Bearer ${secret}` }),
+    headers: (secret) => ({ Authorization: secret }),
   },
   'api-football': {
     baseUrl: 'https://v3.football.api-sports.io/',
@@ -53,6 +66,21 @@ function requiredEnvironment(name: string): string {
   return value
 }
 
+function localLegacyServiceKey(): string | null {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const legacyKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  if (!supabaseUrl || !legacyKey) return null
+
+  let hostname: string
+  try {
+    hostname = new URL(supabaseUrl).hostname
+  } catch {
+    return null
+  }
+  const localHosts = new Set(['127.0.0.1', 'localhost', 'kong', 'host.docker.internal'])
+  return localHosts.has(hostname) ? legacyKey : null
+}
+
 function projectSecretKey(): string {
   const configured = Deno.env.get('SUPABASE_SECRET_KEYS')
   if (configured) {
@@ -66,15 +94,14 @@ function projectSecretKey(): string {
       throw new Error('SUPABASE_SECRET_KEYS must be a JSON object')
     }
     const key = (parsed as Record<string, unknown>)[CALLER_KEY_NAME]
-    if (typeof key !== 'string' || key.length === 0) {
-      throw new Error(`Missing named Supabase secret key: ${CALLER_KEY_NAME}`)
-    }
-    return key
+    if (typeof key === 'string' && key.length > 0) return key
   }
 
-  // Local Supabase still exposes the legacy key. Hosted rollout requires the
-  // named secret key above; this fallback exists only for disposable local use.
-  return requiredEnvironment('SUPABASE_SERVICE_ROLE_KEY')
+  // Disposable local Supabase exposes the legacy service-role key. Hosted
+  // projects must provide the named key; a hosted legacy fallback is refused.
+  const localLegacyKey = localLegacyServiceKey()
+  if (localLegacyKey) return localLegacyKey
+  throw new Error(`Missing named Supabase secret key: ${CALLER_KEY_NAME}`)
 }
 
 function constantTimeEqual(left: string, right: string): boolean {
@@ -158,6 +185,50 @@ function responseHeaders(response: Response): Record<string, string> {
   )
 }
 
+async function readBoundedResponseText(
+  response: Response,
+  byteLimit: number,
+): Promise<{ rawBody: string; responseBytes: number }> {
+  const declaredLength = response.headers.get('content-length')
+  if (declaredLength && /^\d+$/.test(declaredLength)) {
+    const declaredBytes = Number(declaredLength)
+    if (Number.isSafeInteger(declaredBytes) && declaredBytes > byteLimit) {
+      throw new ProviderResponseTooLargeError(byteLimit, declaredBytes)
+    }
+  }
+
+  if (!response.body) return { rawBody: '', responseBytes: 0 }
+
+  const reader = response.body.getReader()
+  const chunks: Uint8Array[] = []
+  let responseBytes = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      responseBytes += value.byteLength
+      if (responseBytes > byteLimit) {
+        await reader.cancel('provider response exceeded archive limit')
+        throw new ProviderResponseTooLargeError(byteLimit, responseBytes)
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const bytes = new Uint8Array(responseBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  return {
+    rawBody: new TextDecoder().decode(bytes),
+    responseBytes,
+  }
+}
+
 async function rpcUuid(
   supabaseUrl: string,
   secretKey: string,
@@ -224,10 +295,20 @@ Deno.serve(async (request) => {
     })
   }
 
-  const supabaseUrl = requiredEnvironment('SUPABASE_URL')
   const config = PROVIDERS[poll.provider]
-  const providerSecret = requiredEnvironment(config.secretName)
-  const target = providerUrl(config, poll.path)
+  let supabaseUrl: string
+  let providerSecret: string
+  let target: URL
+  try {
+    supabaseUrl = requiredEnvironment('SUPABASE_URL')
+    providerSecret = requiredEnvironment(config.secretName)
+    target = providerUrl(config, poll.path)
+  } catch (error) {
+    return json(500, {
+      error: 'function_not_configured',
+      detail: error instanceof Error ? error.message : String(error),
+    })
+  }
   const correlationId = crypto.randomUUID()
 
   let providerResponse: Response
@@ -249,9 +330,31 @@ Deno.serve(async (request) => {
     })
   }
 
-  // Custody is written from the exact response text before any JSON parse or
+  let rawBody: string
+  let responseBytes: number
+  try {
+    ({ rawBody, responseBytes } = await readBoundedResponseText(
+      providerResponse,
+      ARCHIVE_MAX_RESPONSE_BYTES,
+    ))
+  } catch (error) {
+    if (error instanceof ProviderResponseTooLargeError) {
+      return json(413, {
+        error: 'provider_response_exceeds_archive_limit',
+        byteLimit: error.byteLimit,
+        observedBytes: error.observedBytes,
+        correlationId,
+      })
+    }
+    return json(502, {
+      error: 'provider_body_read_failed',
+      detail: error instanceof Error ? error.message : String(error),
+      correlationId,
+    })
+  }
+
+  // Custody is written from the complete response text before any JSON parse or
   // provider-specific decoding. If archival fails, processing stops here.
-  const rawBody = await providerResponse.text()
   let rawResponseId: string
   try {
     rawResponseId = await rpcUuid(supabaseUrl, secretKey, 'archive_provider_response', {
@@ -269,27 +372,6 @@ Deno.serve(async (request) => {
       detail: error instanceof Error ? error.message : String(error),
       correlationId,
     })
-  }
-
-  const responseBytes = new TextEncoder().encode(rawBody).byteLength
-  if (responseBytes > MAX_RESPONSE_BYTES) {
-    try {
-      await recordFailure(
-        supabaseUrl,
-        secretKey,
-        rawResponseId,
-        'provider_response_too_large',
-        `Provider response was ${responseBytes} bytes; limit is ${MAX_RESPONSE_BYTES}`,
-      )
-    } catch (error) {
-      return json(500, {
-        error: 'processing_record_failed',
-        detail: error instanceof Error ? error.message : String(error),
-        rawResponseId,
-        correlationId,
-      })
-    }
-    return json(413, { error: 'provider_response_too_large', rawResponseId, correlationId })
   }
 
   if (!providerResponse.ok) {
@@ -315,6 +397,26 @@ Deno.serve(async (request) => {
       rawResponseId,
       correlationId,
     })
+  }
+
+  if (responseBytes > PROCESSING_MAX_RESPONSE_BYTES) {
+    try {
+      await recordFailure(
+        supabaseUrl,
+        secretKey,
+        rawResponseId,
+        'provider_response_too_large',
+        `Provider response was ${responseBytes} bytes; processing limit is ${PROCESSING_MAX_RESPONSE_BYTES}`,
+      )
+    } catch (error) {
+      return json(500, {
+        error: 'processing_record_failed',
+        detail: error instanceof Error ? error.message : String(error),
+        rawResponseId,
+        correlationId,
+      })
+    }
+    return json(413, { error: 'provider_response_too_large', rawResponseId, correlationId })
   }
 
   try {
