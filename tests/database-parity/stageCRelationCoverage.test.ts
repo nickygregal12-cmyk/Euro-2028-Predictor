@@ -202,6 +202,13 @@ const SEASON_RELATIONS = [
   // the rule as a pure function because nothing stored what it spends.
   'table:season_lms_setups',
   'table:season_lms_entrant_state',
+  // Contract 77. The season Cup's window/fixture link. Separate from
+  // `bonus_window_fixtures` rather than a widening of it: that table's
+  // `match_id` is NOT NULL against `public.matches` and sits inside its primary
+  // key, so serving a season from it would mean destructive change to a
+  // production-hosted tournament table. Contract 68 answered the same question
+  // the same way when season fixtures became `season_fixtures`.
+  'table:season_cup_window_fixtures',
 ]
 
 const reviewedRelations = [
@@ -214,8 +221,8 @@ const reviewedRelations = [
 ].sort()
 
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
-  it('keeps parser positive controls at the contract-72 schema boundary', () => {
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(46)
+  it('keeps parser positive controls at the contract-77 schema boundary', () => {
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(47)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

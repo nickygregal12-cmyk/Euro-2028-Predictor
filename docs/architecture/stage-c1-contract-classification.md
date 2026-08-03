@@ -30,7 +30,7 @@ The absence of C2 after-state assertions is deliberate, not missing coverage. Is
 
 | Source | Classification | Assertion |
 | --- | --- | --- |
-| `stageCRelationCoverage.test.ts` | `C1` | keeps parser positive controls at the contract-72 schema boundary |
+| `stageCRelationCoverage.test.ts` | `C1` | keeps parser positive controls at the contract-77 schema boundary |
 | `stageCRelationCoverage.test.ts` | `C1` | gives every effective public table/view one reviewed disposition |
 | `stageCRelationCoverage.test.ts` | `C1` | retains exactly the four reviewed C1 relations |
 | `stageCRelationCoverage.test.ts` | `C1` | adds exactly the three reviewed C1b relations |

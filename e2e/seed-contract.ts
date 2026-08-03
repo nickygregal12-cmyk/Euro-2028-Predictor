@@ -71,8 +71,15 @@
  * `predictor_internal` only, revoked from every browser role,
  * behaviour-preserving, signature unchanged, no relation, trigger, policy or
  * grant created or altered.
+ *
+ * Contract 77 adds `season_cup_window_fixtures` — created empty, RLS enabled,
+ * revoked from every browser role — and two `predictor_internal` season
+ * sources on the usual terms. The shared Cup functions now union both sources;
+ * with the season link empty the union is the identity, proven over 300
+ * randomised tournament scenarios, so a seeded Euro user's Cup reads are
+ * unchanged. No existing relation, trigger, policy or grant is altered.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 76
+export const SEED_REVIEWED_AT_CONTRACT = 77
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
