@@ -80,6 +80,15 @@ values (
   'owner'
 );
 
+-- The legacy tournament-scoped league RPC now resolves the season's
+-- Main/Original game and therefore requires the same canonical membership as
+-- the product flow. Create that membership through the ordinary entry trigger.
+insert into public.entries (user_id, tournament_id)
+values (
+  current_setting('test.cap_owner_id')::uuid,
+  current_setting('test.cap_tournament_id')::uuid
+);
+
 select set_config(
   'test.cap_initial_users',
   (select count(*)::integer::text from auth.users),

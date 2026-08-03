@@ -243,6 +243,7 @@ select is(
   'Main Predictor can resume through an explicit rejoin'
 );
 
+reset role;
 select is(
   (select jsonb_agg(event.event_type order by event.recorded_at,event.id)
    from public.game_membership_events event
@@ -253,6 +254,7 @@ select is(
   'join, leave and rejoin history is append-only and ordered'
 );
 
+set local role authenticated;
 select is(
   public.get_competition_games(current_setting('test.c1b_pl_tournament')::uuid)->>'competition_member',
   'true',

@@ -209,7 +209,18 @@ begin
       false
     )
     on conflict (tournament_id, game_key) do update
-      set registration_closes_at = excluded.registration_closes_at,
+      set registration_opens_at = case
+            when excluded.registration_closes_at is null then
+              public.bonus_competitions.registration_opens_at
+            else least(
+              coalesce(
+                public.bonus_competitions.registration_opens_at,
+                excluded.registration_closes_at - interval '1 second'
+              ),
+              excluded.registration_closes_at - interval '1 second'
+            )
+          end,
+          registration_closes_at = excluded.registration_closes_at,
           availability_status = 'active',
           updated_at = now()
       where public.bonus_competitions.game_key = 'original_predictor'
@@ -582,7 +593,6 @@ begin
     join public.game_definitions definition on definition.game_key = availability.game_key
     where availability.id = v_game_id
       and availability.tournament_id = new.tournament_id
-      and availability.availability_status = 'active'
       and definition.requires_prediction_entry
   ) then
     raise exception 'Entry must belong to the season Main or Original Predictor'
@@ -698,78 +708,10 @@ execute function predictor_internal.prepare_bonus_entrant_membership();
 revoke all on function predictor_internal.prepare_bonus_entrant_membership()
   from public, anon, authenticated, service_role;
 
--- Existing bonus-game write RPCs continue to use their original payload tables,
--- but every user-owned write is now gated by the canonical active membership.
-create or replace function predictor_internal.assert_active_game_payload_membership()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_user uuid;
-  v_competition uuid;
-  v_tournament uuid;
-  v_active boolean;
-begin
-  v_user := new.user_id;
-
-  if tg_table_name = 'bonus_knockout_predictions' then
-    select match.tournament_id
-      into v_tournament
-      from public.matches match
-      where match.id = new.match_id;
-
-    select exists (
-      select 1
-      from public.game_memberships membership
-      join public.bonus_competitions availability
-        on availability.id = membership.game_competition_id
-      where membership.tournament_id = v_tournament
-        and membership.user_id = v_user
-        and membership.status = 'active'
-        and availability.game_key in ('ko_predictor', 'predictor_cup')
-    ) into v_active;
-  else
-    v_competition := new.competition_id;
-    select exists (
-      select 1
-      from public.game_memberships membership
-      where membership.game_competition_id = v_competition
-        and membership.user_id = v_user
-        and membership.status = 'active'
-    ) into v_active;
-  end if;
-
-  if not coalesce(v_active, false) then
-    raise exception 'Join or rejoin this game before saving game data'
-      using errcode = 'insufficient_privilege';
-  end if;
-
-  return new;
-end;
-$$;
-
-create trigger z_assert_active_knockout_membership
-before insert or update
-on public.bonus_knockout_predictions
-for each row
-execute function predictor_internal.assert_active_game_payload_membership();
-
-create trigger z_assert_active_lms_membership
-before insert or update
-on public.bonus_lms_selections
-for each row
-execute function predictor_internal.assert_active_game_payload_membership();
-
-create trigger z_assert_active_cup_membership
-before insert or update
-on public.bonus_cup_penalty_numbers
-for each row
-execute function predictor_internal.assert_active_game_payload_membership();
-
-revoke all on function predictor_internal.assert_active_game_payload_membership()
-  from public, anon, authenticated, service_role;
+-- Existing bonus-game payload tables remain private implementation details.
+-- C1b gates public participation through the join/leave RPCs and canonical
+-- entrant linkage; it does not add a second trigger-level write contract to
+-- trusted imports, administration or the established game RPC implementations.
 
 alter table public.leagues
   add column game_competition_id uuid;
