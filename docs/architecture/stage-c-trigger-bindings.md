@@ -1,21 +1,22 @@
 # Stage C — trigger binding inventory
 
-**Status:** Contract 65 C1 after-state; C2 ownership work remains blocked by issue #272.  
-**Baseline:** PR #317, migrations `20260730235602` and `20260730235721`.  
+**Status:** Repository contract 66 C1b after-state; C2 ownership work remains blocked by issue #272.  
+**Baseline:** Contract 65 competition-season foundation plus migration `20260803070000_c1b_game_catalogue_memberships.sql`.  
 **Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)  
-**Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
+**Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-competition-season-schema.md)
 
 ## Purpose
 
 Stage C changes season scope across a heavily defended schema. Defining a validator
 function is not sufficient: its trigger must remain attached to the intended table.
 This inventory pins every effective non-internal trigger on a `public` table to its
-function after contract 65.
+function after contract 66.
 
-The C1 migration adds preparation, lock-evidence, competition-identity and award
-bindings while preserving the established lock, result, scoring, audit, rate-limit
-and ownership authorities. The executable comparison is
-`tests/database-parity/stageCTriggerBindingCoverage.test.ts`.
+The C1 foundation adds preparation, lock-evidence, competition-identity and award
+bindings. C1b adds game-availability preparation, canonical membership linkage and
+append-only membership-event bindings while preserving the established lock,
+result, scoring, audit, rate-limit and ownership authorities. The executable
+comparison is `tests/database-parity/stageCTriggerBindingCoverage.test.ts`.
 
 No hosted database write or C2 ownership change is claimed by this inventory.
 
@@ -28,7 +29,10 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `bonus_competition_audit.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate stored season scope |
 | `bonus_competition_audit.block_bonus_audit_mutation` | `predictor_internal.block_bonus_audit_mutation` | preserve audit immutability |
 | `bonus_competition_entrants.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate stored season/game scope |
+| `bonus_competition_entrants.aa_prepare_bonus_entrant_membership` | `predictor_internal.prepare_bonus_entrant_membership` | attach ordinary Bonus Games entrants to canonical membership |
 | `bonus_competition_windows.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate stored season/game scope |
+| `bonus_competitions.a_prepare_game_availability_status` | `predictor_internal.prepare_game_availability_status` | keep legacy publication and canonical availability state coherent |
+| `bonus_competitions.assert_game_availability_shape` | `predictor_internal.assert_game_availability_shape` | enforce game availability against competition-season kind |
 | `bonus_cup_fixtures.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup fixture scope |
 | `bonus_cup_groups.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup group scope |
 | `bonus_cup_members.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup member scope |
@@ -47,8 +51,11 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `competition_awards.validate_competition_award_scope` | `predictor_internal.validate_competition_award_scope` | enforce same-season award winners |
 | `competition_lock_events.prevent_lock_event_mutation` | `predictor_internal.prevent_lock_event_mutation` | keep observed lock evidence append-only |
 | `competitions.prevent_competition_identity_change` | `predictor_internal.prevent_competition_identity_change` | keep stable competition slug immutable |
+| `entries.aa_prepare_entry_game_membership` | `predictor_internal.prepare_entry_game_membership` | attach ordinary Main/Original entries to canonical membership |
 | `entries.validate_bracket_on_submission` | `predictor_internal.validate_bracket_on_submission` | preserve authoritative submission validation |
 | `entry_automatic_submission_outcomes.block_automatic_submission_outcome_mutation` | `predictor_internal.block_automatic_submission_outcome_mutation` | preserve outcome immutability |
+| `game_membership_events.block_game_membership_event_mutation` | `predictor_internal.block_game_membership_event_mutation` | keep membership history append-only while allowing parent cascades |
+| `game_memberships.record_game_membership_event` | `predictor_internal.record_game_membership_event` | record joined, left, rejoined and disqualified transitions |
 | `group_teams.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate group/team season scope |
 | `group_teams.validate_group_team_scope` | `predictor_internal.validate_group_team_scope` | preserve group/team validation |
 | `league_members.rate_limit_league_membership` | `public.trg_rate_limit_league_membership` | preserve membership rate limiting |
@@ -88,6 +95,7 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `score_events.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate entry/match/team score scope |
 | `score_events.validate_score_event_scope` | `predictor_internal.validate_score_event_scope` | preserve score-event validation |
 | `tournaments.a_prepare_tournament_season` | `predictor_internal.prepare_tournament_season` | derive and validate competition-season metadata |
+| `tournaments.ensure_original_predictor_availability` | `predictor_internal.ensure_original_predictor_availability` | ensure every tournament season has its hidden Original availability |
 | `tournaments.recompute_scores_on_golden_boot` | `public.trg_recompute_on_golden_boot` | preserve tournament award scoring authority |
 | `tournaments.record_tournament_lock_transition` | `predictor_internal.record_tournament_lock_transition` | persist first observed entry lock transition |
 | `tournaments.validate_tournament_award_scope` | `predictor_internal.validate_tournament_award_scope` | preserve tournament-only award validation |
@@ -99,8 +107,8 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 2. A named Stage C authority must remain attached unless its rule moves to a
    reviewed declarative constraint with equivalent hostile-write evidence.
 3. Trigger removal is not accepted merely because the function still exists.
-4. Preparation triggers remain `ENABLE ALWAYS` so controlled replica-mode imports
-   cannot bypass required non-null competition-season scope.
+4. Preparation triggers remain `ENABLE ALWAYS` where the migration marks them so
+   controlled replica-mode imports cannot bypass required non-null season scope.
 5. ACQ-R03 scoring-performance work remains separately governed.
-6. C1 does not alter profile ownership or account-erasure behaviour; those remain
+6. C1b does not alter profile ownership or account-erasure behaviour; those remain
    C2 and blocked by issue #272.
