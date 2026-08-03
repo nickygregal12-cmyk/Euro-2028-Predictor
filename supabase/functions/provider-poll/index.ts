@@ -9,7 +9,7 @@ declare const Deno: {
   serve(handler: (request: Request) => Response | Promise<Response>): void
 }
 
-const DECODER_VERSION = 'contract-67-v1'
+const DECODER_VERSION = 'contract-68-v1'
 const CALLER_KEY_NAME = 'provider-poll'
 const PROCESSING_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 const ARCHIVE_MAX_RESPONSE_BYTES = 12 * 1024 * 1024
