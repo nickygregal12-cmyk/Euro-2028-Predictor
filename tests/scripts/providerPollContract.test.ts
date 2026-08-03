@@ -22,17 +22,40 @@ describe('provider poll contract', () => {
     expect(supabaseConfig).toContain('verify_jwt = false')
   })
 
-  it('archives exact response text before size judgment, JSON parsing or decoding', () => {
-    const readText = edgeSource.indexOf('const rawBody = await providerResponse.text()')
+  it('allows the legacy key only for a declared disposable-local hostname', () => {
+    expect(edgeSource).toContain('function localLegacyServiceKey()')
+    expect(edgeSource).toContain("'127.0.0.1', 'localhost', 'kong', 'host.docker.internal'")
+    expect(edgeSource).toContain('localHosts.has(hostname) ? legacyKey : null')
+    expect(edgeSource).toContain('if (localLegacyKey) return localLegacyKey')
+    expect(edgeSource).not.toMatch(
+      /return requiredEnvironment\('SUPABASE_SERVICE_ROLE_KEY'\)/,
+    )
+  })
+
+  it('uses the provider-specific authentication headers without putting credentials in URLs', () => {
+    expect(edgeSource).toContain('headers: (secret) => ({ Authorization: secret })')
+    expect(edgeSource).not.toContain('Authorization: `Bearer ${secret}`')
+    expect(edgeSource).toContain("headers: (secret) => ({ 'x-apisports-key': secret })")
+    expect(edgeSource).toContain("headers: (secret) => ({ 'X-Auth-Token': secret })")
+    expect(edgeSource).not.toContain('api_token=')
+  })
+
+  it('bounds the complete response read before archival, parsing or decoding', () => {
+    const boundedRead = edgeSource.indexOf('await readBoundedResponseText(')
     const archive = edgeSource.indexOf("'archive_provider_response'")
-    const size = edgeSource.indexOf('const responseBytes =')
+    const processingSize = edgeSource.indexOf(
+      'if (responseBytes > PROCESSING_MAX_RESPONSE_BYTES)',
+    )
     const parse = edgeSource.indexOf('JSON.parse(rawBody)')
     const decode = edgeSource.indexOf('decodeProviderPayload(poll.provider, parsed)')
-    expect(readText).toBeGreaterThan(-1)
-    expect(archive).toBeGreaterThan(readText)
-    expect(size).toBeGreaterThan(archive)
-    expect(parse).toBeGreaterThan(size)
+    expect(boundedRead).toBeGreaterThan(-1)
+    expect(archive).toBeGreaterThan(boundedRead)
+    expect(processingSize).toBeGreaterThan(archive)
+    expect(parse).toBeGreaterThan(processingSize)
     expect(decode).toBeGreaterThan(parse)
+    expect(edgeSource).toContain('ARCHIVE_MAX_RESPONSE_BYTES = 12 * 1024 * 1024')
+    expect(edgeSource).toContain('reader.cancel(\'provider response exceeded archive limit\')')
+    expect(edgeSource).not.toContain('providerResponse.text()')
   })
 
   it('never accepts an absolute, fragment or parent-traversing provider path', () => {
