@@ -7,6 +7,12 @@ import { fileURLToPath } from 'node:url'
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(scriptDir, '..')
 const contractPath = resolve(repoRoot, 'config/deployment-contract.json')
+/**
+ * The one Netlify context whose database contract must match exactly, always.
+ * Named rather than inlined so the production carve-out cannot be widened by
+ * an innocent-looking edit to a comparison.
+ */
+const PRODUCTION_CONTEXT = 'production'
 const migrationsDir = resolve(repoRoot, 'supabase/migrations')
 const browserSourceDir = resolve(repoRoot, 'src')
 
@@ -132,6 +138,35 @@ export function validateDeploymentContract(env = process.env) {
 
   const deployedContract = Number.parseInt(deployedRaw, 10)
   if (deployedContract !== contract.contractVersion) {
+    /*
+     * A non-production context whose database TRAILS the repository is the
+     * ordinary state of a schema-advancing pull request, and failing it is a
+     * circular gate: the development database can only reach the new contract
+     * after the migration merges, so the preview can never go green before
+     * merge (ADR 0024). The build proceeds and says what is unavailable.
+     *
+     * Everything else still fails. Production is never waved through, and a
+     * database AHEAD of the application is not a pre-rollout state — it means
+     * the target has migrations this build does not know about, which is a
+     * real mismatch in either context.
+     */
+    const trailing = deployedContract < contract.contractVersion
+    if (context !== PRODUCTION_CONTEXT && trailing) {
+      return {
+        checkedHostedContract: true,
+        hostedDatabaseBehind: true,
+        context,
+        deployedContract,
+        requiredContract: contract.contractVersion,
+        migrationCount,
+        message:
+          `Netlify ${context} database contract is ${deployedContract} and the ` +
+          `application requires ${contract.contractVersion}: hosted database ` +
+          'preview unavailable until the development rollout applies it. ' +
+          'Building anyway — database-backed smoke runs after that rollout.',
+      }
+    }
+
     throw new Error(
       `Netlify ${context} database contract is ${deployedContract}, but the ` +
         `application requires ${contract.contractVersion}. Do not deploy until ` +
@@ -141,6 +176,7 @@ export function validateDeploymentContract(env = process.env) {
 
   return {
     checkedHostedContract: true,
+    hostedDatabaseBehind: false,
     context,
     deployedContract,
     requiredContract: contract.contractVersion,

@@ -48,14 +48,46 @@ describe('application/database deployment contract guard', () => {
     },
   )
 
-  it.each(['production', 'deploy-preview', 'branch-deploy', 'dev'])(
-    'rejects %s when the hosted database contract is behind',
+  it('rejects production when the hosted database contract is behind', () => {
+    // Production is never waved through. This is the carve-out's boundary and
+    // the reason the exception is scoped by name rather than by "not production
+    // enough" reasoning.
+    expect(
+      run({
+        NETLIFY: 'true',
+        CONTEXT: 'production',
+        EURO28_DEPLOYED_DB_CONTRACT: '20',
+      }),
+    ).toThrow()
+  })
+
+  it.each(['deploy-preview', 'branch-deploy', 'dev'])(
+    'builds %s when the hosted database contract trails, and says what is unavailable',
     (context) => {
+      // ADR 0024: a schema-advancing PR cannot reach a matching development
+      // database before it merges, so failing this is a circular gate. The
+      // build proceeds and reports the limitation.
+      const output = run({
+        NETLIFY: 'true',
+        CONTEXT: context,
+        EURO28_DEPLOYED_DB_CONTRACT: '20',
+      })
+      expect(output).not.toThrow()
+      expect(output()).toContain('hosted database preview unavailable')
+    },
+  )
+
+  it.each(['production', 'deploy-preview', 'branch-deploy', 'dev'])(
+    'rejects %s when the hosted database contract is AHEAD of the application',
+    (context) => {
+      // Ahead is not a pre-rollout state: the target carries migrations this
+      // build does not know about. That is a real mismatch in every context,
+      // and the non-production allowance must not swallow it.
       expect(
         run({
           NETLIFY: 'true',
           CONTEXT: context,
-          EURO28_DEPLOYED_DB_CONTRACT: '20',
+          EURO28_DEPLOYED_DB_CONTRACT: String(deploymentContract.contractVersion + 1),
         }),
       ).toThrow()
     },
