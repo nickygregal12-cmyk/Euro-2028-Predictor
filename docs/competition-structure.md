@@ -1,70 +1,124 @@
-# Competition Structure — Original Predictor & Bonus Games
+# Competition and game structure
 
-Source of truth for how competitions relate. The core law: **the Original Predictor and Bonus Games are fully separate competitions.** Shared user accounts and shared tournament data are the only common ground.
+**Status:** platform target authority; exact merged/hosted implementation remains in [`quality/current-status.md`](quality/current-status.md).  
+**Product model:** [ADR 0020](adr/0020-football-prediction-hub-product-model.md).  
+**Information architecture and private-container decision:** [ADR 0023](adr/0023-hub-information-architecture.md).
 
-Platform-wide competition-season and opt-in authority: [ADR 0011](adr/0011-multi-competition-platform.md). Season Last Man Standing and Cup formats are governed by [ADR 0013](adr/0013-last-man-standing-season-rules.md) and [ADR 0014](adr/0014-predictor-cup-season-formats.md); commercial and social constraints are governed by [ADR 0015](adr/0015-commercial-and-social-model.md).
+The core law is simple: a **competition season** supplies real football; each **prediction game** is entered separately and owns its own rules, state and standings.
 
----
+## 1. Product hierarchy
 
-## 1. Separation law
+```text
+Football Prediction Hub
+└── Competition season
+    ├── football fixtures, results, table/groups/bracket and statistics
+    ├── Match or Original Predictor
+    ├── Last Man Standing
+    ├── Predictor Championship
+    ├── KO Predictor where supported
+    └── game-scoped private leagues/competitions
+```
 
-- The **Original Predictor** is the main game and the only competition connected to the standard overall/private-league system.
-- Bonus Games (**KO Predictor**, **Last Man Standing** and **Predictor Cup**) each require **separate, voluntary entry**. Joining an Original Predictor league never enrols anyone in a Bonus Game; entering one Bonus Game never enrols anyone in another.
-- Bonus-game points never alter Original Predictor points, and Bonus Game standings never appear as tabs inside Original Predictor league pages.
-- Every competition view must clearly identify the competition being shown.
-- Bonus Games use dedicated platform tables: `bonus_competitions`, `bonus_competition_windows`, `bonus_window_fixtures`, `bonus_competition_entrants`, `bonus_score_events` and `bonus_competition_audit`. The earlier `entries.entry_type` plan is abandoned; `entries` belongs to the Original Predictor alone.
-- Raw knockout scoreline predictions are collected once in `bonus_knockout_predictions` and read by the KO Predictor and Predictor Cup. Group-stage Cup scoring reads the user's submitted Original Predictor scorelines. Raw predictions can be shared; entries, scoring and standings remain separate.
+One account/profile spans the Hub. Following a competition does not enter a game.
 
-## 2. Navigation and catalogue
+## 2. Public game catalogue
 
-- The shipped primary navigation is Home / Predict / Matches / League / More.
-- **League** is permanently Original Predictor only.
-- **Bonus Games lives at More → Bonus Games (`/games`)**.
-- Per-game surfaces are:
-  - `/games/knockout` — shared knockout prediction form;
-  - `/games/ko-predictor` — KO Predictor standings;
-  - `/games/lms` — Last Man Standing selection/history;
-  - `/games/cup` — Predictor Cup group, ties, bracket and honours.
-- The canonical three game cards remain visible even when hosted catalogue rows are missing. Hosted publication controls registration, windows and fixtures; absence of configuration must not silently erase a delivered feature.
-- The repeatable production catalogue source is `scripts/bonus-games/publish-catalogue.sql`. It creates three published competition records, 14 LMS/Cup windows and 102 fixture links, without creating entrants, predictions, draws, scores or results.
-- Registration opening instants are an operational decision. Newly configured production rows remain visible with `registration_opens_at = null` until the owner deliberately opens them.
+| Public name | Purpose | Typical scope | Private option |
+| --- | --- | --- | --- |
+| **Match Predictor** | weekly domestic score predictions and cumulative points | league season | private leagues |
+| **Original Predictor** | full pre-tournament groups/bracket/awards entry | tournament | private leagues |
+| **Last Man Standing** | one surviving team selection per round | season or tournament | private LMS competitions |
+| **Predictor Championship** | head-to-head fixtures using raw Predictor points | season; tournament compatibility machinery | private Championships |
+| **KO Predictor** | rolling knockout score/advance picks | knockout tournaments | global at first launch unless later decided |
 
-## 3. Original Predictor private leagues
+`Main Predictor`, `Predictor Cup` and `bonus_*` names may remain inside code/schema for compatibility. User-facing copy follows the table.
 
-League pages include the league name, invite link/code, owner, members, rankings, movement, latest/total points, accuracy indicators, predicted champion, secure profile links and H2H actions. Original Predictor leagues never auto-enrol members into Bonus Games.
+## 3. Separation law
 
-## 4. Bonus Games
+- Entry into every game is separate and voluntary.
+- Joining a private league never enrols a user in its game; game membership is a prerequisite.
+- One game's points, survival state or progression never alter another's.
+- Match/Original Predictor leagues do not become tabs for LMS or Championship.
+- Every page, card, invitation and standings view names the active competition season and game.
+- Leaving, losing or completing one game does not affect any other.
+- Official fixture/result correction is entered once and each affected game recomputes independently.
+- Raw predictions may be shared only through a neutral contract where explicitly authorised; entries, scoring and standings remain game-owned.
+- Predicted and real brackets never blend.
+- Scoring is platform-standard for the game. Private creators do not customise scoring.
 
-### KO Predictor
+## 4. Private containers
 
-Implemented through contracts 49–52. Optional rolling-entry game for real knockout fixtures. One regulation-time scoreline per match plus a “who goes through?” pick when a draw is predicted. Scoring: **Exact 5 · Result 3 · Through +2**. Through points stack and can pay alone. No jokers. Global standings only at launch.
+The first domestic release includes:
 
-### Last Man Standing
+- Match Predictor private leagues;
+- private Last Man Standing competitions;
+- private Predictor Championships.
 
-Implemented at contract 53. One pick per platform round, changeable until the round deadline. Group picks must win; knockout picks must advance. Each team can be used once. No pick means elimination at settle. Official corrections re-derive outcomes. A whole-round wipeout voids the round so a winner remains possible.
+The global Leagues surface groups them into `My leagues` and `My competitions` without pretending they are the same lifecycle.
 
-### Predictor Cup
+Every invitation identifies:
 
-Implemented through contracts 54–60. Transparent draw into groups, three head-to-head group matchdays, qualification with the §5.2 mini head-to-head and wildcards, banded seeding, playoff/byes, fixed knockout bracket, Extra-Time Accuracy, parity-laned Penalty Numbers, walkovers, champion and Golden Predictor. Full rules remain in `docs/predictor-cup-rules.md`.
+```text
+Competition season → Game → League or competition
+```
 
-## 5. Delivery sequence
+Creation limits and rate limits are governed by ADR 0023 and enforced server-side. Completed/archived containers may be copied or run again without a durable cross-season friend-group entity.
 
-`docs/roadmap.md` is the only live execution sequence.
+## 5. Private Last Man Standing
 
-- **Original Predictor foundation:** delivered.
-- **Original Predictor leagues/social comparison:** delivered first production cut.
-- **Core tournament experience:** delivered first production cut; remaining post-lock and secondary states are current work.
-- **Bonus Games platform:** delivered.
-- **KO Predictor:** delivered.
-- **Last Man Standing:** delivered.
-- **Predictor Cup:** delivered.
-- **Fan Duels direct challenge, Shield/Plate and Sweepstake concepts:** parked/non-launch-blocking unless explicitly reopened.
+Any eligible user may create a private LMS beginning at a future round, subject to the active/rate cap.
 
-## 6. Guardrails
+The creator chooses only options authorised by ADR 0013/0022. Setup becomes immutable at the first lock. Entry closes for accounts and managed entrants at that same instant.
 
-1. Original Predictor leagues and Bonus Games are never modelled as the same competition.
-2. Scoring, entries and score events always remain competition-specific.
-3. Predicted and real brackets never blend.
-4. Other-player reveal/privacy rules remain server-enforced.
-5. Hosted catalogue absence must produce an honest unavailable/not-open state, not silent feature disappearance.
-6. No Bonus Game registration opens in production without a deliberate owner decision and recorded opening instant.
+Managed/offline entrants exist only here:
+
+- creator adds them before start;
+- creator may bulk-enter selections before the ordinary lock;
+- every action records actor/time;
+- standings mark them visibly;
+- no late add or override exists;
+- claiming attaches a real account while preserving history.
+
+## 6. Private Predictor Championship
+
+The creator chooses name, competition, start round and access. The creator does not choose the structure or scoring.
+
+Entrant count and remaining rounds deterministically select head-to-head, single group, split, seeded playoff or balanced groups/knockout according to ADR 0014/0022. The format is previewed before close; the audited schedule publishes at entry close and is immutable.
+
+## 7. Standings visibility
+
+For public games:
+
+- signed-in non-entrant: top 10, field size, status/format and open join action;
+- active entrant: full paginated table and neighbourhood.
+
+For private containers:
+
+- anonymous/invited preview: bounded metadata only;
+- participant/authorised creator: full field.
+
+This does not change prediction-detail reveal rules.
+
+## 8. Routing and navigation
+
+Canonical routes and shell ownership live in [`architecture/hub-information-architecture.md`](architecture/hub-information-architecture.md).
+
+The former future design in which Bonus Games lived at `More → Games` is retired. Existing `/games/*` and Euro routes may remain as compatibility paths until migrated, but they do not define the platform architecture.
+
+## 9. Implementation relationship
+
+The Euro baseline already implements Original Predictor, KO Predictor, tournament LMS and tournament Predictor Cup machinery. Season Match Predictor, season LMS, season Championship and Hub persistence/surfaces land through the roadmap sequence.
+
+Physical compatibility objects such as `entries`, `bonus_competitions`, `bonus_competition_entrants`, `bonus_score_events` and `bonus_cup_*` may be extended safely rather than renamed for presentation. Current code/tests and verified hosted evidence decide what is live.
+
+## 10. Guardrails
+
+1. No combined entry, score or standings authority.
+2. No automatic game entry.
+3. No creator-custom scoring.
+4. No managed entrants outside LMS without a new decision.
+5. No payment, pot, prize or stake administration.
+6. No silent feature disappearance when hosted configuration is absent; show an honest state.
+7. No production registration opening without a deliberate recorded instant.
+8. Privacy and reveal remain server-enforced.
+9. The roadmap is the only live execution sequence; this file owns structure, not delivery status.
