@@ -6,7 +6,8 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **73** | 73 canonical migrations through `20260804003000_lms_round_conclusion.sql`; contract 73 adds how an LMS round and season end, with TypeScript parity | MERGED; HOSTED NOT APPLIED |
+| Repository `main` | **74** | 74 canonical migrations through `20260804013000_season_cup_rules.sql`; contract 74 adds the season Predictor Championship's pure rules — tie settlement, format selection and the public launch threshold — with TypeScript parity | MERGED; HOSTED NOT APPLIED |
+| Development Supabase at contract 73 | **73** | contract 73 applied 3 August 2026 through the ADR 0024 fast lane, run 30853872967 | VERIFIED |
 | Development Supabase at contract 72 | **72** | contract 72 applied 3 August 2026 through the ADR 0024 fast lane, run 30852527116 | VERIFIED |
 | Development Supabase at contract 71 | **71** | contract 71 applied 3 August 2026 through the ADR 0024 fast lane, run 30848868220 | VERIFIED |
 | Development Supabase at contract 70 | **70** | contract 70 applied 3 August 2026 through the ADR 0024 fast lane, run 30847250038 | VERIFIED |

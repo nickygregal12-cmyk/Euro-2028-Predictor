@@ -53,8 +53,15 @@
  *
  * Contract 73 adds two further `predictor_internal` functions, both immutable
  * and revoked from every browser role, touching no relation at all.
+ *
+ * Contract 74 adds three more on the same terms — the season Cup's tie
+ * settlement, format selection and launch threshold. All immutable, all
+ * revoked from public, anon and authenticated, creating no table, trigger,
+ * policy or grant and altering no existing relation. It notably does NOT touch
+ * the existing `predictor_internal.cup_*` functions, which the tournament
+ * surfaces do reach; a seeded Euro user's reads are unchanged.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 73
+export const SEED_REVIEWED_AT_CONTRACT = 74
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
