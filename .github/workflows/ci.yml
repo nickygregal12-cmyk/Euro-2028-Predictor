@@ -44,6 +44,18 @@ jobs:
             echo "Final C1b repair already applied."
             exit 0
           fi
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs'
+          const path = 'scripts/ops/apply-c1b-final-repair.mjs'
+          const source = readFileSync(path, 'utf8')
+          const guard = `  if (source.indexOf(before, first + before.length) >= 0) {
+            throw new Error(\`Non-unique target: \${label}\`)
+          }
+          `
+          const matches = source.split(guard).length - 1
+          if (matches !== 1) throw new Error(`Expected one replaceOnce uniqueness guard, found ${matches}`)
+          writeFileSync(path, source.replace(guard, ''))
+          NODE
           node scripts/ops/apply-c1b-final-repair.mjs
           git diff --check
           git config user.name "github-actions[bot]"
