@@ -116,7 +116,21 @@ jobs:
             echo 'ERROR: could not read the hosted migration state.'
             exit 1
           }
-          pending="$(awk -F'|' '$3 ~ /[0-9]/ && $2 !~ /[0-9]/ { gsub(/ /, "", $3); print $3 }' /tmp/migration-list.txt || true)"
+          # Columns are LOCAL | REMOTE | TIME (UTC). A row with a local version
+          # and an empty remote is pending.
+          #
+          # The version comes from $1. An earlier version printed $3, which is
+          # the human-readable TIME column: that yielded "2026-08-0307:00:00"
+          # instead of "20260803070000" and no migration file matched it. $1 is
+          # reduced to digits so the 14-digit version survives the column
+          # padding, and anything that is not a 14-digit version is dropped —
+          # which also excludes the header and rule rows.
+          pending="$(awk -F'|' '
+            $3 ~ /[0-9]/ && $2 !~ /[0-9]/ {
+              version = $1
+              gsub(/[^0-9]/, "", version)
+              if (length(version) == 14) print version
+            }' /tmp/migration-list.txt || true)"
           if [ -z "${pending}" ]; then
             echo 'Nothing pending; the development database already matches the repository.'
             echo 'FAST_LANE_PENDING=' >> "$GITHUB_ENV"
