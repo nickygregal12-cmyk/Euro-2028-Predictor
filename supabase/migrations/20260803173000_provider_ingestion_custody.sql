@@ -24,10 +24,28 @@ create table predictor_internal.provider_raw_responses (
     check (request_method = 'GET'),
   constraint provider_raw_responses_response_status_range
     check (response_status between 100 and 599),
+  constraint provider_raw_responses_url_bound
+    check (octet_length(request_url) between 1 and 4096),
+  constraint provider_raw_responses_url_has_no_credentials
+    check (
+      request_url !~* '([?&])(api_token|api_key|apikey|token|key|authorization|x-auth-token|x-apisports-key)='
+    ),
   constraint provider_raw_responses_headers_object
     check (
       jsonb_typeof(response_headers) = 'object'
       and pg_column_size(response_headers) <= 65536
+      and (
+        response_headers - array[
+          'content-type',
+          'content-length',
+          'date',
+          'etag',
+          'last-modified',
+          'x-ratelimit-limit',
+          'x-ratelimit-remaining',
+          'x-ratelimit-reset'
+        ]::text[]
+      ) = '{}'::jsonb
     ),
   constraint provider_raw_responses_body_bound
     check (octet_length(raw_body) <= 12582912),
