@@ -50,8 +50,11 @@
  * Contract 72 adds `season_lms_setups` and `season_lms_entrant_state`, both
  * created empty and revoked from every browser role. Their triggers fire only
  * on those two tables, and no existing relation, policy or grant changes.
+ *
+ * Contract 73 adds two further `predictor_internal` functions, both immutable
+ * and revoked from every browser role, touching no relation at all.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 72
+export const SEED_REVIEWED_AT_CONTRACT = 73
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
