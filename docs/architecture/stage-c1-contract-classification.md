@@ -30,7 +30,7 @@ The absence of C2 after-state assertions is deliberate, not missing coverage. Is
 
 | Source | Classification | Assertion |
 | --- | --- | --- |
-| `stageCRelationCoverage.test.ts` | `C1` | keeps parser positive controls at the contract-69 schema boundary |
+| `stageCRelationCoverage.test.ts` | `C1` | keeps parser positive controls at the contract-72 schema boundary |
 | `stageCRelationCoverage.test.ts` | `C1` | gives every effective public table/view one reviewed disposition |
 | `stageCRelationCoverage.test.ts` | `C1` | retains exactly the four reviewed C1 relations |
 | `stageCRelationCoverage.test.ts` | `C1` | adds exactly the three reviewed C1b relations |
@@ -38,7 +38,7 @@ The absence of C2 after-state assertions is deliberate, not missing coverage. Is
 | `stageCFunctionCoverage.test.ts` | `C1` | pins every live public p_tournament_id signature to the manifest inventory |
 | `stageCFunctionCoverage.test.ts` | `C1` | keeps every function named for Stage C review effective in migration history |
 | `stageCFunctionCoverage.test.ts` | `C1` | does not silently resolve a reviewed name to multiple schemas |
-| `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps the parser positive control at the contract-69 trigger boundary |
+| `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps the parser positive control at the contract-72 trigger boundary |
 | `stageCTriggerBindingCoverage.test.ts` | `C1` | reviews every effective public-table trigger binding exactly once |
 | `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps every named Stage C trigger authority attached |
 | `stageCTournamentIdCompatibility.test.ts` | `C1` | keeps the parser positive control at the contract-69 boundary |
