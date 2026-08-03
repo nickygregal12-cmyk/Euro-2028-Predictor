@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { createLocalAdmin } from './local-supabase'
+import { createLocalAdmin, localTournamentSeason } from './local-supabase'
 
 export type LeagueInviteUser = {
   userId: string
@@ -29,6 +29,17 @@ export async function prepareLeagueInviteUser(): Promise<LeagueInviteUser> {
     welcomed_at: new Date().toISOString(),
   })
   if (profileError) throw profileError
+
+  // Private leagues are game-scoped in contract 66. An invited player must
+  // already participate in that exact Original Predictor before join_league is
+  // permitted; creating the ordinary entry exercises the canonical membership
+  // trigger rather than bypassing the product boundary with a direct membership.
+  const tournamentId = (await localTournamentSeason()).id
+  const { error: entryError } = await admin.from('entries').insert({
+    user_id: created.user.id,
+    tournament_id: tournamentId,
+  })
+  if (entryError) throw entryError
 
   return {
     userId: created.user.id,
