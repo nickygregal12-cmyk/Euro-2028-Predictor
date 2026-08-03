@@ -40,11 +40,20 @@ Private Cups are unaffected: they open at their creator's chosen matchweek at an
 
 ### Cup qualification, seeding and bracket machinery
 
-**Extract the shared arithmetic into `src/domain/competition/`, the shared layer ADR 0011 already permits both implementations to use.** Tournament and season become thin callers of one implementation; neither imports the other, so the separation law holds and ADR 0014's "this is not new work" holds with it.
+**The shared arithmetic becomes one implementation rather than two. Where that implementation lives is settled by the correction below, not by the original text of this record.**
 
-The extraction is **behaviour-preserving and must be evidenced as such.** The tournament Cup is production-hosted with live entrant history, so the migration follows the Stage B pattern that is already proven in this repository: capture differential fixtures from the current implementation first, extract second, and prove identical output before any consumer moves. No qualification, seeding, bye, playoff-pairing or Penalty Number rule changes as part of the move.
-
-What moves is arithmetic that is genuinely competition-neutral: the qualification target, the automatic/wildcard split, points-per-game cross-group ranking, the `Q`/`P` bracket reduction, bye allocation and playoff pairing. What stays behind is anything that reads tournament or season specifics — fixture sources, scoring windows and the points source, which already crosses through the neutral contract in `cupTieSettlement.ts`.
+> **Correction — 3 August 2026 (owner-verified).** As accepted, this section directed an extraction into `src/domain/competition/` and justified heavy differential evidence by the tournament Cup carrying live entrant history. **Both premises were wrong, and the direction they produced was unbuildable.**
+>
+> 1. **There is no live entrant history.** The owner confirms the only account exercising the hosted tournament Cup is their own, used for testing. The data-risk argument for capture-first differential fixtures therefore does not apply; the committed test suites are sufficient behaviour evidence.
+> 2. **The machinery is not TypeScript.** Qualification, seeding, group finalisation, bracket ordering and the draw are implemented in PostgreSQL — `predictor_internal.cup_bracket_order`, `cup_seed_group`, `cup_final_group_tables`, `cup_window_scores`, `cup_window_settled`, behind the `admin_draw_predictor_cup`, `admin_finalise_predictor_cup_groups` and `admin_settle_predictor_cup_round` RPCs. Nothing in `src/domain/` implements them; `src/services/supabase/cup.ts` and `cupModel.ts` are read wrappers only. **There is nothing in the TypeScript domain to extract.**
+>
+> Consequently **ADR 0011's separation law was never at risk here** — it governs imports within `src/domain/**`, and the machinery has never been there. The contradiction this record set out to resolve did not exist in the form described.
+>
+> **The corrected decision:** sharing happens **in the database**. The existing `predictor_internal.cup_*` functions are generalised from tournament scope to competition-season scope, so one implementation serves both, rather than a second season-specific set being written. That work is **database work sequenced after C1b (contract 66)**, which is what introduces competition-season game scoping in the first place — it cannot sensibly precede it.
+>
+> The season-side TypeScript already landed (`cupFormat.ts`, `cupTieSettlement.ts`, `cupSchedule.ts`, `cupGroupTable.ts`, `cupLaunch.ts`) covers what ADR 0014 calls the genuinely new work — the format selector, the split and the matchweek points source — and has no SQL counterpart today. When the generalised SQL lands, those modules require **TypeScript/PostgreSQL parity coverage** under `tests/database-parity/`, matching the pattern ADR 0012 already requires for season scoring. No such Cup parity suite exists yet.
+>
+> What does **not** change: no qualification, seeding, bye, playoff-pairing or Penalty Number rule may be altered while relocating or rescoping the implementation, and the points source continues to cross through the neutral contract in `cupTieSettlement.ts`.
 
 ## Consequences
 
@@ -52,13 +61,14 @@ What moves is arithmetic that is genuinely competition-neutral: the qualificatio
 - The public competition is pinned to Classic, so the acquisition surface is one known configuration rather than whichever preset an organiser picked.
 - A season below 100 entrants runs without a public Cup. That is an accepted outcome, and it is a **measurable signal about cohort size**, not a defect to engineer around.
 - The threshold is a launch rule, not a format rule: ADR 0014's selector still decides structure from whatever field actually enters.
-- The extraction touches production-hosted tournament code and therefore requires differential evidence before consumers move. It is not a refactor to fold into an unrelated change.
-- Until the extraction lands, no season Cup surface may import the tournament implementation as a shortcut. The separation law is not suspended by the decision to eventually share.
+- ~~The extraction touches production-hosted tournament code and therefore requires differential evidence before consumers move.~~ **Superseded by the 3 August correction:** there is no live entrant history, and the machinery is SQL rather than TypeScript. The rescoping is a database change sequenced after C1b (contract 66), evidenced by the committed pgTAP and parity suites like any other schema work.
+- The season Cup TypeScript modules currently have **no SQL counterpart and no parity coverage**. That gap is real and must close when the generalised `predictor_internal.cup_*` functions land, per the ADR 0012 parity requirement.
+- No season Cup surface may import the tournament implementation as a shortcut. That constraint stands on its own under ADR 0011, independently of where the Cup machinery lives.
 
 ## Rejected alternatives
 
 - **Softer preset compositions** (a life in every preset, draws surviving by default). Rejected: it removes the traditional game from the menu entirely, and Last Man Standing's tension comes from selections actually costing something.
 - **A public competition on a forgiving preset.** Rejected: lives and Saves in a large free-to-play public field extend competitions past the point where they resolve, and the three-winner cap already handles the wipeout case.
 - **A lower threshold of 50, or a time-based start.** Rejected: both open the platform's most distinctive competition on a field that makes a transparent draw look thin, which is precisely the risk ADR 0014 identified. A hybrid "100 or matchweek 12, whichever first" was also considered and rejected for the same reason — the time limb defeats the size test.
-- **Duplicating the qualification and bracket machinery into the season domain.** Rejected: it would create two implementations of arithmetic that is genuinely identical, and the Penalty Number and seeding rules are exactly the kind of thing that drifts silently between copies. Recorded as the safer-but-worse option, since it touches no live code.
+- **Duplicating the qualification and bracket machinery for the season.** Rejected: it would create two implementations of arithmetic that is genuinely identical, and the Penalty Number and seeding rules are exactly the kind of thing that drifts silently between copies. This rejection survives the 3 August correction unchanged — it applies to a second set of `predictor_internal.cup_*` functions exactly as it applied to a second TypeScript copy.
 - **Deferring the machinery question until a Cup surface needs it.** Rejected: the contradiction between ADR 0014 and the separation law is already live, and leaving it open invites whoever builds first to resolve it by importing across the boundary.
