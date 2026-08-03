@@ -16,6 +16,10 @@ const workflow = readFileSync(
   resolve(root, '.github/workflows/development-fast-lane-rollout.yml'),
   'utf8',
 )
+const checker = readFileSync(
+  resolve(root, 'scripts/check-migration-additive.mjs'),
+  'utf8',
+)
 const guarded = readFileSync(
   resolve(root, '.github/workflows/stage-c1-development-rollout.yml'),
   'utf8',
@@ -54,12 +58,23 @@ describe('the fast lane admits only additive migrations', () => {
     expect(workflow).toMatch(/git ls-files "supabase\/migrations\//)
   })
 
+  it('delegates the additive decision to the tested checker', () => {
+    // The decision used to be an inline grep over the whole migration file,
+    // which refused contract 66 over a `delete from` inside the body of an RPC
+    // the migration merely defines. It now lives in a script with unit tests
+    // covering both directions of failure.
+    expect(workflow).toContain('node scripts/check-migration-additive.mjs')
+    expect(workflow).not.toMatch(/grep -Eiq .*drop\[\[:space:\]\]/)
+  })
+
   it('refuses destructive statements and names the workflow that handles them', () => {
+    // The vocabulary moved into the checker with the decision; assert it there
+    // rather than pretending the workflow still carries it.
     for (const destructive of ['drop', 'truncate', 'delete']) {
-      expect(workflow.toLowerCase()).toContain(destructive)
+      expect(checker.toLowerCase()).toContain(destructive)
     }
-    expect(workflow).toContain('destructive migrations do not use the fast lane')
-    expect(workflow).toContain('stage-c1-development-rollout.yml')
+    expect(checker).toContain('Destructive migrations do not use the fast lane.')
+    expect(checker).toContain('stage-c1-development-rollout.yml')
   })
 
   it('still snapshots before applying, as ADR 0024 requires even here', () => {

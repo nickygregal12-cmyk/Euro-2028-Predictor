@@ -177,6 +177,7 @@ describe('JavaScript under scripts/', () => {
    * has zero errors would record a debt that does not exist.
    */
   const CHECKED = [
+    'scripts/check-migration-additive.mjs',
     'scripts/check-bundle-budget.mjs',
     'scripts/deployment-contract-expectations.mjs',
     'scripts/reset-development-seed.mjs',

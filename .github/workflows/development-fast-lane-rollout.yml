@@ -128,20 +128,22 @@ jobs:
           # ADR 0024 admits only additive migrations here. Read them rather than
           # trusting the dispatcher: a destructive statement in a "fast lane"
           # run is exactly the case the full process exists for.
-          destructive=0
+          #
+          # This was an inline grep over the whole file, which refused contract
+          # 66 over a `delete from` inside the body of the "leave a game" RPC —
+          # what that function does when called, not what the migration does.
+          # `scripts/check-migration-additive.mjs` excludes routine bodies while
+          # still judging DO blocks and statement level, and is unit-tested in
+          # `tests/scripts/migrationAdditiveCheck.test.ts`.
+          files=''
           for version in ${pending}; do
             file="$(git ls-files "supabase/migrations/${version}_*.sql" | head -1)"
             [ -n "${file}" ] || { echo "ERROR: no committed file for ${version}."; exit 1; }
-            if grep -Eiq '(drop[[:space:]]+(table|column|schema|type|function|trigger|policy)|truncate[[:space:]]|delete[[:space:]]+from|alter[[:space:]]+table[[:space:]]+[^;]*drop[[:space:]]+column)' "${file}"; then
-              echo "REFUSED: ${file} contains a destructive statement."
-              destructive=1
-            fi
+            files="${files} ${file}"
           done
-          if [ "${destructive}" = '1' ]; then
-            echo 'ERROR: destructive migrations do not use the fast lane.'
-            echo 'Use stage-c1-development-rollout.yml, which keeps the backup and restore rehearsal.'
-            exit 1
-          fi
+          # The script prints what it refused and exits non-zero, so a failure
+          # here already names the statement and the workflow to use instead.
+          node scripts/check-migration-additive.mjs ${files}
           echo 'FAST_LANE_PENDING=1' >> "$GITHUB_ENV"
 
       - name: Take the lightweight pre-apply snapshot
