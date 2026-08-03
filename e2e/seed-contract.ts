@@ -53,8 +53,13 @@
  *
  * Contract 73 adds two further `predictor_internal` functions, both immutable
  * and revoked from every browser role, touching no relation at all.
+ *
+ * Contract 74 adds private append-only provider custody in the unexposed
+ * `predictor_internal` schema plus two service-role-only append RPCs. It adds
+ * no browser grant, policy, seeded row or authoritative provider write path.
+ * The exact-head browser suite re-verifies the existing seeded Euro journeys.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 73
+export const SEED_REVIEWED_AT_CONTRACT = 74
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
