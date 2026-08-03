@@ -42,6 +42,38 @@ describe('database parity workflow trigger contract', () => {
   })
 })
 
+describe('database parity workflow provider-poll contract', () => {
+  it('starts and rejects the service-only function before database checks', () => {
+    const rebuild = workflow.indexOf('supabase db reset --local')
+    const unauthorized = workflow.indexOf(
+      'Prove provider poll rejects unauthorized requests',
+    )
+    const lint = workflow.indexOf('supabase db lint --local')
+
+    expect(rebuild).toBeGreaterThan(-1)
+    expect(unauthorized).toBeGreaterThan(rebuild)
+    expect(lint).toBeGreaterThan(unauthorized)
+    expect(workflow).toContain(
+      'http://127.0.0.1:54321/functions/v1/provider-poll',
+    )
+    expect(workflow).toContain("test \"$status\" = '401'")
+    expect(workflow).toContain('body.error !== "unauthorized"')
+  })
+
+  it('supplies no caller key or provider credential to the rejection probe', () => {
+    const stepStart = workflow.indexOf(
+      '- name: Prove provider poll rejects unauthorized requests',
+    )
+    const nextStep = workflow.indexOf('\n      - name:', stepStart + 1)
+    const step = workflow.slice(stepStart, nextStep)
+
+    expect(step).not.toContain('--header \'apikey:')
+    expect(step).not.toContain('SPORTMONKS_API_TOKEN')
+    expect(step).not.toContain('API_FOOTBALL_API_KEY')
+    expect(step).not.toContain('FOOTBALL_DATA_API_KEY')
+  })
+})
+
 describe('database parity workflow migration-transition contract', () => {
   it('rehearses each populated transition from its exact prior contract', () => {
     // Rebuild jobs reach every migration with empty tables, so a backfill whose
