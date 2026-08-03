@@ -6,7 +6,8 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **69** | 69 canonical migrations through `20260803203000_season_predictions.sql`; contract 69 adds the season card — a scoreline per fixture and a Joker per matchweek, with the ten/five-per-half allowance and matchweek lock enforced in the database | MERGED; HOSTED NOT APPLIED |
+| Repository `main` | **70** | 70 canonical migrations through `20260803213000_season_scoring.sql`; contract 70 adds the season Main Predictor scoring counterpart with TypeScript parity | MERGED; HOSTED NOT APPLIED |
+| Development Supabase at contract 69 | **69** | contract 69 applied 3 August 2026 through the ADR 0024 fast lane, run 30845804899 | VERIFIED |
 | Development Supabase at contract 68 | **68** | contract 68 applied 3 August 2026 through the ADR 0024 fast lane, run 30843028463 | VERIFIED |
 | Development Supabase at contract 67 | **67** | contract 67 applied 3 August 2026 through the ADR 0024 fast lane, run 30840592967 | VERIFIED |
 | Repository at contract 66 | **66** | 66 canonical migrations through `20260803070000_c1b_game_catalogue_memberships.sql`; PR #371 merged 3 August 2026 | VERIFIED |

@@ -39,8 +39,12 @@
  * keys on `entries` and `season_fixtures` that add a key rather than
  * restricting an existing one. Its triggers fire only on the two new tables,
  * so no path a seeded Euro user takes is affected.
+ *
+ * Contract 70 adds two `predictor_internal` scoring functions, both revoked
+ * from every browser role. It creates no table, no trigger and no policy, and
+ * changes no existing relation, so nothing a seeded user reads is gated by it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 69
+export const SEED_REVIEWED_AT_CONTRACT = 70
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
