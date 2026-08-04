@@ -11,7 +11,7 @@
 -- coexistence — plus lineage that cannot cross season, game or visibility scope.
 
 begin;
-select plan(31);
+select plan(32);
 
 create temporary table lineage (label text primary key, id uuid not null) on commit drop;
 
