@@ -1,0 +1,78 @@
+name: One-time contract 81 authority patch
+
+on:
+  push:
+    branches:
+      - agent/provider-ingestion-contract-81
+
+permissions:
+  contents: write
+
+jobs:
+  patch-authority:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/provider-ingestion-contract-81
+      - name: Patch exact contract 81 authority rows
+        shell: python
+        run: |
+          from pathlib import Path
+
+          status = Path('docs/quality/current-status.md')
+          text = status.read_text()
+          text = text.replace('**Status date:** 3 August 2026', '**Status date:** 4 August 2026', 1)
+          lines = text.splitlines()
+          replacements = {
+              '| Repository contract |': '| Repository contract | **81 candidate** — 81 canonical migrations through `20260804080000_provider_ingestion_custody.sql`. Development Supabase is verified at **80** from ADR-0024 fast-lane run 30889736356 and a fresh ledger read; production remains at **63**. Contract 81 is server-only custody and decoder evidence, with no hosted Edge Function deployment, provider credential, provider request or official fixture/result write authorised by repository inclusion. Netlify non-production still declares 79 until the post-merge hosted sequence aligns it. |',
+              '| Next executable issue |': '| Next executable issue | **Finish provider-ingestion custody as contract 81.** Merge only after exact CI, Database parity, Browser E2E, hosted-inventory and Netlify preview gates pass. Then apply the additive migration to Development through `.github/workflows/development-fast-lane-rollout.yml`, verify the ledger at 81, align non-production Netlify, and keep production at 63. |',
+              '| Development Supabase `iouzoutneyjpugbbtdem` |': '| Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17. Contracts 65–80 are applied. ADR-0024 fast-lane run 30889736356 proved `20260804073000_season_card_lock_resolution.sql` additive, took the lightweight snapshot, applied it and reported `Development is at contract 80.` A fresh migration-ledger read on 4 August 2026 confirms the same state. Contract 81 is not applied and `provider-poll` is not deployed. | After contract 81 merges, dispatch `.github/workflows/development-fast-lane-rollout.yml` from exact `main` for project `iouzoutneyjpugbbtdem`; require its additive proof, snapshot, single pending migration push and postflight `Development is at contract 81.` |',
+          }
+          for prefix, replacement in replacements.items():
+              matches = [index for index, line in enumerate(lines) if line.startswith(prefix)]
+              if len(matches) != 1:
+                  raise SystemExit(f'{prefix} anchor count: {len(matches)}')
+              lines[matches[0]] = replacement
+          status.write_text('\n'.join(lines) + '\n')
+
+          architecture = Path('docs/architecture/provider-ingestion-contract-81.md')
+          architecture.write_text('''# Provider-ingestion custody — contract 81
+
+Contract 81 adds a server-only evidence boundary for football-provider responses. It deliberately does not make provider data authoritative competition state.
+
+## Boundary
+
+- `provider-poll` accepts only a named `apikey` caller key before any provider I/O.
+- Provider requests remain on fixed HTTPS origins and bounded relative paths; credential-shaped query parameters are refused.
+- The exact raw response text is archived in `predictor_internal` before parse or decode.
+- Decoder attempts are append-only evidence and never rewrite an earlier response or attempt.
+- Browser roles receive no custody-table access and cannot call the two custody RPCs; only `service_role` can execute them.
+- Response size, retained headers and decoded fixture identities are bounded and validated.
+- No provider path writes official fixtures, results, locks, scores, totals, ranks or standings.
+
+## Delivery sequence
+
+1. Merge only after exact repository gates pass.
+2. Apply the single additive migration to Development through `.github/workflows/development-fast-lane-rollout.yml` and verify the ledger reaches 81.
+3. Align the machine-readable Development contract and Netlify non-production declaration after hosted verification.
+4. Deploy the Edge Function to Development only after the migration is present.
+5. Do not configure or call a provider until the named caller key and bounded non-production credential are separately available.
+
+Production remains at contract 63 and has no fast lane.
+''')
+      - name: Commit authority patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'Authority rows already aligned.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/quality/current-status.md docs/architecture/provider-ingestion-contract-81.md
+          git diff --cached --check
+          git commit -m 'Align contract 81 live authority'
+          git push origin HEAD:agent/provider-ingestion-contract-81
