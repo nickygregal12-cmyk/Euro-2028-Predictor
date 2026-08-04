@@ -1,0 +1,108 @@
+name: Development hosted-status follow-up
+
+on:
+  workflow_run:
+    workflows: [Development fast-lane rollout]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  record-hosted-contract:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+
+      - name: Update the machine-readable hosted contract
+        shell: bash
+        env:
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+          SOURCE_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          expected="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          latest_file="$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)"
+          latest_base="$(basename "${latest_file}" .sql)"
+          latest_version="${latest_base%%_*}"
+          latest_name="${latest_base#*_}"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+
+          const path = 'config/development-hosted-contract.json'
+          const current = JSON.parse(fs.readFileSync(path, 'utf8'))
+          const next = {
+            ...current,
+            requiredMigrationCount: Number(process.env.EXPECTED),
+            latestMigrationVersion: process.env.LATEST_VERSION,
+            latestMigrationName: process.env.LATEST_NAME,
+            verifiedAt: new Date().toISOString(),
+            evidence: {
+              source: 'Development fast-lane rollout',
+              workflowRunId: Number(process.env.SOURCE_RUN_ID),
+              repositoryHead: process.env.SOURCE_HEAD_SHA
+            },
+            productionContract: 63,
+            productionPromotionAuthorised: false
+          }
+          fs.writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`)
+          NODE
+        env:
+          EXPECTED: ${{ env.EXPECTED }}
+          LATEST_VERSION: ${{ env.LATEST_VERSION }}
+          LATEST_NAME: ${{ env.LATEST_NAME }}
+
+      - name: Recompute values and create a status PR
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          expected="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          latest_file="$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)"
+          latest_base="$(basename "${latest_file}" .sql)"
+          latest_version="${latest_base%%_*}"
+          latest_name="${latest_base#*_}"
+          EXPECTED="${expected}" LATEST_VERSION="${latest_version}" LATEST_NAME="${latest_name}" SOURCE_RUN_ID="${SOURCE_RUN_ID}" SOURCE_HEAD_SHA="${{ github.event.workflow_run.head_sha }}" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const path = 'config/development-hosted-contract.json'
+          const current = JSON.parse(fs.readFileSync(path, 'utf8'))
+          current.requiredMigrationCount = Number(process.env.EXPECTED)
+          current.latestMigrationVersion = process.env.LATEST_VERSION
+          current.latestMigrationName = process.env.LATEST_NAME
+          current.verifiedAt = new Date().toISOString()
+          current.evidence = {
+            source: 'Development fast-lane rollout',
+            workflowRunId: Number(process.env.SOURCE_RUN_ID),
+            repositoryHead: process.env.SOURCE_HEAD_SHA
+          }
+          current.productionContract = 63
+          current.productionPromotionAuthorised = false
+          fs.writeFileSync(path, `${JSON.stringify(current, null, 2)}\n`)
+          NODE
+          if git diff --quiet -- config/development-hosted-contract.json; then
+            echo 'Hosted status already matches the successful rollout.'
+            exit 0
+          fi
+          branch="automation/development-hosted-contract-${SOURCE_RUN_ID}"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "${branch}"
+          git add config/development-hosted-contract.json
+          git commit -m "Record development hosted contract ${expected}"
+          git push origin "${branch}"
+          gh pr create \
+            --base main \
+            --head "${branch}" \
+            --title "Docs: record development hosted contract ${expected}" \
+            --body "Generated after successful Development fast-lane rollout run ${SOURCE_RUN_ID}. Updates the machine-readable hosted contract only; production remains contract 63 and unauthorised for promotion."
