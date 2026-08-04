@@ -52,7 +52,7 @@ PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The repository is at **contract 98** through `20260804263000_cup_neutral_window_match_facts.sql`. Development Supabase is hosted at contract 97, applied 4 August 2026 by fast-lane run 30931550512 on `381e2d0`; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
+The repository is at **contract 100** through `20260804283000_bonus_rederive_tournament_lock.sql`. Development Supabase is hosted at contract 97, applied 4 August 2026 by fast-lane run 30931550512 on `381e2d0`; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
 
 **Lock policy is game-owned (ADR 0020, PR #353).** `CompetitionConfig` describes identity, calendar and structure only; the selected game supplies its own explicit `lockPolicy` (Original Predictor entry/0, Main Predictor matchweek/0, Last Man Standing matchweek/30). A missing, unknown, stale or incompatible policy fails closed. Do not reintroduce a competition-wide buffer, and do not branch on route, slug, name or UI type to pick a policy.
 

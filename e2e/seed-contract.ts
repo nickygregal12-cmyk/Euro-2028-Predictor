@@ -269,8 +269,21 @@
  * differential sweep over 700 generated windows found zero divergence on the
  * tournament path, and the seeded Euro data reaches none of it because the seed
  * draws no Cup and settles no Cup round.
+ *
+ * Contract 99 tightens one CHECK on `entry_automatic_submission_outcomes` so an
+ * `invalid` outcome must carry a failure message. The seed writes no automatic
+ * submission outcome of any kind, and the pre-validation audit found the table
+ * empty in development and production, so nothing seeded or hosted can fail the
+ * validated constraint. No column, grant, index or trigger moves.
+ *
+ * Contract 100 adds a transaction-scoped advisory lock to the two Bonus Games
+ * rederive functions. It changes no scoring rule, elimination rule, audit row or
+ * return value, and adds no session-scoped lock. Seeding is single-session, so
+ * it can neither contend on the lock nor observe it; the only visible difference
+ * is that two concurrent result writes for one tournament now serialise, which
+ * the seed never performs.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 98
+export const SEED_REVIEWED_AT_CONTRACT = 100
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
