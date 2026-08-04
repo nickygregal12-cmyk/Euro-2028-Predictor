@@ -292,8 +292,18 @@
  * exactly what it saw before lock, and after lock sees more. Authentication is
  * still required everywhere; anonymous access is not opened. Seeded browser
  * journeys read these through the same RPCs and are unaffected before lock.
+ *
+ * Contract 102 makes a competition repeatable: `bonus_competitions` gains
+ * lineage columns and a `completion_reason`, all defaulted or nullable so every
+ * existing row keeps its meaning, and `unique (tournament_id, game_key)` becomes
+ * a partial unique index over LIVE instances only. With no competition
+ * completed in development or production — verified read-only — the partial
+ * index permits nothing the constraint forbade, so it is equivalent today. It
+ * adds no relation, policy, grant or trigger, and nothing in it can create a
+ * second instance: the restart lifecycle is a later contract. A seeded user's
+ * competition reads are byte-identical.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 101
+export const SEED_REVIEWED_AT_CONTRACT = 102
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
