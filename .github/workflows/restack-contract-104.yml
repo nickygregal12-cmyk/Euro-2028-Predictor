@@ -1,0 +1,30 @@
+name: Restack Contract 104 on main
+
+on:
+  push:
+    branches:
+      - agent/contract-104-live-competition-callers
+
+permissions:
+  contents: write
+
+jobs:
+  restack:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contract-104-live-competition-callers
+          fetch-depth: 0
+
+      - name: Merge exact main and remove helper
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          git merge --no-edit origin/main
+          git rm .github/workflows/restack-contract-104.yml
+          git commit -m 'Remove Contract 104 restack helper'
+          git push origin HEAD:agent/contract-104-live-competition-callers
