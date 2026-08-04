@@ -34,7 +34,44 @@ jobs:
           fi
 
       - name: Apply current-read and Cup preservation correction
-        run: python scripts/repair-contract-104-current-read-once.py
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('scripts/repair-contract-104-current-read-once.py')
+          text = path.read_text()
+          old = """    def restore_cup_split(statement: str) -> str:
+                  before = '      and member.user_id = v_uid;'
+                  count = statement.count(before)
+                  if count != 2:
+                      raise SystemExit(f'get_my_cup initial-membership predicates: expected two, found {count}')
+                  return statement.replace(
+                      before,
+                      \"      and member.user_id = v_uid\\n      and member.phase_kind = 'initial';\",
+                  )
+          """
+          new = """    def restore_cup_split(statement: str) -> str:
+                  first = '      and member.user_id = v_uid;'
+                  second = '        and member.user_id = v_uid\\n    ) end,'
+                  if statement.count(first) != 1:
+                      raise SystemExit('get_my_cup current-group predicate was not found exactly once')
+                  if statement.count(second) != 1:
+                      raise SystemExit('get_my_cup my_member predicate was not found exactly once')
+                  statement = statement.replace(
+                      first,
+                      \"      and member.user_id = v_uid\\n      and member.phase_kind = 'initial';\",
+                  )
+                  return statement.replace(
+                      second,
+                      \"        and member.user_id = v_uid\\n        and member.phase_kind = 'initial'\\n    ) end,\",
+                  )
+          """
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one repair block, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          python scripts/repair-contract-104-current-read-once.py
 
       - name: Commit corrected Contract 104
         run: |
