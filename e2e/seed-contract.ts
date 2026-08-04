@@ -228,8 +228,14 @@
  * the settler refuses anything else outright, so the seeded Euro tournament is
  * not merely unaffected — it is unreachable by name. The seeded league seasons
  * hold no matchweek fixtures, so the job finds nothing to settle in them either.
+ *
+ * Contract 94 adds one stable `predictor_internal` function, revoked from every
+ * browser role, creating no relation, trigger, policy or grant and altering
+ * none. It reads `entries` and `season_matchweek_scores` and returns NULL for
+ * anything that is not a league season, so a seeded Euro user's entry cannot
+ * appear in its output — and no browser role can call it in any case.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 93
+export const SEED_REVIEWED_AT_CONTRACT = 94
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
