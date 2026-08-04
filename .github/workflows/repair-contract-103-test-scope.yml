@@ -1,0 +1,29 @@
+name: Repair contract 103 proof scope
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.head_ref == 'agent/contract-103-competition-instance-lineage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contract-103-competition-instance-lineage
+
+      - name: Correct proof scope
+        run: python scripts/repair-contract-103-test-scope-once.py
+
+      - name: Commit proof corrections
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add supabase/tests/154_competition_instance_lineage.sql
+          git diff --cached --check
+          git commit -m 'Keep contract 103 lineage proofs on the public instance'
+          git push origin HEAD:agent/contract-103-competition-instance-lineage
