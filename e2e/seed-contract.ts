@@ -312,8 +312,22 @@
  * name the exact public/live conflict predicate; bare recreation starts a new
  * series through an internal-only trigger helper. Contract 104 migrates the
  * measured readers, and contract 105 supplies the restart driver.
+ *
+ * Contract 104 adds one `predictor_internal` function — the continuing Cup
+ * split table — on the same terms as contracts 70, 71, 73 and 74: revoked from
+ * public, anon, authenticated and service_role, creating no table, trigger,
+ * policy or grant, and altering no existing relation. It is three statements:
+ * `create or replace function`, `comment on function`, `revoke all`.
+ *
+ * Verified rather than assumed, because that is the whole point of this
+ * number. The migration was applied to a database already at contract 103 and
+ * the browser-visible surface was compared before and after — every grant held
+ * by anon, authenticated or service_role, every RLS policy, and every
+ * non-internal trigger. The two snapshots are identical, so nothing a seeded
+ * user reads is newly gated. `cup_final_group_tables`, which the tournament
+ * path uses, is not redefined here at all.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 103
+export const SEED_REVIEWED_AT_CONTRACT = 104
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
