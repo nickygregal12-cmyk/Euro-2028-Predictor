@@ -38,7 +38,7 @@ The absence of C2 after-state assertions is deliberate, not missing coverage. Is
 | `stageCFunctionCoverage.test.ts` | `C1` | pins every live public p_tournament_id signature to the manifest inventory |
 | `stageCFunctionCoverage.test.ts` | `C1` | keeps every function named for Stage C review effective in migration history |
 | `stageCFunctionCoverage.test.ts` | `C1` | does not silently resolve a reviewed name to multiple schemas |
-| `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps the parser positive control at the contract-81 trigger boundary |
+| `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps the parser positive control at the current trigger boundary |
 | `stageCTriggerBindingCoverage.test.ts` | `C1` | reviews every effective public-table trigger binding exactly once |
 | `stageCTriggerBindingCoverage.test.ts` | `C1` | keeps every named Stage C trigger authority attached |
 | `stageCTournamentIdCompatibility.test.ts` | `C1` | keeps the parser positive control at the contract-81 boundary |

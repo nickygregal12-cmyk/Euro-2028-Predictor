@@ -292,8 +292,16 @@
  * exactly what it saw before lock, and after lock sees more. Authentication is
  * still required everywhere; anonymous access is not opened. Seeded browser
  * journeys read these through the same RPCs and are unaffected before lock.
+ *
+ * Contract 102 makes the shared Cup store phase-aware. Existing tournament
+ * groups and memberships default to `initial`, the Euro seed creates neither a
+ * Cup draw nor a split row, and no browser grant or RPC signature changes.
+ * Existing Cup reads and points sources are explicitly kept on the permanent
+ * initial roster, so a seeded Euro user sees the same empty/not-entered Cup
+ * state as before. The new parent/phase triggers fire only on Cup group or
+ * fixture writes, none of which global setup performs.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 101
+export const SEED_REVIEWED_AT_CONTRACT = 102
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

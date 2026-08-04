@@ -1,8 +1,8 @@
 # Stage C — trigger binding inventory
 
-**Status:** Repository contract 66 C1b after-state; C2 ownership work remains blocked by issue #272.  
-**Baseline:** Contract 65 competition-season foundation plus migration `20260803070000_c1b_game_catalogue_memberships.sql`.  
-**Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)  
+**Status:** Repository contract 102 after-state; C2 ownership work remains blocked by issue #272.
+**Baseline:** Contract 65 competition-season foundation, contract 66 C1b game catalogue and the effective trigger set through contract 102.
+**Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)
 **Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
 
 ## Purpose
@@ -10,12 +10,14 @@
 Stage C changes season scope across a heavily defended schema. Defining a validator
 function is not sufficient: its trigger must remain attached to the intended table.
 This inventory pins every effective non-internal trigger on a `public` table to its
-function after contract 66.
+function at the current repository contract.
 
 The C1 foundation adds preparation, lock-evidence, competition-identity and award
 bindings. C1b adds game-availability preparation, canonical membership linkage and
 append-only membership-event bindings while preserving the established lock,
-result, scoring, audit, rate-limit and ownership authorities. The executable
+result, scoring, audit, rate-limit and ownership authorities. Contract 102 adds two
+Cup split-persistence authorities: one validates split-group parentage and the other
+keeps a group-shaped fixture aligned with the phase named by its stage. The executable
 comparison is `tests/database-parity/stageCTriggerBindingCoverage.test.ts`.
 
 No hosted database write or C2 ownership change is claimed by this inventory.
@@ -34,7 +36,9 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `bonus_competitions.a_prepare_game_availability_status` | `predictor_internal.prepare_game_availability_status` | keep legacy publication and canonical availability state coherent |
 | `bonus_competitions.assert_game_availability_shape` | `predictor_internal.assert_game_availability_shape` | enforce game availability against competition-season kind |
 | `bonus_cup_fixtures.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup fixture scope |
+| `bonus_cup_fixtures.assert_bonus_cup_fixture_group_phase` | `predictor_internal.assert_bonus_cup_fixture_group_phase` | contract 102; require group and split fixtures to reference a same-competition group from the phase their stage declares |
 | `bonus_cup_groups.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup group scope |
+| `bonus_cup_groups.assert_bonus_cup_group_parent` | `predictor_internal.assert_bonus_cup_group_parent` | contract 102; require every split group to point directly to a same-competition initial group and protect existing children from parent relabelling |
 | `bonus_cup_members.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup member scope |
 | `bonus_cup_penalty_numbers.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup penalty scope |
 | `bonus_knockout_predictions.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate KO Predictor scope |
