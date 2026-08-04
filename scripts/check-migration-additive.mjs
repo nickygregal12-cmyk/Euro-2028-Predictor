@@ -28,6 +28,15 @@
  * Direction of failure: anything this cannot parse confidently is reported as
  * destructive. Refusing an additive migration costs a slower rollout; admitting
  * a destructive one costs the thing the backup would have restored.
+ *
+ * THIRD CATEGORY, added because it was slipping through by accident rather than
+ * by decision. `alter table ... drop constraint` and `drop index` remove a
+ * GUARANTEE but no row, and the destructive pattern above never named them — so
+ * the lane admitted them in silence, which is the one outcome neither category
+ * was meant to produce. They are now recognised and REPORTED: the lane still
+ * carries them, because a backup restores rows and there are no rows to lose,
+ * but the rollout record names the guarantee that went. Silence would have read
+ * as "nothing structural happened".
  */
 
 import { readFileSync } from 'node:fs'
@@ -36,6 +45,14 @@ import process from 'node:process'
 /** Statements that change or remove existing data or structure. */
 const DESTRUCTIVE =
   /(drop\s+(table|column|schema|type|function|trigger|policy)|truncate\s|delete\s+from|alter\s+table\s+[^;]*drop\s+column)/gi
+
+/**
+ * Removes a guarantee, not a row. Reported rather than refused — see the header.
+ *
+ * `if exists` is matched optionally because `drop constraint if exists` is the
+ * idiomatic form and would otherwise read as an unrecognised statement.
+ */
+const STRUCTURAL = /drop\s+(?:constraint|index)(?:\s+if\s+exists)?/gi
 
 /**
  * Strip `--` line comments and block comments.
@@ -92,12 +109,24 @@ export function destructiveStatements(sql) {
   )
 }
 
+/** @param {string} sql */
+export function structuralStatements(sql) {
+  const scannable = withoutRoutineBodies(withoutComments(sql))
+  return [...scannable.matchAll(STRUCTURAL)].map((match) =>
+    match[0].replace(/\s+/g, ' ').trim().toLowerCase(),
+  )
+}
+
 /** @param {string[]} files */
 export function inspect(files) {
-  return files.map((file) => ({
-    file,
-    destructive: destructiveStatements(readFileSync(file, 'utf8')),
-  }))
+  return files.map((file) => {
+    const sql = readFileSync(file, 'utf8')
+    return {
+      file,
+      destructive: destructiveStatements(sql),
+      structural: structuralStatements(sql),
+    }
+  })
 }
 
 const invokedAs = process.argv[1]?.split('/').pop() ?? ''
@@ -109,11 +138,17 @@ if (invokedAs !== '' && import.meta.url.endsWith(invokedAs)) {
   }
 
   let refused = false
-  for (const { file, destructive } of inspect(files)) {
+  for (const { file, destructive, structural } of inspect(files)) {
     if (destructive.length > 0) {
       refused = true
       console.error(`REFUSED: ${file} contains destructive statements at migration level:`)
       for (const statement of [...new Set(destructive)]) console.error(`  ${statement}`)
+    } else if (structural.length > 0) {
+      // Carried, but never in silence: the rollout record must name the
+      // guarantee that was removed.
+      console.log(`additive: ${file}`)
+      console.log(`  structural (no rows lost, carried by the lane, reported):`)
+      for (const statement of [...new Set(structural)]) console.log(`    ${statement}`)
     } else {
       console.log(`additive: ${file}`)
     }

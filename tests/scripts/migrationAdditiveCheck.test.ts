@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   destructiveStatements,
+  structuralStatements,
   withoutComments,
   withoutRoutineBodies,
 } from '../../scripts/check-migration-additive.mjs'
@@ -108,6 +109,48 @@ drop table public.entries;`
 
   it('does not treat a bare create function without a body as an opening', () => {
     expect(destructiveStatements('create function f();\ndrop table t;')).toEqual(['drop table'])
+  })
+})
+
+describe('removing a guarantee is a third category, not an oversight', () => {
+  it('does not call a constraint drop destructive — it loses no row', () => {
+    expect(destructiveStatements('alter table t drop constraint t_key;')).toEqual([])
+  })
+
+  it('but does report it, so the rollout record names what went', () => {
+    // The failure this replaces: the destructive pattern never named
+    // `constraint`, so the lane carried these in silence and the record read as
+    // though nothing structural had happened.
+    expect(structuralStatements('alter table t drop constraint t_key;')).toEqual(['drop constraint'])
+  })
+
+  it('recognises the idiomatic if-exists form', () => {
+    expect(structuralStatements('alter table t drop constraint if exists t_key;')).toEqual([
+      'drop constraint if exists',
+    ])
+  })
+
+  it('reports an index drop for the same reason', () => {
+    expect(structuralStatements('drop index public.t_idx;')).toEqual(['drop index'])
+  })
+
+  it('says nothing about a migration that only adds a constraint', () => {
+    expect(structuralStatements('alter table t add constraint t_key unique (a, b);')).toEqual([])
+  })
+
+  it('ignores a constraint drop inside a routine body, like every other category', () => {
+    expect(structuralStatements(routine('alter table t drop constraint c;'))).toEqual([])
+  })
+
+  it('still sees a constraint drop that a comment merely describes as absent', () => {
+    expect(structuralStatements('-- this migration drops no constraint\n')).toEqual([])
+  })
+
+  it('does not let dropping a table hide behind the softer category', () => {
+    // A table drop takes its constraints with it. It must stay destructive.
+    const sql = 'drop table public.entries;'
+    expect(destructiveStatements(sql)).toEqual(['drop table'])
+    expect(structuralStatements(sql)).toEqual([])
   })
 })
 

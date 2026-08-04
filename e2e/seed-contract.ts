@@ -149,8 +149,29 @@
  * refusal text included. `supabase/tests/137_lms_season_selection.sql` asserts
  * the same tournament behaviour against a seeded database. It creates no table,
  * policy or grant, alters no column, and leaves the trigger binding untouched.
+ *
+ * Contract 87 reaches furthest of any contract in this run, and the note is
+ * correspondingly specific. It adds `used_cycle` to `bonus_lms_selections`,
+ * replaces the club-uniqueness key with one scoped to that column, and
+ * redefines `save_lms_selection` — a browser RPC a seeded Euro user can call.
+ *
+ * A seeded Euro user is nonetheless unaffected, for a reason that is checked
+ * rather than assumed. `used_cycle` defaults to 0, so every existing row is
+ * cycle 0, and the used-list reset that advances it is gated to `league_season`
+ * competitions and is in any case unreachable for a tournament entrant: a
+ * selection's club is keyed to the selection's competition, so a tournament
+ * entrant's used clubs and a season round's clubs cannot intersect. A
+ * tournament entrant therefore never leaves cycle 0, where
+ * `unique (competition_id, user_id, team_id, 0)` accepts and refuses exactly
+ * what the old key did — asserted at apply time by the migration itself and
+ * again behaviourally in `supabase/tests/138_lms_used_cycle.sql`.
+ *
+ * `save_lms_selection` keeps its signature, its authentication, published,
+ * entrant and elimination checks, its optimistic-concurrency PT409 and its
+ * returned shape. The one changed line scopes its reuse check to the cycle,
+ * which for a tournament caller spans exactly the rows it always did.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 86
+export const SEED_REVIEWED_AT_CONTRACT = 87
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
