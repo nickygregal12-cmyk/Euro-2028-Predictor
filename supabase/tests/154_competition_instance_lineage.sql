@@ -6,10 +6,9 @@
 -- only ever run it once, and `restart_all_reentered` was unrepresentable rather
 -- than merely unimplemented.
 --
--- What is asserted here is the replacement invariant — at most one LIVE
--- instance per (tournament, game) — the lineage that makes a chain of instances
--- readable, and the equivalence that makes this safe to land before its
--- callers move.
+-- What is asserted here is the replacement invariant — one live public
+-- instance per season game, one live row per series, independent private-series
+-- coexistence — plus lineage that cannot cross season, game or visibility scope.
 
 begin;
 select plan(31);
@@ -22,7 +21,8 @@ declare
 begin
   select id into v_t from public.tournaments where kind = 'league_season' order by name limit 1;
   select id into v_comp from public.bonus_competitions
-   where tournament_id = v_t and game_key = 'last_man_standing';
+   where tournament_id = v_t and game_key = 'last_man_standing'
+     and visibility_kind = 'public' and completed_at is null;
   select id into v_euro from public.tournaments where kind = 'tournament' order by name limit 1;
   insert into lineage values ('season', v_t), ('first', v_comp), ('tournament', v_euro);
   insert into public.game_definitions (
@@ -81,7 +81,7 @@ select isnt(
 );
 
 -- ---------------------------------------------------------------------------
--- THE INVARIANT. At most one live instance per (tournament, game).
+-- THE INVARIANT. One live public instance per game, one live row per series.
 -- ---------------------------------------------------------------------------
 
 select throws_ok(
@@ -176,7 +176,8 @@ select lives_ok(
 select is(
   (select count(*)::integer from public.bonus_competitions
     where tournament_id = (select id from lineage where label = 'season')
-      and game_key = 'last_man_standing'),
+      and game_key = 'last_man_standing'
+      and visibility_kind = 'public'),
   2,
   'both instances coexist — the completed predecessor is preserved, not overwritten'
 );
@@ -192,7 +193,8 @@ select throws_ok(
            3,
            (select id from public.bonus_competitions
              where tournament_id = (select id from lineage where label = 'season')
-               and game_key = 'last_man_standing' and completed_at is null)$$,
+               and game_key = 'last_man_standing'
+               and visibility_kind = 'public' and completed_at is null)$$,
   '23505',
   null,
   'a THIRD live instance is refused while the second is still running — completing is what frees the slot, not merely existing'
@@ -206,7 +208,7 @@ select throws_ok(
   $$insert into public.bonus_competitions
       (tournament_id, game_key, availability_status, series_id, series_sequence)
     select (select id from lineage where label = 'season'),
-           'predictor_cup_probe', 'active', gen_random_uuid(), 2$$,
+           'lineage_probe', 'active', gen_random_uuid(), 2$$,
   '23514',
   null,
   'a later instance with no predecessor is refused — a restart that came from nothing is not a restart'
@@ -217,7 +219,7 @@ select throws_ok(
       (tournament_id, game_key, availability_status, series_id, series_sequence,
        predecessor_competition_id)
     select (select id from lineage where label = 'season'),
-           'predictor_cup_probe', 'active', gen_random_uuid(), 1,
+           'lineage_probe', 'active', gen_random_uuid(), 1,
            (select id from lineage where label = 'first')$$,
   '23514',
   null,
@@ -236,7 +238,8 @@ select throws_ok(
 select throws_ok(
   $$update public.bonus_competitions set series_id = gen_random_uuid()
      where tournament_id = (select id from lineage where label = 'season')
-       and game_key = 'last_man_standing' and completed_at is null$$,
+       and game_key = 'last_man_standing'
+       and visibility_kind = 'public' and completed_at is null$$,
   '23503',
   null,
   'a successor cannot be moved into a DIFFERENT series while keeping its predecessor — the composite key pins a chain to one series rather than letting it wander'
@@ -307,7 +310,8 @@ select is(
 select throws_ok(
   $$update public.bonus_competitions set completion_reason = 'won'
      where tournament_id = (select id from lineage where label = 'season')
-       and game_key = 'last_man_standing' and completed_at is null$$,
+       and game_key = 'last_man_standing'
+       and visibility_kind = 'public' and completed_at is null$$,
   '23514',
   null,
   'a completion reason on a competition that has not completed is refused'
@@ -346,7 +350,8 @@ select is(
     (select id from lineage where label = 'season'), 'last_man_standing'),
   (select id from public.bonus_competitions
     where tournament_id = (select id from lineage where label = 'season')
-      and game_key = 'last_man_standing' and completed_at is null),
+      and game_key = 'last_man_standing'
+      and visibility_kind = 'public' and completed_at is null),
   'the resolver returns the live PUBLIC successor, ignoring two live private competitions'
 );
 
