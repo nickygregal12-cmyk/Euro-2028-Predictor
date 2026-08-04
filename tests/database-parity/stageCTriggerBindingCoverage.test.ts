@@ -218,8 +218,8 @@ const manifestFunctions = manifestTriggerAuthorityFunctions()
 
 describe('Stage C trigger binding coverage after C1b', () => {
   it('keeps the parser positive control at the contract-81 trigger boundary', () => {
-    // Raised 81 → 82 by contract 81's outcome-ledger immutability trigger.
-    expect(effectiveBindings).toHaveLength(83)
+    // Raised 83 → 84 by contract 92's replay chain walk on season_fixtures.
+    expect(effectiveBindings).toHaveLength(84)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(

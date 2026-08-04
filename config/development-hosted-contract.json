@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 89,
-  "latestMigrationVersion": "20260804173000",
-  "latestMigrationName": "lms_settlement_job",
-  "verifiedAt": "2026-08-04T13:05:47Z",
+  "requiredMigrationCount": 91,
+  "latestMigrationVersion": "20260804193000",
+  "latestMigrationName": "matchweek_settlement_parity",
+  "verifiedAt": "2026-08-04T13:55:16Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30911943023, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 89. Corroborated read-only against the database: cron.job holds season-settle-due-lms-rounds on 0 * * * * as username postgres and active, which is the identity contract 88's lock exception requires.",
-    "automationSession": "github-actions-run-30911943023",
-    "repositoryHeadBeforeChange": "c087f1ddf3cb49f195adc79b1177407f402d6b6c"
+    "source": "Development fast-lane rollout run 30916033941, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 91. Corroborated read-only against the database: the ledger holds 91 rows through 20260804193000; season_matchweek_scores exists with its 4 CHECK constraints and its shape trigger bound; both settlement functions exist in predictor_internal with no EXECUTE for anon, authenticated or public; and behaviourally is_settlement_score('{}') returns false rather than null, a scoreless completed fixture refuses completed_without_result, and a card of completed + void + carried-to-replay reports a matches-played denominator of 1.",
+    "automationSession": "github-actions-run-30916033941",
+    "repositoryHeadBeforeChange": "a0af06d13d61a3256ecdbaf48a10eabf99495ab4"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
