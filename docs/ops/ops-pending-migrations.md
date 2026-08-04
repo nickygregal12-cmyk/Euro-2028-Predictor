@@ -38,8 +38,9 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **83:** Recurring season matchweek scheduler.
 - **84:** LMS eligibility and auto-assignment parity.
 - **85:** LMS result-to-outcome rule and season replay.
+- **86:** Season LMS selection made possible (participation check accepts either fixture link).
 
-Contracts 64–85 are applied to development. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–85 are applied to development; contract 86 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 

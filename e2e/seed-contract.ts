@@ -136,8 +136,21 @@
  * no row: nothing calls these yet. The two relations the reader touches are
  * season-only and empty, and a Euro tournament season has no LMS windows to
  * read.
+ *
+ * Contract 86 is the first of this run that touches a relation the seeded Euro
+ * tournament actually uses. It redefines the trigger function behind
+ * `bonus_lms_selections` so the picked club may prove it plays in the round
+ * from EITHER the tournament fixture link or the season one. The tournament
+ * link is unchanged and still checked first, and `season_cup_window_fixtures`
+ * holds no row for a tournament window, so the added branch contributes nothing
+ * to a Euro pick. That is measured rather than assumed: 30 accept/refuse
+ * scenarios were run against the previous function and this one on a scratch
+ * PostgreSQL 16, and the 25 that do not involve a season round are identical,
+ * refusal text included. `supabase/tests/137_lms_season_selection.sql` asserts
+ * the same tournament behaviour against a seeded database. It creates no table,
+ * policy or grant, alters no column, and leaves the trigger binding untouched.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 85
+export const SEED_REVIEWED_AT_CONTRACT = 86
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
