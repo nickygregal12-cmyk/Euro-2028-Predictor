@@ -1,6 +1,11 @@
 # Football Prediction Hub — Design System
 
-Source of truth for all visual and interaction design. Components implement exactly this. If code and this doc disagree, the doc wins — fix the code or consciously update the doc first.
+Source of truth for all visual and interaction design **of what is currently built**. Components implement exactly this. If code and this doc disagree, the doc wins — fix the code or consciously update the doc first.
+
+> **Where the target design lives (added 4 August 2026).** This document describes the product that exists. It does not describe the product being built towards — that is
+> [`design/hub-architecture-and-modernisation-plan.md`](design/hub-architecture-and-modernisation-plan.md) (revision 1.5), indexed at [`design/README.md`](design/README.md).
+>
+> The two are not rivals and neither supersedes the other outright. This document keeps component-level authority over every surface that exists today, and its tokens, accessibility floor and mobile platform contract remain binding. The plan holds the target information architecture, page/journey design, UI state model and acquisition surface. **Where both describe the same surface, the plan is the destination and this document is the current position** — so a replacement journey follows the plan, and anything still on the old journey follows this.
 
 **Scope reframed 1 August 2026.** This document was written as the *Euro 2028 Predictor* design system and, until now, claimed complete authority while describing only one tournament. Under [ADR 0020](adr/0020-football-prediction-hub-product-model.md) the product is the Football Prediction Hub, and the hub, competition dashboards and multi-competition presentation were surfaces this document had never described. §11 now covers them. Nothing tournament-specific was deleted.
 

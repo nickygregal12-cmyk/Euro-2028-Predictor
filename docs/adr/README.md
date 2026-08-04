@@ -1,5 +1,7 @@
 # Architecture decision records
 
+> Decisions live here. **What the finished product should look like** lives in [`../design/README.md`](../design/README.md) — the target design authority. It is subordinate to these ADRs: it may organise presentation and delivery, and may not change a rule any ADR sets.
+
 Decision records for platform-level directions derived from the 27 July 2026 acquisition technical audit and subsequent multi-competition planning. The series deliberately starts at **0003** — designations 0001 and 0002 were never issued; do not create records under those numbers.
 
 ## Status vocabulary
