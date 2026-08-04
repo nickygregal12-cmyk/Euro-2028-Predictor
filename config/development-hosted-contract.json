@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 95,
-  "latestMigrationVersion": "20260804233000",
-  "latestMigrationName": "season_leaderboard_read",
-  "verifiedAt": "2026-08-04T15:26:00Z",
+  "requiredMigrationCount": 96,
+  "latestMigrationVersion": "20260804243000",
+  "latestMigrationName": "cup_tie_settlement_refusal_order",
+  "verifiedAt": "2026-08-04T16:05:00Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30923985137 on 21c9645, completed successfully. Corroborated read-only against the database: the ledger holds 95 rows through 20260804233000; predictor_internal.season_standings exists; public.get_season_leaderboard is executable by authenticated and NOT by service_role, which is the deliberate asymmetry contract 95 documents \u2014 the function decides visibility from auth.uid(), which service_role has none of.",
-    "automationSession": "github-actions-run-30923985137",
-    "repositoryHeadBeforeChange": "21c9645a8734adec9e81a7f411a7eee556c71914"
+    "source": "Development fast-lane rollout run 30927288358 on 00575a2, completed successfully. Corroborated read-only, structurally and behaviourally: the ledger holds 96 rows through 20260804243000; predictor_internal.cup_tie_entrant_total exists; and the two exact cards the differential sweep disagreed on now return the TypeScript authority's answers \u2014 a tie where home is missing a confirmed fixture and away carries an off-scale value at an earlier one reports points_missing_for_confirmed_fixture (home evaluated first), and {\"zz\":3,\"b\":3,\"a\":3} reports invalid_input rather than following jsonb key order.",
+    "automationSession": "github-actions-run-30927288358",
+    "repositoryHeadBeforeChange": "00575a2ea53dfb8a211082cebb3a62fb3fe82a47"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
