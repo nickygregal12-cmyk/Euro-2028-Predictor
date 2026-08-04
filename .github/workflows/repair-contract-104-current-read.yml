@@ -69,7 +69,20 @@ jobs:
           """
           if text.count(old) != 1:
               raise SystemExit(f'expected one repair block, found {text.count(old)}')
-          path.write_text(text.replace(old, new))
+          text = text.replace(old, new)
+          text = text.replace(
+              "if sql.count('predictor_internal.current_public_competition_id(') != 6:",
+              "if sql.count('predictor_internal.current_public_competition_id(') != 7:",
+          )
+          text = text.replace(
+              "raise SystemExit('expected one helper definition plus five read calls')",
+              "raise SystemExit('expected helper definition, revoke and five read calls')",
+          )
+          text = text.replace(
+              ").toHaveLength(6)\n  })\n\n  it('does not add a lifecycle driver",
+              ").toHaveLength(7)\n  })\n\n  it('does not add a lifecycle driver",
+          )
+          path.write_text(text)
           PY
           python scripts/repair-contract-104-current-read-once.py
 
