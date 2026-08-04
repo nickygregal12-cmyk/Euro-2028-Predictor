@@ -1,0 +1,262 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+git fetch origin main agent/provider-ingestion-contract-80
+old_head="$(git rev-parse origin/agent/provider-ingestion-contract-80)"
+git checkout -B provider-contract-96 origin/main
+
+copy_paths=(
+  .github/workflows/database-parity.yml
+  supabase/config.toml
+  supabase/functions/provider-poll/index.ts
+  supabase/functions/provider-poll/providerDecoders.ts
+  tests/database-parity/rpcAllowlistParity.test.ts
+  tests/database-parity/schemaSecurityInvariants.test.ts
+  tests/ingestion/providerDecoders.test.ts
+  tests/scripts/databaseParityWorkflow.test.ts
+  tests/scripts/providerPollContract.test.ts
+  tests/scripts/typescriptProjectCoverage.test.ts
+  tsconfig.tools.json
+)
+for path in "${copy_paths[@]}"; do
+  mkdir -p "$(dirname "$path")"
+  git show "$old_head:$path" > "$path"
+done
+
+git show "$old_head:docs/architecture/provider-ingestion-contract-94.md" > docs/architecture/provider-ingestion-contract-96.md
+git show "$old_head:supabase/migrations/20260804223000_provider_ingestion_custody.sql" > supabase/migrations/20260804243000_provider_ingestion_custody.sql
+git show "$old_head:supabase/tests/145_provider_ingestion_custody.sql" > supabase/tests/147_provider_ingestion_custody.sql
+
+python <<'PY'
+from __future__ import annotations
+import json
+import re
+from pathlib import Path
+
+root = Path('.')
+copied = [
+    '.github/workflows/database-parity.yml',
+    'supabase/config.toml',
+    'supabase/functions/provider-poll/index.ts',
+    'supabase/functions/provider-poll/providerDecoders.ts',
+    'tests/database-parity/rpcAllowlistParity.test.ts',
+    'tests/database-parity/schemaSecurityInvariants.test.ts',
+    'tests/ingestion/providerDecoders.test.ts',
+    'tests/scripts/databaseParityWorkflow.test.ts',
+    'tests/scripts/providerPollContract.test.ts',
+    'tests/scripts/typescriptProjectCoverage.test.ts',
+    'tsconfig.tools.json',
+    'docs/architecture/provider-ingestion-contract-96.md',
+    'supabase/migrations/20260804243000_provider_ingestion_custody.sql',
+    'supabase/tests/147_provider_ingestion_custody.sql',
+]
+replacements = {
+    '20260804223000_provider_ingestion_custody.sql': '20260804243000_provider_ingestion_custody.sql',
+    '145_provider_ingestion_custody.sql': '147_provider_ingestion_custody.sql',
+    'provider-ingestion-contract-94.md': 'provider-ingestion-contract-96.md',
+    'Contract 94': 'Contract 96',
+    'contract 94': 'contract 96',
+}
+for rel in copied:
+    path = root / rel
+    text = path.read_text()
+    for old, new in replacements.items():
+        text = text.replace(old, new)
+    path.write_text(text)
+
+agents = root / 'AGENTS.md'
+text = agents.read_text()
+text, n = re.subn(
+    r'The repository is at \*\*contract 95\*\* through `20260804233000_season_leaderboard_read\.sql`\.[^\n]*',
+    'The repository candidate is at **contract 96** through `20260804243000_provider_ingestion_custody.sql`. Development Supabase is hosted at contract 93, applied 4 August 2026 by fast-lane run 30920330240 on `2c2fe85`, which reported `Development is at contract 93.`; production remains at 63. Contract 96 is additive and may be applied with pending contracts 94–95 through the ADR-0024 fast lane after merge. Repository inclusion does not deploy `provider-poll`, configure a credential, call a provider or authorise official fixture/result writes.',
+    text,
+    count=1,
+)
+if n != 1:
+    raise SystemExit('AGENTS repository-contract authority was not updated exactly once')
+agents.write_text(text)
+
+deployment = root / 'config/deployment-contract.json'
+data = json.loads(deployment.read_text())
+data['contractVersion'] = 96
+data['requiredMigrationCount'] = 96
+for signature in [
+    'public.archive_provider_response(text,text,text,integer,jsonb,text,uuid)',
+    'public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',
+]:
+    if signature not in data['requiredRpcSignatures']:
+        data['requiredRpcSignatures'].append(signature)
+data['notes'] = (
+    'Tagged repository baseline euro-2028-baseline remains contract 63. Contracts 64–95 establish the '
+    'competition-season, prediction, LMS, season-Cup, matchweek-card, scoring-store, replay-link, '
+    'matchweek-scoring, season-standings and bounded season-leaderboard foundations. Contract 96 adds '
+    'server-only provider response custody and strict decoder evidence: raw payloads are archived before '
+    'parsing, processing evidence is append-only, and no provider path can write official fixtures, results, '
+    'locks, scores, totals, ranks or standings. Hosted deployment remains separately guarded and is not '
+    'claimed by this repository contract.'
+)
+deployment.write_text(json.dumps(data, indent=2) + '\n')
+
+seed = root / 'e2e/seed-contract.ts'
+text = seed.read_text()
+marker = ' */\nexport const SEED_REVIEWED_AT_CONTRACT = 95'
+note = """ *
+ * Contract 96 adds `predictor_internal.provider_raw_responses` and
+ * `predictor_internal.provider_response_processing`, both created empty, RLS
+ * enabled, append-only and revoked from every browser role. Its two public
+ * custody RPCs are granted only to `service_role`; the provider Edge Function
+ * is not deployed by the migration, no provider credential is configured and
+ * no provider request is made. Nothing a seeded Euro user reads is changed or
+ * made reachable.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 96"""
+if marker not in text:
+    raise SystemExit('seed contract 95 marker missing')
+seed.write_text(text.replace(marker, note, 1))
+
+privileges = root / 'supabase/tests/080_function_privileges.sql'
+text = privileges.read_text()
+anchor = "  ('recompute_all_scores()'),"
+addition = """  -- Contract 96: provider custody is callable only by server-side service-role
+  -- code after the named Edge Function caller key has been validated.
+  ('archive_provider_response(text,text,text,integer,jsonb,text,uuid)'),
+  ('record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)'),
+"""
+if 'archive_provider_response(text,text,text,integer,jsonb,text,uuid)' not in text:
+    if anchor not in text:
+        raise SystemExit('function privilege insertion anchor missing')
+    text = text.replace(anchor, addition + anchor, 1)
+privileges.write_text(text)
+
+ops = root / 'docs/ops/ops-pending-migrations.md'
+text = ops.read_text()
+text = text.replace(
+    'The repository is at **contract 95**; development is at 93 until the next rollout.',
+    'The repository candidate is at **contract 96**; Development is at 93 until the next rollout.',
+    1,
+)
+lines = text.splitlines()
+for i, line in enumerate(lines):
+    if line.startswith('| Repository `main` | **95** |'):
+        lines[i] = '| Repository candidate | **96** | Contracts 94–95 add season standings and the bounded co-member leaderboard read; contract 96 adds server-only provider response custody and decoder evidence through `20260804243000_provider_ingestion_custody.sql` | EXACT GATES REQUIRED BEFORE MERGE |'
+    elif line.startswith('| Development Supabase `iouzoutneyjpugbbtdem` | **93** |'):
+        parts = line.split('|')
+        parts[-2] = ' VERIFIED; CONTRACT 96 PENDING '
+        lines[i] = '|'.join(parts)
+    elif line.startswith('| Netlify `euro28predictor` non-production contexts |'):
+        parts = line.split('|')
+        parts[-2] = ' TRAILS DEVELOPMENT; ALIGN AFTER VERIFIED ROLLOUT '
+        lines[i] = '|'.join(parts)
+text = '\n'.join(lines) + '\n'
+text = text.replace('## Contracts 64–95', '## Contracts 64–96', 1)
+if '- **96:** Server-only provider-ingestion custody and strict decoder evidence.' not in text:
+    text = text.replace(
+        '- **95:** The bounded season leaderboard read — the first season RPC a browser role may call, limited to league co-members.\n',
+        '- **95:** The bounded season leaderboard read — the first season RPC a browser role may call, limited to league co-members.\n- **96:** Server-only provider-ingestion custody and strict decoder evidence.\n',
+        1,
+    )
+text = re.sub(
+    r'Contracts 64–93 are applied to development; contracts 94 and 95 are merged and not yet applied\.[^\n]*',
+    'Contracts 64–93 are applied to Development; contracts 94 and 95 are merged and not yet applied; contract 96 is the current repository candidate. None is authorised for production merely to remove the intentional contract gap.',
+    text,
+    count=1,
+)
+pending = """## Pending hosted work
+
+1. Merge contract 96 only after exact CI, Database parity, Browser E2E, hosted-inventory and protected Netlify preview gates pass, review threads are clear and `main` is still contract 95.
+2. After merge, apply contracts 94–96 to Development only through `.github/workflows/development-fast-lane-rollout.yml` using project ref `iouzoutneyjpugbbtdem` and confirmation `APPLY-DEVELOPMENT-FAST-LANE`.
+3. Require the fast lane to identify all three pending migrations, prove them additive, take its lightweight snapshot, push them and report `Development is at contract 96.`
+4. Align the machine-readable Development contract and Netlify non-production declarations only after hosted postflight verification. Keep production Supabase and production Netlify at 63.
+5. Deploy `provider-poll` to Development only after contract 96 is present. Do not configure a provider credential or make a provider request until the named caller key and bounded non-production credential are separately available.
+6. Keep non-production Netlify deploys protected by team login and use the repository's protected-preview verification gate.
+7. Do not use the historic `euro28-predictor-dev` Netlify project.
+
+"""
+text, n = re.subn(r'## Pending hosted work\n\n.*?(?=## Next implementation boundary)', pending, text, count=1, flags=re.S)
+if n != 1:
+    raise SystemExit('pending hosted work block not replaced')
+text, n = re.subn(
+    r'(## Next implementation boundary\n\n).*?(?=\n## Related authority)',
+    r'\1The first provider rehearsal is one bounded non-production request whose exact raw response and processing evidence are verified without writing any official fixture, result, lock, score, total, rank or standing. If authentication material is unavailable, stop after deployment rather than weakening the boundary.\n',
+    text,
+    count=1,
+    flags=re.S,
+)
+if n != 1:
+    raise SystemExit('next implementation boundary not replaced')
+ops.write_text(text)
+
+status = root / 'docs/quality/current-status.md'
+text = status.read_text()
+lines = text.splitlines()
+provider_row = '| Provider-ingestion custody | Contract 96 fixes approved provider origins and bounded relative paths, checks a named caller key before provider I/O, archives exact raw response text before parsing, records append-only processing evidence, exposes custody RPCs only to `service_role`, bounds response reads, allowlists response headers and rejects credential-shaped query parameters. It has no authority path into official fixtures, results, locks, scores, totals, ranks or standings. |'
+next_row = '| Next executable issue | Merge contract 96 only with exact-head CI, Database parity, Browser E2E, hosted-inventory and protected Netlify preview evidence. After merge, contracts 94–96 may reach Development only through the ADR-0024 fast lane using the required confirmation phrase and postflight proof. No provider credential, provider request, Edge Function deployment, C2 work or production write is authorised by repository inclusion. |'
+output = []
+provider_added = False
+next_seen = False
+for line in lines:
+    if line.startswith('| Repository contract |'):
+        line = '| Repository contract | **96 candidate** — 96 canonical migrations through `20260804243000_provider_ingestion_custody.sql`. Contracts 94–95 supply season standings and the bounded co-member leaderboard read; contract 96 adds server-only provider-response custody and strict decoder evidence. Development Supabase is hosted at **93**, applied 4 August 2026 by fast-lane run 30920330240 on `2c2fe85`, whose postflight reported `Development is at contract 93.` Production remains at **63**. Repository inclusion does not deploy `provider-poll`, configure a provider credential or call a provider. |'
+    elif line.startswith('| Next executable issue |'):
+        line = next_row
+        next_seen = True
+    elif line.startswith('| Development Supabase `iouzoutneyjpugbbtdem` |'):
+        parts = line.split('|')
+        parts[-2] = ' Contract 96 is pending. Apply contracts 94–96 only after merge through `.github/workflows/development-fast-lane-rollout.yml`, requiring additive proof, the lightweight snapshot and postflight `Development is at contract 96.` '
+        line = '|'.join(parts)
+    output.append(line)
+    if line.startswith('| Season SQL and persistence |') and not provider_added:
+        output.append(provider_row)
+        provider_added = True
+if not next_seen:
+    for i, line in enumerate(output):
+        if line.startswith('| Production posture |'):
+            output.insert(i, next_row)
+            break
+text = '\n'.join(output) + '\n'
+if '| Provider custody |' not in text:
+    text = text.replace(
+        '| Stage C2 | **Blocked.** Independent data-protection review issue #272 must approve the retention/erasure boundary before profile ownership, pseudonymisation or related RLS work. |\n',
+        '| Stage C2 | **Blocked.** Independent data-protection review issue #272 must approve the retention/erasure boundary before profile ownership, pseudonymisation or related RLS work. |\n| Provider custody | **Repository candidate complete at contract 96.** Raw-before-decode custody and processing evidence exist without giving provider data official-state authority. |\n',
+        1,
+    )
+provider_section = """## Provider-ingestion authority boundary
+
+Contract 96 is custody, not promotion:
+
+- the Edge Function accepts only named, fixed providers and bounded relative paths;
+- the caller key is checked before any provider I/O;
+- exact raw response text is archived before parse or strict decode;
+- processing attempts are append-only evidence;
+- browser roles receive no relation or RPC access;
+- safe response headers are allowlisted and response size is bounded;
+- credential-shaped query parameters are rejected;
+- no provider path may write official fixtures, results, lock state, points, totals, ranks or standings.
+
+The Edge Function remains undeployed and no provider credential or request is part of contract 96 delivery.
+
+"""
+if '## Provider-ingestion authority boundary' not in text:
+    text = text.replace('## Development operating model — implemented controls\n', provider_section + '## Development operating model — implemented controls\n', 1)
+text = text.replace('reviewed through contract **95**', 'reviewed through contract **96**')
+text = text.replace('Development rollout of contracts 94–95', 'Development rollout of contracts 94–96')
+if '- provider rehearsal, canonical identity mapping and official-data promotion controls;' not in text:
+    text = text.replace(
+        '- Development rollout of contracts 94–96 after merge, followed by hosted declaration alignment;\n',
+        '- Development rollout of contracts 94–96 after merge, followed by hosted declaration alignment;\n- provider rehearsal, canonical identity mapping and official-data promotion controls;\n',
+        1,
+    )
+status.write_text(text)
+PY
+
+grep -R "20260804223000_provider_ingestion_custody\|145_provider_ingestion_custody\|provider-ingestion-contract-94\|contract 94 adds server-only provider" \
+  .github AGENTS.md config docs e2e supabase tests tsconfig.tools.json && exit 1 || true
+test -f supabase/migrations/20260804243000_provider_ingestion_custody.sql
+test -f supabase/tests/147_provider_ingestion_custody.sql
+test "$(git rev-parse origin/main)" = "21c9645a8734adec9e81a7f411a7eee556c71914"
+
+git add -A
+git commit -m "Contract 96: add provider-ingestion custody"
+git push --force origin HEAD:agent/provider-ingestion-contract-80
