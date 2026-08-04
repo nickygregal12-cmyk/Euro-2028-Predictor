@@ -1,4 +1,4 @@
--- Contract 102: a competition can happen more than once (ADR 0025 decision 1).
+-- Contract 103: a competition can happen more than once (ADR 0025 decision 1).
 --
 -- The prerequisite the decision names as the larger half of the work.
 -- `unique (tournament_id, game_key)` is an AVAILABILITY key doing an INSTANCE
@@ -12,7 +12,7 @@
 -- callers move.
 
 begin;
-select plan(18);
+select plan(20);
 
 create temporary table lineage (label text primary key, id uuid not null) on commit drop;
 
@@ -165,6 +165,35 @@ select throws_ok(
   '23505',
   null,
   'and sequence 2 cannot be claimed twice within one series, even by a completed instance the live-instance index would not have caught'
+);
+
+-- ---------------------------------------------------------------------------
+-- The lineage default trigger: an insert that says nothing about lineage
+-- becomes instance 1 of its own NEW series.
+--
+-- This is also a semantic worth pinning, not just a default: a bare re-create
+-- after completion does NOT continue the old series. Continuing one is an
+-- explicit act — the restart driver passes series_id, sequence and
+-- predecessor — so nothing can extend a chain by accident.
+-- ---------------------------------------------------------------------------
+
+select lives_ok(
+  $$update public.bonus_competitions
+       set completed_at = now(), completion_reason = 'abandoned'
+     where tournament_id = (select id from lineage where label = 'season')
+       and game_key = 'predictor_cup' and completed_at is null;
+    insert into public.bonus_competitions (tournament_id, game_key, availability_status)
+    select (select id from lineage where label = 'season'), 'predictor_cup', 'active'$$,
+  'a bare insert naming no lineage at all is accepted once the slot is free — every existing inserter stays correct without learning about series'
+);
+
+select is(
+  (select (series_id = id) and series_sequence = 1 and predecessor_competition_id is null
+     from public.bonus_competitions
+    where tournament_id = (select id from lineage where label = 'season')
+      and game_key = 'predictor_cup' and completed_at is null),
+  true,
+  'and the trigger self-seeded it as instance 1 of its own NEW series — a bare re-create never silently continues the old chain'
 );
 
 -- ---------------------------------------------------------------------------

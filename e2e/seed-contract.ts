@@ -293,17 +293,29 @@
  * still required everywhere; anonymous access is not opened. Seeded browser
  * journeys read these through the same RPCs and are unaffected before lock.
  *
- * Contract 102 makes a competition repeatable: `bonus_competitions` gains
- * lineage columns and a `completion_reason`, all defaulted or nullable so every
- * existing row keeps its meaning, and `unique (tournament_id, game_key)` becomes
- * a partial unique index over LIVE instances only. With no competition
+ * Contract 102 makes the shared Cup store phase-aware. Existing tournament
+ * groups and memberships default to `initial`, the Euro seed creates neither a
+ * Cup draw nor a split row, and no browser grant or RPC signature changes.
+ * Existing Cup reads and points sources are explicitly kept on the permanent
+ * initial roster, so a seeded Euro user sees the same empty/not-entered Cup
+ * state as before. The new parent/phase triggers fire only on Cup group or
+ * fixture writes, none of which global setup performs.
+ *
+ * Contract 103 makes a competition instance repeatable: `bonus_competitions`
+ * gains lineage columns and a `completion_reason`, all defaulted or nullable so
+ * every existing row keeps its meaning, and `unique (tournament_id, game_key)`
+ * becomes a partial unique index over LIVE instances only. With no competition
  * completed in development or production — verified read-only — the partial
- * index permits nothing the constraint forbade, so it is equivalent today. It
- * adds no relation, policy, grant or trigger, and nothing in it can create a
- * second instance: the restart lifecycle is a later contract. A seeded user's
- * competition reads are byte-identical.
+ * index permits nothing the constraint forbade, so it is equivalent today.
+ * One live function was redefined WITH the contract rather than after it:
+ * `ensure_original_predictor_availability` upserts on that pair from the
+ * tournaments trigger, and a bare ON CONFLICT target cannot infer a partial
+ * index — the exact failure that stopped seeding in CI on the first draft. Its
+ * conflict target now names the index predicate, so seeding a tournament works
+ * identically before and after. Nothing in it can create a second instance:
+ * the restart lifecycle is a later contract.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 102
+export const SEED_REVIEWED_AT_CONTRACT = 103
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- Contract 102 — a competition can happen more than once.
+-- Contract 103 — a competition can happen more than once.
 --
 -- ADR 0025 decision 1, the prerequisite the decision names as the larger half
 -- of the work: "The current `unique (tournament_id, game_key)` constraint cannot
@@ -47,13 +47,13 @@
 -- `(tournament_id, game_key)` and expect exactly one row. Relaxing the
 -- constraint makes that assumption false — but only once a second instance
 -- exists, and **nothing in this contract can create one**. The restart
--- lifecycle is contract 104, and contract 103 teaches those readers to resolve
+-- lifecycle is contract 105, and contract 104 teaches those readers to resolve
 -- the live instance first.
 --
 -- Until then the partial index is strictly equivalent to the constraint it
 -- replaces: with no completed competitions there is nothing for it to permit
 -- that the old one forbade. That equivalence is asserted rather than assumed in
--- `153_competition_instance_lineage.sql`.
+-- `154_competition_instance_lineage.sql`.
 --
 -- The ordering matters and is deliberate: shape, then callers, then the driver.
 -- Landing the driver before the callers would make every one of those twenty
@@ -81,6 +81,35 @@ update public.bonus_competitions set series_id = id where series_id is null;
 
 alter table public.bonus_competitions
   alter column series_id set not null;
+
+-- A first instance's series is itself — for EVERY row, not only the backfilled
+-- ones. `series_id` cannot carry a column default that references `id`, and a
+-- random default would break the identity the backfill establishes, so the
+-- default is a BEFORE INSERT trigger: an insert that says nothing about
+-- lineage becomes instance 1 of its own new series, and an insert that states
+-- its lineage (the restart driver) is left untouched.
+--
+-- Without this, every existing inserter — `ensure_original_predictor_availability`
+-- fired from the tournaments trigger, the C1b game-catalogue seeding, the seed
+-- itself — would violate the NOT NULL the moment this contract landed. The
+-- first draft shipped without it and CI seeding failed on exactly that.
+create or replace function predictor_internal.prepare_competition_lineage()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $lineage$
+begin
+  new.series_id := coalesce(new.series_id, new.id);
+  return new;
+end;
+$lineage$;
+
+drop trigger if exists prepare_competition_lineage on public.bonus_competitions;
+create trigger prepare_competition_lineage
+before insert on public.bonus_competitions
+for each row
+execute function predictor_internal.prepare_competition_lineage();
 
 alter table public.bonus_competitions
   add constraint bonus_competitions_series_sequence_positive
@@ -163,7 +192,7 @@ create unique index bonus_competitions_live_instance_key
 -- One named resolver, so twenty callers do not each invent the same filter.
 -- ---------------------------------------------------------------------------
 --
--- Contract 103 moves the single-row lookups onto this. Adding it here means the
+-- Contract 104 moves the single-row lookups onto this. Adding it here means the
 -- definition of "the live instance" exists in exactly one place before anything
 -- depends on it, rather than being spelled out twenty times and drifting.
 create or replace function predictor_internal.live_competition_id(
@@ -185,5 +214,91 @@ $$;
 
 revoke all on function predictor_internal.live_competition_id(uuid, text)
   from public, anon, authenticated, service_role;
+
+
+-- ---------------------------------------------------------------------------
+-- The one WRITER on the replaced key.
+-- ---------------------------------------------------------------------------
+--
+-- The reader audit was done for contract 104 — but readers were not the only
+-- dependents of the dropped constraint. `pg_proc` shows exactly one live
+-- function whose body UPSERTS on the pair:
+-- `predictor_internal.ensure_original_predictor_availability()`, fired by a
+-- trigger on `tournaments`, so it runs for every seeded or created season.
+--
+-- A bare `on conflict (tournament_id, game_key)` infers a non-partial unique
+-- arbiter, and after the drop none exists: every tournament insert fails with
+-- 42P10. The first draft of this contract shipped without this section and CI
+-- could not even seed — recorded here so the next constraint-to-partial-index
+-- swap checks writers as well as readers.
+--
+-- The body is otherwise the live definition verbatim; only the conflict target
+-- gains the index predicate. Contending with the LIVE instance is also the
+-- only correct semantics once completed predecessors exist: an availability
+-- refresh must never resurrect or edit a completed run.
+--
+-- The other `on conflict (tournament_id, game_key)` sites in the migration
+-- history are top-level statements that replay BEFORE this contract, while the
+-- old constraint still exists, so they are correct as written and untouched
+-- (migrations are append-only after hosted application).
+
+CREATE OR REPLACE FUNCTION predictor_internal.ensure_original_predictor_availability()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+begin
+  if new.kind = 'tournament' then
+    insert into public.bonus_competitions (
+      tournament_id,
+      game_key,
+      published,
+      availability_status,
+      registration_opens_at,
+      registration_closes_at,
+      draw_required
+    ) values (
+      new.id,
+      'original_predictor',
+      false,
+      'active',
+      case
+        when new.lock_at is not null and new.lock_at <= new.created_at
+          then new.lock_at - interval '1 second'
+        else new.created_at
+      end,
+      new.lock_at,
+      false
+    )
+    -- Contract 103: the uniqueness this upsert infers is now the PARTIAL
+    -- live-instance index, and a bare column-list conflict target cannot infer
+    -- a partial index — every tournament insert would fail with 42P10, which is
+    -- exactly how the first draft of this contract stopped CI seeding. Naming
+    -- the index predicate keeps the inference exact: the upsert contends with
+    -- the LIVE Original Predictor instance, which is also the only correct
+    -- behaviour once completed predecessors can exist.
+    on conflict (tournament_id, game_key) where completed_at is null do update
+      set registration_opens_at = case
+            when excluded.registration_closes_at is null then
+              public.bonus_competitions.registration_opens_at
+            else least(
+              coalesce(
+                public.bonus_competitions.registration_opens_at,
+                excluded.registration_closes_at - interval '1 second'
+              ),
+              excluded.registration_closes_at - interval '1 second'
+            )
+          end,
+          registration_closes_at = excluded.registration_closes_at,
+          availability_status = 'active',
+          updated_at = now()
+      where public.bonus_competitions.game_key = 'original_predictor'
+        and not public.bonus_competitions.published;
+  end if;
+
+  return new;
+end;
+$function$;
 
 commit;
