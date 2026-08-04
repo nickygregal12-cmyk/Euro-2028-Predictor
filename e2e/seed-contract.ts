@@ -260,8 +260,17 @@
  * alters none, so no seeded read changes. Committing it does not deploy the
  * `provider-poll` function, configure a provider credential or call a provider,
  * and nothing in it can write a fixture, result, lock, score or standing.
+ *
+ * Contract 98 moves two reads out of three Cup RPCs and behind neutral
+ * `predictor_internal` functions: the Penalty Number goal total and its lock
+ * instant. It creates no relation, policy or grant in `public`, and the six new
+ * functions are revoked from every browser and service role. The three
+ * redefined RPCs keep their signatures, their guards and their refusals; a
+ * differential sweep over 700 generated windows found zero divergence on the
+ * tournament path, and the seeded Euro data reaches none of it because the seed
+ * draws no Cup and settles no Cup round.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 97
+export const SEED_REVIEWED_AT_CONTRACT = 98
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
