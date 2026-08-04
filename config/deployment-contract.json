@@ -1,6 +1,6 @@
 {
-  "contractVersion": 80,
-  "requiredMigrationCount": 80,
+  "contractVersion": 81,
+  "requiredMigrationCount": 81,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -58,5 +58,5 @@
     "public.archive_provider_response(text,text,text,integer,jsonb,text,uuid)",
     "public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)"
   ],
-  "notes": "Tagged repository baseline euro-2028-baseline resolves to 1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Contracts 64–79 establish the competition-season, prediction, LMS and season-Cup foundations recorded in the live authority documents. Contract 80 adds server-only provider response custody and decoder evidence: raw payloads are archived before parsing, processing evidence is append-only, and no provider path can write official fixtures, results, locks, scores or standings. Hosted deployment remains separately guarded and is not claimed by this repository contract."
+  "notes": "Tagged repository baseline euro-2028-baseline resolves to 1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Contracts 64–80 establish the competition-season, prediction, LMS, season-Cup and matchweek card-lock foundations recorded in the live authority documents. Contract 81 adds server-only provider response custody and decoder evidence: raw payloads are archived before parsing, processing evidence is append-only, and no provider path can write official fixtures, results, locks, scores or standings. Hosted deployment remains separately guarded and is not claimed by this repository contract."
 }
