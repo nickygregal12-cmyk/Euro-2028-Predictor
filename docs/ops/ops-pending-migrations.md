@@ -4,6 +4,8 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 4 August 2026
 
+The repository is at **contract 88**.
+
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository `main` | **88** | Contracts 87 and 88 merged through `20260804163000_lms_auto_assignment.sql` in PR #436 | MERGED; DEVELOPMENT NOT YET APPLIED |
