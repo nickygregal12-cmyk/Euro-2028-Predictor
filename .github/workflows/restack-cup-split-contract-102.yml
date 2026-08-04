@@ -25,7 +25,6 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import json
-          import re
           import subprocess
 
           OLD = '0c201c2dd785cc9dad3d7026743619e616037d77'
