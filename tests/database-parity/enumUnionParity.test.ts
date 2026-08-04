@@ -29,7 +29,12 @@ function migrationSql(): string {
     .join('\n')
 }
 
-const allSql = migrationSql()
+// Comments stripped before any scan. This file pairs quotes positionally to
+// read a CHECK constraint's IN list, and `rpcAllowlistParity` was broken by
+// exactly that: one apostrophe in a `--` comment re-paired every quote after
+// it and silently dropped a real entry. Same input language, same failure mode,
+// same one-line defence — applied here before it costs a CI round trip too.
+const allSql = migrationSql().replace(/--[^\n]*/g, '')
 
 /**
  * The effective allowed values for a column, read from migration order.

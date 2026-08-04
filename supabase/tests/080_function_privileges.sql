@@ -54,6 +54,13 @@ insert into expected_service_functions (signature) values
   -- Contract 83. The season counterpart of the line above: the recurring
   -- matchweek lock. Server-only for the same reason — it submits on a player's
   -- behalf, so a browser session must never be able to trigger it.
+  --
+  -- The apostrophe in "player's" is KEPT ON PURPOSE. `rpcAllowlistParity`
+  -- scans this values list for quoted literals, and before it stripped
+  -- comments a lone apostrophe here re-paired every quote after it — silently
+  -- dropping `set_operating_limits` from the service-role allow-list and
+  -- failing against a function nobody had touched. This comment is the live
+  -- regression case; removing the apostrophe would retire it.
   ('process_due_season_matchweek_submissions(timestamp with time zone)'),
   ('recompute_all_scores()'),
   ('recompute_tournament_scores(uuid)'),
