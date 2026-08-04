@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/browser-e2e.yml'
+      # This suite brings up its own Supabase through the shared action, so a
+      # change to it changes how every browser run starts.
+      - '.github/actions/start-local-supabase/**'
       - 'e2e/**'
       - 'production-smoke/**'
       - 'playwright.config.ts'
@@ -30,6 +33,7 @@ on:
       - 'tests/scripts/authRecoveryE2E.test.ts'
       - 'tests/scripts/e2eProjectGating.test.ts'
       - 'tests/scripts/browserE2EPathFilter.test.ts'
+      - 'tests/scripts/localSupabaseStart.test.ts'
   workflow_dispatch:
 
 permissions:
@@ -65,7 +69,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Start disposable local Supabase
-        run: supabase start
+        uses: ./.github/actions/start-local-supabase
 
       - name: Rebuild from committed migrations and seed
         run: supabase db reset --local

@@ -1,0 +1,66 @@
+name: Start disposable local Supabase
+description: >
+  Start the local Supabase stack, retrying a bounded number of times when the
+  CLI fails to bring the containers up for an infrastructure reason rather than
+  a repository one.
+
+# WHY THIS EXISTS. Three jobs start a disposable local Supabase — the two in
+# `database-parity.yml` and the authenticated browser suite — and each did it
+# with a bare `supabase start`. Over one working session that step failed three
+# times for reasons unrelated to any change under test:
+#
+#   * twice on the storage health check —
+#     `Get "http://127.0.0.1:54321/storage/v1/bucket": context deadline exceeded`;
+#   * once on a port collision —
+#     `failed to bind host port for 0.0.0.0:54322 ... address already in use`,
+#     immediately after the CLI's own `Starting database... / Stopping
+#     containers...` sequence, which is the CLI stopping a half-started stack
+#     and racing its own container to release the port.
+#
+# Each cost a manual re-run. Worse, each produced a red check indistinguishable
+# at a glance from a real failure, and one of them sat next to a genuine pgTAP
+# failure in the same session — so "it's probably the flake" was becoming a
+# reasonable thing to think, which is exactly when a real failure gets waved
+# through.
+#
+# WHAT THIS DOES NOT DO. It does not retry the tests. `supabase start` is the
+# only thing wrapped, so a failing migration, a broken `config.toml` or a red
+# pgTAP run still fails on the first attempt. A start that fails all three
+# attempts still fails the job: the final `exit 1` is deliberate and the guard
+# in `tests/scripts/localSupabaseStart.test.ts` asserts it is still there.
+#
+# HOW TO TELL THE TWO APART when a job does go red: the pgTAP step uploads
+# `/tmp/pgtap.log` as an artifact on failure. If the artifact exists, the tests
+# ran and something is genuinely wrong. If it does not, the stack never came up
+# and the tests never ran — that result says nothing about the change.
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -uo pipefail
+        attempts=3
+
+        for attempt in $(seq 1 "${attempts}"); do
+          if supabase start; then
+            echo "Local Supabase started on attempt ${attempt} of ${attempts}."
+            exit 0
+          fi
+
+          echo "::warning::supabase start failed on attempt ${attempt} of ${attempts}"
+
+          # The observed failures leave either a half-started stack or a
+          # container still holding 54322. Stop before retrying so the port is
+          # released; `|| true` because there may be nothing to stop, and that
+          # is not itself an error.
+          supabase stop --no-backup || true
+
+          # Back off, because the port is released asynchronously by the Docker
+          # daemon rather than when `stop` returns.
+          sleep $(( attempt * 10 ))
+        done
+
+        echo "::error::Local Supabase did not start after ${attempts} attempts."
+        echo "This is a start failure, not a test failure: no test has run yet."
+        exit 1

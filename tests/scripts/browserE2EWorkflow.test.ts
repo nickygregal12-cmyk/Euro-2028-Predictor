@@ -43,7 +43,12 @@ const authenticatedBrowserHarness =
 
 describe('authenticated browser E2E workflow', () => {
   it('uses a disposable local Supabase rebuild and Playwright Chromium', () => {
-    expect(authenticatedWorkflow).toContain('supabase start')
+    // The raw `supabase start` moved into a shared composite action that
+    // retries an infrastructure-only failure. What matters here is unchanged:
+    // this suite runs against a disposable stack it brings up itself. The
+    // retry's own properties — bounded, start-only, and still failing the job
+    // when every attempt fails — are guarded in `localSupabaseStart.test.ts`.
+    expect(authenticatedWorkflow).toContain('uses: ./.github/actions/start-local-supabase')
     expect(authenticatedWorkflow).toContain('supabase db reset --local')
     expect(authenticatedWorkflow).toContain('supabase stop --no-backup')
     expect(authenticatedWorkflow).toContain('playwright install --with-deps chromium')

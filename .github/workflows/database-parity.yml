@@ -43,7 +43,7 @@ jobs:
         run: npm ci
 
       - name: Start disposable local Supabase
-        run: supabase start
+        uses: ./.github/actions/start-local-supabase
 
       - name: Rebuild from committed migrations
         run: supabase db reset --local
@@ -108,7 +108,7 @@ jobs:
         run: npm ci
 
       - name: Start disposable local Supabase
-        run: supabase start
+        uses: ./.github/actions/start-local-supabase
 
       - name: Rebuild to canonical contract 64
         run: supabase db reset --local --version 20260730180000
