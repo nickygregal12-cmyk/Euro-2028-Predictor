@@ -9,7 +9,6 @@ on:
       - 'fixtures/predicted-group-order.json'
       - 'scripts/database-rollout/**'
       - 'scripts/ops/**'
-      # Cover every shared domain sibling, including competition and future season modules.
       - 'src/domain/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
@@ -48,6 +47,27 @@ jobs:
       - name: Rebuild from committed migrations
         run: supabase db reset --local
 
+      - name: Prove provider poll rejects unauthorized requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          status="$(curl \
+            --silent \
+            --show-error \
+            --output /tmp/provider-poll-unauthorized.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header 'content-type: application/json' \
+            --data '{"provider":"sportmonks","path":"/fixtures"}' \
+            http://127.0.0.1:54321/functions/v1/provider-poll)"
+          cat /tmp/provider-poll-unauthorized.json
+          test "$status" = '401'
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs"
+            const body = JSON.parse(readFileSync("/tmp/provider-poll-unauthorized.json", "utf8"))
+            if (body.error !== "unauthorized") process.exit(1)
+          '
+
       - name: Lint local database
         run: supabase db lint --local
 
@@ -72,21 +92,12 @@ jobs:
         env:
           DATABASE_PARITY: '1'
           SUPABASE_DB_CONTAINER: supabase_db_euro-2028-predictor-local
-        # The whole directory, never a named file. The `paths:` filter above
-        # already triggers on `tests/database-parity/**`, so naming one file made
-        # the job appear to cover parity while running a single subject — a new
-        # parity test was triggered by, but not executed in, this job.
         run: npx vitest run tests/database-parity/
 
       - name: Stop and delete disposable local data
         if: always()
         run: supabase stop --no-backup
 
-  # Zero-to-current rebuilds reach every migration with empty tables. Transition
-  # subjects instead arrive at the exact prior contract with representative rows
-  # already present. Each subject owns one baseline and rolls its probes back, so
-  # they run explicitly after a reset to that baseline rather than as one mixed
-  # directory whose tests could silently exercise the wrong schema version.
   migration-transition:
     runs-on: ubuntu-latest
     timeout-minutes: 35
