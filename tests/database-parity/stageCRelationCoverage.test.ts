@@ -220,6 +220,15 @@ const SEASON_RELATIONS = [
   // scheduler ask "have I processed this?" truthfully after a retry or a
   // crash, and reprocess a matchweek whose lock moved.
   'table:season_matchweek_submission_outcomes',
+  // Contract 90. Where a settled season Main Predictor total is kept. At
+  // MATCHWEEK granularity rather than per fixture, because
+  // `src/domain/season/standings.ts` consumes settled matchweek totals and
+  // every derived view it offers computes from those; a per-fixture breakdown
+  // is re-derivable from predictions and results and would be a second copy of
+  // the same truth. Separate from the tournament's `score_events` on ADR 0011
+  // and 0015 authority, and because that table's category/match/team
+  // dimensions do not exist for a season matchweek.
+  'table:season_matchweek_scores',
 ]
 
 const reviewedRelations = [
@@ -233,11 +242,12 @@ const reviewedRelations = [
 
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
   it('keeps parser positive controls at the contract-81 schema boundary', () => {
-    // Raised 47 → 49 by contract 81's two season card-status relations. This
-    // count is a positive control on the migration parser: if it silently
-    // stopped recognising `create table`, every disposition below would be
-    // vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(49)
+    // Raised 47 → 49 by contract 81's two season card-status relations, and
+    // 49 → 50 by contract 90's season score store. This count is a positive
+    // control on the migration parser: if it silently stopped recognising
+    // `create table`, every disposition below would be vacuously satisfied by
+    // an empty set.
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(50)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

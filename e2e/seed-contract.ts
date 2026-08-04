@@ -196,8 +196,15 @@
  * and `bonus_competitions.completed_at`, but only for competitions it accepts,
  * so the tournament's rows are untouched. It creates no table, policy or grant
  * and alters no column.
+ *
+ * Contract 90 adds `season_matchweek_scores`, created empty, RLS enabled and
+ * revoked from every browser role, plus one shape trigger that fires only on
+ * that new table. It creates no policy or grant on an existing object and
+ * alters no existing relation. A seeded Euro user cannot reach it, and the
+ * trigger refuses a tournament competition or a non-matchweek round outright,
+ * so the Euro tournament could not hold a row in it even if something tried.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 89
+export const SEED_REVIEWED_AT_CONTRACT = 90
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
