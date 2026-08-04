@@ -42,7 +42,7 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **87:** The mandatory used-list reset made storable (club uniqueness scoped to a used cycle).
 - **88:** Lock-time auto-assignment for a missed season LMS pick, behind a narrowed server-only lock exception.
 
-Contracts 64–88 are applied to development. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–88 are applied to development; contract 89 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
