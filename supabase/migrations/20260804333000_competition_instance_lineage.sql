@@ -29,9 +29,11 @@
 -- This contract RECONCILES the two rather than splitting the table, which is
 -- the second option ADR 0025 allows and the far smaller change. The row stays
 -- the instance; the availability pair stops being unique across all of history
--- and becomes unique across the *live* instance only. Availability then reads
--- as "this season offers this game, and here is the instance currently
--- running", which is what every existing caller already assumes it means.
+-- and becomes unique across the *live public* instance only. Private
+-- competitions are independent series that may coexist with that public row.
+-- Availability then reads as "this season offers this public game, and here is
+-- the instance currently running", which is what existing catalogue callers
+-- already assume it means.
 --
 -- Splitting availability into its own relation was considered and rejected for
 -- now: it would move `availability_status` and `published` out from under 27
@@ -45,8 +47,8 @@
 --
 -- Roughly twenty functions do a single-row lookup on
 -- `(tournament_id, game_key)` and expect exactly one row. Relaxing the
--- constraint makes that assumption false — but only once a second instance
--- exists, and **nothing in this contract can create one**. The restart
+-- constraint makes that assumption false — but only once a second public
+-- instance exists, and **no application path in this contract creates one**. The restart
 -- lifecycle is contract 105, and contract 104 teaches those readers to resolve
 -- the live instance first.
 --
@@ -70,6 +72,7 @@ begin;
 -- ---------------------------------------------------------------------------
 
 alter table public.bonus_competitions
+  add column if not exists visibility_kind text not null default 'public',
   add column if not exists series_id uuid,
   add column if not exists series_sequence integer not null default 1,
   add column if not exists predecessor_competition_id uuid;
@@ -81,6 +84,13 @@ update public.bonus_competitions set series_id = id where series_id is null;
 
 alter table public.bonus_competitions
   alter column series_id set not null;
+
+alter table public.bonus_competitions
+  add constraint bonus_competitions_visibility_kind_allowed
+  check (visibility_kind in ('public', 'private'));
+
+comment on column public.bonus_competitions.visibility_kind is
+  'Public is the one canonical season game instance; private instances belong to independent invitation-scoped series.';
 
 -- A first instance's series is itself — for EVERY row, not only the backfilled
 -- ones. `series_id` cannot carry a column default that references `id`, and a
@@ -134,14 +144,18 @@ alter table public.bonus_competitions
 -- exist on the referenced columns.
 alter table public.bonus_competitions
   add constraint bonus_competitions_series_member_key
-  unique (series_id, id);
+  unique (series_id, id, tournament_id, game_key, visibility_kind);
 
--- A predecessor must be a real competition. The composite reference also pins
--- it to the SAME series, so a chain cannot wander between series or games.
+-- A predecessor must be a real competition. The composite reference pins the
+-- chain to the same series, season, game and public/private scope.
 alter table public.bonus_competitions
   add constraint bonus_competitions_predecessor_fkey
-  foreign key (series_id, predecessor_competition_id)
-  references public.bonus_competitions (series_id, id)
+  foreign key (
+    series_id, predecessor_competition_id, tournament_id, game_key, visibility_kind
+  )
+  references public.bonus_competitions (
+    series_id, id, tournament_id, game_key, visibility_kind
+  )
   on delete restrict;
 
 create index if not exists bonus_competitions_series_idx
@@ -177,16 +191,20 @@ alter table public.bonus_competitions
 -- competition per season/series, while allowing completed predecessors and
 -- private competitions to coexist."
 --
--- Expressed generally rather than for Last Man Standing alone: at most one
--- LIVE instance per (tournament, game). A completed predecessor no longer
--- occupies the slot, which is the whole point; two live instances of one game
--- in one season remain impossible, which is what every caller relies on.
+-- Expressed generally rather than for Last Man Standing alone: one live
+-- PUBLIC instance per (tournament, game), and one live row inside each series.
+-- A completed predecessor no longer occupies either slot. Independent private
+-- series coexist without making the public catalogue ambiguous.
 alter table public.bonus_competitions
   drop constraint bonus_competitions_tournament_id_game_key_key;
 
-create unique index bonus_competitions_live_instance_key
-  on public.bonus_competitions (tournament_id, game_key)
+create unique index bonus_competitions_live_series_key
+  on public.bonus_competitions (series_id)
   where completed_at is null;
+
+create unique index bonus_competitions_live_public_game_key
+  on public.bonus_competitions (tournament_id, game_key)
+  where visibility_kind = 'public' and completed_at is null;
 
 -- ---------------------------------------------------------------------------
 -- One named resolver, so twenty callers do not each invent the same filter.
@@ -209,6 +227,7 @@ as $$
     from public.bonus_competitions competition
    where competition.tournament_id = p_tournament_id
      and competition.game_key = p_game_key
+     and competition.visibility_kind = 'public'
      and competition.completed_at is null
 $$;
 
@@ -278,7 +297,9 @@ begin
     -- the index predicate keeps the inference exact: the upsert contends with
     -- the LIVE Original Predictor instance, which is also the only correct
     -- behaviour once completed predecessors can exist.
-    on conflict (tournament_id, game_key) where completed_at is null do update
+    on conflict (tournament_id, game_key)
+      where visibility_kind = 'public' and completed_at is null
+    do update
       set registration_opens_at = case
             when excluded.registration_closes_at is null then
               public.bonus_competitions.registration_opens_at
@@ -294,6 +315,8 @@ begin
           availability_status = 'active',
           updated_at = now()
       where public.bonus_competitions.game_key = 'original_predictor'
+        and public.bonus_competitions.visibility_kind = 'public'
+        and public.bonus_competitions.completed_at is null
         and not public.bonus_competitions.published;
   end if;
 

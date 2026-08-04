@@ -58,7 +58,7 @@ const sqlFiles = execFileSync('git', ['ls-files', '*.sql'], {
  */
 const PARTIAL_INDEX_MIGRATION = '20260804333000_competition_instance_lineage.sql'
 
-const CONFLICT_TARGET = /on\s+conflict\s*\(\s*tournament_id\s*,\s*game_key\s*\)(\s*where\s+completed_at\s+is\s+null)?/gi
+const CONFLICT_TARGET = /on\s+conflict\s*\(\s*tournament_id\s*,\s*game_key\s*\)(\s*where\s+visibility_kind\s*=\s*'public'\s+and\s+completed_at\s+is\s+null)?/gi
 
 type Offender = { file: string; line: number }
 
@@ -94,7 +94,10 @@ function code(source: string): string {
     if (source[index] === "'") {
       const end = source.indexOf("'", index + 1)
       const stop = end === -1 ? source.length : end + 1
-      out += source.slice(index, stop).replace(/[^\n]/g, ' ')
+      const literal = source.slice(index, stop)
+      out += literal.toLowerCase() === "'public'"
+        ? literal
+        : literal.replace(/[^\n]/g, ' ')
       index = stop
       continue
     }
@@ -130,7 +133,7 @@ function scan(): { offenders: Offender[]; qualified: number } {
   return { offenders, qualified }
 }
 
-describe('competition upserts name the partial live-instance index', () => {
+describe('competition upserts name the partial live-public-instance index', () => {
   it('finds the writers it is meant to be checking', () => {
     // Without this the suite below passes vacuously the moment the regex, the
     // file list or the conflict style changes — and a silently inert guard is
@@ -143,7 +146,7 @@ describe('competition upserts name the partial live-instance index', () => {
     const { offenders } = scan()
     expect(
       offenders.map(({ file, line }) => `${file}:${line}`),
-      'a bare column-list conflict target cannot infer the partial live-instance index and fails at runtime with 42P10; add `where completed_at is null`',
+      'a bare or incomplete conflict target cannot infer the partial live-public-instance index and fails at runtime with 42P10; add `where visibility_kind = 'public' and completed_at is null`',
     ).toEqual([])
   })
 

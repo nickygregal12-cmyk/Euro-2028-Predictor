@@ -116,7 +116,9 @@ values (
 )
 -- Contract 103: the arbiter is now the partial live-instance index, which a
 -- bare column list cannot infer.
-on conflict (tournament_id, game_key) where completed_at is null do nothing;
+on conflict (tournament_id, game_key)
+  where visibility_kind = 'public' and completed_at is null
+do nothing;
 
 insert into public.bonus_knockout_predictions (
   user_id, match_id, home_score, away_score

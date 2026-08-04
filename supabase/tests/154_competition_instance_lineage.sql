@@ -6,24 +6,31 @@
 -- only ever run it once, and `restart_all_reentered` was unrepresentable rather
 -- than merely unimplemented.
 --
--- What is asserted here is the replacement invariant — at most one LIVE
--- instance per (tournament, game) — the lineage that makes a chain of instances
--- readable, and the equivalence that makes this safe to land before its
--- callers move.
+-- What is asserted here is the replacement invariant — one live public
+-- instance per season game, one live row per series, independent private-series
+-- coexistence — plus lineage that cannot cross season, game or visibility scope.
 
 begin;
-select plan(20);
+select plan(31);
 
 create temporary table lineage (label text primary key, id uuid not null) on commit drop;
 
 do $seed$
 declare
-  v_t uuid; v_comp uuid;
+  v_t uuid; v_comp uuid; v_other uuid; v_euro uuid;
 begin
   select id into v_t from public.tournaments where kind = 'league_season' order by name limit 1;
+  select id into v_other from public.tournaments
+   where kind = 'league_season' and id <> v_t order by name limit 1;
   select id into v_comp from public.bonus_competitions
-   where tournament_id = v_t and game_key = 'last_man_standing';
-  insert into lineage values ('season', v_t), ('first', v_comp);
+   where tournament_id = v_t and game_key = 'last_man_standing'
+     and visibility_kind = 'public' and completed_at is null;
+  select id into v_euro from public.tournaments where kind = 'tournament' order by name limit 1;
+  insert into lineage values
+    ('season', v_t), ('other_season', v_other), ('first', v_comp), ('tournament', v_euro);
+  insert into public.game_definitions (
+    game_key, display_name, requires_prediction_entry, lock_scope, buffer_minutes, allow_rejoin
+  ) values ('lineage_probe', 'Lineage probe', false, 'round', 0, false);
 end
 $seed$;
 
@@ -45,8 +52,14 @@ select is(
   'and none is completed, which is what makes the partial index below equivalent to the constraint it replaces'
 );
 
+select is(
+  (select count(*)::integer from public.bonus_competitions where visibility_kind <> 'public'),
+  0,
+  'all pre-existing availability rows backfill as public rather than becoming private by accident'
+);
+
 -- ---------------------------------------------------------------------------
--- THE INVARIANT. At most one live instance per (tournament, game).
+-- THE INVARIANT. One live public instance per game, one live row per series.
 -- ---------------------------------------------------------------------------
 
 select throws_ok(
@@ -56,7 +69,7 @@ select throws_ok(
            'last_man_standing', 'active', gen_random_uuid()$$,
   '23505',
   null,
-  'a second LIVE instance of one game in one season is still impossible — this is the assumption twenty single-row readers rely on, and it is not weakened'
+  'a second live PUBLIC instance of one game in one season is impossible'
 );
 
 select lives_ok(
@@ -82,7 +95,8 @@ select lives_ok(
 select is(
   (select count(*)::integer from public.bonus_competitions
     where tournament_id = (select id from lineage where label = 'season')
-      and game_key = 'last_man_standing'),
+      and game_key = 'last_man_standing'
+      and visibility_kind = 'public'),
   2,
   'both instances coexist — the completed predecessor is preserved, not overwritten'
 );
@@ -98,10 +112,70 @@ select throws_ok(
            3,
            (select id from public.bonus_competitions
              where tournament_id = (select id from lineage where label = 'season')
-               and game_key = 'last_man_standing' and completed_at is null)$$,
+               and game_key = 'last_man_standing'
+               and visibility_kind = 'public' and completed_at is null)$$,
   '23505',
   null,
   'a THIRD live instance is refused while the second is still running — completing is what frees the slot, not merely existing'
+);
+
+-- Private competitions are separate series. Two may run beside the public one.
+select lives_ok(
+  $$insert into public.bonus_competitions
+      (id, tournament_id, game_key, published, availability_status,
+       visibility_kind, series_id)
+    values
+      (md5('c103-private-a')::uuid,
+       (select id from lineage where label = 'season'),
+       'last_man_standing', false, 'active', 'private', md5('c103-private-a')::uuid),
+      (md5('c103-private-b')::uuid,
+       (select id from lineage where label = 'season'),
+       'last_man_standing', false, 'active', 'private', md5('c103-private-b')::uuid)$$,
+  'two independent private LMS series may coexist with the one live public instance'
+);
+
+select lives_ok(
+  $$update public.bonus_competitions
+       set completed_at = now(), completion_reason = 'no_winner_restarted'
+     where id = md5('c103-private-a')::uuid$$,
+  'a private series predecessor may complete without affecting the public slot'
+);
+
+select lives_ok(
+  $$insert into public.bonus_competitions
+      (id, tournament_id, game_key, published, availability_status,
+       visibility_kind, series_id, series_sequence, predecessor_competition_id)
+    values (
+      md5('c103-private-a-2')::uuid,
+      (select id from lineage where label = 'season'),
+      'last_man_standing', false, 'active', 'private',
+      md5('c103-private-a')::uuid, 2, md5('c103-private-a')::uuid
+    )$$,
+  'a private successor reuses its own series while another private series remains live'
+);
+
+select is(
+  (select count(*)::integer from public.bonus_competitions
+    where tournament_id = (select id from lineage where label = 'season')
+      and game_key = 'last_man_standing'
+      and visibility_kind = 'private'
+      and completed_at is null),
+  2,
+  'private competitions coexist freely across independent live series'
+);
+
+select throws_ok(
+  $$insert into public.bonus_competitions
+      (tournament_id, game_key, published, availability_status,
+       visibility_kind, series_id, series_sequence, predecessor_competition_id)
+    values (
+      (select id from lineage where label = 'season'),
+      'last_man_standing', false, 'active', 'private',
+      md5('c103-private-a')::uuid, 3, md5('c103-private-a-2')::uuid
+    )$$,
+  '23505',
+  null,
+  'one private series cannot have two live instances even though other private series may coexist'
 );
 
 -- ---------------------------------------------------------------------------
@@ -112,7 +186,7 @@ select throws_ok(
   $$insert into public.bonus_competitions
       (tournament_id, game_key, availability_status, series_id, series_sequence)
     select (select id from lineage where label = 'season'),
-           'predictor_cup_probe', 'active', gen_random_uuid(), 2$$,
+           'lineage_probe', 'active', gen_random_uuid(), 2$$,
   '23514',
   null,
   'a later instance with no predecessor is refused — a restart that came from nothing is not a restart'
@@ -123,7 +197,7 @@ select throws_ok(
       (tournament_id, game_key, availability_status, series_id, series_sequence,
        predecessor_competition_id)
     select (select id from lineage where label = 'season'),
-           'predictor_cup_probe', 'active', gen_random_uuid(), 1,
+           'lineage_probe', 'active', gen_random_uuid(), 1,
            (select id from lineage where label = 'first')$$,
   '23514',
   null,
@@ -142,10 +216,38 @@ select throws_ok(
 select throws_ok(
   $$update public.bonus_competitions set series_id = gen_random_uuid()
      where tournament_id = (select id from lineage where label = 'season')
-       and game_key = 'last_man_standing' and completed_at is null$$,
+       and game_key = 'last_man_standing'
+       and visibility_kind = 'public' and completed_at is null$$,
   '23503',
   null,
   'a successor cannot be moved into a DIFFERENT series while keeping its predecessor — the composite key pins a chain to one series rather than letting it wander'
+);
+
+select throws_ok(
+  $$update public.bonus_competitions
+       set tournament_id = (select id from lineage where label = 'other_season')
+     where id = md5('c103-private-a-2')::uuid$$,
+  '23503',
+  null,
+  'a successor cannot move to another season while retaining its predecessor'
+);
+
+select throws_ok(
+  $$update public.bonus_competitions
+       set game_key = 'lineage_probe'
+     where id = md5('c103-private-a-2')::uuid$$,
+  '23503',
+  null,
+  'a successor cannot change game while retaining its predecessor'
+);
+
+select throws_ok(
+  $$update public.bonus_competitions
+       set visibility_kind = 'public'
+     where id = md5('c103-private-a')::uuid$$,
+  '23503',
+  null,
+  'a completed predecessor cannot change public/private scope under its successor'
 );
 
 -- Inserted already COMPLETED, deliberately: a live duplicate would be refused
@@ -210,7 +312,8 @@ select is(
 select throws_ok(
   $$update public.bonus_competitions set completion_reason = 'won'
      where tournament_id = (select id from lineage where label = 'season')
-       and game_key = 'last_man_standing' and completed_at is null$$,
+       and game_key = 'last_man_standing'
+       and visibility_kind = 'public' and completed_at is null$$,
   '23514',
   null,
   'a completion reason on a competition that has not completed is refused'
@@ -225,17 +328,33 @@ select throws_ok(
 );
 
 -- ---------------------------------------------------------------------------
--- The resolver. One definition of "the live instance", before twenty callers
--- each invent their own filter in contract 103.
+-- The resolver. One definition of "the live instance", before the measured callers
+-- move onto it in contract 104.
 -- ---------------------------------------------------------------------------
+
+select lives_ok(
+  $$update public.tournaments
+       set lock_at = lock_at
+     where id = (select id from lineage where label = 'tournament')$$,
+  'the Original Predictor availability trigger still upserts after the total key becomes partial'
+);
+
+select matches(
+  pg_get_functiondef(
+    'predictor_internal.ensure_original_predictor_availability()'::regprocedure
+  ),
+  'ON CONFLICT \(tournament_id, game_key\)[[:space:]]+WHERE \(\(visibility_kind = ''public''::text\) AND \(completed_at IS NULL\)\)',
+  'the live writer names the partial public-instance conflict target explicitly'
+);
 
 select is(
   predictor_internal.live_competition_id(
     (select id from lineage where label = 'season'), 'last_man_standing'),
   (select id from public.bonus_competitions
     where tournament_id = (select id from lineage where label = 'season')
-      and game_key = 'last_man_standing' and completed_at is null),
-  'the resolver returns the live successor, not the completed predecessor'
+      and game_key = 'last_man_standing'
+      and visibility_kind = 'public' and completed_at is null),
+  'the resolver returns the live PUBLIC successor, ignoring two live private competitions'
 );
 
 select is(
