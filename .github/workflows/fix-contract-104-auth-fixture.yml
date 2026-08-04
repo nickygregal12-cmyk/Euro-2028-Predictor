@@ -1,0 +1,66 @@
+name: Fix Contract 104 auth fixture
+
+on:
+  push:
+    branches:
+      - agent/contract-104-live-competition-callers
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contract-104-live-competition-callers
+
+      - name: Add transactional auth fixture and remove helper
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/155_live_competition_callers.sql')
+          text = path.read_text()
+          marker = """create temporary table c104_probe (label text primary key, id uuid not null) on commit drop;
+          do $seed$
+          """
+          fixture = """create temporary table c104_probe (label text primary key, id uuid not null) on commit drop;
+
+          set local session_replication_role = replica;
+          insert into auth.users (
+            id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+          ) values (
+            md5('c104-user')::uuid, 'c104@example.test',
+            'authenticated', 'authenticated', '{}'::jsonb, '{}'::jsonb, now(), now()
+          );
+          set local session_replication_role = origin;
+
+          insert into public.profiles (id, display_name, welcomed_at)
+          values (md5('c104-user')::uuid, 'Contract 104 Player', now());
+
+          do $seed$
+          """
+          if text.count(marker) != 1:
+              raise SystemExit(f'expected one c104 fixture marker, found {text.count(marker)}')
+          text = text.replace(marker, fixture)
+          before = """  select id into v_user from public.profiles order by id limit 1;
+            if v_user is null then raise exception 'Contract 104 needs one seeded profile'; end if;
+          """
+          after = """  v_user := md5('c104-user')::uuid;
+          """
+          if text.count(before) != 1:
+              raise SystemExit(f'expected one profile lookup, found {text.count(before)}')
+          path.write_text(text.replace(before, after))
+          PY
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/fix-contract-104-auth-fixture.yml
+          git add supabase/tests/155_live_competition_callers.sql
+          git diff --cached --check
+          git commit -m 'Give Contract 104 an isolated auth fixture'
+          git push origin HEAD:agent/contract-104-live-competition-callers
