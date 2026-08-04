@@ -186,6 +186,19 @@ select is(
 );
 
 create temporary table c104_probe (label text primary key, id uuid not null) on commit drop;
+
+set local session_replication_role = replica;
+insert into auth.users (
+  id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values (
+  md5('c104-user')::uuid, 'c104@example.test',
+  'authenticated', 'authenticated', '{}'::jsonb, '{}'::jsonb, now(), now()
+);
+set local session_replication_role = origin;
+
+insert into public.profiles (id, display_name, welcomed_at)
+values (md5('c104-user')::uuid, 'Contract 104 Player', now());
+
 do $seed$
 declare
   v_old public.bonus_competitions%rowtype;
@@ -200,8 +213,7 @@ begin
   order by competition.id
   limit 1;
   if v_old.id is null then raise exception 'Contract 104 needs the canonical live public LMS competition'; end if;
-  select id into v_user from public.profiles order by id limit 1;
-  if v_user is null then raise exception 'Contract 104 needs one seeded profile'; end if;
+  v_user := md5('c104-user')::uuid;
   update public.bonus_competitions
   set published = true,
       availability_status = 'active',
