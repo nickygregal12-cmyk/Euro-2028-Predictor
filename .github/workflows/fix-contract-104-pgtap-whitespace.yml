@@ -25,17 +25,22 @@ jobs:
 
           path = Path('supabase/tests/155_live_competition_callers.sql')
           text = path.read_text()
-          replacements = {
-              "'live_competition_id\\\\(p_tournament_id, availability\\\\.game_key\\\\)'": "'live_competition_id\\\\([[:space:]]*p_tournament_id,[[:space:]]*availability\\\\.game_key[[:space:]]*\\\\)'",
-              "'live_competition_id\\\\(p_tournament_id, candidate\\\\.game_key\\\\)'": "'live_competition_id\\\\([[:space:]]*p_tournament_id,[[:space:]]*candidate\\\\.game_key[[:space:]]*\\\\)'",
-          }
-          for before, after in replacements.items():
+          replacements = [
+              (
+                  r"'live_competition_id\(p_tournament_id, availability\.game_key\)'",
+                  r"'live_competition_id\([[:space:]]*p_tournament_id,[[:space:]]*availability\.game_key[[:space:]]*\)'",
+                  2,
+              ),
+              (
+                  r"'live_competition_id\(p_tournament_id, candidate\.game_key\)'",
+                  r"'live_competition_id\([[:space:]]*p_tournament_id,[[:space:]]*candidate\.game_key[[:space:]]*\)'",
+                  1,
+              ),
+          ]
+          for before, after, expected in replacements:
               count = text.count(before)
-              if before.endswith('availability\\\\.game_key\\\\)\''):
-                  if count != 2:
-                      raise SystemExit(f'expected two availability patterns, found {count}')
-              elif count != 1:
-                  raise SystemExit(f'expected one candidate pattern, found {count}')
+              if count != expected:
+                  raise SystemExit(f'expected {expected} matches for {before}, found {count}')
               text = text.replace(before, after)
           path.write_text(text)
           PY
