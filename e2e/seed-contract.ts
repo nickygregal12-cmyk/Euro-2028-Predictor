@@ -300,8 +300,15 @@
  * initial roster, so a seeded Euro user sees the same empty/not-entered Cup
  * state as before. The new parent/phase triggers fire only on Cup group or
  * fixture writes, none of which global setup performs.
+ *
+ * Contract 103 adds competition-instance lineage, a bounded completion reason
+ * and live-instance uniqueness. Existing seeded competitions backfill as
+ * sequence one of a series that is themselves; none is completed, so the new
+ * partial key permits nothing the replaced total key forbade. The resolver is
+ * server-only and no successor can be created by this contract, leaving every
+ * seeded browser journey unchanged.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 102
+export const SEED_REVIEWED_AT_CONTRACT = 103
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
