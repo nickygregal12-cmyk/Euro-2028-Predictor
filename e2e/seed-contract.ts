@@ -91,8 +91,12 @@
  * no relation, trigger, policy or grant changes. A seeded Euro user's Cup reads
  * are unaffected because the tournament writes the same sizes and matchdays it
  * always did — `cupStoreDomains.test.ts` pins that.
+ *
+ * Contract 80 adds two immutable `predictor_internal` functions, revoked from
+ * every browser role, creating no relation, trigger, policy or grant and
+ * altering none. Nothing a seeded Euro user reads is gated by it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 79
+export const SEED_REVIEWED_AT_CONTRACT = 80
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

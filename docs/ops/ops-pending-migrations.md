@@ -6,7 +6,7 @@ This is the operational migration inventory. Machine-readable development hosted
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **79** | 79 canonical migrations through `20260804063000_cup_store_competition_domains.sql` | MERGED |
+| Repository `main` | **80** | 80 canonical migrations through `20260804073000_season_card_lock_resolution.sql`; contract 80 adds the matchweek card lock-resolution law, the first of two slices toward the recurring scheduler | MERGED; HOSTED NOT APPLIED |
 | Development Supabase `iouzoutneyjpugbbtdem` | **79** | Hosted migration ledger directly verified through `20260804063000_cup_store_competition_domains`; machine record matches the hosted database | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **79 declared / 79 Development** | `dev`, branch-deploy and deploy-preview point to the development Supabase project and declare `EURO28_DEPLOYED_DB_CONTRACT=79` | VERIFIED AND ALIGNED |
@@ -32,8 +32,9 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **77:** Season Cup sources.
 - **78:** Circle-method season Cup league schedule.
 - **79:** Shared Cup-store competition domains.
+- **80:** Season matchweek card lock resolution.
 
-All contracts 64–79 are applied to development. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–79 are applied to development; contract 80 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
