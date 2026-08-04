@@ -23,7 +23,7 @@
  *
  * Raised to 67 after checking what contract 67 actually changes: it moves
  * `game_definitions.lock_scope` for `main_predictor` and `last_man_standing`
- * from 'round' to 'matchweek'. That column is only ever *emitted* — passed
+ * from 'round' to 'matchweek'. That column is only ever emitted — passed
  * outward in the `lock_policy` payload of `get_competition_games` — and no SQL
  * function branches on it (the gating branches on `requires_prediction_entry`),
  * nor does any browser code read it. It therefore cannot gate an authenticated
@@ -95,8 +95,14 @@
  * Contract 80 adds two immutable `predictor_internal` functions, revoked from
  * every browser role, creating no relation, trigger, policy or grant and
  * altering none. Nothing a seeded Euro user reads is gated by it.
+ *
+ * Contract 81 adds two `predictor_internal` custody tables with RLS enabled and
+ * no browser grants, plus two service-role-only RPCs. The Edge Function checks
+ * a named caller key before provider I/O, archives raw evidence before decode,
+ * and has no authority path into official fixtures, results, locks, scores or
+ * standings. No seeded application relation, policy or browser grant changes.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 80
+export const SEED_REVIEWED_AT_CONTRACT = 81
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
