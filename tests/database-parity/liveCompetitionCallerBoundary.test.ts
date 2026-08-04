@@ -80,4 +80,11 @@ describe('contract 104 competition-instance caller boundary', () => {
       /set published = true,\s+availability_status = 'active',\s+completed_at = now\(\)/,
     )
   })
+
+  it('owns its authentication fixture inside the rolled-back pgTAP transaction', () => {
+    expect(proof).toContain("md5('c104-user')::uuid")
+    expect(proof).toContain("'c104@example.test'")
+    expect(proof).toContain('insert into public.profiles')
+    expect(proof).not.toContain('select id into v_user from public.profiles order by id limit 1')
+  })
 })
