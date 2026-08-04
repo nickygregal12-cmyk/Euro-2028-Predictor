@@ -136,8 +136,14 @@
  * no row: nothing calls these yet. The two relations the reader touches are
  * season-only and empty, and a Euro tournament season has no LMS windows to
  * read.
+ *
+ * Contract 86 adds two `predictor_internal` custody tables with RLS enabled and
+ * no browser grants, plus two service-role-only RPCs. The Edge Function checks
+ * a named caller key before provider I/O, archives raw evidence before decode,
+ * and has no authority path into official fixtures, results, locks, scores or
+ * standings. No seeded application relation, policy or browser grant changes.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 85
+export const SEED_REVIEWED_AT_CONTRACT = 86
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
