@@ -184,8 +184,20 @@
  * browser role, refuses any round that is not a season Last Man Standing round,
  * and is called by nothing yet. It creates no table, policy or grant and alters
  * no column.
+ *
+ * Contract 89 adds the season Last Man Standing settlement job: one
+ * `predictor_internal` settler, one `public` job function granted to NO role,
+ * and an hourly cron entry. A seeded Euro user cannot reach any of it — the
+ * job is revoked from every browser role and from `service_role`, and both
+ * functions refuse a competition that is not a `league_season` Last Man
+ * Standing one, which the Euro tournament's Original Predictor is not.
+ *
+ * It writes `season_lms_entrant_state`, `bonus_competition_entrants.outcome`
+ * and `bonus_competitions.completed_at`, but only for competitions it accepts,
+ * so the tournament's rows are untouched. It creates no table, policy or grant
+ * and alters no column.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 88
+export const SEED_REVIEWED_AT_CONTRACT = 89
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
