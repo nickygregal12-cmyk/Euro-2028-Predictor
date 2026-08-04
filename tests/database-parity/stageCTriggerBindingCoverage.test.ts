@@ -220,7 +220,8 @@ describe('Stage C trigger binding coverage after C1b', () => {
   it('keeps the parser positive control at the current trigger boundary', () => {
     // Raised 83 → 84 by contract 92's replay chain walk on season_fixtures,
     // then 84 → 86 by contract 102's Cup group-parent and fixture-phase guards.
-    expect(effectiveBindings).toHaveLength(86)
+    // 86 → 87 at contract 103, which adds the lineage default trigger.
+    expect(effectiveBindings).toHaveLength(87)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(

@@ -49,7 +49,12 @@ select
   definition.draw_required
 from target_tournament tournament
 cross join definitions definition
-on conflict (tournament_id, game_key) do update
+-- Contract 103: the arbiter is the PARTIAL live-instance index, which a bare
+-- column list cannot infer. Publishing the catalogue targets the competition
+-- currently running, never a completed predecessor.
+on conflict (tournament_id, game_key)
+  where visibility_kind = 'public' and completed_at is null
+do update
 set published = true,
     updated_at = now();
 
@@ -100,6 +105,8 @@ join public.tournaments tournament
 join public.bonus_competitions competition
   on competition.tournament_id = tournament.id
  and competition.game_key = definition.game_key
+ and competition.visibility_kind = 'public'
+ and competition.completed_at is null
 on conflict (competition_id, sequence) do update
 set label = excluded.label,
     opens_at = excluded.opens_at,
@@ -123,6 +130,8 @@ with mapped_matches as (
   join public.bonus_competitions competition
     on competition.tournament_id = tournament.id
    and competition.game_key in ('last_man_standing', 'predictor_cup')
+   and competition.visibility_kind = 'public'
+   and competition.completed_at is null
   join public.matches match
     on match.tournament_id = tournament.id
   where tournament.name = 'UEFA Euro 2028'
@@ -147,6 +156,8 @@ select
 from public.tournaments tournament
 join public.bonus_competitions competition
   on competition.tournament_id = tournament.id
+ and competition.visibility_kind = 'public'
+ and competition.completed_at is null
 where tournament.name = 'UEFA Euro 2028'
   and competition.game_key in ('ko_predictor', 'last_man_standing', 'predictor_cup')
   and not exists (
@@ -168,6 +179,8 @@ begin
     join public.tournaments tournament on tournament.id = competition.tournament_id
     where tournament.name = 'UEFA Euro 2028'
       and competition.game_key in ('ko_predictor', 'last_man_standing', 'predictor_cup')
+      and competition.visibility_kind = 'public'
+      and competition.completed_at is null
       and competition.published;
 
   select count(*)
@@ -178,7 +191,9 @@ begin
     join public.tournaments tournament
       on tournament.id = competition.tournament_id
     where tournament.name = 'UEFA Euro 2028'
-      and competition.game_key in ('last_man_standing', 'predictor_cup');
+      and competition.game_key in ('last_man_standing', 'predictor_cup')
+      and competition.visibility_kind = 'public'
+      and competition.completed_at is null;
 
   select count(*)
     into v_fixtures
@@ -190,7 +205,9 @@ begin
     join public.tournaments tournament
       on tournament.id = competition.tournament_id
     where tournament.name = 'UEFA Euro 2028'
-      and competition.game_key in ('last_man_standing', 'predictor_cup');
+      and competition.game_key in ('last_man_standing', 'predictor_cup')
+      and competition.visibility_kind = 'public'
+      and competition.completed_at is null;
 
   if v_competitions <> 3 or v_windows <> 14 or v_fixtures <> 102 then
     raise exception 'Unexpected Bonus Games catalogue shape: competitions %, windows %, fixtures %',

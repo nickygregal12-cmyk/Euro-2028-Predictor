@@ -300,8 +300,20 @@
  * initial roster, so a seeded Euro user sees the same empty/not-entered Cup
  * state as before. The new parent/phase triggers fire only on Cup group or
  * fixture writes, none of which global setup performs.
+ *
+ * Contract 103 makes a competition instance repeatable: `bonus_competitions`
+ * gains explicit public/private scope, series lineage and a bounded completion
+ * reason. Every existing row backfills as public and as sequence 1 of its own
+ * series. The old total key becomes one live PUBLIC row per season game plus one
+ * live row per series, so independent private competitions may coexist without
+ * making the public catalogue ambiguous. No competition is completed in either
+ * hosted project and no lifecycle driver exists yet, so every seeded read still
+ * resolves the same public row. The tournament trigger and catalogue writer now
+ * name the exact public/live conflict predicate; bare recreation starts a new
+ * series through an internal-only trigger helper. Contract 104 migrates the
+ * measured readers, and contract 105 supplies the restart driver.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 102
+export const SEED_REVIEWED_AT_CONTRACT = 103
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
