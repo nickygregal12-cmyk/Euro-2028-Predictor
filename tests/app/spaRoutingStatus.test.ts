@@ -31,9 +31,15 @@ const redirects: Redirect[] = [
 const okRoutes = redirects.filter((rule) => rule.status === 200).map((rule) => rule.from)
 
 describe('SPA routing answers a real status per path', () => {
+  it('versions the Netlify build command and publish directory', () => {
+    expect(netlifyConfig).toMatch(
+      /\[build\]\s*\n\s*command = "npm run build"\s*\n\s*publish = "dist"/,
+    )
+    expect(netlifyConfig.match(/^\s*command\s*=/gm)).toHaveLength(1)
+    expect(netlifyConfig.match(/^\s*publish\s*=/gm)).toHaveLength(1)
+  })
+
   it('finds the application routes and the redirect rules', () => {
-    // Guards the parsing itself: a silently empty match set would make every
-    // assertion below vacuously pass.
     expect(appRoutes.length).toBeGreaterThan(20)
     expect(redirects.length).toBe(appRoutes.length + 1)
   })
@@ -43,8 +49,6 @@ describe('SPA routing answers a real status per path', () => {
   })
 
   it('answers 404 for unknown paths instead of a soft 200', () => {
-    // SEO-001: the catch-all used to be status 200, so every nonexistent URL
-    // presented as a real indexable page.
     const catchAll = redirects.filter((rule) => rule.from === '/*')
 
     expect(catchAll).toHaveLength(1)
@@ -59,15 +63,10 @@ describe('SPA routing answers a real status per path', () => {
   })
 
   it('never forces a rule over a real file', () => {
-    // Netlify serves an existing file before applying a redirect unless the
-    // rule sets `force`. Forcing here would shadow /assets/*, /release.json,
-    // /robots.txt and /sitemap.xml.
     expect(netlifyConfig).not.toMatch(/^\s*force\s*=/m)
   })
 
   it('orders static routes ahead of parameterised siblings', () => {
-    // Netlify applies the first matching rule, so `/league/:id` placed before
-    // `/league/overall` would make the static route unreachable.
     const positionOf = (path: string) => okRoutes.indexOf(path)
 
     for (const parameterised of okRoutes.filter((path) => path.includes(':'))) {
@@ -90,15 +89,11 @@ describe('SPA routing answers a real status per path', () => {
   })
 
   it('makes production smoke assert the hosted 404 rather than tolerate it', () => {
-    // The committed config and the hosted behaviour are separate claims. The
-    // smoke script previously fetched the not-found probe expecting 200 like
-    // every other route, so a regression to a soft 200 would have passed.
     const smoke = readRepositoryFile('scripts/production-smoke.mjs')
 
     expect(smoke).toContain("fetchText(notFoundProbe, 404)")
     expect(smoke).toMatch(/expectedStatus = 200/)
     expect(smoke).toMatch(/response\.status !== expectedStatus/)
-    // The probe must not sit in the list that expects 200.
     const okRouteList = smoke.slice(
       smoke.indexOf('const routes = ['),
       smoke.indexOf(']', smoke.indexOf('const routes = [')),
@@ -112,8 +107,6 @@ describe('SPA routing answers a real status per path', () => {
     expect(devRoutes.length).toBeGreaterThan(0)
     for (const devRoute of devRoutes) {
       expect(okRoutes).not.toContain(devRoute)
-      // Each one must genuinely be DEV-gated, or excluding it would 404 a
-      // route that ships.
       expect(appSource).toMatch(
         new RegExp(`import\\.meta\\.env\\.DEV[^\\n]*\\n\\s*<Route path="${devRoute}"`),
       )
