@@ -9,6 +9,7 @@ on:
       - 'fixtures/predicted-group-order.json'
       - 'scripts/database-rollout/**'
       - 'scripts/ops/**'
+      # Cover every shared domain sibling, including competition and future season modules.
       - 'src/domain/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
@@ -92,12 +93,21 @@ jobs:
         env:
           DATABASE_PARITY: '1'
           SUPABASE_DB_CONTAINER: supabase_db_euro-2028-predictor-local
+        # The whole directory, never a named file. The `paths:` filter above
+        # already triggers on `tests/database-parity/**`, so naming one file made
+        # the job appear to cover parity while running a single subject — a new
+        # parity test was triggered by, but not executed in, this job.
         run: npx vitest run tests/database-parity/
 
       - name: Stop and delete disposable local data
         if: always()
         run: supabase stop --no-backup
 
+  # Zero-to-current rebuilds reach every migration with empty tables. Transition
+  # subjects instead arrive at the exact prior contract with representative rows
+  # already present. Each subject owns one baseline and rolls its probes back, so
+  # they run explicitly after a reset to that baseline rather than as one mixed
+  # directory whose tests could silently exercise the wrong schema version.
   migration-transition:
     runs-on: ubuntu-latest
     timeout-minutes: 35
