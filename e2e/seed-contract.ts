@@ -82,8 +82,17 @@
  * Contract 78 adds one immutable `predictor_internal` function, revoked from
  * every browser role, creating no relation, trigger, policy or grant and
  * altering none. Nothing a seeded user reads is gated by it.
+ *
+ * Contract 79 WIDENS two CHECK constraints on `bonus_cup_groups` and
+ * `bonus_cup_fixtures` rather than adding anything. This is the first contract
+ * in the run that relaxes an existing constraint, so it was checked more
+ * carefully than the additive ones: the widening is strictly permissive, so
+ * every row a seeded user can already reach still satisfies the new domain, and
+ * no relation, trigger, policy or grant changes. A seeded Euro user's Cup reads
+ * are unaffected because the tournament writes the same sizes and matchdays it
+ * always did — `cupStoreDomains.test.ts` pins that.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 78
+export const SEED_REVIEWED_AT_CONTRACT = 79
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
