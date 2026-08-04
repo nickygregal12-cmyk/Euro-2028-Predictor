@@ -1435,7 +1435,7 @@ Current inconsistency
 Required action
 Post-lock reveal
 Accepted design makes frozen Euro entries visible to any signed-in player, but existing rival/profile RPCs still contain shared-league gates.
-Add an append-only backend change that removes co-membership as the general post-lock profile/entry gate while retaining the server-side lock gate. Keep league-context match-pick reads league scoped.
+Remove shared-league membership as the general gate for frozen Euro Original Predictor entry and profile reveal after lock. This does not alter season-leaderboard entrant scoping under contract 95 or league-context match-pick reads. Add it as an append-only backend change; the authoritative server-side tournament lock gate remains mandatory. (Scope confirmed by ADR 0025 on 4 August 2026: this item and contract 95 address different competitions and different reads, and neither privacy boundary moves. Contract 95's season leaderboard requires an `entries` row in that competition season and never required co-membership, so it was never an instance of this drift.)
 Reminder timing
 Older design copy refers to 48/24-hour emails; ADR 0020 later sets the rehearsal rule at one hour before lock.
 Use the one-hour in-app/email rule and update stale documentation/tests before delivery.
