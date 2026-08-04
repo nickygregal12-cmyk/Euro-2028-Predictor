@@ -4,11 +4,11 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 4 August 2026
 
-The repository is at **contract 90**; development is at 89 until the next rollout.
+The repository is at **contract 91**; development is at 89 until the next rollout.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **90** | Contract 90 adds the season Main Predictor score store through `20260804183000_season_matchweek_scores.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
+| Repository `main` | **91** | Contracts 90 and 91 add the season Main Predictor score store and the matchweek settlement parity, through `20260804193000_matchweek_settlement_parity.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
 | Development Supabase `iouzoutneyjpugbbtdem` | **89** | Applied 4 August 2026 by fast-lane run 30911943023 on `c087f1d`, whose postflight step reported `Development is at contract 89.`; evidence artifact `development-fast-lane-evidence` (ID 8893497631) retained. Corroborated read-only against the database: `cron.job` holds `season-settle-due-lms-rounds` on `0 * * * *` as `username = postgres`, which is the session identity contract 88's lock exception requires | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **86 hosted declaration** | `dev`, branch-deploy and deploy-preview point to Development, declare `EURO28_DEPLOYED_DB_CONTRACT=86`, and require Netlify team login | VERIFIED AND ALIGNED WITH DEVELOPMENT |
@@ -16,7 +16,7 @@ The repository is at **contract 90**; development is at 89 until the next rollou
 
 The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
 
-## Contracts 64–90
+## Contracts 64–91
 
 - **64:** Cup winner deletion semantics.
 - **65:** Stage C1 competition-season foundation.
@@ -45,8 +45,9 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **88:** Lock-time auto-assignment for a missed season LMS pick, behind a narrowed server-only lock exception.
 - **89:** The season LMS settlement job — replay from results, the entrant-state projection, and an hourly cron tick.
 - **90:** The season Main Predictor score store, at matchweek granularity.
+- **91:** Matchweek settlement parity — what each fixture on a card means for scoring, and whether the matchweek may settle.
 
-Contracts 64–89 are applied to development; contract 90 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–89 are applied to development; contracts 90 and 91 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
