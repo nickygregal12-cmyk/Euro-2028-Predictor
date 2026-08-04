@@ -234,8 +234,18 @@
  * none. It reads `entries` and `season_matchweek_scores` and returns NULL for
  * anything that is not a league season, so a seeded Euro user's entry cannot
  * appear in its output — and no browser role can call it in any case.
+ *
+ * Contract 95 is the first of this run to GRANT anything to a browser role:
+ * `public.get_season_leaderboard` is executable by `authenticated`. It was
+ * checked on that basis rather than waved through as additive. The function
+ * refuses a caller with no `auth.uid()`, refuses any tournament id that is not
+ * a league season, and refuses any caller holding no entry in the season asked
+ * about — so a seeded Euro user calling it with the Euro tournament id gets
+ * `Season is required`, and calling it with a seeded league season id gets
+ * `This season is not yours to read`. It creates no relation, trigger or
+ * policy, alters none, and adds no grant on any existing object.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 94
+export const SEED_REVIEWED_AT_CONTRACT = 95
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

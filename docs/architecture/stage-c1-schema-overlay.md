@@ -172,6 +172,7 @@ The following retained signatures may remain physically named `p_tournament_id`,
 - `get_player_profile`
 - `get_prediction_consensus`
 - `get_rival_entry`
+- `get_season_leaderboard`
 - `recompute_tournament_scores`
 
 C1 also reviews the implicit tournament joins in:
