@@ -209,6 +209,17 @@ const SEASON_RELATIONS = [
   // production-hosted tournament table. Contract 68 answered the same question
   // the same way when season fixtures became `season_fixtures`.
   'table:season_cup_window_fixtures',
+  // Contract 81. Where a matchweek card stands, and what the lock recorded.
+  // `status` permits only 'provisional' and 'confirmed': a player who never
+  // engaged has NO ROW, because rolling entry means absence, and storing an
+  // explicit 'no_submission' would make every registered player a candidate
+  // for auto-completion at the next lock.
+  'table:season_matchweek_cards',
+  // Append-only, keyed by lock instant, mirroring
+  // `entry_automatic_submission_outcomes` — which is what lets the recurring
+  // scheduler ask "have I processed this?" truthfully after a retry or a
+  // crash, and reprocess a matchweek whose lock moved.
+  'table:season_matchweek_submission_outcomes',
 ]
 
 const reviewedRelations = [
@@ -221,8 +232,12 @@ const reviewedRelations = [
 ].sort()
 
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
-  it('keeps parser positive controls at the contract-77 schema boundary', () => {
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(47)
+  it('keeps parser positive controls at the contract-81 schema boundary', () => {
+    // Raised 47 → 49 by contract 81's two season card-status relations. This
+    // count is a positive control on the migration parser: if it silently
+    // stopped recognising `create table`, every disposition below would be
+    // vacuously satisfied by an empty set.
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(49)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

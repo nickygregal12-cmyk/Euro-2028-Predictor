@@ -48,14 +48,26 @@ function normalise(signature: string): string {
 /**
  * Signatures inserted into one of the pgTAP expectation tables. The table is
  * populated by several `insert … values` statements, so all of them are read.
+ *
+ * Comments are stripped BEFORE the literals are scanned, and that is not
+ * tidiness. This scanner pairs quotes positionally, so a single apostrophe
+ * anywhere in a `--` comment inside the values list re-pairs every quote after
+ * it: the parse shifts by one and real signatures fall out of the set. It
+ * happened — a comment reading "so a browser session must never be able to
+ * trigger it" on behalf of "a player's" entry silently dropped
+ * `set_operating_limits` from the service-role allow-list, and the failure
+ * pointed at a function nobody had touched.
+ *
+ * A comment must never be able to change what a parser thinks the data is.
  */
 function pgTapExpectations(table: string): Set<string> {
   const found = new Set<string>()
+  const source = privilegeTest.replace(/--[^\n]*/g, '')
   const pattern = new RegExp(
     `insert into ${table} \\(signature\\) values([\\s\\S]*?);`,
     'g',
   )
-  for (const statement of privilegeTest.matchAll(pattern)) {
+  for (const statement of source.matchAll(pattern)) {
     for (const literal of statement[1].matchAll(/'([^']+)'/g)) {
       found.add(normalise(literal[1]))
     }

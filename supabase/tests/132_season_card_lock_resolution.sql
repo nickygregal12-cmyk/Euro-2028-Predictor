@@ -1,17 +1,18 @@
--- Contract 80: what happens to a matchweek card when its round locks.
+-- Contract 80's resolver, as redefined by contract 82.
 --
 -- The parity test reads the SQL and executes the TypeScript. This runs the SQL,
 -- against the two rules that decide whether the season's scores are real.
 --
--- ROLLING ENTRY. A player who never engaged the matchweek is unbanked. If this
--- ever returns a submission, every registered player is silently entered into
--- every matchweek with default predictions, and the resulting totals look
--- entirely plausible — which is what makes it worth running rather than only
--- reading.
+-- THE CARD IS NOT PRE-FILLED. A fixture the player left blank submits no
+-- prediction and scores nothing. ADR 0012 originally required a default on
+-- every fixture and auto-completion at lock; contract 82 withdrew both, because
+-- a player must not benefit from not filling something in. If a blank ever
+-- produces a prediction here, every ignored fixture becomes a free entry, and
+-- the resulting totals look entirely plausible — which is what makes this worth
+-- running rather than only reading.
 --
--- PROVENANCE ON A CONFIRMED CARD. A prefilled default the player confirmed is
--- theirs. Confirmed cards report `autoCompleted: false` even when every value
--- came from a default, because confirming is the act of adopting the prefills.
+-- ROLLING ENTRY. A player who never engaged the matchweek is unbanked. Absence
+-- and an empty card are different facts and must stay different.
 
 begin;
 select plan(12);
@@ -50,10 +51,8 @@ select is(
   predictor_internal.resolve_season_card_at_lock(
     '[{"fixtureId":"f1","defaultPrediction":{"home":1,"away":1},"playerPrediction":null}]'::jsonb,
     'provisional'),
-  '{"kind": "submitted", "confirmed": false, "autoCompleted": true,
-    "predictions": [{"fixtureId": "f1", "prediction": {"home": 1, "away": 1},
-                     "provenance": "default"}]}'::jsonb,
-  'a provisional gap is filled from the default and flagged as auto-completed'
+  '{"kind": "submitted", "confirmed": false, "predictions": []}'::jsonb,
+  'a blank fixture submits nothing — and the stale defaultPrediction is ignored, not honoured'
 );
 
 select is(
@@ -61,34 +60,31 @@ select is(
     '[{"fixtureId":"f1","defaultPrediction":{"home":1,"away":1},
        "playerPrediction":{"home":3,"away":0}}]'::jsonb,
     'provisional'),
-  '{"kind": "submitted", "confirmed": false, "autoCompleted": false,
-    "predictions": [{"fixtureId": "f1", "prediction": {"home": 3, "away": 0},
-                     "provenance": "player"}]}'::jsonb,
-  'the player value wins where they gave one'
+  '{"kind": "submitted", "confirmed": false,
+    "predictions": [{"fixtureId": "f1", "prediction": {"home": 3, "away": 0}}]}'::jsonb,
+  'the value the player gave is the value submitted'
 );
 
 select is(
-  (predictor_internal.resolve_season_card_at_lock(
-    '[{"fixtureId":"f1","defaultPrediction":{"home":1,"away":1},"playerPrediction":null},
-      {"fixtureId":"f2","defaultPrediction":{"home":0,"away":0},
-       "playerPrediction":{"home":2,"away":2}}]'::jsonb,
-    'provisional'))->>'autoCompleted',
-  'true',
-  'one filled gap on a mixed card is enough to be auto-completed'
+  predictor_internal.resolve_season_card_at_lock(
+    '[{"fixtureId":"f1","playerPrediction":null},
+      {"fixtureId":"f2","playerPrediction":{"home":2,"away":2}}]'::jsonb,
+    'provisional'),
+  '{"kind": "submitted", "confirmed": false,
+    "predictions": [{"fixtureId": "f2", "prediction": {"home": 2, "away": 2}}]}'::jsonb,
+  'a partial card submits its filled fixtures and nothing for the blank'
 );
 
 -- ---------------------------------------------------------------------------
--- A confirmed card owns its prefills.
+-- Confirmation records intent and changes no scoring.
 -- ---------------------------------------------------------------------------
 
 select is(
   predictor_internal.resolve_season_card_at_lock(
     '[{"fixtureId":"f1","defaultPrediction":{"home":1,"away":1},"playerPrediction":null}]'::jsonb,
     'confirmed'),
-  '{"kind": "submitted", "confirmed": true, "autoCompleted": false,
-    "predictions": [{"fixtureId": "f1", "prediction": {"home": 1, "away": 1},
-                     "provenance": "player"}]}'::jsonb,
-  'a confirmed prefill is the player''s, and the card is not auto-completed'
+  '{"kind": "submitted", "confirmed": true, "predictions": []}'::jsonb,
+  'confirming a card does not adopt anything — there are no prefills to adopt'
 );
 
 -- ---------------------------------------------------------------------------
@@ -103,7 +99,7 @@ select is(
 
 select is(
   predictor_internal.resolve_season_card_at_lock(
-    '[{"fixtureId":"f1","defaultPrediction":{},"playerPrediction":null}]'::jsonb,
+    '[{"fixtureId":"f1","playerPrediction":{}}]'::jsonb,
     'provisional'),
   '{"kind": "refused", "reason": "invalid_input"}'::jsonb,
   'an empty object is not a scoreline — the three-valued-logic case'
@@ -129,11 +125,11 @@ select is(
 
 select is(
   predictor_internal.resolve_season_card_at_lock(
-    '[{"fixtureId":"f1","defaultPrediction":{"home":-1,"away":1},"playerPrediction":null},
-      {"fixtureId":"f1","defaultPrediction":{"home":1,"away":1},"playerPrediction":null}]'::jsonb,
+    '[{"fixtureId":"f1","playerPrediction":{"home":-1,"away":1}},
+      {"fixtureId":"f1","playerPrediction":null}]'::jsonb,
     'provisional'),
   '{"kind": "refused", "reason": "invalid_input"}'::jsonb,
-  'each fixture is checked fully before the next, so the bad default wins over the duplicate'
+  'each fixture is checked fully before the next, so the bad value wins over the duplicate'
 );
 
 select * from finish();

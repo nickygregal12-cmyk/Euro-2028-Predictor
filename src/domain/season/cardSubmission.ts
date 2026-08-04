@@ -1,18 +1,26 @@
 /**
  * Matchweek card submission law for the domestic Main Predictor.
  *
- * Authority: ADR 0012 (friction mitigations, in scope for the build rather
- * than deferred) and the rolling-entry rule. The card is pre-filled with a
- * default for every fixture and is visibly provisional until confirmed;
- * partial submissions auto-complete at lock using those defaults, consistent
- * with the deterministic auto-assignment rule in ADR 0013. A player who
- * never engaged the matchweek is unbanked — rolling entry means absence, and
- * the lock never invents a submission for them.
+ * Authority: ADR 0012 as amended 4 August 2026, and the rolling-entry rule.
  *
- * What the default IS for a given fixture is a policy the caller supplies —
- * this module owns what happens to it, not its value. Pure domain: no
- * storage, network or ambient clock; the lock instant is the caller's event,
- * not a clock read here.
+ * THE CARD IS NOT PRE-FILLED, and nothing is completed on the player's behalf.
+ * A fixture the player did not fill in is submitted as no prediction and scores
+ * nothing. ADR 0012 originally required a "sensible default" on every fixture
+ * and auto-completion at lock; both were withdrawn, because a player must not
+ * benefit from not filling something in. A default that can score is a free
+ * entry into every fixture a player ignored, and the benefit is largest for the
+ * least engaged player — which inverts the competition.
+ *
+ * So there is no default parameter here, and no policy for a caller to supply.
+ * `provenance` and `autoCompleted` are gone with it: every submitted prediction
+ * is the player's, because nothing else can produce one.
+ *
+ * ROLLING ENTRY IS UNCHANGED. A player who never engaged the matchweek is
+ * unbanked — the lock does not invent a submission for them. Absence and an
+ * empty card remain different facts.
+ *
+ * Pure domain: no storage, network or ambient clock; the lock instant is the
+ * caller's event, not a clock read here.
  */
 
 import type { ScorelinePrediction } from './scoring'
@@ -20,9 +28,7 @@ import type { ScorelinePrediction } from './scoring'
 /** One fixture on the matchweek card as presented to the player. */
 export type CardFixture = {
   fixtureId: string
-  /** The pre-filled default. Every fixture on the card must carry one. */
-  defaultPrediction: ScorelinePrediction
-  /** The player's own saved prediction, when they set one. */
+  /** The player's own saved prediction, or null where they left it blank. */
   playerPrediction: ScorelinePrediction | null
 }
 
@@ -30,28 +36,31 @@ export type CardFixture = {
  * Where the card stands when the round locks:
  * - `no_submission` — the player never engaged this matchweek;
  * - `provisional` — saved but never confirmed, possibly partial;
- * - `confirmed` — the player confirmed the card, prefills included.
+ * - `confirmed` — the player marked the card finished.
+ *
+ * `provisional` and `confirmed` submit exactly the same thing: what the player
+ * entered. With no prefills there is nothing for confirmation to adopt, so the
+ * status is a record of intent rather than a scoring input. It is kept because
+ * "I meant to leave that blank" and "I had not got to it yet" are different
+ * things to have said, and the ledger should be able to tell them apart.
  */
 export type CardStatus = 'no_submission' | 'provisional' | 'confirmed'
 
 export type SubmittedPrediction = {
   fixtureId: string
   prediction: ScorelinePrediction
-  /**
-   * `player` for a prediction the player set — or accepted, by confirming a
-   * card that still showed prefills. `default` only for a gap the lock
-   * itself filled on an unconfirmed card.
-   */
-  provenance: 'player' | 'default'
 }
 
 export type CardLockResolution =
   | { kind: 'unbanked' }
   | {
       kind: 'submitted'
+      /**
+       * Only the fixtures the player actually filled in. A blank fixture is
+       * absent from this list rather than present with a manufactured value —
+       * scoring reads what is here and awards nothing for what is not.
+       */
       predictions: readonly SubmittedPrediction[]
-      /** True when the lock filled at least one gap on an unconfirmed card. */
-      autoCompleted: boolean
       confirmed: boolean
     }
   | { kind: 'refused'; reason: 'invalid_input' | 'duplicate_fixture' }
@@ -67,11 +76,15 @@ function isValidScoreline(value: ScorelinePrediction | null): value is Scoreline
 }
 
 /**
- * Resolve a card at its round's lock instant, or refuse. A card the player
- * engaged always submits complete; a card they never touched never submits
- * at all. Contradictory data — a missing default, a malformed prediction, a
- * duplicated fixture, an engaged card with no fixtures — refuses outright
- * rather than submitting a guess.
+ * Resolve a card at its round's lock instant, or refuse.
+ *
+ * A card the player never touched is unbanked. A card they engaged submits
+ * exactly what they entered, however little that is. Contradictory data — a
+ * malformed prediction, a blank or duplicated fixture id, a matchweek with no
+ * fixtures at all — refuses outright rather than submitting a guess.
+ *
+ * Note what is NOT a refusal: a card with blank fixtures. That is an ordinary,
+ * expected card, and every blank simply scores nothing.
  */
 export function resolveCardAtLock(
   fixtures: readonly CardFixture[],
@@ -79,6 +92,8 @@ export function resolveCardAtLock(
 ): CardLockResolution {
   if (status === 'no_submission') return { kind: 'unbanked' }
 
+  // A matchweek with no fixtures is contradictory data, not an empty card: the
+  // player is being locked out of a round that has nothing in it.
   if (fixtures.length === 0) return { kind: 'refused', reason: 'invalid_input' }
 
   const seen = new Set<string>()
@@ -87,26 +102,20 @@ export function resolveCardAtLock(
     if (seen.has(fixture.fixtureId)) return { kind: 'refused', reason: 'duplicate_fixture' }
     seen.add(fixture.fixtureId)
 
-    if (!isValidScoreline(fixture.defaultPrediction)) {
-      return { kind: 'refused', reason: 'invalid_input' }
-    }
+    // Only a value the player actually gave is checked. A blank is a blank.
     if (fixture.playerPrediction !== null && !isValidScoreline(fixture.playerPrediction)) {
       return { kind: 'refused', reason: 'invalid_input' }
     }
   }
 
-  const confirmed = status === 'confirmed'
-  const predictions = fixtures.map((fixture) => ({
-    fixtureId: fixture.fixtureId,
-    prediction: fixture.playerPrediction ?? fixture.defaultPrediction,
-    provenance:
-      confirmed || fixture.playerPrediction !== null ? ('player' as const) : ('default' as const),
-  }))
-
   return {
     kind: 'submitted',
-    predictions,
-    autoCompleted: predictions.some(({ provenance }) => provenance === 'default'),
-    confirmed,
+    predictions: fixtures
+      .filter(
+        (fixture): fixture is CardFixture & { playerPrediction: ScorelinePrediction } =>
+          fixture.playerPrediction !== null,
+      )
+      .map((fixture) => ({ fixtureId: fixture.fixtureId, prediction: fixture.playerPrediction })),
+    confirmed: status === 'confirmed',
   }
 }

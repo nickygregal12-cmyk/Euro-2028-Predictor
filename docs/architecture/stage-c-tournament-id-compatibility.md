@@ -68,6 +68,8 @@ Every current column below is `uuid NOT NULL`.
 | `season_matchweek_jokers.tournament_id` | contract 69; the Joker's season scope, so a Joker cannot be played on another season's matchweek |
 | `season_predictions.tournament_id` | contract 69; the prediction's season scope, keying it to both the entry and the fixture of the same season |
 | `season_fixtures.tournament_id` | contract 68; the league-season fixture carries the same season scope as every other competition-season object, and its composite keys make a cross-season club or matchweek impossible |
+| `season_matchweek_cards.tournament_id` | contract 81; the card's season scope, so its composite keys cannot pair an entry from one season with a matchweek from another |
+| `season_matchweek_submission_outcomes.tournament_id` | contract 81; the same scope on the append-only record of what the lock did, so an outcome cannot be attributed across seasons |
 | `score_events.tournament_id` | explicit entry/match/team season proof |
 | `teams.tournament_id` | retain; teams remain season participants in Stage C |
 

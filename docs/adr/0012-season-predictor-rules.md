@@ -2,7 +2,7 @@
 
 - **Status:** Accepted direction — unimplemented
 - **Date:** 29 July 2026
-- **Amended by:** [ADR 0020](0020-football-prediction-hub-product-model.md) — the Joker count becomes ten split five and five, and a fixture postponed after its round locks is reassigned to its new round with an editable prediction rather than staying frozen. The matchweek Joker unit, the one-per-matchweek maximum, the scoring values, rolling entry and the cumulative-total ranking law below are **unchanged and still authoritative**.
+- **Amended by:** this record's own 4 August 2026 amendment below, which withdraws the pre-filled card and lock-time auto-completion; and [ADR 0020](0020-football-prediction-hub-product-model.md) — the Joker count becomes ten split five and five, and a fixture postponed after its round locks is reassigned to its new round with an editable prediction rather than staying frozen. The matchweek Joker unit, the one-per-matchweek maximum, the scoring values, rolling entry and the cumulative-total ranking law below are **unchanged and still authoritative**.
 
 ## Context
 
@@ -42,10 +42,23 @@ One joker per matchweek maximum; declared before the round locks. **Jokers never
 
 **Required friction mitigations, in scope for the build rather than deferred:**
 
-- pre-fill every fixture with a sensible default so submitting is one tap for a player content with it, with the entry visibly provisional until confirmed;
 - tap-to-increment rather than keyboards, whole card on one screen, no per-match navigation;
-- "same as last week" as a single action;
-- partial submissions auto-complete at lock using the default, consistent with the auto-assignment rule in ADR 0013.
+- "same as last week" as a single action.
+
+### Amendment, 4 August 2026 — the card is not pre-filled
+
+The two bullets removed above required every fixture to be pre-filled with "a sensible default", and partial submissions to auto-complete at lock using it. **Both are withdrawn by owner decision.** The card starts empty, and a fixture the player did not fill in is submitted as no prediction and scores nothing.
+
+The reason is the one this record failed to weigh: **a player must not benefit from not filling something in.** A default that can score is a free entry into every fixture a player ignored. Whatever value it takes, some of those fixtures come in — a 1-1 default collects real points across a season of draws — and those points are indistinguishable in the standings from points somebody earned by deciding. Worse, the benefit is largest for the least engaged player, because the more fixtures you leave blank the more of the season you are scoring on a rule rather than on a judgement. That inverts the competition.
+
+Nothing replaces it, and that is the point: **there is no default to choose.** The friction this was meant to mitigate is real, and the remaining mitigations — tap-to-increment, one screen, "same as last week" — address it without paying for it in unearned points. "Same as last week" in particular does the work the pre-fill was reaching for, and does it as an act the player takes.
+
+Consequences that follow mechanically:
+
+- `provenance` and `autoCompleted` cease to exist. Every submitted prediction is the player's, because nothing else can produce one;
+- `confirmed` and `provisional` submit exactly the same thing — what the player entered. Confirmation stops being the act of adopting prefills and becomes a statement that the player is finished. The distinction is retained as a record of intent, not as a scoring input;
+- **rolling entry is unchanged.** A player who never engaged a matchweek is still unbanked. Absence and an empty card are different facts and stay different;
+- ADR 0013's deterministic auto-assignment for Last Man Standing is a **separate rule and is untouched.** LMS assigns a team so an entrant is not eliminated for silence in a survival game with no partial credit; the Predictor awards points per fixture, where silence can simply score zero without ending anybody's participation. The two were cited together in the withdrawn bullet, which is what made a survival mitigation look like a scoring precedent.
 
 ## Consequences
 

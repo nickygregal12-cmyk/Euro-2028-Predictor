@@ -6,27 +6,42 @@ import { resolveCardAtLock } from '../../src/domain/season/cardSubmission'
 /**
  * What happens to a matchweek card when its round locks, in both languages.
  *
- * THE RULE THIS PROTECTS is rolling entry. A player who never engaged a
- * matchweek is UNBANKED — the lock does not invent a submission for them. Get
- * this backwards and every registered player is silently entered into every
- * matchweek with default predictions, manufacturing scores nobody made. The
- * totals would look entirely plausible.
+ * THE FIRST RULE is that the card is NOT PRE-FILLED. A fixture the player left
+ * blank is submitted as no prediction and scores nothing. ADR 0012 originally
+ * required a "sensible default" on every fixture and auto-completion at lock;
+ * contract 82 withdrew both, because a player must not benefit from not filling
+ * something in. A default that can score is a free entry into every fixture a
+ * player ignored, and the benefit is largest for the least engaged player.
  *
- * THE SECOND RULE is provenance on a confirmed card. A prefilled default the
- * player confirmed is theirs, not an auto-completion, because confirming is the
- * act of adopting the prefills. Confirmed cards therefore always report
- * `autoCompleted: false` even when every value came from a default.
+ * THE SECOND RULE is rolling entry. A player who never engaged a matchweek is
+ * UNBANKED — the lock does not invent a submission for them. Get this backwards
+ * and every registered player is silently entered into every matchweek,
+ * manufacturing scores nobody made. Absence and an empty card stay different
+ * facts.
+ *
+ * A CARD WITH BLANKS IS NOT A REFUSAL. It is the ordinary case. Refusing it
+ * would make silence an error somebody has to resolve, when the rule is simply
+ * that silence scores nothing.
  *
  * The TypeScript authority is executed here; the SQL is read, and proven
  * against a real database in `132_season_card_lock_resolution.sql`.
  *
- * Behaviour equivalence was established by a differential sweep over 216
- * generated cases — every combination of four statuses against seven scoreline
- * shapes for both the default and the player prediction, plus multi-fixture,
- * duplicate, blank-id and refusal-ordering cards. It caught a real defect,
- * recorded in the migration: `is_valid_scoreline` returned NULL rather than
- * false for an object with no `home` key, so `if not <null>` did not fire and
- * an empty object was accepted as a scoreline while TypeScript refused it.
+ * Behaviour equivalence was re-established after the rule change by a
+ * differential sweep over 738 generated cases — three statuses against nine
+ * scoreline shapes in each of two fixture slots, across three fixture-id
+ * shapes, plus empty, single-fixture and duplicate cards. Zero mismatches, and
+ * the sweep is not vacuous: restoring the withdrawn prefill in SQL alone
+ * produced 16 mismatches immediately.
+ *
+ * (The first run of that sweep reported 86 mismatches that were not real. The
+ * comparator sorted only top-level keys, so every nested {away,home} against
+ * {home,away} counted as a difference.)
+ *
+ * The earlier 216-case sweep, before the rule change, caught a real defect
+ * recorded in contract 80's migration: `is_valid_scoreline` returned NULL
+ * rather than false for an object with no `home` key, so `if not <null>` did
+ * not fire and an empty object was accepted as a scoreline. That helper is
+ * unchanged and still decides whether a value the player gave is a scoreline.
  */
 
 const migrationsDirectory = resolve(process.cwd(), 'supabase/migrations')
@@ -50,21 +65,37 @@ function withoutComments(body: string): string {
   return body.replace(/--[^\n]*/g, '')
 }
 
-const resolution = withoutComments(
-  /resolve_season_card_at_lock\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? '',
-)
+
 const scoreline = withoutComments(
   /is_valid_scoreline\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? '',
 )
 
-const card = (playerPrediction: unknown) => [
-  { fixtureId: 'f1', defaultPrediction: { home: 1, away: 1 }, playerPrediction },
-]
+/**
+ * Contract 82 redefines the resolver, so the LAST definition in migration order
+ * is the live one. Matching the first would pin the withdrawn rule and pass
+ * while the database did something else entirely.
+ */
+const resolutionBodies = [
+  ...allSql.matchAll(
+    // Anchored on the DEFINITION. A looser pattern also matched contract 82's
+    // apply-time DO block, which merely calls the function — and `at(-1)` then
+    // asserted against the proof instead of the implementation.
+    /create or replace function predictor_internal\.resolve_season_card_at_lock\([\s\S]*?\$\$([\s\S]*?)\$\$;/g,
+  ),
+].map((match) => withoutComments(match[1]))
+
+const card = (playerPrediction: unknown) => [{ fixtureId: 'f1', playerPrediction }]
+
+const resolution = resolutionBodies.at(-1) ?? ''
 
 describe('the SQL counterparts exist', () => {
-  it('finds both bodies', () => {
+  it('finds both bodies, and more than one resolver', () => {
     expect(resolution, 'resolve_season_card_at_lock body not found').not.toBe('')
     expect(scoreline, 'is_valid_scoreline body not found').not.toBe('')
+    // Contract 80 defined it and contract 82 redefined it. If this ever drops
+    // back to one, the redefinition has been lost and every assertion below is
+    // silently checking the withdrawn rule.
+    expect(resolutionBodies.length).toBeGreaterThan(1)
   })
 })
 
@@ -88,44 +119,76 @@ describe('a card nobody touched is never submitted', () => {
   })
 })
 
-describe('an engaged card completes from defaults', () => {
-  it('fills the gaps and says it did', () => {
+describe('a blank fixture scores nothing, and is not filled in', () => {
+  it('submits no prediction for it at all', () => {
+    // Not a zero, not a default — absent. Scoring awards points for what is in
+    // this list, so a fixture that is not here cannot earn anything.
     expect(resolveCardAtLock(card(null) as never, 'provisional')).toEqual({
       kind: 'submitted',
-      predictions: [
-        { fixtureId: 'f1', prediction: { home: 1, away: 1 }, provenance: 'default' },
-      ],
-      autoCompleted: true,
+      predictions: [],
       confirmed: false,
     })
   })
 
-  it('keeps the player value where they gave one', () => {
-    expect(resolveCardAtLock(card({ home: 3, away: 0 }) as never, 'provisional')).toMatchObject({
-      predictions: [
-        { fixtureId: 'f1', prediction: { home: 3, away: 0 }, provenance: 'player' },
-      ],
-      autoCompleted: false,
+  it('keeps the player value where they gave one, and only there', () => {
+    expect(
+      resolveCardAtLock(
+        [
+          { fixtureId: 'f1', playerPrediction: { home: 3, away: 0 } },
+          { fixtureId: 'f2', playerPrediction: null },
+        ] as never,
+        'provisional',
+      ),
+    ).toEqual({
+      kind: 'submitted',
+      predictions: [{ fixtureId: 'f1', prediction: { home: 3, away: 0 } }],
+      confirmed: false,
     })
+  })
+
+  it('is not a refusal — silence is expected, not an error', () => {
+    expect(resolveCardAtLock(card(null) as never, 'provisional').kind).toBe('submitted')
+    expect(resolveCardAtLock(card(null) as never, 'confirmed').kind).toBe('submitted')
+  })
+
+  it('skips the blank in SQL rather than substituting for it', () => {
+    expect(resolution).toMatch(/jsonb_typeof\(v_player\) = 'null' then\s*continue;/)
+  })
+
+  it('never reads defaultPrediction anywhere', () => {
+    // The whole withdrawal in one assertion. Comments are stripped, so this
+    // cannot be satisfied by the migration explaining that it does not.
+    expect(resolution).not.toMatch(/defaultPrediction/)
+  })
+
+  it('emits neither provenance nor autoCompleted', () => {
+    // Both could now only take one value, and a field with one possible value
+    // is a field somebody will eventually believe has two.
+    expect(resolution).not.toMatch(/provenance/)
+    expect(resolution).not.toMatch(/autoCompleted/)
+    expect(resolveCardAtLock(card({ home: 1, away: 1 }) as never, 'provisional')).not.toHaveProperty(
+      'autoCompleted',
+    )
   })
 })
 
-describe('a confirmed card owns its prefills', () => {
-  it('reports player provenance and no auto-completion, even from defaults', () => {
-    // The player signed the card off. Telling them the system filled it in
-    // would be false, and would flag a card they had personally confirmed.
-    expect(resolveCardAtLock(card(null) as never, 'confirmed')).toEqual({
-      kind: 'submitted',
-      predictions: [
-        { fixtureId: 'f1', prediction: { home: 1, away: 1 }, provenance: 'player' },
-      ],
-      autoCompleted: false,
-      confirmed: true,
-    })
+describe('confirmation records intent, and changes no scoring', () => {
+  it('submits exactly the same predictions either way', () => {
+    const fixtures = [
+      { fixtureId: 'f1', playerPrediction: { home: 2, away: 1 } },
+      { fixtureId: 'f2', playerPrediction: null },
+    ]
+    const provisional = resolveCardAtLock(fixtures as never, 'provisional')
+    const confirmed = resolveCardAtLock(fixtures as never, 'confirmed')
+
+    expect(confirmed).toEqual({ ...provisional, confirmed: true })
   })
 
-  it('makes confirmation part of the provenance test in SQL', () => {
-    expect(resolution).toMatch(/v_from_default := not v_confirmed/)
+  it('still reports which it was', () => {
+    expect(resolveCardAtLock(card({ home: 1, away: 1 }) as never, 'confirmed')).toMatchObject({
+      confirmed: true,
+    })
+    expect(resolution).toMatch(/'confirmed', p_status = 'confirmed'/)
   })
 })
 
@@ -134,45 +197,33 @@ describe('contradictory cards refuse rather than guess', () => {
     ['an engaged card with no fixtures', [], 'provisional', 'invalid_input'],
     [
       'a blank fixture id',
-      [{ fixtureId: '  ', defaultPrediction: { home: 1, away: 1 }, playerPrediction: null }],
+      [{ fixtureId: '  ', playerPrediction: null }],
       'provisional',
       'invalid_input',
     ],
     [
-      'a missing default',
-      [{ fixtureId: 'f1', defaultPrediction: null, playerPrediction: null }],
+      'a player value that is not a scoreline',
+      [{ fixtureId: 'f1', playerPrediction: {} }],
       'provisional',
       'invalid_input',
     ],
     [
-      'a default that is not a scoreline',
-      [{ fixtureId: 'f1', defaultPrediction: {}, playerPrediction: null }],
-      'provisional',
-      'invalid_input',
-    ],
-    [
-      'a negative default',
-      [{ fixtureId: 'f1', defaultPrediction: { home: -1, away: 0 }, playerPrediction: null }],
+      'a negative player value',
+      [{ fixtureId: 'f1', playerPrediction: { home: -1, away: 0 } }],
       'provisional',
       'invalid_input',
     ],
     [
       'a fractional player prediction',
-      [
-        {
-          fixtureId: 'f1',
-          defaultPrediction: { home: 1, away: 1 },
-          playerPrediction: { home: 2.5, away: 1 },
-        },
-      ],
+      [{ fixtureId: 'f1', playerPrediction: { home: 2.5, away: 1 } }],
       'provisional',
       'invalid_input',
     ],
     [
       'a duplicated fixture',
       [
-        { fixtureId: 'f1', defaultPrediction: { home: 1, away: 1 }, playerPrediction: null },
-        { fixtureId: 'f1', defaultPrediction: { home: 1, away: 1 }, playerPrediction: null },
+        { fixtureId: 'f1', playerPrediction: null },
+        { fixtureId: 'f1', playerPrediction: null },
       ],
       'provisional',
       'duplicate_fixture',
@@ -185,14 +236,14 @@ describe('contradictory cards refuse rather than guess', () => {
   })
 
   it('checks each fixture fully before the next, so the first fault wins', () => {
-    // A malformed default on fixture one and a duplicate on fixture two must
+    // A malformed value on fixture one and a duplicate on fixture two must
     // report invalid_input. Checking all ids first would report the duplicate
     // and point at the wrong fixture.
     expect(
       resolveCardAtLock(
         [
-          { fixtureId: 'f1', defaultPrediction: { home: -1, away: 1 }, playerPrediction: null },
-          { fixtureId: 'f1', defaultPrediction: { home: 1, away: 1 }, playerPrediction: null },
+          { fixtureId: 'f1', playerPrediction: { home: -1, away: 1 } },
+          { fixtureId: 'f1', playerPrediction: { home: 1, away: 1 } },
         ] as never,
         'provisional',
       ),
@@ -207,9 +258,9 @@ describe('contradictory cards refuse rather than guess', () => {
 
 describe('the scoreline test is two-valued', () => {
   it('coalesces, because a missing key makes the comparison NULL not false', () => {
-    // The defect the differential sweep caught: `jsonb_typeof({}->'home')` is
-    // NULL, so the conjunction was NULL and `if not <null>` never fired.
-    // Without this the empty object is accepted as a scoreline.
+    // The defect the earlier sweep caught: `jsonb_typeof({}->\'home\')` is NULL,
+    // so the conjunction was NULL and `if not <null>` never fired. Without this
+    // the empty object is accepted as a scoreline.
     expect(scoreline).toMatch(/select coalesce\(/)
     expect(scoreline).toMatch(/,\s*\n?\s*false\)/)
   })
@@ -236,7 +287,7 @@ describe('the resolution stays server-side and pure', () => {
 
   it('refuses an unrecognised status rather than treating it as engaged', () => {
     // A deliberate hardening: `CardStatus` is a union in TypeScript, so this is
-    // unreachable there, but SQL has no such guarantee.
+    // unreachable there and the differential sweep cannot cover it.
     expect(resolution).toMatch(/p_status not in \('no_submission', 'provisional', 'confirmed'\)/)
   })
 })

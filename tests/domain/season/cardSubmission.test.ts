@@ -7,16 +7,22 @@ import {
 } from '../../../src/domain/season/cardSubmission'
 
 /**
- * ADR 0012 friction mitigations and rolling entry: the card pre-fills with a
- * default per fixture and stays provisional until confirmed; partial
- * submissions auto-complete at lock from those defaults; a matchweek the
- * player never engaged is unbanked, never auto-entered.
+ * ADR 0012 as amended 4 August 2026, and rolling entry.
+ *
+ * THE CARD IS NOT PRE-FILLED. A fixture the player left blank is submitted as
+ * no prediction and scores nothing. The ADR originally required a default on
+ * every fixture and auto-completion at lock; both were withdrawn, because a
+ * player must not benefit from not filling something in — a default that can
+ * score is a free entry into every fixture a player ignored, and the benefit
+ * grows the less the player engages.
+ *
+ * A matchweek the player never engaged at all is unbanked, never auto-entered.
+ * Absence and an empty card stay different facts.
  */
 
 function fixture(overrides: Partial<CardFixture> = {}): CardFixture {
   return {
     fixtureId: 'mw7-ARS-CHE',
-    defaultPrediction: { home: 1, away: 1 },
     playerPrediction: null,
     ...overrides,
   }
@@ -30,93 +36,85 @@ describe('rolling entry — an untouched matchweek is unbanked', () => {
   })
 })
 
-describe('confirmed cards', () => {
-  it('submits the player predictions as the player own choices', () => {
-    const result = resolveCardAtLock(
-      [
-        fixture({ playerPrediction: { home: 2, away: 0 } }),
-        fixture({ fixtureId: 'mw7-LIV-MCI', playerPrediction: { home: 0, away: 3 } }),
-      ],
-      'confirmed',
-    )
-    expect(result).toEqual({
+describe('a blank fixture earns nothing, and is not filled in', () => {
+  it('submits no prediction for it', () => {
+    // The submission is empty, not a card of zeroes. Scoring awards points for
+    // what is in this list, so a fixture absent from it cannot earn anything.
+    expect(resolveCardAtLock([fixture()], 'provisional')).toEqual({
       kind: 'submitted',
-      predictions: [
-        { fixtureId: 'mw7-ARS-CHE', prediction: { home: 2, away: 0 }, provenance: 'player' },
-        { fixtureId: 'mw7-LIV-MCI', prediction: { home: 0, away: 3 }, provenance: 'player' },
-      ],
-      autoCompleted: false,
-      confirmed: true,
-    })
-  })
-
-  it('treats confirmed prefills as accepted by the player — the one-tap submit', () => {
-    const result = resolveCardAtLock([fixture()], 'confirmed')
-    expect(result).toEqual({
-      kind: 'submitted',
-      predictions: [
-        { fixtureId: 'mw7-ARS-CHE', prediction: { home: 1, away: 1 }, provenance: 'player' },
-      ],
-      autoCompleted: false,
-      confirmed: true,
-    })
-  })
-})
-
-describe('provisional cards auto-complete at lock', () => {
-  it('fills every gap from the default and records which lock filled', () => {
-    const result = resolveCardAtLock(
-      [
-        fixture({ playerPrediction: { home: 2, away: 1 } }),
-        fixture({ fixtureId: 'mw7-LIV-MCI' }),
-      ],
-      'provisional',
-    )
-    expect(result).toEqual({
-      kind: 'submitted',
-      predictions: [
-        { fixtureId: 'mw7-ARS-CHE', prediction: { home: 2, away: 1 }, provenance: 'player' },
-        { fixtureId: 'mw7-LIV-MCI', prediction: { home: 1, away: 1 }, provenance: 'default' },
-      ],
-      autoCompleted: true,
+      predictions: [],
       confirmed: false,
     })
   })
 
-  it('submits a fully player-filled provisional card without auto-completion', () => {
-    const result = resolveCardAtLock(
-      [fixture({ playerPrediction: { home: 2, away: 1 } })],
-      'provisional',
-    )
-    expect(result.kind === 'submitted' && result.autoCompleted).toBe(false)
-    expect(result.kind === 'submitted' && result.confirmed).toBe(false)
+  it('submits the filled fixtures of a partial card, and only those', () => {
+    expect(
+      resolveCardAtLock(
+        [
+          fixture({ playerPrediction: { home: 2, away: 0 } }),
+          fixture({ fixtureId: 'mw7-LIV-MCI' }),
+          fixture({ fixtureId: 'mw7-TOT-EVE', playerPrediction: { home: 1, away: 1 } }),
+        ],
+        'provisional',
+      ),
+    ).toEqual({
+      kind: 'submitted',
+      predictions: [
+        { fixtureId: 'mw7-ARS-CHE', prediction: { home: 2, away: 0 } },
+        { fixtureId: 'mw7-TOT-EVE', prediction: { home: 1, away: 1 } },
+      ],
+      confirmed: false,
+    })
+  })
+
+  it('is not a refusal — silence is the expected case, not an error', () => {
+    // Refusing would make a blank something somebody has to resolve. The rule
+    // is simply that a blank scores nothing.
+    for (const status of ['provisional', 'confirmed'] as const) {
+      expect(resolveCardAtLock([fixture()], status).kind).toBe('submitted')
+    }
   })
 })
 
-describe('contradictory data refuses outright', () => {
-  it('refuses an engaged card with no fixtures', () => {
-    expect(resolveCardAtLock([], 'provisional')).toEqual({
-      kind: 'refused',
-      reason: 'invalid_input',
-    })
-    expect(resolveCardAtLock([], 'confirmed')).toEqual({
-      kind: 'refused',
-      reason: 'invalid_input',
+describe('confirmation records intent, and changes no scoring', () => {
+  const fixtures = [
+    fixture({ playerPrediction: { home: 2, away: 0 } }),
+    fixture({ fixtureId: 'mw7-LIV-MCI' }),
+  ]
+
+  it('submits exactly the same predictions either way', () => {
+    // With nothing pre-filled there is nothing for confirmation to adopt, so
+    // the two statuses differ only in what they record about the player.
+    expect(resolveCardAtLock(fixtures, 'confirmed')).toEqual({
+      ...resolveCardAtLock(fixtures, 'provisional'),
+      confirmed: true,
     })
   })
 
-  it('refuses a missing or malformed default — every fixture must carry one', () => {
-    expect(
-      resolveCardAtLock([fixture({ defaultPrediction: { home: -1, away: 0 } })], 'provisional'),
-    ).toEqual({ kind: 'refused', reason: 'invalid_input' })
-    expect(
-      resolveCardAtLock([fixture({ defaultPrediction: { home: 0.5, away: 0 } })], 'confirmed'),
-    ).toEqual({ kind: 'refused', reason: 'invalid_input' })
+  it('still reports which it was', () => {
+    expect(resolveCardAtLock(fixtures, 'confirmed')).toMatchObject({ confirmed: true })
+    expect(resolveCardAtLock(fixtures, 'provisional')).toMatchObject({ confirmed: false })
+  })
+})
+
+describe('contradictory cards refuse rather than guess', () => {
+  it('refuses an engaged card with no fixtures at all', () => {
+    // Not the same as a blank card: this is a matchweek with nothing in it,
+    // which is contradictory data rather than a player choosing to skip.
+    for (const status of ['provisional', 'confirmed'] as const) {
+      expect(resolveCardAtLock([], status)).toEqual({
+        kind: 'refused',
+        reason: 'invalid_input',
+      })
+    }
   })
 
   it('refuses a malformed player prediction rather than replacing it', () => {
     expect(
       resolveCardAtLock([fixture({ playerPrediction: { home: 1, away: -2 } })], 'provisional'),
+    ).toEqual({ kind: 'refused', reason: 'invalid_input' })
+    expect(
+      resolveCardAtLock([fixture({ playerPrediction: { home: 0.5, away: 0 } })], 'confirmed'),
     ).toEqual({ kind: 'refused', reason: 'invalid_input' })
   })
 
@@ -146,9 +144,13 @@ describe('authority separation', () => {
     expect(source).not.toMatch(/Date\.now|new Date\(|Intl\./)
   })
 
-  it('awards no points and hard-codes no default scoreline value', () => {
-    // The default's value is caller policy; this module owns only what
-    // happens to it at lock.
+  it('awards no points', () => {
     expect(source).not.toMatch(/scoreFixture|scoreMatchweek|SEASON_PREDICTOR_POINTS/)
+  })
+
+  it('has no concept of a default prediction left to hard-code', () => {
+    // The strongest form of the withdrawal: not "the default is caller policy"
+    // but "there is no default". If the word returns, so has the rule.
+    expect(source.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, '')).not.toMatch(/[Dd]efaultPrediction/)
   })
 })

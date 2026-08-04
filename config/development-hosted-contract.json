@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 79,
-  "latestMigrationVersion": "20260804063000",
-  "latestMigrationName": "cup_store_competition_domains",
-  "verifiedAt": "2026-08-04T08:50:00+02:00",
+  "requiredMigrationCount": 80,
+  "latestMigrationVersion": "20260804073000",
+  "latestMigrationName": "season_card_lock_resolution",
+  "verifiedAt": "2026-08-04T07:56:55Z",
   "evidence": {
-    "source": "Supabase migration ledger",
-    "automationSession": "interactive-2026-08-04-0850",
-    "repositoryHeadBeforeChange": "3a6430439996d57fd59baa59a26a87116e55da50"
+    "source": "Development fast-lane rollout run 30889736356, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 80.",
+    "automationSession": "github-actions-run-30889736356",
+    "repositoryHeadBeforeChange": "3e82ccab2188b96df5043ab72e9782bb4bf63bda"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
