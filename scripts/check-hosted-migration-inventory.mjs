@@ -4,6 +4,7 @@ const repository = JSON.parse(fs.readFileSync('config/deployment-contract.json',
 const hosted = JSON.parse(fs.readFileSync('config/development-hosted-contract.json', 'utf8'))
 const inventory = fs.readFileSync('docs/ops/ops-pending-migrations.md', 'utf8')
 
+/** @param {string} message */
 const fail = (message) => {
   console.error(message)
   process.exitCode = 1
