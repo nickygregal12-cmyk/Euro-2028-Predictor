@@ -4,7 +4,7 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 4 August 2026
 
-The repository is at **contract 88**.
+The repository is at **contract 89**.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
@@ -49,8 +49,8 @@ Contracts 64–88 are applied to development; contract 89 is merged and not yet 
 ## Pending hosted work
 
 1. Re-read `main`, the development machine record and open migration PRs before every hosted change; never infer current state from an older report.
-2. Apply contracts 87 and 88 to development only through the guarded rollout workflow and update the development machine record from fresh postflight evidence.
-3. Update the Netlify `dev`, branch-deploy and deploy-preview declarations to 88 only after that verified development rollout.
+2. Apply contract 89 to development only through the guarded rollout workflow and update the development machine record from fresh postflight evidence. Contracts 87 and 88 were applied on 4 August 2026 by fast-lane run 30906915108.
+3. Update the Netlify `dev`, branch-deploy and deploy-preview declarations to 88 now that the development rollout is verified, and to 89 only after contract 89's own rollout.
 4. Keep production Supabase and the production Netlify declaration at 63 until a separately scoped, explicitly approved milestone release.
 5. Keep non-production Netlify deploys protected by team login and use the repository's protected-preview verification gate.
 6. Do not use the historic `euro28-predictor-dev` Netlify project.
