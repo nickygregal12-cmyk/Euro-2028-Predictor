@@ -282,8 +282,18 @@
  * it can neither contend on the lock nor observe it; the only visible difference
  * is that two concurrent result writes for one tournament now serialise, which
  * the seed never performs.
+ *
+ * Contract 101 removes shared-league membership as the general gate for Euro
+ * post-lock entry and profile reveal. It redefines three read RPCs and adds no
+ * relation, column, policy, grant or trigger. Two of them (`get_rival_entry`,
+ * `get_h2h_rank_history`) already refused every caller before lock, so only
+ * their post-lock gate moves. `get_player_profile` GAINS a lock condition as it
+ * loses the league one, so pre-lock access is unchanged — a seeded user sees
+ * exactly what it saw before lock, and after lock sees more. Authentication is
+ * still required everywhere; anonymous access is not opened. Seeded browser
+ * journeys read these through the same RPCs and are unaffected before lock.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 100
+export const SEED_REVIEWED_AT_CONTRACT = 101
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
