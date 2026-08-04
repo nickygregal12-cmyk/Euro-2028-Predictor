@@ -311,7 +311,7 @@
  * resolves the same public row. The tournament trigger and catalogue writer now
  * name the exact public/live conflict predicate; bare recreation starts a new
  * series through an internal-only trigger helper. Contract 104 now moves the
- * ten measured tournament+game callers onto the single live-public resolver;
+ * ten measured tournament+game callers onto explicit instance resolvers: live-only for operational paths and live-then-latest-terminal for read surfaces;
  * with no successor driver yet, every seeded response remains byte-for-byte on
  * the same row. Contract 105 supplies the restart driver.
  */

@@ -1,11 +1,44 @@
--- Contract 104: every tournament+game caller resolves the live public instance.
+-- Contract 104: every tournament+game caller resolves an explicit public instance.
 --
--- Contract 103 made completed predecessors and private series representable,
--- but deliberately created no successor. This contract moves the measured ten
--- callers before Contract 105 creates the first restart. Direct-ID callers stay
--- direct: a stored competition_id must continue to mean that exact historical run.
+-- Operational callers require the live public row. Read surfaces prefer that live
+-- row but retain the latest terminal result when no successor exists, so final
+-- standings and honours do not disappear. Direct-ID history remains direct.
 
 begin;
+
+-- Read surfaces need the current public run, not only a running one.
+-- Prefer the live row; after a terminal finish with no successor, retain the
+-- latest completed result so final standings, honours and entrant history do
+-- not disappear. Once Contract 105 creates a successor, the live row wins.
+create or replace function predictor_internal.current_public_competition_id(
+  p_tournament_id uuid,
+  p_game_key text
+)
+returns uuid
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce(
+    predictor_internal.live_competition_id(p_tournament_id, p_game_key),
+    (
+      select competition.id
+      from public.bonus_competitions competition
+      where competition.tournament_id = p_tournament_id
+        and competition.game_key = p_game_key
+        and competition.visibility_kind = 'public'
+        and competition.completed_at is not null
+      order by competition.completed_at desc,
+               competition.series_sequence desc,
+               competition.id desc
+      limit 1
+    )
+  )
+$$;
+
+revoke all on function predictor_internal.current_public_competition_id(uuid, text)
+  from public, anon, authenticated, service_role;
 
 -- predictor_internal.enforce_season_matchweek_lock
 create or replace function predictor_internal.enforce_season_matchweek_lock()
@@ -576,7 +609,7 @@ begin
           select *
           from public.bonus_competitions candidate
           where candidate.tournament_id = p_tournament_id
-            and candidate.id = predictor_internal.live_competition_id(
+            and candidate.id = predictor_internal.current_public_competition_id(
               p_tournament_id, candidate.game_key
             )
             and candidate.published
@@ -656,7 +689,7 @@ begin
         on membership.game_competition_id = availability.id
        and membership.user_id = v_uid
       where availability.tournament_id = p_tournament_id
-        and availability.id = predictor_internal.live_competition_id(
+        and availability.id = predictor_internal.current_public_competition_id(
           p_tournament_id, availability.game_key
         )
     ), '[]'::jsonb)
@@ -696,7 +729,7 @@ begin
     from public.bonus_competitions competition
     where competition.tournament_id = p_tournament_id
       and competition.game_key = 'ko_predictor'
-      and competition.id = predictor_internal.live_competition_id(
+      and competition.id = predictor_internal.current_public_competition_id(
         p_tournament_id, 'ko_predictor'
       )
       and competition.published;
@@ -822,7 +855,7 @@ begin
     from public.bonus_competitions competition
     where competition.tournament_id = p_tournament_id
       and competition.game_key = 'predictor_cup'
-      and competition.id = predictor_internal.live_competition_id(
+      and competition.id = predictor_internal.current_public_competition_id(
         p_tournament_id, 'predictor_cup'
       )
       and competition.published;
@@ -835,7 +868,8 @@ begin
   select member.group_id into v_group_id
     from public.bonus_cup_members member
     where member.competition_id = v_competition.id
-      and member.user_id = v_uid;
+      and member.user_id = v_uid
+      and member.phase_kind = 'initial';
 
   v_is_entrant := exists (
     select 1 from public.bonus_competition_entrants entrant
@@ -878,6 +912,7 @@ begin
       from public.bonus_cup_members member
       where member.competition_id = v_competition.id
         and member.user_id = v_uid
+        and member.phase_kind = 'initial'
     ) end,
     'my_group', case when v_group_id is null then null else (
       select jsonb_build_object(
@@ -1246,7 +1281,7 @@ begin
     from public.bonus_competitions competition
     where competition.tournament_id = p_tournament_id
       and competition.game_key = 'last_man_standing'
-      and competition.id = predictor_internal.live_competition_id(
+      and competition.id = predictor_internal.current_public_competition_id(
         p_tournament_id, 'last_man_standing'
       )
       and competition.published;
