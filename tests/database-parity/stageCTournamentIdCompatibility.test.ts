@@ -247,9 +247,10 @@ const reviewedColumns = inventoryColumns()
 
 describe('Stage C tournament_id compatibility inventory after C1b', () => {
   it('keeps the parser positive control at the contract-81 boundary', () => {
-    // Raised 38 → 40 by contract 81's two season card-status relations, and
-    // 40 → 41 by contract 90's season score store.
-    expect(effectiveColumns).toHaveLength(41)
+    // Raised 38 → 40 by contract 81's two season card-status relations,
+    // 40 → 41 by contract 90's season score store, and 41 → 42 by contract
+    // 101's `bonus_cup_split_members`.
+    expect(effectiveColumns).toHaveLength(42)
     expect(effectiveColumns).toContain('entries.tournament_id uuid not null')
     expect(effectiveColumns).toContain('game_memberships.tournament_id uuid not null')
     // Contract 68: the season fixture carries the same season scope every other

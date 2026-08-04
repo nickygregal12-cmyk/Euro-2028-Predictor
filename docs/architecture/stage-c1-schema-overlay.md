@@ -133,6 +133,7 @@ Nothing in this overlay approves a C2 target. Technical research recorded under 
 | `bonus_competition_audit` | Preserve immutable audit and nullable auth actor | Retention/actor review remains C2 evidence |
 | `bonus_cup_groups` | Composite competition/group key | None |
 | `bonus_cup_members` | Composite competition/group/entrant scope | C2 may later alter entrant identity only |
+| `bonus_cup_split_members` | Composite competition/half/entrant scope for the Cup split phase (ADR 0025, contract 101); separate from `bonus_cup_members` so initial-phase membership is never overwritten and no existing single-row read becomes ambiguous | C2 may later alter entrant identity only |
 | `bonus_cup_fixtures` | Composite competition/group/window/entrant scope; preserve winner `RESTRICT` | Any placeholder/removal model and winner ownership change is C2 |
 | `bonus_cup_penalty_numbers` | Composite competition/window/entrant scope | C2 may later alter entrant identity only |
 

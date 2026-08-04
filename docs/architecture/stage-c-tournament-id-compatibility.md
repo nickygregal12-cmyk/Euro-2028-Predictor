@@ -41,6 +41,7 @@ Every current column below is `uuid NOT NULL`.
 | `bonus_cup_fixtures.tournament_id` | explicit season/game/group/window fixture scope |
 | `bonus_cup_groups.tournament_id` | explicit season/game group scope |
 | `bonus_cup_members.tournament_id` | explicit season/game/group entrant scope; auth ownership remains C2 |
+| `bonus_cup_split_members.tournament_id` | explicit season/game/half entrant scope for the Cup split phase; auth ownership remains C2 |
 | `bonus_cup_penalty_numbers.tournament_id` | explicit season/game/window entrant scope; auth ownership remains C2 |
 | `bonus_knockout_predictions.tournament_id` | explicit season/game/match/team scope; auth ownership remains C2 |
 | `bonus_lms_selections.tournament_id` | explicit season/game/window/team scope; auth ownership remains C2 |

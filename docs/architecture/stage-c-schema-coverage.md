@@ -166,6 +166,7 @@ Every Stage C source/test/config file must stay inside this graph.
 | `bonus_competition_audit` | immutable audit with nullable actor |
 | `bonus_cup_groups` | composite competition/group key |
 | `bonus_cup_members` | composite competition/group/entrant scope |
+| `bonus_cup_split_members` | composite competition/half/entrant scope; split-phase membership only, so the initial-phase rows in `bonus_cup_members` are never overwritten (ADR 0025) |
 | `bonus_cup_fixtures` | composite competition/group/window/entrant scope; explicit profile-owned winner action |
 | `bonus_cup_penalty_numbers` | composite competition/window/entrant scope |
 

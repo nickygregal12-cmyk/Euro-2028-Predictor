@@ -282,8 +282,19 @@
  * it can neither contend on the lock nor observe it; the only visible difference
  * is that two concurrent result writes for one tournament now serialise, which
  * the seed never performs.
+ *
+ * Contract 101 makes the Cup split a persisted stage. It adds
+ * `bonus_cup_split_members` — created empty, RLS enabled, revoked from every
+ * browser and service role — plus `phase_kind` and `parent_group_id` on
+ * `bonus_cup_groups`, both defaulting so every existing row keeps its meaning
+ * without being rewritten. The fixture constraints it replaces are strictly
+ * WIDER on the split branch and unchanged on the group, playoff and knockout
+ * branches, so no row a seeded user can reach stops satisfying them. Verified by
+ * running a real `admin_draw_predictor_cup` against contract 100 and contract
+ * 101 and diffing everything it wrote: identical groups, draw numbers, pairings
+ * and matchdays, and zero split rows.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 100
+export const SEED_REVIEWED_AT_CONTRACT = 101
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

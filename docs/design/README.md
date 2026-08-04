@@ -34,7 +34,7 @@ document.
 ## Read the baseline before you act on it
 
 **The plan reviewed a snapshot of 93 migrations and 69 pgTAP suites** (§2.1).
-`main` is at **100 migrations / 75 pgTAP suites** — contracts 94–100 landed on
+`main` is at **101 migrations / 76 pgTAP suites** — contracts 94–101 landed on
 4 August 2026, after the snapshot was taken:
 
 | contract | what landed |
@@ -46,6 +46,7 @@ document.
 | 98 | the Cup RPC layer taken off the tournament link — the Penalty Number target and lock instant |
 | 99 | an `invalid` automatic-submission outcome must carry a reason |
 | 100 | REL-001 — the Bonus Games rederive joins the tournament lock |
+| 101 | the Cup split as a distinct persisted stage |
 
 Nothing in those contradicts the plan, but **Appendix D.2's reconciliation list
 predates them** and must be checked against

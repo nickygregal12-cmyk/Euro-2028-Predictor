@@ -48,7 +48,8 @@ const overlayFunctions = bulletTokens(
 
 describe('Stage C1 schema overlay coverage', () => {
   it('keeps positive controls for the original coverage inventory', () => {
-    expect(currentRelations).toHaveLength(35)
+    // 35 → 36 at contract 101, which adds `bonus_cup_split_members`.
+    expect(currentRelations).toHaveLength(36)
     expect(newRelations).toHaveLength(4)
     expect(reviewedFunctions).toHaveLength(53)
   })

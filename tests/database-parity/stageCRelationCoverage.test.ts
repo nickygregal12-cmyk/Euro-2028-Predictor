@@ -242,12 +242,12 @@ const reviewedRelations = [
 
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
   it('keeps parser positive controls at the contract-81 schema boundary', () => {
-    // Raised 47 → 49 by contract 81's two season card-status relations, and
-    // 49 → 50 by contract 90's season score store. This count is a positive
-    // control on the migration parser: if it silently stopped recognising
-    // `create table`, every disposition below would be vacuously satisfied by
-    // an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(50)
+    // Raised 47 → 49 by contract 81's two season card-status relations,
+    // 49 → 50 by contract 90's season score store, and 50 → 51 by contract
+    // 101's `bonus_cup_split_members`. This count is a positive control on the
+    // migration parser: if it silently stopped recognising `create table`,
+    // every disposition below would be vacuously satisfied by an empty set.
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(51)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])
