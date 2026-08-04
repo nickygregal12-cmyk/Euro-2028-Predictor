@@ -103,8 +103,17 @@
  * and no policy, grant or existing relation changes. A seeded Euro user reads
  * neither table, and cannot: both are unreachable from `anon` and
  * `authenticated` alike.
+ *
+ * Contract 82 adds two immutable-in-effect `predictor_internal` derivations and
+ * one `public` server job, revoked from every browser role and granted only to
+ * `service_role`. It creates no relation, trigger, policy or grant on an
+ * existing object, and reads only the season tables contracts 68, 69 and 81
+ * added — all of which are empty and unreachable from a seeded Euro user. Its
+ * cron entry drives that job, which finds nothing in a tournament season
+ * because it selects matchweek-scoped games holding a prediction entry and
+ * `league_matchweek` rounds, neither of which a Euro seed has.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 81
+export const SEED_REVIEWED_AT_CONTRACT = 82
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
