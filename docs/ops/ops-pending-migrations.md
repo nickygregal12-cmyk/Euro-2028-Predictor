@@ -4,19 +4,19 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 4 August 2026
 
-The repository and development are level at **contract 96**.
+The repository is at **contract 97**; development is at 96 until the next rollout.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **96** | Contract 96 corrects a refusal-order drift between the Cup tie settlement's two implementations, through `20260804243000_cup_tie_settlement_refusal_order.sql` | MERGED AND APPLIED |
+| Repository `main` | **97** | Contract 97 adds the server-only provider-response custody boundary, through `20260804253000_provider_ingestion_custody.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
 | Development Supabase `iouzoutneyjpugbbtdem` | **96** | Applied 4 August 2026 by fast-lane run 30927288358 on `00575a2`. Corroborated read-only, structurally and behaviourally: the ledger holds 96 rows through `20260804243000`; `predictor_internal.cup_tie_entrant_total` exists; and the two exact cards the differential sweep disagreed on now return the TypeScript authority's answers — home evaluated first, and the reason independent of jsonb key order | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
-| Netlify `euro28predictor` non-production contexts | **86 hosted declaration** | `dev`, branch-deploy and deploy-preview point to Development, declare `EURO28_DEPLOYED_DB_CONTRACT=86`, and require Netlify team login | VERIFIED AND ALIGNED WITH DEVELOPMENT |
+| Netlify `euro28predictor` non-production contexts | **86 hosted declaration** | `dev`, branch-deploy and deploy-preview point to Development, declare `EURO28_DEPLOYED_DB_CONTRACT=86`, and require Netlify team login | TRAILS DEVELOPMENT; ALIGN AFTER VERIFIED ROLLOUT |
 | Netlify `euro28predictor` production | **63 hosted declaration** | Production points to Production Supabase, remains publicly accessible and retains the fatal contract gate | BLOCKED BY DESIGN |
 
 The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
 
-## Contracts 64–96
+## Contracts 64–97
 
 - **64:** Cup winner deletion semantics.
 - **65:** Stage C1 competition-season foundation.
@@ -51,8 +51,9 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **94:** `standings.ts` SQL parity — the season table, ranked.
 - **95:** The bounded season leaderboard read — the first season RPC a browser role may call, limited to league co-members.
 - **96:** Cup tie refusal order — a parity drift found by differential sweep, corrected in both languages.
+- **97:** Server-only provider-response custody and strict decoder evidence. Committing it deploys nothing, configures no credential and calls no provider.
 
-Contracts 64–96 are all applied to development. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–96 are applied to development; contract 97 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
@@ -65,7 +66,7 @@ Contracts 64–96 are all applied to development. None is authorised for product
 
 ## Next implementation boundary
 
-The current implementation boundary is controlled by the roadmap and the active PR queue. This inventory records hosted state; it does not authorise the next migration, a provider poll, a function deployment or a production release.
+The first provider rehearsal is one bounded non-production request whose exact raw response and processing evidence are verified without writing any official fixture, result, lock, score, total, rank or standing. If authentication material is unavailable, stop after deployment rather than weakening the boundary.
 
 ## Related authority
 

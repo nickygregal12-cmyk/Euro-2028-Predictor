@@ -251,8 +251,17 @@
  * care than an addition, but this function has no caller anywhere — that is
  * why its drift from the TypeScript went unnoticed for two contracts — so no
  * seeded read, tournament or season, can reach it.
+ *
+ * Contract 97 adds the provider-ingestion custody boundary: two tables in
+ * `predictor_internal`, not `public`, so no browser role can reach them by any
+ * route — they are outside the Data API's exposed schema entirely, which is a
+ * stronger position than a revoked grant on a public table. Its RPCs are
+ * service-role only. It creates no relation, policy or grant in `public` and
+ * alters none, so no seeded read changes. Committing it does not deploy the
+ * `provider-poll` function, configure a provider credential or call a provider,
+ * and nothing in it can write a fixture, result, lock, score or standing.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 96
+export const SEED_REVIEWED_AT_CONTRACT = 97
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
