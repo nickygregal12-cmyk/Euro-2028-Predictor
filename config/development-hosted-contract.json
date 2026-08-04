@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 83,
-  "latestMigrationVersion": "20260804113000",
-  "latestMigrationName": "season_matchweek_scheduler",
-  "verifiedAt": "2026-08-04T09:39:36Z",
+  "requiredMigrationCount": 84,
+  "latestMigrationVersion": "20260804123000",
+  "latestMigrationName": "lms_eligibility_parity",
+  "verifiedAt": "2026-08-04T10:11:52.573Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30897118745, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 83.",
-    "automationSession": "github-actions-run-30897118745",
-    "repositoryHeadBeforeChange": "2865f3e334f9c437959cfc8c3f1d2dcea882de8e"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 30899305992,
+    "repositoryHead": "a9daf64d51ea94274f71cf6858624b008a40a4d6"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
