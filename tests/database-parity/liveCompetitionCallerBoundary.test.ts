@@ -6,6 +6,10 @@ const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260805001000_live_competition_callers.sql'),
   'utf8',
 )
+const proof = readFileSync(
+  resolve(process.cwd(), 'supabase/tests/155_live_competition_callers.sql'),
+  'utf8',
+)
 const normalizedMigration = migration.toLowerCase()
 
 const operationalTargets = [
@@ -67,5 +71,13 @@ describe('contract 104 competition-instance caller boundary', () => {
 
   it('keeps publication gates on public read surfaces', () => {
     expect(migration.match(/competition\.published/g)?.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('builds the predecessor probe from canonical LMS state, not seed publication state', () => {
+    expect(proof).toContain("competition.game_key = 'last_man_standing'")
+    expect(proof).not.toContain('and competition.published\n  order by competition.game_key')
+    expect(proof).toMatch(
+      /set published = true,\s+availability_status = 'active',\s+completed_at = now\(\)/,
+    )
   })
 })
