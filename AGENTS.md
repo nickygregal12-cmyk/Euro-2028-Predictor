@@ -93,6 +93,7 @@ Rules:
 - Competition-season scoping must preserve or strengthen the existing same-reference safeguards.
 - No development, rehearsal or simulation path may write to production.
 - Every new public table must keep RLS enabled, and every security-definer function must pin `search_path`.
+- **`current_user` is not a caller check inside a SECURITY DEFINER function.** It is the function OWNER there, for every caller. Verified on PostgreSQL 16: an insert by an ordinary role through a security-definer trigger reports `current_user=postgres, session_user=app_user`, while the same insert through a plain trigger reports `current_user=app_user`. The tournament's `enforce_entry_lock_generic` narrows its post-lock exception with `current_user = 'postgres'` and that is sound *because that function is not a definer*. Copying the same conjunct into a definer function produces a conjunct that is always true — a control that reads as a security narrowing and is not one. Use `session_user` there, and mutation-test that the guard actually refuses a non-server caller.
 - Every public view and direct browser relation grant must remain in the reviewed exposure allowlist.
 - Stage C1 must preserve the full PR #246 deletion/ownership before-state and add a guard proving it has not changed.
 
