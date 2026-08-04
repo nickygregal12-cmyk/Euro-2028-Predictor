@@ -37,6 +37,30 @@
  * carries them, because a backup restores rows and there are no rows to lose,
  * but the rollout record names the guarantee that went. Silence would have read
  * as "nothing structural happened".
+ *
+ * TRIGGER RE-CREATION, which is the third category's shape and not the first's.
+ * `drop trigger` is named in DESTRUCTIVE deliberately: a trigger that goes and
+ * does not come back removes an enforcement, and enforcement is exactly what a
+ * migration must not remove quietly. But this repository's house form for
+ * defining a trigger — used by sixteen migrations, because PostgreSQL had no
+ * `create or replace trigger` when the earliest were written — is
+ *
+ *     drop trigger if exists <name> on <table>;
+ *     create trigger <name> ... on <table> ...;
+ *
+ * which removes nothing: the trigger that leaves on one line is back on the
+ * next, and in contract 103 it had never existed before the same migration
+ * created it. Contract 103 was the first migration carrying this form to reach
+ * the fast lane, and the lane refused it — correctly by the letter, wrongly by
+ * the intent, and with no general guarded lane to fall back to.
+ *
+ * So a drop is reclassified ONLY when it is immediately followed by a create of
+ * the SAME trigger on the SAME table. The pairing is what makes it safe, so the
+ * pairing is what is checked: `if exists` is optional and proves nothing on its
+ * own. A drop with no matching create, a create of a DIFFERENT trigger, or
+ * anything between the two, all stay destructive — as does a form this cannot
+ * parse, which keeps the direction of failure pointing at refusal. The pairing
+ * is still REPORTED, for the same reason the other structural statements are.
  */
 
 import { readFileSync } from 'node:fs'
@@ -53,6 +77,93 @@ const DESTRUCTIVE =
  * idiomatic form and would otherwise read as an unrecognised statement.
  */
 const STRUCTURAL = /drop\s+(?:constraint|index)(?:\s+if\s+exists)?/gi
+
+/**
+ * A `drop trigger` statement, captured so its trigger and table can be compared
+ * against whatever follows it.
+ *
+ * Only unquoted identifiers match. A quoted one ("MyTrigger") falls through to
+ * DESTRUCTIVE, which is the direction this file fails in on purpose.
+ */
+const DROP_TRIGGER =
+  /\bdrop\s+trigger\s+(?:if\s+exists\s+)?((?:[A-Za-z_][\w$]*\.)?[A-Za-z_][\w$]*)\s+on\s+((?:[A-Za-z_][\w$]*\.)?[A-Za-z_][\w$]*)\s*;/gi
+
+/** The create that must follow immediately for the drop to be a re-creation. */
+const CREATE_TRIGGER_HEAD =
+  /^\s*create\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\s+((?:[A-Za-z_][\w$]*\.)?[A-Za-z_][\w$]*)\b/i
+
+/** The table a create-trigger statement binds to. */
+const CREATE_TRIGGER_TABLE = /\bon\s+((?:[A-Za-z_][\w$]*\.)?[A-Za-z_][\w$]*)/i
+
+/**
+ * PostgreSQL folds unquoted identifiers to lower case, and `public.matches` and
+ * `matches` are the same table written two ways — both appear in this
+ * repository, sometimes on either side of a single pairing.
+ *
+ * @param {string} identifier
+ */
+function bareName(identifier) {
+  const parts = identifier.toLowerCase().split('.')
+  return parts[parts.length - 1]
+}
+
+/**
+ * Locate every `drop trigger` that is immediately re-created.
+ *
+ * Returns the span of each such drop statement so the caller can exclude it
+ * from the destructive scan, plus a label for the report.
+ *
+ * @param {string} scannable Text already stripped of comments and routine bodies.
+ * @returns {{ start: number, end: number, label: string }[]}
+ */
+export function triggerRecreations(scannable) {
+  /** @type {{ start: number, end: number, label: string }[]} */
+  const found = []
+
+  for (const drop of scannable.matchAll(DROP_TRIGGER)) {
+    const start = drop.index ?? 0
+    const end = start + drop[0].length
+
+    // "Immediately": the very next statement, with only whitespace between.
+    // Anything else — another statement, a partial rewrite — means the trigger
+    // was genuinely absent for part of the migration, so the drop stands.
+    const rest = scannable.slice(end)
+    const head = CREATE_TRIGGER_HEAD.exec(rest)
+    if (head === null) continue
+    if (bareName(head[1]) !== bareName(drop[1])) continue
+
+    // The trigger name alone is not identity: PostgreSQL scopes a trigger to
+    // its table, so the same name may legitimately exist on two tables and
+    // dropping one is not re-created by creating the other.
+    const terminator = rest.indexOf(';')
+    const statement = terminator === -1 ? rest : rest.slice(0, terminator)
+    const table = CREATE_TRIGGER_TABLE.exec(statement.slice(head[0].length))
+    if (table === null) continue
+    if (bareName(table[1]) !== bareName(drop[2])) continue
+
+    found.push({
+      start,
+      end,
+      label: `drop trigger ${bareName(drop[1])} on ${bareName(drop[2])} (re-created immediately)`,
+    })
+  }
+
+  return found
+}
+
+/**
+ * Blank a span while preserving length, so later offsets stay meaningful.
+ *
+ * @param {string} text
+ * @param {{ start: number, end: number }[]} spans
+ */
+function blank(text, spans) {
+  let out = text
+  for (const { start, end } of spans) {
+    out = out.slice(0, start) + ' '.repeat(end - start) + out.slice(end)
+  }
+  return out
+}
 
 /**
  * Strip `--` line comments and block comments.
@@ -104,7 +215,11 @@ export function withoutRoutineBodies(sql) {
 /** @param {string} sql */
 export function destructiveStatements(sql) {
   const scannable = withoutRoutineBodies(withoutComments(sql))
-  return [...scannable.matchAll(DESTRUCTIVE)].map((match) =>
+  // An immediately re-created trigger is structural, not destructive. Blanking
+  // the drop rather than filtering the matches keeps every other `drop trigger`
+  // in this file — including a second, unpaired one — fully visible.
+  const withoutRecreations = blank(scannable, triggerRecreations(scannable))
+  return [...withoutRecreations.matchAll(DESTRUCTIVE)].map((match) =>
     match[0].replace(/\s+/g, ' ').trim(),
   )
 }
@@ -112,9 +227,12 @@ export function destructiveStatements(sql) {
 /** @param {string} sql */
 export function structuralStatements(sql) {
   const scannable = withoutRoutineBodies(withoutComments(sql))
-  return [...scannable.matchAll(STRUCTURAL)].map((match) =>
-    match[0].replace(/\s+/g, ' ').trim().toLowerCase(),
-  )
+  return [
+    ...[...scannable.matchAll(STRUCTURAL)].map((match) =>
+      match[0].replace(/\s+/g, ' ').trim().toLowerCase(),
+    ),
+    ...triggerRecreations(scannable).map(({ label }) => label),
+  ]
 }
 
 /** @param {string[]} files */
