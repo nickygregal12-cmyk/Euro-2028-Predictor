@@ -4,19 +4,19 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 4 August 2026
 
-The repository is at **contract 89**.
+The repository is at **contract 91**; development is at 89 until the next rollout.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **89** | Contract 89 adds the season Last Man Standing settlement job through `20260804173000_lms_settlement_job.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
-| Development Supabase `iouzoutneyjpugbbtdem` | **88** | Applied 4 August 2026 by fast-lane run 30906915108 on `c9a1c94`, whose postflight step reported `Development is at contract 88.`; evidence artifact `development-fast-lane-evidence` (ID 8891445326) retained. The additive step reported one structural statement — `drop constraint` in `20260804153000_lms_used_cycle.sql` — which removes a guarantee but no row. Corroborated read-only against the database itself: 88 applied migrations, `used_cycle` present, and the club key is `UNIQUE (competition_id, user_id, team_id, used_cycle)` | VERIFIED AND ALIGNED |
+| Repository `main` | **91** | Contracts 90 and 91 add the season Main Predictor score store and the matchweek settlement parity, through `20260804193000_matchweek_settlement_parity.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **89** | Applied 4 August 2026 by fast-lane run 30911943023 on `c087f1d`, whose postflight step reported `Development is at contract 89.`; evidence artifact `development-fast-lane-evidence` (ID 8893497631) retained. Corroborated read-only against the database: `cron.job` holds `season-settle-due-lms-rounds` on `0 * * * *` as `username = postgres`, which is the session identity contract 88's lock exception requires | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **86 hosted declaration** | `dev`, branch-deploy and deploy-preview point to Development, declare `EURO28_DEPLOYED_DB_CONTRACT=86`, and require Netlify team login | VERIFIED AND ALIGNED WITH DEVELOPMENT |
 | Netlify `euro28predictor` production | **63 hosted declaration** | Production points to Production Supabase, remains publicly accessible and retains the fatal contract gate | BLOCKED BY DESIGN |
 
 The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
 
-## Contracts 64–88
+## Contracts 64–91
 
 - **64:** Cup winner deletion semantics.
 - **65:** Stage C1 competition-season foundation.
@@ -43,14 +43,17 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **86:** Season LMS selection made possible (participation check accepts either fixture link).
 - **87:** The mandatory used-list reset made storable (club uniqueness scoped to a used cycle).
 - **88:** Lock-time auto-assignment for a missed season LMS pick, behind a narrowed server-only lock exception.
+- **89:** The season LMS settlement job — replay from results, the entrant-state projection, and an hourly cron tick.
+- **90:** The season Main Predictor score store, at matchweek granularity.
+- **91:** Matchweek settlement parity — what each fixture on a card means for scoring, and whether the matchweek may settle.
 
-Contracts 64–88 are applied to development; contract 89 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–89 are applied to development; contracts 90 and 91 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
 1. Re-read `main`, the development machine record and open migration PRs before every hosted change; never infer current state from an older report.
-2. Apply contract 89 to development only through the guarded rollout workflow and update the development machine record from fresh postflight evidence. Contracts 87 and 88 were applied on 4 August 2026 by fast-lane run 30906915108.
-3. Update the Netlify `dev`, branch-deploy and deploy-preview declarations to 88 now that the development rollout is verified, and to 89 only after contract 89's own rollout.
+2. Apply every later contract to development only through the guarded rollout workflow and update the development machine record from fresh postflight evidence. Contracts 87 and 88 were applied by fast-lane run 30906915108 and contract 89 by run 30911943023, all on 4 August 2026.
+3. Update the Netlify `dev`, branch-deploy and deploy-preview declarations to 89 now that the development rollout is verified.
 4. Keep production Supabase and the production Netlify declaration at 63 until a separately scoped, explicitly approved milestone release.
 5. Keep non-production Netlify deploys protected by team login and use the repository's protected-preview verification gate.
 6. Do not use the historic `euro28-predictor-dev` Netlify project.
