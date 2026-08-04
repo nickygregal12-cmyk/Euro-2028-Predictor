@@ -302,18 +302,16 @@
  * fixture writes, none of which global setup performs.
  *
  * Contract 103 makes a competition instance repeatable: `bonus_competitions`
- * gains lineage columns and a `completion_reason`, all defaulted or nullable so
- * every existing row keeps its meaning, and `unique (tournament_id, game_key)`
- * becomes a partial unique index over LIVE instances only. With no competition
- * completed in development or production — verified read-only — the partial
- * index permits nothing the constraint forbade, so it is equivalent today.
- * One live function was redefined WITH the contract rather than after it:
- * `ensure_original_predictor_availability` upserts on that pair from the
- * tournaments trigger, and a bare ON CONFLICT target cannot infer a partial
- * index — the exact failure that stopped seeding in CI on the first draft. Its
- * conflict target now names the index predicate, so seeding a tournament works
- * identically before and after. Nothing in it can create a second instance:
- * the restart lifecycle is a later contract.
+ * gains explicit public/private scope, series lineage and a bounded completion
+ * reason. Every existing row backfills as public and as sequence 1 of its own
+ * series. The old total key becomes one live PUBLIC row per season game plus one
+ * live row per series, so independent private competitions may coexist without
+ * making the public catalogue ambiguous. No competition is completed in either
+ * hosted project and no lifecycle driver exists yet, so every seeded read still
+ * resolves the same public row. The tournament trigger and catalogue writer now
+ * name the exact public/live conflict predicate; bare recreation starts a new
+ * series through an internal-only trigger helper. Contract 104 migrates the
+ * measured readers, and contract 105 supplies the restart driver.
  */
 export const SEED_REVIEWED_AT_CONTRACT = 103
 
