@@ -32,7 +32,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Rebuild the PR from exact contract-95 main
-        run: bash scripts/ops/restack-provider-contract-96.sh
+        run: bash scripts/ops/run-restack-provider-contract-96.sh
 
   local-supabase:
     runs-on: ubuntu-latest
