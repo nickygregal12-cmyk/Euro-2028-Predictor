@@ -1,6 +1,6 @@
 begin;
 
--- Contract 91: server-only provider response custody and decoder evidence.
+-- Contract 92: server-only provider response custody and decoder evidence.
 -- Committing this migration does not deploy it, call a provider or authorize a
 -- hosted write. Raw provider data remains evidence only and cannot update
 -- tournament matches, season fixtures, results, locks, scores or standings.
