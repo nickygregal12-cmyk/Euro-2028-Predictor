@@ -49,7 +49,10 @@ select
   definition.draw_required
 from target_tournament tournament
 cross join definitions definition
-on conflict (tournament_id, game_key) do update
+-- Contract 103: the arbiter is the PARTIAL live-instance index, which a bare
+-- column list cannot infer. Publishing the catalogue targets the competition
+-- currently running, never a completed predecessor.
+on conflict (tournament_id, game_key) where completed_at is null do update
 set published = true,
     updated_at = now();
 
