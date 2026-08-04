@@ -1,0 +1,36 @@
+name: Patch contract 102 restack
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.head_ref == 'claude/cup-split-stage-persistence'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/cup-split-stage-persistence
+      - name: Patch and remove this helper
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/restack-cup-split-contract-102.yml')
+          text = path.read_text()
+          before = "          git add -A\n          git diff --cached --check"
+          after = "          sed -i 's/[[:space:]]\\+$//' docs/architecture/stage-c-trigger-bindings.md\n          git add -A\n          git diff --cached --check"
+          if text.count(before) != 1:
+              raise SystemExit('restack commit block not found exactly once')
+          path.write_text(text.replace(before, after))
+          PY
+          rm .github/workflows/patch-contract-102-restack.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Allow the contract 102 restack to normalise Markdown breaks"
+          git push origin HEAD:claude/cup-split-stage-persistence
