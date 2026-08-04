@@ -34,9 +34,10 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **79:** Shared Cup-store competition domains.
 - **80:** Season matchweek card lock resolution.
 - **81:** Season matchweek card status and submission-outcome storage.
-- **82:** Recurring season matchweek scheduler.
+- **82:** The matchweek card is not pre-filled (ADR 0012 amendment).
+- **83:** Recurring season matchweek scheduler.
 
-Contracts 64–80 are applied to development; contract 81 and contract 82 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–80 are applied to development; contract 81, contract 82 and contract 83 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 

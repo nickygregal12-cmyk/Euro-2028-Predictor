@@ -45,7 +45,7 @@ function body(name: string): string {
 }
 
 const lockAt = body('season_matchweek_lock_at')
-const completeCard = body('season_complete_card_fixtures')
+const cardFixtures = body('season_card_fixtures')
 const processor = body('process_due_season_matchweek_submissions')
 
 /** The browser's derivation, for a matchweek whose fixtures kick off as given. */
@@ -69,10 +69,10 @@ function browserLockAt(kickoffs: readonly (string | null)[], bufferMinutes: numb
 describe('the migration is found, so nothing below is vacuous', () => {
   it.each([
     ['season_matchweek_lock_at', () => lockAt],
-    ['season_complete_card_fixtures', () => completeCard],
+    ['season_card_fixtures', () => cardFixtures],
     ['process_due_season_matchweek_submissions', () => processor],
   ])('%s has a body to assert against', (_name, read) => {
-    expect(schedulerFile, 'contract 82 migration not found').toBeDefined()
+    expect(schedulerFile, 'the scheduler migration was not found').toBeDefined()
     expect(read()).not.toBe('')
   })
 })
@@ -117,45 +117,39 @@ describe('the lock instant is the earliest kickoff, less the buffer', () => {
   })
 })
 
-describe('a complete card needs no default, and is not given an invented one', () => {
-  const complete = [
-    { fixtureId: 'f1', defaultPrediction: { home: 2, away: 1 }, playerPrediction: { home: 2, away: 1 } },
-    { fixtureId: 'f2', defaultPrediction: { home: 0, away: 0 }, playerPrediction: { home: 0, away: 0 } },
-  ]
-
-  it.each(['provisional', 'confirmed'])(
-    'resolves identically under %s whatever default is supplied',
-    (status) => {
-      // The migration sets `defaultPrediction` to the player's own value. That
-      // is only honest if the default is never consulted, which holds exactly
-      // when no fixture has a gap — a non-null playerPrediction always wins.
-      // Asserted rather than assumed, because if it were false the job would be
-      // silently inventing scorelines.
-      const absurd = complete.map((fixture) => ({
-        ...fixture,
-        defaultPrediction: { home: 9, away: 9 },
-      }))
-
-      expect(resolveCardAtLock(complete as never, status as never)).toEqual(
-        resolveCardAtLock(absurd as never, status as never),
-      )
-      expect(resolveCardAtLock(complete as never, status as never)).toMatchObject({
-        kind: 'submitted',
-        autoCompleted: false,
-      })
-    },
-  )
-
-  it('returns null from SQL when any fixture lacks the player value', () => {
-    expect(completeCard).toMatch(/v_predicted <> v_total then/)
-    expect(completeCard).toMatch(/return null;/)
+describe('the card is assembled with its blanks intact', () => {
+  it('LEFT JOINs, so a fixture the player skipped still appears', () => {
+    // An INNER JOIN would drop the blanks, and a partial card would arrive at
+    // the resolver looking complete. Nothing would report an error; the player
+    // would simply be scored on a shorter card than they were shown.
+    expect(cardFixtures).toMatch(/left join public\.season_predictions/)
   })
 
-  it('treats an empty matchweek as incomplete rather than as a complete card', () => {
-    // `count(*) = 0` with zero predictions satisfies `v_predicted = v_total`,
-    // so without the explicit zero test an empty matchweek would resolve as a
-    // complete card and submit nothing as if it were a submission.
-    expect(completeCard).toMatch(/v_total = 0 or v_predicted <> v_total/)
+  it('sends JSON null for a blank rather than omitting the key', () => {
+    // `resolveCardAtLock` distinguishes "absent" from "present and null" only
+    // by treating both as blank, so either encoding works — but the fixture
+    // itself must be there, carrying an explicit null.
+    expect(cardFixtures).toMatch(/when prediction\.id is null then null/)
+  })
+
+  it('never sends a default, because there is no longer one to send', () => {
+    expect(cardFixtures).not.toMatch(/defaultPrediction/)
+  })
+
+  it('agrees with the resolver that a blank submits nothing', () => {
+    expect(
+      resolveCardAtLock(
+        [
+          { fixtureId: 'f1', playerPrediction: { home: 2, away: 1 } },
+          { fixtureId: 'f2', playerPrediction: null },
+        ] as never,
+        'provisional',
+      ),
+    ).toEqual({
+      kind: 'submitted',
+      predictions: [{ fixtureId: 'f1', prediction: { home: 2, away: 1 } }],
+      confirmed: false,
+    })
   })
 })
 
@@ -168,17 +162,23 @@ describe('the job records what it decided, and defers what it cannot', () => {
     expect(processor).toMatch(/if v_status is null then/)
   })
 
-  it('writes NO ledger row for a gapped card, so it is picked up later', () => {
-    // A recorded outcome would permanently skip that card once the default
-    // policy lands (DEC-015). The deferral must not be durable.
-    const deferral = /if v_fixtures is null then([\s\S]*?)end if;/.exec(processor)?.[1] ?? ''
-    expect(deferral, 'the gap branch was not found').not.toBe('')
-    expect(deferral).toMatch(/v_deferred := v_deferred \+ 1;/)
-    expect(deferral).not.toMatch(/insert into/)
+  it('processes a partial card like any other, with nothing deferred', () => {
+    // An earlier draft could not resolve a partial card, because ADR 0012
+    // required a pre-filled default and none was defined. Contract 82 withdrew
+    // the prefill, so the question is gone — and so is the deferral. A counter
+    // that is now structurally always zero would read as "nothing is wrong"
+    // rather than "this can no longer happen".
+    expect(processor).not.toMatch(/v_deferred/)
+    expect(processor).not.toMatch(/deferredMissingDefaultPolicy/)
+    expect(processor).not.toMatch(/season_complete_card_fixtures/)
   })
 
-  it('surfaces the deferral count on every run', () => {
-    expect(processor).toMatch(/'deferredMissingDefaultPolicy', v_deferred/)
+  it('records auto_completed as the constant false it now is', () => {
+    // Contract 81's column stays; nothing completes a card but the player, so
+    // the value is a fact rather than a resolver output. Reading it back from
+    // the resolution would reintroduce a field the resolver no longer emits.
+    expect(processor).not.toMatch(/autoCompleted/)
+    expect(processor).toMatch(/'submitted', p_now, p_now, false/)
   })
 
   it('is idempotent per lock instant, including the instant itself', () => {
@@ -236,7 +236,7 @@ describe('concurrency and blast radius', () => {
   })
 
   it('keeps the two derivations server-side and the job off every browser role', () => {
-    for (const fn of ['season_matchweek_lock_at', 'season_complete_card_fixtures']) {
+    for (const fn of ['season_matchweek_lock_at', 'season_card_fixtures']) {
       expect(scheduler).toMatch(
         new RegExp(
           `revoke all on function predictor_internal\\.${fn}[\\s\\S]*?from public, anon, authenticated`,

@@ -1,14 +1,13 @@
--- Contract 82: notice that a matchweek has locked, and act on it.
+-- Contract 83: notice that a matchweek has locked, and act on it.
 --
 -- Contract 80 decided what the lock does to a card. Contract 81 stored where
 -- each card stands and an append-only record of what the lock did. Nothing yet
 -- notices that a matchweek has locked. This is that job.
 --
 -- The contract number is the canonical migration count, so it is not a free
--- choice: with this file the repository holds 82 migrations and is therefore
--- contract 82. Concurrent provider-ingestion work (#431) also wants a number,
--- and the resolution is merge order rather than push order — whichever lands
--- first is 82, and the other rebases onto it and becomes 83.
+-- choice. Concurrent provider-ingestion work (#431) also wants a number, and
+-- the resolution is merge order rather than push order — whichever lands first
+-- takes the next count, and the other rebases onto it.
 --
 -- ---------------------------------------------------------------------------
 -- WHERE THE LOCK INSTANT COMES FROM
@@ -45,30 +44,22 @@
 -- the only place that distinction can live.
 --
 -- ---------------------------------------------------------------------------
--- WHAT THIS JOB DELIBERATELY DOES NOT DO
+-- EVERY ENGAGED CARD IS RESOLVABLE, INCLUDING A PARTIAL ONE
 -- ---------------------------------------------------------------------------
 --
--- It does not auto-complete a partially filled card, because NOTHING IN THIS
--- REPOSITORY DEFINES WHAT THE DEFAULT PREDICTION IS. ADR 0012 requires the card
--- to be "pre-filled with a sensible default"; it does not say what. Contract
--- 80's `resolve_season_card_at_lock` takes the default as an INPUT for the same
--- reason, and `src/domain/season/cardSubmission.ts` says so outright: "What the
--- default IS for a given fixture is a policy the caller supplies."
+-- An earlier draft of this job could not process a partially filled card. ADR
+-- 0012 then required the card to be pre-filled with "a sensible default", and
+-- nothing in the repository said what the default was, so the job deferred
+-- those cards rather than invent a scoring rule in a migration.
 --
--- Choosing one here would be a scoring rule invented in a migration. The
--- default decides what a non-engaging player scores, which moves standings and
--- prize outcomes. That needs an authority and test updates, not a plausible
--- guess buried in a scheduler.
+-- Contract 82 removed the question. The card is not pre-filled, a blank fixture
+-- is submitted as no prediction, and it scores nothing — so there is no default
+-- to be missing and nothing to defer. A partial card submits exactly what the
+-- player entered, like any other.
 --
--- So a card with gaps is LEFT UNPROCESSED — no ledger row, because "we have not
--- decided the rule yet" is pending work, not a decided outcome, and a recorded
--- outcome would permanently skip that card once the policy lands. The return
--- payload counts them under `deferredMissingDefaultPolicy` so the gap is
--- visible on every run rather than silent. Recorded as DEC-015.
---
--- A card whose every fixture already carries the player's own prediction needs
--- no default at all, and those are processed in full today. That is the
--- majority case and the one worth having now.
+-- The deferral counter is gone with it. A count that is now structurally always
+-- zero would read as "nothing is wrong" rather than "this can no longer
+-- happen", which is the more dangerous of the two.
 
 begin;
 
@@ -106,18 +97,16 @@ revoke all on function predictor_internal.season_matchweek_lock_at(uuid, uuid, i
 -- ---------------------------------------------------------------------------
 -- The card as `resolve_season_card_at_lock` wants it.
 --
--- Returns null when any fixture in the matchweek lacks the player's own
--- prediction — that is the gap case with no default policy, handled by the
--- caller rather than guessed at here.
+-- Every fixture in the matchweek, carrying the player's prediction where they
+-- gave one and JSON null where they did not. A LEFT JOIN, deliberately: an
+-- INNER JOIN would silently drop the blanks, and the card would then look
+-- complete to the resolver instead of partial.
 --
--- Where the card IS complete, `defaultPrediction` is set to the player's own
--- value. That is not a default being invented: with no gaps the resolution
--- never consults it (a non-null `playerPrediction` always wins), so the output
--- is independent of what is passed. `seasonMatchweekSchedulerParity.test.ts`
--- asserts that independence rather than assuming it.
+-- Returns null only for a matchweek with no fixtures at all — which the lock
+-- derivation already refuses, so the job never reaches it.
 -- ---------------------------------------------------------------------------
 
-create or replace function predictor_internal.season_complete_card_fixtures(
+create or replace function predictor_internal.season_card_fixtures(
   p_tournament_id uuid,
   p_entry_id uuid,
   p_round_id uuid
@@ -128,41 +117,22 @@ stable
 set search_path = ''
 as $$
 declare
-  v_total integer;
-  v_predicted integer;
   v_fixtures jsonb;
 begin
-  select
-      count(*),
-      count(prediction.id)
-    into v_total, v_predicted
-    from public.season_fixtures fixture
-    left join public.season_predictions prediction
-      on prediction.tournament_id = fixture.tournament_id
-     and prediction.season_fixture_id = fixture.id
-     and prediction.entry_id = p_entry_id
-   where fixture.tournament_id = p_tournament_id
-     and fixture.competition_round_id = p_round_id;
-
-  -- An empty matchweek is not a complete card; it is a matchweek that should
-  -- never have been due, and the lock derivation already refuses it.
-  if v_total = 0 or v_predicted <> v_total then
-    return null;
-  end if;
-
   select jsonb_agg(
            jsonb_build_object(
              'fixtureId', fixture.id,
-             'defaultPrediction', jsonb_build_object(
-               'home', prediction.home_score, 'away', prediction.away_score),
-             'playerPrediction', jsonb_build_object(
-               'home', prediction.home_score, 'away', prediction.away_score)
+             'playerPrediction', case
+               when prediction.id is null then null
+               else jsonb_build_object(
+                 'home', prediction.home_score, 'away', prediction.away_score)
+             end
            )
            order by fixture.id
          )
     into v_fixtures
     from public.season_fixtures fixture
-    join public.season_predictions prediction
+    left join public.season_predictions prediction
       on prediction.tournament_id = fixture.tournament_id
      and prediction.season_fixture_id = fixture.id
      and prediction.entry_id = p_entry_id
@@ -173,7 +143,7 @@ begin
 end;
 $$;
 
-revoke all on function predictor_internal.season_complete_card_fixtures(uuid, uuid, uuid)
+revoke all on function predictor_internal.season_card_fixtures(uuid, uuid, uuid)
   from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------
@@ -199,7 +169,6 @@ declare
   v_submitted integer := 0;
   v_unbanked integer := 0;
   v_refused integer := 0;
-  v_deferred integer := 0;
   v_status text;
   v_fixtures jsonb;
   v_resolution jsonb;
@@ -269,16 +238,8 @@ begin
         continue;
       end if;
 
-      v_fixtures := predictor_internal.season_complete_card_fixtures(
+      v_fixtures := predictor_internal.season_card_fixtures(
         v_due.tournament_id, v_due.entry_id, v_due.competition_round_id);
-
-      if v_fixtures is null then
-        -- A gap, and no authority for what fills it. Left unprocessed on
-        -- purpose so it is picked up once DEC-015 is decided, rather than
-        -- permanently skipped by a ledger row recorded today.
-        v_deferred := v_deferred + 1;
-        continue;
-      end if;
 
       v_attempted := v_attempted + 1;
       v_resolution := predictor_internal.resolve_season_card_at_lock(
@@ -290,8 +251,11 @@ begin
           outcome, attempted_at, submitted_at, auto_completed
         ) values (
           v_due.tournament_id, v_due.entry_id, v_due.competition_round_id,
-          v_due.locks_at, 'submitted', p_now, p_now,
-          (v_resolution->>'autoCompleted')::boolean
+          -- `auto_completed` is always false now: contract 82 withdrew the
+          -- pre-filled card, so nothing completes a card but the player. The
+          -- column is contract 81's and stays; the value is now a constant fact
+          -- rather than a resolver output.
+          v_due.locks_at, 'submitted', p_now, p_now, false
         );
         v_submitted := v_submitted + 1;
       else
@@ -328,10 +292,7 @@ begin
     'attempted', v_attempted,
     'submitted', v_submitted,
     'unbanked', v_unbanked,
-    'refused', v_refused,
-    -- Surfaced on every run so the missing default-prediction policy stays
-    -- visible instead of looking like nothing was due.
-    'deferredMissingDefaultPolicy', v_deferred
+    'refused', v_refused
   );
 end;
 $$;
