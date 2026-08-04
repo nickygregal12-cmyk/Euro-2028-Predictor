@@ -196,14 +196,20 @@ begin
   from public.bonus_competitions competition
   where competition.visibility_kind = 'public'
     and competition.completed_at is null
-    and competition.published
-  order by competition.game_key, competition.id
+    and competition.game_key = 'last_man_standing'
+  order by competition.id
   limit 1;
-  if v_old.id is null then raise exception 'Contract 104 needs one published public competition'; end if;
+  if v_old.id is null then raise exception 'Contract 104 needs the canonical live public LMS competition'; end if;
   select id into v_user from public.profiles order by id limit 1;
   if v_user is null then raise exception 'Contract 104 needs one seeded profile'; end if;
   update public.bonus_competitions
-  set completed_at = now(), completion_reason = 'abandoned' where id = v_old.id;
+  set published = true,
+      availability_status = 'active',
+      completed_at = now(),
+      completion_reason = 'abandoned'
+  where id = v_old.id;
+  v_old.published := true;
+  v_old.availability_status := 'active';
   insert into public.bonus_competitions (
     tournament_id, game_key, published, availability_status,
     registration_opens_at, registration_closes_at, draw_required,
