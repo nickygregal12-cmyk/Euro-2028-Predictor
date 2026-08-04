@@ -1,0 +1,60 @@
+name: One-time contract 79 authority fix
+
+on:
+  push:
+    branches:
+      - agent/hosted-migration-inventory-contract79
+    paths:
+      - .github/workflows/one-time-contract79-authority-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-authorities:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/hosted-migration-inventory-contract79
+      - name: Patch exact hosted-contract authority lines
+        shell: python
+        run: |
+          from pathlib import Path
+
+          replacements = {
+              Path('AGENTS.md'): (
+                  'The repository is at **contract 79** through `20260804063000_cup_store_competition_domains.sql`, merged on `main`. Development Supabase is hosted at contract 79; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.',
+                  'The repository is at **contract 79** through `20260804063000_cup_store_competition_domains.sql`, merged on `main`. Development Supabase is hosted at contract 79; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.',
+              ),
+              Path('docs/quality/current-status.md'): (
+                  '| Repository contract |',
+                  '| Repository contract | **79** — 79 canonical migrations through `20260804063000_cup_store_competition_domains.sql`. Development Supabase is hosted at **79**, directly verified from its migration ledger on 4 August 2026; production remains at **63**. Repository and Development are aligned. Non-production Netlify contexts still carry their separately managed `EURO28_DEPLOYED_DB_CONTRACT` declaration, while production keeps the fatal contract gate. |',
+              ),
+          }
+
+          agents = Path('AGENTS.md')
+          agent_lines = agents.read_text().splitlines()
+          agent_matches = [i for i, line in enumerate(agent_lines) if line.startswith('The repository is at **contract 79**')]
+          if len(agent_matches) != 1:
+              raise SystemExit(f'Expected one AGENTS contract line, found {len(agent_matches)}')
+          agent_lines[agent_matches[0]] = replacements[agents][1]
+          agents.write_text('\n'.join(agent_lines) + '\n')
+
+          status = Path('docs/quality/current-status.md')
+          status_lines = status.read_text().splitlines()
+          status_matches = [i for i, line in enumerate(status_lines) if line.startswith('| Repository contract |')]
+          if len(status_matches) != 1:
+              raise SystemExit(f'Expected one current-status contract row, found {len(status_matches)}')
+          status_lines[status_matches[0]] = replacements[status][1]
+          status.write_text('\n'.join(status_lines) + '\n')
+      - name: Commit authority alignment
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md docs/quality/current-status.md
+          git diff --cached --check
+          git commit -m 'Align live authorities to Development contract 79'
+          git push origin HEAD:agent/hosted-migration-inventory-contract79
