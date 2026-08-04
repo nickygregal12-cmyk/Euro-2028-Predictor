@@ -49,7 +49,7 @@ PR #252 lands the competition/viewer timezone seam. PR #317 supplies persisted `
 
 Do not create a combined Stage C migration. Do not pull a C2 change into C1 for convenience. No hosted schema mutation is authorised by the split.
 
-The repository is at **contract 84** through `20260804123000_lms_eligibility_parity.sql`. Development Supabase is hosted at contract 83, applied 4 August 2026 by fast-lane run 30897118745 on `2865f3e`, which reported `Development is at contract 83.`; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
+The repository is at **contract 85** through `20260804133000_lms_settlement.sql`. Development Supabase is hosted at contract 84, applied 4 August 2026 by fast-lane run 30899305992 on `a9daf64`, which reported `Development is at contract 84.`; production remains at 63. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight.
 
 **Lock policy is game-owned (ADR 0020, PR #353).** `CompetitionConfig` describes identity, calendar and structure only; the selected game supplies its own explicit `lockPolicy` (Original Predictor entry/0, Main Predictor matchweek/0, Last Man Standing matchweek/30). A missing, unknown, stale or incompatible policy fails closed. Do not reintroduce a competition-wide buffer, and do not branch on route, slug, name or UI type to pick a policy.
 
@@ -93,6 +93,7 @@ Rules:
 - Competition-season scoping must preserve or strengthen the existing same-reference safeguards.
 - No development, rehearsal or simulation path may write to production.
 - Every new public table must keep RLS enabled, and every security-definer function must pin `search_path`.
+- **`current_user` is not a caller check inside a SECURITY DEFINER function.** It is the function OWNER there, for every caller. Verified on PostgreSQL 16: an insert by an ordinary role through a security-definer trigger reports `current_user=postgres, session_user=app_user`, while the same insert through a plain trigger reports `current_user=app_user`. The tournament's `enforce_entry_lock_generic` narrows its post-lock exception with `current_user = 'postgres'` and that is sound *because that function is not a definer*. Copying the same conjunct into a definer function produces a conjunct that is always true — a control that reads as a security narrowing and is not one. Use `session_user` there, and mutation-test that the guard actually refuses a non-server caller.
 - Every public view and direct browser relation grant must remain in the reviewed exposure allowlist.
 - Stage C1 must preserve the full PR #246 deletion/ownership before-state and add a guard proving it has not changed.
 

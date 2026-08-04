@@ -128,8 +128,16 @@
  * calls the function it just defined. A seeded Euro user cannot reach either,
  * and the Euro tournament has no Last Man Standing season entrant to be
  * assigned a club in the first place.
+ *
+ * Contract 85 adds three `predictor_internal` functions — the LMS
+ * result-to-outcome rule, a per-window reader over `season_cup_window_fixtures`
+ * and `season_fixtures`, and the season replay — all revoked from every browser
+ * role. It creates no table, trigger, policy or grant, alters none, and writes
+ * no row: nothing calls these yet. The two relations the reader touches are
+ * season-only and empty, and a Euro tournament season has no LMS windows to
+ * read.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 84
+export const SEED_REVIEWED_AT_CONTRACT = 85
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
