@@ -50,9 +50,10 @@
 -- lifecycle is contract 105, and contract 104 teaches those readers to resolve
 -- the live PUBLIC instance first.
 --
--- Until then the partial index is strictly equivalent to the constraint it
--- replaces: with no completed competitions there is nothing for it to permit
--- that the old one forbade. That equivalence is asserted rather than assumed in
+-- Until then every existing row is public and no application or database
+-- driver can create a successor or a private instance. Current caller behaviour
+-- therefore stays single-row even though the corrected storage shape can now
+-- represent both. That boundary is asserted rather than assumed in
 -- `154_competition_instance_lineage.sql`.
 --
 -- The ordering matters and is deliberate: shape, then callers, then the driver.
@@ -80,6 +81,7 @@ alter table public.bonus_competitions
 update public.bonus_competitions set series_id = id where series_id is null;
 
 alter table public.bonus_competitions
+  alter column series_id set default gen_random_uuid(),
   alter column series_id set not null;
 
 alter table public.bonus_competitions
@@ -159,10 +161,10 @@ alter table public.bonus_competitions
 -- competition per season/series, while allowing completed predecessors and
 -- private competitions to coexist."
 --
--- Expressed generally rather than for Last Man Standing alone: at most one
--- LIVE instance per (tournament, game). A completed predecessor no longer
--- occupies the slot, which is the whole point; two live instances of one game
--- in one season remain impossible, which is what every caller relies on.
+-- Expressed generally rather than for Last Man Standing alone: one live
+-- PUBLIC instance per (tournament, game), and one live row inside each series.
+-- A completed predecessor no longer occupies either slot. Independent private
+-- series coexist without making the public catalogue ambiguous.
 alter table public.bonus_competitions
   drop constraint bonus_competitions_tournament_id_game_key_key;
 

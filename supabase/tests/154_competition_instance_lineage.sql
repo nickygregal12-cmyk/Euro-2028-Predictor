@@ -12,7 +12,7 @@
 -- callers move.
 
 begin;
-select plan(28);
+select plan(31);
 
 create temporary table lineage (label text primary key, id uuid not null) on commit drop;
 
@@ -53,6 +53,31 @@ select is(
   (select count(*)::integer from public.bonus_competitions where visibility_kind <> 'public'),
   0,
   'all pre-existing availability rows backfill as public rather than becoming private by accident'
+);
+
+select lives_ok(
+  $$insert into public.bonus_competitions
+      (id, tournament_id, game_key, published, availability_status, visibility_kind)
+    values (
+      md5('c103-default-series')::uuid,
+      (select id from lineage where label = 'season'),
+      'lineage_probe', false, 'active', 'private'
+    )$$,
+  'a new first instance may omit series_id and receives a database-generated series'
+);
+
+select ok(
+  (select series_id is not null and series_sequence = 1
+     from public.bonus_competitions
+    where id = md5('c103-default-series')::uuid),
+  'the generated series starts at sequence one'
+);
+
+select isnt(
+  (select series_id from public.bonus_competitions
+    where id = md5('c103-default-series')::uuid),
+  md5('c103-default-series')::uuid,
+  'new series identity is independent of instance identity while the historical backfill remains stable'
 );
 
 -- ---------------------------------------------------------------------------
