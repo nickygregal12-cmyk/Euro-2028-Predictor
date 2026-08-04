@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 93,
-  "latestMigrationVersion": "20260804213000",
-  "latestMigrationName": "season_matchweek_scoring_job",
-  "verifiedAt": "2026-08-04T14:44:03Z",
+  "requiredMigrationCount": 95,
+  "latestMigrationVersion": "20260804233000",
+  "latestMigrationName": "season_leaderboard_read",
+  "verifiedAt": "2026-08-04T15:26:00Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30920330240, postflight step \"Confirm the hosted contract now matches the repository\", which succeeded on head 2c2fe85. Corroborated read-only against the database: the ledger holds 93 rows through 20260804213000; season_fixtures carries replay_fixture_id and its chain-walk trigger; both contract 93 functions exist in predictor_internal; process_due_season_matchweek_scores has no EXECUTE for anon, authenticated or service_role; and cron.job holds season-settle-due-matchweek-scores on 30 * * * * as username postgres. Behaviourally, inside a rolled-back transaction, the settler returned outcome=settled for a league season, refused a tournament with not_a_league_season, wrote no rows, and the card builder returned a card.",
-    "automationSession": "github-actions-run-30920330240",
-    "repositoryHeadBeforeChange": "2c2fe85fe422a26cae2a5589c607ebc861b549de"
+    "source": "Development fast-lane rollout run 30923985137 on 21c9645, completed successfully. Corroborated read-only against the database: the ledger holds 95 rows through 20260804233000; predictor_internal.season_standings exists; public.get_season_leaderboard is executable by authenticated and NOT by service_role, which is the deliberate asymmetry contract 95 documents \u2014 the function decides visibility from auth.uid(), which service_role has none of.",
+    "automationSession": "github-actions-run-30923985137",
+    "repositoryHeadBeforeChange": "21c9645a8734adec9e81a7f411a7eee556c71914"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false

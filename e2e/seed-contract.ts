@@ -244,8 +244,15 @@
  * `Season is required`, and calling it with a seeded league season id gets
  * `This season is not yours to read`. It creates no relation, trigger or
  * policy, alters none, and adds no grant on any existing object.
+ *
+ * Contract 96 REDEFINES `settle_season_cup_tie` and adds one
+ * `predictor_internal` helper, both revoked from every browser role, both pure
+ * over jsonb and touching no relation. A redefinition normally deserves more
+ * care than an addition, but this function has no caller anywhere — that is
+ * why its drift from the TypeScript went unnoticed for two contracts — so no
+ * seeded read, tournament or season, can reach it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 95
+export const SEED_REVIEWED_AT_CONTRACT = 96
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
