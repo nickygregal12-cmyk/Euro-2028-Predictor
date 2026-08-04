@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 85,
-  "latestMigrationVersion": "20260804133000",
-  "latestMigrationName": "lms_settlement",
-  "verifiedAt": "2026-08-04T10:34:54Z",
+  "requiredMigrationCount": 86,
+  "latestMigrationVersion": "20260804143000",
+  "latestMigrationName": "lms_season_selection",
+  "verifiedAt": "2026-08-04T11:11:28Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30901081053, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 85.",
-    "automationSession": "github-actions-run-30901081053",
-    "repositoryHeadBeforeChange": "701fe623ee5062a4bcb11471165e9dcbfcbb63c7"
+    "source": "Development fast-lane rollout run 30903644470, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 86.",
+    "automationSession": "github-actions-run-30903644470",
+    "repositoryHeadBeforeChange": "8aaf55ca75e9657523573f9145c66797ab15d370"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false

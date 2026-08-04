@@ -149,8 +149,43 @@
  * refusal text included. `supabase/tests/137_lms_season_selection.sql` asserts
  * the same tournament behaviour against a seeded database. It creates no table,
  * policy or grant, alters no column, and leaves the trigger binding untouched.
+ *
+ * Contract 87 reaches furthest of any contract in this run, and the note is
+ * correspondingly specific. It adds `used_cycle` to `bonus_lms_selections`,
+ * replaces the club-uniqueness key with one scoped to that column, and
+ * redefines `save_lms_selection` — a browser RPC a seeded Euro user can call.
+ *
+ * A seeded Euro user is nonetheless unaffected, for a reason that is checked
+ * rather than assumed. `used_cycle` defaults to 0, so every existing row is
+ * cycle 0, and the used-list reset that advances it is gated to `league_season`
+ * competitions and is in any case unreachable for a tournament entrant: a
+ * selection's club is keyed to the selection's competition, so a tournament
+ * entrant's used clubs and a season round's clubs cannot intersect. A
+ * tournament entrant therefore never leaves cycle 0, where
+ * `unique (competition_id, user_id, team_id, 0)` accepts and refuses exactly
+ * what the old key did — asserted at apply time by the migration itself and
+ * again behaviourally in `supabase/tests/138_lms_used_cycle.sql`.
+ *
+ * `save_lms_selection` keeps its signature, its authentication, published,
+ * entrant and elimination checks, its optimistic-concurrency PT409 and its
+ * returned shape. The one changed line scopes its reuse check to the cycle,
+ * which for a tournament caller spans exactly the rows it always did.
+ *
+ * Contract 88 redefines the same trigger again, adding ONE exception to the
+ * lock arm — and the exception cannot reach the seeded Euro tournament. It
+ * requires all three of a `postgres` session (not merely `set role`, which
+ * leaves `session_user` alone), an explicitly opened transaction-local
+ * capability that is shut by default, and a `league_season` competition. The
+ * Euro tournament fails the third unconditionally, so a locked Euro round
+ * refuses even a postgres session holding the capability — asserted in
+ * `supabase/tests/139_lms_auto_assignment.sql` rather than argued.
+ *
+ * The writer it exists for, `auto_assign_lms_entrant`, is revoked from every
+ * browser role, refuses any round that is not a season Last Man Standing round,
+ * and is called by nothing yet. It creates no table, policy or grant and alters
+ * no column.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 86
+export const SEED_REVIEWED_AT_CONTRACT = 88
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
