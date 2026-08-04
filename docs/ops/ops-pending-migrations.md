@@ -4,19 +4,19 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 4 August 2026
 
-The repository is at **contract 93**; development is at 91 until the next rollout.
+The repository is at **contract 95**; development is at 93 until the next rollout.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **93** | Contract 92 makes `carried_to_replay` reachable from stored data and contract 93 is the scoring job that writes the first season points total, through `20260804213000_season_matchweek_scoring_job.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
-| Development Supabase `iouzoutneyjpugbbtdem` | **91** | Applied 4 August 2026 by fast-lane run 30916033941 on `a0af06d`, whose postflight step reported `Development is at contract 91.`; evidence artifact `development-fast-lane-evidence` (ID 8895146221) retained. Corroborated read-only against the database, structurally and behaviourally: `season_matchweek_scores` carries its 4 CHECK constraints and its shape trigger; both settlement functions exist in `predictor_internal` with no `EXECUTE` for `anon`, `authenticated` or `public`; `is_settlement_score('{}')` returns false rather than null, a scoreless `completed` fixture refuses `completed_without_result`, and a card of completed + void + carried-to-replay reports a matches-played denominator of 1 | VERIFIED AND ALIGNED |
+| Repository `main` | **95** | Contract 94 ranks the season's settled totals into a table and contract 95 exposes it to league co-members, through `20260804233000_season_leaderboard_read.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **93** | Applied 4 August 2026 by fast-lane run 30920330240 on `2c2fe85`; evidence artifact `development-fast-lane-evidence` (ID 8896836977) retained. Corroborated read-only, structurally and behaviourally: the ledger holds 93 rows through `20260804213000`; `season_fixtures` carries `replay_fixture_id` and its chain-walk trigger; `process_due_season_matchweek_scores` has no `EXECUTE` for `anon`, `authenticated` or `service_role`; `cron.job` holds `season-settle-due-matchweek-scores` on `30 * * * *` as `username = postgres`. Inside a rolled-back transaction the settler returned `settled` for a league season, refused a tournament with `not_a_league_season` and wrote no rows. Contract 91's earlier probes — `is_settlement_score('{}')` returning false rather than null, a scoreless `completed` fixture refusing `completed_without_result`, and a completed + void + carried card reporting a denominator of 1 — were verified on run 30916033941 | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **86 hosted declaration** | `dev`, branch-deploy and deploy-preview point to Development, declare `EURO28_DEPLOYED_DB_CONTRACT=86`, and require Netlify team login | VERIFIED AND ALIGNED WITH DEVELOPMENT |
 | Netlify `euro28predictor` production | **63 hosted declaration** | Production points to Production Supabase, remains publicly accessible and retains the fatal contract gate | BLOCKED BY DESIGN |
 
 The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
 
-## Contracts 64–93
+## Contracts 64–95
 
 - **64:** Cup winner deletion semantics.
 - **65:** Stage C1 competition-season foundation.
@@ -48,14 +48,16 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **91:** Matchweek settlement parity — what each fixture on a card means for scoring, and whether the matchweek may settle.
 - **92:** The replay link — which fixture an abandoned match handed its slot to, making `carried_to_replay` reachable from stored data.
 - **93:** The season Main Predictor scoring job — the first thing that writes a season points total.
+- **94:** `standings.ts` SQL parity — the season table, ranked.
+- **95:** The bounded season leaderboard read — the first season RPC a browser role may call, limited to league co-members.
 
-Contracts 64–91 are applied to development; contracts 92 and 93 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–93 are applied to development; contracts 94 and 95 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
 1. Re-read `main`, the development machine record and open migration PRs before every hosted change; never infer current state from an older report.
-2. Apply every later contract to development only through the guarded rollout workflow and update the development machine record from fresh postflight evidence. Contracts 87 and 88 were applied by fast-lane run 30906915108, contract 89 by run 30911943023, and contracts 90 and 91 by run 30916033941, all on 4 August 2026.
-3. Update the Netlify `dev`, branch-deploy and deploy-preview declarations to 91 now that the development rollout is verified.
+2. Apply every later contract to development only through the guarded rollout workflow and update the development machine record from fresh postflight evidence. Contracts 87 and 88 were applied by fast-lane run 30906915108, contract 89 by run 30911943023, contracts 90 and 91 by run 30916033941, and contracts 92 and 93 by run 30920330240, all on 4 August 2026.
+3. Update the Netlify `dev`, branch-deploy and deploy-preview declarations to 93 now that the development rollout is verified.
 4. Keep production Supabase and the production Netlify declaration at 63 until a separately scoped, explicitly approved milestone release.
 5. Keep non-production Netlify deploys protected by team login and use the repository's protected-preview verification gate.
 6. Do not use the historic `euro28-predictor-dev` Netlify project.

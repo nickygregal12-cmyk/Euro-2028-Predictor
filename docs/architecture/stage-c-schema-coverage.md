@@ -205,6 +205,7 @@ These names may remain but their semantics must support both kinds safely:
 - `get_player_profile`
 - `get_prediction_consensus`
 - `get_rival_entry`
+- `get_season_leaderboard`
 - `recompute_tournament_scores`
 
 Named JSON arguments make any later parameter rename atomic or wrapper-backed.

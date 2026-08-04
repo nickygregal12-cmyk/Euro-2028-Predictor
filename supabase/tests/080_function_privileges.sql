@@ -104,7 +104,14 @@ insert into expected_authenticated_functions (signature) values
   ('join_competition_game(uuid)'),
   ('leave_competition_game(uuid)'),
   ('create_game_league(uuid,text)'),
-  ('get_my_game_leagues(uuid)');
+  ('get_my_game_leagues(uuid)'),
+  -- Contract 95: the bounded season leaderboard. Deliberately NOT added to
+  -- expected_service_functions below, unlike every other browser read here.
+  -- The function decides who may see a season's table from `auth.uid()`, and
+  -- `service_role` has none — a service_role call would refuse with
+  -- 'Authentication is required' every time, so the grant would be a privilege
+  -- that grants nothing while reading as though the boundary were optional.
+  ('get_season_leaderboard(uuid,integer,text)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

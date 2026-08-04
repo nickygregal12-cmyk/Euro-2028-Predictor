@@ -50,7 +50,7 @@ describe('Stage C1 schema overlay coverage', () => {
   it('keeps positive controls for the original coverage inventory', () => {
     expect(currentRelations).toHaveLength(35)
     expect(newRelations).toHaveLength(4)
-    expect(reviewedFunctions).toHaveLength(52)
+    expect(reviewedFunctions).toHaveLength(53)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {
