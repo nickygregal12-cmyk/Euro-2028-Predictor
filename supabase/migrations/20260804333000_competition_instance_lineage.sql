@@ -45,17 +45,18 @@
 -- WHY THIS IS SAFE TO LAND ALONE
 -- ---------------------------------------------------------------------------
 --
--- Roughly twenty functions do a single-row lookup on
--- `(tournament_id, game_key)` and expect exactly one row. Relaxing the
--- constraint makes that assumption false — but only once a second public
--- instance exists, and **no application path in this contract creates one**. The restart
+-- The measured caller inventory is ten functions across 36 references that
+-- resolve by `(tournament_id, game_key)`. Relaxing the key makes those reads
+-- ambiguous only once a second public instance exists, and **no application
+-- path in this contract creates one**. The restart
 -- lifecycle is contract 105, and contract 104 teaches those readers to resolve
 -- the live instance first.
 --
--- Until then the partial index is strictly equivalent to the constraint it
--- replaces: with no completed competitions there is nothing for it to permit
--- that the old one forbade. That equivalence is asserted rather than assumed in
--- `154_competition_instance_lineage.sql`.
+-- Until then every existing row remains public and live, and no application
+-- path can create a successor or private series. Existing callers therefore
+-- still resolve the same row even though the corrected storage shape can now
+-- represent the complete ADR after-state. That boundary is asserted rather
+-- than assumed in `154_competition_instance_lineage.sql`.
 --
 -- The ordering matters and is deliberate: shape, then callers, then the driver.
 -- Landing the driver before the callers would make every one of those twenty
@@ -114,6 +115,9 @@ begin
   return new;
 end;
 $lineage$;
+
+revoke all on function predictor_internal.prepare_competition_lineage()
+  from public, anon, authenticated, service_role;
 
 drop trigger if exists prepare_competition_lineage on public.bonus_competitions;
 create trigger prepare_competition_lineage

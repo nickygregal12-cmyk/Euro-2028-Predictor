@@ -11,7 +11,7 @@
 -- coexistence — plus lineage that cannot cross season, game or visibility scope.
 
 begin;
-select plan(31);
+select plan(32);
 
 create temporary table lineage (label text primary key, id uuid not null) on commit drop;
 
@@ -49,7 +49,7 @@ select is(
 select is(
   (select count(*)::integer from public.bonus_competitions where completed_at is not null),
   0,
-  'and none is completed, which is what makes the partial index below equivalent to the constraint it replaces'
+  'all pre-existing rows are live, so current public-reader results remain unchanged before a lifecycle driver exists'
 );
 
 select is(
@@ -363,6 +363,15 @@ select is(
     = (select id from lineage where label = 'first'),
   false,
   'and specifically NOT the row that a pre-contract-102 lookup would have found by (tournament_id, game_key) alone'
+);
+
+select is(
+  (select count(*)::integer
+     from unnest(array['anon', 'authenticated', 'service_role']) as role_name
+    where pg_catalog.has_function_privilege(
+      role_name, 'predictor_internal.prepare_competition_lineage()', 'EXECUTE')),
+  0,
+  'the lineage trigger helper is internal-only rather than a callable service-role path'
 );
 
 select is(
