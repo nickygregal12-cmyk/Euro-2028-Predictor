@@ -43,11 +43,6 @@ const authenticatedBrowserHarness =
 
 describe('authenticated browser E2E workflow', () => {
   it('uses a disposable local Supabase rebuild and Playwright Chromium', () => {
-    // The raw `supabase start` moved into a shared composite action that
-    // retries an infrastructure-only failure. What matters here is unchanged:
-    // this suite runs against a disposable stack it brings up itself. The
-    // retry's own properties — bounded, start-only, and still failing the job
-    // when every attempt fails — are guarded in `localSupabaseStart.test.ts`.
     expect(authenticatedWorkflow).toContain('uses: ./.github/actions/start-local-supabase')
     expect(authenticatedWorkflow).toContain('supabase db reset --local')
     expect(authenticatedWorkflow).toContain('supabase stop --no-backup')
@@ -122,44 +117,57 @@ describe('authenticated browser E2E workflow', () => {
   })
 })
 
-describe('deploy-preview browser smoke workflow', () => {
-  it('waits for the exact PR head and refuses a hosted database ahead of the application', () => {
+describe('protected Netlify deploy-preview workflow', () => {
+  it('runs only for pull requests that target main', () => {
+    expect(previewWorkflow).toContain(
+      "if: github.event_name == 'pull_request' && github.base_ref == 'main'",
+    )
+  })
+
+  it('waits for Netlify success on the exact PR head', () => {
+    expect(workflow).toContain('statuses: read')
     expect(previewWorkflow).toContain(
       'deploy-preview-${{ github.event.pull_request.number }}--euro28predictor.netlify.app',
     )
     expect(previewWorkflow).toContain(
       'EXPECTED_COMMIT: ${{ github.event.pull_request.head.sha }}',
     )
-    expect(previewWorkflow).toContain('EXPECTED_SUPABASE_REF: iouzoutneyjpugbbtdem')
     expect(previewWorkflow).toContain(
-      "require('./config/deployment-contract.json').contractVersion",
+      'STATUS_CONTEXT: netlify/euro28predictor/deploy-preview',
     )
-    expect(previewWorkflow).toContain("release.environment === 'deploy-preview'")
+    expect(previewWorkflow).toContain('commits/$EXPECTED_COMMIT/status')
+    expect(previewWorkflow).toContain("status?.state ?? 'missing'")
     expect(previewWorkflow).toContain(
-      'release.applicationContract === expectedContract',
-    )
-    expect(previewWorkflow).toContain('release.hostedContract <= expectedContract')
-    expect(previewWorkflow).not.toContain(
-      'release.hostedContract === expectedContract',
+      'Netlify did not certify a successful deploy preview for the exact PR head',
     )
   })
 
-  it('runs database-backed smoke only when the hosted contract is aligned', () => {
-    expect(previewWorkflow).toContain('id: preview-release')
-    expect(previewWorkflow).toContain("echo 'database_ready=true' >> \"$GITHUB_OUTPUT\"")
-    expect(previewWorkflow).toContain("echo 'database_ready=false' >> \"$GITHUB_OUTPUT\"")
+  it('fails if release metadata becomes publicly readable', () => {
+    expect(previewWorkflow).toContain('Verify protected release identity is not public')
+    expect(previewWorkflow).toContain('$PREVIEW_ORIGIN/release.json')
     expect(previewWorkflow).toContain(
-      "if: steps.preview-release.outputs.database_ready == 'true'",
+      'protected deploy-preview release.json is publicly readable',
     )
+    expect(previewWorkflow).toContain('200|301|302|303|307|308|401|403')
     expect(previewWorkflow).toContain(
-      'Hosted database preview unavailable until the development rollout applies contract',
+      'HTTP 200 response was neither release metadata nor a recognisable login page',
     )
-    expect(previewWorkflow).toContain('EURO28_SMOKE_EXPECTED_CONTRACT=$EXPECTED_CONTRACT')
   })
 
-  it('retains both read-only smoke entry points', () => {
-    expect(previewWorkflow).toContain('npm run smoke:production')
-    expect(previewWorkflow).toContain('npm run smoke:production:browser')
+  it('does not pretend a team-login session is available to CI', () => {
+    expect(previewWorkflow).toContain(
+      'Netlify team-login protection has no supported non-interactive site session',
+    )
+    expect(previewWorkflow).toContain(
+      'Authenticated browser behaviour remains covered by the disposable local-Supabase job',
+    )
+    expect(previewWorkflow).not.toContain('npm run smoke:production')
+    expect(previewWorkflow).not.toContain('npm run smoke:production:browser')
+  })
+})
+
+describe('target-specific production smoke contracts', () => {
+  it('retains both read-only production smoke entry points', () => {
     expect(packageJson.scripts['smoke:production']).toBe(
       'node scripts/production-smoke.mjs',
     )
@@ -167,9 +175,7 @@ describe('deploy-preview browser smoke workflow', () => {
       'playwright test --config=playwright.production.config.ts',
     )
   })
-})
 
-describe('target-specific production smoke contracts', () => {
   it('requires an explicit contract in both smoke implementations', () => {
     for (const smokeSource of [productionSmoke, anonymousBrowserSmoke]) {
       expect(smokeSource).toContain('EURO28_SMOKE_EXPECTED_CONTRACT')
