@@ -10,6 +10,8 @@
 
 This roadmap does **not** duplicate the programme phases or Stage A–L engineering plan. It records where delivery is now and the next executable sequence.
 
+> **What the finished product should look like:** [`design/README.md`](design/README.md) — the target design authority (Hub Architecture and Modernisation Plan rev 1.5, plus the landing-page prototype). It sets presentation and delivery; it changes no rule.
+
 ## Current baseline
 
 Every moving value — the current `main` commit, the repository contract, each hosted contract, the live production deploy — is stated in [`quality/current-status.md`](quality/current-status.md) and [`ops/ops-pending-migrations.md`](ops/ops-pending-migrations.md). **This document deliberately states none of them.**

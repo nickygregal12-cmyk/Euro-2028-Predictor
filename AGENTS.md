@@ -21,10 +21,13 @@ Use evidence in this order:
 2. freshly verified hosted Netlify/Supabase evidence;
 3. [`docs/quality/current-status.md`](docs/quality/current-status.md);
 4. ADRs for decisions;
-5. [`docs/roadmap.md`](docs/roadmap.md) for future sequence and [`MASTER-TODO.md`](MASTER-TODO.md) for the detailed active/parked inventory;
-6. dated reconciliations and older audits for historical evidence only.
+5. [`docs/design/README.md`](docs/design/README.md) for what the finished product should look like — the target design authority, presentation and delivery only;
+6. [`docs/roadmap.md`](docs/roadmap.md) for future sequence and [`MASTER-TODO.md`](MASTER-TODO.md) for the detailed active/parked inventory;
+7. dated reconciliations and older audits for historical evidence only.
 
 A planning document never overrides an ADR. Process, prepared tooling or a chat statement is not implementation evidence.
+
+**The design authority is deliberately below the ADRs.** [`docs/design/hub-architecture-and-modernisation-plan.md`](docs/design/hub-architecture-and-modernisation-plan.md) (revision 1.5) says what the product should look like when finished, and its own Document Control section limits it to presentation and delivery: it may not change scoring, locks, memberships, settlement or visibility. Where it restates a rule it is recording the repository's rule, so if the restatement and the tests disagree, the tests win and the document has a defect. Its baseline is contract 93 — check Appendix D.2 against the live status document before treating any of it as outstanding.
 
 ## Current baseline
 
