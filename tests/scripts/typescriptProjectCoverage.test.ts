@@ -59,6 +59,16 @@ function projectReferences(): string[] {
   return root.references.map((reference) => reference.path)
 }
 
+/**
+ * `tsconfig.*.json` files carry both `//` and block comments, so they are not
+ * plain JSON.
+ *
+ * Stripping them with a regex gets this wrong in a way that is easy to miss:
+ * `tsconfig.tools.json` includes the glob `"scripts/**` + `/*.ts"`, whose `/*`
+ * sits inside a string. A naive block-comment pattern starts a comment there
+ * and swallows the rest of the include list. So the scanner tracks string state
+ * and only treats a delimiter as a comment when it is outside one.
+ */
 function stripJsonComments(source: string): string {
   let output = ''
   let inString = false
@@ -129,6 +139,8 @@ const sources = committedTypeScriptSources()
 
 describe('TypeScript project coverage', () => {
   it('reads a plausible number of sources at all', () => {
+    // Without this, a `git ls-files` that returned nothing would make the
+    // coverage assertion below pass while checking no files.
     expect(sources.length).toBeGreaterThan(400)
   })
 
@@ -145,6 +157,8 @@ describe('TypeScript project coverage', () => {
   })
 
   it('references every project from the root config', () => {
+    // The prefixes above are only true because these projects are built. A
+    // reference removed here would silently un-cover a whole tree.
     expect(projectReferences().sort()).toEqual([
       './tsconfig.app.json',
       './tsconfig.gates.json',
@@ -156,6 +170,13 @@ describe('TypeScript project coverage', () => {
 })
 
 describe('JavaScript under scripts/', () => {
+  /**
+   * Typechecked JavaScript under `allowJs`/`checkJs` in tsconfig.gates.json.
+   * Originally the three deploy gates plus the
+   * environment validator; it now also carries scripts that typecheck cleanly
+   * on arrival, because adding a new script to the deferred backlog when it
+   * has zero errors would record a debt that does not exist.
+   */
   const CHECKED = [
     'scripts/check-migration-additive.mjs',
     'scripts/check-bundle-budget.mjs',
@@ -167,6 +188,15 @@ describe('JavaScript under scripts/', () => {
     'scripts/validate-netlify-environment.mjs',
   ] as const
 
+  /**
+   * Deliberately not checked yet, with the error count each would contribute
+   * measured on 30 July and 2 August 2026. None of them is a deploy gate. The
+   * Stage C1 operational scripts are separately covered by fail-closed runtime,
+   * source and disposable-database tests; their checkJs backlog is predominantly
+   * missing JSDoc parameter annotations on values the runtime validation already
+   * narrows. Recorded here so the backlog is a visible decision rather than an
+   * oversight, and so a new script cannot join it silently.
+   */
   const DEFERRED = [
     ['scripts/check-fixtures.mjs', 29],
     ['scripts/check-migration-timestamps.mjs', 10],
@@ -198,6 +228,8 @@ describe('JavaScript under scripts/', () => {
     ) as { files: string[]; compilerOptions: Record<string, unknown> }
 
     expect(gates.files.sort()).toEqual([...CHECKED].sort())
+    // Without both flags the project would include the files and examine
+    // nothing, which reads exactly like passing.
     expect(gates.compilerOptions.allowJs).toBe(true)
     expect(gates.compilerOptions.checkJs).toBe(true)
   })
@@ -205,12 +237,19 @@ describe('JavaScript under scripts/', () => {
 
 describe('TypeScript strictness', () => {
   it('states strict rather than inheriting it', () => {
+    // TypeScript 6 enables `strict` by default, so these declarations change
+    // nothing today. They exist so the guarantee belongs to the repository
+    // instead of to the pinned compiler major: without them, a compiler
+    // upgrade that changed the default, or a downgrade to TypeScript 5, would
+    // switch off strictNullChecks and noImplicitAny with nothing failing.
     for (const project of ['tsconfig.app.json', 'tsconfig.node.json']) {
       expect(readProjectConfig(project).compilerOptions?.strict).toBe(true)
     }
   })
 
   it('keeps the derived projects extending the strict base', () => {
+    // `tsconfig.test.json` and `tsconfig.tools.json` carry no `strict` of their
+    // own; they must keep extending the app project or they lose it.
     for (const project of ['tsconfig.test.json', 'tsconfig.tools.json']) {
       const config = readProjectConfig(project)
       expect(config.extends).toBe('./tsconfig.app.json')
