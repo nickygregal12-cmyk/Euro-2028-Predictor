@@ -6,15 +6,15 @@ This is the operational migration inventory. Machine-readable development hosted
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **80** | 80 canonical migrations through `20260804073000_season_card_lock_resolution.sql`; contract 80 adds the matchweek card lock-resolution law, the first of two slices toward the recurring scheduler | MERGED; HOSTED NOT APPLIED |
-| Development Supabase `iouzoutneyjpugbbtdem` | **79** | Hosted migration ledger directly verified through `20260804063000_cup_store_competition_domains`; machine record matches the hosted database | VERIFIED AND ALIGNED |
+| Repository candidate | **81** | 81 canonical migrations through `20260804080000_provider_ingestion_custody.sql`; contract 81 adds server-only provider response custody and decoder evidence | EXACT GATES REQUIRED BEFORE MERGE |
+| Development Supabase `iouzoutneyjpugbbtdem` | **80** | Fast-lane run 30889736356 applied `20260804073000_season_card_lock_resolution.sql` and postflight reported `Development is at contract 80.`; the hosted ledger was independently re-read on 4 August 2026 | VERIFIED; CONTRACT 81 NOT APPLIED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
-| Netlify `euro28predictor` non-production contexts | **79 declared / 79 Development** | `dev`, branch-deploy and deploy-preview point to the development Supabase project and declare `EURO28_DEPLOYED_DB_CONTRACT=79` | VERIFIED AND ALIGNED |
+| Netlify `euro28predictor` non-production contexts | **79 declared / 80 Development** | `dev`, branch-deploy and deploy-preview point to the Development project but still declare `EURO28_DEPLOYED_DB_CONTRACT=79` | DECLARATION TRAILS DEVELOPMENT BY ONE |
 | Netlify `euro28predictor` production | **63 hosted declaration** | Production points to the production Supabase project and retains the fatal contract gate | BLOCKED BY DESIGN |
 
 The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
 
-## Contracts 64–79
+## Contracts 64–81
 
 - **64:** Cup winner deletion semantics.
 - **65:** Stage C1 competition-season foundation.
@@ -33,18 +33,21 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **78:** Circle-method season Cup league schedule.
 - **79:** Shared Cup-store competition domains.
 - **80:** Season matchweek card lock resolution.
+- **81:** Server-only provider-ingestion custody and strict decoder evidence.
 
-Contracts 64–79 are applied to development; contract 80 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–80 are applied to Development. Contract 81 is a repository candidate and is not applied or deployed. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
-1. Keep the Development machine record, Netlify non-production declarations and this inventory aligned after every later migration rollout.
-2. Keep production Supabase and the production Netlify contract at 63 until a separately scoped, explicitly approved milestone release.
-3. Do not use the historic `euro28-predictor-dev` Netlify project.
+1. Merge contract 81 only after exact CI, Database parity, Browser E2E, hosted-inventory and Netlify preview gates pass, review threads are clear and no later contract claimant has taken the next migration count.
+2. Apply contract 81 to Development through `.github/workflows/development-fast-lane-rollout.yml` with project ref `iouzoutneyjpugbbtdem` and the exact ADR-0024 confirmation phrase. The workflow must prove the pending migration additive, take its lightweight snapshot, push only the pending migration and report `Development is at contract 81.`
+3. After the hosted ledger is verified at 81, update `config/development-hosted-contract.json` from the fast-lane run evidence and align Netlify `dev`, `branch-deploy` and `deploy-preview` declarations to 81. Keep production at 63.
+4. Deploy `provider-poll` to Development only after the migration is present. Do not configure or call a provider until the named caller key and a bounded non-production provider credential are separately available.
+5. Do not use the historic `euro28-predictor-dev` Netlify project.
 
 ## Next implementation boundary
 
-Provider-ingestion custody is the next durable cross-platform slice: strict decoders, archive-before-decode custody, server-only Edge Function execution and canonical identity mapping, rebuilt from current `main`. Stale PR #352/#416 migrations must not be reused.
+Contract 81 supplies custody and strict decoding only. The first provider rehearsal is one bounded non-production request whose raw response and processing evidence are verified without writing any official fixture, result, lock, score or standing. If authentication material is unavailable, stop after deployment rather than weakening the boundary.
 
 ## Related authority
 
