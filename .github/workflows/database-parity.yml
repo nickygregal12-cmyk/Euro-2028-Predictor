@@ -22,6 +22,18 @@ permissions:
   contents: read
 
 jobs:
+  restack-provider-contract-96:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/provider-ingestion-contract-80'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebuild the PR from exact contract-95 main
+        run: bash scripts/ops/restack-provider-contract-96.sh
+
   local-supabase:
     runs-on: ubuntu-latest
     timeout-minutes: 30
