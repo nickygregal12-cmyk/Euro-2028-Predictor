@@ -210,8 +210,15 @@
  * creates no table, trigger, policy or grant and alters none. A seeded Euro
  * user cannot reach either, and the Original Predictor is entry-scoped with no
  * matchweek card to settle.
+ *
+ * Contract 92 adds `predictor_internal.provider_raw_responses` and
+ * `predictor_internal.provider_response_processing`, both created empty, RLS
+ * enabled, append-only and revoked from every browser role. Its two public
+ * custody RPCs are granted only to `service_role`; the Edge Function is not
+ * deployed by the migration and no provider credential or request exists.
+ * Nothing a seeded Euro user reads is changed or made reachable.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 91
+export const SEED_REVIEWED_AT_CONTRACT = 92
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
