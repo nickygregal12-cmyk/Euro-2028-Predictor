@@ -301,8 +301,9 @@
  * state as before. The new parent/phase triggers fire only on Cup group or
  * fixture writes, none of which global setup performs.
  *
- * Contract 103 adds competition-instance lineage, a bounded completion reason
- * and live-instance uniqueness. Existing seeded competitions backfill as
+ * Contract 103 adds public/private competition-instance scope, season/game-
+ * pinned lineage, a bounded completion reason, one live row per series and one
+ * live public instance per season game. Existing seeded competitions backfill as
  * sequence one of a series that is themselves; none is completed, so the new
  * partial key permits nothing the replaced total key forbade. The resolver is
  * server-only and no successor can be created by this contract, leaving every
