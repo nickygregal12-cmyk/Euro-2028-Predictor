@@ -1,6 +1,6 @@
 {
-  "contractVersion": 83,
-  "requiredMigrationCount": 83,
+  "contractVersion": 84,
+  "requiredMigrationCount": 84,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",

@@ -7,7 +7,7 @@ This is the operational migration inventory. Machine-readable development hosted
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository `main` | **80** | 80 canonical migrations through `20260804073000_season_card_lock_resolution.sql`; contract 80 adds the matchweek card lock-resolution law, the first of two slices toward the recurring scheduler | MERGED; HOSTED NOT APPLIED |
-| Development Supabase `iouzoutneyjpugbbtdem` | **80** | Applied 4 August 2026 by fast-lane run 30889736356 on `3e82cca`, whose postflight step reported `Development is at contract 80.`; evidence artifact `development-fast-lane-evidence` (ID 8884567339) retained | VERIFIED AND ALIGNED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **83** | Applied 4 August 2026 by fast-lane run 30897118745 on `2865f3e`, whose postflight step reported `Development is at contract 83.`; evidence artifact `development-fast-lane-evidence` (ID 8887541428) retained | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **79 declared / 79 Development** | `dev`, branch-deploy and deploy-preview point to the development Supabase project and declare `EURO28_DEPLOYED_DB_CONTRACT=79` | VERIFIED AND ALIGNED |
 | Netlify `euro28predictor` production | **63 hosted declaration** | Production points to the production Supabase project and retains the fatal contract gate | BLOCKED BY DESIGN |
@@ -36,8 +36,9 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **81:** Season matchweek card status and submission-outcome storage.
 - **82:** The matchweek card is not pre-filled (ADR 0012 amendment).
 - **83:** Recurring season matchweek scheduler.
+- **84:** LMS eligibility and auto-assignment parity.
 
-Contracts 64–80 are applied to development; contract 81, contract 82 and contract 83 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–83 are applied to development; contract 84 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
