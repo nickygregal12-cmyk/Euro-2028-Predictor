@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 86,
-  "latestMigrationVersion": "20260804143000",
-  "latestMigrationName": "lms_season_selection",
-  "verifiedAt": "2026-08-04T11:11:28Z",
+  "requiredMigrationCount": 88,
+  "latestMigrationVersion": "20260804163000",
+  "latestMigrationName": "lms_auto_assignment",
+  "verifiedAt": "2026-08-04T11:57:55Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30903644470, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 86.",
-    "automationSession": "github-actions-run-30903644470",
-    "repositoryHeadBeforeChange": "8aaf55ca75e9657523573f9145c66797ab15d370"
+    "source": "Development fast-lane rollout run 30906915108, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 88. The additive step reported one structural statement \u2014 drop constraint, in 20260804153000_lms_used_cycle.sql \u2014 which removes a guarantee but no row.",
+    "automationSession": "github-actions-run-30906915108",
+    "repositoryHeadBeforeChange": "c9a1c94c1579ab21192e275e8eab25284ade62da"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false

@@ -7,7 +7,7 @@ This is the operational migration inventory. Machine-readable development hosted
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository `main` | **80** | 80 canonical migrations through `20260804073000_season_card_lock_resolution.sql`; contract 80 adds the matchweek card lock-resolution law, the first of two slices toward the recurring scheduler | MERGED; HOSTED NOT APPLIED |
-| Development Supabase `iouzoutneyjpugbbtdem` | **86** | Applied 4 August 2026 by fast-lane run 30903644470 on `8aaf55c`, whose postflight step reported `Development is at contract 86.`; evidence artifact `development-fast-lane-evidence` (ID 8890156178) retained | VERIFIED AND ALIGNED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **88** | Applied 4 August 2026 by fast-lane run 30906915108 on `c9a1c94`, whose postflight step reported `Development is at contract 88.`; evidence artifact `development-fast-lane-evidence` (ID 8891445326) retained. The additive step reported one structural statement — `drop constraint` in `20260804153000_lms_used_cycle.sql` — which removes a guarantee but no row | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **79 declared / 79 Development** | `dev`, branch-deploy and deploy-preview point to the development Supabase project and declare `EURO28_DEPLOYED_DB_CONTRACT=79` | VERIFIED AND ALIGNED |
 | Netlify `euro28predictor` production | **63 hosted declaration** | Production points to the production Supabase project and retains the fatal contract gate | BLOCKED BY DESIGN |
@@ -42,7 +42,7 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **87:** The mandatory used-list reset made storable (club uniqueness scoped to a used cycle).
 - **88:** Lock-time auto-assignment for a missed season LMS pick, behind a narrowed server-only lock exception.
 
-Contracts 64–86 are applied to development; contract 87 and contract 88 are merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–88 are applied to development. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
