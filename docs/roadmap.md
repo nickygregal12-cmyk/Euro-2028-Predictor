@@ -110,7 +110,14 @@ None of these documents authorises a migration or hosted write.
 
     **Persistence and SQL parity followed, 3–4 August 2026.** Season fixtures, predictions and matchweek Jokers, Main Predictor scoring, LMS pick resolution, setup and entrant state, LMS round conclusion and season exhaustion, and the Cup's pure rules all have PostgreSQL counterparts held in step by `tests/database-parity/` and proven against a real database by `supabase/tests/`. The contract each landed at is in [`ops/ops-pending-migrations.md`](ops/ops-pending-migrations.md) rather than here.
 
-    What remains in this step: the recurring matchweek scheduler, the LMS settlement job, Cup persistence (ties, groups, schedules — blocked on the decision ADR 0022's correction defers to after C1b), and every surface. **None of the surface work can start before the Phase 1 design.**
+    **The Cup rescoping completed at contracts 75–79.** ADR 0022's correction is discharged: `predictor_internal.cup_*` is competition-agnostic, the season supplies its own points and settlement sources, and the shared functions combine both by union rather than branching on competition kind. Cup persistence turned out to be largely present — `bonus_cup_groups`, `bonus_cup_members`, `bonus_cup_fixtures` and `bonus_competition_windows` were already competition-scoped, and contract 79 removed the last tournament-format constraints from them.
+
+    What remains in this step, narrowed to what is actually outstanding:
+
+    - the **recurring matchweek scheduler** — the storage it schedules over exists, the recurrence does not;
+    - the **LMS settlement job** — contracts 71–73 decide a pick, a round and a season, but nothing drives them from confirmed results;
+    - the **Cup split-stage persistence decision**, then its implementation. This is the only Cup work left, and it is a decision before it is a migration: a season split stage needs `group_id` and `matchday`, which `bonus_cup_fixtures_group_shape` forbids for any non-group stage, so the enum cannot widen until that check's intent is settled;
+    - every **surface**. **None of the surface work can start before the Phase 1 design.**
 11. Keep production at contract 63 and paused. Production promotion is a separate intentional release milestone.
 12. Complete C2 only after issue #272 records an independent review and the approved retention/erasure boundary is reflected in design and tests.
 13. Review ACQ-R02 only on a material cap increase or adverse rehearsal/hosted concurrency evidence.

@@ -141,16 +141,16 @@ All seven pre-migration contract suites are landed through PR #292. The owner-ap
 - [x] Preserve every Euro identifier, rule, score, rank, access boundary and Stage B context output.
 - [x] Extend applied-state, RLS/grant and adversarial cross-season tests in the same change.
 - [x] Prove zero-to-current rebuild, database lint, pgTAP, generated types and full Database parity on disposable infrastructure.
-- [ ] Complete the guarded hosted development rollout (workflow from PR #351). **Blocked on the owner replacing `SUPABASE_DEV_DB_URL` with the development Session pooler URI** — see `docs/ops/stage-c1-contract-65-rollout-recovery.md`. After postflight, align non-production Netlify to contract 65.
-- [ ] Keep production at contract 63 and paused until an intentional release milestone.
+- [x] Complete the guarded hosted development rollout (workflow from PR #351). *(Applied and postflight-verified 2–3 August 2026; the `SUPABASE_DEV_DB_URL` blocker is resolved. Development has since advanced to contract 79 through the ADR 0024 fast lane.)*
+- [ ] Keep production at contract 63 and paused until an intentional release milestone. *(Standing constraint, not a task to complete; production remains at 63.)*
 
-### Stage C1b — persistent game catalogue and memberships (next migration after hosted 65)
+### Stage C1b — persistent game catalogue and memberships — DELIVERED at contract 66 (PR #371)
 
-- [ ] Audit and map existing competitions/tournaments/entries/profiles/leagues/bonus-competition relations, RPCs and browser grants before writing SQL; extend existing structures rather than duplicating them.
-- [ ] Persist game definitions, per-competition-season game availability (active/inactive), one user entry per competition-season game with joined/left/disqualified state and append-only join/leave/rejoin evidence, and game-owned policy references.
-- [ ] Keep membership separate per game (Main Predictor, LMS, Predictor Championship); derive competition membership from game membership with no second membership truth.
-- [ ] Seed Premier League 2026/27, Scottish Premiership 2026/27 and Euro 2028 with each competition's valid game catalogue; preserve Euro game registrations.
-- [ ] No C2 content: no ownership transfer, erasure redesign, pseudonymisation or replacement ownership RLS (issue #272 remains the blocker).
+- [x] Audit and map existing competitions/tournaments/entries/profiles/leagues/bonus-competition relations, RPCs and browser grants before writing SQL; extend existing structures rather than duplicating them. *(The audit drove the design: existing structures were extended, not duplicated.)*
+- [x] Persist game definitions, per-competition-season game availability (active/inactive), one user entry per competition-season game with joined/left/disqualified state and append-only join/leave/rejoin evidence, and game-owned policy references.
+- [x] Keep membership separate per game (Main Predictor, LMS, Predictor Championship); derive competition membership from game membership with no second membership truth.
+- [x] Seed Premier League 2026/27, Scottish Premiership 2026/27 and Euro 2028 with each competition's valid game catalogue; preserve Euro game registrations.
+- [x] No C2 content: no ownership transfer, erasure redesign, pseudonymisation or replacement ownership RLS (issue #272 remains the blocker). *(Boundary held; issue #272 still blocks C2.)*
 
 ### Stage C2 — blocked profile ownership and account erasure — issue #272
 
@@ -179,14 +179,20 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 ## Stage E — season Predictor
 
 - [ ] Build only from ADR 0012 and its future scoring authority.
-- [ ] Add recurring matchweek submission scheduling around the existing tournament submission mechanism.
-- [ ] Extend TypeScript/PostgreSQL parity for season scoring.
+- [ ] Add recurring matchweek submission scheduling around the existing tournament submission mechanism. **NEXT SLICE.** The storage it schedules over exists (contracts 68–70); what is absent is the recurrence itself.
+- [x] Extend TypeScript/PostgreSQL parity for season scoring. *(Contract 70: `season_fixture_points` and `season_matchweek_points`, held in step by `seasonScoringParity.test.ts` and proven by `122_season_scoring.sql`.)*
 - [ ] Build the fast phone entry and completion flow.
 - [ ] Cover late entry, unbanked rounds, defaults, partial completion, reschedules and corrections.
 - [ ] Build matchweek, monthly and form standings as first-class retention surfaces that never feed back into the canonical total.
 - [ ] Measure completion and low-rank retention during the closed cohort and record the result.
 
 ## Stage F — season Last Man Standing
+
+**Rules and storage delivered.** Contract 71 resolves a pick, contract 72 persists setups and entrant state with public competitions pinned to Classic, and contract 73 concludes a round and a season — each with TypeScript parity and pgTAP. What remains below is the settlement job that calls them, and the surfaces.
+
+- [x] Encode every ADR 0013 rule as a pure authority with a PostgreSQL counterpart. *(Contracts 71–73.)*
+- [x] Persist LMS setups and entrant state, refusing an entrant more lives or saves than their setup granted. *(Contract 72.)*
+- [ ] **Build the settlement job that drives `resolve_lms_pick` and `conclude_lms_round` from confirmed results.** The rules cannot run themselves.
 
 - [ ] Build only from ADR 0013.
 - [ ] Cover public/private lifecycle, repeating competitions and registration boundaries.
@@ -197,11 +203,15 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 
 ## Stage G — season Predictor Cup
 
-- [ ] Build only from ADR 0014.
-- [ ] Reuse existing draw, qualification, bracket and Penalty Number machinery.
-- [ ] Replace the tournament points source through an explicit neutral contract.
-- [ ] Prove format selection and schedules across supported field sizes and remaining-round counts.
-- [ ] Cover settlement with reduced fixture sets and visible explanation.
+**Largely delivered, contracts 74–79.** The shared Cup machinery is now competition-agnostic and the season supplies its own sources.
+
+- [x] Build only from ADR 0014, as amended by ADR 0020 and ADR 0022.
+- [x] Reuse existing draw, qualification, bracket and Penalty Number machinery. *(Contracts 75–76 made `predictor_internal.cup_*` neutral rather than writing a second set; `cup_final_group_tables`, `cup_seed_group` and `cup_bracket_order` needed no change at all.)*
+- [x] Replace the tournament points source through an explicit neutral contract. *(Contract 75 split the points source from the shared arithmetic; contract 77 added the season's own source returning the same eight derived facts.)*
+- [x] Prove format selection and schedules across supported field sizes and remaining-round counts. *(Contracts 74 and 78, with parity suites and pgTAP.)*
+- [x] Cover settlement with reduced fixture sets and visible explanation. *(Contract 74: `settle_season_cup_tie` reports `settledOnFixtures`, `fixtureCardSize` and `reducedSet`, and refuses a tie with nothing confirmed.)*
+- [ ] **Decide and document the split-stage persistence shape, then implement it.** `bonus_cup_fixtures.stage` is still `('group', 'playoff', 'knockout')`. A season split stage needs `group_id` and `matchday`, which `bonus_cup_fixtures_group_shape` forbids for any non-group stage, so the enum cannot widen until that check's intent is settled. See `docs/adr/`.
+- [ ] Build the season Cup surfaces. Blocked behind the Phase 1 design like every other season surface.
 
 ## Stage H — hub and social product
 
