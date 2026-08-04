@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 84,
-  "latestMigrationVersion": "20260804123000",
-  "latestMigrationName": "lms_eligibility_parity",
-  "verifiedAt": "2026-08-04T10:11:26Z",
+  "requiredMigrationCount": 85,
+  "latestMigrationVersion": "20260804133000",
+  "latestMigrationName": "lms_settlement",
+  "verifiedAt": "2026-08-04T10:35:12.701Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30899305992, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 84.",
-    "automationSession": "github-actions-run-30899305992",
-    "repositoryHeadBeforeChange": "a9daf64d51ea94274f71cf6858624b008a40a4d6"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 30901081053,
+    "repositoryHead": "701fe623ee5062a4bcb11471165e9dcbfcbb63c7"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
