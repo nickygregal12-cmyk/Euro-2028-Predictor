@@ -120,8 +120,16 @@
  * defined. A seeded Euro user cannot reach it: the Original Predictor is
  * entry-scoped and has no matchweek card. Contract 83 is the scheduler,
  * unchanged in reach from the note below.
+ *
+ * Contract 84 adds two immutable `predictor_internal` functions — Last Man
+ * Standing eligibility and auto-assignment — revoked from every browser role,
+ * taking jsonb and returning jsonb, touching no relation at all. It creates no
+ * table, trigger, policy or grant and alters none. Its apply-time DO block only
+ * calls the function it just defined. A seeded Euro user cannot reach either,
+ * and the Euro tournament has no Last Man Standing season entrant to be
+ * assigned a club in the first place.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 83
+export const SEED_REVIEWED_AT_CONTRACT = 84
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

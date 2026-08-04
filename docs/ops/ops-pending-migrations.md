@@ -36,8 +36,9 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **81:** Season matchweek card status and submission-outcome storage.
 - **82:** The matchweek card is not pre-filled (ADR 0012 amendment).
 - **83:** Recurring season matchweek scheduler.
+- **84:** LMS eligibility and auto-assignment parity.
 
-Contracts 64–83 are applied to development. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–83 are applied to development; contract 84 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
