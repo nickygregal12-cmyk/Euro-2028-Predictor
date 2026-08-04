@@ -22,6 +22,17 @@ const targets = [
 ] as const
 
 describe('contract 104 live competition caller boundary', () => {
+  it('moves the caller set atomically', () => {
+    expect(normalizedMigration.match(/^begin;$/gm)).toHaveLength(1)
+    expect(normalizedMigration.match(/^commit;$/gm)).toHaveLength(1)
+    expect(normalizedMigration.indexOf('begin;')).toBeLessThan(
+      normalizedMigration.indexOf('function predictor_internal.enforce_season_matchweek_lock'),
+    )
+    expect(normalizedMigration.lastIndexOf('commit;')).toBeGreaterThan(
+      normalizedMigration.lastIndexOf('function public.get_my_lms'),
+    )
+  })
+
   it('redefines exactly the ten measured callers', () => {
     expect(migration.match(/create\s+or\s+replace\s+function/gi)).toHaveLength(10)
     for (const target of targets) {
