@@ -4,11 +4,11 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 4 August 2026
 
-The repository and development are level at **contract 91**.
+The repository is at **contract 92**; development is at 91 until the next rollout.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **91** | Contracts 90 and 91 add the season Main Predictor score store and the matchweek settlement parity, through `20260804193000_matchweek_settlement_parity.sql` | MERGED AND APPLIED |
+| Repository `main` | **92** | Contract 92 makes `carried_to_replay` reachable from stored data, through `20260804203000_season_fixture_replay_link.sql` | MERGED; DEVELOPMENT NOT YET APPLIED |
 | Development Supabase `iouzoutneyjpugbbtdem` | **91** | Applied 4 August 2026 by fast-lane run 30916033941 on `a0af06d`, whose postflight step reported `Development is at contract 91.`; evidence artifact `development-fast-lane-evidence` (ID 8895146221) retained. Corroborated read-only against the database, structurally and behaviourally: `season_matchweek_scores` carries its 4 CHECK constraints and its shape trigger; both settlement functions exist in `predictor_internal` with no `EXECUTE` for `anon`, `authenticated` or `public`; `is_settlement_score('{}')` returns false rather than null, a scoreless `completed` fixture refuses `completed_without_result`, and a card of completed + void + carried-to-replay reports a matches-played denominator of 1 | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **86 hosted declaration** | `dev`, branch-deploy and deploy-preview point to Development, declare `EURO28_DEPLOYED_DB_CONTRACT=86`, and require Netlify team login | VERIFIED AND ALIGNED WITH DEVELOPMENT |
@@ -16,7 +16,7 @@ The repository and development are level at **contract 91**.
 
 The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
 
-## Contracts 64–91
+## Contracts 64–92
 
 - **64:** Cup winner deletion semantics.
 - **65:** Stage C1 competition-season foundation.
@@ -46,8 +46,9 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **89:** The season LMS settlement job — replay from results, the entrant-state projection, and an hourly cron tick.
 - **90:** The season Main Predictor score store, at matchweek granularity.
 - **91:** Matchweek settlement parity — what each fixture on a card means for scoring, and whether the matchweek may settle.
+- **92:** The replay link — which fixture an abandoned match handed its slot to, making `carried_to_replay` reachable from stored data.
 
-Contracts 64–91 are all applied to development. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–91 are applied to development; contract 92 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 

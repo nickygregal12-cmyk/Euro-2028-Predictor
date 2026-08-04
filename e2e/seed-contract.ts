@@ -210,8 +210,18 @@
  * creates no table, trigger, policy or grant and alters none. A seeded Euro
  * user cannot reach either, and the Original Predictor is entry-scoped with no
  * matchweek card to settle.
+ *
+ * Contract 92 is the first of this run to ALTER an existing relation rather
+ * than only add new ones: it puts `replay_fixture_id` on `season_fixtures`,
+ * with two CHECKs, a partial unique index and a chain-walk trigger. The column
+ * is nullable with no default, so no existing row is rewritten and both CHECKs
+ * are satisfied vacuously by the null every current row holds. Nothing the seed
+ * creates is reachable either way — `season_fixtures` is season-only, the
+ * seeded Euro competition is a tournament, and its shape trigger has refused a
+ * non-league-season row since contract 68, so the Euro tournament holds no row
+ * in that table to alter.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 91
+export const SEED_REVIEWED_AT_CONTRACT = 92
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
