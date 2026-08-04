@@ -25,13 +25,14 @@ import { describe, expect, it } from 'vitest'
 
 const repositoryRoot = process.cwd()
 
-/** Roots covered by the four referenced projects, as declared in their `include`. */
+/** Roots covered by the referenced projects, as declared in their `include`. */
 const COVERED_PREFIXES = [
   'src/',
   'tests/',
   'e2e/',
   'production-smoke/',
   'scripts/',
+  'supabase/functions/',
 ] as const
 
 /** Individually-named root files. */

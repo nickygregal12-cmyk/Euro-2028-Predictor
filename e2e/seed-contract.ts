@@ -244,8 +244,16 @@
  * `Season is required`, and calling it with a seeded league season id gets
  * `This season is not yours to read`. It creates no relation, trigger or
  * policy, alters none, and adds no grant on any existing object.
+ *
+ * Contract 96 adds `predictor_internal.provider_raw_responses` and
+ * `predictor_internal.provider_response_processing`, both created empty, RLS
+ * enabled, append-only and revoked from every browser role. Its two public
+ * custody RPCs are granted only to `service_role`; the provider Edge Function
+ * is not deployed by the migration, no provider credential is configured and
+ * no provider request is made. Nothing a seeded Euro user reads is changed or
+ * made reachable.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 95
+export const SEED_REVIEWED_AT_CONTRACT = 96
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
