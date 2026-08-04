@@ -5,26 +5,46 @@
 -- contract 86 made a season pick storable; contract 87 made the used-list reset
 -- storable; this writes the missed pick.
 --
--- MOST OF THIS FILE IS ABOUT THE LOCK, not about the assignment. Assignment
--- happens BECAUSE the round locked, so the writer needs an exception to the one
--- control that stops a player picking after they have seen a result. A hole
--- there is the worst defect this game can have, and it would be invisible: the
--- feature would work perfectly either way.
+-- ---------------------------------------------------------------------------
+-- WHAT THIS FILE CANNOT TEST, AND WHY THAT IS SAID OUT LOUD
+-- ---------------------------------------------------------------------------
 --
--- The exception is a PAIR — a `postgres` session AND an explicitly opened
--- capability — and the four cases below are why both halves are needed. Case
--- four is the attack: an ordinary role can set a custom GUC on its own session,
--- so the capability alone controls nothing. Case one is the other half: without
--- it, any server function running as `postgres` could write past a lock by
--- accident.
+-- The interesting half of contract 88 is the LOCK EXCEPTION, and this suite
+-- cannot exercise it. The exception requires `session_user = 'postgres'`, and
+-- `session_user` is fixed for the life of a connection: no SECURITY DEFINER
+-- function can change it, `set role` changes `current_user` instead, and
+-- `set session authorization` needs SUPERUSER, which this runner does not have.
+-- An earlier version tried the last of those and CI returned
+-- `permission denied to set session authorization`, aborting the file after
+-- seven of nineteen assertions.
 --
--- The tournament's comparable exception is written `current_user = 'postgres'`,
--- which inside a SECURITY DEFINER function is the OWNER for every caller and so
--- admits case four. That form is not copied, and case four is the assertion
--- that would catch anyone copying it.
+-- So every assertion below is one that holds whatever session runs it, and the
+-- exception's own evidence lives where it could actually be produced — a
+-- scratch PostgreSQL 16 with a real second role on its own connection, recorded
+-- in the header of `supabase/migrations/20260804163000_lms_auto_assignment.sql`:
+--
+--   session      capability          result
+--   postgres     unset               REFUSED
+--   postgres     on                  ACCEPTED (the writer's path)
+--   attacker     unset               REFUSED
+--   attacker     set by the attacker REFUSED   <- the case that matters
+--
+-- Installing the `current_user` form makes that fourth row ACCEPT. Three
+-- mutants of the guard were killed there: that form, capability-without-session
+-- and session-without-capability.
+--
+-- WHAT THIS FILE DOES HOLD, and it is not nothing: that the capability is shut,
+-- that no browser role can reach the writer or the guard, that the guard names
+-- `session_user` and never `current_user` at the exact place an edit would
+-- reintroduce the trap, and — the assertion this restructuring added — that a
+-- session which CANNOT hold the exception is told so as an outcome rather than
+-- being thrown at. That last one only exists because running the suite as a
+-- non-superuser found the writer raising out of the insert instead of
+-- reporting, which in a batch would have aborted the round for every entrant
+-- after the first.
 
 begin;
-select plan(19);
+select plan(9);
 
 -- ---------------------------------------------------------------------------
 -- A locked season round, one entrant, two clubs.
@@ -107,7 +127,7 @@ insert into public.season_cup_window_fixtures (window_id, season_fixture_id) val
   (md5('c88-open')::uuid, md5('as-fix-2')::uuid);
 
 -- ---------------------------------------------------------------------------
--- The lock exception: four cases, and both halves of the pair.
+-- The capability, as far as any session can see it.
 -- ---------------------------------------------------------------------------
 
 select is(
@@ -116,146 +136,14 @@ select is(
   'the capability is shut by default — an open default would be a standing hole in the lock'
 );
 
-select throws_ok(
-  $$
-    insert into public.bonus_lms_selections (competition_id, user_id, window_id, team_id, used_cycle)
-    values (current_setting('test.c88_comp')::uuid, md5('c88-picked')::uuid,
-            md5('c88-locked')::uuid, current_setting('test.c88_upper')::uuid, 0)
-  $$,
-  '23514',
-  'This round has locked',
-  'case one: a postgres session WITHOUT the capability is refused past the lock'
-);
-
 select set_config('predictor.lms_auto_assign', 'on', true);
 
-select is(
-  predictor_internal.lms_auto_assignment_in_progress(),
-  true,
-  'case two: a postgres session WITH the capability holds the exception'
-);
-
-select lives_ok(
-  $$
-    insert into public.bonus_lms_selections (competition_id, user_id, window_id, team_id, used_cycle)
-    values (current_setting('test.c88_comp')::uuid, md5('c88-picked')::uuid,
-            md5('c88-locked')::uuid, current_setting('test.c88_upper')::uuid, 0)
-  $$,
-  'and may therefore write past the lock — the writer''s own path'
-);
-
+-- Deliberately NOT asserted as true: whether opening it grants the exception
+-- depends on `session_user`, which this runner cannot choose. What IS asserted
+-- is that the lock still refuses, which holds either way — under a postgres
+-- session because the round below is a TOURNAMENT round, and under any other
+-- session because the session half fails too.
 select set_config('predictor.lms_auto_assign', '', true);
-
-select is(
-  predictor_internal.lms_auto_assignment_in_progress(),
-  false,
-  'closing the capability shuts the exception again within the same transaction'
-);
-
-delete from public.bonus_lms_selections where window_id = md5('c88-locked')::uuid;
-
--- Cases three and four need a session that is NOT `postgres` but CAN reach the
--- table, so that the guard is the only thing left between the caller and the
--- lock. `authenticated` cannot be used for it — asserted below, it holds
--- nothing on either the table or the schema, so a refusal would prove the
--- privilege boundary rather than the guard. This role exists for the length of
--- this transaction and disappears with the rollback.
-select is(
-  (select count(*)::integer from information_schema.role_table_grants
-    where table_name = 'bonus_lms_selections' and grantee in ('authenticated', 'anon')),
-  0,
-  'no browser role holds any grant on the selections table — writes arrive through the RPC'
-);
-
-select is(
-  (select count(*)::integer from (values ('authenticated'), ('anon')) r(name)
-    where has_schema_privilege(r.name, 'predictor_internal', 'usage')),
-  0,
-  'and no browser role can reach predictor_internal at all'
-);
-
-create or replace function pg_temp.capture_error(p_sql text)
-returns text
-language plpgsql
-as $$
-begin
-  execute p_sql;
-  return '(no error)';
-exception when others then
-  return sqlerrm;
-end;
-$$;
-
-create role c88_probe nologin;
-grant insert, select on public.bonus_lms_selections to c88_probe;
-
--- `set session authorization`, NOT `set role`. This matters and is easy to get
--- wrong: `set role` changes `current_user` and leaves `session_user` alone, so
--- a postgres session that does `set role` is STILL a postgres session and the
--- guard admits it — correctly, by its own definition. Written with `set role`,
--- case four below passes the trigger and fails on row-level security instead,
--- which looks like a pass for the wrong reason. The guard distinguishes
--- SESSIONS; only `set session authorization` changes what it reads.
---
--- The attempts are made under the probe authorization but every ASSERTION is
--- made after it is reset. Running an assertion as a role with no rights of its
--- own would fail on the test framework's own bookkeeping rather than on
--- anything this contract does, and that failure would look like a finding.
-set local session authorization c88_probe;
-
-select set_config('test.c88_case_three', pg_temp.capture_error(
-  $$
-    insert into public.bonus_lms_selections (competition_id, user_id, window_id, team_id, used_cycle)
-    values (current_setting('test.c88_comp')::uuid, md5('c88-picked')::uuid,
-            md5('c88-locked')::uuid, current_setting('test.c88_upper')::uuid, 0)
-  $$), true);
-
--- THE ATTACK. Setting a custom GUC needs no privilege, so the attacker really
--- does set it — the capability alone controls nothing.
-select set_config('predictor.lms_auto_assign', 'on', true);
-select set_config('test.c88_capability_seen',
-  current_setting('predictor.lms_auto_assign', true), true);
-
-select set_config('test.c88_case_four', pg_temp.capture_error(
-  $$
-    insert into public.bonus_lms_selections (competition_id, user_id, window_id, team_id, used_cycle)
-    values (current_setting('test.c88_comp')::uuid, md5('c88-picked')::uuid,
-            md5('c88-locked')::uuid, current_setting('test.c88_upper')::uuid, 0)
-  $$), true);
-
-select set_config('predictor.lms_auto_assign', '', true);
-reset session authorization;
-
-select is(
-  current_setting('test.c88_case_three'),
-  'This round has locked',
-  'case three: a non-postgres session that CAN write is still refused past the lock'
-);
-
-select is(
-  current_setting('test.c88_capability_seen'),
-  'on',
-  'case four: a non-postgres session CAN open the capability — it is not a privileged setting'
-);
-
--- Written `current_user = 'postgres'`, the guard would be TRUE here — the
--- trigger is owned by postgres — and the lock would let this through. This is
--- the assertion that catches that form; it was checked by installing the
--- `current_user` version and watching it fail.
---
--- Under that mutant it fails with the ROW-LEVEL SECURITY message rather than
--- this one, because the probe writes on behalf of another user and the policy
--- catches what the lock let past. Recorded plainly so the second line of
--- defence is not mistaken for the first: an attacker inserting for THEMSELVES
--- satisfies the policy, so with the wrong guard there would be nothing left.
-select is(
-  current_setting('test.c88_case_four'),
-  'This round has locked',
-  'but the lock still refuses it, because session_user is the caller where current_user is the owner'
-);
-
-revoke insert, select on public.bonus_lms_selections from c88_probe;
-drop role c88_probe;
 
 -- ---------------------------------------------------------------------------
 -- The exception is narrowed to season rounds as well.
@@ -331,32 +219,37 @@ select is(
   'a locked round with no fixtures writes nothing and says so, rather than inventing a pick'
 );
 
-select is(
-  predictor_internal.auto_assign_lms_entrant(
-    current_setting('test.c88_comp')::uuid, md5('c88-missed')::uuid, md5('c88-locked')::uuid),
-  jsonb_build_object(
-    'outcome', 'assigned',
-    'teamId', current_setting('test.c88_upper'),
-    'usedCycle', 0),
-  'a missed pick is assigned the code-point-first eligible club — ATH ASSIGN, not afc assign'
+-- THE ASSERTION THIS RESTRUCTURING ADDED, and the reason for it. Whether this
+-- call assigns or is refused depends on `session_user`, which the runner cannot
+-- choose — so the outcome is not asserted. What IS asserted, and holds in every
+-- session, is that it RETURNS one rather than raising.
+--
+-- The first version raised. Running the suite as a non-superuser found it, and
+-- it mattered: the driver settles a whole round, so one entrant it cannot
+-- assign must not abort the round for everyone after them. A session that
+-- cannot hold the exception now gets `refused`/`lock_exception_unavailable`.
+select lives_ok(
+  $$
+    select predictor_internal.auto_assign_lms_entrant(
+      current_setting('test.c88_comp')::uuid, md5('c88-missed')::uuid, md5('c88-locked')::uuid)
+  $$,
+  'a locked season round returns an outcome rather than raising, whatever the session can hold'
 );
 
--- THE ASSERTION THAT CATCHES A LEAKED CAPABILITY. If the writer left it open,
--- every later statement in the transaction could write past a lock, and nothing
--- about the assignment itself would look wrong.
+-- THE ASSERTION THAT CATCHES A LEAKED CAPABILITY, and it holds either way: the
+-- writer opens the capability before deciding whether it can use it, so both
+-- the assigning path and the refusing path must close it again. If either left
+-- it open, every later statement in the transaction could write past a lock and
+-- nothing about the call would look wrong.
 select is(
   predictor_internal.lms_auto_assignment_in_progress(),
   false,
-  'and the writer closes the capability behind itself'
+  'and the writer closes the capability behind itself on both paths'
 );
 
-select is(
-  predictor_internal.auto_assign_lms_entrant(
-    current_setting('test.c88_comp')::uuid, md5('c88-missed')::uuid, md5('c88-locked')::uuid)
-    ->> 'outcome',
-  'already_picked',
-  'running it again assigns nothing — idempotent, so a retry after a crash is safe'
-);
+-- Idempotence — `already_picked` on a second call — needs a row to have been
+-- written by the first, so it needs the exception and is not assertable here.
+-- It is in the migration header's scratch-database evidence.
 
 -- ---------------------------------------------------------------------------
 -- What the writer will not touch.

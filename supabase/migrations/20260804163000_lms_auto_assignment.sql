@@ -189,7 +189,8 @@ revoke all on function predictor_internal.assert_bonus_lms_selection_shape()
 --   not_locked       the round has not locked, so the entrant may still pick;
 --   eliminated       the recorded outcome says they are out;
 --   no_eligible_club the round offers none — nothing written, fail closed;
---   refused          the input is not a season Last Man Standing round.
+--   refused          the input is not a season Last Man Standing round, or the
+--                    session cannot hold the lock exception.
 -- ---------------------------------------------------------------------------
 
 create or replace function predictor_internal.auto_assign_lms_entrant(
@@ -303,6 +304,32 @@ begin
   -- pooled connection; closing it by hand means it cannot leak into a later
   -- STATEMENT of this one either.
   perform set_config('predictor.lms_auto_assign', 'on', true);
+
+  -- Opening the capability is not the same as HOLDING the exception: the
+  -- session half is `session_user`, which no SECURITY DEFINER function can
+  -- change. A session that is not `postgres` therefore gets nowhere, and it
+  -- must find that out HERE rather than by raising out of the insert below.
+  --
+  -- This is a real caller, not a hypothetical: PostgREST logs in as
+  -- `authenticator` and switches role, so anything reaching this function
+  -- through the API — including with a service-role key — cannot hold the
+  -- exception. Only a database session that logged in as `postgres` can, which
+  -- in practice means pg_cron and migrations.
+  --
+  -- Reporting beats raising because the driver settles a batch: one entrant it
+  -- cannot assign must not abort the round for everyone else.
+  --
+  -- THE CONSTRAINT THIS PUTS ON THE NEXT CONTRACT: the settlement job must be
+  -- scheduled through pg_cron, which runs as the role that scheduled it. It
+  -- must NOT be granted to `service_role` and driven through the API the way
+  -- contract 83's matchweek job is, because that path can never hold the
+  -- exception and every assignment would come back refused.
+  if not predictor_internal.lms_auto_assignment_in_progress() then
+    perform set_config('predictor.lms_auto_assign', '', true);
+    return jsonb_build_object(
+      'outcome', 'refused',
+      'reason', 'lock_exception_unavailable');
+  end if;
 
   begin
     insert into public.bonus_lms_selections (
