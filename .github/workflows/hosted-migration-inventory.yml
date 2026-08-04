@@ -3,6 +3,224 @@ name: Hosted migration inventory
 on:
   pull_request:
     paths:
+      - AGENTS.md
+      - config/deployment-contract.json
+      - config/development-hosted-contract.json
+      - docs/ops/ops-pending-migrations.md
+      - docs/quality/current-status.md
+      - scripts/check-hosted-migration-inventory.mjs
+      - .github/workflows/hosted-migration-inventory.yml
+  push:
+    branches: [main]
+    paths:
+      - config/deployment-contract.json
+      - config/development-hosted-contract.json
+      - docs/ops/ops-pending-migrations.md
+      - scripts/check-hosted-migration-inventory.mjs
+      - .github/workflows/hosted-migration-inventory.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - run: node scripts/check-hosted-migration-inventory.mjs
+
+  align-contract84:
+    if: github.event_name == 'pull_request' && github.head_ref == 'agent/provider-ingestion-contract-80'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/provider-ingestion-contract-80
+      - name: Merge provider custody into contract 83 authorities
+        shell: python
+        run: |
+          from pathlib import Path
+          import json
+
+          contract_path = Path('config/deployment-contract.json')
+          contract = json.loads(contract_path.read_text())
+          if contract['contractVersion'] != 83 or contract['requiredMigrationCount'] != 83:
+              raise SystemExit(f"unexpected base contract: {contract['contractVersion']}/{contract['requiredMigrationCount']}")
+          contract['contractVersion'] = 84
+          contract['requiredMigrationCount'] = 84
+          for signature in [
+              'public.archive_provider_response(text,text,text,integer,jsonb,text,uuid)',
+              'public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',
+          ]:
+              if signature not in contract['requiredRpcSignatures']:
+                  contract['requiredRpcSignatures'].append(signature)
+          contract['notes'] = (
+              'Tagged repository baseline euro-2028-baseline remains contract 63. '
+              'Contracts 64–83 establish the competition-season, prediction, LMS, season-Cup and matchweek-card foundations. '
+              'Contract 84 adds server-only provider response custody and decoder evidence: raw payloads are archived before parsing, processing evidence is append-only, and no provider path can write official fixtures, results, locks, scores or standings. '
+              'Hosted deployment remains separately guarded and is not claimed by this repository contract.'
+          )
+          contract_path.write_text(json.dumps(contract, indent=2) + '\n')
+
+          seed = Path('e2e/seed-contract.ts')
+          text = seed.read_text()
+          if 'export const SEED_REVIEWED_AT_CONTRACT = 83' not in text:
+              raise SystemExit('seed contract 83 anchor missing')
+          text = text.replace('export const SEED_REVIEWED_AT_CONTRACT = 83', 'export const SEED_REVIEWED_AT_CONTRACT = 84', 1)
+          marker = ' */\nexport const SEED_REVIEWED_AT_CONTRACT = 84'
+          note = ''' *\n * Contract 84 adds two `predictor_internal` custody tables with RLS enabled and\n * no browser grants, plus two service-role-only RPCs. The Edge Function checks\n * a named caller key before provider I/O, archives raw evidence before decode,\n * and has no authority path into official fixtures, results, locks, scores or\n * standings. No seeded application relation, policy or browser grant changes.\n */\nexport const SEED_REVIEWED_AT_CONTRACT = 84'''
+          if marker not in text:
+              raise SystemExit('seed closing marker missing')
+          text = text.replace(marker, note, 1)
+          seed.write_text(text)
+
+          migration = Path('supabase/migrations/20260804123000_provider_ingestion_custody.sql')
+          text = migration.read_text().replace('Contract 74', 'Contract 84', 1)
+          migration.write_text(text)
+
+          poll_test = Path('tests/scripts/providerPollContract.test.ts')
+          text = poll_test.read_text()
+          old_path = 'supabase/migrations/20260804004500_provider_ingestion_custody.sql'
+          if old_path not in text:
+              raise SystemExit('provider poll migration anchor missing')
+          poll_test.write_text(text.replace(old_path, 'supabase/migrations/20260804123000_provider_ingestion_custody.sql', 1))
+
+          privileges = Path('supabase/tests/080_function_privileges.sql')
+          text = privileges.read_text()
+          anchor = "  ('process_due_season_matchweek_submissions(timestamp with time zone)'),\n"
+          addition = anchor + "  ('archive_provider_response(text,text,text,integer,jsonb,text,uuid)'),\n  ('record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)'),\n"
+          if anchor not in text or 'archive_provider_response(text,text,text,integer,jsonb,text,uuid)' in text:
+              raise SystemExit('service privilege insertion precondition failed')
+          privileges.write_text(text.replace(anchor, addition, 1))
+
+          rpc = Path('tests/database-parity/rpcAllowlistParity.test.ts')
+          text = rpc.read_text()
+          anchor = "    expect(serviceOnly).toEqual([\n      'admin_disqualify_competition_game_entry(uuid,uuid,text)',\n"
+          replacement = "    expect(serviceOnly).toEqual([\n      'admin_disqualify_competition_game_entry(uuid,uuid,text)',\n      'archive_provider_response(text,text,text,integer,jsonb,text,uuid)',\n"
+          if anchor not in text or 'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)' in text:
+              raise SystemExit('RPC parity insertion precondition failed')
+          text = text.replace(anchor, replacement, 1)
+          anchor2 = "      'process_due_entry_submissions(timestampwithtimezone)',\n      'set_operating_limits(integer,integer)',\n"
+          replacement2 = "      'process_due_entry_submissions(timestampwithtimezone)',\n      'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',\n      'set_operating_limits(integer,integer)',\n"
+          if anchor2 not in text:
+              raise SystemExit('RPC parity second insertion anchor missing')
+          rpc.write_text(text.replace(anchor2, replacement2, 1))
+
+          coverage = Path('tests/scripts/typescriptProjectCoverage.test.ts')
+          text = coverage.read_text()
+          anchor = "  'scripts/',\n] as const"
+          if anchor not in text or "  'supabase/functions/',\n" in text:
+              raise SystemExit('TypeScript coverage insertion precondition failed')
+          coverage.write_text(text.replace(anchor, "  'scripts/',\n  'supabase/functions/',\n] as const", 1))
+
+          agents = Path('AGENTS.md')
+          lines = agents.read_text().splitlines()
+          matches = [i for i, line in enumerate(lines) if line.startswith('The repository is at **contract 83**')]
+          if len(matches) != 1:
+              raise SystemExit(f'AGENTS contract anchor count: {len(matches)}')
+          lines[matches[0]] = 'The repository candidate is at **contract 84** through `20260804123000_provider_ingestion_custody.sql`. Development Supabase is verified at contract 83; production remains at 63. Contract 84 is server-only provider custody and decoder evidence only: it does not deploy the Edge Function, configure a credential, call a provider or authorise official fixture/result writes. After merge, apply the additive migration to Development through `.github/workflows/development-fast-lane-rollout.yml`; production has no fast lane.'
+          agents.write_text('\n'.join(lines) + '\n')
+
+          status = Path('docs/quality/current-status.md')
+          lines = status.read_text().splitlines()
+          replacements = {
+              '| Repository contract |': '| Repository contract | **84 candidate** — 84 canonical migrations through `20260804123000_provider_ingestion_custody.sql`. Development Supabase is verified at **83** from its migration ledger on 4 August 2026; production remains at **63**. Contract 84 is server-only custody and decoder evidence, with no hosted Edge Function deployment, provider credential, provider request or official fixture/result write authorised by repository inclusion. Non-production Netlify still trails until the post-merge fast-lane sequence aligns it. |',
+              '| Next executable issue |': '| Next executable issue | **Finish provider-ingestion custody as contract 84.** Merge only after exact CI, Database parity, Browser E2E, hosted-inventory and Netlify preview gates pass. Then apply the single additive migration to Development through `.github/workflows/development-fast-lane-rollout.yml`, verify the ledger at 84, align non-production Netlify, and keep production at 63. |',
+              '| Development Supabase `iouzoutneyjpugbbtdem` |': '| Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17. Contracts 65–83 are applied and the migration ledger was freshly read on 4 August 2026 through `20260804113000_season_matchweek_scheduler`. Contract 84 is not applied and `provider-poll` is not deployed. | After contract 84 merges, dispatch `.github/workflows/development-fast-lane-rollout.yml` from exact `main` for project `iouzoutneyjpugbbtdem`; require its additive proof, lightweight snapshot, single pending migration push and postflight `Development is at contract 84.` |',
+          }
+          for prefix, replacement in replacements.items():
+              matches = [index for index, line in enumerate(lines) if line.startswith(prefix)]
+              if len(matches) != 1:
+                  raise SystemExit(f'{prefix} anchor count: {len(matches)}')
+              lines[matches[0]] = replacement
+          status.write_text('\n'.join(lines) + '\n')
+
+          ops = Path('docs/ops/ops-pending-migrations.md')
+          ops.write_text('''# Hosted migration inventory and rollout status
+
+This is the operational migration inventory. Machine-readable development hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
+
+## Current state — 4 August 2026
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **84** | 84 canonical migrations through `20260804123000_provider_ingestion_custody.sql`; contract 84 adds server-only provider response custody and decoder evidence | EXACT GATES REQUIRED BEFORE MERGE |
+| Development Supabase `iouzoutneyjpugbbtdem` | **83** | Fresh hosted migration-ledger read through `20260804113000_season_matchweek_scheduler` | VERIFIED; CONTRACT 84 NOT APPLIED |
+| Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
+| Netlify `euro28predictor` non-production contexts | **trails Development** | Non-production declarations are aligned only after a verified Development rollout | ALIGN AFTER CONTRACT 84 POSTFLIGHT |
+| Netlify `euro28predictor` production | **63 hosted declaration** | Production points to production Supabase and retains the fatal contract gate | BLOCKED BY DESIGN |
+
+The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
+
+## Contracts 64–84
+
+- **64:** Cup winner deletion semantics.
+- **65:** Stage C1 competition-season foundation.
+- **66:** C1b game catalogue and memberships.
+- **67:** Matchweek lock scope.
+- **68:** Season fixtures.
+- **69:** Season predictions.
+- **70:** Season scoring SQL parity.
+- **71:** LMS pick resolution.
+- **72:** LMS persistence.
+- **73:** LMS round conclusion and season exhaustion.
+- **74:** Season Cup rules.
+- **75:** Neutral Cup points source.
+- **76:** Neutral Cup settlement source.
+- **77:** Season Cup sources.
+- **78:** Circle-method season Cup league schedule.
+- **79:** Shared Cup-store competition domains.
+- **80:** Season matchweek card lock resolution.
+- **81:** Season matchweek card status and submission-outcome storage.
+- **82:** The matchweek card is not pre-filled.
+- **83:** Recurring season matchweek scheduler.
+- **84:** Server-only provider-ingestion custody and strict decoder evidence.
+
+Contracts 64–83 are applied to Development. Contract 84 is a repository candidate and is not applied or deployed. None is authorised for production merely to remove the intentional contract gap.
+
+## Pending hosted work
+
+1. Merge contract 84 only after exact CI, Database parity, Browser E2E, hosted-inventory and Netlify preview gates pass, review threads are clear and no later contract claimant exists.
+2. Apply contract 84 to Development through `.github/workflows/development-fast-lane-rollout.yml` with project ref `iouzoutneyjpugbbtdem`, expected Development contract 83, expected repository contract 84 and confirmation `APPLY-DEVELOPMENT-FAST-LANE`.
+3. Require the fast lane to prove the migration additive, take its lightweight snapshot, push only the pending migration and report `Development is at contract 84.`
+4. Align the machine-readable Development contract and Netlify non-production declarations only after hosted verification. Keep production at 63.
+5. Deploy `provider-poll` to Development only after the migration is present. Do not configure or call a provider until the named caller key and a bounded non-production credential are separately available.
+
+## Next implementation boundary
+
+The first provider rehearsal is one bounded non-production request whose raw response and processing evidence are verified without writing any official fixture, result, lock, score or standing. If authentication material is unavailable, stop after deployment rather than weakening the boundary.
+
+## Related authority
+
+- [`../quality/current-status.md`](../quality/current-status.md)
+- [`../../AGENTS.md`](../../AGENTS.md)
+- [`../../config/deployment-contract.json`](../../config/deployment-contract.json)
+- [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json)
+- [`../adr/0024-development-environment-operating-model.md`](../adr/0024-development-environment-operating-model.md)
+''')
+
+          Path('docs/architecture/provider-ingestion-contract-84.md').write_text('''# Provider-ingestion custody — contract 84
+
+Contract 84 adds a server-only evidence boundary for football-provider responses. It deliberately does not make provider data authoritative competition state.
+
+- A named `apikey` caller key is checked before provider I/O.
+- Requests remain on fixed HTTPS origins and bounded relative paths; credential-shaped query parameters are refused.
+- Exact raw response text is archived in `predictor_internal` before parse or decode.
+- Processing attempts are append-only evidence.
+- Browser roles receive no custody access; the two RPCs are service-role-only.
+- No provider path writes official fixtures, results, locks, scores, totals, ranks or standings.
+
+After merge, apply the additive migration to Development through `.github/workflows/development-fast-lane-rollout.yml`, verify the ledger at 84, then align non-production declarations. Production remains at contract 63 and has no fast lane.
+''')
+
+          Path('.github/workflows/hosted-migration-inventory.yml').write_text('''name: Hosted migration inventory
+
+on:
+  pull_request:
+    paths:
       - config/deployment-contract.json
       - config/development-hosted-contract.json
       - docs/ops/ops-pending-migrations.md
@@ -29,3 +247,14 @@ jobs:
         with:
           node-version: 22.22.2
       - run: node scripts/check-hosted-migration-inventory.mjs
+''')
+      - name: Commit contract 84 merge and restore workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'Rebuild provider custody as contract 84'
+          git push origin HEAD:agent/provider-ingestion-contract-80
