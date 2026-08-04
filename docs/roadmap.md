@@ -114,7 +114,7 @@ None of these documents authorises a migration or hosted write.
 
     What remains in this step, narrowed to what is actually outstanding:
 
-    - the **recurring matchweek scheduler** — the storage it schedules over exists, the recurrence does not;
+    - the **recurring matchweek scheduler** — contract 80 decides what the lock does to a card and contract 81 stores where each card stands plus an append-only record of what the lock did, so only the recurrence itself is missing: the job that finds due matchweeks, calls the resolution and writes the outcome. The ledger is keyed by lock instant so a retry, a crash or a rescheduled matchweek all behave;
     - the **LMS settlement job** — contracts 71–73 decide a pick, a round and a season, but nothing drives them from confirmed results;
     - the **Cup split-stage persistence decision**, then its implementation. This is the only Cup work left, and it is a decision before it is a migration: a season split stage needs `group_id` and `matchday`, which `bonus_cup_fixtures_group_shape` forbids for any non-group stage, so the enum cannot widen until that check's intent is settled;
     - every **surface**. **None of the surface work can start before the Phase 1 design.**

@@ -95,8 +95,16 @@
  * Contract 80 adds two immutable `predictor_internal` functions, revoked from
  * every browser role, creating no relation, trigger, policy or grant and
  * altering none. Nothing a seeded Euro user reads is gated by it.
+ *
+ * Contract 81 adds `season_matchweek_cards` and
+ * `season_matchweek_submission_outcomes`, both created empty, RLS enabled and
+ * revoked from every browser role. Its one trigger fires only on the outcome
+ * ledger, blocking update and delete there; it binds to no existing relation,
+ * and no policy, grant or existing relation changes. A seeded Euro user reads
+ * neither table, and cannot: both are unreachable from `anon` and
+ * `authenticated` alike.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 80
+export const SEED_REVIEWED_AT_CONTRACT = 81
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
