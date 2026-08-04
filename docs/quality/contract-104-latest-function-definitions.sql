@@ -1,7 +1,7 @@
 -- GENERATED REVIEW AID ONLY — remove before Contract 104 review.
 -- Latest definitions in migration order for the ten measured callers.
 
--- SOURCE supabase/migrations/20260803203000_season_predictions.sql:207
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:11
 create or replace function predictor_internal.enforce_season_matchweek_lock()
 returns trigger
 language plpgsql
@@ -29,7 +29,10 @@ begin
     from public.bonus_competitions availability
     join public.game_definitions definition on definition.game_key = availability.game_key
    where availability.tournament_id = v_tournament
-     and availability.game_key = 'main_predictor';
+     and availability.game_key = 'main_predictor'
+     and availability.id = predictor_internal.live_competition_id(
+       v_tournament, 'main_predictor'
+     );
 
   if v_buffer is null then
     raise exception 'No Main Predictor availability for this season, so its lock cannot be resolved'
@@ -59,7 +62,7 @@ begin
 end;
 $$;
 
--- SOURCE supabase/migrations/20260730235602_stage_c1_competition_season_foundation.sql:1383
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:72
 create or replace function predictor_internal.prepare_competition_season_scope()
 returns trigger
 language plpgsql
@@ -107,7 +110,10 @@ begin
         select id into new.competition_id
         from public.bonus_competitions
         where tournament_id = v_tournament
-          and game_key = 'ko_predictor';
+          and game_key = 'ko_predictor'
+          and id = predictor_internal.live_competition_id(
+            v_tournament, 'ko_predictor'
+          );
       end if;
     when 'bonus_lms_selections' then
       select tournament_id into v_tournament
@@ -151,7 +157,7 @@ begin
 end;
 $$;
 
--- SOURCE supabase/migrations/20260804283000_bonus_rederive_tournament_lock.sql:98
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:167
 CREATE OR REPLACE FUNCTION predictor_internal.recompute_ko_predictor_for_match(p_match_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -176,11 +182,9 @@ begin
     pg_catalog.hashtextextended(v_match.tournament_id::text, 0)
   );
 
-  select competition.id
-    into v_competition_id
-    from public.bonus_competitions competition
-    where competition.tournament_id = v_match.tournament_id
-      and competition.game_key = 'ko_predictor';
+  v_competition_id := predictor_internal.live_competition_id(
+    v_match.tournament_id, 'ko_predictor'
+  );
 
   if v_competition_id is null then
     return;
@@ -281,7 +285,7 @@ $function$
 
 ;
 
--- SOURCE supabase/migrations/20260804283000_bonus_rederive_tournament_lock.sql:227
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:295
 CREATE OR REPLACE FUNCTION predictor_internal.recompute_lms_for_tournament(p_tournament_id uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -306,11 +310,9 @@ begin
     pg_catalog.hashtextextended(p_tournament_id::text, 0)
   );
 
-  select competition.id
-    into v_competition_id
-    from public.bonus_competitions competition
-    where competition.tournament_id = p_tournament_id
-      and competition.game_key = 'last_man_standing';
+  v_competition_id := predictor_internal.live_competition_id(
+    p_tournament_id, 'last_man_standing'
+  );
 
   if v_competition_id is null then
     return;
@@ -420,7 +422,7 @@ $function$
 
 ;
 
--- SOURCE supabase/migrations/20260803070000_c1b_game_catalogue_memberships.sql:1287
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:432
 create or replace function public.create_league(
   p_tournament_id uuid,
   p_name text
@@ -438,6 +440,9 @@ begin
     from public.bonus_competitions availability
     join public.game_definitions definition on definition.game_key = availability.game_key
     where availability.tournament_id = p_tournament_id
+      and availability.id = predictor_internal.live_competition_id(
+        p_tournament_id, availability.game_key
+      )
       and definition.requires_prediction_entry
     order by case availability.game_key
       when 'main_predictor' then 1
@@ -456,7 +461,7 @@ begin
 end;
 $$;
 
--- SOURCE supabase/migrations/20260728170000_bonus_games_hub.sql:18
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:471
 create or replace function public.get_bonus_games(
   p_tournament_id uuid
 )
@@ -565,6 +570,9 @@ begin
           select *
           from public.bonus_competitions candidate
           where candidate.tournament_id = p_tournament_id
+            and candidate.id = predictor_internal.live_competition_id(
+              p_tournament_id, candidate.game_key
+            )
             and candidate.published
           order by candidate.game_key
           limit 6
@@ -576,7 +584,7 @@ begin
 end;
 $$;
 
--- SOURCE supabase/migrations/20260803070000_c1b_game_catalogue_memberships.sql:752
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:594
 create or replace function public.get_competition_games(
   p_tournament_id uuid
 )
@@ -642,12 +650,15 @@ begin
         on membership.game_competition_id = availability.id
        and membership.user_id = v_uid
       where availability.tournament_id = p_tournament_id
+        and availability.id = predictor_internal.live_competition_id(
+          p_tournament_id, availability.game_key
+        )
     ), '[]'::jsonb)
   );
 end;
 $$;
 
--- SOURCE supabase/migrations/20260728210000_ko_predictor_scoring.sql:192
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:668
 create or replace function public.get_ko_predictor_standings(
   p_tournament_id uuid,
   p_limit integer default 50,
@@ -679,6 +690,9 @@ begin
     from public.bonus_competitions competition
     where competition.tournament_id = p_tournament_id
       and competition.game_key = 'ko_predictor'
+      and competition.id = predictor_internal.live_competition_id(
+        p_tournament_id, 'ko_predictor'
+      )
       and competition.published;
 
   if v_competition_id is null then
@@ -780,7 +794,7 @@ begin
 end;
 $$;
 
--- SOURCE supabase/migrations/20260804263000_cup_neutral_window_match_facts.sql:667
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:804
 CREATE OR REPLACE FUNCTION public.get_my_cup(p_tournament_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -802,6 +816,9 @@ begin
     from public.bonus_competitions competition
     where competition.tournament_id = p_tournament_id
       and competition.game_key = 'predictor_cup'
+      and competition.id = predictor_internal.live_competition_id(
+        p_tournament_id, 'predictor_cup'
+      )
       and competition.published;
 
   if not found then
@@ -1199,7 +1216,7 @@ begin
 end;
 $function$;
 
--- SOURCE supabase/migrations/20260728230000_last_man_standing.sql:248
+-- SOURCE supabase/migrations/20260805001000_live_competition_callers.sql:1226
 create or replace function public.get_my_lms(
   p_tournament_id uuid
 )
@@ -1223,6 +1240,9 @@ begin
     from public.bonus_competitions competition
     where competition.tournament_id = p_tournament_id
       and competition.game_key = 'last_man_standing'
+      and competition.id = predictor_internal.live_competition_id(
+        p_tournament_id, 'last_man_standing'
+      )
       and competition.published;
 
   if v_competition_id is null then
