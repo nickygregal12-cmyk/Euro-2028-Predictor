@@ -1,0 +1,27 @@
+name: Fix contract 103 test plan
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.head_ref == 'agent/contract-103-competition-instance-lineage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contract-103-competition-instance-lineage
+
+      - name: Correct pgTAP plan
+        run: |
+          sed -i 's/select plan(31);/select plan(32);/' supabase/tests/154_competition_instance_lineage.sql
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add supabase/tests/154_competition_instance_lineage.sql
+          git diff --cached --check
+          git commit -m 'Correct contract 103 pgTAP assertion plan'
+          git push origin HEAD:agent/contract-103-competition-instance-lineage
