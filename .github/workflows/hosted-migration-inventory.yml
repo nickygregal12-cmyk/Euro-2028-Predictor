@@ -1,0 +1,31 @@
+name: Hosted migration inventory
+
+on:
+  pull_request:
+    paths:
+      - config/deployment-contract.json
+      - config/development-hosted-contract.json
+      - docs/ops/ops-pending-migrations.md
+      - scripts/check-hosted-migration-inventory.mjs
+      - .github/workflows/hosted-migration-inventory.yml
+  push:
+    branches: [main]
+    paths:
+      - config/deployment-contract.json
+      - config/development-hosted-contract.json
+      - docs/ops/ops-pending-migrations.md
+      - scripts/check-hosted-migration-inventory.mjs
+      - .github/workflows/hosted-migration-inventory.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+      - run: node scripts/check-hosted-migration-inventory.mjs

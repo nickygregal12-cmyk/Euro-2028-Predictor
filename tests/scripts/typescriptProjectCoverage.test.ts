@@ -179,6 +179,7 @@ describe('JavaScript under scripts/', () => {
   const CHECKED = [
     'scripts/check-migration-additive.mjs',
     'scripts/check-bundle-budget.mjs',
+    'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/select-browser-journeys.mjs',
