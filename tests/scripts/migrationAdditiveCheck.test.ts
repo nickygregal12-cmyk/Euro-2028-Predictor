@@ -154,6 +154,117 @@ describe('removing a guarantee is a third category, not an oversight', () => {
   })
 })
 
+describe('a trigger that is immediately re-created was never removed', () => {
+  // The house form for defining a trigger, used by sixteen migrations. Contract
+  // 103 was the first carrying it to reach the fast lane, which refused it —
+  // correct by the letter, wrong by the intent, and with no general guarded lane
+  // to fall back to.
+  const recreation = `drop trigger if exists prepare_lineage on public.bonus_competitions;
+create trigger prepare_lineage
+before insert on public.bonus_competitions
+for each row
+execute function predictor_internal.prepare_lineage();`
+
+  it('is not destructive — the trigger is back on the next line', () => {
+    expect(destructiveStatements(recreation)).toEqual([])
+  })
+
+  it('is still reported, so the rollout record never carries it in silence', () => {
+    expect(structuralStatements(recreation)).toEqual([
+      'drop trigger prepare_lineage on bonus_competitions (re-created immediately)',
+    ])
+  })
+
+  it('accepts the drop and the create qualifying the table differently', () => {
+    // Both spellings appear in this repository, sometimes across one pairing.
+    const mixed = `drop trigger if exists recompute_scores on matches;
+create trigger recompute_scores after update on public.matches
+for each row execute function public.recompute();`
+    expect(destructiveStatements(mixed)).toEqual([])
+  })
+
+  it('does not require `if exists` — the pairing is what makes it safe', () => {
+    const bare = `drop trigger t on public.m;
+create trigger t after insert on public.m for each row execute function f();`
+    expect(destructiveStatements(bare)).toEqual([])
+  })
+
+  // The mutations. Each is a way the pairing could be faked, and each must
+  // remain destructive — this is the loose-direction failure the lane exists to
+  // prevent.
+  it('refuses a drop that is never re-created', () => {
+    expect(destructiveStatements('drop trigger if exists gone on public.m;')).toEqual([
+      'drop trigger',
+    ])
+  })
+
+  it('refuses a drop whose create names a DIFFERENT trigger', () => {
+    const swapped = `drop trigger if exists enforce_lock on public.m;
+create trigger something_else after insert on public.m for each row execute function f();`
+    expect(destructiveStatements(swapped)).toEqual(['drop trigger'])
+  })
+
+  it('refuses a drop whose create binds a DIFFERENT table', () => {
+    // A trigger name is scoped to its table, so same-name-different-table is two
+    // triggers and one of them is genuinely gone.
+    const moved = `drop trigger if exists audit on public.entries;
+create trigger audit after insert on public.matches for each row execute function f();`
+    expect(destructiveStatements(moved)).toEqual(['drop trigger'])
+  })
+
+  it('refuses a drop with another statement between it and the create', () => {
+    // The trigger is absent while that statement runs, so the enforcement gap
+    // is real rather than notional.
+    const separated = `drop trigger if exists t on public.m;
+update public.m set flag = true;
+create trigger t after insert on public.m for each row execute function f();`
+    expect(destructiveStatements(separated)).toEqual(['drop trigger'])
+  })
+
+  it('refuses a quoted identifier it cannot parse confidently', () => {
+    const quoted = `drop trigger if exists "MixedCase" on public.m;
+create trigger "MixedCase" after insert on public.m for each row execute function f();`
+    expect(destructiveStatements(quoted)).toEqual(['drop trigger'])
+  })
+
+  it('keeps a second, unpaired drop visible alongside a paired one', () => {
+    // Blanking the paired drop must not blind the scan to the one beside it.
+    const mixed = `drop trigger if exists kept on public.m;
+create trigger kept after insert on public.m for each row execute function f();
+drop trigger if exists removed on public.other;`
+    expect(destructiveStatements(mixed)).toEqual(['drop trigger'])
+  })
+
+  it('does not let a table drop hide behind a trigger re-creation', () => {
+    const sql = `drop trigger if exists t on public.m;
+create trigger t after insert on public.m for each row execute function f();
+drop table public.entries;`
+    expect(destructiveStatements(sql)).toEqual(['drop table'])
+  })
+
+  it('ignores the pairing inside a routine body, like every other category', () => {
+    expect(
+      structuralStatements(
+        routine('drop trigger if exists t on public.m; create trigger t after insert on public.m;'),
+      ),
+    ).toEqual([])
+  })
+})
+
+describe('the real contract-103 migration', () => {
+  it('is carried by the fast lane, with its trigger re-creation named', () => {
+    const { readFileSync } = require('node:fs') as typeof import('node:fs')
+    const sql = readFileSync(
+      'supabase/migrations/20260804333000_competition_instance_lineage.sql',
+      'utf8',
+    )
+    expect(destructiveStatements(sql)).toEqual([])
+    expect(structuralStatements(sql)).toContain(
+      'drop trigger prepare_competition_lineage on bonus_competitions (re-created immediately)',
+    )
+  })
+})
+
 describe('the real contract-66 migration', () => {
   it('is additive, which is why the lane may carry it', () => {
     const { readFileSync } = require('node:fs') as typeof import('node:fs')
