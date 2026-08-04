@@ -73,8 +73,14 @@ describe('row-level security', () => {
 
   it('keeps the internal schema out of the public surface', () => {
     const internal = createdTables().filter((table) => table.schema !== 'public')
-    expect(internal).toEqual([{ schema: 'predictor_internal', name: 'operating_limits' }])
-    expect(publicTables.has('operating_limits')).toBe(false)
+    expect(internal).toEqual([
+      { schema: 'predictor_internal', name: 'operating_limits' },
+      { schema: 'predictor_internal', name: 'provider_raw_responses' },
+      { schema: 'predictor_internal', name: 'provider_response_processing' },
+    ])
+    for (const table of internal) {
+      expect(publicTables.has(table.name)).toBe(false)
+    }
   })
 })
 
