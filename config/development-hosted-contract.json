@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 89,
-  "latestMigrationVersion": "20260804173000",
-  "latestMigrationName": "lms_settlement_job",
-  "verifiedAt": "2026-08-04T13:05:47Z",
+  "requiredMigrationCount": 91,
+  "latestMigrationVersion": "20260804193000",
+  "latestMigrationName": "matchweek_settlement_parity",
+  "verifiedAt": "2026-08-04T13:55:42.019Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30911943023, postflight step \"Confirm the hosted contract now matches the repository\", which printed: Development is at contract 89. Corroborated read-only against the database: cron.job holds season-settle-due-lms-rounds on 0 * * * * as username postgres and active, which is the identity contract 88's lock exception requires.",
-    "automationSession": "github-actions-run-30911943023",
-    "repositoryHeadBeforeChange": "c087f1ddf3cb49f195adc79b1177407f402d6b6c"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 30916033941,
+    "repositoryHead": "a0af06d13d61a3256ecdbaf48a10eabf99495ab4"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
