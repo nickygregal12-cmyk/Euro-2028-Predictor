@@ -1,6 +1,6 @@
 {
-  "contractVersion": 91,
-  "requiredMigrationCount": 91,
+  "contractVersion": 92,
+  "requiredMigrationCount": 92,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -54,7 +54,9 @@
     "public.leave_competition_game(uuid)",
     "public.admin_disqualify_competition_game_entry(uuid,uuid,text)",
     "public.create_game_league(uuid,text)",
-    "public.get_my_game_leagues(uuid)"
+    "public.get_my_game_leagues(uuid)",
+    "public.archive_provider_response(text,text,text,integer,jsonb,text,uuid)",
+    "public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)"
   ],
-  "notes": "Tagged repository baseline euro-2028-baseline resolves to 1fb8ffd36ad113079181829a8bcc47175c43b6da and contains 63 canonical migrations through 20260729154931_prediction_consensus_minimum_cohort.sql. Contracts 64 and 65 preserve the historical Cup deletion boundary and establish the hosted competition-season foundation. Contract 66 is C1b: it generalises the existing Bonus Games platform into the persistent game catalogue and per-season availability root, adds canonical per-game membership lifecycle and immutable join/leave/rejoin/disqualification evidence, links Original/Main entries and bonus entrants to that one membership truth, scopes private leagues to a game, seeds the Premier League and Scottish Premiership 2026/27 rehearsal seasons, and keeps every C2 ownership and auth-deletion boundary unchanged. Hosted deployment remains separately guarded and is not claimed by this repository contract."
+  "notes": "Tagged repository baseline euro-2028-baseline remains contract 63. Contracts 64–91 establish the competition-season, prediction, LMS, season-Cup, matchweek-card, scoring-store and matchweek-settlement foundations. Contract 92 adds server-only provider response custody and decoder evidence: raw payloads are archived before parsing, processing evidence is append-only, and no provider path can write official fixtures, results, locks, scores or standings. Hosted deployment remains separately guarded and is not claimed by this repository contract."
 }
