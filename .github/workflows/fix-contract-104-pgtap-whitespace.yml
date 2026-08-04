@@ -1,0 +1,49 @@
+name: Fix Contract 104 pgTAP whitespace
+
+on:
+  push:
+    branches:
+      - agent/contract-104-live-competition-callers
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contract-104-live-competition-callers
+
+      - name: Widen multiline resolver patterns and remove helper
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('supabase/tests/155_live_competition_callers.sql')
+          text = path.read_text()
+          replacements = {
+              "'live_competition_id\\\\(p_tournament_id, availability\\\\.game_key\\\\)'": "'live_competition_id\\\\([[:space:]]*p_tournament_id,[[:space:]]*availability\\\\.game_key[[:space:]]*\\\\)'",
+              "'live_competition_id\\\\(p_tournament_id, candidate\\\\.game_key\\\\)'": "'live_competition_id\\\\([[:space:]]*p_tournament_id,[[:space:]]*candidate\\\\.game_key[[:space:]]*\\\\)'",
+          }
+          for before, after in replacements.items():
+              count = text.count(before)
+              if before.endswith('availability\\\\.game_key\\\\)\''):
+                  if count != 2:
+                      raise SystemExit(f'expected two availability patterns, found {count}')
+              elif count != 1:
+                  raise SystemExit(f'expected one candidate pattern, found {count}')
+              text = text.replace(before, after)
+          path.write_text(text)
+          PY
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/fix-contract-104-pgtap-whitespace.yml
+          git add supabase/tests/155_live_competition_callers.sql
+          git diff --cached --check
+          git commit -m 'Allow multiline Contract 104 resolver proofs'
+          git push origin HEAD:agent/contract-104-live-competition-callers
