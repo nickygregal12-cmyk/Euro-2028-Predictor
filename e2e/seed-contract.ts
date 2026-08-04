@@ -228,8 +228,16 @@
  * the settler refuses anything else outright, so the seeded Euro tournament is
  * not merely unaffected — it is unreachable by name. The seeded league seasons
  * hold no matchweek fixtures, so the job finds nothing to settle in them either.
+ *
+ * Contract 94 adds `predictor_internal.provider_raw_responses` and
+ * `predictor_internal.provider_response_processing`, both created empty, RLS
+ * enabled, append-only and revoked from every browser role. Its two public
+ * custody RPCs are granted only to `service_role`; the provider Edge Function
+ * is not deployed by the migration, no provider credential is configured and
+ * no provider request is made. Nothing a seeded Euro user reads is changed or
+ * made reachable.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 93
+export const SEED_REVIEWED_AT_CONTRACT = 94
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
