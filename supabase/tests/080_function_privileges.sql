@@ -51,6 +51,10 @@ insert into expected_service_functions (signature) values
   ('confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
   ('correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
   ('process_due_entry_submissions(timestamp with time zone)'),
+  -- Contract 83. The season counterpart of the line above: the recurring
+  -- matchweek lock. Server-only for the same reason — it submits on a player's
+  -- behalf, so a browser session must never be able to trigger it.
+  ('process_due_season_matchweek_submissions(timestamp with time zone)'),
   ('recompute_all_scores()'),
   ('recompute_tournament_scores(uuid)'),
   ('set_operating_limits(integer,integer)');

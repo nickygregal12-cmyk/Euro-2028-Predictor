@@ -1,4 +1,4 @@
--- Contract 82: notice that a matchweek has locked, and act on it.
+-- Contract 83: notice that a matchweek has locked, and act on it.
 --
 -- The fail-closed paths are assertable here WITHOUT seeded rows, and that is
 -- not a convenience — it is the same property that makes them safe. A matchweek
@@ -9,7 +9,7 @@
 --
 -- The paths that DO need rows — a due matchweek, an unbanked player, a
 -- rescheduled lock — were proven against a scratch PostgreSQL 16 running
--- contracts 80, 81 and 82 with real parents: nothing due before the instant,
+-- contracts 80 through 83 with real parents: nothing due before the instant,
 -- both records written at it, a second run a no-op, a rescheduled matchweek
 -- reprocessed under its new instant with the earlier record preserved, and
 -- neither a Last Man Standing entry nor a knockout round touched.
@@ -49,16 +49,16 @@ select is(
 );
 
 select is(
-  predictor_internal.season_complete_card_fixtures(
+  predictor_internal.season_card_fixtures(
     '00000000-0000-4000-8000-0000000000ab',
     '00000000-0000-4000-8000-00000000e001',
     '00000000-0000-4000-8000-0000000000c1'),
   null::jsonb,
-  'an empty matchweek is not a complete card — it would otherwise submit nothing as a submission'
+  'a matchweek with no fixtures yields no card at all, rather than an empty one'
 );
 
 -- ---------------------------------------------------------------------------
--- The job runs, is a no-op when nothing is due, and says what it deferred.
+-- The job runs, and is a no-op when nothing is due.
 -- ---------------------------------------------------------------------------
 
 -- Deliberately an instant before any football this platform models. Nothing
@@ -68,8 +68,7 @@ select is(
 select is(
   public.process_due_season_matchweek_submissions('1970-01-01T00:00:00Z'::timestamptz)
     - 'processedAt',
-  '{"attempted": 0, "submitted": 0, "unbanked": 0, "refused": 0,
-    "deferredMissingDefaultPolicy": 0}'::jsonb,
+  '{"attempted": 0, "submitted": 0, "unbanked": 0, "refused": 0}'::jsonb,
   'a run before any matchweek can have locked touches nothing'
 );
 
@@ -109,7 +108,7 @@ select function_privs_are(
 );
 
 select function_privs_are(
-  'predictor_internal', 'season_complete_card_fixtures', array['uuid', 'uuid', 'uuid'],
+  'predictor_internal', 'season_card_fixtures', array['uuid', 'uuid', 'uuid'],
   'authenticated', array[]::text[],
   'nor is the card assembler'
 );
