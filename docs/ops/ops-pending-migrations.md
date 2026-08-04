@@ -6,7 +6,8 @@ Live source of truth for repository migration count and the verification still r
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository `main` | **78** | 78 canonical migrations through `20260804053000_cup_league_schedule.sql`; contract 78 adds the season Cup's circle-method league schedule, closing the second parity suite deferred at contract 74 | MERGED; HOSTED NOT APPLIED |
+| Repository `main` | **79** | 79 canonical migrations through `20260804063000_cup_store_competition_domains.sql`; contract 79 takes the tournament's format out of the shared Cup store by widening two CHECK domains. **The first constraint RELAXATION in this run** — strictly permissive, no row rewritten, and the tournament's own limits pinned in `cupStoreDomains.test.ts` | MERGED; HOSTED NOT APPLIED |
+| Development Supabase at contract 78 | **78** | contract 78 applied 3 August 2026 through the ADR 0024 fast lane, run 30863384885; postflight reported `Development is at contract 78.` | VERIFIED |
 | Development Supabase at contract 77 | **77** | contract 77 applied 3 August 2026 through the ADR 0024 fast lane, run 30862293279; one migration pushed, postflight reported `Development is at contract 77.` This rollout was initially MISSED — work moved straight from the contract 77 merge into the next slice, and the inventory briefly claimed an apply that had not happened. `documentationContractFreshness.test.ts` now cross-checks this row against `current-status.md` so the two cannot disagree silently | VERIFIED |
 | Development Supabase at contract 76 | **76** | contract 76 applied 3 August 2026 through the ADR 0024 fast lane, run 30860514107 | VERIFIED |
 | Development Supabase at contract 75 | **75** | contract 75 applied 3 August 2026 through the ADR 0024 fast lane, run 30859357998 | VERIFIED |
