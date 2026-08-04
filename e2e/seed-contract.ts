@@ -220,8 +220,16 @@
  * seeded Euro competition is a tournament, and its shape trigger has refused a
  * non-league-season row since contract 68, so the Euro tournament holds no row
  * in that table to alter.
+ *
+ * Contract 93 adds the scoring job: two `predictor_internal` functions, one
+ * `security definer` tick revoked from every role including `service_role`, and
+ * an hourly cron entry. It creates no table, trigger or policy and alters no
+ * relation. The tick iterates `tournaments` where `kind = 'league_season'`, and
+ * the settler refuses anything else outright, so the seeded Euro tournament is
+ * not merely unaffected — it is unreachable by name. The seeded league seasons
+ * hold no matchweek fixtures, so the job finds nothing to settle in them either.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 92
+export const SEED_REVIEWED_AT_CONTRACT = 93
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
