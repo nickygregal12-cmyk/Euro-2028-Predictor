@@ -7,7 +7,7 @@ This is the operational migration inventory. Machine-readable development hosted
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository `main` | **80** | 80 canonical migrations through `20260804073000_season_card_lock_resolution.sql`; contract 80 adds the matchweek card lock-resolution law, the first of two slices toward the recurring scheduler | MERGED; HOSTED NOT APPLIED |
-| Development Supabase `iouzoutneyjpugbbtdem` | **84** | Applied 4 August 2026 by fast-lane run 30899305992 on `a9daf64`, whose postflight step reported `Development is at contract 84.`; evidence artifact `development-fast-lane-evidence` (ID 8888478300) retained | VERIFIED AND ALIGNED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **85** | Applied 4 August 2026 by fast-lane run 30901081053 on `701fe62`, whose postflight step reported `Development is at contract 85.`; evidence artifact `development-fast-lane-evidence` (ID 8889138639) retained | VERIFIED AND ALIGNED |
 | Production Supabase | **63** | Hosted migration ledger directly verified through `20260729154931_prediction_consensus_minimum_cohort` | PAUSED AND UNCHANGED |
 | Netlify `euro28predictor` non-production contexts | **79 declared / 79 Development** | `dev`, branch-deploy and deploy-preview point to the development Supabase project and declare `EURO28_DEPLOYED_DB_CONTRACT=79` | VERIFIED AND ALIGNED |
 | Netlify `euro28predictor` production | **63 hosted declaration** | Production points to the production Supabase project and retains the fatal contract gate | BLOCKED BY DESIGN |
@@ -39,7 +39,7 @@ The historic Netlify project `euro28-predictor-dev` is out of scope and must not
 - **84:** LMS eligibility and auto-assignment parity.
 - **85:** LMS result-to-outcome rule and season replay.
 
-Contracts 64–84 are applied to development; contract 85 is merged and not yet applied. None is authorised for production merely to remove the intentional contract gap.
+Contracts 64–85 are applied to development. None is authorised for production merely to remove the intentional contract gap.
 
 ## Pending hosted work
 
