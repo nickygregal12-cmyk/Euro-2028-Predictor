@@ -16,10 +16,12 @@ Netlify's `EURO28_DEPLOYED_DB_CONTRACT` value describes the hosted database reac
 
 | Context | Supabase target | Declared hosted contract |
 | --- | --- | ---: |
-| `dev` | Development | 86 |
-| `branch-deploy` | Development | 86 |
-| `deploy-preview` | Development | 86 |
+| `dev` | Development | 97 |
+| `branch-deploy` | Development | 97 |
+| `deploy-preview` | Development | 97 |
 | `production` | Production | 63 |
+
+The non-production values moved 86 → 97 on 4 August 2026, after the development rollout to contract 97 was verified. **This is owner-reported.** Netlify environment variables are a team-console setting with no read path from this repository, from CI or from an agent session, so nothing here independently confirms the value; [`ops-pending-migrations.md`](ops-pending-migrations.md) records which Netlify build-log line corroborates which declared value, and that log is the owner's to read.
 
 The development declaration must be updated after a verified development rollout. The production declaration must remain at 63 until a separately approved production database promotion. Never raise the production declaration merely to make an application build pass.
 

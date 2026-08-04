@@ -297,6 +297,87 @@ describe('the two documents that state the development contract agree', () => {
   })
 })
 
+/**
+ * The Netlify contract declaration, which is the one hosted number with **no
+ * repository-side read path**.
+ *
+ * `EURO28_DEPLOYED_DB_CONTRACT` is a Netlify team-console environment variable.
+ * CI never sees it, and the protected-preview gate reads only the commit
+ * *status*, so a green `netlify/euro28predictor/deploy-preview` cannot tell 86
+ * from 97 — `validate-deployment-contract.mjs` deliberately waves a *trailing*
+ * non-production context through, because a schema-advancing pull request
+ * cannot make its preview go green before merge (ADR 0024).
+ *
+ * So the declaration is owner-reported, and the only thing this repository can
+ * enforce is that its two written records of it do not disagree. They are
+ * `ops-pending-migrations.md` (a row per environment) and
+ * `netlify-deploy-access.md` (a row per deploy context), and on 4 August 2026
+ * both had to be edited by hand to move 86 → 97. Updating one and not the other
+ * leaves a reader two answers with no way to date them — the same failure the
+ * development-contract check above exists for.
+ *
+ * What this cannot check, stated so the coverage is not overread: whether
+ * Netlify actually carries either number. Nothing in this repository can.
+ */
+describe('the two documents that state the Netlify declaration agree', () => {
+  const inventory = read('docs/ops/ops-pending-migrations.md')
+  const runbook = read('docs/ops/netlify-deploy-access.md')
+
+  /** `| Netlify `euro28predictor` <label> | **N hosted declaration** |` */
+  const inventoryRows = new Map(
+    [...inventory.matchAll(/\|\s*Netlify\s+`euro28predictor`\s+([^|]+?)\s*\|\s*\*\*(\d+) hosted declaration\*\*/g)].map(
+      (match) => [match[1], Number(match[2])],
+    ),
+  )
+
+  /** `| `dev` | Development | N |` */
+  const runbookRows = new Map(
+    [...runbook.matchAll(/\|\s*`([a-z-]+)`\s*\|\s*(?:Development|Production)\s*\|\s*(\d+)\s*\|/g)].map(
+      (match) => [match[1], Number(match[2])],
+    ),
+  )
+
+  const nonProduction = (label: string) => label.includes('non-production')
+  const inventoryNonProduction = [...inventoryRows].filter(([label]) => nonProduction(label))
+  const inventoryProduction = [...inventoryRows].filter(([label]) => !nonProduction(label))
+  const runbookNonProduction = ['dev', 'branch-deploy', 'deploy-preview']
+
+  it('finds both tables', () => {
+    // If either regex stops matching, every assertion below passes vacuously.
+    expect(inventoryNonProduction, 'no non-production row in the migration inventory').toHaveLength(1)
+    expect(inventoryProduction, 'no production row in the migration inventory').toHaveLength(1)
+    for (const context of [...runbookNonProduction, 'production']) {
+      expect(runbookRows.has(context), `${context} missing from the deploy-access table`).toBe(true)
+    }
+  })
+
+  it('declares one value across all three non-production contexts', () => {
+    const declared = new Set(runbookNonProduction.map((context) => runbookRows.get(context)))
+    expect([...declared], 'dev, branch-deploy and deploy-preview declare different contracts').toHaveLength(1)
+    expect(inventoryNonProduction[0]?.[1]).toBe([...declared][0])
+  })
+
+  it('keeps production at the Euro baseline contract in both documents', () => {
+    // Production is pinned at 63 with a fatal gate until an explicitly approved
+    // promotion. Raising it in a document is how the real one gets raised next.
+    expect(runbookRows.get('production')).toBe(63)
+    expect(inventoryProduction[0]?.[1]).toBe(63)
+  })
+
+  it('never declares a context ahead of the repository contract', () => {
+    // A database AHEAD of the application is not a pre-rollout state — it means
+    // the target has migrations this build does not know about, and
+    // validate-deployment-contract.mjs fails it fatally in EVERY context,
+    // production and preview alike. Trailing is fine and expected; leading is a
+    // build outage waiting for the next deploy.
+    for (const [context, declared] of runbookRows) {
+      expect(declared, `${context} declares contract ${declared} above the repository`).toBeLessThanOrEqual(
+        contract.contractVersion,
+      )
+    }
+  })
+})
+
 describe('a document that delegates its facts does not restate them', () => {
   it('finds the delegating documents', () => {
     // If this drops to nothing the suite below is silently inert.
