@@ -6,6 +6,7 @@ const migration = readFileSync(
   resolve(process.cwd(), 'supabase/migrations/20260805001000_live_competition_callers.sql'),
   'utf8',
 )
+const normalizedMigration = migration.toLowerCase()
 
 const targets = [
   'predictor_internal.enforce_season_matchweek_lock',
@@ -23,7 +24,9 @@ const targets = [
 describe('contract 104 live competition caller boundary', () => {
   it('redefines exactly the ten measured callers', () => {
     expect(migration.match(/create\s+or\s+replace\s+function/gi)).toHaveLength(10)
-    for (const target of targets) expect(migration).toContain(`function ${target}`)
+    for (const target of targets) {
+      expect(normalizedMigration).toContain(`function ${target}`)
+    }
   })
 
   it('uses the one contract-103 resolver once in every caller', () => {
