@@ -7,9 +7,9 @@ import { describe, expect, it } from 'vitest'
  * Every writer that upserts a competition must name the partial index.
  *
  * THE DEFECT CLASS THIS FILE EXISTS FOR. Contract 103 replaced
- * `unique (tournament_id, game_key)` with a PARTIAL unique index over the live
- * public instance (`where visibility_kind = 'public' and completed_at is null`).
- * A bare or incomplete `on conflict (tournament_id, game_key)` cannot infer it, so
+ * `unique (tournament_id, game_key)` with a PARTIAL unique index over live
+ * instances (`where completed_at is null`). A bare
+ * `on conflict (tournament_id, game_key)` cannot infer a partial index, so
  * every such statement fails at runtime with 42P10 — "there is no unique or
  * exclusion constraint matching the ON CONFLICT specification".
  *
@@ -146,7 +146,12 @@ describe('competition upserts name the partial live-public-instance index', () =
     const { offenders } = scan()
     expect(
       offenders.map(({ file, line }) => `${file}:${line}`),
-      'a bare or incomplete conflict target cannot infer the partial live-public-instance index and fails at runtime with 42P10; add `where visibility_kind = 'public' and completed_at is null`',
+      // Double-quoted deliberately: the message embeds `'public'`, and a
+      // single-quoted string terminates on it. That is not hypothetical — this
+      // exact line shipped unescaped, the file stopped parsing, and the guard
+      // silently ran no tests at all, which is the one failure mode it was
+      // written to prevent.
+      "a bare or incomplete conflict target cannot infer the partial live-public-instance index and fails at runtime with 42P10; add `where visibility_kind = 'public' and completed_at is null`",
     ).toEqual([])
   })
 

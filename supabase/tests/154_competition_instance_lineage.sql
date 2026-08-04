@@ -339,11 +339,23 @@ select lives_ok(
   'the Original Predictor availability trigger still upserts after the total key becomes partial'
 );
 
+-- Asserted against the body as WRITTEN, not against a canonical re-print.
+-- PostgreSQL stores a plpgsql body verbatim in `prosrc` and hands it straight
+-- back, so `pg_get_functiondef` normalises the signature and nothing else. The
+-- first draft of this assertion expected the parsed uppercase form
+-- (`WHERE ((visibility_kind = 'public'::text) AND ...)`) that an index or view
+-- definition would print — a form this function can never produce — so it
+-- failed against a writer that was in fact correct. Matching source text is
+-- looser, so the pattern is case-insensitive and whitespace-tolerant to survive
+-- reformatting, and it was mutation-checked: dropping the predicate entirely,
+-- and dropping only the `visibility_kind` half, are both rejected.
 select matches(
   pg_get_functiondef(
     'predictor_internal.ensure_original_predictor_availability()'::regprocedure
   ),
-  'ON CONFLICT \(tournament_id, game_key\)[[:space:]]+WHERE \(\(visibility_kind = ''public''::text\) AND \(completed_at IS NULL\)\)',
+  '(?i)on[[:space:]]+conflict[[:space:]]*\(tournament_id,[[:space:]]*game_key\)'
+  || '[[:space:]]+where[[:space:]]+visibility_kind[[:space:]]*=[[:space:]]*''public'''
+  || '[[:space:]]+and[[:space:]]+completed_at[[:space:]]+is[[:space:]]+null',
   'the live writer names the partial public-instance conflict target explicitly'
 );
 
