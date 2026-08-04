@@ -153,19 +153,19 @@ select unlike(
 
 select matches(
   pg_get_functiondef('public.create_league(uuid,text)'::regprocedure),
-  'live_competition_id\(p_tournament_id, availability\.game_key\)',
+  'live_competition_id\([[:space:]]*p_tournament_id,[[:space:]]*availability\.game_key[[:space:]]*\)',
   'league compatibility chooses only a live public prediction-entry game'
 );
 
 select matches(
   pg_get_functiondef('public.get_bonus_games(uuid)'::regprocedure),
-  'live_competition_id\(p_tournament_id, candidate\.game_key\)',
+  'live_competition_id\([[:space:]]*p_tournament_id,[[:space:]]*candidate\.game_key[[:space:]]*\)',
   'the legacy Bonus Games listing filters every game key through the resolver'
 );
 
 select matches(
   pg_get_functiondef('public.get_competition_games(uuid)'::regprocedure),
-  'live_competition_id\(p_tournament_id, availability\.game_key\)',
+  'live_competition_id\([[:space:]]*p_tournament_id,[[:space:]]*availability\.game_key[[:space:]]*\)',
   'the current game catalogue filters every game key through the resolver'
 );
 
