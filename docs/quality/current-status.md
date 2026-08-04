@@ -22,7 +22,7 @@ The product is the **Football Prediction Hub** (ADR 0020): a multi-competition f
 | --- | --- |
 | Repository | `nickygregal12-cmyk/Euro-2028-Predictor` |
 | Current `main` | Read it from git. A hand-copied SHA in a live-authority document is stale the next time anything merges. Fixed anchors that do not move are the `euro-2028-baseline` tag and dated per-PR evidence. |
-| Repository contract | **95** — 95 canonical migrations through `20260804233000_season_leaderboard_read.sql`. Development Supabase is hosted at **93**, applied 4 August 2026 by fast-lane run 30920330240 on `2c2fe85`; production remains at **63**. Development trails the repository by two additive migrations until the next fast-lane run. Contract 87 is the first in this run to remove a database guarantee rather than only add one — it drops `bonus_lms_selections`' cycle-blind club key and replaces it with one scoped to `used_cycle` — and its rollout did carry the `structural` line the widened additive gate now emits, naming `drop constraint` rather than passing it in silence. Non-production Netlify contexts still carry their separately managed `EURO28_DEPLOYED_DB_CONTRACT` declaration, while production keeps the fatal contract gate. |
+| Repository contract | **96** — 96 canonical migrations through `20260804243000_cup_tie_settlement_refusal_order.sql`. Development Supabase is hosted at **95**, applied 4 August 2026 by fast-lane run 30923985137 on `21c9645`; production remains at **63**. Development trails the repository by one additive migration until the next fast-lane run. Contract 87 is the first in this run to remove a database guarantee rather than only add one — it drops `bonus_lms_selections`' cycle-blind club key and replaces it with one scoped to `used_cycle` — and its rollout did carry the `structural` line the widened additive gate now emits, naming `drop constraint` rather than passing it in silence. Non-production Netlify contexts still carry their separately managed `EURO28_DEPLOYED_DB_CONTRACT` declaration, while production keeps the fatal contract gate. |
 | Contract at Euro baseline | 63 canonical migrations through `20260729154931_prediction_consensus_minimum_cohort.sql` — the tag is contract 63 and stays there; `main` has moved past it |
 | Stage B integration | PR #226 → `2648540dc001c50305f1effa526fc16e43dcdb26` |
 | Stage B inventory closure | PR #239 → `69f6e364132f6586d5de9ed8706b0802d14ec0fc` |
@@ -112,17 +112,70 @@ Landed 3 August 2026 across PRs #372, #373, #375, #377, #379, #381 and #383. Thi
 | Last Man Standing | `lmsEligibility`, `lmsRoundResolution`, `lmsPresets` | ADR 0013 as amended by ADR 0020 and ADR 0022 |
 | Predictor Cup | `cupFormat`, `cupTieSettlement`, `cupSchedule`, `cupGroupTable`, `cupLaunch` | ADR 0014 as amended by ADR 0020 and ADR 0022 |
 
-**This heading is now only partly true, and the part that changed is stated here rather than by rewriting the title.** As landed on 3 August 2026 nothing persisted, mirrored or rendered any of it. Contracts 68–93 have since given two of the three games a database:
+**This heading is now only partly true, and the part that changed is stated here rather than by rewriting the title.** As landed on 3 August 2026 nothing persisted, mirrored or rendered any of it. Contracts 68–96 have since given two of the three games a database and one of them a reader:
 
-| Game | Persistence | Driven by | Surface |
+| Game | Persistence | Driven by | Read by a browser |
 | --- | --- | --- | --- |
-| Main Predictor | fixtures, predictions, cards, the lock ledger, and from contract 90 `season_matchweek_scores` | contract 93's hourly scoring job, over contract 91's settlement parity and contract 92's replay link; contract 94 ranks the result into a table | contract 95's `get_season_leaderboard` — the first season RPC a browser role may call. No component renders it yet |
-| Last Man Standing | selections, windows, entrant state | contract 89's hourly settlement job, with contract 88's lock-time auto-assignment | none |
-| Predictor Cup | Cup stores and neutral sources (contracts 74–79) | **nothing** — `settle_season_cup_tie` and `select_season_cup_format` have no caller | none |
+| Main Predictor | fixtures, predictions, cards, the lock ledger, and from contract 90 `season_matchweek_scores` | contract 93's hourly scoring job, over contract 91's settlement parity and contract 92's replay link; contract 94 ranks the result | contract 95's `get_season_leaderboard`, exercised by `/dev/season-leaderboard` |
+| Last Man Standing | selections, windows, entrant state | contract 89's hourly settlement job, with contract 88's lock-time auto-assignment | no |
+| Predictor Cup | Cup stores and neutral sources (contracts 74–79) | **nothing** — `select_season_cup_format`, `settle_season_cup_tie`, `resolve_public_cup_launch` and `cup_league_schedule` all have zero call sites and zero trigger bindings | no |
 
-**What is still true of all three:** no React component renders any of it. Contract 95 is the first crack in that — a season leaderboard is now reachable by an authenticated league co-member through `get_season_leaderboard`, bounded and cursor-paginated — but nothing in `src/` calls it, and Last Man Standing and the Predictor Cup still have no read at all. A player still cannot see a season score in the application.
+### TypeScript/PostgreSQL parity coverage
 
-The claim worth not repeating is the one this document made for a fortnight: "Main Predictor scoring has a PostgreSQL counterpart" was true of contract 70's pure functions the whole time, and hid the fact that nothing called them. A rule with a SQL implementation and no caller is not a rule the product enforces.
+ADR 0012 requires it for season scoring and ADR 0022 requires it for the Cup. Current state, by module:
+
+| Module | SQL counterpart | Parity suite |
+| --- | --- | --- |
+| `scoring` | yes | yes |
+| `standings` | contract 94 | yes |
+| `matchweekSettlement` | contract 91 | yes |
+| `cardSubmission` | yes | yes (contract 96 run) |
+| `lmsEligibility` | contract 84 | yes |
+| `lmsRoundResolution` | yes | yes (contract 96 run) |
+| `cupFormat` | contract 74 | yes (contract 96) |
+| `cupTieSettlement` | contract 74 | yes (contract 96) |
+| `cupLaunch` | contract 74 | yes (contract 96) |
+| `cupSchedule` | yes | yes |
+| `cupGroupTable` | yes | yes |
+| `lmsPresets` | **none** | not applicable until one exists |
+| `fixtureReassignment` | **none** | not applicable until one exists |
+
+Building the Cup suite discharged the gap ADR 0022 names in terms — *"those modules require TypeScript/PostgreSQL parity coverage under `tests/database-parity/` … No such Cup parity suite exists yet"* — and immediately found a real drift: `settleCupTie` and `settle_season_cup_tie` disagreed on 40 of 1200 randomised ties about WHICH fault to report. Contract 96 corrected both sides. Neither had ever mis-settled a tie; the pair had simply never been compared, because nothing drives either of them and an unused pair cannot fail loudly.
+
+**What is still true of all three games:** no product surface renders any of it. `/dev/season-leaderboard` reads a real season table from a real database and is DEV-only by design, with no navigation pointing at it. A player still cannot see a season score in the application.
+
+### The Predictor Cup is rules without a driver, and the next step is not what it looks like
+
+Four season Cup authorities have zero call sites and zero trigger bindings:
+`select_season_cup_format`, `settle_season_cup_tie`, `resolve_public_cup_launch`
+and `cup_league_schedule`. A Cup cannot currently be launched, drawn, scheduled
+or settled by anything.
+
+The tempting next step — write season Cup drivers — is **the wrong one, and
+ADR 0022 says so**. Its owner-verified correction of 3 August 2026 records that
+the qualification, seeding, group-finalisation, bracket and draw machinery is
+already implemented in PostgreSQL for the tournament, behind
+`admin_draw_predictor_cup`, `admin_finalise_predictor_cup_groups` and
+`admin_settle_predictor_cup_round`, and that:
+
+> "sharing happens **in the database**. The existing `predictor_internal.cup_*`
+> functions are generalised from tournament scope to competition-season scope,
+> so one implementation serves both, rather than a second season-specific set
+> being written."
+
+So the Cup's remaining work is a **behaviour-preserving rescoping** of existing
+tournament functions, sequenced after C1b (contract 66, long landed), under the
+explicit constraint that no qualification, seeding, bye, playoff-pairing or
+Penalty Number rule may change while it happens. Contracts 75, 76 and 77 already
+did exactly this for `cup_window_scores` and `cup_window_settled` — splitting a
+tournament source from shared arithmetic and unioning a season source — so the
+pattern is established and partly executed. What remains is `cup_seed_group`,
+`cup_bracket_order`, `cup_final_group_tables` and the three admin RPCs.
+
+The other obligation that record names is now discharged: *"those modules require
+TypeScript/PostgreSQL parity coverage under `tests/database-parity/` … No such
+Cup parity suite exists yet."* Contract 96 built it, and it found a real drift
+within the hour.
 
 **Deliberately not built, for want of authority:** `maxRemainingPoints` generalisation to a rolling season context (ADR 0012 names the consequence but not the semantics), and any season Cup qualification, seeding or bracket implementation (ADR 0022 as corrected: that machinery is SQL, and rescoping it follows C1b).
 

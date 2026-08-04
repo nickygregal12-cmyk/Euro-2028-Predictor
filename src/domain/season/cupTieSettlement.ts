@@ -72,8 +72,25 @@ function entrantTotal(
   confirmed: readonly string[],
   cardFixtureIds: ReadonlySet<string>,
 ): number | CupTieSettlementResult {
-  for (const fixtureId of Object.keys(entrant.fixturePoints)) {
+  // TWO PASSES, NOT ONE INTERLEAVED PASS, and the reason is a real defect
+  // rather than a style preference.
+  //
+  // Checking both conditions per key made the refusal REASON depend on
+  // JavaScript object key insertion order: a card carrying one key that is not
+  // on the fixture list and another that is on it but unconfirmed returned
+  // `invalid_input` or `points_for_unconfirmed_fixture` according to which was
+  // written first. Two callers building the same logical card in a different
+  // order got different answers, and no authority specifies that order.
+  //
+  // It also made SQL parity unreachable. `jsonb` does not preserve key order —
+  // it normalises to (length, then bytes) — so the PostgreSQL counterpart could
+  // not have matched an insertion-ordered rule even in principle. A differential
+  // sweep found both faults together; this shape has neither.
+  const keys = Object.keys(entrant.fixturePoints)
+  for (const fixtureId of keys) {
     if (!cardFixtureIds.has(fixtureId)) return { ok: false, reason: 'invalid_input' }
+  }
+  for (const fixtureId of keys) {
     if (!confirmed.includes(fixtureId)) {
       return { ok: false, reason: 'points_for_unconfirmed_fixture' }
     }

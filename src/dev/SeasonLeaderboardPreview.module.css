@@ -1,0 +1,83 @@
+.page {
+  min-height: 100svh;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 20px;
+  color: var(--tx);
+}
+
+.note {
+  margin: 4px 0 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tx2);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+  margin: 0 0 20px;
+}
+
+.label {
+  display: block;
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--tx2);
+}
+
+.input {
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx);
+  background: var(--sf);
+  border: 1px solid var(--ln);
+  border-radius: 8px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--tx);
+}
+
+.caption {
+  margin: 0 0 8px;
+  text-align: left;
+  font-size: 12px;
+  color: var(--tx2);
+}
+
+.table th,
+.table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--ln);
+}
+
+.table th {
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+/* Never a foreground colour — the LeagueTable contrast guard (PR #344) exists
+   because `--mut` as a text colour failed contrast. This is a background tint. */
+.you {
+  background: var(--sf2);
+}

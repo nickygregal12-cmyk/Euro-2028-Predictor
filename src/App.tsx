@@ -59,6 +59,13 @@ const MatchCentreScenarioPreview = import.meta.env.DEV
 const SeasonPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/SeasonPreview').then((m) => ({ default: m.SeasonPreview })))
   : null
+const SeasonLeaderboardPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/SeasonLeaderboardPreview').then((m) => ({
+        default: m.SeasonLeaderboardPreview,
+      })),
+    )
+  : null
 
 export default function App() {
   return (
@@ -75,6 +82,9 @@ export default function App() {
             ) : null}
             {import.meta.env.DEV && SeasonPreview ? (
               <Route path="/dev/season" element={<SeasonPreview />} />
+            ) : null}
+            {import.meta.env.DEV && SeasonLeaderboardPreview ? (
+              <Route path="/dev/season-leaderboard" element={<SeasonLeaderboardPreview />} />
             ) : null}
 
             <Route element={<AuthLayout />}>
