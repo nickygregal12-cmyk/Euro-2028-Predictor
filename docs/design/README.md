@@ -34,7 +34,7 @@ document.
 ## Read the baseline before you act on it
 
 **The plan reviewed a snapshot of 93 migrations and 69 pgTAP suites** (§2.1).
-`main` is at **97 migrations / 73 pgTAP suites** — contracts 94–97 landed on
+`main` is at **98 migrations / 74 pgTAP suites** — contracts 94–98 landed on
 4 August 2026, after the snapshot was taken:
 
 | contract | what landed |
@@ -43,6 +43,7 @@ document.
 | 95 | the bounded season leaderboard read, limited to league co-members |
 | 96 | Cup tie refusal-order parity fix, found by differential sweep |
 | 97 | server-only provider-response custody |
+| 98 | the Cup RPC layer taken off the tournament link — the Penalty Number target and lock instant |
 
 Nothing in those contradicts the plan, but **Appendix D.2's reconciliation list
 predates them** and must be checked against
