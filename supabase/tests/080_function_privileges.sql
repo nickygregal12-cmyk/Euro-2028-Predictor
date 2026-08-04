@@ -62,6 +62,10 @@ insert into expected_service_functions (signature) values
   -- failing against a function nobody had touched. This comment is the live
   -- regression case; removing the apostrophe would retire it.
   ('process_due_season_matchweek_submissions(timestamp with time zone)'),
+  -- Contract 84: provider custody is callable only by server-side service-role
+  -- code after the named Edge Function caller key has been validated.
+  ('archive_provider_response(text,text,text,integer,jsonb,text,uuid)'),
+  ('record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)'),
   ('recompute_all_scores()'),
   ('recompute_tournament_scores(uuid)'),
   ('set_operating_limits(integer,integer)');
