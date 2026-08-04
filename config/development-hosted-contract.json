@@ -1,0 +1,14 @@
+{
+  "projectRef": "iouzoutneyjpugbbtdem",
+  "requiredMigrationCount": 78,
+  "latestMigrationVersion": "20260804053000",
+  "latestMigrationName": "cup_league_schedule",
+  "verifiedAt": "2026-08-04T03:00:00+01:00",
+  "evidence": {
+    "source": "Supabase migration ledger",
+    "automationSession": "2026-08-04-0300",
+    "repositoryHeadBeforeChange": "9122733fa26b6bd486b4259267d7ef160eff2cb2"
+  },
+  "productionContract": 63,
+  "productionPromotionAuthorised": false
+}
