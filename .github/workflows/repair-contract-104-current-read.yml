@@ -1,0 +1,45 @@
+name: Repair Contract 104 current reads
+
+on:
+  push:
+    branches:
+      - agent/contract-104-live-competition-callers
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contract-104-live-competition-callers
+          fetch-depth: 0
+
+      - name: Merge hosted-state authority from main
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git fetch origin main
+          if ! git merge --no-edit origin/main; then
+            conflicts="$(git diff --name-only --diff-filter=U | sort)"
+            expected="$(printf '%s\n' docs/ops/ops-pending-migrations.md docs/quality/current-status.md | sort)"
+            test "$conflicts" = "$expected"
+            git checkout --theirs docs/ops/ops-pending-migrations.md docs/quality/current-status.md
+            git add docs/ops/ops-pending-migrations.md docs/quality/current-status.md
+            git commit --no-edit
+          fi
+
+      - name: Apply current-read and Cup preservation correction
+        run: python scripts/repair-contract-104-current-read-once.py
+
+      - name: Commit corrected Contract 104
+        run: |
+          set -euo pipefail
+          git add config/deployment-contract.json docs/ops/ops-pending-migrations.md docs/quality/current-status.md e2e/seed-contract.ts supabase/migrations/20260805001000_live_competition_callers.sql supabase/tests/155_live_competition_callers.sql tests/database-parity/liveCompetitionCallerBoundary.test.ts
+          git diff --cached --check
+          git commit -m 'Preserve terminal reads and Cup phase in Contract 104'
+          git push origin HEAD:agent/contract-104-live-competition-callers
