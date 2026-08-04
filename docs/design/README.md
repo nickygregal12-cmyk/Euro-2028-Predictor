@@ -48,16 +48,18 @@ document.
 Nothing in those contradicts the plan, but **Appendix D.2's reconciliation list
 predates them** and must be checked against
 [`../quality/current-status.md`](../quality/current-status.md) before being
-treated as outstanding work. One item needs care in particular:
+treated as outstanding work.
 
-> D.2 lists *"post-lock reveal — existing rival/profile RPCs still contain
-> shared-league gates"* as drift to remove.
-
-Contract 95 deliberately **applied** a co-member gate to the season leaderboard.
-These are most likely compatible — D.2 concerns **Euro post-lock profile and
-entry reveal**, contract 95 concerns **season standings**, and the platform
-boundary explicitly limits other players' data to league co-members — but the two
-should not be reconciled by assumption. Confirm the scope before changing either.
+**The one item that needed care is now settled.** D.2 listed *"post-lock reveal
+— existing rival/profile RPCs still contain shared-league gates"* as drift to
+remove, while contract 95 deliberately **applied** a co-member gate to the
+season leaderboard. [ADR 0025](../adr/0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md)
+confirms these are **different scopes with no behavioural conflict**: D.2
+concerns Euro Original Predictor post-lock entry and profile reveal, contract 95
+concerns the season Main Predictor leaderboard and requires an `entries` row in
+that competition season rather than co-membership. Contract 95 is unchanged; the
+obsolete gates come out of the Euro post-lock RPCs only, and D.2 now says so in
+its own text.
 
 ## The prototype's one repository-side change
 
