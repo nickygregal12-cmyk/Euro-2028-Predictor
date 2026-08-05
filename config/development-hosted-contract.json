@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 110,
-  "latestMigrationVersion": "20260805060000",
-  "latestMigrationName": "season_cup_round_calendar",
-  "verifiedAt": "2026-08-05T11:05:00.000Z",
+  "requiredMigrationCount": 111,
+  "latestMigrationVersion": "20260805070000",
+  "latestMigrationName": "season_cup_launch",
+  "verifiedAt": "2026-08-05T11:58:01.763Z",
   "evidence": {
-    "source": "Development fast-lane rollout on a6ef054, completed successfully; contract 110 applied. Corroborated read-only: the ledger holds 110 rows through 20260805060000. predictor_internal.generate_season_cup_windows is deployed BYTE-IDENTICAL to the committed migration — md5 b601e66b98dfb17832dcdcc27ffd63a9 over 5878 characters on both sides — is security definer, and is granted to none of anon, authenticated, service_role or PUBLIC. It has no caller: it is the prerequisite the Championship phase driver will use, landed ahead of it, so the change is behaviour-neutral on development today.",
-    "workflowRunId": 0,
-    "repositoryHead": "a6ef054030547410ad5283d3f906b2a3c4761145"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 31003461219,
+    "repositoryHead": "b66ddca6569bed302867a4807ad502d183f1430a"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
