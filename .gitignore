@@ -50,3 +50,8 @@ coverage/
 # never a production dependency (design-system §11.10). Retained evidence is
 # converted to WebP and committed under docs/visual/evidence/concepts/.
 creative-source/
+
+# Provider bake-off output (scripts/ops/provider-bakeoff.ts). Raw provider
+# responses are licensed third-party data whose retention terms are the open
+# Stage D question — never commit them.
+provider-bakeoff/
