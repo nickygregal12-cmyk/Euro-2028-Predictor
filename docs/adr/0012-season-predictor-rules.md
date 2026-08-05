@@ -1,8 +1,10 @@
 # ADR 0012 — Season Predictor rules
 
-- **Status:** Accepted direction — unimplemented
+- **Status:** Accepted direction — partially implemented
 - **Date:** 29 July 2026
 - **Amended by:** this record's own 4 August 2026 amendment below, which withdraws the pre-filled card and lock-time auto-completion; and [ADR 0020](0020-football-prediction-hub-product-model.md) — the Joker count becomes ten split five and five, and a fixture postponed after its round locks is reassigned to its new round with an editable prediction rather than staying frozen. The matchweek Joker unit, the one-per-matchweek maximum, the scoring values, rolling entry and the cumulative-total ranking law below are **unchanged and still authoritative**.
+
+> **Implementation progress — 5 August 2026.** Pure-domain rules, season fixtures/predictions/Jokers, empty-card lock behaviour, recurring processing, replay-safe reassignment, scoring parity, stored matchweek totals and the bounded cumulative standings authority are merged. The phone-first card, secondary standings and complete season user journeys remain unbuilt.
 
 ## Context
 

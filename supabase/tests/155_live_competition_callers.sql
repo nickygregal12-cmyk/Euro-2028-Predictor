@@ -40,28 +40,35 @@ select is(
   'season-scope trigger contains one live-instance resolution'
 );
 
+-- Contract 106 moved these two, and only these two, off the live-only reader.
+-- The operational paths above stay live-only because they gate WRITES, which a
+-- completed competition must not accept. A rederive is not a write to the
+-- competition — it restates scores that already belong to it — so giving it the
+-- live-only reader meant a result corrected after completion silently rederived
+-- nothing (DATA-009). `157_terminal_aware_bonus_rederive.sql` proves the
+-- behaviour; these assertions pin which reader each one holds.
 select matches(
   pg_get_functiondef('predictor_internal.recompute_ko_predictor_for_match(uuid)'::regprocedure),
-  'predictor_internal\.live_competition_id\(',
-  'KO rederive resolves the live public instance'
+  'predictor_internal\.current_public_competition_id\(',
+  'KO rederive resolves the terminal-aware current public instance'
 );
 select is(
   regexp_count(pg_get_functiondef('predictor_internal.recompute_ko_predictor_for_match(uuid)'::regprocedure),
     'predictor_internal\.live_competition_id\('),
-  1,
-  'KO rederive contains one live-instance resolution'
+  0,
+  'and no longer holds a live-only resolution that a completed competition would silence'
 );
 
 select matches(
   pg_get_functiondef('predictor_internal.recompute_lms_for_tournament(uuid)'::regprocedure),
-  'predictor_internal\.live_competition_id\(',
-  'LMS rederive resolves the live public instance'
+  'predictor_internal\.current_public_competition_id\(',
+  'LMS rederive resolves the terminal-aware current public instance'
 );
 select is(
   regexp_count(pg_get_functiondef('predictor_internal.recompute_lms_for_tournament(uuid)'::regprocedure),
     'predictor_internal\.live_competition_id\('),
-  1,
-  'LMS rederive contains one live-instance resolution'
+  0,
+  'and likewise holds no live-only resolution'
 );
 
 select matches(

@@ -1,8 +1,10 @@
 # ADR 0024 — Development environment operating model
 
-- **Status:** Accepted — the deployment-contract change is implemented; the remaining items are decided and staged
+- **Status:** Implemented for the current pre-cohort development operating model
 - **Date:** 3 August 2026
 - **Amends:** the proportionate-checks intent already stated in `AGENTS.md` and `CLAUDE.md`, by making it operational. It does **not** amend any scoring, privacy, permission or production-safety decision, and nothing here relaxes a control that protects production data.
+
+> **Implementation evidence — 5 August 2026.** Non-production contract mismatch reporting, the guarded additive fast lane, deterministic seed contract, proportionate CI/browser/database gates and separate production controls are all active. The closed-cohort trigger changes future operating requirements when it occurs; it is not an unimplemented part of the present model.
 
 ## Context
 

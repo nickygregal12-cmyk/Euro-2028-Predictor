@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 105,
-  "latestMigrationVersion": "20260805010000",
-  "latestMigrationName": "cup_split_group_tables",
-  "verifiedAt": "2026-08-05T02:06:05.582Z",
+  "requiredMigrationCount": 108,
+  "latestMigrationVersion": "20260805040000",
+  "latestMigrationName": "successor_window_calendar_guard",
+  "verifiedAt": "2026-08-05T09:26:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30968263589 on 03613eb, completed successfully; contracts 104 and 105 applied together. Corroborated read-only: the ledger holds 105 rows through 20260805010000. Contract 104's caller resolution and contract 105's split authority both landed — cup_split_group_tables, assert_bonus_cup_member_split_parent, current_public_competition_id and live_competition_id all exist in predictor_internal and NONE is present in public, and anon, authenticated and service_role hold no EXECUTE on the split authority or its ancestry guard. Both split integrity triggers are attached. The environment is unchanged in substance because nothing has used the new stage yet: zero split groups, zero split members, zero split fixtures, zero ancestry violations and zero completed competitions, so every existing reader still resolves the same live public row and the ancestry rule was enforceable from the moment it landed rather than needing a backfill.",
-    "workflowRunId": 30968263589,
-    "repositoryHead": "03613eb505f9a7178744085ce717ff0990961217"
+    "source": "Development fast-lane rollout run 30993039183 on 821fec8, completed successfully; contract 108 applied. Corroborated read-only: the ledger holds 108 rows through 20260805040000. predictor_internal.assert_successor_window_after_predecessor is security definer with search_path pinned to the empty string, is granted to none of anon, authenticated, service_role or PUBLIC, and its DEPLOYED BODY IS BYTE-IDENTICAL to the committed migration — md5 f2ec4b3ca1341f814bdf5a9be1686296 over 1484 characters on both sides. The trigger is bound to public.bonus_competition_windows and is non-internal, so it judges every writer rather than one script. No browser or service role holds ANY grant on that table, so the trigger cannot refuse a write a player could have made. Zero successors exist, so nothing hosted is currently subject to the rule and the change is behaviour-neutral today.",
+    "workflowRunId": 30993039183,
+    "repositoryHead": "821fec83678d4d2e89a6c293b6920450d28af7dc"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
