@@ -57,6 +57,7 @@ The merged delta known at this 5 August review is:
 | 104 | operational callers became live-instance explicit and current reads terminal-aware |
 | 105 | one-parent split ancestry and a continuing table derived across both phases |
 | 106 | tournament Bonus rederivation remained correction-safe after completion |
+| 107 | the idempotent LMS wipeout restart creates a linked successor and copies no picks, cycles, projections or windows |
 
 None of these changes presentation authority into scoring or lifecycle authority.
 **Appendix D.2's reconciliation list predates them** and must be checked against
