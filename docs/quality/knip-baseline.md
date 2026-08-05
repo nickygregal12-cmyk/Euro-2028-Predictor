@@ -50,7 +50,9 @@ Small, and each verified by searching for consumers rather than trusting the rep
 | `fetchEntrySubmissionStatus` (`services/supabase/predictions.ts`) | No consumer anywhere in `src`, `tests` or `e2e` |
 | `PredictIcon` (`design-system/icons.tsx`) | No consumer anywhere. A hand-maintained custom SVG nothing renders — directly relevant to the icon consolidation, which replaces generic custom SVGs with Lucide wrappers |
 
-These are the only findings this baseline is willing to call dead. Removal is deliberately **not** in this change; it belongs in a small dedicated PR where the deletion is the reviewable subject.
+These are the only findings this baseline is willing to call dead. Removal was deliberately not part of establishing the baseline; it followed as its own change, where the deletion was the reviewable subject.
+
+**Removed 5 August 2026.** All three are gone, and the report's unused-export count moved 27 → 24, which is the check that the deletion did what it claimed and nothing more. One of them was more than unused: `fetchEntrySubmissionStatus` called `get_entry_submission_status` from `predictions.ts` while `entrySubmissionStatus.ts` called the same RPC for the live Review workspace — a **duplicate implementation**, not merely an orphan. The RPC keeps its live caller, so `config/deployment-contract.json` and `080_function_privileges.sql` are unaffected. Removing the function also orphaned an import, which `tsc -b` caught immediately.
 
 ## Category 6 — requires investigation
 
