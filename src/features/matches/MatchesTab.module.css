@@ -8,7 +8,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 22px;
+  font-size: var(--fs-4);
   color: var(--tx);
 }
 
@@ -217,7 +217,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 .statusLine {
@@ -298,7 +298,7 @@
   text-align: center;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 .tieDetail {
@@ -321,7 +321,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 26px;
+  font-size: var(--fs-5);
   color: var(--tx);
 }
 .statBigUnit {

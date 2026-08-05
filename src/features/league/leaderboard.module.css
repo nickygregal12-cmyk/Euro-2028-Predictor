@@ -52,7 +52,7 @@
 .cardTitle {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
@@ -65,7 +65,7 @@
 .cardRank {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 22px;
+  font-size: var(--fs-4);
   color: var(--acc);
   flex-shrink: 0;
 }
@@ -197,7 +197,7 @@
 .points {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
   text-align: right;
 }

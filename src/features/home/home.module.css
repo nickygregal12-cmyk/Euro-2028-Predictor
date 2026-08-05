@@ -38,7 +38,7 @@
 .stripValue {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 24px;
+  font-size: var(--fs-5);
   line-height: 1.1;
   color: var(--tx);
 }
@@ -130,7 +130,7 @@
 .fixtureScore {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 .fixtureV {
@@ -268,7 +268,7 @@
 .snapshotName {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
   white-space: nowrap;
   overflow: hidden;
@@ -300,7 +300,7 @@
   gap: 8px;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 .submittedIcon {

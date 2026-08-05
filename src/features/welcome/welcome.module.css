@@ -29,7 +29,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 21px;
+  font-size: var(--fs-4);
   line-height: 1.25;
   color: var(--tx);
   /* Hostile long display names: wrap and, if a single long word, break rather
@@ -90,7 +90,7 @@
 .stepTitle {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 

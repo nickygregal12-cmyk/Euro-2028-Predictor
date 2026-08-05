@@ -31,7 +31,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 26px;
+  font-size: var(--fs-5);
   letter-spacing: -0.01em;
   color: var(--tx);
 }
@@ -57,7 +57,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 18px;
+  font-size: var(--fs-4);
   color: var(--tx);
 }
 

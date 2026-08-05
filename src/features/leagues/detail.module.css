@@ -268,7 +268,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: var(--fs-3);
 }
 
 /* Share-to-recruit button label — icon + text inline. */

@@ -17,7 +17,7 @@
 .summaryStrip strong {
   color: var(--tx);
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: var(--fs-5);
 }
 
 .sectionTitle,
@@ -29,7 +29,7 @@
 }
 
 .sectionTitle {
-  font-size: 18px;
+  font-size: var(--fs-4);
 }
 
 .rankedList {

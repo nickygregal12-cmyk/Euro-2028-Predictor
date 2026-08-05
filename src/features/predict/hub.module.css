@@ -13,7 +13,7 @@
 .heroPercent {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 34px;
+  font-size: var(--fs-6);
   line-height: 1;
   color: var(--tx);
 }
@@ -161,7 +161,7 @@
 .rowTitle {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 

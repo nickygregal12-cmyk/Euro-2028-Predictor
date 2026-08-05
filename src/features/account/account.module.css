@@ -32,7 +32,7 @@
 .name {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 17px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
@@ -111,7 +111,7 @@
   min-height: var(--tap-min);
   padding: 0 10px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
   background: var(--input-bg);
   border: 1.5px solid var(--acc);

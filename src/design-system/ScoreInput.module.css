@@ -10,7 +10,7 @@
   text-align: center;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 19px;
+  font-size: var(--fs-4);
   color: var(--tx);
   background: var(--input-bg);
   border: 1.5px solid var(--acc);
@@ -38,7 +38,7 @@
   height: var(--tap-min);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 19px;
+  font-size: var(--fs-4);
   color: var(--tx2);
   background: var(--chip);
   border: 1px solid var(--line);

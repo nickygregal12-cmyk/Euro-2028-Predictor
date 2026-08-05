@@ -23,7 +23,7 @@
   color: var(--bg);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 17px;
+  font-size: var(--fs-3);
 }
 
 .headerBody {
@@ -37,7 +37,7 @@
 .name {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 17px;
+  font-size: var(--fs-3);
   color: var(--tx);
   overflow: hidden;
   text-overflow: ellipsis;

@@ -77,7 +77,7 @@
 }
 
 .cardTitle {
-  font-size: 17px;
+  font-size: var(--fs-3);
 }
 
 .quickGrid {
@@ -101,7 +101,7 @@
 
 .quickCard strong {
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: var(--fs-3);
 }
 
 .quickCard span {

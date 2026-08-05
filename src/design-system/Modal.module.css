@@ -30,14 +30,14 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 18px;
+  font-size: var(--fs-4);
   color: var(--tx);
 }
 
 .body {
   margin-top: var(--sp-3);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
