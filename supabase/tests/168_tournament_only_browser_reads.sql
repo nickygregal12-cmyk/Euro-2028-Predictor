@@ -44,27 +44,30 @@ insert into tournament_only_reads (name, verdict) values
    'SERVED. Tournament-only by design since contract 116: the season path is '
    'get_season_lms_round, which reads season_cup_window_fixtures and returns '
    'the survival verdict from the settlement authority.'),
-  ('get_my_cup',
-   'NOT SERVED. A season Predictor Championship stores its round fixtures in '
-   'season_cup_window_fixtures, so this returns empty fixture arrays for one — '
-   'the same defect contract 116 closed for Last Man Standing. Its season '
-   'counterpart is outstanding work, recorded here so a Championship surface '
-   'is not built on a read that cannot see its own fixtures.'),
   ('get_bonus_games',
-   'NOT SERVED, and the widest of the three. This is the games hub listing, so '
-   'a season game appears in it with no kickoffs behind it: the per-window '
-   'fixture block joins bonus_window_fixtures to public.matches like the rest. '
-   'Whatever it drives — next deadline, settled state — is blank or wrong for a '
-   'season, and it is the read a player meets FIRST.'),
-  ('submit_cup_penalty_number',
-   'Tournament-only, and a WRITE rather than a read. It validates the Cup '
-   'tie-break input against the round''s fixtures. A season Championship that '
-   'needs a penalty number will need this widened or partnered, on the same '
-   'reasoning as contract 86 widening the Last Man Standing selection shape.'),
-  ('admin_settle_predictor_cup_round',
-   'Tournament-only BY DESIGN. Season Championship settlement has its own '
-   'authorities (the cup_window_settled and cup_tournament_* helpers split '
-   'tournament from season deliberately), so this one is not a gap.');
+   'UNRESOLVED, and worth resolving because it is the read a player meets '
+   'FIRST — the games hub listing. Its per-window block joins '
+   'bonus_window_fixtures to public.matches, so it cannot see a season round''s '
+   'fixtures. What is NOT yet established is what that costs: whether the block '
+   'is reached at all for a season competition, and what it drives if it is. '
+   'That question is the work; this entry exists so it is answered rather than '
+   'assumed in either direction.');
+
+-- WHAT THIS LIST NO LONGER CLAIMS, and why the correction is recorded rather
+-- than quietly dropped. get_my_cup, submit_cup_penalty_number and
+-- admin_settle_predictor_cup_round were listed here on a first pass, on the
+-- strength of reading the migration files. All three were WRONG: their current
+-- definitions do not touch bonus_window_fixtures at all. get_my_cup now routes
+-- through cup_window_scores and cup_window_settled — the neutral helpers the
+-- cup_neutral_* contracts introduced precisely to split tournament from season
+-- — and the other two were superseded the same way.
+--
+-- The mistake is instructive enough to keep: the file-reading missed later
+-- redefinitions written in UPPERCASE, and over-ran function bodies terminated
+-- with $function$ rather than $$, so it attributed one function's text to
+-- another. pg_get_functiondef against a built database has neither problem,
+-- which is the entire reason this guard queries the catalogue instead of
+-- grepping the tree — and it caught its own author's error on the first run.
 
 select is(
   (select coalesce(jsonb_agg(candidate.proname order by candidate.proname), '[]'::jsonb)
