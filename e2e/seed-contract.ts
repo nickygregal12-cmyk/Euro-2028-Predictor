@@ -445,8 +445,27 @@
  *
  * Both columns start NULL and nothing derives them on a fresh seed, so a seeded
  * user meets no new gate: the trigger fires only on writes that set a window.
+ *
+ * Contract 114 installs `pg_net`, adds two tables — one `public`, one
+ * `predictor_internal` — four `predictor_internal` functions, one `public` job
+ * function, one trigger and one `pg_cron` schedule. The browser-visible surface
+ * comparison against contract 113 is 230 rows before and 231 after, and the
+ * single added row is again the trigger binding alone.
+ *
+ * Installing an extension is the part worth checking rather than assuming,
+ * because an extension's functions are executable by PUBLIC by default and
+ * `anon`, `authenticated` and `service_role` all inherit that. Left alone it
+ * would hand every authenticated session the ability to make the database fetch
+ * an arbitrary URL. The migration revokes the whole `net` schema from those
+ * three roles and asserts the result in its own final block; the surface
+ * comparison above is the independent measurement of the same thing, and shows
+ * no routine privilege appearing for any of them.
+ *
+ * A seeded user meets no new gate. The poll target list starts empty, the job
+ * reports itself unconfigured until two vault secrets exist, and nothing on any
+ * authenticated surface reads either new table.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 113
+export const SEED_REVIEWED_AT_CONTRACT = 114
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
