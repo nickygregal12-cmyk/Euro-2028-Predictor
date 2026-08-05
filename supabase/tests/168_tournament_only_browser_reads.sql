@@ -45,13 +45,18 @@ insert into tournament_only_reads (name, verdict) values
    'get_season_lms_round, which reads season_cup_window_fixtures and returns '
    'the survival verdict from the settlement authority.'),
   ('get_bonus_games',
-   'UNRESOLVED, and worth resolving because it is the read a player meets '
-   'FIRST — the games hub listing. Its per-window block joins '
-   'bonus_window_fixtures to public.matches, so it cannot see a season round''s '
-   'fixtures. What is NOT yet established is what that costs: whether the block '
-   'is reached at all for a season competition, and what it drives if it is. '
-   'That question is the work; this entry exists so it is answered rather than '
-   'assumed in either direction.');
+   'NOT SERVED, and the consequence is now traced rather than guessed. This is '
+   'the games hub listing — the read a player meets FIRST. Its per-window '
+   'fixtures block joins bonus_window_fixtures to public.matches with no branch '
+   'on competition kind, so a season window returns fixtures: []. Downstream, '
+   'deriveWindowFixtureAggregate then reports total 0, and '
+   'resolveCompetitionStatus treats a window as settled only when '
+   '"total > 0 and confirmed >= total" — which can never hold. So a season '
+   'competition''s FIRST LOCKED ROUND stays "in flight" permanently: the hub '
+   'card sticks on it, showing a stale round and a stale deadline, and never '
+   'advances. round_live and round_awaiting_confirmation are unreachable for a '
+   'season for the same reason. Traced through the code rather than executed, '
+   'so the mechanism is stated and not the symptom.');
 
 -- WHAT THIS LIST NO LONGER CLAIMS, and why the correction is recorded rather
 -- than quietly dropped. get_my_cup, submit_cup_penalty_number and
