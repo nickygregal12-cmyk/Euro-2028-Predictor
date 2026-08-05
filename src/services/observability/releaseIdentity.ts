@@ -51,6 +51,10 @@ export function routeCategory(pathname: string): string {
   // a regression in one look like a regression in the other, which is the
   // opposite of what the gate asks for.
   if (pathname.startsWith('/dev/season-predictor')) return 'season-predictor'
+  // Its own category rather than folded into `season-predictor`: the standings
+  // are a read of settled scores while the card is a write path under a lock,
+  // and a failure in one says nothing about the other.
+  if (pathname.startsWith('/dev/season-standings')) return 'season-standings'
   if (pathname.startsWith('/predict')) return 'predictor'
   if (pathname.startsWith('/league')) return 'league'
   if (pathname.startsWith('/h2h/')) return 'head-to-head'
