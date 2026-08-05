@@ -30,9 +30,9 @@ The stable compact rows below preserve the established feature/safeguard identif
 - season Last Man Standing setup, eligibility, deterministic auto-assignment, used-team cycles, selection writes, correction-aware settlement and entrant-state replay;
 - competition-neutral Predictor Championship/Cup points and settlement sources, circle-method scheduling rules, persisted split phases, one-parent ancestry and derived continuing standings;
 - server-only provider-response custody with archive-before-processing evidence and no authority to write official competition truth;
-- repeatable competition instances, explicit live/current resolution and correction-safe rederivation after completion.
+- repeatable competition instances, explicit live/current resolution, correction-safe rederivation after completion and an idempotent LMS wipeout restart that creates a linked successor while copying no selections, used cycles, projections or windows.
 
-The missing lifecycle/phase drivers, bounded browser reads and season product surfaces remain partial/planned work in the roadmap. Backend presence must not be reclassified as a completed user journey. When a surface becomes a real supported capability, add one reviewed primary identifier and update the executable identifier-count guard in the same change.
+The LMS successor-window scheduler, Championship phase driver, bounded browser reads and season product surfaces remain partial/planned work in the roadmap. Backend presence must not be reclassified as a completed user journey. When a surface becomes a real supported capability, add one reviewed primary identifier and update the executable identifier-count guard in the same change.
 
 ## Original Predictor and core application
 
@@ -212,6 +212,7 @@ Do not silently:
 - infer penalty winners from tied public scores;
 - mix Original/bonus points, one game's standings with another's, or predicted/real brackets;
 - treat a backend authority as a completed or production-hosted surface without journey evidence;
+- describe the Contract 107 successor as playable before an authoritative next-round/window scheduler has populated it;
 - let a provider response become official fixture/result/scoring truth;
 - copy Championship carried points into a second stored starting total;
 - resolve correction-time rederivation through a live-only competition lookup after completion;
