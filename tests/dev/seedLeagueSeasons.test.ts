@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  doubleRoundRobin,
+  roundRobin,
   SEASONS,
   singleRoundRobin,
 } from '../../scripts/seed-dev/seed-league-seasons'
@@ -14,72 +14,103 @@ import {
  * twice in the same matchweek — a bad generator would be rejected outright.
  *
  * The quiet way is worse and is what these assertions are really for: a
- * schedule that inserts perfectly well while some pair never meets, or meets
- * twice at the same ground. Nothing in the database objects. The season simply
- * plays out slightly wrong, and it would be found — if at all — by somebody
- * noticing a table that does not add up in March.
+ * schedule that inserts perfectly well while some pair never meets, or meets at
+ * the wrong grounds. Nothing in the database objects. The season simply plays
+ * out slightly wrong, and it would be found — if at all — by somebody noticing
+ * a table that does not add up in March.
  */
 
 describe.each([
-  { clubs: 4 },
-  { clubs: 12 },
-  { clubs: 20 },
-])('a double round-robin for $clubs clubs', ({ clubs }) => {
-  const schedule = doubleRoundRobin(clubs)
+  { clubs: 4, meetings: 2 },
+  { clubs: 20, meetings: 2 },
+  // Twelve clubs meeting three times is the Scottish Premiership's 33
+  // matchweeks before its split, and an odd number of meetings behaves
+  // differently enough to be worth its own case.
+  { clubs: 12, meetings: 3 },
+  { clubs: 6, meetings: 3 },
+])('$clubs clubs meeting $meetings times', ({ clubs, meetings }) => {
+  const schedule = roundRobin(clubs, meetings)
 
-  it('plays two full halves', () => {
-    expect(schedule).toHaveLength(2 * (clubs - 1))
+  it('plays one full round-robin per meeting', () => {
+    expect(schedule).toHaveLength(meetings * (clubs - 1))
   })
 
   it('gives every club exactly one fixture in every matchweek', () => {
-    // This is the property the database enforces, so getting it wrong is
-    // caught either way — but being caught here costs nothing.
     for (const [index, round] of schedule.entries()) {
       expect(round, `matchweek ${index + 1} is not a full round`).toHaveLength(clubs / 2)
-      const appearing = round.flat()
-      expect(new Set(appearing).size, `a club plays twice in matchweek ${index + 1}`).toBe(
-        clubs,
-      )
+      expect(
+        new Set(round.flat()).size,
+        `a club plays twice in matchweek ${index + 1}`,
+      ).toBe(clubs)
     }
   })
 
-  it('makes every pair meet exactly twice', () => {
-    const meetings = new Map<string, number>()
+  it('makes every pair meet exactly the configured number of times', () => {
+    const met = new Map<string, number>()
     for (const round of schedule) {
       for (const [home, away] of round) {
         const key = [home, away].sort((a, b) => a - b).join('-')
-        meetings.set(key, (meetings.get(key) ?? 0) + 1)
+        met.set(key, (met.get(key) ?? 0) + 1)
       }
     }
-    // Every unordered pair, and no pair missing.
-    expect(meetings.size).toBe((clubs * (clubs - 1)) / 2)
-    for (const [pair, count] of meetings) {
-      expect(count, `pair ${pair} meets ${count} times`).toBe(2)
+    expect(met.size, 'a pair never meets').toBe((clubs * (clubs - 1)) / 2)
+    for (const [pair, count] of met) {
+      expect(count, `pair ${pair} meets ${count} times`).toBe(meetings)
     }
   })
 
-  it('gives every pair one fixture at each ground', () => {
-    // The silent one. Two meetings both at the same ground would satisfy every
-    // assertion above and still be a broken fixture list.
+  it('splits each pair between the two grounds as evenly as the meetings allow', () => {
+    // The silent one. With an EVEN number of meetings every pair must be
+    // exactly balanced. With an odd number it cannot be — somebody hosts the
+    // extra game — but it must still be as close as arithmetic permits, so
+    // ceil/floor and never 3-0.
     const ordered = new Map<string, number>()
     for (const round of schedule) {
       for (const [home, away] of round) {
-        const key = `${home}>${away}`
-        ordered.set(key, (ordered.get(key) ?? 0) + 1)
+        ordered.set(`${home}>${away}`, (ordered.get(`${home}>${away}`) ?? 0) + 1)
       }
     }
+    const high = Math.ceil(meetings / 2)
+    const low = Math.floor(meetings / 2)
     for (const [pair, count] of ordered) {
-      expect(count, `${pair} is played ${count} times`).toBe(1)
+      expect(
+        [high, low],
+        `${pair} is hosted ${count} times, which is not a ${high}-${low} split`,
+      ).toContain(count)
     }
   })
 
-  it('gives every club an equal split of home and away fixtures', () => {
+  it('gives every club the same number of fixtures', () => {
+    const played = new Array<number>(clubs).fill(0)
+    for (const round of schedule) {
+      for (const [home, away] of round) {
+        played[home] += 1
+        played[away] += 1
+      }
+    }
+    for (const [club, count] of played.entries()) {
+      expect(count, `club ${club} plays ${count}`).toBe(meetings * (clubs - 1))
+    }
+  })
+
+  it('keeps home and away within one fixture of each other for every club', () => {
+    // With three meetings a club ends on (n-1) + h home games, so the spread
+    // across the league is real and expected — but no club may be stranded
+    // with a wildly lopsided season.
     const home = new Array<number>(clubs).fill(0)
     for (const round of schedule) {
       for (const [homeClub] of round) home[homeClub] += 1
     }
-    for (const [club, played] of home.entries()) {
-      expect(played, `club ${club} has ${played} home fixtures`).toBe(clubs - 1)
+    const total = meetings * (clubs - 1)
+    for (const [club, count] of home.entries()) {
+      const away = total - count
+      expect(
+        Math.abs(count - away),
+        `club ${club} plays ${count} home and ${away} away`,
+      ).toBeLessThanOrEqual(meetings % 2 === 0 ? 0 : clubs - 1)
+    }
+    if (meetings % 2 === 0) {
+      for (const count of home) expect(count).toBe(total / 2)
     }
   })
 })
@@ -87,12 +118,11 @@ describe.each([
 describe('a single round-robin does not seat one club at home all season', () => {
   it('alternates the fixed pairing', () => {
     // The circle method pins club 0 and rotates the rest around it. Without the
-    // alternation, club 0 plays every first-half fixture at home — which passes
-    // every "each pair meets once" check and is obviously not a fixture list.
+    // alternation, club 0 plays every first-meeting fixture at home — which
+    // passes every "each pair meets once" check and is obviously not a fixture
+    // list.
     const rounds = singleRoundRobin(20)
-    const homeForZero = rounds.filter((round) =>
-      round.some(([home]) => home === 0),
-    ).length
+    const homeForZero = rounds.filter((round) => round.some(([home]) => home === 0)).length
     expect(homeForZero).toBeGreaterThan(1)
     expect(homeForZero).toBeLessThan(rounds.length)
   })
@@ -120,6 +150,43 @@ describe('the configured seasons', () => {
     for (const season of SEASONS) {
       const day = new Date(`${season.firstSaturday}T12:00:00Z`).getUTCDay()
       expect(day, `${season.seasonRow} does not start on a Saturday`).toBe(6)
+    }
+  })
+
+  it('reaches a 38 matchweek calendar by each competition’s own route', () => {
+    // The two seasons arrive at the same length differently, and this is the
+    // assertion that would have caught the Scottish season being seeded as a
+    // 22 matchweek double round-robin: twenty clubs meeting twice is 38 with
+    // nothing after it, twelve clubs meeting three times is 33 and then five
+    // post-split rounds whose fixtures are not yet decidable.
+    const totals = Object.fromEntries(
+      SEASONS.map((season) => [
+        season.seasonRow,
+        {
+          played: season.meetings * (season.clubs.length - 1),
+          postSplit: season.postSplitRounds,
+        },
+      ]),
+    )
+    expect(totals['Premier League 2026/27']).toEqual({ played: 38, postSplit: 0 })
+    expect(totals['Scottish Premiership 2026/27']).toEqual({ played: 33, postSplit: 5 })
+    for (const season of SEASONS) {
+      const entry = totals[season.seasonRow]
+      expect(
+        entry.played + entry.postSplit,
+        `${season.seasonRow} is not a 38 matchweek season`,
+      ).toBe(38)
+    }
+  })
+
+  it('never schedules a fixture into a post-split matchweek', () => {
+    for (const season of SEASONS) {
+      const schedule = roundRobin(season.clubs.length, season.meetings)
+      expect(
+        schedule.length,
+        `${season.seasonRow} generates fixtures for a round it cannot know`,
+      ).toBe(season.meetings * (season.clubs.length - 1))
+      expect(schedule.length + season.postSplitRounds).toBe(38)
     }
   })
 })
