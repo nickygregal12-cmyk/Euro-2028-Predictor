@@ -115,7 +115,14 @@ insert into expected_authenticated_functions (signature) values
   -- `service_role` has none — a service_role call would refuse with
   -- 'Authentication is required' every time, so the grant would be a privilege
   -- that grants nothing while reading as though the boundary were optional.
-  ('get_season_leaderboard(uuid,integer,text)');
+  ('get_season_leaderboard(uuid,integer,text)'),
+  -- Contract 113: the season matchweek card's bounded path. Same auth.uid()
+  -- boundary as contract 95's read, so the same reasoning keeps all four out
+  -- of expected_service_functions: a service_role call refuses every time.
+  ('get_season_matchweek_card(uuid,integer)'),
+  ('save_season_prediction(uuid,uuid,smallint,smallint,integer)'),
+  ('set_season_matchweek_joker(uuid,integer,boolean)'),
+  ('confirm_season_matchweek_card(uuid,integer)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

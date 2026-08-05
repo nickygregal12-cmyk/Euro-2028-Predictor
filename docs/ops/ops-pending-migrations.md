@@ -4,9 +4,9 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 5 August 2026
 
-The repository is at **contract 112**; development is at **111**. **One migration is pending** — `20260805080000_provider_entity_map.sql` — which is the first time in this sequence the two have not been level. Nothing is wrong: the contract is merged and not yet rolled out, and the ordinary fast-lane rollout closes it.
+The repository is at **contract 113**; development is at **111**. **Two migrations are pending** — `20260805080000_provider_entity_map.sql` (contract 112) and `20260805090000_season_card_rpcs.sql` (contract 113). Nothing is wrong: both are merged and not yet rolled out, and the ordinary fast-lane rollout closes them in order.
 
-The pending migration is additive and creates one empty table plus four readers. It changes no existing object, grants nothing to any browser or service role, and has no caller, so applying it is behaviour-neutral on development.
+Contract 112 is additive and creates one empty table plus four readers; it changes no existing object, grants nothing to any browser or service role, and has no caller, so applying it is behaviour-neutral on development. Contract 113 adds a version column and two triggers to `season_predictions` plus delete-path lock triggers, redefines the season lock-enforcement function to cover deletes, and creates four browser RPCs granted to `authenticated` — the season matchweek card read and its three own-entry writes. It is additive (no drop, no destructive change); its behaviour change on development is exactly the intended one: an authenticated player with an entry can, for the first time, read and write their own season card through the bounded path.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |

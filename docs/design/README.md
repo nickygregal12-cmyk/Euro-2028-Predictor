@@ -75,7 +75,9 @@ Championship the same thing from the other end: rounds it can be played over at
 all, which no season competition had ever had, and Contract 111 launches one.
 Contract 112 adds the provider identity map, which has no surface at all — it is
 what a real fixture list must pass through before any of these screens can show
-one
+one. Contract 113 is the opposite end of the same gap: the bounded browser path
+the UI-04 Match Predictor surface was waiting for, so the season card can be
+read and written by its own player at last
 onto them. The surface must not read that as a finished Championship: what runs
 is the private, organiser-created shape, and the public hundred-entrant field
 takes a multi-group draw that is not built yet. Product surfaces must render

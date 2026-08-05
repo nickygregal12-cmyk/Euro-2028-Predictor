@@ -429,8 +429,13 @@
  *
  * The map also starts empty and has no caller, so a fresh seed neither
  * populates it nor consults it.
+ *
+ * Contract 113 re-verified: the season card RPCs read and write rows the seed
+ * never creates (no seeded user holds a season entry), the new version column
+ * defaults to 0 on a table the seed does not touch, and the delete-path lock
+ * triggers judge deletes the seed never performs. No seed change is required.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 112
+export const SEED_REVIEWED_AT_CONTRACT = 113
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
