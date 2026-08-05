@@ -62,7 +62,7 @@
 .sectionLead {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
 }
@@ -81,7 +81,7 @@
   margin: 0;
   max-width: 42ch;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
 }
@@ -119,21 +119,21 @@
 .name {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 17px;
+  font-size: var(--fs-3);
   font-weight: 500;
   color: var(--tx);
 }
 
 .season {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
 .description {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
 }
@@ -182,14 +182,14 @@
 
 .gameName {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: var(--fs-2);
   font-weight: 500;
   color: var(--tx);
 }
 
 .gameDescription {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
 }
@@ -221,7 +221,7 @@
 .dashboardIntro {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
 }
@@ -250,7 +250,7 @@
 .gameCardHeading {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 15px;
+  font-size: var(--fs-3);
   font-weight: 500;
   color: var(--tx);
 }

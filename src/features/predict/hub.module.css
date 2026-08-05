@@ -13,14 +13,14 @@
 .heroPercent {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 34px;
+  font-size: var(--fs-6);
   line-height: 1;
   color: var(--tx);
 }
 
 .heroLabel {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
   text-align: right;
 }
@@ -30,7 +30,7 @@
   align-items: center;
   gap: 8px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -45,7 +45,7 @@
   gap: 6px;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -126,7 +126,7 @@
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   background: var(--chip);
 }
 
@@ -161,13 +161,13 @@
 .rowTitle {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
 .rowSub {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
   white-space: nowrap;
   overflow: hidden;
@@ -206,7 +206,7 @@
   color: var(--tx2);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   cursor: pointer;
 }
 

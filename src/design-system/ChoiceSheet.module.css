@@ -10,7 +10,7 @@
   background: var(--card);
   color: var(--tx);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--fs-2);
   cursor: pointer;
 }
 
@@ -26,6 +26,10 @@
   cursor: not-allowed;
 }
 
+/* Off the type scale for LeagueTable `.move`'s reason: this sizes a chevron
+   glyph, so the value is an icon dimension that happens to be written as
+   font-size. It equals --fs-3 today, and naming it --fs-3 would tie an icon to
+   a reading step that is free to move without the icon wanting to follow. */
 .chevron {
   color: var(--tx2);
   font-size: 16px;
@@ -66,7 +70,7 @@
   margin: 0 0 var(--sp-3);
   color: var(--tx);
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: var(--fs-4);
   font-weight: 600;
 }
 

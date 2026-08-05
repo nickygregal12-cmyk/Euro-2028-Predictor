@@ -19,7 +19,7 @@
 
 .eyebrow {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);
@@ -29,7 +29,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 21px;
+  font-size: var(--fs-4);
   line-height: 1.25;
   color: var(--tx);
   /* Hostile long display names: wrap and, if a single long word, break rather
@@ -42,7 +42,7 @@
 .tagline {
   margin: 0 0 4px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -90,13 +90,13 @@
 .stepTitle {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
 .stepText {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.4;
   color: var(--tx2);
 }
@@ -110,7 +110,7 @@
   border: none;
   cursor: pointer;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 .scoringLink:hover {

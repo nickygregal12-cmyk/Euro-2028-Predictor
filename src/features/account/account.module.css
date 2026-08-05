@@ -18,7 +18,7 @@
   justify-content: center;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 16px;
+  font-size: var(--fs-3);
   flex-shrink: 0;
 }
 
@@ -32,13 +32,13 @@
 .name {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 17px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
 .oneLiner {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -47,7 +47,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -64,7 +64,7 @@
   color: var(--tx);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   cursor: pointer;
   text-align: left;
 }
@@ -96,13 +96,13 @@
 .detailLabel {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
 .detailValue {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
   overflow-wrap: anywhere;
 }
@@ -111,7 +111,7 @@
   min-height: var(--tap-min);
   padding: 0 10px;
   font-family: var(--font-body);
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
   background: var(--input-bg);
   border: 1.5px solid var(--acc);
@@ -127,14 +127,14 @@
 .fieldError {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--bad, #c0392b);
 }
 
 .fieldOk {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 
@@ -157,7 +157,7 @@
   margin: 4px 0 0;
   color: var(--tx);
   font-family: var(--font-display);
-  font-size: 16px;
+  font-size: var(--fs-3);
   font-weight: 500;
 }
 
@@ -169,7 +169,7 @@
   padding-left: 18px;
   color: var(--tx2);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.45;
 }
 
@@ -185,7 +185,7 @@
   background: transparent;
   color: var(--tx);
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: var(--fs-2);
   font-weight: 500;
   text-decoration: none;
 }

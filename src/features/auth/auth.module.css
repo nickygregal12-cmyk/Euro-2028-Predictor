@@ -31,7 +31,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 26px;
+  font-size: var(--fs-5);
   letter-spacing: -0.01em;
   color: var(--tx);
 }
@@ -39,7 +39,7 @@
 .tagline {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -57,7 +57,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 18px;
+  font-size: var(--fs-4);
   color: var(--tx);
 }
 
@@ -85,7 +85,7 @@
   margin: 0;
   text-align: center;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
