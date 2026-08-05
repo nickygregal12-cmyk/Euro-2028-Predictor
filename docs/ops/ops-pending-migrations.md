@@ -29,7 +29,27 @@ What the surviving evidence rules out, checked rather than assumed:
 
 **Why the message misleads.** Supavisor answers `28P01` for a tenant it cannot find as well as for a password it rejects, and does not distinguish them. So a URL aimed at the wrong pooler cluster is indistinguishable, in this output, from a bad credential — and both `aws-0-eu-west-2` and `aws-1-eu-west-2` are live, distinct clusters. Two explanations therefore fit equally: the secret was edited during the vault-secret and real-league-data work that evening, or the project's pooler tenant moved.
 
-The fast lane now settles it rather than inviting a third guess: on failure it connects with a password that is *known* to be wrong, to both the configured cluster and its sibling. "Tenant or user not found" means the host is wrong and the password is irrelevant; the same `28P01` means the cluster knows the project and the stored credential really is being rejected. **Until that output exists, no cause should be recorded here as fact.**
+The fast lane settles it rather than inviting a third guess: on failure it connects with a password that is *known* to be wrong, to both the configured cluster and its sibling. **That probe has now run** — run `31057118098` on `0af62d97`, 5 August 2026:
+
+```
+--- configured cluster, with a KNOWN-WRONG password ---
+aws-1-eu-west-2.pooler.supabase.com:5432
+  FATAL:  password authentication failed for user "postgres"
+
+--- sibling cluster aws-0-eu-west-2.pooler.supabase.com, same known-wrong password ---
+  FATAL:  (ENOTFOUND) tenant/user postgres.iouzoutneyjpugbbtdem not found
+```
+
+**The host is right and the credential is what is being rejected.** `aws-1` recognises the tenant — it answers a bad password with an authentication failure rather than denying the project exists — and `aws-0` states outright that it has never heard of it. So the wrong-cluster explanation is dead, and so is the suggestion that the secret's host needs changing: it is already correct, and changing it would break a working half.
+
+That leaves the credential, which is where this document started and was told it was wrong. Both can be true, and the distinction decides the fix:
+
+- **the stored password is stale** — rotated in the dashboard during the vault-secret and real-league-data work that evening, and the secret never updated;
+- **the stored password is correct but the URI mangles it** — a `%`, `@`, `:`, `/`, `#` or `?` in the password that is not percent-encoded is decoded by libpq into something else before it reaches Supavisor. The password a person holds is then genuinely right while the connection still fails, which is exactly how "the password isn't the issue" and this output are both true at once.
+
+The second is consistent with the timing that the first never explained: **the same secret succeeded at 17:29 and failed at 20:08**, so something about it changed in between — and re-pasting a connection string is precisely when an encoding error is introduced.
+
+**The owner action for both is the same**: re-copy the **Session pooler** URI from the Supabase dashboard into `SUPABASE_DEV_DB_URL`, percent-encoding any reserved character in the password. The probe re-runs automatically on the next failed dispatch, so a wrong second attempt reports itself rather than needing another investigation.
 
 Nothing was applied: the failure precedes the snapshot and the push, and development is unchanged at 115 — verified independently.
 
