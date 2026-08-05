@@ -45,7 +45,7 @@ It must not be wired into production. Doing so would introduce a second router, 
 | Lucide icon usage | **Extract** — behind project icon wrappers, per the tooling plan |
 | Touchline brand marks, names and copy | **Discard** — brand selection is deferred (ADR 0019) |
 | Prototype router, mock store, mock data, modal manager | **Discard** — production journeys use the real application architecture, typed read models and commands |
-| Lenis smooth scrolling | **Discard** — a whole-page scroll hijack is a prime suspect in the performance finding below, and no production surface may adopt it without route-level performance evidence |
+| Lenis smooth scrolling | **Discard** — a whole-page scroll hijack fights the browser's own scrolling and the accessibility behaviour that depends on it. (It was also named a suspect in the performance finding below; measurement cleared it, and the disposition stands on its own merits.) No production surface may adopt it without route-level performance evidence |
 
 `lenis` is currently a production dependency imported only by the unreachable prototype; the Knip baseline below is expected to surface it, and it must not ship in the production bundle.
 
@@ -62,6 +62,10 @@ It must not be wired into production. Doing so would introduce a second router, 
 - phone, desktop, light, dark and reduced-motion modes.
 
 The existing static prototype contract (`tests/design/landingPrototypeContract.test.ts`) protects the HTML landing prototype; the gallery work extends equivalent protection to the production React design system, which the prototype contract does not cover.
+
+**Foundations landed.** The twelve-step neutral ramp, three surface levels, separate border ramp, six-step type scale with tracking, tabular-numeral token, motion contract, stacking order and the third radius are in `src/styles/tokens.css`, documented in [`../design-system.md`](../design-system.md) and rendered in the gallery. `tests/design-system/foundationTokens.test.ts` holds the properties that make them a system: every ramp step further from the page background than the last, every text step above AA on every surface, borders never drawn from a text or accent value, routine motion under 300ms, and one ordered stacking scale.
+
+Two decisions worth carrying forward. First, **nothing in production consumes the new tokens yet** — they sit beside the palette in force so the target can be reviewed on screen before components adopt it, and adoption then proceeds one reviewable component at a time rather than as a single unreviewable re-skin. Second, the derivation is genuinely new rather than a rename of the current values, as §11.1's re-derivation rule requires; the live palette is untouched precisely so that its documented WCAG remediation is not disturbed while brand selection remains deferred under ADR 0019. The full re-hue, if the brand decision calls for one, replaces the ramp's values and inherits its structure.
 
 ## Approved systems and prohibited duplicates
 
@@ -89,9 +93,23 @@ The report-only Knip baseline runs before significant pattern extraction, becaus
 
 **Done.** [`../quality/knip-baseline.md`](../quality/knip-baseline.md) holds the classified findings; `knip.json` holds the entry points and `tests/scripts/knipConfiguration.test.ts` keeps them honest. It confirmed the prototype's unreachability independently, confirmed `lenis` as a production dependency shipping for nothing, and found one real defect en route — the accessibility suites were importing `axe-core` as an undeclared transitive dependency. Its most useful output for the work that follows is a caution: most "unused exports" are barrel re-exports or module-local constants carrying a needless `export`, not dead logic, so the raw report is not a deletion list.
 
-## The performance finding that gates prototype adoption
+## The performance finding that gated prototype adoption — measured, and it was not the code
 
-The design-authority PR's deploy preview recorded a Lighthouse performance score of **20 — down 76 points from production — while accessibility remained 100.** That must be investigated before any prototype pattern becomes a production primitive. Likely suspects, none yet proven: the full-page animation load, the Lenis smooth-scroll loop, the oversized prototype stylesheet, font loading, and how much Framer Motion code loads on the landing route. The score alone does not identify the cause; the Lighthouse CI baseline exists to answer it with route-specific evidence.
+The design-authority PR's deploy preview recorded a Lighthouse performance score of **20 — down 76 points from production — while accessibility remained 100.** This section originally listed the likely suspects: the full-page animation load, the Lenis smooth-scroll loop, the oversized prototype stylesheet, font loading, and how much Framer Motion code loads on the landing route. **Every one of them was wrong**, and the reason is worth keeping rather than quietly deleting.
+
+Three measurements settle it:
+
+| What was measured | Performance | Accessibility |
+| --- | ---: | ---: |
+| Deploy preview of the design-authority PR (documentation only, no runtime code) | 20 | 100 |
+| Deploy preview of the Knip baseline PR (tooling and documentation only, no runtime code) | 21 | 100 |
+| The same production build, served locally and audited directly | **86** | 100 |
+
+Two consecutive pull requests that change **no runtime code whatsoever** score ~20, while the identical bundle scores 86 when audited outside the preview environment, with best practices and SEO at 100, total blocking time at 80ms and cumulative layout shift at zero. A runaway animation loop, a scroll hijack or a heavyweight motion bundle would show up as blocking time and layout instability; neither is present. The suspects also could not have been responsible in the first place, because none of them ship — the prototype is unreachable from the application and the Knip baseline confirmed its dependencies are unreferenced by the production graph.
+
+So the deploy-preview score is a property of **where it is measured**, not of what was built. It is not a regression, it never gated anything real, and no prototype pattern is blocked by it.
+
+What this changes for the Lighthouse CI work: audit **locally built, fixture-backed routes** rather than the deploy preview, or the tool measures preview infrastructure and reports it as product quality — the exact mistake this section made until it was measured. The local figure of 86 is a floor rather than a ceiling (it was taken in a constrained container, where first contentful paint alone was 2.9s), and the two opportunities worth carrying into route budgets are render-blocking resources and unused JavaScript, at roughly 450ms each.
 
 Lighthouse budgets are route-specific, not one universal score. Performance starts advisory; broken routes, inaccessible names and severe structural/accessibility failures block immediately.
 

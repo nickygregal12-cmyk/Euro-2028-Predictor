@@ -64,6 +64,51 @@ Defined in `src/styles/tokens.css` as CSS custom properties on `:root` (dark def
 | `--chip` | Chip/static-input background | `#1A2B52` | `#EFEDE4` |
 | `--input-bg` | Score input background | `#12203F` | `#FFFFFF` |
 
+### The target neutral ramp (not yet in use)
+
+Added 5 August 2026 for the UI modernisation sequence. These are the twelve
+neutral steps the *finished* product is built on, per the modernisation plan's
+§11.1 — **nothing in production consumes them yet.** They are rendered and
+measured in `/dev/components` so the target palette can be reviewed before any
+component adopts it; that is what keeps the adoption reversible, and it is why
+they sit beside the live palette here rather than replacing it.
+
+Steps are ordered by contrast against step 1, the page background. That is
+deliberate: it makes a step number mean the same thing in a theme that descends
+in lightness and one that climbs, so `--n-9` is the tertiary text step in both.
+
+| Token | Role at this step | Dark | Light |
+|---|---|---|---|
+| `--n-1` | Page background | `#080D1F` | `#F6F4EF` |
+| `--n-2` | — | `#0E1630` | `#EEEBE3` |
+| `--n-3` | Raised surface (dark) | `#141F3D` | `#E5E1D7` |
+| `--n-4` | Sunken surface (dark) / hairline (light) | `#1B294B` | `#DAD5C9` |
+| `--n-5` | Hairline (dark) / strong border (light) | `#243256` | `#C9C3B4` |
+| `--n-6` | Strong border (dark) | `#2E3D63` | `#B3AC9B` |
+| `--n-7` | — | `#3C4C75` | `#99917F` |
+| `--n-8` | Disabled / non-text fills | `#55658C` | `#7D7666` |
+| `--n-9` | Tertiary text | `#8491AE` | `#635D50` |
+| `--n-10` | Secondary text | `#A3AFC8` | `#4A453B` |
+| `--n-11` | — | `#C9D2E4` | `#302D26` |
+| `--n-12` | Primary text | `#F4F7FC` | `#141310` |
+
+The semantic tokens above them — `--surface-page`, `--surface-raised`,
+`--surface-sunken`, `--border-hairline`, `--border-strong`, `--text-1..3` —
+reference ramp steps rather than restating hex values, so a step edit reaches
+every consumer. The single exception is the light theme's `--surface-raised`
+(`#FFFFFF`): a light theme raises a card by going **lighter** than the page, and
+the page is already step 1, so that surface necessarily sits outside a ramp
+anchored there. §11.1 keeps surfaces as their own token group precisely so this
+can be stated rather than fudged by bending the ramp around one value.
+
+`tests/design-system/foundationTokens.test.ts` holds the properties that make
+the ramp a ramp: every step further from the background than the last, every
+text step above AA on all three surfaces, and borders never drawn from a text or
+accent value. The tertiary step was derived at `#8390AD` and measured **4.48:1**
+on the dark sunken surface — under AA by two hundredths — and lifted to
+`#8491AE` (4.53:1) before it ever reached a screen. That is the third time this
+repository has caught the same defect class by measuring rather than looking.
+
 **Gold rule:** gold text never sits directly on card backgrounds for interactive elements. Gold ships as solid-fill-with-`--gold-contrast`-text (calls to action) or tint-with-`--gold-strong`-text-and-`--gold`-border pill (status). This is a hard rule; it exists because outline-only gold failed visibility review.
 
 **Muted ramp and gold text (2026-07-31 audit).** Three token values moved and one was added, all to clear WCAG AA for normal text:
