@@ -123,11 +123,21 @@ export function checkFreshness(manifest, contract, root = ROOT) {
  * @param {string} head
  */
 export function changedFiles(base, head) {
-  const out = execFileSync(
-    'git',
-    ['diff', '--name-only', `${base}...${head}`],
-    { encoding: 'utf8' },
-  )
+  // Loud rather than lenient. If the checkout is too shallow to resolve the
+  // range, the sweep cannot run — and a gate that quietly does nothing when its
+  // input is missing is worse than no gate, because it reports success.
+  let out
+  try {
+    out = execFileSync('git', ['diff', '--name-only', `${base}...${head}`], {
+      encoding: 'utf8',
+    })
+  } catch (error) {
+    throw new Error(
+      `Could not compare ${base}...${head}. The sweep needs enough history to ` +
+        `find a common ancestor — check that the checkout is not shallow. ` +
+        `git said: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
   return out.split('\n').filter(Boolean)
 }
 

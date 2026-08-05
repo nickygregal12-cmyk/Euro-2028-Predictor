@@ -12,6 +12,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The documentation sweep compares this change against its base, so
+          # it needs history. The default depth of 1 leaves `git diff A...B`
+          # with no common ancestor to resolve.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.22.2
@@ -28,8 +33,6 @@ jobs:
         # that stops the drift rather than reporting it a day later.
         run: |
           if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
-            git fetch --no-tags --depth=1 origin \
-              "${{ github.event.pull_request.base.sha }}" || true
             npm run check:documentation-authorities -- \
               "${{ github.event.pull_request.base.sha }}" \
               "${{ github.event.pull_request.head.sha }}"
