@@ -11,7 +11,7 @@
   background: var(--acc-soft);
   color: var(--tx2);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
 }
 
 .summaryStrip strong {
@@ -44,7 +44,7 @@
   gap: 10px;
   align-items: center;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
 }
 
 .rank {
@@ -98,14 +98,14 @@
 
 .signalTitle {
   margin-top: 6px;
-  font-size: 16px;
+  font-size: var(--fs-3);
 }
 
 .signalCard p {
   margin: 8px 0 0;
   color: var(--tx2);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   line-height: 1.45;
 }
 
@@ -128,7 +128,7 @@
   border-bottom: 1px solid var(--line);
   color: var(--tx);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
 }
 
 .simpleList li:last-child,
@@ -160,14 +160,14 @@
   background: var(--bg2);
   color: var(--tx3);
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   text-align: center;
 }
 
 .goalStats strong {
   color: var(--tx);
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: var(--fs-4);
 }
 
 .distribution {
@@ -183,7 +183,7 @@
   align-items: center;
   color: var(--tx2);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
 }
 
 .distributionRow strong {

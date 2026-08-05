@@ -27,7 +27,7 @@
   color: var(--tx2);
   cursor: pointer;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: var(--fs-1);
 }
 
 .matchNavButton:disabled {
@@ -49,7 +49,7 @@
   border: none;
   cursor: pointer;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 .back:focus-visible {
@@ -66,13 +66,13 @@
   background: var(--chip);
   color: var(--tx);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
 }
 
 .eyebrow {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);
@@ -103,7 +103,7 @@
 }
 .heroTeam {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
   text-align: center;
   overflow-wrap: anywhere;
@@ -132,7 +132,7 @@
   align-items: center;
   gap: 5px;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--cyn);
 }
 .dot {
@@ -150,21 +150,21 @@
   .dot { animation: none; }
 }
 .minute {
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   color: var(--cyn);
 }
 .koDetail {
   margin: 0;
   text-align: center;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 .countdown {
   margin: 0;
   text-align: center;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--acc);
 }
 .venue {
@@ -174,7 +174,7 @@
   gap: 6px;
   justify-content: center;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx3);
 }
 
@@ -192,7 +192,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 .stakeLine {
@@ -202,7 +202,7 @@
   flex-wrap: wrap;
   gap: 8px;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 .stakeLine strong {
@@ -211,7 +211,7 @@
 .stakeMuted {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -219,7 +219,7 @@
 .pointsPill,
 .rowPts {
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: var(--fs-1);
   font-weight: 500;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
@@ -229,7 +229,7 @@
 .jokerPaid,
 .jokerBurned {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   padding: 2px 7px;
   border-radius: var(--radius-pill);
 }
@@ -245,7 +245,7 @@
 }
 .youTag {
   color: var(--acc);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
 }
 
 /* Outcome tints (rows / bars / pills) */
@@ -279,7 +279,7 @@
 }
 .barLabel {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 .barTrack {
@@ -299,14 +299,14 @@
 }
 .barCount {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
   min-width: 20px;
   text-align: right;
 }
 .barsTotal {
   margin: 4px 0 0;
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   color: var(--tx3);
 }
 
@@ -321,7 +321,7 @@
   justify-content: space-between;
   gap: 8px;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 .splitTeam {
@@ -353,7 +353,7 @@
 .splitCounts {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   color: var(--tx3);
 }
 
@@ -385,7 +385,7 @@
   place-items: center;
   background: var(--chip);
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   color: var(--tx2);
 }
 .memberName {
@@ -394,7 +394,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 .memberRight {
@@ -404,7 +404,7 @@
 }
 .pick {
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 .showAll {
@@ -414,6 +414,6 @@
   border: none;
   cursor: pointer;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--acc);
 }

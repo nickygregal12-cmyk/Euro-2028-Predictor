@@ -38,7 +38,7 @@
 
 .tableLabel {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);
@@ -56,7 +56,7 @@
 .continueHint {
   margin: 0 0 8px;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx3);
   text-align: center;
 }

@@ -24,7 +24,7 @@
   align-items: center;
   gap: 6px;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
 }
 
 .statusChip {
@@ -61,7 +61,7 @@
   margin: 10px 0 0;
   color: var(--tx2);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
 }
 
 .actions {
@@ -107,7 +107,7 @@
 .quickCard span {
   color: var(--tx2);
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   line-height: 1.4;
 }
 

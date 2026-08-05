@@ -50,13 +50,13 @@
 
 .checkTitle {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
 .checkDetail {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 
@@ -74,7 +74,7 @@
   background: none;
   padding: 4px;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--acc);
   cursor: pointer;
 }
@@ -99,13 +99,13 @@
   gap: 8px;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
 .finalV {
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   color: var(--tx3);
 }
 
@@ -125,7 +125,7 @@
   background: none;
   padding: 4px;
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--acc);
   cursor: pointer;
 }
@@ -152,7 +152,7 @@
 .submitCaption {
   margin: 8px 0 0;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   line-height: 1.4;
   color: var(--tx3);
   text-align: center;
@@ -193,7 +193,7 @@
 .bannerSub {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.4;
   color: var(--tx2);
 }

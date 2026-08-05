@@ -32,7 +32,7 @@
   color: var(--tx);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 16px;
+  font-size: var(--fs-3);
 }
 .avatarYou {
   background: var(--acc);
@@ -41,7 +41,7 @@
 
 .playerName {
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
   max-width: 100%;
   overflow: hidden;
@@ -56,7 +56,7 @@
   max-width: 100%;
   min-width: 0;
   font-family: var(--font-display);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 .championChip span {
@@ -72,7 +72,7 @@
 }
 .noChampion {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx3);
 }
 
@@ -95,7 +95,7 @@
 }
 .totalsLabel {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--tx3);
@@ -138,7 +138,7 @@
 }
 .statLabel {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx3);
   text-align: center;
   white-space: nowrap;
@@ -155,7 +155,7 @@
   display: block;
   margin-bottom: 4px;
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);
@@ -199,7 +199,7 @@
   gap: 8px;
   min-width: 0;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 .healthPanelHead span {
@@ -248,7 +248,7 @@
 }
 .healthStats dt {
   font-family: var(--font-body);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   line-height: 1.2;
   /* --tx2, not --tx3: these labels sit inside .healthPanel, which is
      background: var(--chip). --tx3 there is 4.07:1 dark and 3.11:1 light,
@@ -266,7 +266,7 @@
 .healthNote {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   line-height: 1.45;
   color: var(--tx3);
 }
@@ -288,7 +288,7 @@
   flex-wrap: wrap;
   gap: 10px;
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   color: var(--tx2);
 }
 .historyLegend span {
@@ -313,7 +313,7 @@
   padding: 18px 12px;
   text-align: center;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.45;
   /* --tx2, not --tx3: body text on --chip, where --tx3 is 4.07:1 dark and
      3.11:1 light against the 4.5:1 AA minimum. */
@@ -343,7 +343,7 @@
 .historyAxisLabel {
   fill: var(--tx3);
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
 }
 .historyPathYou,
 .historyPathRival {
@@ -374,7 +374,7 @@
   min-width: 480px;
   border-collapse: collapse;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 .historyTable th,
@@ -431,7 +431,7 @@
 }
 .splitEyebrow {
   font-family: var(--font-display);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);
@@ -459,7 +459,7 @@
 }
 .splitText {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.35;
   color: var(--tx);
   min-width: 0;
