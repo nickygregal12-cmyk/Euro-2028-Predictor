@@ -1,8 +1,10 @@
 # ADR 0022 — Season presets, Cup launch threshold and shared Cup machinery
 
-- **Status:** Accepted
+- **Status:** Implemented
 - **Date:** 3 August 2026
 - **Amends:** [ADR 0013](0013-last-man-standing-season-rules.md) (supplies the three preset compositions it mandated but left undefined), [ADR 0014](0014-predictor-cup-season-formats.md) (supplies the launch threshold it left undefined and settles where its reused machinery lives). Every other rule in both records is unchanged.
+
+> **Implementation evidence — 5 August 2026.** The LMS preset/setup domain and storage, public Championship launch threshold, competition-neutral Cup points and settlement machinery, season sources and parity/schedule authorities are merged. Later split persistence and continuing-table work build on this decision rather than leaving any item in this ADR unresolved.
 
 ## Context
 

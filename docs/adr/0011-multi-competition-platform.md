@@ -1,7 +1,9 @@
 # ADR 0011 — Multi-competition platform
 
-- **Status:** Accepted direction — unimplemented
+- **Status:** Accepted direction — partially implemented
 - **Date:** 29 July 2026
+
+> **Implementation progress — 5 August 2026.** The shared competition-context and game-owned lock foundations, competition-season/game catalogue, separate memberships, same-season persistence, repeatable competition instances and explicit live/current resolution are merged. The Context section below records the pre-implementation starting point. Complete Hub navigation, season game journeys and remaining product surfaces are still unfinished.
 
 ## Context
 
