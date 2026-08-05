@@ -1,9 +1,11 @@
 # ADR 0020 — Football Prediction Hub product model
 
-- **Status:** Accepted
+- **Status:** Accepted direction — partially implemented
 - **Date:** 1 August 2026
 - **Supersedes:** the product-positioning and rehearsal-name deferral in ADR 0019. ADR 0019's club-identity and formal clearance cautions remain relevant to any later distinctive brand.
 - **Amends:** five named rules in ADRs 0012, 0013 and 0014, and the lock-policy ownership in ADR 0011. Every other rule in those records remains authoritative — see [§ Rule reconciliation](#rule-reconciliation-with-adrs-0011-0014).
+
+> **Implementation progress — 5 August 2026.** The competition-season/game data model, separate game memberships, game-owned locks and substantial Match Predictor/LMS/Championship backend authorities are merged. The finished Football Prediction Hub shell, onboarding and complete game surfaces remain governed by ADR 0023 and the target design authority.
 
 ## Context
 
