@@ -83,6 +83,14 @@ Rules:
 - Work from current `main` or the explicitly named dependency branch on a dedicated branch.
 - Keep one coherent concern per PR where practical.
 - Do not push directly to `main`.
+- **One session at a time on `supabase/migrations/`.** The repository contract is
+  the migration COUNT, so a contract number cannot be reserved: whichever of two
+  concurrent sessions merges second must renumber its migration, its pgTAP suite
+  and every live authority document naming the number. That happened four times
+  on 5 August 2026 (#496, #502, #505, #506). Reserving a distant migration
+  timestamp does not help, because the timestamp is not what collides. A session
+  finding another session's migration work in flight should take non-migration
+  work rather than race it.
 - Run the checks required by the change class above.
 - Netlify build success is not database or authenticated-journey evidence.
 - Record current facts in `docs/quality/current-status.md`, not across multiple live status documents.
