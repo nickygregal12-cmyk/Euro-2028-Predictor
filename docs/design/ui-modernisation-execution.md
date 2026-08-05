@@ -109,7 +109,9 @@ Two consecutive pull requests that change **no runtime code whatsoever** score ~
 
 So the deploy-preview score is a property of **where it is measured**, not of what was built. It is not a regression, it never gated anything real, and no prototype pattern is blocked by it.
 
-What this changes for the Lighthouse CI work: audit **locally built, fixture-backed routes** rather than the deploy preview, or the tool measures preview infrastructure and reports it as product quality — the exact mistake this section made until it was measured. The local figure of 86 is a floor rather than a ceiling (it was taken in a constrained container, where first contentful paint alone was 2.9s), and the two opportunities worth carrying into route budgets are render-blocking resources and unused JavaScript, at roughly 450ms each.
+What this changes for the Lighthouse CI work: audit **locally built, fixture-backed routes** rather than the deploy preview, or the tool measures preview infrastructure and reports it as product quality — the exact mistake this section made until it was measured. That is now how it is configured, and the recorded baseline is `/auth/login` 89, `/auth/signup` 94 and `/auth/reset` 95, with accessibility 100 on all three: [`../quality/lighthouse-baseline.md`](../quality/lighthouse-baseline.md).
+
+The gate this section used to impose on prototype adoption is therefore **closed**. Nothing is blocked by it. What survives is the route budget work itself, where the two opportunities worth carrying forward are render-blocking resources and unused JavaScript, at roughly 450ms each.
 
 Lighthouse budgets are route-specific, not one universal score. Performance starts advisory; broken routes, inaccessible names and severe structural/accessibility failures block immediately.
 
@@ -124,10 +126,16 @@ Lighthouse budgets are route-specific, not one universal score. Performance star
 
 Each first reversible product slice (step 3 onward) additionally carries the design plan's §13.4 release gate: typed page read model, explicit commands, no raw Supabase access from components, layout-shaped skeletons, optimistic save state, conflict and unknown-outcome recovery, authoritative lock explanation, MSW-driven failure scenarios, telemetry distinguishing old and new UI, and immediate rollback to the old route.
 
-## Immediate next actions
+## Progress against this sequence
 
-1. ~~Land this activation change (roadmap, MASTER-TODO, design index and the premium boundary guard).~~ This document.
-2. Knip report-only baseline with the classified report.
-3. Visual foundations and component gallery in the production architecture.
-4. Visual and performance evidence around that foundation, including the Lighthouse investigation above.
-5. The thin shells and the phone-first season Match Predictor behind a route-level flag.
+| Step | State |
+| --- | --- |
+| Activation: reconciled order, prototype classification, harness and approved systems | **Done** — this document, with `tests/design/premiumPrototypeBoundary.test.ts` |
+| Knip report-only baseline with a classified report | **Done** — [`../quality/knip-baseline.md`](../quality/knip-baseline.md) |
+| Visual foundations in the production design system, rendered in the gallery | **Done** — `src/styles/tokens.css`, `tests/design-system/foundationTokens.test.ts` |
+| Performance evidence and the preview-score investigation | **Done** — [`../quality/lighthouse-baseline.md`](../quality/lighthouse-baseline.md); the gate is closed, see above |
+| Playwright visual screenshot contracts | Outstanding. Baselines must be generated on the runner that will compare them, so this needs a CI-side bootstrap rather than container-generated images |
+| Adopt the foundations component by component, and close the offline/unavailable/conflict gallery states | Outstanding |
+| Thin global and competition shells plus the phone-first season Match Predictor behind a route-level flag | Outstanding — the next product-visible step |
+
+Keep this table in step with [`../../MASTER-TODO.md`](../../MASTER-TODO.md), which holds the same items at task granularity. A sequence document that stops recording what has happened becomes a plan nobody believes.
