@@ -36,6 +36,19 @@ describe('feature baseline freshness', () => {
     )
   })
 
+  it('does not claim the unresolved ACQ-R09 controls are implemented', () => {
+    expect(baseline).toContain('Turnstile integration remains opt-in')
+    expect(baseline).toContain(
+      'the production build does not require its key',
+    )
+    expect(baseline).toContain(
+      'the six-character password floor remains tracked under `ACQ-R09`',
+    )
+    expect(baseline).not.toContain(
+      'Turnstile and recovery delivery are implemented',
+    )
+  })
+
   it('keeps the stable compact identifier contract unchanged', () => {
     const compact = baseline.split(
       '## Identifier continuity and archived dispositions',
