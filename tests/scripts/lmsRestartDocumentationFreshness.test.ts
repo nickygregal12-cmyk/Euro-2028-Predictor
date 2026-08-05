@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest'
 const read = (path: string) =>
   readFileSync(resolve(process.cwd(), path), 'utf8')
 
+// Contracts 107–109 form one lifecycle: successor creation, past-window
+// refusal, then authoritative future-window scheduling. Keep those roles distinct.
 describe('LMS restart documentation freshness', () => {
   it('records Contract 108 as the guard and Contract 109 as the scheduler', () => {
     for (const path of [
