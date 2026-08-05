@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 105,
-  "latestMigrationVersion": "20260805010000",
-  "latestMigrationName": "cup_split_group_tables",
-  "verifiedAt": "2026-08-05T02:06:05.582Z",
+  "requiredMigrationCount": 106,
+  "latestMigrationVersion": "20260805020000",
+  "latestMigrationName": "terminal_aware_bonus_rederive",
+  "verifiedAt": "2026-08-05T07:25:58.027Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30968263589 on 03613eb, completed successfully; contracts 104 and 105 applied together. Corroborated read-only: the ledger holds 105 rows through 20260805010000. Contract 104's caller resolution and contract 105's split authority both landed — cup_split_group_tables, assert_bonus_cup_member_split_parent, current_public_competition_id and live_competition_id all exist in predictor_internal and NONE is present in public, and anon, authenticated and service_role hold no EXECUTE on the split authority or its ancestry guard. Both split integrity triggers are attached. The environment is unchanged in substance because nothing has used the new stage yet: zero split groups, zero split members, zero split fixtures, zero ancestry violations and zero completed competitions, so every existing reader still resolves the same live public row and the ancestry rule was enforceable from the moment it landed rather than needing a backfill.",
-    "workflowRunId": 30968263589,
-    "repositoryHead": "03613eb505f9a7178744085ce717ff0990961217"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 30984799464,
+    "repositoryHead": "aa46feed60a9e9624c8af8b58a38f15249c35987"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
