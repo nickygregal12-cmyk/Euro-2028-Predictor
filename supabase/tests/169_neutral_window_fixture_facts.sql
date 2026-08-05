@@ -178,34 +178,56 @@ select is(
 -- The tournament path is unchanged, which matters more than the season path
 -- working: this contract redefines a function the Euro hub depends on.
 --
--- SEEDED RATHER THAN FOUND. The first version of these two assertions selected
--- an existing tournament window with `... from (select ... limit 1)`, and when
--- that subquery matched nothing the statements produced NO TEST AT ALL — they
--- did not fail, they vanished, and only the plan count caught it (10 ran of 12
--- planned). A test that can silently not run is worse than one that fails, so
--- the tournament fixture this needs is created here instead of hoped for.
+-- EVERY ROW THIS NEEDS IS BUILT HERE. Two earlier versions failed for the same
+-- reason, and it is worth naming because it is the trap of this whole file.
+-- The first selected an existing tournament window with
+-- `... from (select ... limit 1)`; the subquery matched nothing, so the
+-- statements produced NO TEST AT ALL and the plan count was the only witness.
+-- The second assumed the seeded Euro tournament had a Last Man Standing
+-- competition to hang a window on; it does not, so `current_setting` returned
+-- nothing and the cast aborted the file. Neither was a fault in the contract.
+-- A probe that depends on rows it did not create is a probe that reports on the
+-- seed, so this one creates its own tournament, competition, window, match and
+-- link.
 -- ---------------------------------------------------------------------------
 
-insert into public.bonus_competition_windows (competition_id, sequence, label, opens_at, locks_at)
-select c.id, 900, 'C118 tournament probe', now() - interval '2 days', now() - interval '1 day'
-  from public.bonus_competitions c
-  join public.tournaments t on t.id = c.tournament_id
+insert into public.tournaments (name, year, competition_id, season_key, kind, display_timezone, status)
+select 'C118 Tournament Probe', 2028, t.competition_id, 'c118-probe-t', 'tournament',
+       t.display_timezone, 'active'
+  from public.tournaments t
  where t.kind = 'tournament'
-   and c.game_key = 'last_man_standing'
+ order by t.name
  limit 1;
 
+select set_config('test.c118_tournament',
+  (select id::text from public.tournaments where season_key = 'c118-probe-t'), true);
+
+insert into public.bonus_competitions (tournament_id, game_key, published)
+values (current_setting('test.c118_tournament')::uuid, 'last_man_standing', true);
+
+insert into public.bonus_competition_windows (competition_id, sequence, label, opens_at, locks_at)
+select c.id, 1, 'C118 tournament round', now() - interval '2 days', now() - interval '1 day'
+  from public.bonus_competitions c
+ where c.tournament_id = current_setting('test.c118_tournament')::uuid;
+
 select set_config('test.c118_tournament_window',
-  (select id::text from public.bonus_competition_windows
-    where label = 'C118 tournament probe'), true);
+  (select w.id::text
+     from public.bonus_competition_windows w
+     join public.bonus_competitions c on c.id = w.competition_id
+    where c.tournament_id = current_setting('test.c118_tournament')::uuid), true);
+
+-- A knockout match: `matches_group_shape` requires group_id and matchday to be
+-- null for anything that is not a group game, so 'final' is the cheapest legal
+-- row to build.
+insert into public.matches
+  (tournament_id, match_ref, round, home_source, away_source, match_date, kickoff_at, venue)
+values (current_setting('test.c118_tournament')::uuid, 'C118-FINAL', 'final',
+        'Winner SF-1', 'Winner SF-2', current_date, now() - interval '30 hours', 'C118 Stadium');
 
 insert into public.bonus_window_fixtures (window_id, match_id)
 select current_setting('test.c118_tournament_window')::uuid, m.id
   from public.matches m
-  join public.bonus_competition_windows w
-    on w.id = current_setting('test.c118_tournament_window')::uuid
-  join public.bonus_competitions c on c.id = w.competition_id
- where m.tournament_id = c.tournament_id
- limit 2;
+ where m.tournament_id = current_setting('test.c118_tournament')::uuid;
 
 select is(
   (select count(*)::integer
@@ -218,9 +240,7 @@ select is(
   (select count(*)::integer
      from predictor_internal.bonus_window_fixture_facts(
        current_setting('test.c118_tournament_window')::uuid)),
-  (select count(*)::integer
-     from public.bonus_window_fixtures
-    where window_id = current_setting('test.c118_tournament_window')::uuid),
+  1,
   'and the combiner returns exactly what the tournament relation holds for it — '
   'the Euro hub reads the same rows it read before this contract');
 
