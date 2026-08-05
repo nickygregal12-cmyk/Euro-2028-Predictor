@@ -68,3 +68,30 @@ Either way, this is a scoring-authority decision under CLAUDE.md ("No scoring or
 ## Related correction made in the same session
 
 `docs/quality/current-status.md`'s "Next executable issue" row still described contract 105 as the LMS restart lifecycle function. It shipped as the Cup split-ancestry/derived-standings work instead (`20260805010000_cup_split_group_tables.sql`); the restart driver remains unbuilt. Corrected in place alongside this document.
+
+---
+
+## Resolution — 5 August 2026, contract 106
+
+**Remedy 1 was taken.** Both `recompute_ko_predictor_for_match` and
+`recompute_lms_for_tournament` now resolve through
+`predictor_internal.current_public_competition_id`, which prefers the live
+public instance and otherwise returns the most recently completed one — the
+fallback this document recommended. `20260805020000_terminal_aware_bonus_rederive.sql`
+changes one call in each function and nothing else.
+
+The proof is behavioural rather than structural, because a check that the
+function *names* the right resolver would pass against a body that still
+returned early. `supabase/tests/157_terminal_aware_bonus_rederive.sql` completes
+a KO Predictor competition, corrects its result from 2-1 to 0-2, and requires
+both entrants' stored scores to fall to zero. Mutating the resolver back to the
+live-only reader kills six of its fourteen assertions.
+
+**The timing was not incidental.** This document recorded the risk as latent
+because no writer set `completed_at` on a tournament-kind `ko_predictor` or
+`last_man_standing` row. Contract 107 — the Last Man Standing restart driver —
+is exactly such a writer. Closing this first was the precondition for landing
+it, which is why contract 106 sits between the caller work and the driver
+rather than after them.
+
+Verified on development: neither function retains a `live_competition_id` call.
