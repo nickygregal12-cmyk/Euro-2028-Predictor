@@ -1,0 +1,137 @@
+/* Phone-first Last Man Standing round. Tokens only; every size is a scale step. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  /* A grid/flex child defaults to min-width:auto, which lets a long club name
+     push the panel past the viewport instead of ellipsising inside it. */
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx2);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-4);
+  color: var(--tx);
+}
+
+.status {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+/* What the pick DID, kept visually distinct from what the player IS: the two
+   are different facts and the model refuses to merge them. */
+.outcome {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.fixtures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Both clubs on one row so the opponent stays visible — that is the
+   information the pick turns on. */
+.fixture {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.club {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-micro) var(--ease-out),
+    border-color var(--duration-micro) var(--ease-out);
+}
+
+.club:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.club:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* The pick is marked with a border AND the words "Your pick" — §11.8 forbids
+   carrying state by colour alone. */
+.clubPicked {
+  border-color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 12%, transparent);
+}
+
+.clubName {
+  max-width: 100%;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.clubNote {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  color: var(--tx2);
+}
+
+.clubPick {
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--acc);
+}
+
+.versus {
+  align-self: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
