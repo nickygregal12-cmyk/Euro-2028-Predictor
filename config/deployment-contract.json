@@ -1,6 +1,6 @@
 {
-  "contractVersion": 103,
-  "requiredMigrationCount": 103,
+  "contractVersion": 104,
+  "requiredMigrationCount": 104,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -59,5 +59,5 @@
     "public.archive_provider_response(text,text,text,integer,jsonb,text,uuid)",
     "public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)"
   ],
-  "notes": "Tagged repository baseline euro-2028-baseline remains contract 63. Contracts 64–100 establish the multi-competition season foundations, domestic game engines, Cup-neutral sources, provider custody and the two tournament-path corrections. Contract 101 removes obsolete shared-league gating from Euro post-lock reveal without widening pre-lock access. Contract 102 persists the Predictor Championship split as a distinct phase. Contract 103 reconciles game availability with repeatable competition instances: one live public row per season game, one live row per independent series, public/private coexistence, scoped predecessor lineage and bounded completion reasons. Hosted deployment remains separately guarded and is not claimed by this repository contract."
+  "notes": "Tagged repository baseline euro-2028-baseline remains contract 63. Contracts 64\u2013100 establish the multi-competition season foundations, domestic game engines, Cup-neutral sources, provider custody and the two tournament-path corrections. Contract 101 removes obsolete shared-league gating from Euro post-lock reveal without widening pre-lock access. Contract 102 persists the Predictor Championship split as a distinct phase. Contract 103 reconciles game availability with repeatable competition instances: one live public row per season game, one live row per independent series, public/private coexistence, scoped predecessor lineage and bounded completion reasons. Contract 104 keeps five operational callers live-only and moves five read surfaces onto a current-public resolver that prefers live and otherwise retains the latest terminal result; Contract 102 Cup phase filters remain intact. No restart driver exists yet. Hosted deployment remains separately guarded and is not claimed by this repository contract."
 }

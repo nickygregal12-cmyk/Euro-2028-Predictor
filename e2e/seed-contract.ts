@@ -310,10 +310,12 @@
  * hosted project and no lifecycle driver exists yet, so every seeded read still
  * resolves the same public row. The tournament trigger and catalogue writer now
  * name the exact public/live conflict predicate; bare recreation starts a new
- * series through an internal-only trigger helper. Contract 104 migrates the
- * measured readers, and contract 105 supplies the restart driver.
+ * series through an internal-only trigger helper. Contract 104 now moves the
+ * ten measured tournament+game callers onto explicit instance resolvers: live-only for operational paths and live-then-latest-terminal for read surfaces;
+ * with no successor driver yet, every seeded response remains byte-for-byte on
+ * the same row. Contract 105 supplies the restart driver.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 103
+export const SEED_REVIEWED_AT_CONTRACT = 104
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
