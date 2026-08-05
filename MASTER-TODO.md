@@ -169,7 +169,7 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 
 **The Edge Function is deployed to development** (`provider-poll` version 1, `ACTIVE`, 5 August 2026, owner-authorised; [`docs/ops/ops-provider-poll-deployment.md`](docs/ops/ops-provider-poll-deployment.md)). That is a smaller step than it sounds: no provider has been contacted, no credential has been spent, nothing has been archived, and the named caller key has not been observed to resolve. All three providers are supported simultaneously — `provider` is a per-request field, not a deployment-time choice — so the outstanding question is which provider's terms and coverage are confirmed, not which one is wired.
 
-- [ ] Confirm provider terms, coverage, timezone and exceptional-state mappings with dated evidence.
+- [ ] Confirm provider terms, coverage, timezone and exceptional-state mappings with dated evidence. *(**Retention half confirmed by the owner on 5 August 2026: all three providers permit storing responses.** That was the blocking half — this architecture archives exact raw response text and keeps it, so a licence permitting the call but not the retention would have made the custody control itself a breach. Coverage, timezone and exceptional-state mappings remain open and are what `scripts/ops/provider-bakeoff.ts` measures.)*
 - [x] Implement the strict provider-response custody boundary behind one internal model.
 - [ ] Configure the approved development credential and execute one bounded non-production request. *(Function deployed; credential resolution unproven and no request made.)*
 - [ ] Verify the exact raw response is archived before decode and every processing attempt is append-only.
