@@ -173,6 +173,7 @@ The following retained signatures may remain physically named `p_tournament_id`,
 - `get_prediction_consensus`
 - `get_rival_entry`
 - `get_season_leaderboard`
+- `get_season_lms_round`
 - `get_season_matchweek_card`
 - `save_season_prediction`
 - `set_season_matchweek_joker`

@@ -482,7 +482,7 @@
  * starts empty, the job reports itself unconfigured until two vault secrets
  * exist, and nothing on any authenticated surface reads either new table.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 115
+export const SEED_REVIEWED_AT_CONTRACT = 116
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
