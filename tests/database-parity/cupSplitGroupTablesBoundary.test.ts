@@ -10,6 +10,10 @@ const proof = readFileSync(
   resolve(process.cwd(), 'supabase/tests/156_cup_split_group_tables.sql'),
   'utf8',
 )
+const persistenceProof = readFileSync(
+  resolve(process.cwd(), 'supabase/tests/153_cup_split_stage_persistence.sql'),
+  'utf8',
+)
 
 describe('contract 105 Cup split boundary', () => {
   it('keeps the migration atomic and internal-only', () => {
@@ -50,6 +54,18 @@ describe('contract 105 Cup split boundary', () => {
     )
     expect(proof).not.toContain('cuts ACROSS the initial groups')
     expect(proof).toContain("'private'")
+  })
+
+  it('keeps the older draw-number proof ancestry-valid before testing uniqueness', () => {
+    const validInitialMembership = persistenceProof.indexOf(
+      "md5('c102-initial')::uuid,7,'initial'",
+    )
+    const duplicateSplitDraw = persistenceProof.indexOf(
+      "md5('c102-split-top')::uuid,1,'split'",
+    )
+    expect(validInitialMembership).toBeGreaterThan(-1)
+    expect(duplicateSplitDraw).toBeGreaterThan(validInitialMembership)
+    expect(persistenceProof).toContain("'23505', 'a draw number cannot repeat inside one phase'")
   })
 
   it('keeps full-competition cascade deletion compatible with membership permanence', () => {
