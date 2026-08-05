@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 103,
-  "latestMigrationVersion": "20260804333000",
-  "latestMigrationName": "competition_instance_lineage",
-  "verifiedAt": "2026-08-04T23:19:07.404Z",
+  "requiredMigrationCount": 105,
+  "latestMigrationVersion": "20260805010000",
+  "latestMigrationName": "cup_split_group_tables",
+  "verifiedAt": "2026-08-05T02:06:05.582Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30959460638 on 6dc7ae3, completed successfully; contracts 98-103 applied in one batch. Corroborated read-only: the ledger holds 103 rows through 20260804333000. Contract 103 landed whole — bonus_competitions carries all five lineage columns, both partial indexes exist, and the live-public index predicate reads ((visibility_kind = 'public'::text) AND (completed_at IS NULL)); the replaced total key bonus_competitions_tournament_id_game_key_key is gone, and bonus_competitions_predecessor_fkey spans five columns, so a successor cannot retain a predecessor while changing series, season, game or visibility. The backfill is intact: zero non-public rows and zero completed rows, so every existing competition remains the live public instance of its own series and no current reader changes answer. The boundary holds: live_competition_id and prepare_competition_lineage exist only in predictor_internal, neither is present in public, and anon, authenticated and service_role hold no EXECUTE on either. The prepare_competition_lineage trigger is attached, which is the statement the fast lane refused before this run — the apply log records 'trigger \"prepare_competition_lineage\" ... does not exist, skipping', confirming the drop removed nothing.",
-    "workflowRunId": 30959460638,
-    "repositoryHead": "6dc7ae35dbe072a183e477a34f72e330496ad8d9"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 30968263589,
+    "repositoryHead": "03613eb505f9a7178744085ce717ff0990961217"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
