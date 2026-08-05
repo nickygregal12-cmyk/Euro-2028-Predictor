@@ -44,14 +44,16 @@ The Euro rules remain in force for the Euro competition. They are not defaults f
 
 Defined in `src/styles/tokens.css` as CSS custom properties on `:root` (dark default) and `[data-theme="light"]`. Summary:
 
+**The seven neutral tokens below are now aliases onto the target ramp** (5 August 2026). They keep their names because a name says what a thing *is* to a component — a card, a chip, a hairline — while a ramp step says where a value *sits*; repointing them made the ramp the single source of neutral truth without a fifty-file rename, and any later rename is a no-op because both names resolve to one value. The Dark and Light columns show the value each token resolves to, which is what the guards measure.
+
 | Token | Purpose | Dark | Light |
 |---|---|---|---|
-| `--bg` | Page background | `#0A1128` | `#F7F5F0` |
-| `--card` | Card surface | `#101E3E` | `#FDFCFA` |
-| `--line` | Borders, dividers | `#26355C` | `#E5E2DA` |
-| `--tx` | Primary text | `#F2F5FB` | `#1C1B16` |
-| `--tx2` | Secondary text | `#9AA6C2` | `#565247` |
-| `--tx3` | Muted text, labels | `#8793AE` | `#6E6B5F` |
+| `--bg` | Page background — `var(--surface-page)` | `#080D1F` | `#F6F4EF` |
+| `--card` | Card surface — `var(--surface-raised)` | `#141F3D` | `#FFFFFF` |
+| `--line` | Borders, dividers — `var(--border-hairline)` | `#243256` | `#DAD5C9` |
+| `--tx` | Primary text — `var(--text-1)` | `#F4F7FC` | `#141310` |
+| `--tx2` | Secondary text — `var(--text-2)` | `#A3AFC8` | `#4A453B` |
+| `--tx3` | Muted text, labels — `var(--text-3)` | `#8491AE` | `#635D50` |
 | `--acc` | Accent green (actions, qualify, saved) | `#22E06C` | `#0F6E56` |
 | `--amb` | Amber (third place, caution) | `#F0B429` | `#BA7517` |
 | `--cyn` | Cyan (live data) | `#38C8E8` | `#0E7C9C` |
@@ -61,8 +63,25 @@ Defined in `src/styles/tokens.css` as CSS custom properties on `:root` (dark def
 | `--gold-strong` | Gold text on `--gold-tint` | `#E8C34A` | `#876715` |
 | `--gold-tint` | Gold pill/tint background | `#2B2410` | `#F7EDD0` |
 | `--mut` | Muted bars, disabled | `#2A3757` | `#D8D4C8` |
-| `--chip` | Chip/static-input background | `#1A2B52` | `#EFEDE4` |
+| `--chip` | Chip/static-input background — `var(--surface-sunken)` | `#1B294B` | `#EEEBE3` |
 | `--input-bg` | Score input background | `#12203F` | `#FFFFFF` |
+
+`--mut` and `--input-bg` are deliberately **not** aliased. §11.1 defines three surfaces and a border ramp; a muted bar and an input surface are neither, so a mapping for them would be invented here rather than adopted from the authority. `--mut` measures closest to `--border-hairline` in both themes, and pointing a surface at a border token would collapse exactly the separation §11.1 draws between structure and fill. They keep their own values until the design authority gives them steps.
+
+### The target tokens the aliases resolve to
+
+| Token | Purpose | Dark | Light |
+|---|---|---|---|
+| `--surface-page` | Page background level | `#080D1F` | `#F6F4EF` |
+| `--surface-raised` | Raised level (cards, sheets) | `#141F3D` | `#FFFFFF` |
+| `--surface-sunken` | Sunken level (chips, wells) | `#1B294B` | `#EEEBE3` |
+| `--border-hairline` | Structural hairline | `#243256` | `#DAD5C9` |
+| `--border-strong` | Emphasised structural edge | `#2E3D63` | `#C9C3B4` |
+| `--text-1` | Primary text step | `#F4F7FC` | `#141310` |
+| `--text-2` | Secondary text step | `#A3AFC8` | `#4A453B` |
+| `--text-3` | Tertiary text step | `#8491AE` | `#635D50` |
+
+Dark elevates by moving to a lighter surface step, never by adding shadow (§11.1). The light theme's raised surface is the one value that is not a ramp step: a light theme raises a card by going *lighter* than the page, which no step of a ramp anchored at the page can express.
 
 ### The target neutral ramp (not yet in use)
 

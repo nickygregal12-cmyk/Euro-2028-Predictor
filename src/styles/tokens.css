@@ -5,21 +5,35 @@
 
 :root,
 [data-theme="dark"] {
-  /* surfaces */
-  --bg: #0A1128;
-  --card: #101E3E;
-  --line: #26355C;
-  --chip: #1A2B52;
+  /* surfaces — now drawn from the target ramp (§11.1). These names stay because
+     they say what a thing IS to a component (a card, a chip, a hairline) while
+     the ramp says where a value SITS; repointing them makes the ramp the single
+     source of neutral truth without a fifty-file rename, and the rename that
+     follows is then a pure no-op because both names resolve to one value. */
+  --bg: var(--surface-page);
+  --card: var(--surface-raised);
+  --line: var(--border-hairline);
+  --chip: var(--surface-sunken);
+  /* NOT repointed, and not by omission. §11.1 defines three surfaces and a
+     border ramp; an input surface and a muted bar are neither, so a mapping
+     for them would be invented here rather than adopted from the authority.
+     --mut measures closest to --border-hairline in both themes, and pointing a
+     surface at a border token would collapse exactly the separation §11.1 draws
+     between structure and fill. They keep their own values until the design
+     authority gives them steps. */
   --input-bg: #12203F;
   --mut: #2A3757;
 
-  /* text */
-  --tx: #F2F5FB;
-  --tx2: #9AA6C2;
-  /* Raised from #7E8BA8 on 31 July 2026: that was 4.07:1 on --chip, under the
-     4.5:1 AA minimum for normal text. #8793AE is 4.51:1 and keeps a visible
-     step below --tx2 (1.26:1, against 1.40:1 before). */
-  --tx3: #8793AE;
+  /* text — drawn from the target steps (§11.1), which the ramp derived to clear
+     AA on all three surfaces by construction rather than by remediation.
+     The 31 July 2026 fix this replaces is worth keeping in view: --tx3 was
+     #7E8BA8, measuring 4.07:1 on --chip, and was raised to #8793AE at 4.51:1
+     — a value one point clear of the floor. --text-3 reaches the same pairing
+     at 4.53:1 with the whole ramp behind it, so the remediation is preserved
+     rather than undone. */
+  --tx: var(--text-1);
+  --tx2: var(--text-2);
+  --tx3: var(--text-3);
 
   /* semantic colour — meanings are app-wide and fixed:
      acc = user actions/predictions/qualify
@@ -155,21 +169,21 @@
 }
 
 [data-theme="light"] {
-  --bg: #F7F5F0;
-  --card: #FDFCFA;
-  --line: #E5E2DA;
-  --chip: #EFEDE4;
+  --bg: var(--surface-page);
+  --card: var(--surface-raised);
+  --line: var(--border-hairline);
+  --chip: var(--surface-sunken);
+  /* See the dark block: no target step describes these two. */
   --input-bg: #FFFFFF;
   --mut: #D8D4C8;
 
-  --tx: #1C1B16;
-  /* The light muted ramp was raised together on 31 July 2026. --tx3 was
-     #8A8677, below AA on every surface in this theme; the value that fixes it
-     (#6E6B5F) is almost exactly the old --tx2 (#6B6759), so lifting one alone
-     would have collapsed two levels into one. Darkening --tx2 as well keeps a
-     1.46:1 step between them, against 1.55:1 before. */
-  --tx2: #565247;
-  --tx3: #6E6B5F;
+  /* The light muted ramp was raised together on 31 July 2026: --tx3 was #8A8677,
+     below AA on every surface here, and lifting it alone would have collapsed
+     it into --tx2. The target steps keep that separation with more room — see
+     the pinned table in tokenContrast.test.ts for both themes at once. */
+  --tx: var(--text-1);
+  --tx2: var(--text-2);
+  --tx3: var(--text-3);
 
   --acc: #0F6E56;
   --amb: #BA7517;
