@@ -220,12 +220,16 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 
 ## Stage G — season Predictor Cup
 
-**Rules, shared machinery and split persistence delivered; the phase driver and surfaces remain.** The shared Cup machinery is competition-neutral; the season supplies its own sources. Split groups and memberships are phase-aware, each child has one initial parent, and continuing standings are derived from settled fixtures across both phases rather than copied into a starting total.
+**Rules, shared machinery, split persistence and the round calendar delivered; the phase driver and surfaces remain.** The shared Cup machinery is competition-neutral; the season supplies its own sources. Contract 110 removed the prerequisite that had been blocking the phase driver: `bonus_cup_fixtures.window_id` is `NOT NULL` and nothing in the repository created a window for a season competition, so no season Championship fixture could be persisted in either phase. Split groups and memberships are phase-aware, each child has one initial parent, and continuing standings are derived from settled fixtures across both phases rather than copied into a starting total.
 
 - [x] Build from ADR 0014 as amended by ADRs 0020, 0022 and 0025.
 - [x] Reuse the existing draw, qualification, bracket and Penalty Number machinery through competition-neutral sources.
 - [x] Prove format selection, circle-method schedules, tie settlement and reduced fixture sets.
 - [x] Persist `stage = 'split'`, phase-aware membership, one-parent ancestry and derived continuing standings.
+- [x] Schedule a season Championship over the next eligible league matchweeks, refusing a season that cannot supply its whole format. *(Contract 110; the prerequisite for everything below.)*
+- [x] Launch a season Championship: threshold, format, initial group, draw and round-robin fixtures on those rounds. *(Contract 111, single-group shape; the public threshold applies only to public competitions.)*
+- [ ] Drive the multi-group shape — seeding, draw and bracket — which every public hundred-entrant field takes.
+- [ ] Settle a season Championship tie from confirmed results, which `settle_season_cup_tie` still has no caller for.
 - [ ] Build the phase-transition driver that creates the two child groups, assigns entrants by the final initial table and schedules the immutable split fixtures.
 - [ ] Expose the continuing table and phase state through a bounded browser read.
 - [ ] Build the season Predictor Championship surfaces after the Phase 1 design gate.

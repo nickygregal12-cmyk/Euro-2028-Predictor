@@ -61,14 +61,22 @@ The merged delta known at this 5 August review is:
 | 107 | the idempotent LMS wipeout restart creates a linked successor and copies no picks, cycles, projections or windows |
 | 108 | a restarted competition cannot inherit a round that opened or locked before its predecessor finished |
 | 109 | the next eligible future league matchweek is derived from the existing lock authority and the successor calendar is created exactly once |
+| 110 | the season Predictor Championship gets rounds it can be played over, which no season competition had ever had |
+| 111 | a season Championship is launched — drawn, scheduled and given its round-robin fixtures |
 
 The Contract 107–109 backend restart lifecycle is complete. Contract 107
 creates the linked successor, Contract 108 refuses inherited past rounds, and
 Contract 109 derives the first eligible future league matchweek from the existing
 lock authority and creates the successor calendar exactly once. When fixtures
 are incomplete and no lock can be derived, the successor remains honestly
-unavailable rather than guessing. Product surfaces must render those real states;
-backend completion is not evidence that the player or organiser journey exists.
+unavailable rather than guessing. Contract 110 gives the season Predictor
+Championship the same thing from the other end: rounds it can be played over at
+all, which no season competition had ever had, and Contract 111 launches one
+onto them. The surface must not read that as a finished Championship: what runs
+is the private, organiser-created shape, and the public hundred-entrant field
+takes a multi-group draw that is not built yet. Product surfaces must render
+those real states; backend completion is not evidence that the player or
+organiser journey exists.
 
 None of these changes presentation authority into scoring or lifecycle authority.
 **Appendix D.2's reconciliation list predates them** and must be checked against

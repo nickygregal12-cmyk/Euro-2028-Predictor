@@ -12,6 +12,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The documentation sweep compares this change against its base, so
+          # it needs history. The default depth of 1 leaves `git diff A...B`
+          # with no common ancestor to resolve.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.22.2
@@ -20,6 +25,20 @@ jobs:
         run: npm ci
       - name: Validate migration timestamps
         run: npm run check:migration-timestamps
+      - name: Check the documentation authorities against the contract
+        # Two halves. Without arguments it asserts freshness: a document that
+        # names contract numbers must name the current one as its newest. With
+        # a base and head it also asserts the SWEEP — a change that adds a
+        # migration must touch every document marked for it, which is the half
+        # that stops the drift rather than reporting it a day later.
+        run: |
+          if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+            npm run check:documentation-authorities -- \
+              "${{ github.event.pull_request.base.sha }}" \
+              "${{ github.event.pull_request.head.sha }}"
+          else
+            npm run check:documentation-authorities
+          fi
       - name: Verify Git-less environment hygiene behavior
         shell: bash
         run: |
