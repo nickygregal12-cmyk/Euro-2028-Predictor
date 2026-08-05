@@ -1,29 +1,44 @@
 # Current feature and safeguard baseline
 
-**Latest full audit reconciliation:** [`audits/2026-07-29-contract-60-full-documentation-audit.md`](audits/2026-07-29-contract-60-full-documentation-audit.md)  
-**Latest production release alignment:** [`investigations/2026-07-29-contract60-production-promotion.md`](investigations/2026-07-29-contract60-production-promotion.md)  
-**Current hosted state:** [`current-status.md`](current-status.md)  
+**Baseline reconciliation date:** 5 August 2026  
+**Historical contract-60 audit:** [`audits/2026-07-29-contract-60-full-documentation-audit.md`](audits/2026-07-29-contract-60-full-documentation-audit.md)  
+**Historical contract-60 production release:** [`investigations/2026-07-29-contract60-production-promotion.md`](investigations/2026-07-29-contract60-production-promotion.md)  
+**Current implementation and hosted state:** [`current-status.md`](current-status.md)  
 **Identifier repair:** [`reconciliations/2026-07-24-feature-baseline-identifiers.md`](reconciliations/2026-07-24-feature-baseline-identifiers.md)
 
 > Every compact current row has one primary identifier. Archived identifiers remain reserved in the continuity register. Current code, migrations, executable tests and verified hosted evidence override older wording.
 
 ## Classification rules
 
-- **Implemented and production-hosted:** working capability supported by the current contract-60 production application/database pair.
-- **Implemented and development-hosted; production pending:** working development capability not yet promoted.
+- **Implemented and production-hosted:** working capability verified in the published Euro production baseline. This classification is about the capability, not a claim that production has every later platform contract.
+- **Implemented and development-hosted; production pending:** working capability present in the repository/development path but not promoted to production.
+- **Implemented in repository; hosted state delegated:** working code exists, while the exact environment publication state is intentionally read from `current-status.md` rather than copied here.
 - **Implemented with evidence gap:** hosted capability exists but a required browser, accessibility or operational journey remains incomplete.
 - **Partial:** meaningful implementation exists but a required layer, route or journey is absent.
 - **UI prototype only:** presentation exists without an authoritative data path.
 - **Documented/planned:** intent exists without working implementation.
 - **Not present:** no current implementation evidence.
 
-Repository, development Supabase, production Supabase and every Netlify context are aligned at contract 60. The production application is published from the exact contract-60 release-alignment merge. See `current-status.md` for the live deploy and data position.
+Repository, development, production and Netlify contract values move independently. This baseline does not restate them. [`current-status.md`](current-status.md) and the machine contract records decide exact hosted state; the fixed `euro-2028-baseline` tag remains the recoverable contract-63 tournament anchor.
+
+## Platform backend overlay — not yet compact user features
+
+The stable compact rows below preserve the established feature/safeguard identifiers. Since that identifier set was created, the repository has also delivered substantial platform backend foundations that are not yet complete user-facing features and therefore do not receive speculative `FEAT-*` IDs here:
+
+- competition-season identity, per-game availability/membership and game-owned lock policies;
+- season Match Predictor fixtures, cards, Jokers, lock processing, recurring scheduling, replay-safe reassignment, scoring, stored matchweek totals and bounded standings;
+- season Last Man Standing setup, eligibility, deterministic auto-assignment, used-team cycles, selection writes, correction-aware settlement and entrant-state replay;
+- competition-neutral Predictor Championship/Cup points and settlement sources, circle-method scheduling rules, persisted split phases, one-parent ancestry and derived continuing standings;
+- server-only provider-response custody with archive-before-processing evidence and no authority to write official competition truth;
+- repeatable competition instances, explicit live/current resolution and correction-safe rederivation after completion.
+
+The missing lifecycle/phase drivers, bounded browser reads and season product surfaces remain partial/planned work in the roadmap. Backend presence must not be reclassified as a completed user journey. When a surface becomes a real supported capability, add one reviewed primary identifier and update the executable identifier-count guard in the same change.
 
 ## Original Predictor and core application
 
 | ID | Capability | Current classification | Evidence boundary |
 | --- | --- | --- | --- |
-| `FEAT-001` | Authentication, signup/login, password recovery, moderation and sign-out | Implemented and production-hosted | Auth routes/Supabase; final SMTP/Turnstile decisions remain |
+| `FEAT-001` | Authentication, signup/login, password recovery, moderation and sign-out | Implemented and production-hosted | Auth routes/Supabase; Turnstile and recovery delivery are implemented, while ownership/incident readiness remains operational |
 | `FEAT-006` | First-use welcome gate | Implemented and production-hosted | `/welcome`, `welcomed_at`, Browser E2E |
 | `FEAT-009` | Group score prediction | Implemented and production-hosted | Predictor UI and protected prediction boundary |
 | `FEAT-015` | Joker selection | Implemented and production-hosted | UI, database guard and scoring config |
@@ -57,10 +72,10 @@ Repository, development Supabase, production Supabase and every Netlify context 
 | `SAFE-050` | Authoritative result method/winner | Implemented and production-hosted | Regulation, extra time and penalties consumed by product UI |
 | `SAFE-051` | Immutable result revision history | Implemented and production-hosted | Direct-access denial and verifier |
 | `SAFE-052` | Real knockout winner propagation | Implemented and production-hosted | Transactional replay and played-fixture protection |
-| `SAFE-010` | Serialized score recomputation | Implemented and production-hosted | Result/scoring operations serialized |
+| `SAFE-010` | Serialized score recomputation | Implemented with environment split | Production baseline serializes Original scoring; later repository/development contracts extend the same transaction lock to Bonus rederivation |
 | `SAFE-053` | Exact function execution allowlists | Implemented and production-hosted | Zero anonymous application execution; service-only internals |
-| `SAFE-013` | Production/development isolation | Implemented and hosted | Production and non-production retain separate Supabase projects |
-| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Every Netlify context declares contract 60 |
+| `SAFE-013` | Production/development isolation | Implemented and hosted | Separate Supabase targets are enforced; Netlify context values were independently read on 5 August 2026 and moving declarations remain in current status |
+| `SAFE-054` | Application/schema compatibility gate | Implemented and actively enforcing | Each context is checked against its own declared database contract; exact values are target-specific and live in operations/current status |
 | `SAFE-056` | Bonus Games catalogue visibility fallback | Implemented in current release batch | Canonical cards remain visible even if hosted catalogue rows are absent |
 
 Safe error mapping and redacting client-error capture remain governed by preserved `SAFE-039`.
@@ -75,9 +90,9 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 | `FEAT-049` | League detail/member rows | Implemented and production-hosted | Secure profile and H2H destinations |
 | `FEAT-031` | H2H comparison | Implemented and production-hosted | Authoritative totals, rank history and bracket health |
 | `FEAT-035` | Own profile/points breakdown | Implemented and production-hosted | `/profile` with resilient reload/retry |
-| `FEAT-036` | Other-player full profile | Implemented and production-hosted | Co-member-only pre/post-lock reveal boundary |
+| `FEAT-036` | Other-player full profile | Implemented and production-hosted | Pre-lock ownership remains private; frozen Euro entry/profile reveal is authenticated post-lock, while league-context pick reads remain league-scoped |
 | `FEAT-032` | Match list, Match Centre and tournament information | Implemented and production-hosted | Fixtures, tables, bracket, stats and authoritative result detail |
-| `FEAT-050` | Post-lock trends | Documented/planned | Current Stage 6 product batch |
+| `FEAT-050` | Post-lock trends | Implemented in repository; hosted state delegated | Consensus/trends route exists with suppression, loading/error states and player-name fallback; exact publication follows current status |
 
 ## Administration, accessibility, assurance and operations
 
@@ -88,13 +103,13 @@ Safe error mapping and redacting client-error capture remain governed by preserv
 | `SAFE-032` | Administrator bootstrap/authorization | Implemented with operational follow-up | Owner-controlled `app_metadata` capability assigned; custody remains operational |
 | `SAFE-012` | Fake clock/simulation isolation | Partial development capability | Full dress rehearsal remains |
 | `SAFE-025` | Application CI | Implemented | Build, lint, tests and production dependency audit |
-| `SAFE-026` | Disposable database integration CI | Implemented | Full 60-migration rebuild, lint, pgTAP and differential parity |
+| `SAFE-026` | Disposable database integration CI | Implemented | Zero-to-current migration rebuild, database lint, complete pgTAP chain, transition rehearsals and differential parity |
 | `SAFE-055` | Provider submission/clear regression tests | Implemented | Unit, database and browser coverage |
 | `SAFE-027` | Browser E2E and hosted preview smoke | Implemented | Auth, lifecycle, admin, profiles, capacity and accessibility journeys |
 | `FEAT-042` | Monitoring and alerting | Partial hosted capability | Sentry delivery verified; ownership, retention/escalation and rollback rehearsal remain |
 | `SAFE-033` | Verified backup/restore | Implemented and accepted | Encrypted artifact and disposable restore proof |
 | `SAFE-031` | Safe application rollback | Procedure implemented; hosted rehearsal pending | Final rollback rehearsal remains |
-| `SAFE-029` | Contract-gated production deploy | Implemented | Exact contract-60 release published and production re-locked |
+| `SAFE-029` | Contract-gated production deploy | Implemented | Production fails closed on contract mismatch; exact published release identity and target contract remain in current status/release evidence |
 
 Automated axe scanning, route titles, live announcements, main focus and skip navigation exist. Manual keyboard, screen-reader and contrast review remains open.
 
@@ -182,9 +197,9 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 
 ## Current route and data baseline
 
-Current `main` has authenticated Original Predictor, league, H2H, match, profile, Account, Bonus Games and protected administrator routes plus catch-all. Development-only routes remain gated. Repository and both hosted databases have exactly 60 canonical migrations; every Netlify context declares contract 60.
+The application contains authenticated Original Predictor, league, H2H, match, profile, Account, Trends, Bonus Games and protected administrator routes plus a real catch-all. Development-only routes remain gated. This document is not the exhaustive route manifest and does not copy migration or Netlify contract counts; executable route coverage and [`current-status.md`](current-status.md) decide those facts.
 
-The Bonus Games runtime routes are `/games`, `/games/knockout`, `/games/ko-predictor`, `/games/lms` and `/games/cup`. Hosted catalogue publication is separate operational reference data and must not create synthetic entrants or result history.
+The historical Bonus Games compatibility routes remain available while the accepted Hub information architecture is adopted. Hosted catalogue publication is operational reference data, not schema authority, and must never create synthetic entrants, predictions, draws, scores or result history. The season backend overlay above has no complete public product surface yet.
 
 ## Safeguard regression rules
 
@@ -195,7 +210,11 @@ Do not silently:
 - bypass RPCs, settlement or expected-version deletion;
 - accept impossible brackets;
 - infer penalty winners from tied public scores;
-- mix Original/bonus points or predicted/real brackets;
+- mix Original/bonus points, one game's standings with another's, or predicted/real brackets;
+- treat a backend authority as a completed or production-hosted surface without journey evidence;
+- let a provider response become official fixture/result/scoring truth;
+- copy Championship carried points into a second stored starting total;
+- resolve correction-time rederivation through a live-only competition lookup after completion;
 - remove a canonical Bonus Game because hosted catalogue data is absent;
 - cross Supabase/Netlify environments or use the legacy World Cup site;
 - deploy against an unverified database contract;
