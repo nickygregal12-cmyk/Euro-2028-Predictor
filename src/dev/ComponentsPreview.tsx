@@ -625,10 +625,127 @@ const TODAY_NEXT: TodaySection = {
   fixtures: [HOME_FIXTURE({ home: WAL, away: POR, prediction: { home: 0, away: 3 } })],
 }
 
+const RAMP_STEPS = Array.from({ length: 12 }, (_, index) => index + 1)
+
+const TYPE_STEPS = [
+  { step: 1, use: 'Micro label, legal' },
+  { step: 2, use: 'Secondary body, table cells' },
+  { step: 3, use: 'Body' },
+  { step: 4, use: 'Section heading' },
+  { step: 5, use: 'Page heading, scoreline' },
+  { step: 6, use: 'Masthead, stat moment' },
+] as const
+
+/**
+ * The target foundations, on screen and side by side with the palette in force.
+ *
+ * These tokens are deliberately consumed by nothing in production yet. A ramp
+ * is reviewable as twelve swatches in a row and effectively unreviewable as
+ * twenty-four hex values in a stylesheet, so it is rendered here first and
+ * adopted afterwards, one component at a time.
+ */
+function Foundations() {
+  return (
+    <>
+      <Section title="Target — neutral ramp (12 steps)">
+        <div className={styles.rampGrid}>
+          {RAMP_STEPS.map((step) => (
+            <div key={step} className={styles.rampSwatch}>
+              <div
+                className={styles.rampChip}
+                style={{ background: `var(--n-${step})` }}
+                aria-hidden="true"
+              />
+              <span className={styles.label}>n-{step}</span>
+            </div>
+          ))}
+        </div>
+        <Label>
+          Ordered by contrast from step 1, so a step number means the same thing in both themes.
+        </Label>
+      </Section>
+
+      <Section title="Target — surfaces, borders and text">
+        <div className={styles.row}>
+          {(['page', 'raised', 'sunken'] as const).map((level) => (
+            <div
+              key={level}
+              className={styles.surfaceSample}
+              style={{
+                background: `var(--surface-${level})`,
+                borderColor: 'var(--border-hairline)',
+              }}
+            >
+              <span style={{ color: 'var(--text-1)' }}>surface-{level}</span>
+              <span style={{ color: 'var(--text-2)' }}>secondary text</span>
+              <span style={{ color: 'var(--text-3)' }}>tertiary text</span>
+            </div>
+          ))}
+        </div>
+        <Label>
+          Every text step clears AA on every surface; hairlines come from the border ramp, never
+          from a text or accent token.
+        </Label>
+      </Section>
+
+      <Section title="Target — type scale and tabular numerals">
+        {TYPE_STEPS.map(({ step, use }) => (
+          <div key={step} className={styles.row}>
+            <Label>fs-{step}</Label>
+            <span
+              style={{
+                fontSize: `var(--fs-${step})`,
+                letterSpacing:
+                  step >= 5
+                    ? 'var(--tracking-tight)'
+                    : step === 1
+                      ? 'var(--tracking-open)'
+                      : 'var(--tracking-normal)',
+                color: 'var(--tx)',
+                fontFamily: step >= 5 ? 'var(--font-display)' : 'var(--font-body)',
+              }}
+            >
+              {use}
+            </span>
+          </div>
+        ))}
+        <div className={styles.row}>
+          <Label>tabular</Label>
+          {/* The jitter this prevents is only visible when the digits change,
+              so both rows are shown: same width, different values. */}
+          <span style={{ fontVariantNumeric: 'var(--numeric)', color: 'var(--tx)' }}>
+            111 · 8 · 100
+          </span>
+          <span style={{ fontVariantNumeric: 'var(--numeric)', color: 'var(--tx)' }}>
+            999 · 3 · 128
+          </span>
+        </div>
+      </Section>
+
+      <Section title="Target — motion and layering">
+        <div className={styles.row}>
+          <Label>micro 120ms</Label>
+          <Label>enter 180ms</Label>
+          <Label>sheet 240ms</Label>
+          <Label>signature 400ms</Label>
+        </div>
+        <Label>
+          Ease-out entering, ease-in exiting. Reduced motion removes travel, not feedback.
+        </Label>
+        <div className={styles.row}>
+          <Label>content → sticky → navigation → overlay → modal → toast</Label>
+        </div>
+      </Section>
+    </>
+  )
+}
+
 /** Every component in every state — rendered once per theme by ComponentsPreview. */
 function Gallery() {
   return (
     <div className={styles.gallery}>
+      <Foundations />
+
       <Section title="Button">
         <div className={styles.row}>
           <Label>primary</Label>

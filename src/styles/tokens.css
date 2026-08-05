@@ -69,6 +69,89 @@
   --tap-min: 44px;
   --bar-w: 4px;
   --bar-h: 24px;
+
+  /* ── Target foundations (plan §11.1) ─────────────────────────────────────
+     The 12-step neutral ramp the finished product is built on, ordered by
+     contrast against step 1 — the page background — so a step number means
+     the same thing in both themes even though one ramp descends in lightness
+     and the other climbs. Nothing in production consumes these yet: they are
+     rendered and measured in /dev/components so the target palette can be
+     reviewed before components adopt it, which is what makes the adoption
+     reversible. `tests/design-system/foundationTokens.test.ts` holds their
+     monotonicity and the AA floors below. */
+  --n-1: #080D1F;
+  --n-2: #0E1630;
+  --n-3: #141F3D;
+  --n-4: #1B294B;
+  --n-5: #243256;
+  --n-6: #2E3D63;
+  --n-7: #3C4C75;
+  --n-8: #55658C;
+  --n-9: #8491AE;
+  --n-10: #A3AFC8;
+  --n-11: #C9D2E4;
+  --n-12: #F4F7FC;
+
+  /* Three surface levels. §11.1: the dark theme elevates by moving to a
+     lighter surface step, never by adding shadow. */
+  --surface-page: var(--n-1);
+  --surface-raised: var(--n-3);
+  --surface-sunken: var(--n-4);
+
+  /* A border ramp of its own. §11.1 (and §11.4): hairlines organise content
+     and are never emphasis, so border colour is never borrowed from a text or
+     accent token. */
+  --border-hairline: var(--n-5);
+  --border-strong: var(--n-6);
+
+  /* Target text steps. Every one of these clears AA on all three surfaces. */
+  --text-1: var(--n-12);
+  --text-2: var(--n-10);
+  --text-3: var(--n-9);
+}
+
+/* ── Scale, motion and layering ────────────────────────────────────────────
+   Theme-independent, so declared once. A size, a duration and a stacking
+   order are not colours and gain nothing from being restated per theme. */
+:root {
+  /* Six-step type scale (§11.7). Components may not invent intermediate
+     sizes: an off-scale value is the thing this scale exists to prevent. */
+  --fs-1: 12px;
+  --fs-2: 14px;
+  --fs-3: 16px;
+  --fs-4: 20px;
+  --fs-5: 28px;
+  --fs-6: 40px;
+
+  /* Tracking travels with the size, through tokens rather than by eye:
+     tighter above 24px, opener below 13px (§11.7). */
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0em;
+  --tracking-open: 0.01em;
+
+  /* Every numeric surface — scores, ranks, points, dates, times, percentages,
+     table statistics — so a changing value never re-widths its column (§11.4). */
+  --numeric: tabular-nums;
+
+  /* Motion contract (§11.6). Nothing routine exceeds 300ms; the single
+     400ms signature is points resolution and never replays on re-render. */
+  --duration-micro: 120ms;
+  --duration-enter: 180ms;
+  --duration-sheet: 240ms;
+  --duration-signature: 400ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  /* Sheets and dialogs — the third of the three radii (§11.1). */
+  --radius-sheet: 20px;
+
+  /* One declared stacking order, so a component never invents a z-index. */
+  --z-content: 0;
+  --z-sticky: 10;
+  --z-navigation: 20;
+  --z-overlay: 30;
+  --z-modal: 40;
+  --z-toast: 50;
 }
 
 [data-theme="light"] {
@@ -102,6 +185,38 @@
   --gold-contrast: #2B2410;
   --gold-tint: #F7EDD0;
   --scrim: rgba(20, 18, 12, 0.45);
+
+  /* Target foundations, light. The same twelve steps, still ordered by
+     contrast against the page background — which here means descending in
+     lightness, so `--n-9` is the tertiary text step in both themes. */
+  --n-1: #F6F4EF;
+  --n-2: #EEEBE3;
+  --n-3: #E5E1D7;
+  --n-4: #DAD5C9;
+  --n-5: #C9C3B4;
+  --n-6: #B3AC9B;
+  --n-7: #99917F;
+  --n-8: #7D7666;
+  --n-9: #635D50;
+  --n-10: #4A453B;
+  --n-11: #302D26;
+  --n-12: #141310;
+
+  /* The one surface that is not a ramp step. A light theme raises a card by
+     going lighter than the page, and the page is already step 1 — so the
+     raised surface sits outside a ramp anchored there. Surfaces are their own
+     token group in §11.1 precisely so this can be said rather than fudged by
+     bending the ramp around one value. */
+  --surface-raised: #FFFFFF;
+  --surface-page: var(--n-1);
+  --surface-sunken: var(--n-2);
+
+  --border-hairline: var(--n-4);
+  --border-strong: var(--n-5);
+
+  --text-1: var(--n-12);
+  --text-2: var(--n-10);
+  --text-3: var(--n-9);
 }
 
 @media (prefers-reduced-motion: reduce) {

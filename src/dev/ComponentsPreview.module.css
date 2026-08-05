@@ -123,3 +123,40 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
 }
+
+/* Target foundations. The ramp is reviewable as a row of swatches and not as
+   twenty-four hex values in a stylesheet, which is why it is rendered before
+   any component adopts it. */
+.rampGrid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--sp-1);
+}
+
+.rampSwatch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  align-items: center;
+  min-width: 0;
+}
+
+.rampChip {
+  width: 100%;
+  height: 44px;
+  border-radius: var(--radius-input);
+  /* A hairline so step 1 stays visible against the page it is the background
+     of — without it the first swatch reads as a gap in the row. */
+  border: 1px solid var(--border-hairline);
+}
+
+.surfaceSample {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-3);
+  border: 1px solid;
+  border-radius: var(--radius-card);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+}
