@@ -16,7 +16,7 @@
 
 begin;
 
-select plan(22);
+select plan(27);
 
 -- ---------------------------------------------------------------------------
 -- Grants: exactly the four functions, exactly to authenticated.

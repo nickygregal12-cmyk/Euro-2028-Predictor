@@ -83,11 +83,19 @@ begin
     v_tournament := v_row.tournament_id;
   end if;
 
+  -- Contract 104's live-instance resolution is preserved: availability comes
+  -- through predictor_internal.live_competition_id, never an arbitrary row.
+  -- 155_live_competition_callers.sql pins this body to that resolver, and the
+  -- first draft of this redefinition was caught by exactly that pin when it
+  -- copied the contract-69 body instead.
   select definition.buffer_minutes into v_buffer
     from public.bonus_competitions availability
     join public.game_definitions definition on definition.game_key = availability.game_key
    where availability.tournament_id = v_tournament
-     and availability.game_key = 'main_predictor';
+     and availability.game_key = 'main_predictor'
+     and availability.id = predictor_internal.live_competition_id(
+       v_tournament, 'main_predictor'
+     );
 
   if v_buffer is null then
     raise exception 'No Main Predictor availability for this season, so its lock cannot be resolved'
