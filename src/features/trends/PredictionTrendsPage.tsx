@@ -18,7 +18,11 @@ import { userFacingError } from '../../shared/errors/userFacingError'
 import s from '../shared.module.css'
 import t from './trends.module.css'
 
-type ReadyState = { consensus: PredictionConsensusResponse; players: ConsensusPlayer[] }
+type ReadyState = {
+  consensus: PredictionConsensusResponse
+  players: ConsensusPlayer[]
+  playersUnavailable: boolean
+}
 type State =
   | { status: 'idle' | 'loading' }
   | { status: 'error'; message: string }
@@ -44,12 +48,21 @@ export function PredictionTrendsPage() {
     setState({ status: 'loading' })
     void fetchPredictionConsensus(tournamentId)
       .then(async (consensus) => {
-        const players = consensus.suppressed
-          ? []
-          : await fetchConsensusPlayers(
+        let players: ConsensusPlayer[] = []
+        let playersUnavailable = false
+        if (!consensus.suppressed) {
+          try {
+            players = await fetchConsensusPlayers(
               consensus.goldenBoot.map((pick) => pick.playerId),
-            ).catch(() => [])
-        if (active) setState({ status: 'ready', data: { consensus, players } })
+            )
+          } catch {
+            // Player names are a secondary read on top of the consensus figures.
+            // A failure here must not be indistinguishable from the picks genuinely
+            // referencing no players, so it is tracked and surfaced separately.
+            playersUnavailable = true
+          }
+        }
+        if (active) setState({ status: 'ready', data: { consensus, players, playersUnavailable } })
       })
       .catch((error) => {
         if (active) setState({
@@ -104,7 +117,7 @@ export function PredictionTrendsPage() {
   }
   if (state.status !== 'ready') return null
 
-  const { consensus, players } = state.data
+  const { consensus, players, playersUnavailable } = state.data
   if (consensus.suppressed) {
     const entryLabel = consensus.submittedEntries === 1 ? 'entry is' : 'entries are'
     return (
@@ -118,17 +131,27 @@ export function PredictionTrendsPage() {
     )
   }
 
-  return <TrendsContent header={header} consensus={consensus} players={players} teams={tournament.data.teams} matches={tournament.data.matches} />
+  return (
+    <TrendsContent
+      header={header}
+      consensus={consensus}
+      players={players}
+      playersUnavailable={playersUnavailable}
+      teams={tournament.data.teams}
+      matches={tournament.data.matches}
+    />
+  )
 }
 
 function Page({ header, children }: { header: ReactNode; children: ReactNode }) {
   return <div className={s.page}>{header}{children}</div>
 }
 
-function TrendsContent({ header, consensus, players, teams, matches }: {
+function TrendsContent({ header, consensus, players, playersUnavailable, teams, matches }: {
   header: ReactNode
   consensus: AvailablePredictionConsensus
   players: ConsensusPlayer[]
+  playersUnavailable: boolean
   teams: { id: string; name: string }[]
   matches: { id: string; matchRef: string; homeTeamId: string | null; awayTeamId: string | null }[]
 }) {
@@ -146,6 +169,11 @@ function TrendsContent({ header, consensus, players, teams, matches }: {
   return (
     <div className={s.page}>
       {header}
+      {playersUnavailable && consensus.goldenBoot.length > 0 && (
+        <Alert variant="warning" title="Player names are temporarily unavailable">
+          Golden Boot picks below show a placeholder label until the connection recovers.
+        </Alert>
+      )}
       <div className={t.summaryStrip}><strong>{consensus.submittedEntries}</strong><span>locked {consensus.submittedEntries === 1 ? 'entry' : 'entries'} in this view</span></div>
 
       <section className={s.card} aria-labelledby="champion-race-heading">
