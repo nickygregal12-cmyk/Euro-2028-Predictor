@@ -274,6 +274,9 @@ The deletion path must erase personal/auth data, pseudonymise the profile, trans
 - `assert_bonus_window_fixture_shape`
 - `assert_bonus_lms_selection_shape`
 - `assert_bonus_knockout_prediction_shape`
+- `assert_bonus_cup_group_parent`
+- `assert_bonus_cup_fixture_group_phase`
+- `assert_bonus_cup_member_split_parent`
 
 Prefer composite FKs for simple season equality; retain triggers for arrays, conditional shape, parent kind, time and lifecycle.
 

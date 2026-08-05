@@ -14,7 +14,7 @@
 
 begin;
 
-select plan(22);
+select plan(23);
 
 -- ---------------------------------------------------------------------------
 -- Seven entrants: six in the one valid source group that is divided into
@@ -79,17 +79,17 @@ from generate_series(1, 7) as n;
 
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, registration_opens_at,
-  registration_closes_at, draw_required
+  registration_closes_at, draw_required, visibility_kind
 ) values (
   md5('c5-comp')::uuid,
   current_setting('test.c5_tournament_id')::uuid,
   'predictor_cup', true,
-  now() - interval '3 hours', now() - interval '1 hour', true
+  now() - interval '3 hours', now() - interval '1 hour', true, 'private'
 );
 
 insert into public.bonus_competition_entrants (competition_id, user_id, joined_at)
 select md5('c5-comp')::uuid, md5('c5-user-' || n)::uuid, now() - interval '2 hours'
-from generate_series(1, 6) as n;
+from generate_series(1, 7) as n;
 
 -- Windows 1-3 are the league phase; window 4 is the first split round. The
 -- matchday numbering follows ADR 0025: "Keep matchday as the competition's
@@ -342,7 +342,7 @@ select is(
 
 select public.correct_match_result(
   current_setting('test.c5_m1')::uuid, 'regulation', 1::smallint, 0::smallint,
-  p_reason => 'Contract 104 test: league-phase correction after the split began'
+  p_reason => 'Contract 105 test: league-phase correction after the split began'
 );
 
 select is(
@@ -413,6 +413,11 @@ select is(
     where t.user_id = current_setting('test.c5_r')::uuid),
   0,
   'an entrant who played no settled fixture in either phase carries nothing — window points come from settled rounds only'
+);
+
+select lives_ok(
+  $$delete from public.bonus_competitions where id = md5('c5-comp')::uuid$$,
+  'deleting the whole competition may cascade both phase memberships without the permanence guard blocking its parent lifecycle'
 );
 
 select finish();

@@ -1,7 +1,7 @@
 # Stage C — trigger binding inventory
 
-**Status:** Repository contract 102 after-state; C2 ownership work remains blocked by issue #272.
-**Baseline:** Contract 65 competition-season foundation, contract 66 C1b game catalogue and the effective trigger set through contract 102.
+**Status:** Repository contract 105 after-state; C2 ownership work remains blocked by issue #272.
+**Baseline:** Contract 65 competition-season foundation, contract 66 C1b game catalogue and the effective trigger set through contract 105.
 **Parent design:** [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md)
 **Object coverage:** [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md)
 
@@ -17,7 +17,8 @@ bindings. C1b adds game-availability preparation, canonical membership linkage a
 append-only membership-event bindings while preserving the established lock,
 result, scoring, audit, rate-limit and ownership authorities. Contract 102 adds two
 Cup split-persistence authorities: one validates split-group parentage and the other
-keeps a group-shaped fixture aligned with the phase named by its stage. The executable
+keeps a group-shaped fixture aligned with the phase named by its stage. Contract 105
+adds the member-side ancestry binding: every split member comes from the child group's one initial parent, and source membership remains fixed. The executable
 comparison is `tests/database-parity/stageCTriggerBindingCoverage.test.ts`.
 
 No hosted database write or C2 ownership change is claimed by this inventory.
@@ -41,6 +42,7 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `bonus_cup_groups.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup group scope |
 | `bonus_cup_groups.assert_bonus_cup_group_parent` | `predictor_internal.assert_bonus_cup_group_parent` | contract 102; require every split group to point directly to a same-competition initial group and protect existing children from parent relabelling |
 | `bonus_cup_members.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup member scope |
+| `bonus_cup_members.assert_bonus_cup_member_split_parent` | `predictor_internal.assert_bonus_cup_member_split_parent` | contract 105; require a split member to come from the child group's single initial parent and keep that source membership permanent while the split row exists |
 | `bonus_cup_penalty_numbers.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate Cup penalty scope |
 | `bonus_knockout_predictions.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate KO Predictor scope |
 | `bonus_knockout_predictions.assert_bonus_knockout_prediction_shape` | `predictor_internal.assert_bonus_knockout_prediction_shape` | preserve KO prediction shape validation |

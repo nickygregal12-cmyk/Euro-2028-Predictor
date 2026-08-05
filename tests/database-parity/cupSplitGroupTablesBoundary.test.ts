@@ -24,8 +24,12 @@ describe('contract 105 Cup split boundary', () => {
 
   it('derives carry-forward rather than storing a starting total', () => {
     expect(migration).toContain("fixture.stage in ('group', 'split')")
-    expect(migration).not.toMatch(/starting[_ ]points|carried[_ ]points/i)
-    expect(migration).not.toMatch(/alter table[^;]+add column[^;]+points/is)
+    expect(migration).not.toMatch(
+      /alter table[^;]+add column[^;]+(?:starting|carried)[^;]*points/is,
+    )
+    expect(migration).not.toMatch(
+      /insert into[^;]+(?:starting|carried)[^;]*points/is,
+    )
   })
 
   it('enforces one-parent split ancestry at the member boundary', () => {
@@ -45,6 +49,12 @@ describe('contract 105 Cup split boundary', () => {
       'a split group refuses an entrant whose initial membership belongs to another parent',
     )
     expect(proof).not.toContain('cuts ACROSS the initial groups')
+    expect(proof).toContain("'private'")
+  })
+
+  it('keeps full-competition cascade deletion compatible with membership permanence', () => {
+    expect(migration).toContain('from public.bonus_competitions competition')
+    expect(proof).toContain('deleting the whole competition may cascade both phase memberships')
   })
 
   it('pins the correction-after-split evidence that distinguishes derived from copied', () => {

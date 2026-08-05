@@ -155,6 +155,11 @@ begin
     if old.phase_kind = 'initial'
        and exists (
          select 1
+         from public.bonus_competitions competition
+         where competition.id = old.competition_id
+       )
+       and exists (
+         select 1
          from public.bonus_cup_members split_member
          where split_member.competition_id = old.competition_id
            and split_member.user_id = old.user_id
