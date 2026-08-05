@@ -21,7 +21,11 @@ Netlify's `EURO28_DEPLOYED_DB_CONTRACT` value describes the hosted database reac
 | `deploy-preview` | Development | 97 |
 | `production` | Production | 63 |
 
-The non-production values moved 86 → 97 on 4 August 2026, after the development rollout to contract 97 was verified. **This is owner-reported.** Netlify environment variables are a team-console setting with no read path from this repository, from CI or from an agent session, so nothing here independently confirms the value; [`ops-pending-migrations.md`](ops-pending-migrations.md) records which Netlify build-log line corroborates which declared value, and that log is the owner's to read.
+The non-production values moved 86 → 97 on 4 August 2026, after the development rollout to contract 97 was verified. It was owner-reported at the time and **has since been read directly**: on 5 August 2026 an agent session with a Netlify connector read the project environment and found `dev`, `branch-deploy` and `deploy-preview` each declaring 97 and `production` declaring 63, matching the report exactly. That read also confirmed the non-production contexts point at the Development Supabase project and production at the Production one.
+
+Two limits on treating that as a standing capability. **CI still has no read path** — the connector belongs to an agent session, not to this repository — so the mechanical guards keep comparing documents against each other rather than against the platform. And the connector has been intermittent, so a future session may not have it; [`ops-pending-migrations.md`](ops-pending-migrations.md) records which Netlify build-log line corroborates which declared value, and that log remains the owner's to read when no direct read is available.
+
+A fifth context, `dev-server`, carries an **empty** declaration. `scripts/validate-deployment-contract.mjs` rejects a missing or non-numeric value outright, so a build in that context fails closed rather than proceeding unchecked.
 
 The development declaration must be updated after a verified development rollout. The production declaration must remain at 63 until a separately approved production database promotion. Never raise the production declaration merely to make an application build pass.
 

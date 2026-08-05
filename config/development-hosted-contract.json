@@ -5,7 +5,7 @@
   "latestMigrationName": "terminal_aware_bonus_rederive",
   "verifiedAt": "2026-08-05T07:25:58.027Z",
   "evidence": {
-    "source": "Development fast-lane rollout",
+    "source": "Development fast-lane rollout run 30984799464 on aa46fee, completed successfully; contract 106 applied. Corroborated read-only: the ledger holds 106 rows through 20260805020000. Both Bonus Games rederive functions now resolve through current_public_competition_id and NEITHER retains a predictor_internal.live_competition_id call, so a result corrected after a competition completes rederives instead of silently returning (DATA-009). Neither is reachable by anon, authenticated or service_role. Zero competitions are completed, so the change is behaviour-neutral today and lands ahead of the restart driver that will make it reachable.",
     "workflowRunId": 30984799464,
     "repositoryHead": "aa46feed60a9e9624c8af8b58a38f15249c35987"
   },
