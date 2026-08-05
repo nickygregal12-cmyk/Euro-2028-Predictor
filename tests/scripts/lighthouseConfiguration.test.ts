@@ -52,6 +52,50 @@ describe('the Lighthouse configuration measures this repository', () => {
     expect(manifest.devDependencies['@lhci/cli']).toBeDefined()
   })
 
+  /**
+   * The script has to build, and it has to build with configuration present.
+   *
+   * `check:lighthouse` was `lhci autorun` alone, and on a clean checkout that
+   * did not work: the application throws `Missing Supabase configuration` at
+   * module load, Vite inlines those variables at BUILD time so they cannot be
+   * supplied to an existing `dist`, and the audit died on a bare `NO_FCP`.
+   * The command in the quality documentation was unrunnable by anyone without
+   * a `.env.local` — including, had it been promoted as it stood, CI.
+   */
+  describe('the audit runs on a build that renders', () => {
+    const runner = readFileSync(resolve(repositoryRoot, 'scripts/run-lighthouse.mjs'), 'utf8')
+
+    it('builds before auditing, because the configuration is inlined at build time', () => {
+      expect(manifest.scripts['check:lighthouse']).toContain('scripts/run-lighthouse.mjs')
+      expect(runner).toMatch(/\['run', 'build'\]/)
+      expect(runner.indexOf("'build'")).toBeLessThan(runner.indexOf("'lhci'"))
+    })
+
+    it('fills in Supabase configuration only when the caller supplied none', () => {
+      // Vite gives shell variables precedence over `.env` files, so overriding
+      // unconditionally would audit a different configuration than the one the
+      // developer is working on and silently report it as theirs.
+      expect(runner).toMatch(/if \(environment\[name\]\) continue/)
+    })
+
+    it('points the placeholder at a host that can never resolve', () => {
+      // RFC 2606 reserves `.invalid`. If an audited route ever starts
+      // depending on the network, it must fail here rather than quietly
+      // measure somebody's live project.
+      const url = runner.match(/VITE_SUPABASE_URL: '([^']+)'/)?.[1]
+      expect(url, 'the runner declares no placeholder Supabase URL').toBeDefined()
+      expect(url).toMatch(/\.invalid$/)
+    })
+
+    it('does not re-guard the blank page Lighthouse already refuses to score', () => {
+      // Measured: a build with the variables removed aborts with NO_FCP and
+      // `lhci autorun` exits 1, writing no report. An assertion on top of that
+      // would be guarding a failure that cannot reach it.
+      expect(runner).toMatch(/NO_FCP/)
+      expect(runner).not.toMatch(/dom-size/)
+    })
+  })
+
   it('audits a locally served build rather than a deployed URL', () => {
     // The whole point. A remote host in this list means the numbers describe
     // someone else's infrastructure on the day they were taken.
