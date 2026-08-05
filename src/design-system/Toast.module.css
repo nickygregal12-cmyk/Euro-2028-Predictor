@@ -24,7 +24,7 @@
   flex: 1;
   min-width: 0;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
