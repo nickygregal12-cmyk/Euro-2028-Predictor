@@ -26,7 +26,9 @@ describe('feature baseline freshness', () => {
     expect(baseline).toContain(
       '## Platform backend overlay — not yet compact user features',
     )
-    expect(baseline).toContain('idempotent LMS wipeout restart')
+    // The baseline now describes the whole 107–109 lifecycle rather than the
+    // transition alone, so the assertion holds the phrase both wordings share.
+    expect(baseline).toContain('LMS wipeout restart')
     expect(baseline).toContain('complete Contract 107–109 LMS wipeout restart lifecycle')
     expect(baseline).toContain('Championship phase driver')
     expect(baseline).toContain(

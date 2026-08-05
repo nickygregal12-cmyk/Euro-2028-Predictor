@@ -22,7 +22,10 @@ describe('LMS restart documentation freshness', () => {
       'docs/adr/0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
       'docs/quality/feature-baseline.md',
     ]) {
-      expect(read(path), path).toMatch(/Contract[- ]109|contract 109/)
+      // A range counts. `docs/architecture/programme-plan.md` writes "Contract
+      // 107–109", which names 109 perfectly well; a guard that only accepts the
+      // number standing alone would force the prose to be worse to satisfy it.
+      expect(read(path), path).toMatch(/[Cc]ontracts?[-\s][\d\s–—-]*109/)
     }
 
     expect(read('MASTER-TODO.md')).toContain(
