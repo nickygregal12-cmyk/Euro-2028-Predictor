@@ -40,14 +40,15 @@ describe('ADR implementation-status freshness', () => {
     )
   })
 
-  it('keeps the Contract 107 lifecycle boundary honest', () => {
+  it('keeps the Contract 107/108 lifecycle boundary honest', () => {
     const lms = adr('0013-last-man-standing-season-rules.md')
     const lifecycle = adr(
       '0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
     )
 
-    expect(lms).toContain('The successor intentionally has no windows')
-    expect(lifecycle).toContain('Contract 107 deliberately creates no windows')
+    expect(lms).toContain('Contract 108 now refuses any successor round')
+    expect(lms).toContain('The successor still intentionally has no windows')
+    expect(lifecycle).toContain('neither Contract 107 nor 108 creates that calendar')
     expect(index).toContain(
       'the separate next-eligible-round/window scheduler remains',
     )

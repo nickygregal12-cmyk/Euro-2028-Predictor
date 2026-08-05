@@ -4,7 +4,7 @@
 - **Date:** 29 July 2026
 - **Amended by:** [ADR 0020](0020-football-prediction-hub-product-model.md) — the thirty-minute buffer becomes a property of the Last Man Standing **game** rather than of the competition season, so the Main Predictor in the same competition locks at first kickoff with no buffer. The buffer's value and every other rule below are unchanged. ADR 0020 also records that leaving an LMS competition never permits rejoining that same running competition, consistent with the rolling-entry rejection below.
 
-> **Implementation progress — 5 August 2026.** Presets, setup/state storage, eligibility, deterministic auto-assignment, used-team cycles, selection writes, correction-aware settlement/replay and the idempotent wipeout restart transition are merged through Contract 107. The successor intentionally has no windows until a separate calendar authority selects the next eligible league round; private/managed-entry and player-facing journeys also remain unfinished.
+> **Implementation progress — 5 August 2026.** Presets, setup/state storage, eligibility, deterministic auto-assignment, used-team cycles, selection writes, correction-aware settlement/replay and the idempotent wipeout restart transition are merged through Contract 107. Contract 108 now refuses any successor round that opened or locked before the predecessor completed. The successor still intentionally has no windows until a separate calendar authority selects the next eligible league round; private/managed-entry and player-facing journeys also remain unfinished.
 
 ## Context
 

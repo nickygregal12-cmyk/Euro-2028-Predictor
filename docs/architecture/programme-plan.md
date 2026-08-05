@@ -157,12 +157,12 @@ Delivered backend foundations now include:
 
 - shared competition context, competition-season and game-membership identity;
 - recurring domestic Match Predictor scheduling, lock handling, scoring and standings;
-- season Last Man Standing persistence, settlement and an idempotent wipeout-restart lifecycle transition;
+- season Last Man Standing persistence, settlement, an idempotent wipeout-restart lifecycle transition and the Contract 108 past-window calendar guard;
 - Predictor Championship neutral Cup sources, split-stage persistence, one-parent ancestry and a continuing table derived across both phases;
 - provider-response custody and strict decoding boundaries;
 - repeatable competition instances with explicit live/current resolution and correction-safe rederivation.
 
-These are backend capabilities, not proof that the programme's product gates have passed. The LMS successor created by the restart transition has no windows until a separately reviewed calendar authority schedules the next eligible league round. The Championship still lacks its phase-transition driver, bounded product reads and completed user surface. The first bounded provider rehearsal, season-game surfaces, instrumentation, external-user discovery and cohort evidence also remain open.
+These are backend capabilities, not proof that the programme's product gates have passed. The LMS successor created by the restart transition has no windows until a separately reviewed calendar authority schedules the next eligible league round. Contract 108 protects that gap by refusing rounds which opened or locked before the predecessor completed; it does not select or create the future calendar. The Championship still lacks its phase-transition driver, bounded product reads and completed user surface. The first bounded provider rehearsal, season-game surfaces, instrumentation, external-user discovery and cohort evidence also remain open.
 
 Moving repository, hosted and deployment contract values belong only in [`../quality/current-status.md`](../quality/current-status.md), the machine contract records and operational inventory. This programme plan deliberately does not duplicate them.
 

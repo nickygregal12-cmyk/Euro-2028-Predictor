@@ -194,12 +194,13 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 
 ## Stage F — season Last Man Standing
 
-**Rules, storage, settlement and restart transition delivered; scheduling and surfaces remain.** Eligibility, deterministic C-collation auto-assignment, used-team cycles, lock-time selection writes, correction-aware replay, entrant-state projection and the recurring settlement job are implemented. Contract 107 now converts a qualifying public wipeout into one idempotent linked successor, re-entering the field and copying no selections, cycles, projections or windows.
+**Rules, storage, settlement, restart transition and past-window guard delivered; scheduling and surfaces remain.** Eligibility, deterministic C-collation auto-assignment, used-team cycles, lock-time selection writes, correction-aware replay, entrant-state projection and the recurring settlement job are implemented. Contract 107 converts a qualifying public wipeout into one idempotent linked successor, re-entering the field and copying no selections, cycles, projections or windows. Contract 108 prevents that successor inheriting any round that opened or locked before its predecessor completed, without choosing its future calendar.
 
 - [x] Encode the ADR 0013 rules as pure TypeScript authorities with PostgreSQL parity.
 - [x] Persist LMS setup, selections, used cycles and entrant state with server-side lock and allowance enforcement.
 - [x] Drive `resolve_lms_pick` and `conclude_lms_round` from confirmed results through the correction-aware settlement job.
 - [x] Implement the ADR 0025 `restart_all_reentered` lifecycle as a separate idempotent, advisory-lock-protected successor operation. *(Contract 107; successor intentionally arrives with no windows.)*
+- [x] Refuse successor windows that opened or locked before the predecessor completed, at both publisher and database boundaries. *(Contract 108; safety guard only, not scheduling.)*
 - [ ] Add the separate calendar authority/driver that starts the successor at the next eligible league round and creates its windows exactly once.
 - [ ] Complete public/private registration and repeating-competition user journeys.
 - [ ] Build managed entrants and organiser audit/ownership paths.

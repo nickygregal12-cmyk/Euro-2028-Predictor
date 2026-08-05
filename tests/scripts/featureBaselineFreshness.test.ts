@@ -27,12 +27,13 @@ describe('feature baseline freshness', () => {
       '## Platform backend overlay — not yet compact user features',
     )
     expect(baseline).toContain('idempotent LMS wipeout restart')
+    expect(baseline).toContain('Contract 108 additionally refuses successor rounds')
     expect(baseline).toContain('LMS successor-window scheduler')
     expect(baseline).toContain(
       'Backend presence must not be reclassified as a completed user journey',
     )
     expect(baseline).toContain(
-      'describe the Contract 107 successor as playable before an authoritative next-round/window scheduler has populated it',
+      "treat Contract 108's past-window guard as that scheduler",
     )
   })
 
@@ -47,6 +48,13 @@ describe('feature baseline freshness', () => {
     expect(baseline).not.toContain(
       'Turnstile and recovery delivery are implemented',
     )
+  })
+
+  it('keeps reminder delivery separate from password-recovery SMTP ownership', () => {
+    expect(baseline).toContain(
+      'no scheduled one-hour in-app/email reminder authority exists yet',
+    )
+    expect(baseline).not.toContain('delivery awaits Auth/SMTP ownership')
   })
 
   it('keeps the stable compact identifier contract unchanged', () => {

@@ -21,7 +21,7 @@ Convenience summary for coding-agent sessions. [`AGENTS.md`](AGENTS.md), [`docs/
 
 ## Current implementation boundary
 
-The shared competition context/lock foundation and its Home, Matches, Match Centre and entry-lock consumers are delivered. The repository also contains the competition-season/game catalogue and backend authorities for season Match Predictor, season Last Man Standing and Predictor Championship, including recurring jobs, scoring/settlement, standings, repeatable competition instances, the idempotent LMS wipeout restart transition and split persistence.
+The shared competition context/lock foundation and its Home, Matches, Match Centre and entry-lock consumers are delivered. The repository also contains the competition-season/game catalogue and backend authorities for season Match Predictor, season Last Man Standing and Predictor Championship, including recurring jobs, scoring/settlement, standings, repeatable competition instances, the idempotent LMS wipeout restart transition, the Contract 108 past-window calendar guard and split persistence.
 
 Do not mistake backend presence for a completed product. The remaining work is governed by the roadmap and includes the LMS successor-window scheduler, Championship phase driver, bounded browser reads and surfaces, provider rehearsal, instrumentation/cohort evidence and launch operations. Stage C2 ownership/erasure work remains blocked by issue #272.
 

@@ -4,7 +4,7 @@
 - **Date:** 4 August 2026
 - **Amends:** [ADR 0013](0013-last-man-standing-season-rules.md) (supplies the lifecycle its `restart_all_reentered` endgame implies but never described), [ADR 0014](0014-predictor-cup-season-formats.md) (supplies the split's persisted shape). Clarifies the scope of the post-lock reveal item in Appendix D.2 of [`../design/hub-architecture-and-modernisation-plan.md`](../design/hub-architecture-and-modernisation-plan.md) against contract 95. Every other rule in those records is unchanged.
 
-> **Implementation progress — 5 August 2026.** Contracts 99–101 close the invalid-outcome CHECK, REL-001 and Euro post-lock reveal scope; Contracts 102/105 persist and derive the split; Contracts 103–107 supply repeatable instances, caller resolution, correction-safe terminal rederivation and the idempotent LMS successor transition. The one remaining lifecycle step is the separate calendar/window driver that starts the successor at the next eligible league round; Contract 107 deliberately creates no windows.
+> **Implementation progress — 5 August 2026.** Contracts 99–101 close the invalid-outcome CHECK, REL-001 and Euro post-lock reveal scope; Contracts 102/105 persist and derive the split; Contracts 103–107 supply repeatable instances, caller resolution, correction-safe terminal rederivation and the idempotent LMS successor transition. Contract 108 refuses any successor round that opened or locked before its predecessor completed, protecting the deliberate no-window state. The one remaining lifecycle step is the separate calendar/window driver that starts the successor at the next eligible league round; neither Contract 107 nor 108 creates that calendar.
 
 ## Context
 
