@@ -46,8 +46,28 @@ select is(
 -- one non-entrant.
 -- ---------------------------------------------------------------------------
 
+-- A season of this suite's OWN, rather than the shared seeded one.
+--
+-- The first version of this file inserted a Last Man Standing competition on
+-- the seeded league season and CI refused it: that season already has a live
+-- public LMS competition, and contract 103's partial unique index
+-- `bonus_competitions_live_public_game_key` allows exactly one per season game.
+-- The index was right and the seed was wrong. Reusing the existing competition
+-- instead would have made the assertions non-deterministic — its windows decide
+-- which round "the earliest still open to a pick" resolves to — so the probe
+-- gets a season nobody else is using. The competition_id is borrowed from the
+-- seeded season because `tournaments` is unique on (competition_id, season_key)
+-- and a fresh season_key is all that is needed to sit beside it.
+insert into public.tournaments (name, year, competition_id, season_key, kind, display_timezone, status)
+select 'C116 LMS Probe Season', 2028, t.competition_id, 'c116-probe', 'league_season',
+       t.display_timezone, 'active'
+  from public.tournaments t
+ where t.kind = 'league_season'
+ order by t.name
+ limit 1;
+
 create temporary table lms_probe as
-select (select id from public.tournaments where kind = 'league_season' order by name limit 1) as season_id;
+select (select id from public.tournaments where season_key = 'c116-probe') as season_id;
 
 insert into public.competition_rounds (tournament_id, round_key, ordinal, kind, label)
 select season_id, 'C116-R' || n, 900 + n, 'league_matchweek', 'LMS probe R' || n
@@ -224,12 +244,12 @@ select is(
   1,
   'the pick consumes a club in the current cycle');
 
--- Settle window 1 in the past so the outcome path is exercised on a real
--- result: the player picked Alpha, who won.
-insert into public.bonus_lms_selections (competition_id, user_id, window_id, team_id)
-values (current_setting('test.c116_competition')::uuid, md5('c116-player')::uuid,
-        current_setting('test.c116_w1')::uuid, current_setting('test.c116_alpha')::uuid);
-
+-- The outcome authority is exercised DIRECTLY, with no selection row seeded for
+-- the locked window. An earlier version inserted one, which contract 63's
+-- `assert_bonus_lms_selection_shape` would have refused outright: window 1
+-- locked seven days ago and the trigger requires an open window. Silencing the
+-- trigger to seed it would have proven nothing here — the function takes a team
+-- id, not a selection — so the row is simply not needed.
 select is(
   predictor_internal.season_lms_pick_outcome(
     (select season_id from lms_probe),
