@@ -231,23 +231,37 @@ const SEASON_RELATIONS = [
   'table:season_matchweek_scores',
 ]
 
+/**
+ * Contract 112. The provider identity map: which of our clubs, rounds and
+ * seasons a provider's identifiers mean.
+ *
+ * `public` rather than `predictor_internal`, unlike the contract-96 custody
+ * tables, because its foreign keys are to `tournaments`, `competition_rounds`
+ * and `teams` and a cross-schema key to three public tables buys nothing. The
+ * exposure that matters is settled the same way regardless: row level security
+ * is enabled with no policy, every browser and service grant is revoked, and
+ * only definer functions read it.
+ */
+const PROVIDER_RELATIONS = ['table:provider_entity_map']
+
 const reviewedRelations = [
   ...new Set([
     ...currentManifestRelations,
     ...c1ManifestRelations,
     ...C1B_RELATIONS,
     ...SEASON_RELATIONS,
+    ...PROVIDER_RELATIONS,
   ]),
 ].sort()
 
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
   it('keeps parser positive controls at the contract-81 schema boundary', () => {
-    // Raised 47 → 49 by contract 81's two season card-status relations, and
-    // 49 → 50 by contract 90's season score store. This count is a positive
-    // control on the migration parser: if it silently stopped recognising
-    // `create table`, every disposition below would be vacuously satisfied by
-    // an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(50)
+    // Raised 47 → 49 by contract 81's two season card-status relations,
+    // 49 → 50 by contract 90's season score store, and 50 → 51 by contract
+    // 112's provider identity map. This count is a positive control on the
+    // migration parser: if it silently stopped recognising `create table`,
+    // every disposition below would be vacuously satisfied by an empty set.
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(51)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

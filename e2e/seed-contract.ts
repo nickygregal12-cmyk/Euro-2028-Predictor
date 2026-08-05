@@ -411,8 +411,26 @@
  * whose tournament is not `kind = 'league_season'`, and Euro 2028 is
  * `kind = 'tournament'`. It also has no caller, so nothing invokes it on a
  * fresh seed.
+ *
+ * Contract 112 adds one public table, four `predictor_internal` functions and
+ * one trigger. The browser-visible surface comparison against contract 111 is
+ * 228 rows before and 229 after, and the single added row is the trigger
+ * binding itself — **no grant, no policy and no routine privilege is added for
+ * `anon`, `authenticated` or `service_role`.** The table has row level security
+ * enabled with no policy and every browser and service grant revoked, so an
+ * authenticated session cannot see it at all.
+ *
+ * That is the shape that matters for this guard, whose failure mode is a
+ * migration introducing a gate on an authenticated read the seed does not
+ * satisfy. Contract 112 introduces no gate: it modifies no existing relation,
+ * policy, grant or trigger, and the only object a seeded user could encounter
+ * is one they have no privilege to reach and no reason to. The trigger fires
+ * on writes to the new table alone.
+ *
+ * The map also starts empty and has no caller, so a fresh seed neither
+ * populates it nor consults it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 111
+export const SEED_REVIEWED_AT_CONTRACT = 112
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

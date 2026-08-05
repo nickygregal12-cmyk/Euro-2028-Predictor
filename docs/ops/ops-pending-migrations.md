@@ -4,7 +4,9 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 5 August 2026
 
-The repository and development are both at **contract 111**.
+The repository is at **contract 112**; development is at **111**. **One migration is pending** — `20260805080000_provider_entity_map.sql` — which is the first time in this sequence the two have not been level. Nothing is wrong: the contract is merged and not yet rolled out, and the ordinary fast-lane rollout closes it.
+
+The pending migration is additive and creates one empty table plus four readers. It changes no existing object, grants nothing to any browser or service role, and has no caller, so applying it is behaviour-neutral on development.
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
