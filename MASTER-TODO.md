@@ -167,9 +167,11 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 
 **Custody foundation delivered; live rehearsal remains.** The repository now has strict provider decoders, a server-only request boundary, raw-response archive-before-processing custody and append-only processing evidence. Provider data remains provisional and cannot write official competition truth.
 
+**The Edge Function is deployed to development** (`provider-poll` version 1, `ACTIVE`, 5 August 2026, owner-authorised; [`docs/ops/ops-provider-poll-deployment.md`](docs/ops/ops-provider-poll-deployment.md)). That is a smaller step than it sounds: no provider has been contacted, no credential has been spent, nothing has been archived, and the named caller key has not been observed to resolve. All three providers are supported simultaneously — `provider` is a per-request field, not a deployment-time choice — so the outstanding question is which provider's terms and coverage are confirmed, not which one is wired.
+
 - [ ] Confirm provider terms, coverage, timezone and exceptional-state mappings with dated evidence.
 - [x] Implement the strict provider-response custody boundary behind one internal model.
-- [ ] Configure the approved development credential and execute one bounded non-production request.
+- [ ] Configure the approved development credential and execute one bounded non-production request. *(Function deployed; credential resolution unproven and no request made.)*
 - [ ] Verify the exact raw response is archived before decode and every processing attempt is append-only.
 - [ ] Keep ingestion provisional, replay-safe and unable to write official fixtures, results, locks, scores, totals, ranks or standings.
 - [ ] Audit kickoff, round and result changes.
