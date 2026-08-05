@@ -131,8 +131,16 @@ select is(
   'an unplayed season fixture maps to scheduled');
 
 -- The mapping must not settle a window on a fixture that did not finish.
+--
+-- The scores are cleared with the status, because `season_fixtures` enforces
+-- the biconditional `(status = 'played') = (scores are not null)` — a fixture
+-- that is not played CANNOT carry a score at all. The first version of this
+-- probe set the status alone and CI refused the row, which is worth recording:
+-- the schema already makes "postponed but with a scoreline" unrepresentable, so
+-- the assertion below is about the CASE keying on 'played' specifically rather
+-- than about a state the database would ever hold.
 update public.season_fixtures
-   set status = 'postponed'
+   set status = 'postponed', home_score = null, away_score = null
  where tournament_id = (select season_id from facts_probe)
    and status = 'played';
 
@@ -147,7 +155,7 @@ select is(
   'contract fixes');
 
 update public.season_fixtures
-   set status = 'played'
+   set status = 'played', home_score = 1::smallint, away_score = 1::smallint
  where tournament_id = (select season_id from facts_probe)
    and status = 'postponed';
 
