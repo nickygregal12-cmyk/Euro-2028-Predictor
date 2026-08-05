@@ -387,8 +387,20 @@
  * reports at all — the season competitions it publishes carry
  * `availability_status = 'inactive'` with no entrants, rounds or fixtures, so
  * on a fresh seed the job's own selection finds nothing to act on.
+ *
+ * Contract 110 adds one `predictor_internal` function and nothing else — no
+ * relation, policy, trigger, grant or scheduled job. The browser-visible
+ * surface comparison against contract 109 is 228 rows on both sides,
+ * identical. The function is revoked from `public`, `anon`, `authenticated`
+ * and `service_role`, and it has no caller: it is the prerequisite the
+ * Championship phase driver will use, landed ahead of it.
+ *
+ * It writes when called, but a seeded Euro user is out of its reach twice
+ * over: it refuses any competition that is not `predictor_cup`, and then any
+ * whose tournament is not `kind = 'league_season'`. Euro 2028 is
+ * `kind = 'tournament'`, so the refusal is explicit rather than incidental.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 109
+export const SEED_REVIEWED_AT_CONTRACT = 110
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
