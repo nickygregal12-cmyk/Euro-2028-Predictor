@@ -82,6 +82,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `FUNC-003` | Bonus Games rendered as absent when reference data was empty | **Resolved in production** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open; aggregate minimum cohort is implemented, broader invite/abuse review remains** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
+| `DATA-009` | Contract 104 gated the tournament-path Bonus Games recompute functions (`recompute_ko_predictor_for_match`, `recompute_lms_for_tournament`) on `completed_at is null`, silently no-op-ing a post-completion correction instead of deriving it as the season LMS settlement job (contract 89) deliberately does for the identical problem | **Open; latent.** Verified no writer currently sets `completed_at` on a tournament-kind `ko_predictor`/`last_man_standing` row, so unreachable today. Resolve explicitly, with pgTAP evidence, before any future writer (most plausibly a generalised LMS restart driver) can complete one. See `docs/quality/investigations/2026-08-05-tournament-bonus-recompute-completion-gate.md`. |
 | `DOC-001` | Documentation authority can drift | **Correction pending governance PR merge.** |
 
 ## Low
