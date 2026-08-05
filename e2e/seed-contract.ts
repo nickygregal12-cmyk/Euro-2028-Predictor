@@ -370,8 +370,25 @@
  * only writers are the seed path and that script. Both publish first instances,
  * which the guard exempts by construction: it fires only on a competition that
  * names a predecessor. The seeded Euro competitions name none.
+ *
+ * Contract 109 adds two `predictor_internal` functions, one `public` job and a
+ * pg_cron entry, and changes the browser-visible surface not at all: compared
+ * against contract 108 it is 228 rows on both sides, identical line for line.
+ * Every new function is revoked from `public`, `anon`, `authenticated` and
+ * `service_role`, the `public.process_due_lms_restarts` job included — it is
+ * reachable only by the scheduler, exactly as contract 89's settlement job is.
+ *
+ * It does write, and this is the first of these additions that acts on its own
+ * schedule: the job restarts a season Last Man Standing competition and
+ * schedules its successor. Nothing a seeded Euro user sees can move, because
+ * the job selects `tournaments.kind = 'league_season'` and Euro 2028 is
+ * `kind = 'tournament'`. It also requires the competition's latest settlement
+ * report to conclude `restart_all_reentered`, and the seed writes no settlement
+ * reports at all — the season competitions it publishes carry
+ * `availability_status = 'inactive'` with no entrants, rounds or fixtures, so
+ * on a fresh seed the job's own selection finds nothing to act on.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 108
+export const SEED_REVIEWED_AT_CONTRACT = 109
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
