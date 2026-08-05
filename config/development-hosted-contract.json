@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 108,
-  "latestMigrationVersion": "20260805040000",
-  "latestMigrationName": "successor_window_calendar_guard",
-  "verifiedAt": "2026-08-05T09:26:00.000Z",
+  "requiredMigrationCount": 109,
+  "latestMigrationVersion": "20260805050000",
+  "latestMigrationName": "lms_successor_window_scheduler",
+  "verifiedAt": "2026-08-05T09:59:03.678Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30993039183 on 821fec8, completed successfully; contract 108 applied. Corroborated read-only: the ledger holds 108 rows through 20260805040000. predictor_internal.assert_successor_window_after_predecessor is security definer with search_path pinned to the empty string, is granted to none of anon, authenticated, service_role or PUBLIC, and its DEPLOYED BODY IS BYTE-IDENTICAL to the committed migration — md5 f2ec4b3ca1341f814bdf5a9be1686296 over 1484 characters on both sides. The trigger is bound to public.bonus_competition_windows and is non-internal, so it judges every writer rather than one script. No browser or service role holds ANY grant on that table, so the trigger cannot refuse a write a player could have made. Zero successors exist, so nothing hosted is currently subject to the rule and the change is behaviour-neutral today.",
-    "workflowRunId": 30993039183,
-    "repositoryHead": "821fec83678d4d2e89a6c293b6920450d28af7dc"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 30995378830,
+    "repositoryHead": "41fa111032a165102e6dd5eb7b7083d1293b7f7c"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
