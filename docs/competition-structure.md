@@ -107,7 +107,7 @@ The former future design in which Bonus Games lived at `More → Games` is retir
 
 ## 9. Implementation relationship
 
-The Euro baseline already implements Original Predictor, KO Predictor, tournament LMS and tournament Predictor Cup machinery. Season Match Predictor, season LMS, season Championship and Hub persistence/surfaces land through the roadmap sequence.
+The Euro baseline implements Original Predictor, KO Predictor, tournament LMS and tournament Predictor Cup machinery. The reusable competition-season catalogue and substantial backend authorities for season Match Predictor, season LMS and Predictor Championship are also present, including recurring jobs, scoring/settlement, standings, repeatable instances and split persistence. Their remaining lifecycle/phase drivers, bounded browser reads and product surfaces still land through the roadmap sequence; backend presence is not a completed user journey.
 
 Physical compatibility objects such as `entries`, `bonus_competitions`, `bonus_competition_entrants`, `bonus_score_events` and `bonus_cup_*` may be extended safely rather than renamed for presentation. Current code/tests and verified hosted evidence decide what is live.
 
