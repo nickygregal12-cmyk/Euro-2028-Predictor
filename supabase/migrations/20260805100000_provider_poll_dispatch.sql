@@ -93,17 +93,42 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------------
--- Locking the outbound capability away from everything that is not this job.
+-- The outbound capability, and the limit of what this contract can lock down.
 --
--- An extension's functions are executable by PUBLIC by default, and `anon`,
--- `authenticated` and `service_role` all inherit that. Leaving it would mean
--- any path that can execute SQL as one of those roles can make the database
--- fetch an arbitrary URL, which is server-side request forgery with the
--- database's own network position.
+-- An extension's functions are executable by PUBLIC by default, and Supabase
+-- goes further: its platform image grants the `net` schema to `anon`,
+-- `authenticated` and `service_role` outright. Left alone that means any path
+-- able to execute SQL as one of those roles can make the database fetch an
+-- arbitrary URL — server-side request forgery with the database's own network
+-- position.
 --
--- PostgREST does not expose the `net` schema, so this is defence in depth
--- rather than a hole being closed — but "not currently exposed" is a fact about
--- today's configuration, and the revoke is a fact about the grant.
+-- The first version of this migration revoked all three and asserted the
+-- result. CI refused it, and the refusal is the useful part of this comment:
+--
+--   WARNING (01006): no privileges could be revoked for "net"
+--   WARNING (01006): no privileges could be revoked for "http_post"
+--   ERROR: a browser or service role can still execute a net function
+--
+-- PostgreSQL warns rather than errors when a non-owner revokes, so the revoke
+-- did NOTHING and only the assertion after it noticed. Measured on hosted
+-- development rather than inferred: `postgres` is not a superuser and is not a
+-- member of `supabase_admin`, so where the platform installed pg_net this role
+-- cannot change its grants at all.
+--
+-- So the revoke below is best-effort and honestly labelled. It is the control
+-- on a project where THIS migration installed the extension and this role owns
+-- it; it is a no-op with warnings where the platform owns it. What follows is
+-- not an assertion that it worked — that would be the same false claim in a
+-- different place — but a measurement of the residual, raised as a notice on
+-- every apply, plus a hard assertion of the boundary this contract genuinely
+-- controls.
+--
+-- That boundary is reachability, not the grant. `anon`, `authenticated` and
+-- `service_role` reach this database through PostgREST, which exposes `public`
+-- and `graphql_public` only — never `net`. So the way a browser role could
+-- actually reach pg_net is through a function in an exposed schema that it may
+-- execute and whose body calls out. There is none, and the check below fails
+-- the migration if one ever appears.
 -- ---------------------------------------------------------------------------
 
 revoke all on schema net from public, anon, authenticated, service_role;
@@ -111,10 +136,12 @@ revoke all on all functions in schema net from public, anon, authenticated, serv
 revoke all on all tables in schema net from public, anon, authenticated, service_role;
 
 do $$
+declare
+  v_residual text;
 begin
-  -- Measured both ways. The revoke above is only correct if it left the role
-  -- that owns the dispatcher able to call out; a revoke that locked out the job
-  -- as well would be discovered at the first firing, not here.
+  -- The revoke is only correct if it left the role that owns the dispatcher
+  -- able to call out. A revoke that locked out the job as well would otherwise
+  -- be discovered at the first firing rather than here.
   if not pg_catalog.has_function_privilege(
        current_user, 'net.http_post(text, jsonb, jsonb, jsonb, integer)', 'execute') then
     raise exception
@@ -122,23 +149,33 @@ begin
       current_user;
   end if;
 
+  select string_agg(distinct role_name, ', ' order by role_name)
+    into v_residual
+    from unnest(array['anon', 'authenticated', 'service_role']) as role_name
+   where pg_catalog.has_schema_privilege(role_name, 'net', 'usage');
+
+  if v_residual is not null then
+    raise notice
+      'pg_net is platform-owned here, so its grants survive this migration: % retain access to the net schema. They cannot reach it, because PostgREST exposes public and graphql_public only and no browser-reachable function calls out — which the next check enforces.',
+      v_residual;
+  end if;
+
+  -- The boundary this contract does control. A function in an exposed schema
+  -- that a browser role may execute and whose body reaches `net` is the actual
+  -- path from a session to an outbound request, and it is worse when the
+  -- function is security definer, so both kinds are in scope.
   if exists (
     select 1
       from pg_catalog.pg_proc proc
       join pg_catalog.pg_namespace ns on ns.oid = proc.pronamespace
      cross join unnest(array['anon', 'authenticated', 'service_role']) as role_name
-     where ns.nspname = 'net'
+     where ns.nspname in ('public', 'graphql_public')
+       and proc.prosrc is not null
+       and proc.prosrc ~ '\mnet\.'
        and pg_catalog.has_function_privilege(role_name, proc.oid, 'execute')
   ) then
-    raise exception 'a browser or service role can still execute a net function';
-  end if;
-
-  if exists (
-    select 1
-      from unnest(array['anon', 'authenticated', 'service_role']) as role_name
-     where pg_catalog.has_schema_privilege(role_name, 'net', 'usage')
-  ) then
-    raise exception 'a browser or service role can still reach the net schema';
+    raise exception
+      'a browser-reachable function in an exposed schema calls into net, which is a path from a session to an arbitrary outbound request';
   end if;
 end;
 $$;

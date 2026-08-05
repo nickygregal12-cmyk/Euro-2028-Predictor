@@ -448,18 +448,37 @@
  *
  * Contract 114 installs `pg_net`, adds two tables — one `public`, one
  * `predictor_internal` — four `predictor_internal` functions, one `public` job
- * function, one trigger and one `pg_cron` schedule. The browser-visible surface
- * comparison against contract 113 is 230 rows before and 231 after, and the
- * single added row is again the trigger binding alone.
+ * function, one trigger and one `pg_cron` schedule. This is the first contract
+ * in the run whose surface comparison is NOT "one trigger and nothing else",
+ * and the difference is worth stating precisely rather than rounding down.
+ *
+ * Where the platform owns pg_net — which is the case on the CI image and the
+ * case to plan for on hosted — the comparison against contract 113 is 230 rows
+ * before and **234** after. One of the four is the `updated_at` trigger. The
+ * other three are `routine|anon|net.http_post`,
+ * `routine|authenticated|net.http_post` and `routine|service_role|net.http_post`
+ * — pg_net's own grants, shipped by Supabase's image, which this migration
+ * attempts to revoke and cannot. On a project where this migration installs the
+ * extension and owns it, the revoke succeeds and the count is 231.
  *
  * Installing an extension is the part worth checking rather than assuming,
  * because an extension's functions are executable by PUBLIC by default and
- * `anon`, `authenticated` and `service_role` all inherit that. Left alone it
- * would hand every authenticated session the ability to make the database fetch
- * an arbitrary URL. The migration revokes the whole `net` schema from those
- * three roles and asserts the result in its own final block; the surface
- * comparison above is the independent measurement of the same thing, and shows
- * no routine privilege appearing for any of them.
+ * Supabase's image grants the `net` schema to `anon`, `authenticated` and
+ * `service_role` outright. The migration attempts to revoke that and cannot
+ * where the platform owns pg_net — `postgres` is neither superuser nor a member
+ * of `supabase_admin` — so it reports the residual and enforces the boundary it
+ * does control: no browser-reachable function in an exposed schema may call
+ * into `net`, which is the actual path from a session to an outbound request.
+ *
+ * That distinction matters for THIS guard specifically, and it is the reason
+ * the three extra rows do not change its answer. The surviving grant is on
+ * `net.http_post`, not on anything a seeded user's session reads, and browser
+ * roles reach this database through PostgREST, which exposes `public` and
+ * `graphql_public` only — `net` is not among them, so the grant is not callable
+ * from a session. The migration additionally forbids any browser-reachable
+ * function in an exposed schema from calling into `net`, which is the path that
+ * would make the grant matter. A seeded user therefore gains no capability and
+ * meets no new gate.
  *
  * A seeded user meets no new gate. The poll target list starts empty, the job
  * reports itself unconfigured until two vault secrets exist, and nothing on any

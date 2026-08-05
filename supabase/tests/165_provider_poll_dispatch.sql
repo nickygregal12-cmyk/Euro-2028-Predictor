@@ -63,26 +63,40 @@ select is(
   'and all five are security definer with a pinned search path'
 );
 
--- The point of the whole revoke block. If a browser role can execute
--- net.http_post, an authenticated session can make the database fetch any URL
--- it likes, using the database's network position.
+-- The boundary that matters, and the one this contract can actually hold.
+--
+-- pg_net's own grants belong to whoever owns the extension. Where Supabase's
+-- image installed it, `postgres` is neither superuser nor a member of
+-- `supabase_admin`, so the migration's revoke is a no-op with a warning and
+-- `anon`, `authenticated` and `service_role` keep the platform's grant on the
+-- `net` schema. Asserting otherwise here would be asserting something this
+-- repository does not control — the first version of this suite did, and CI
+-- refused the migration rather than the test, which is how the limit was found.
+--
+-- Those roles reach this database through PostgREST, which exposes `public` and
+-- `graphql_public` only. So the real path from a session to an outbound request
+-- is a function in an exposed schema that a browser role may execute and whose
+-- body calls into `net`. That is the thing to forbid, and it is forbidden.
 select is(
   (select count(*)::integer
      from pg_proc proc
      join pg_namespace ns on ns.oid = proc.pronamespace
     cross join unnest(array['anon', 'authenticated', 'service_role']) as role_name
-    where ns.nspname = 'net'
+    where ns.nspname in ('public', 'graphql_public')
+      and proc.prosrc is not null
+      and proc.prosrc ~ '\mnet\.'
       and has_function_privilege(role_name, proc.oid, 'execute')),
   0,
-  'no browser or service role may execute any pg_net function — the database''s outbound reach is not a browser capability'
+  'no browser-reachable function in an exposed schema calls into net, so no session has a path to an arbitrary outbound request through the database'
 );
 
+-- The dispatcher's own reach must survive whatever the revoke did or did not
+-- do. A migration that locked the job out of the capability it exists to use
+-- would otherwise fail at its first firing rather than at rollout.
 select is(
-  (select count(*)::integer
-     from unnest(array['anon', 'authenticated', 'service_role']) as role_name
-    where has_schema_privilege(role_name, 'net', 'usage')),
-  0,
-  'and none of them may even reach the net schema'
+  has_function_privilege(current_user, 'net.http_post(text, jsonb, jsonb, jsonb, integer)', 'execute'),
+  true,
+  'and the role that owns the dispatcher can still call out'
 );
 
 select is(
