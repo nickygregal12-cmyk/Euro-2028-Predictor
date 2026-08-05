@@ -319,8 +319,21 @@
  * the derived split-table read. The trigger fires only on Cup membership writes;
  * deterministic global setup creates none, and every function remains revoked
  * from browser and service roles. Contract 106 supplies the restart driver.
+ *
+ * Contract 106 redefines two `predictor_internal` functions and does nothing
+ * else — literally two `create or replace function` statements, no grant,
+ * relation, policy or trigger. It swaps one resolver call in each so a result
+ * corrected after a competition completes still rederives (DATA-009).
+ *
+ * Verified rather than assumed. The migration was applied to a database already
+ * at contract 105 and the browser-visible surface compared before and after —
+ * every grant held by anon, authenticated or service_role, every RLS policy and
+ * every non-internal trigger, 227 rows. The snapshots are identical. Both
+ * functions were already revoked from every browser role and remain so, and
+ * neither is reachable from a seeded user in the first place: they are internal
+ * rederive legs called by the result-confirmation path, not RPCs.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 105
+export const SEED_REVIEWED_AT_CONTRACT = 106
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
