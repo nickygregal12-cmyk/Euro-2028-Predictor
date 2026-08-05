@@ -1,0 +1,53 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.tsx",
+    "index.html",
+    "tests/**/*.test.{ts,tsx}",
+    "e2e/**/*.spec.ts",
+    "e2e/global-setup.ts",
+    "production-smoke/**/*.spec.ts",
+    "playwright.config.ts",
+    "playwright.auth.config.ts",
+    "playwright.production.config.ts",
+    "vite.config.ts",
+    "scripts/**/*.{mjs,js,ts}",
+    "supabase/functions/*/index.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "tests/**/*.{ts,tsx}",
+    "e2e/**/*.ts",
+    "production-smoke/**/*.ts",
+    "scripts/**/*.{mjs,js,ts}",
+    "supabase/functions/**/*.ts",
+    "*.config.ts"
+  ],
+  "ignore": [
+    "dist/**",
+    "supabase/migrations/**",
+    "supabase/tests/**"
+  ],
+  "ignoreDependencies": [
+    "@fontsource/inter",
+    "@fontsource/space-grotesk"
+  ],
+  "ignoreBinaries": [
+    "supabase",
+    "awk"
+  ],
+  "vite": {
+    "config": ["vite.config.ts"]
+  },
+  "vitest": {
+    "config": ["vite.config.ts"],
+    "entry": ["tests/setup.ts"]
+  },
+  "playwright": {
+    "config": [
+      "playwright.config.ts",
+      "playwright.auth.config.ts",
+      "playwright.production.config.ts"
+    ]
+  }
+}
