@@ -269,10 +269,14 @@ composite foreign keys. That is the silent failure it was built against, arrivin
 Scottish season is **33 rounds with the five post-split rounds carrying no fixtures at all**, because the split is not
 yet known — the source agreeing with the owner's 33 + 5 correction.
 
-**One inconsistency this leaves, recorded rather than discovered later.** `scripts/seed-dev/seed-league-seasons.ts`
-still generates the invented clubs, so re-running it would overwrite real football and cascade away every map row. It
-stays committed because CI and Browser E2E need a deterministic offline seed, and it needs a guard before it is safe
-to keep beside real data.
+**The synthetic seed and real data now coexist, and the boundary is enforced rather than remembered.**
+`scripts/seed-dev/seed-league-seasons.ts` stays committed because CI and Browser E2E need a deterministic calendar
+that never calls a provider. It was first described here as able to overwrite real football; **that was an
+overstatement and is corrected**. It already refused any season holding fixtures, deletes nothing anywhere, and
+inserts clubs with `on conflict do nothing`, so a re-run today is a no-op. The genuine residual was narrower — had
+fixtures been cleared while the clubs and their map rows survived, twenty invented clubs would have landed *alongside*
+the twenty real ones, since no invented name collides with a real one. It now refuses any season holding
+provider-mapped clubs, checked *before* the fixture guard, with the ordering itself pinned by test.
 
 **The target was then disabled, on owner direction, after exactly one API call.** Hourly polling during development spends quota on a fixture list nobody consumes. A weekly cadence is not expressible — the CHECK caps at 1440 minutes, because a target polled less often than daily is a manual refresh rather than a poll — so the target is disabled rather than given a schedule it does not keep. Verified: `due: 0`, `dispatched: 0`, one dispatch row in total. The row is kept as the reference for a correct target, and re-enabling is one statement.
 

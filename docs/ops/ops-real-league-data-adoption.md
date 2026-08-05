@@ -70,17 +70,28 @@ than missing.
 That is the format the owner corrected on 5 August, against a first attempt that
 built a 22-round double round-robin. The provider agrees with the correction.
 
-## Known inconsistency this leaves behind
+## The seed boundary, and a correction to how it was first described
 
-`scripts/seed-dev/seed-league-seasons.ts` still generates the **invented**
-clubs and a synthetic round-robin. Development no longer matches it. Re-running
-that seed would overwrite real football with invented football and orphan every
-`provider_entity_map` row by cascade.
+`scripts/seed-dev/seed-league-seasons.ts` still generates the **invented** clubs
+and a synthetic round-robin, and stays committed: CI and Browser E2E need a
+deterministic calendar that never calls a provider.
 
-It is deliberately left committed rather than deleted, because CI and Browser
-E2E need a deterministic offline seed and must not depend on a provider. But it
-must not be run against development again as it stands. Closing that properly is
-a repository change, not an operational one, and is tracked in MASTER-TODO.
+This section first said re-running it would overwrite real football and cascade
+away every `provider_entity_map` row. **That was wrong.** Read properly, the
+seed already refused any season holding fixtures, deletes nothing anywhere, and
+inserts clubs with `on conflict (tournament_id, name) do nothing`. Re-running it
+against development today is a no-op that prints a notice.
+
+The genuine residual was narrower. Had fixtures been cleared while the clubs and
+their map rows survived, the fixture guard would not have fired and twenty
+invented clubs would have landed **alongside** the twenty real ones — no
+invented name collides with a real one, so nothing would have conflicted, and
+the generator would then have built a calendar over forty clubs.
+
+The seed now refuses any season holding provider-mapped clubs, checked **before**
+the fixture guard because the two protect against different things. Reached
+second, it would be skipped in exactly the case it exists for. The ordering is
+pinned by test, as is the continued absence of any delete.
 
 ## What this is still not
 
