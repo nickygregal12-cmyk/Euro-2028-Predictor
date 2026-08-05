@@ -18,6 +18,9 @@ const currentStatus = readFileSync(
 const deploymentContract = JSON.parse(
   readFileSync(resolve(process.cwd(), 'config/deployment-contract.json'), 'utf8'),
 ) as { contractVersion: number; requiredMigrationCount: number }
+const developmentContract = JSON.parse(
+  readFileSync(resolve(process.cwd(), 'config/development-hosted-contract.json'), 'utf8'),
+) as { requiredMigrationCount: number }
 const normalizedMigration = migration.toLowerCase()
 
 const operationalTargets = [
@@ -103,7 +106,19 @@ describe('contract 104 competition-instance caller boundary', () => {
     expect(currentStatus).toContain(
       `**${deploymentContract.contractVersion}** — ${deploymentContract.requiredMigrationCount} canonical migrations`,
     )
-    expect(agents).toContain('Development Supabase is hosted at **103**')
-    expect(currentStatus).toContain('Development Supabase is hosted at **103**')
+    // Derived for the same reason the repository contract above is, one axis
+    // over. These two lines held the literal `103`, which was correct on the
+    // day it was written and would have gone red on the next development
+    // rollout — the identical shape to the `contract 104` literal that failed
+    // the first contract to advance past it. `config/development-hosted-
+    // contract.json` is the machine record the rollout automation already
+    // updates, so reading it keeps the assertion true across rollouts instead
+    // of pinning the guard to one moment in the environment's history.
+    expect(agents).toContain(
+      `Development Supabase is hosted at **${developmentContract.requiredMigrationCount}**`,
+    )
+    expect(currentStatus).toContain(
+      `Development Supabase is hosted at **${developmentContract.requiredMigrationCount}**`,
+    )
   })
 })
