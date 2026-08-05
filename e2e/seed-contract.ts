@@ -350,8 +350,28 @@
  * settlement job still only derives and reports — and it refuses any competition
  * that is not Last Man Standing. A seeded Euro user's reads are unchanged
  * because no restart can occur without a caller, and there is none.
+ *
+ * Contract 108 is the first of these recent additions that changes the
+ * browser-visible surface at all, and the honest statement is that it changes
+ * it by exactly one row. The before-and-after comparison went from 227 rows to
+ * 228, and the single added line is
+ *
+ *   trigger|public.bonus_competition_windows|assert_successor_window_after_predecessor
+ *
+ * Every grant held by anon, authenticated or service_role is identical, every
+ * RLS policy is identical, and no other trigger moved. The guard function
+ * itself is revoked from every browser and service role.
+ *
+ * A trigger on a public table is worth pausing on, because it can refuse a
+ * write a seeded user was previously able to make. This one cannot reach them.
+ * No browser role holds insert or update on `bonus_competition_windows` at all
+ * — rounds are operational reference data, published by
+ * `scripts/bonus-games/publish-catalogue.sql` and never by a player — so the
+ * only writers are the seed path and that script. Both publish first instances,
+ * which the guard exempts by construction: it fires only on a competition that
+ * names a predecessor. The seeded Euro competitions name none.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 107
+export const SEED_REVIEWED_AT_CONTRACT = 108
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
