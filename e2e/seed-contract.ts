@@ -399,8 +399,20 @@
  * over: it refuses any competition that is not `predictor_cup`, and then any
  * whose tournament is not `kind = 'league_season'`. Euro 2028 is
  * `kind = 'tournament'`, so the refusal is explicit rather than incidental.
+ *
+ * Contract 111 adds one `predictor_internal` function and nothing else. The
+ * browser-visible surface comparison against contract 110 is 228 rows on both
+ * sides, identical, and it is revoked from `public`, `anon`, `authenticated`
+ * and `service_role`.
+ *
+ * It writes a great deal when it runs — a group, its members and a full
+ * round-robin of fixtures — and a seeded Euro user is out of its reach three
+ * times over: it refuses any competition that is not `predictor_cup`, then any
+ * whose tournament is not `kind = 'league_season'`, and Euro 2028 is
+ * `kind = 'tournament'`. It also has no caller, so nothing invokes it on a
+ * fresh seed.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 110
+export const SEED_REVIEWED_AT_CONTRACT = 111
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
