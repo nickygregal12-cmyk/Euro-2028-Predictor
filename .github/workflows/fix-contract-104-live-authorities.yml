@@ -1,0 +1,49 @@
+name: Fix Contract 104 live authorities
+
+on:
+  push:
+    branches:
+      - agent/contract-104-live-competition-callers
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/contract-104-live-competition-callers
+
+      - name: Align live authorities and remove helper
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          agents = Path('AGENTS.md')
+          text = agents.read_text()
+          before = """The repository is at **contract 103** through `20260804333000_competition_instance_lineage.sql`. Development Supabase is hosted at contract 97, applied 4 August 2026 by fast-lane run 30931550512 on `381e2d0`; production remains at 63. Contract 101 corrects Euro post-lock reveal; contract 102 persists the Predictor Championship split as a distinct phase while preserving the tournament Cup path; contract 103 makes a competition instance repeatable behind one live public row per season game, one live row per series and season/game-scoped lineage. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight."""
+          after = """The repository is at **contract 104** through `20260805001000_live_competition_callers.sql`. Development Supabase is hosted at **103**, applied 4 August 2026 by fast-lane run 30959460638; production remains at 63. Contract 101 corrects Euro post-lock reveal; contract 102 persists the Predictor Championship split as a distinct phase while preserving the tournament Cup path; contract 103 makes competition instances repeatable behind one live public row per season game, one live row per series and season/game-scoped lineage; contract 104 makes all measured tournament-and-game callers resolve an explicit public instance before the restart driver exists. The repository contract and the hosted contracts are distinct facts. Any hosted schema mutation requires the guarded rollout workflow, explicit owner approval and the applicable preflight."""
+          if text.count(before) != 1:
+              raise SystemExit(f'expected one stale AGENTS baseline, found {text.count(before)}')
+          agents.write_text(text.replace(before, after))
+
+          status = Path('docs/quality/current-status.md')
+          text = status.read_text()
+          before = 'Development Supabase is verified at **103**, applied 4 August 2026 by fast-lane run 30959460638;'
+          after = 'Development Supabase is hosted at **103**, applied 4 August 2026 by fast-lane run 30959460638;'
+          if text.count(before) != 1:
+              raise SystemExit(f'expected one development status phrase, found {text.count(before)}')
+          status.write_text(text.replace(before, after))
+          PY
+
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm .github/workflows/fix-contract-104-live-authorities.yml
+          git add AGENTS.md docs/quality/current-status.md
+          git diff --cached --check
+          git commit -m 'Align live authorities with Contract 104'
+          git push origin HEAD:agent/contract-104-live-competition-callers
