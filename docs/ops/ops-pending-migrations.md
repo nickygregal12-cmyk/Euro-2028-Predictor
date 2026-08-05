@@ -4,7 +4,9 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 5 August 2026
 
-The repository and development are both at **contract 112**, with nothing pending.
+The repository is at **contract 113**; development is at **112**. **One migration is pending** — `20260805090000_round_play_windows.sql`. The contract is merged and not yet rolled out, and the ordinary fast-lane rollout closes it.
+
+The pending migration is additive: it adds two nullable columns to `competition_rounds`, three `predictor_internal` functions and one trigger. It grants nothing to any browser or service role, derives no window on application, and the trigger fires only on writes that set one — so applying it is behaviour-neutral.
 
 Contract 112 was pending for part of 5 August 2026 — the first time in this sequence the two were not level — and the ordinary fast-lane rollout closed it the same day.
 
