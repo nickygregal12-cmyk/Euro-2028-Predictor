@@ -78,7 +78,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `TYPE-001` | Hand-written types/casts can hide schema drift | **Open** |
 | `A11Y-001` | Assistive-technology review incomplete | **Partial; automated coverage exists, manual review remains** |
 | `UX-001` | Trustworthy invite context before auth incomplete | **Partial** |
-| `UX-002` | Unavailable and empty data can be conflated | **Reduced; secondary surfaces remain** |
+| `UX-002` | Unavailable and empty data can be conflated | **Reduced; secondary surfaces remain.** `PredictionTrendsPage`'s player-name read now tracks its own failure separately from a genuinely player-less pick and warns rather than silently falling back (2026-08-05). |
 | `FUNC-003` | Bonus Games rendered as absent when reference data was empty | **Resolved in production** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open; aggregate minimum cohort is implemented, broader invite/abuse review remains** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
