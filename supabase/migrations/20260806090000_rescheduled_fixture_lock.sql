@@ -1,4 +1,4 @@
--- Contract 118: a rescheduled fixture locks at its own kickoff.
+-- Contract 119: a rescheduled fixture locks at its own kickoff.
 --
 -- ---------------------------------------------------------------------------
 -- THE RULE, AND THE READING THE OWNER CHOSE
@@ -174,7 +174,7 @@ begin
   end if;
 
   if tg_table_name = 'season_predictions' then
-    -- Contract 118. Per fixture, and only because it moved: the authority
+    -- Contract 119. Per fixture, and only because it moved: the authority
     -- returns the matchweek instant for everything else, so an ordinary
     -- matchweek still locks together.
     v_lock_at := predictor_internal.season_prediction_lock_at(

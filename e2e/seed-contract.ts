@@ -493,8 +493,17 @@
  * definer caller. It also writes nothing on a fresh seed — it revises fixtures a
  * provider payload names, and a seeded database has no payload.
  */
+/*
+ * Re-verified at contract 118, the first in this run to change an EXISTING
+ * browser-reachable function rather than add one: `get_bonus_games` now reads
+ * neutral window fixture facts instead of joining the tournament relation. The
+ * seeded Euro data is a tournament, so it flows down the tournament limb and
+ * the combiner returns exactly the rows the old join returned — asserted in
+ * `169_neutral_window_fixture_facts.sql` rather than argued here. No new table,
+ * grant or seeded row is involved, so the seed itself is untouched.
+ */
 /**
- * Contract 118 adds one `predictor_internal` authority and redefines contract
+ * Contract 119 adds one `predictor_internal` authority and redefines contract
  * 114's lock trigger. It creates no relation, no policy and no grant, and adds
  * no trigger binding.
  *
@@ -503,7 +512,7 @@
  * has none, and the authority returns the matchweek instant for everything
  * else. So a seeded user's lock is the instant it already was.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 118
+export const SEED_REVIEWED_AT_CONTRACT = 119
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

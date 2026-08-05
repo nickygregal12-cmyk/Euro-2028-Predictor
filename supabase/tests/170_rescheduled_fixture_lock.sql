@@ -1,4 +1,4 @@
--- Contract 118: a rescheduled fixture locks at its own kickoff.
+-- Contract 119: a rescheduled fixture locks at its own kickoff.
 --
 -- Numbered 170 rather than 169 deliberately. Two files already share 168 after
 -- a concurrent session took the same number, and a gap costs nothing while a

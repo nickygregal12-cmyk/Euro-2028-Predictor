@@ -69,7 +69,7 @@ The merged delta known at this 5 August review is:
 | 115 | the database can call a provider on a schedule at last — no surface, no fixture imported, and nothing polled until an operator records a target |
 | 116 | the season Last Man Standing round reaches the browser — the entrant's own round, its fixtures, their pick and the server's survival verdict |
 | 117 | a provider kickoff change reaches the fixture automatically — still no surface, and a moved match keeps its matchweek heading |
-| 118 | a rescheduled fixture stays editable to its own kickoff — the surface must show that one card in a locked matchweek is still open |
+| 119 | a rescheduled fixture stays editable to its own kickoff — the surface must show that one card in a locked matchweek is still open |
 
 The Contract 107–109 backend restart lifecycle is complete. Contract 107
 creates the linked successor, Contract 108 refuses inherited past rounds, and
@@ -91,7 +91,7 @@ real fixture list depends on something eventually doing that. Contract 117 is th
 arriving on its own: a provider kickoff change now reaches the fixture
 automatically, and a moved match keeps the matchweek heading it was scheduled
 under — a presentation rule as much as a data one, and the reason these screens
-sort by kickoff while labelling by round. Contract 118 adds the state that follows from
+sort by kickoff while labelling by round. Contract 119 adds the state that follows from
 both: inside a locked matchweek, one card can still be open, because that
 fixture was moved and locks at its own kickoff. A surface that greys the whole
 matchweek would be showing a rule the platform no longer has. Contract 116 does
@@ -155,3 +155,7 @@ checklist.
 - [`../quality/current-status.md`](../quality/current-status.md) — the only live
   implementation and hosted-status authority
 - [`../../AGENTS.md`](../../AGENTS.md) — operating rules and authority order
+
+| 118 | the games hub stops showing a season a stale round — its windows can settle because its fixtures are finally visible to the read |
+
+Contract 118 is a correction rather than a presentation change: no surface moved, but a season competition's hub card had been stuck on its first locked round because the read returned it no fixtures.

@@ -161,7 +161,7 @@ Delivered backend foundations now include:
 - Predictor Championship neutral Cup sources, split-stage persistence, one-parent ancestry, a continuing table derived across both phases the Contract 110 round calendar that finally lets a season Championship persist a fixture at all, and the Contract 111 launch driver that draws and schedules one;
 - the Contract 113 round play window and the Contract 114 bounded season-card browser path (the matchweek card read and its three own-entry writes, every rule enforced by the triggers that already own it), the authority `fixtureReassignment.ts` needs and never had;
 - the Contract 116 season Last Man Standing round read, which gives a season entrant the fixtures `get_my_lms` cannot see and the server's own survival verdict for their pick;
-- the Contract 118 rescheduled-fixture lock, which lets a moved fixture stay editable to its own kickoff while an ordinary matchweek still locks together;
+- the Contract 119 rescheduled-fixture lock, which lets a moved fixture stay editable to its own kickoff while an ordinary matchweek still locks together;
 - the Contract 117 provider fixture revision import, which revises a kickoff and refuses to create, delete or move a fixture between rounds;
 - the Contract 115 provider poll dispatch, which installs `pg_net`, forbids any browser-reachable function in an exposed schema from calling into `net` — pg_net's own grants belong to whoever owns the extension, and where the platform owns it `postgres` cannot revoke them — and drives the deployed Edge Function from `pg_cron`;
 - the Contract 112 provider identity map, the precondition for importing a real fixture list, which resolves and reports gaps but writes nothing;
@@ -189,3 +189,5 @@ Verified against `main` at `1fb8ffd36ad113079181829a8bcc47175c43b6da` on 29 July
 - the competition-context engine is absent from `main`, while open PR #201 proposes an isolated, unwired foundation.
 
 Hosted state, provider capabilities, market claims and legal analysis require their own current evidence. They are not treated as verified merely because an earlier planning draft described them that way.
+
+Contract 118 closes the fourth instance of the tournament-only read defect (after 86, 98 and 116), in the games hub listing, and pairs it with the CI guard that catches the fifth.
