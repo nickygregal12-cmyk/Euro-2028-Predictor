@@ -67,6 +67,7 @@ The merged delta known at this 5 August review is:
 | 113 | a round knows the span it is played over, so a rescheduled fixture has somewhere to resolve to — still no surface |
 | 114 | the season matchweek card reaches the browser — the read and three own-entry writes the UI-04 surface renders |
 | 115 | the database can call a provider on a schedule at last — no surface, no fixture imported, and nothing polled until an operator records a target |
+| 116 | the season Last Man Standing round reaches the browser — the entrant's own round, its fixtures, their pick and the server's survival verdict |
 
 The Contract 107–109 backend restart lifecycle is complete. Contract 107
 creates the linked successor, Contract 108 refuses inherited past rounds, and
@@ -84,7 +85,10 @@ browser path the UI-04 Match Predictor surface was waiting for, so the season
 card can be read and written by its own player at last. Contract 115 has no
 surface either, and is listed for the same reason as 112: it is what finally
 lets the database call a provider on a schedule, and every screen that shows a
-real fixture list depends on something eventually doing that.
+real fixture list depends on something eventually doing that. Contract 116 does
+have a surface ahead of it: it is the read a season Last Man Standing round needs
+before one can be drawn at all, since the tournament read returns a season round
+with no fixtures in it.
 
 Contract 111 draws a Championship's initial group and places its round-robin
 fixtures onto them. The surface must not read that as a finished Championship: what runs
