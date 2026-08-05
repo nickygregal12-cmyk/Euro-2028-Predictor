@@ -114,6 +114,8 @@ These are evidence for the first competition. Contract 65 adds the shared compet
 
 Landed 3 August 2026 across PRs #372, #373, #375, #377, #379, #381 and #383. Thirteen modules under `src/domain/season/`, all pure: no storage, no network, no ambient clock, no tournament imports, each with source-level guards proving that.
 
+**They now have something to run on (5 August 2026).** Until that date both league seasons were empty on development — zero teams, zero matchweeks, zero fixtures — which made every authority in this section unreachable code rather than merely unsurfaced. A development seed has since filled them: 20 clubs / 38 matchweeks / 380 fixtures for the Premier League and 12 / 22 / 132 for the Scottish Premiership, verified in the database for round-robin correctness and BST-to-GMT kickoff handling. **The clubs and the calendar are invented and are not a substitute for provider ingestion**; the record, including the two shapes the Championship format selector now returns for the two seasons, is [`docs/ops/ops-league-season-seed.md`](../ops/ops-league-season-seed.md).
+
 | Area | Modules | Authority |
 | --- | --- | --- |
 | Main Predictor | `scoring`, `standings`, `matchweekSettlement`, `cardSubmission`, `fixtureReassignment` | ADR 0012 as amended by ADR 0020 |
