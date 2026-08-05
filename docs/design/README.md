@@ -63,6 +63,7 @@ The merged delta known at this 5 August review is:
 | 109 | the next eligible future league matchweek is derived from the existing lock authority and the successor calendar is created exactly once |
 | 110 | the season Predictor Championship gets rounds it can be played over, which no season competition had ever had |
 | 111 | a season Championship is launched — drawn, scheduled and given its round-robin fixtures |
+| 112 | a provider's identifiers can be related to our clubs, rounds and seasons — no surface, and no fixture written |
 
 The Contract 107–109 backend restart lifecycle is complete. Contract 107
 creates the linked successor, Contract 108 refuses inherited past rounds, and
@@ -71,7 +72,10 @@ lock authority and creates the successor calendar exactly once. When fixtures
 are incomplete and no lock can be derived, the successor remains honestly
 unavailable rather than guessing. Contract 110 gives the season Predictor
 Championship the same thing from the other end: rounds it can be played over at
-all, which no season competition had ever had, and Contract 111 launches one
+all, which no season competition had ever had, and Contract 111 launches one.
+Contract 112 adds the provider identity map, which has no surface at all — it is
+what a real fixture list must pass through before any of these screens can show
+one
 onto them. The surface must not read that as a finished Championship: what runs
 is the private, organiser-created shape, and the public hundred-entrant field
 takes a multi-group draw that is not built yet. Product surfaces must render
