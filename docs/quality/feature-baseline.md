@@ -231,3 +231,5 @@ Do not silently:
 - change scoring without rules/TypeScript/SQL/tests;
 - describe roadmap or gallery content as implemented without code evidence;
 - treat an unrestored backup as recovery proof.
+
+**Contract 118** gives the games hub neutral window fixture facts, so a season competition's card advances instead of sticking on its first locked round.

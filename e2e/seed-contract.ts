@@ -493,7 +493,16 @@
  * definer caller. It also writes nothing on a fresh seed — it revises fixtures a
  * provider payload names, and a seeded database has no payload.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 117
+/*
+ * Re-verified at contract 118, the first in this run to change an EXISTING
+ * browser-reachable function rather than add one: `get_bonus_games` now reads
+ * neutral window fixture facts instead of joining the tournament relation. The
+ * seeded Euro data is a tournament, so it flows down the tournament limb and
+ * the combiner returns exactly the rows the old join returned — asserted in
+ * `169_neutral_window_fixture_facts.sql` rather than argued here. No new table,
+ * grant or seeded row is involved, so the seed itself is untouched.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 118
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

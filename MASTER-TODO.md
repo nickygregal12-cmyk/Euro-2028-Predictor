@@ -305,3 +305,5 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 - [ ] Return to Part I in January 2028.
 - [ ] Reconcile the parked inventory against the then-current platform.
 - [ ] Complete every open tournament gate before public release.
+
+- [x] **Contract 118 — the games hub reads a season's fixtures.** **Contract 118 stops the games hub being blind to a season's fixtures.** `get_bonus_games` built its per-window fixtures from `bonus_window_fixtures` joined to `public.matches` with no branch on competition kind, so a season window returned an empty array — and because a window can only settle when `total > 0 and confirmed >= total`, a season competition's first locked round stayed in flight permanently and the hub card stuck on it. Three internal functions supply the facts instead: a tournament limb, a season limb mapping season status onto the tournament vocabulary on contract 77's established equivalence, and a neutral combiner that unions rather than branches. Fourth instance of one defect — contracts 86, 98, 116 and this — and `168_tournament_only_browser_reads.sql` now catches the fifth.
