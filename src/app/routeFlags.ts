@@ -23,7 +23,7 @@
  */
 
 /** Journeys that currently have a next-generation implementation. */
-export type MigratedJourney = 'seasonMatchPredictor'
+export type MigratedJourney = 'seasonMatchPredictor' | 'publicLanding'
 
 /** Which implementation is serving a journey. Also the telemetry dimension. */
 export type JourneyImplementation = 'legacy' | 'next'
@@ -43,6 +43,12 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
   switch (journey) {
     case 'seasonMatchPredictor':
       return enabled(import.meta.env.VITE_UI_SEASON_MATCH_PREDICTOR) ? 'next' : 'legacy'
+    // The anonymous root. 'legacy' is what the application did before Appendix
+    // E existed — send a signed-out visitor straight to `/auth/login` — so the
+    // rollback here is not a spare implementation kept alive for the purpose:
+    // it is the behaviour every signed-out visitor got until this flag shipped.
+    case 'publicLanding':
+      return enabled(import.meta.env.VITE_UI_PUBLIC_LANDING) ? 'next' : 'legacy'
   }
 }
 

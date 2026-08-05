@@ -1,0 +1,1202 @@
+/* Public landing page — the anonymous root (modernisation plan Appendix E).
+ *
+ * Every value here comes from `src/styles/tokens.css`. E.4 requires this page
+ * to use the approved neutral ramp, the separate border ramp, the three surface
+ * levels, the three component radii, the 4px spacing scale and the fixed
+ * six-step type scale — so there is no raw hex, no invented size and no fourth
+ * radius below.
+ *
+ * The one local derivation is section rhythm. The global spacing scale stops at
+ * 24px (`--sp-6`) because it was built for application density, and a marketing
+ * page needs section-scale spacing. Rather than add global tokens for one
+ * surface, the values below are multiples of `--sp-1` (4px), so the 4px grid
+ * E.4 asks for still holds and every number is visibly on it.
+ *
+ * Mobile-first, per the design plan's §11.5 and the "phone-first" rule the
+ * season surfaces already follow: the base rules are the phone layout and the
+ * media query adds the desktop one.
+ */
+
+.page {
+  /* Section rhythm and gutters, on the 4px grid. */
+  --landing-gutter: var(--sp-5); /* 20px */
+  --landing-section-y: calc(var(--sp-1) * 16); /* 64px */
+  --landing-max: 1200px;
+  /* E.4: repeated sports information is row-led with a fixed row height —
+     52px on a phone, 48px on desktop. */
+  --landing-row-h: 52px;
+
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--tx);
+  font-family: var(--font-body);
+  font-size: var(--fs-3);
+  line-height: 1.55;
+}
+
+/* The same skip link `PageShell` gives every signed-in route, restated because
+   this page has its own chrome and does not mount the app shell. */
+.skipLink {
+  position: absolute;
+  top: var(--sp-2);
+  left: var(--sp-2);
+  z-index: var(--z-toast);
+  transform: translateY(calc(-100% - var(--sp-4)));
+  padding: var(--sp-2) var(--sp-3);
+  border: 2px solid var(--acc);
+  border-radius: var(--radius-input);
+  background: var(--card);
+  color: var(--tx);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.skipLink:focus {
+  transform: translateY(0);
+}
+
+.shell {
+  width: 100%;
+  max-width: var(--landing-max);
+  margin-inline: auto;
+  padding-inline: var(--landing-gutter);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-navigation);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: var(--landing-max);
+  margin-inline: auto;
+  padding: var(--sp-2) var(--landing-gutter);
+  min-height: 64px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-right: auto;
+  min-width: 0;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-input);
+  background: var(--acc);
+  color: var(--bg);
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+}
+
+.brandCopy {
+  display: none;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: var(--tracking-tight);
+  /* The header is a single row of fixed-width things. Anything in it that can
+     wrap does wrap, and a two-line brand next to a two-line nav next to a
+     two-line button is what a cramped header actually looks like. */
+  white-space: nowrap;
+}
+
+.brandCopy small {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  font-weight: 400;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.headerNav {
+  display: none;
+  align-items: center;
+  gap: var(--sp-6);
+}
+
+.headerNav a {
+  color: var(--tx2);
+  font-size: var(--fs-2);
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color var(--duration-micro) var(--ease-out);
+}
+
+.headerNav a:hover {
+  color: var(--tx);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--tx2);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-micro) var(--ease-out),
+    color var(--duration-micro) var(--ease-out);
+}
+
+.iconButton:hover {
+  background: var(--chip);
+  color: var(--tx);
+}
+
+/* ── Calls to action ─────────────────────────────────────────────────────────
+ * Anchors rather than the `Button` primitive, deliberately: every action on
+ * this page navigates, and a real link is what gives it a middle-click, a
+ * copyable address, a crawler-visible destination and the browser's own link
+ * semantics for assistive technology. The visual contract is Button's — the
+ * same 44px minimum target, control radius, display face and 120ms micro
+ * transition — so the two read as one component language.
+ */
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-5);
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-micro) var(--ease-out),
+    border-color var(--duration-micro) var(--ease-out),
+    color var(--duration-micro) var(--ease-out);
+}
+
+.ctaPrimary {
+  background: var(--acc);
+  color: var(--bg);
+}
+
+.ctaSecondary {
+  border-color: var(--border-strong);
+  background: var(--card);
+  color: var(--tx);
+}
+
+.ctaSecondary:hover {
+  background: var(--chip);
+}
+
+.ctaQuiet {
+  background: transparent;
+  color: var(--tx2);
+}
+
+.ctaQuiet:hover {
+  background: var(--chip);
+  color: var(--tx);
+}
+
+.ctaSmall {
+  min-height: 40px;
+  padding-inline: var(--sp-4);
+  font-size: var(--fs-2);
+}
+
+/* ── Shared section furniture ────────────────────────────────────────────── */
+
+.main {
+  display: block;
+}
+
+/* Focused programmatically on route change, so only a keyboard visit should
+   draw a ring — the same rule `PageShell` applies to its content region. */
+.main:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+
+.section {
+  padding-block: var(--landing-section-y);
+}
+
+.sectionTight {
+  padding-bottom: var(--landing-section-y);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.sectionHead {
+  max-width: 640px;
+  margin-bottom: calc(var(--sp-1) * 10); /* 40px */
+}
+
+.sectionHead h2 {
+  margin: var(--sp-3) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-5);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.sectionLead {
+  margin: var(--sp-3) 0 0;
+  color: var(--tx2);
+}
+
+.identity {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--line);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-weight: 500;
+  letter-spacing: var(--tracking-tight);
+}
+
+.numeric {
+  font-variant-numeric: var(--numeric);
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.hero {
+  padding-block: calc(var(--sp-1) * 12) var(--landing-section-y);
+}
+
+.heroGrid {
+  display: grid;
+  gap: calc(var(--sp-1) * 12);
+  align-items: center;
+}
+
+.heroCopy {
+  min-width: 0;
+}
+
+/* The top of the six-step scale. The prototype's hero is larger still, but
+   §11.7 fixes the scale at six steps and `foundationTokens.test.ts` fails a
+   seventh — so the weight, tracking and leading carry the emphasis instead of
+   an off-scale size. */
+.heroHeading {
+  margin: var(--sp-4) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-6);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+.heroLead {
+  margin: var(--sp-5) 0 0;
+  max-width: 34em;
+  font-size: var(--fs-4);
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: calc(var(--sp-1) * 8);
+}
+
+.trustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin: var(--sp-6) 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+}
+
+.trustRow li {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.trustCheck {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  color: var(--acc);
+}
+
+/* ── Product previews ────────────────────────────────────────────────────── */
+
+.preview {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--card);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.previewChrome {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 44px;
+  padding-inline: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.previewDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mut);
+}
+
+.previewChromeLabel {
+  margin-inline: auto;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.previewApp {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.previewRail,
+.previewContext {
+  display: none;
+}
+
+.previewMain {
+  padding: var(--sp-4);
+  min-width: 0;
+}
+
+.previewKicker {
+  margin: 0;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.previewTitle {
+  margin: var(--sp-1) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: var(--tracking-tight);
+}
+
+.previewSub {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* E.4: cards are for actionable state. The next action is the one thing on the
+   preview a player would act on, so it is the one thing drawn as a card. */
+.previewAction {
+  display: grid;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--chip);
+}
+
+.previewActionMeta {
+  margin: 0;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.previewActionTitle {
+  margin: var(--sp-1) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.previewActionBody {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.previewLabel {
+  margin: var(--sp-5) 0 var(--sp-2);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.previewRows {
+  border-top: 1px solid var(--line);
+}
+
+.previewRow {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  height: var(--landing-row-h);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-2);
+}
+
+.previewRowCopy {
+  display: grid;
+  min-width: 0;
+}
+
+.previewRowCopy strong {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewRowCopy small {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewRowValue {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-variant-numeric: var(--numeric);
+  font-weight: 500;
+}
+
+.moveUp {
+  color: var(--acc);
+}
+
+.moveDown {
+  color: var(--red);
+}
+
+.previewSave {
+  margin: var(--sp-4) 0 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.railItem {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-input);
+  color: var(--tx3);
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+}
+
+.railItemActive {
+  background: var(--chip);
+  color: var(--acc);
+}
+
+.contextSlot {
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.contextLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin: 0;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+/* A static dot. E.4 forbids ambient animation on this page, so "live" is shown
+   by colour and label rather than by a pulse that never stops. */
+.livePip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--cyn);
+}
+
+.contextValue {
+  margin: var(--sp-1) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 700;
+  font-variant-numeric: var(--numeric);
+  letter-spacing: var(--tracking-tight);
+}
+
+.contextDetail {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+/* ── Domestic proof band ─────────────────────────────────────────────────── */
+
+.proof {
+  border-block: 1px solid var(--line);
+  background: var(--card);
+}
+
+.proofInner {
+  display: grid;
+  gap: var(--sp-4);
+  padding-block: var(--sp-6);
+  color: var(--tx3);
+  font-size: var(--fs-2);
+}
+
+.proofInner p {
+  margin: 0;
+}
+
+.proofPair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+}
+
+.proofItem {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--tx);
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 500;
+}
+
+/* ── How it works ───────────────────────────────────────────────────────── */
+
+.stepList {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.stepRow {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--sp-4);
+  padding-block: var(--sp-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.stepNumber {
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 700;
+  font-variant-numeric: var(--numeric);
+  letter-spacing: var(--tracking-tight);
+  color: var(--tx3);
+}
+
+.stepRow h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.stepRow p {
+  margin: var(--sp-2) 0 0;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+}
+
+/* ── The signed-in experience ───────────────────────────────────────────── */
+
+.experienceGrid {
+  display: grid;
+  gap: calc(var(--sp-1) * 12);
+  align-items: center;
+}
+
+.phone {
+  justify-self: center;
+  width: min(340px, 100%);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sheet);
+  background: var(--card);
+  padding: var(--sp-2);
+}
+
+.phoneScreen {
+  display: grid;
+  border-radius: var(--radius-card);
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.phoneTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+}
+
+.phoneContent {
+  padding: var(--sp-4);
+}
+
+.phoneAction {
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--chip);
+}
+
+.phoneActionTitle {
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.phoneActionBody {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.phoneActionFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+
+.phoneDeadline {
+  display: grid;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.phoneDeadline strong {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-variant-numeric: var(--numeric);
+  letter-spacing: var(--tracking-normal);
+  text-transform: none;
+  color: var(--tx);
+}
+
+.phoneNav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--sp-1);
+  padding: var(--sp-3) var(--sp-2);
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.phoneNavActive {
+  color: var(--acc);
+}
+
+.featureList {
+  display: grid;
+  gap: var(--sp-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.featureRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: var(--sp-3);
+}
+
+.featureIcon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  color: var(--acc);
+}
+
+.featureRow strong {
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 500;
+}
+
+.featureRow p {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* ── Private leagues ────────────────────────────────────────────────────── */
+
+.leagueGrid {
+  display: grid;
+  gap: calc(var(--sp-1) * 10);
+  align-items: start;
+}
+
+.leagueAction {
+  display: grid;
+  gap: var(--sp-5);
+  justify-items: start;
+  padding: var(--sp-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.leagueAction h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.leagueAction p {
+  margin: var(--sp-3) 0 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.leaguePreview {
+  min-width: 0;
+}
+
+/* Three columns on a phone and four on desktop, where the form column appears.
+   Head and row share one template so the columns stay in register, and the
+   head's form cell is hidden by the same rule that hides the rows'. */
+.leagueHead,
+.leagueRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--sp-3);
+  padding-inline: var(--sp-2);
+  font-size: var(--fs-2);
+}
+
+.leagueHead {
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.leagueRow {
+  height: var(--landing-row-h);
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: var(--numeric);
+}
+
+/* The viewer's own row is marked by a leading rule and a raised surface, not by
+   the accent fill a competition identity would use. Padding is on every row, so
+   the highlighted one does not shift its columns out of register. */
+.leagueRowViewer {
+  background: var(--chip);
+  box-shadow: inset var(--bar-w) 0 0 0 var(--acc);
+}
+
+.leaguePlayer {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  font-variant-numeric: normal;
+}
+
+.leaguePlayer span {
+  flex: none;
+}
+
+.leagueForm {
+  display: none;
+  color: var(--tx3);
+}
+
+/* ── Games ──────────────────────────────────────────────────────────────── */
+
+.gameList {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+
+.gameRow {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: var(--sp-4);
+  padding-block: var(--sp-6);
+  border-bottom: 1px solid var(--line);
+}
+
+.gameMark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--line);
+  background: var(--chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+.gameRow h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.gameRow p {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.gameMeta {
+  grid-column: 2;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+/* ── Euro 2028 band ─────────────────────────────────────────────────────── */
+
+.euroBand {
+  padding: var(--sp-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.euroBand h2 {
+  margin: var(--sp-3) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.euroBand p {
+  margin: var(--sp-3) 0 0;
+  max-width: 60ch;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* ── Final call to action ───────────────────────────────────────────────── */
+
+.finalCta {
+  padding-bottom: var(--landing-section-y);
+}
+
+.ctaPanel {
+  padding: calc(var(--sp-1) * 10) var(--sp-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--card);
+  text-align: center;
+}
+
+.ctaPanel .eyebrow {
+  color: var(--tx3);
+}
+
+.ctaPanel h2 {
+  margin: var(--sp-3) auto 0;
+  max-width: 20ch;
+  font-family: var(--font-display);
+  font-size: var(--fs-5);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+.ctaPanel > p {
+  margin: var(--sp-4) auto 0;
+  max-width: 52ch;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+}
+
+.ctaPanel .heroActions {
+  justify-content: center;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+
+.footer {
+  border-top: 1px solid var(--line);
+  background: var(--card);
+}
+
+.footerInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+  padding-block: var(--sp-6);
+}
+
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-5);
+  margin-left: auto;
+  font-size: var(--fs-2);
+}
+
+.footerLinks a {
+  color: var(--tx2);
+  text-decoration: none;
+  transition: color var(--duration-micro) var(--ease-out);
+}
+
+.footerLinks a:hover {
+  color: var(--tx);
+}
+
+/* ── Desktop ─────────────────────────────────────────────────────────────
+ * §11.5's wider layout: the hero becomes two columns, the Hub preview gains
+ * the permanent rail and its three contextual slots (E.7), and data rows drop
+ * from the 52px phone height to 48px.
+ */
+
+@media (min-width: 900px) {
+  .page {
+    --landing-gutter: calc(var(--sp-1) * 8); /* 32px */
+    --landing-section-y: calc(var(--sp-1) * 24); /* 96px */
+    --landing-row-h: 48px;
+  }
+
+  .headerInner {
+    min-height: 72px;
+    gap: calc(var(--sp-1) * 8);
+  }
+
+  /* `block`, not `flex`. Sharing the reveal rule with the nav made the brand a
+     flex container, which laid its own <small> out as a sibling column and
+     printed "Football Prediction HubWEEKLY PREDICTION GAMES" as one line. */
+  .brandCopy {
+    display: block;
+  }
+
+  .headerNav {
+    display: flex;
+    margin-left: auto;
+  }
+
+  .hero {
+    padding-block: calc(var(--sp-1) * 20) var(--landing-section-y);
+  }
+
+  .heroGrid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .heroActions .cta {
+    min-height: 52px;
+    padding-inline: var(--sp-6);
+  }
+
+  .previewApp {
+    grid-template-columns: 64px minmax(0, 1fr) 188px;
+    min-height: 500px;
+  }
+
+  .previewRail {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-4) var(--sp-3);
+    border-right: 1px solid var(--line);
+    background: var(--bg);
+  }
+
+  .previewRail .brandMark {
+    margin-bottom: var(--sp-3);
+  }
+
+  .previewMain {
+    padding: var(--sp-5);
+  }
+
+  .previewContext {
+    display: grid;
+    align-content: start;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    border-left: 1px solid var(--line);
+    background: var(--bg);
+  }
+
+  .proofInner {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: calc(var(--sp-1) * 10);
+  }
+
+  .proofInner p:last-child {
+    text-align: right;
+  }
+
+  .stepRow {
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: baseline;
+    gap: calc(var(--sp-1) * 8);
+  }
+
+  .gameRow {
+    grid-template-columns: 88px minmax(0, 1fr) 200px;
+    align-items: center;
+    gap: calc(var(--sp-1) * 8);
+  }
+
+  .gameMeta {
+    grid-column: 3;
+    text-align: right;
+  }
+
+  .experienceGrid {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  }
+
+  .leagueGrid {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .leagueHead,
+  .leagueRow {
+    grid-template-columns: 28px minmax(0, 1fr) 120px auto;
+  }
+
+  .leagueForm {
+    display: block;
+  }
+
+  .euroBand {
+    padding: calc(var(--sp-1) * 8);
+  }
+
+  .ctaPanel {
+    padding: calc(var(--sp-1) * 16) calc(var(--sp-1) * 8);
+  }
+}

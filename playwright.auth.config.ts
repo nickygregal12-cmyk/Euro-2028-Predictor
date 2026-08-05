@@ -20,7 +20,12 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
   webServer: {
-    command: `VITE_DEV_AUTOLOGIN=false npm run dev -- --host 127.0.0.1 --port ${port}`,
+    // `VITE_UI_PUBLIC_LANDING=true` because this is the only harness that can
+    // see the page at all: the landing page renders at `/` for a signed-out
+    // visitor, and every other config auto-logs-in and gets the Hub. Scanning
+    // it with the flag off would scan `/auth/login` after the redirect and
+    // report a green result for a page that was never looked at.
+    command: `VITE_DEV_AUTOLOGIN=false VITE_UI_PUBLIC_LANDING=true npm run dev -- --host 127.0.0.1 --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

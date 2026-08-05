@@ -43,4 +43,35 @@ describe('route-level migration flags', () => {
       expect(journeyImplementation('seasonMatchPredictor')).toBe('legacy')
     },
   )
+
+  // The public landing page reads its own variable, and gets the same
+  // treatment: every journey added here has to fail closed, not just the first.
+  it('serves the log in redirect when the landing flag is unset', () => {
+    vi.stubEnv('VITE_UI_PUBLIC_LANDING', undefined as unknown as string)
+    expect(journeyImplementation('publicLanding')).toBe('legacy')
+    expect(isNextUi('publicLanding')).toBe(false)
+  })
+
+  it('serves the landing page only on the exact string "true"', () => {
+    vi.stubEnv('VITE_UI_PUBLIC_LANDING', 'true')
+    expect(journeyImplementation('publicLanding')).toBe('next')
+  })
+
+  it.each(['True', '1', 'yes', '', 'false'])(
+    'refuses to serve the landing page for %j',
+    (value) => {
+      vi.stubEnv('VITE_UI_PUBLIC_LANDING', value)
+      expect(journeyImplementation('publicLanding')).toBe('legacy')
+    },
+  )
+
+  it('keeps the two journeys independent', () => {
+    // One flag on must not imply the other. They ship on different timelines
+    // and roll back separately.
+    vi.stubEnv('VITE_UI_PUBLIC_LANDING', 'true')
+    vi.stubEnv('VITE_UI_SEASON_MATCH_PREDICTOR', undefined as unknown as string)
+
+    expect(journeyImplementation('publicLanding')).toBe('next')
+    expect(journeyImplementation('seasonMatchPredictor')).toBe('legacy')
+  })
 })

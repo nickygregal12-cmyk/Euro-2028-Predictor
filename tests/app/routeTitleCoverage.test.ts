@@ -112,6 +112,27 @@ describe('route titles', () => {
     expect(collisions, 'routes sharing a title — check the list order').toEqual([])
   })
 
+  it('titles the root by which of its two pages is showing', () => {
+    // `/` serves the Hub signed in and the public landing page signed out
+    // (Appendix E.1). Titling from the path alone told a first-time visitor's
+    // screen reader that the "Competitions" page had loaded, on a page showing
+    // them no competitions and asking them to create an account.
+    expect(getRouteTitle('/')).toBe('Competitions')
+    expect(getRouteTitle('/', { signedOut: false })).toBe('Competitions')
+    expect(getRouteTitle('/', { signedOut: true })).toBe('Home')
+  })
+
+  it('leaves every other route’s title alone when signed out', () => {
+    // The override is the root's alone. A signed-out visitor reaching any other
+    // route is redirected to log in, so a second signed-out title would be a
+    // title for a page nobody can see.
+    for (const route of declaredRoutes.filter((route) => route !== '/')) {
+      expect(getRouteTitle(concretePath(route), { signedOut: true })).toBe(
+        getRouteTitle(concretePath(route)),
+      )
+    }
+  })
+
   it('names the pages it titles', () => {
     expect(getRouteTitle('/')).toBe('Competitions')
     expect(getRouteTitle('/competitions/premier-league/2026-27')).toBe(

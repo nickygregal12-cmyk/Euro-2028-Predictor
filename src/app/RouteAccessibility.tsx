@@ -4,6 +4,17 @@ import { matchPath, useLocation } from 'react-router'
 const APP_NAME = 'Football Prediction Hub'
 
 /**
+ * The one route whose page depends on the session rather than the path.
+ *
+ * `/` serves the Hub to a signed-in player and the public landing page to
+ * everyone else (modernisation plan Appendix E.1). Titling it from the path
+ * alone would tell a first-time visitor's screen reader that the "Competitions"
+ * page had loaded, on a page that shows them no competitions and asks them to
+ * create an account — so the root has two titles and the session picks.
+ */
+const SIGNED_OUT_ROOT_TITLE = 'Home'
+
+/**
  * Every route the application declares, ordered so the first `matchPath` hit is
  * the most specific — `/league/overall` before `/league`, `/games/lms` before
  * `/games`.
@@ -52,7 +63,12 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/dev/components', title: 'Component gallery' },
 ]
 
-export function getRouteTitle(pathname: string): string {
+export function getRouteTitle(
+  pathname: string,
+  options?: { readonly signedOut?: boolean },
+): string {
+  if (pathname === '/' && options?.signedOut) return SIGNED_OUT_ROOT_TITLE
+
   const groupMatch = matchPath('/predict/groups/:letter', pathname)
   if (groupMatch?.params.letter) {
     return `Group ${groupMatch.params.letter.toUpperCase()} predictions`
@@ -78,11 +94,18 @@ export function getRouteTitle(pathname: string): string {
  * Gives client-side route changes browser-title, live-region and focus behavior
  * comparable to a full page load. The first render sets the title/announcement
  * but does not steal focus from the browser or an auth form.
+ *
+ * `signedOut` is a prop rather than a `useAuth()` call, and deliberately so:
+ * reading the session here would make this module — and `getRouteTitle` with it
+ * — import the Supabase client transitively, so a route-title test could not
+ * run without Supabase configuration. The caller inside the provider passes the
+ * fact down; the callers outside it pass nothing and get the path-only titles
+ * they had before.
  */
-export function RouteAccessibility() {
+export function RouteAccessibility({ signedOut = false }: { signedOut?: boolean } = {}) {
   const { pathname } = useLocation()
   const isFirstRender = useRef(true)
-  const routeTitle = getRouteTitle(pathname)
+  const routeTitle = getRouteTitle(pathname, { signedOut })
 
   useEffect(() => {
     document.title = `${routeTitle} | ${APP_NAME}`
