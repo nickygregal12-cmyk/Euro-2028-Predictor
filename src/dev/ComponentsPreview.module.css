@@ -41,6 +41,37 @@
   color: var(--tx);
 }
 
+/* Pinned widths for visual contracts (`?width=phone` / `?width=desktop`).
+ *
+ * The flexible panel above is right for a human resizing a window and useless
+ * as a screenshot baseline: its width follows the viewport, so an image taken
+ * on one runner never matches another. These two pin it instead, and the
+ * numbers are the real breakpoints the product is built for — 390px is the
+ * phone width every season surface is designed against, and 1280px is past the
+ * 900px desktop breakpoint the landing page and shells switch at.
+ *
+ * `max-width: none` matters: without it the 420px cap above would silently
+ * clamp the desktop anchor back to a phone-ish width and the two baselines
+ * would differ only in their file names.
+ */
+.page[data-preview-width='phone'] .panel {
+  flex: none;
+  width: 390px;
+  max-width: none;
+}
+
+.page[data-preview-width='desktop'] .panel {
+  flex: none;
+  width: 1280px;
+  max-width: none;
+}
+
+/* Pinned panels are wider than the row; let them lay out rather than squash. */
+.page[data-preview-width='phone'] .themes,
+.page[data-preview-width='desktop'] .themes {
+  justify-content: flex-start;
+}
+
 .panelTag {
   font-family: var(--font-display);
   font-size: 10px;

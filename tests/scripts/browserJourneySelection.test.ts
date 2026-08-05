@@ -122,15 +122,25 @@ describe('the map cannot rot', () => {
     // A spec reachable only by editing itself would never run for a source
     // change — present, passing, and guarding nothing.
     const reachable = new Set([...journeyMap.flatMap((entry) => entry.specs), ...baselineSpecs])
-    // The auth-config specs run in the separate auth project, which is never
-    // narrowed; they are reachable by definition.
-    const authProjectSpecs = [
+    /**
+     * Specs that do not run under `playwright.config.ts` at all, so journey
+     * selection — which only ever narrows that config — cannot reach them and
+     * is not supposed to.
+     *
+     * The first three run in the auth project, which is never narrowed. The
+     * visual suite runs under `playwright.visual.config.ts` from its own
+     * dispatch-only workflow, because a screenshot comparison needs baselines
+     * rendered on the runner that will compare them; until that bootstrap has
+     * happened it must not be reachable from a source change at all.
+     */
+    const separatelyConfiguredSpecs = [
       'auth-recovery.spec.ts',
       'auth-capacity.spec.ts',
       'axe-unauthenticated.spec.ts',
+      'visual-gallery.spec.ts',
     ]
     const unreachable = (specsOnDisk() as string[]).filter(
-      (spec) => !reachable.has(spec) && !authProjectSpecs.includes(spec),
+      (spec) => !reachable.has(spec) && !separatelyConfiguredSpecs.includes(spec),
     )
 
     expect(

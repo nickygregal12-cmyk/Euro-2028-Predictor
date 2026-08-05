@@ -41,6 +41,7 @@ const COVERED_FILES = [
   'playwright.config.ts',
   'playwright.auth.config.ts',
   'playwright.production.config.ts',
+  'playwright.visual.config.ts',
 ] as const
 
 function committedTypeScriptSources(): string[] {

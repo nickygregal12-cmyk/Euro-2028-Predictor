@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { useLocation } from 'react-router'
+import { sectionAnchor } from './sectionAnchor'
 import styles from './ComponentsPreview.module.css'
 import { renderShareCard } from '../features/share/renderShareCard'
 import type { ShareCardModel, ShareVariant } from '../features/share/shareModel'
@@ -258,7 +260,7 @@ const HOSTILE_ROWS: LeagueTableRow[] = [
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className={styles.section}>
+    <section className={styles.section} data-section={sectionAnchor(title)}>
       <h2 className={styles.sectionTitle}>{title}</h2>
       <div className={styles.stack}>{children}</div>
     </section>
@@ -2068,19 +2070,45 @@ function Gallery() {
  * Dev-only preview at /dev/components: the whole design system, every state,
  * side by side in both themes. Not part of the shipped app.
  */
+/**
+ * The widths a visual contract may pin the gallery to.
+ *
+ * Read from `?width=` rather than from the viewport, because the panels are
+ * normally flexible (`flex: 1 1 340px`) and a flexible panel photographs
+ * differently on every runner and every window size. A screenshot baseline
+ * built on that compares nothing reliably.
+ *
+ * `auto` is the default and is what a human browsing `/dev/components` gets, so
+ * adding the anchors does not change the harness for the people who use it.
+ */
+export type PreviewWidth = 'auto' | 'phone' | 'desktop'
+
+function requestedWidth(search: string): PreviewWidth {
+  const value = new URLSearchParams(search).get('width')
+  return value === 'phone' || value === 'desktop' ? value : 'auto'
+}
+
 export function ComponentsPreview() {
+  // `useLocation` rather than reading `window` directly, so the value tracks a
+  // client-side navigation between widths instead of only the first paint.
+  const width = requestedWidth(useLocation().search)
+
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-preview-width={width}>
       <header className={styles.header}>
         <h1 className={styles.h1}>Design system — /dev/components</h1>
         <p className={styles.sub}>Every component and state, dark and light.</p>
       </header>
       <div className={styles.themes}>
-        <section data-theme="dark" className={styles.panel}>
+        {/* `data-theme-panel` is the anchor a visual contract targets. Class
+            names are hashed by CSS modules and change whenever the stylesheet
+            does, so a baseline keyed on one would break for reasons that have
+            nothing to do with what it renders. */}
+        <section data-theme="dark" data-theme-panel="dark" className={styles.panel}>
           <div className={styles.panelTag}>Dark — Night broadcast</div>
           <Gallery />
         </section>
-        <section data-theme="light" className={styles.panel}>
+        <section data-theme="light" data-theme-panel="light" className={styles.panel}>
           <div className={styles.panelTag}>Light — Daylight clean</div>
           <Gallery />
         </section>
