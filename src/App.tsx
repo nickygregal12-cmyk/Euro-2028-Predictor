@@ -66,6 +66,13 @@ const SeasonLeaderboardPreview = import.meta.env.DEV
       })),
     )
   : null
+const SeasonMatchPredictorPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/SeasonMatchPredictorPreview').then((m) => ({
+        default: m.SeasonMatchPredictorPreview,
+      })),
+    )
+  : null
 
 export default function App() {
   return (
@@ -85,6 +92,9 @@ export default function App() {
             ) : null}
             {import.meta.env.DEV && SeasonLeaderboardPreview ? (
               <Route path="/dev/season-leaderboard" element={<SeasonLeaderboardPreview />} />
+            ) : null}
+            {import.meta.env.DEV && SeasonMatchPredictorPreview ? (
+              <Route path="/dev/season-predictor" element={<SeasonMatchPredictorPreview />} />
             ) : null}
 
             <Route element={<AuthLayout />}>

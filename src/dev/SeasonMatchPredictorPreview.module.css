@@ -1,0 +1,109 @@
+.page {
+  min-height: 100svh;
+  padding: var(--sp-4);
+  background: var(--bg);
+}
+
+.header {
+  margin: 0 0 var(--sp-4);
+}
+
+.h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-4);
+  color: var(--tx);
+}
+
+.sub {
+  margin: var(--sp-1) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  line-height: 1.5;
+  color: var(--tx2);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin: 0 0 var(--sp-5);
+}
+
+.group {
+  margin: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.group legend {
+  padding: 0 var(--sp-1);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.option {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  min-height: 28px;
+}
+
+.option em {
+  color: var(--tx3);
+  font-style: normal;
+  font-size: var(--fs-1);
+}
+
+.option input[type='number'] {
+  width: 72px;
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--input-bg);
+  color: var(--tx);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  font-variant-numeric: var(--numeric);
+}
+
+/* Both themes side by side, matching the components gallery so a reviewer reads
+   one layout across both harnesses. */
+.themes {
+  display: grid;
+  gap: var(--sp-4);
+  grid-template-columns: 1fr;
+}
+
+/* `min-width: 0` is load-bearing, not tidying. A grid item defaults to
+   min-width:auto, so the shell's deliberately nowrap sub-navigation stretched
+   this panel to 430px inside a 360px viewport and gave the whole page a
+   horizontal scrollbar — the thing §11.5 forbids. With the item allowed to
+   shrink, the sub-nav scrolls inside its own overflow region as intended. */
+.panel {
+  min-width: 0;
+  padding: var(--sp-4);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+  border: 1px solid var(--line);
+}
+
+.panelTag {
+  margin: 0 0 var(--sp-3);
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+@media (min-width: 1100px) {
+  .themes {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -1,0 +1,110 @@
+/* Phone-first matchweek card. Vertical fixture cards, large touch targets and a
+   numeric keyboard on the score inputs (§11.5, prediction entry row). */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.lockLine {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* The §12.1 consequence sentence. Deliberately at body weight rather than as a
+   warning: it is the rule of the game, not an error. */
+.consequence {
+  margin: 0;
+  padding: var(--sp-3);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  border: 1px solid var(--line);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.fixtures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* The matchweek-level Joker. Deliberately not on the fixture card: the domestic
+   Joker doubles a whole matchweek, and a per-fixture control would imply it can
+   be aimed at one match. */
+.joker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  align-items: flex-start;
+  min-height: var(--tap-min);
+  padding: var(--sp-3);
+  border-radius: var(--radius-input);
+  background: var(--gold-tint);
+  border: 1px solid var(--gold);
+  color: var(--gold-strong);
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Gold rule (design-system §2): tint-with-border plus --gold-strong text. Never
+   outline-only, and never gold text straight onto a card surface. */
+.joker[aria-pressed='true'] {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--gold-contrast);
+}
+
+.joker:disabled {
+  background: var(--chip);
+  border-color: var(--line);
+  color: var(--tx3);
+  cursor: not-allowed;
+}
+
+.jokerLabel {
+  font-size: var(--fs-3);
+  font-weight: 600;
+}
+
+.jokerMeta {
+  font-size: var(--fs-1);
+  letter-spacing: var(--tracking-open);
+  font-variant-numeric: var(--numeric);
+}
+
+.alertAction {
+  margin-top: var(--sp-3);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px
+  ;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (min-width: 720px) {
+  .actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
