@@ -482,7 +482,18 @@
  * starts empty, the job reports itself unconfigured until two vault secrets
  * exist, and nothing on any authenticated surface reads either new table.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 115
+/**
+ * Contract 116 adds one `predictor_internal` table, one `predictor_internal`
+ * importer, one immutability trigger bound to that new table, and nothing else.
+ * It creates no relation a browser can reach, alters no existing relation,
+ * policy or grant, and its trigger fires only on the new table.
+ *
+ * A seeded user meets no new gate, and cannot: the revision record is revoked
+ * from every browser and service role, and the importer is reachable only by a
+ * definer caller. The importer also writes nothing on a fresh seed — it revises
+ * fixtures a provider payload names, and a seeded database has no payload.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 116
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
