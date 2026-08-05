@@ -199,7 +199,20 @@ in". The owner's decision is that it is **not** reassigned:
   is replayed midweek alongside other games or on its own;
 - **a single moved match never creates a round of its own.** This was named
   explicitly for Last Man Standing, where one rearranged fixture must not become
-  a round; it holds generally.
+  a round; it holds generally;
+- **the round is a label, not a position.** The fixture is still *titled* a
+  Matchweek 3 game after it is replayed past Matchweek 4, and it still scores
+  into Matchweek 3 — but anywhere fixtures are listed by date it appears at its
+  ACTUAL kickoff, in true chronological position, carrying its original
+  matchweek as its label.
+
+That last point is the one an implementation is most likely to get wrong in the
+comfortable direction. Grouping strictly by round is the easy read of "it stays
+in Matchweek 3", and it produces a fixture list where a match played in
+November sits under a heading from September, above matches that were played
+weeks earlier. What the owner asked for is the opposite: **order by kickoff,
+label by round.** Round membership decides scoring; the kickoff decides where it
+is shown and when it locks.
 
 **Why this is simpler than what it replaces, and not merely different.** The
 machinery it needs already exists. § Fixture exceptions already states the
