@@ -1,10 +1,10 @@
 # Multi-competition platform — master TODO
 
-**Status date:** 2 August 2026  
+**Status date:** 5 August 2026  
 **Current facts:** [`docs/quality/current-status.md`](docs/quality/current-status.md)  
 **Execution sequence:** [`docs/roadmap.md`](docs/roadmap.md)  
 **Programme map:** [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md)  
-**Decision authority:** [`docs/adr/0011-multi-competition-platform.md`](docs/adr/0011-multi-competition-platform.md) through [`docs/adr/0019-brand-decision-deferred.md`](docs/adr/0019-brand-decision-deferred.md)
+**Decision authority:** [`docs/adr/README.md`](docs/adr/README.md), including later amendments through ADR 0025
 
 This is the detailed inventory. It does not replace the roadmap's ordering or the current-status facts. Items are moved between the two sections; they are not silently discarded.
 
@@ -141,7 +141,7 @@ All seven pre-migration contract suites are landed through PR #292. The owner-ap
 - [x] Preserve every Euro identifier, rule, score, rank, access boundary and Stage B context output.
 - [x] Extend applied-state, RLS/grant and adversarial cross-season tests in the same change.
 - [x] Prove zero-to-current rebuild, database lint, pgTAP, generated types and full Database parity on disposable infrastructure.
-- [x] Complete the guarded hosted development rollout (workflow from PR #351). *(Applied and postflight-verified 2–3 August 2026; the `SUPABASE_DEV_DB_URL` blocker is resolved. Development has since advanced to contract 79 through the ADR 0024 fast lane.)*
+- [x] Complete the guarded hosted development rollout (workflow from PR #351). *(Applied and postflight-verified 2–3 August 2026; later additive development movement is recorded only in `docs/quality/current-status.md` and the development machine record, not duplicated here.)*
 - [ ] Keep production at contract 63 and paused until an intentional release milestone. *(Standing constraint, not a task to complete; production remains at 63.)*
 
 ### Stage C1b — persistent game catalogue and memberships — DELIVERED at contract 66 (PR #371)
@@ -165,10 +165,13 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 
 ## Stage D — ingestion and headless rehearsal
 
+**Custody foundation delivered; live rehearsal remains.** The repository now has strict provider decoders, a server-only request boundary, raw-response archive-before-processing custody and append-only processing evidence. Provider data remains provisional and cannot write official competition truth.
+
 - [ ] Confirm provider terms, coverage, timezone and exceptional-state mappings with dated evidence.
-- [ ] Implement independent adapters behind one internal model.
-- [ ] Start storing raw provider responses from the first poll.
-- [ ] Keep ingestion provisional and replay-safe.
+- [x] Implement the strict provider-response custody boundary behind one internal model.
+- [ ] Configure the approved development credential and execute one bounded non-production request.
+- [ ] Verify the exact raw response is archived before decode and every processing attempt is append-only.
+- [ ] Keep ingestion provisional, replay-safe and unable to write official fixtures, results, locks, scores, totals, ranks or standings.
 - [ ] Audit kickoff, round and result changes.
 - [ ] Build deterministic anomaly fixtures for events not observed live.
 - [ ] Prove stale/unavailable data fails closed.
@@ -178,40 +181,41 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 
 ## Stage E — season Predictor
 
-- [ ] Build only from ADR 0012 and its future scoring authority.
-- [ ] Add recurring matchweek submission scheduling around the existing tournament submission mechanism. **NEXT SLICE.** The storage it schedules over exists (contracts 68–70); what is absent is the recurrence itself.
-- [x] Extend TypeScript/PostgreSQL parity for season scoring. *(Contract 70: `season_fixture_points` and `season_matchweek_points`, held in step by `seasonScoringParity.test.ts` and proven by `122_season_scoring.sql`.)*
+**Backend foundation delivered; product surfaces remain.** The season path has stored fixtures and predictions, whole-matchweek Jokers, zero-buffer locks, empty-card semantics, recurring lock processing, replay-safe fixture reassignment, scoring parity, stored matchweek totals and a bounded season leaderboard.
+
+- [x] Build the backend authorities from ADR 0012 as amended by ADR 0020.
+- [x] Add recurring matchweek submission scheduling around the stored card and lock authorities.
+- [x] Extend TypeScript/PostgreSQL parity for season scoring.
+- [x] Cover backend late entry, unbanked rounds, blank/partial cards, reschedules and corrections.
 - [ ] Build the fast phone entry and completion flow.
-- [ ] Cover late entry, unbanked rounds, defaults, partial completion, reschedules and corrections.
 - [ ] Build matchweek, monthly and form standings as first-class retention surfaces that never feed back into the canonical total.
+- [ ] Prove the complete user journey across hostile loading, unavailable, correction and replay states.
 - [ ] Measure completion and low-rank retention during the closed cohort and record the result.
 
 ## Stage F — season Last Man Standing
 
-**Rules and storage delivered.** Contract 71 resolves a pick, contract 72 persists setups and entrant state with public competitions pinned to Classic, and contract 73 concludes a round and a season — each with TypeScript parity and pgTAP. What remains below is the settlement job that calls them, and the surfaces.
+**Rules, storage and settlement delivered; lifecycle and surfaces remain.** Eligibility, deterministic C-collation auto-assignment, used-team cycles, lock-time selection writes, correction-aware replay, entrant-state projection and the recurring settlement job are implemented. The settlement job deliberately reports a large public wipeout without creating its successor.
 
-- [x] Encode every ADR 0013 rule as a pure authority with a PostgreSQL counterpart. *(Contracts 71–73.)*
-- [x] Persist LMS setups and entrant state, refusing an entrant more lives or saves than their setup granted. *(Contract 72.)*
-- [ ] **Build the settlement job that drives `resolve_lms_pick` and `conclude_lms_round` from confirmed results.** The rules cannot run themselves.
-
-- [ ] Build only from ADR 0013.
-- [ ] Cover public/private lifecycle, repeating competitions and registration boundaries.
-- [ ] Cover managed entrants and organiser audit/ownership paths.
-- [ ] Cover all exception, depletion, reduced-round, reset and endgame paths.
-- [ ] Enforce one-entry and lock rules server-side.
-- [ ] Prove the consolidated weekly-picks read model.
+- [x] Encode the ADR 0013 rules as pure TypeScript authorities with PostgreSQL parity.
+- [x] Persist LMS setup, selections, used cycles and entrant state with server-side lock and allowance enforcement.
+- [x] Drive `resolve_lms_pick` and `conclude_lms_round` from confirmed results through the correction-aware settlement job.
+- [ ] Implement the ADR 0025 `restart_all_reentered` lifecycle as a separate idempotent, advisory-lock-protected successor operation.
+- [ ] Complete public/private registration and repeating-competition user journeys.
+- [ ] Build managed entrants and organiser audit/ownership paths.
+- [ ] Prove the consolidated weekly-picks read model and phone selection surface.
+- [ ] Cover every depletion, reduced-round, reset and exceptional endgame through complete browser journeys.
 
 ## Stage G — season Predictor Cup
 
-**Largely delivered, contracts 74–79.** The shared Cup machinery is now competition-agnostic and the season supplies its own sources.
+**Rules, shared machinery and split persistence delivered; the phase driver and surfaces remain.** The shared Cup machinery is competition-neutral; the season supplies its own sources. Split groups and memberships are phase-aware, each child has one initial parent, and continuing standings are derived from settled fixtures across both phases rather than copied into a starting total.
 
-- [x] Build only from ADR 0014, as amended by ADR 0020 and ADR 0022.
-- [x] Reuse existing draw, qualification, bracket and Penalty Number machinery. *(Contracts 75–76 made `predictor_internal.cup_*` neutral rather than writing a second set; `cup_final_group_tables`, `cup_seed_group` and `cup_bracket_order` needed no change at all.)*
-- [x] Replace the tournament points source through an explicit neutral contract. *(Contract 75 split the points source from the shared arithmetic; contract 77 added the season's own source returning the same eight derived facts.)*
-- [x] Prove format selection and schedules across supported field sizes and remaining-round counts. *(Contracts 74 and 78, with parity suites and pgTAP.)*
-- [x] Cover settlement with reduced fixture sets and visible explanation. *(Contract 74: `settle_season_cup_tie` reports `settledOnFixtures`, `fixtureCardSize` and `reducedSet`, and refuses a tie with nothing confirmed.)*
-- [ ] **Decide and document the split-stage persistence shape, then implement it.** `bonus_cup_fixtures.stage` is still `('group', 'playoff', 'knockout')`. A season split stage needs `group_id` and `matchday`, which `bonus_cup_fixtures_group_shape` forbids for any non-group stage, so the enum cannot widen until that check's intent is settled. See `docs/adr/`.
-- [ ] Build the season Cup surfaces. Blocked behind the Phase 1 design like every other season surface.
+- [x] Build from ADR 0014 as amended by ADRs 0020, 0022 and 0025.
+- [x] Reuse the existing draw, qualification, bracket and Penalty Number machinery through competition-neutral sources.
+- [x] Prove format selection, circle-method schedules, tie settlement and reduced fixture sets.
+- [x] Persist `stage = 'split'`, phase-aware membership, one-parent ancestry and derived continuing standings.
+- [ ] Build the phase-transition driver that creates the two child groups, assigns entrants by the final initial table and schedules the immutable split fixtures.
+- [ ] Expose the continuing table and phase state through a bounded browser read.
+- [ ] Build the season Predictor Championship surfaces after the Phase 1 design gate.
 
 ## Stage H — hub and social product
 
