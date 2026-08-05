@@ -16,9 +16,20 @@ failed to connect to postgres: failed to connect to
   failed SASL auth (FATAL: password authentication failed for user "postgres" (SQLSTATE 28P01))
 ```
 
-**`SQLSTATE 28P01` is password authentication failed, so the `SUPABASE_DEV_DB_URL` repository secret carries a stale password.** Re-setting that secret is the owner action that unblocks all four pending migrations; nothing in the repository can clear it.
+**The error text is measured. The cause is still not established, and this document has now guessed it twice.** First as "the runner's own Postgres connection", then — once contract 119 printed the CLI text — as a stale password in `SUPABASE_DEV_DB_URL`. The owner rejected the second reading, and the reasoning holds against it:
 
-Two things the same output rules out, both worth recording because they were the standing hypotheses. The host, project ref and user resolve correctly — `aws-1-eu-west-2.pooler.supabase.com`, `postgres.iouzoutneyjpugbbtdem`, the **development** project and not production — so the secret's shape and target are right and only its password is wrong. And the run reaches SASL authentication, so there is no network, DNS or TLS fault: the two earlier runs on `8636bfb` were recorded here as "the runner's own Postgres connection", and that reading was wrong.
+**a repository secret is one stored value, and the same value succeeded at 17:29 and failed at 20:08 on 5 August 2026** (run `31030063029`, which applied contracts 114 and 115). "The password has always been wrong" cannot explain a run that worked three hours earlier. Either the value was edited between those times, or what it points at changed underneath it.
+
+What the surviving evidence rules out, checked rather than assumed:
+
+- **the workflow** — byte-identical between the successful commit `16ce4d5` and the first failing commit `8636bfb`; contract 119 only changed error printing, and only after the failures began;
+- **the project** — `ACTIVE_HEALTHY`, not paused or restoring, and its migration ledger holds exactly 115 rows ending at `20260805110000`, so development is where this table says it is;
+- **anything applied here** — no migration in the repository contains `alter role`, `alter user` or a password change;
+- **PostgreSQL itself** — its logs carry no authentication failures at all, which is what a rejection at the pooler looks like, because such a connection never reaches the database.
+
+**Why the message misleads.** Supavisor answers `28P01` for a tenant it cannot find as well as for a password it rejects, and does not distinguish them. So a URL aimed at the wrong pooler cluster is indistinguishable, in this output, from a bad credential — and both `aws-0-eu-west-2` and `aws-1-eu-west-2` are live, distinct clusters. Two explanations therefore fit equally: the secret was edited during the vault-secret and real-league-data work that evening, or the project's pooler tenant moved.
+
+The fast lane now settles it rather than inviting a third guess: on failure it connects with a password that is *known* to be wrong, to both the configured cluster and its sibling. "Tenant or user not found" means the host is wrong and the password is irrelevant; the same `28P01` means the cluster knows the project and the stored credential really is being rejected. **Until that output exists, no cause should be recorded here as fact.**
 
 Nothing was applied: the failure precedes the snapshot and the push, and development is unchanged at 115 — verified independently.
 
