@@ -135,15 +135,6 @@ export async function fetchLastSeenRead(userId: string): Promise<LastSeenRead> {
 }
 
 /**
- * Compatibility wrapper for callers where last-seen data is purely optional.
- * Home uses `fetchLastSeenRead` so it can report source unavailability honestly.
- */
-export async function fetchLastSeen(userId: string): Promise<LastSeen> {
-  const read = await fetchLastSeenRead(userId)
-  return read.available ? read.value : { lastSeenAt: null, lastSeenPoints: null }
-}
-
-/**
  * Snapshot "seen now, at this total" (own-profile RLS). Best-effort — a missing
  * column just means the catch-up line never fires; never blocks Home from loading.
  */

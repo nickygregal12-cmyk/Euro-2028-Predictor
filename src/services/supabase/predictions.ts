@@ -4,10 +4,6 @@
 // and the joker flag.
 
 import { supabase } from './client'
-import {
-  mapEntrySubmissionStatus,
-  type EntrySubmissionStatus,
-} from './entrySubmissionStatusModel'
 import { VersionConflictError, isVersionConflict } from './writeConflict'
 
 export type {
@@ -96,22 +92,6 @@ export async function submitEntry(entryId: string): Promise<string> {
   const { data, error } = await supabase.rpc('submit_entry', { p_entry_id: entryId })
   if (error) throw error
   return data as string
-}
-
-/**
- * Reads the server-owned submission outcome for the authenticated entry owner.
- * This distinguishes a deliberate manual submission from a complete entry that
- * was recovered automatically at lock, and safely exposes the validator reason
- * when an incomplete entry could not be submitted.
- */
-export async function fetchEntrySubmissionStatus(
-  entryId: string,
-): Promise<EntrySubmissionStatus> {
-  const { data, error } = await supabase.rpc('get_entry_submission_status', {
-    p_entry_id: entryId,
-  })
-  if (error) throw error
-  return mapEntrySubmissionStatus(data)
 }
 
 export async function fetchMatchPredictions(entryId: string): Promise<MatchPrediction[]> {

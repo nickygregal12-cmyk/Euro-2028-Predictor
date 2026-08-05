@@ -112,19 +112,6 @@ export function HomeIcon(props: IconProps) {
   )
 }
 
-// Checklist — the predictions glyph.
-export function PredictIcon(props: IconProps) {
-  return (
-    <svg {...svgProps(props)}>
-      {props.title ? <title>{props.title}</title> : null}
-      <path d="M4 7h9" />
-      <path d="M4 12h9" />
-      <path d="M4 17h5" />
-      <path d="M14.5 15.8l1.8 1.8 3.2-3.6" />
-    </svg>
-  )
-}
-
 // Soccer ball — the Predict glyph (design-system §6: football icon for Predict).
 export function BallIcon(props: IconProps) {
   return (
