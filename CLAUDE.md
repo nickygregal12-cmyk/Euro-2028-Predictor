@@ -61,6 +61,7 @@ Season Match Predictor, Last Man Standing and Predictor Championship rules come 
 - No guard bypass or direct-table fallback around a protected RPC.
 - No Supabase/Netlify environment crossing and no modification of the historic World Cup deployment.
 - No scoring, lifecycle or rule change without its authority and executable evidence.
+- Do not put successor-window generation inside the Contract 107 restart transition; the next eligible league round requires its own calendar authority and idempotent driver.
 - No hosted claim without fresh target-specific evidence.
 - No combined cross-competition entry, score, survival, progression or standings authority.
 - No rewriting dated evidence to make the current position look cleaner; correct the live authority and preserve history.
