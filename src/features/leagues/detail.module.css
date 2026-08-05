@@ -96,7 +96,7 @@
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  z-index: 20;
+  z-index: var(--z-navigation);
   min-width: 180px;
   padding: 6px;
   background: var(--card);
@@ -190,13 +190,19 @@
   color: var(--tx3);
 }
 
-/* Coming-soon toast host (fixed above the bottom nav). */
+/* Coming-soon toast host (fixed above the bottom nav).
+ *
+ * `--z-toast` is the top of the declared stacking order, above `--z-modal`.
+ * The literal this replaces was 40, which sat BELOW the modal's old 100, so a
+ * toast raised while a dialog was open rendered behind it. Adopting the scale
+ * reverses that, deliberately: a message about what just happened is worth
+ * nothing if the thing on top of it is what hid it. */
 .toastHost {
   position: fixed;
   left: 50%;
   bottom: 78px;
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: var(--z-toast);
   width: calc(100% - 32px);
   max-width: 420px;
 }

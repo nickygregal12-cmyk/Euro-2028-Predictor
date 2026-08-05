@@ -61,7 +61,7 @@
 
 .sectionTitle {
   margin: 0.25rem 0 0;
-  font-size: 1.25rem;
+  font-size: var(--fs-4);
 }
 
 .count {
@@ -69,7 +69,7 @@
   border-radius: 999px;
   background: var(--input-bg);
   padding: 0.35rem 0.65rem;
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
   font-weight: 700;
 }
 
@@ -143,7 +143,7 @@
 .fixtureStatus {
   max-width: 8rem;
   color: var(--tx3);
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   text-align: right;
 }
 
@@ -177,7 +177,7 @@
   flex: 0 0 auto;
   border-radius: 999px;
   padding: 0.35rem 0.65rem;
-  font-size: 0.74rem;
+  font-size: var(--fs-1);
   font-weight: 700;
 }
 
@@ -224,7 +224,7 @@
   display: grid;
   gap: 0.4rem;
   color: var(--tx2);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-weight: 700;
 }
 
@@ -259,7 +259,7 @@
 .scoreGroup legend {
   margin-bottom: 0.5rem;
   color: var(--tx2);
-  font-size: 0.78rem;
+  font-size: var(--fs-1);
   font-weight: 700;
 }
 
@@ -273,7 +273,7 @@
   min-height: 3.25rem;
   padding: 0.35rem 0.75rem;
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: var(--fs-4);
   font-weight: 600;
   text-align: center;
 }
@@ -310,13 +310,13 @@
 .reviewSummary p {
   margin: 0;
   color: var(--tx2);
-  font-size: 0.82rem;
+  font-size: var(--fs-2);
   line-height: 1.5;
 }
 
 .revisionHeading time {
   color: var(--tx3);
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
 }
 
 .revisionList blockquote {
@@ -353,7 +353,7 @@
 
 .fixtureMeta {
   color: var(--tx2);
-  font-size: 0.8rem;
+  font-size: var(--fs-1);
 }
 
 @media (max-width: 42rem) {

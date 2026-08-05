@@ -24,7 +24,7 @@ body {
   background: var(--bg);
   color: var(--tx);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-2);
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

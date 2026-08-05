@@ -115,6 +115,9 @@
   opacity: 0.55;
 }
 
+/* Local stacking against the connector line this chip sits on, not an
+   application layer — see Masthead.module.css for why those are kept off the
+   `--z-*` scale. */
 .stepChip {
   position: relative;
   z-index: 1;

@@ -32,14 +32,14 @@
    a reading step that is free to move without the icon wanting to follow. */
 .chevron {
   color: var(--tx2);
-  font-size: 16px;
+  font-size: var(--fs-3);
   line-height: 1;
 }
 
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  z-index: var(--z-modal);
   display: flex;
   align-items: flex-end;
   justify-content: center;

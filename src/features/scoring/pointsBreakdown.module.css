@@ -44,7 +44,7 @@
 
 .chev {
   color: var(--tx3);
-  transition: transform 120ms ease;
+  transition: transform var(--duration-micro) var(--ease-out);
 }
 .chevOpen {
   transform: rotate(180deg);
