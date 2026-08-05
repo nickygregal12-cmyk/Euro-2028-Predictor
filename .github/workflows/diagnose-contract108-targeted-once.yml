@@ -1,0 +1,42 @@
+name: Diagnose Contract 108 targeted tests once
+
+on:
+  push:
+    branches:
+      - docs/reconcile-contract-108-follow-up
+    paths:
+      - .github/workflows/diagnose-contract108-targeted-once.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Capture targeted Vitest output
+        shell: bash
+        run: |
+          set +e
+          npx vitest run \
+            tests/scripts/contract108DocumentationFreshness.test.ts \
+            tests/scripts/featureBaselineFreshness.test.ts \
+            tests/scripts/adrStatusFreshness.test.ts \
+            tests/scripts/markdownDocumentation.test.ts \
+            --reporter=verbose > contract108-targeted-output.txt 2>&1
+          status=$?
+          printf '\nVITEST_EXIT_STATUS=%s\n' "$status" >> contract108-targeted-output.txt
+          exit 0
+      - name: Upload diagnostic output
+        uses: actions/upload-artifact@v4
+        with:
+          name: contract108-targeted-output
+          path: contract108-targeted-output.txt
+          if-no-files-found: error
