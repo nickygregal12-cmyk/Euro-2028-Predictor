@@ -13,10 +13,10 @@ This directory separates **programme planning** from **engineering planning**.
 | [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md) | Approved combined Stage C design record, retained as reasoning and overlaid for implementation by the C1/C2 governance and C1 schema overlay |
 | [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md) | Exhaustive original object/function inventory; current C1/C2 implementation disposition is in the schema overlay |
 | [`stage-c-tournament-id-compatibility.md`](stage-c-tournament-id-compatibility.md) | Exact pre-migration inventory of the retained physical `public.*.tournament_id` compatibility surface |
-| [`stage-c-trigger-bindings.md`](stage-c-trigger-bindings.md) | Exact pre-migration inventory of every effective non-internal trigger binding on a `public` table |
+| [`stage-c-trigger-bindings.md`](stage-c-trigger-bindings.md) | Current effective inventory of every non-internal trigger binding on a `public` table, kept in lockstep with the executable parser/coverage guard |
 | [`stage-c-euro-preservation-oracle.md`](stage-c-euro-preservation-oracle.md) | `CS-012` structural seed oracle plus the required same-database UUID/count/score/access preservation rehearsal |
 
-Neither planning document overrides an ADR. Decisions are governed by [`../adr/README.md`](../adr/README.md), especially ADRs 0011–0019. Current implementation and hosted facts live in [`../quality/current-status.md`](../quality/current-status.md), and the repository's execution order lives in [`../roadmap.md`](../roadmap.md).
+Neither planning document overrides an ADR. Decisions are governed by the current index at [`../adr/README.md`](../adr/README.md), including later amendments to the original Stage A set. Current implementation and hosted facts live in [`../quality/current-status.md`](../quality/current-status.md), and the repository's execution order lives in [`../roadmap.md`](../roadmap.md).
 
 A cold reader should use the documents in this order:
 

@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 106,
-  "latestMigrationVersion": "20260805020000",
-  "latestMigrationName": "terminal_aware_bonus_rederive",
-  "verifiedAt": "2026-08-05T07:25:58.027Z",
+  "requiredMigrationCount": 108,
+  "latestMigrationVersion": "20260805040000",
+  "latestMigrationName": "successor_window_calendar_guard",
+  "verifiedAt": "2026-08-05T09:26:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30984799464 on aa46fee, completed successfully; contract 106 applied. Corroborated read-only: the ledger holds 106 rows through 20260805020000. Both Bonus Games rederive functions now resolve through current_public_competition_id and NEITHER retains a predictor_internal.live_competition_id call, so a result corrected after a competition completes rederives instead of silently returning (DATA-009). Neither is reachable by anon, authenticated or service_role. Zero competitions are completed, so the change is behaviour-neutral today and lands ahead of the restart driver that will make it reachable.",
-    "workflowRunId": 30984799464,
-    "repositoryHead": "aa46feed60a9e9624c8af8b58a38f15249c35987"
+    "source": "Development fast-lane rollout run 30993039183 on 821fec8, completed successfully; contract 108 applied. Corroborated read-only: the ledger holds 108 rows through 20260805040000. predictor_internal.assert_successor_window_after_predecessor is security definer with search_path pinned to the empty string, is granted to none of anon, authenticated, service_role or PUBLIC, and its DEPLOYED BODY IS BYTE-IDENTICAL to the committed migration — md5 f2ec4b3ca1341f814bdf5a9be1686296 over 1484 characters on both sides. The trigger is bound to public.bonus_competition_windows and is non-internal, so it judges every writer rather than one script. No browser or service role holds ANY grant on that table, so the trigger cannot refuse a write a player could have made. Zero successors exist, so nothing hosted is currently subject to the rule and the change is behaviour-neutral today.",
+    "workflowRunId": 30993039183,
+    "repositoryHead": "821fec83678d4d2e89a6c293b6920450d28af7dc"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false

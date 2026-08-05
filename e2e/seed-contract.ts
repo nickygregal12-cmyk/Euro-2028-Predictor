@@ -350,8 +350,45 @@
  * settlement job still only derives and reports — and it refuses any competition
  * that is not Last Man Standing. A seeded Euro user's reads are unchanged
  * because no restart can occur without a caller, and there is none.
+ *
+ * Contract 108 is the first of these recent additions that changes the
+ * browser-visible surface at all, and the honest statement is that it changes
+ * it by exactly one row. The before-and-after comparison went from 227 rows to
+ * 228, and the single added line is
+ *
+ *   trigger|public.bonus_competition_windows|assert_successor_window_after_predecessor
+ *
+ * Every grant held by anon, authenticated or service_role is identical, every
+ * RLS policy is identical, and no other trigger moved. The guard function
+ * itself is revoked from every browser and service role.
+ *
+ * A trigger on a public table is worth pausing on, because it can refuse a
+ * write a seeded user was previously able to make. This one cannot reach them.
+ * No browser role holds insert or update on `bonus_competition_windows` at all
+ * — rounds are operational reference data, published by
+ * `scripts/bonus-games/publish-catalogue.sql` and never by a player — so the
+ * only writers are the seed path and that script. Both publish first instances,
+ * which the guard exempts by construction: it fires only on a competition that
+ * names a predecessor. The seeded Euro competitions name none.
+ *
+ * Contract 109 adds two `predictor_internal` functions, one `public` job and a
+ * pg_cron entry, and changes the browser-visible surface not at all: compared
+ * against contract 108 it is 228 rows on both sides, identical line for line.
+ * Every new function is revoked from `public`, `anon`, `authenticated` and
+ * `service_role`, the `public.process_due_lms_restarts` job included — it is
+ * reachable only by the scheduler, exactly as contract 89's settlement job is.
+ *
+ * It does write, and this is the first of these additions that acts on its own
+ * schedule: the job restarts a season Last Man Standing competition and
+ * schedules its successor. Nothing a seeded Euro user sees can move, because
+ * the job selects `tournaments.kind = 'league_season'` and Euro 2028 is
+ * `kind = 'tournament'`. It also requires the competition's latest settlement
+ * report to conclude `restart_all_reentered`, and the seed writes no settlement
+ * reports at all — the season competitions it publishes carry
+ * `availability_status = 'inactive'` with no entrants, rounds or fixtures, so
+ * on a fresh seed the job's own selection finds nothing to act on.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 107
+export const SEED_REVIEWED_AT_CONTRACT = 109
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

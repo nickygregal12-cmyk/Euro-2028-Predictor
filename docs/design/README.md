@@ -34,10 +34,15 @@ document.
 ## Read the baseline before you act on it
 
 **The plan reviewed a snapshot of 93 migrations and 69 pgTAP suites** (§2.1).
-`main` is at **103 migrations / 78 pgTAP suites** — contracts 94–103 landed on
-4 August 2026, after the snapshot was taken:
+That count is a document-input fact, not a live repository gauge. The repository
+has moved substantially beyond the snapshot; read
+[`../quality/current-status.md`](../quality/current-status.md) and
+`config/deployment-contract.json` for the moving head rather than copying a count
+from this design index.
 
-| contract | what landed |
+The merged delta known at this 5 August review is:
+
+| contract | what landed after the plan snapshot |
 | --- | --- |
 | 94 | `standings.ts` SQL parity — the season table, ranked |
 | 95 | the bounded season leaderboard read, limited to league co-members |
@@ -48,12 +53,21 @@ document.
 | 100 | REL-001 — the Bonus Games rederive joins the tournament lock |
 | 101 | Euro post-lock reveal stops gating on shared leagues |
 | 102 | the Predictor Championship split stage persisted, phase-aware |
-| 103 | a competition can happen more than once — lifecycle-aware uniqueness |
+| 103 | competition instances became repeatable through lifecycle-aware uniqueness |
+| 104 | operational callers became live-instance explicit and current reads terminal-aware |
+| 105 | one-parent split ancestry and a continuing table derived across both phases |
+| 106 | tournament Bonus rederivation remained correction-safe after completion |
+| 107 | the idempotent LMS wipeout restart creates a linked successor and copies no picks, cycles, projections or windows |
 
-Nothing in those contradicts the plan, but **Appendix D.2's reconciliation list
-predates them** and must be checked against
-[`../quality/current-status.md`](../quality/current-status.md) before being
-treated as outstanding work.
+Contract 107 is a lifecycle transition, not a complete restart journey. The
+successor is deliberately inert until a separate calendar authority identifies
+the next eligible league round and creates its windows exactly once; the design
+must show that honest unavailable/not-started state rather than implying picks
+are open.
+
+None of these changes presentation authority into scoring or lifecycle authority.
+**Appendix D.2's reconciliation list predates them** and must be checked against
+the live status before being treated as outstanding work.
 
 **The one item that needed care is now settled.** D.2 listed *"post-lock reveal
 — existing rival/profile RPCs still contain shared-league gates"* as drift to

@@ -3,10 +3,12 @@
 **Status:** Child engineering plan within the product programme. Proposal, not implementation authority.  
 **Status date:** 30 July 2026  
 **Parent programme:** [`programme-plan.md`](programme-plan.md)  
-**Decision authority:** [`../adr/0011-multi-competition-platform.md`](../adr/0011-multi-competition-platform.md) through [`../adr/0018-pre-launch-promotion-cadence.md`](../adr/0018-pre-launch-promotion-cadence.md).  
+**Decision authority:** the current index at [`../adr/README.md`](../adr/README.md); later ADRs amend the original 0011–0018 planning set.  
 **Implementation authority:** [`../quality/current-status.md`](../quality/current-status.md).
 
 This document owns the Stage A–L engineering sequence. Discovery, research, product design, instrumentation, go-to-market, operations and legal work are governed by the parent programme. Competition rules and strategic decisions are referenced rather than repeated here; the ADRs win wherever this plan or an older document differs.
+
+> **Progress overlay — 5 August 2026.** The detailed findings below remain a dated 30 July planning record. Phrases such as “current `main`” inside §1 refer to that verification snapshot, not the repository now. Since then the shared context migration, Stage C/C1b, provider custody, the season Match Predictor/LMS/Championship backend foundations and the idempotent LMS wipeout restart transition have landed. The remaining execution order is maintained only in [`../roadmap.md`](../roadmap.md), and exact implementation/hosted truth only in [`../quality/current-status.md`](../quality/current-status.md). Do not update historical rows piecemeal to mimic a live status page.
 
 ## 1. Repository verification and corrections
 

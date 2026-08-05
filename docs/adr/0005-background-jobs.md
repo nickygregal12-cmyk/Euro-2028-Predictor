@@ -1,6 +1,6 @@
 # ADR 0005 — Background jobs
 
-- **Status:** Accepted direction — partially implemented (auto-submit at lock ships on `pg_cron` via contract 41, `20260727174658_automatic_entry_submission.sql`; rate-limit pruning was instead solved opportunistically in-transaction, `20260720210000_rate_limits.sql`; scoring drain, standings reconciliation, reminders, failure reporting and the Edge Functions half remain unbuilt)
+- **Status:** Accepted direction — partially implemented. Database scheduling now drives Original auto-submission (contract 41), recurring season Match Predictor lock processing (contract 83) and season LMS settlement/replay (contract 89); rate-limit pruning remains transaction-local. The provider Edge Function has a server-only custody/strict-decode boundary (contract 97) but no approved live rehearsal. Incremental scoring drain, maintained-standings reconciliation, reminders and general failed/delayed-job reporting remain unbuilt.
 - **Date:** 27 July 2026
 
 ## Context
