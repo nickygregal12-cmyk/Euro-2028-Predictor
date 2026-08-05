@@ -1,5 +1,5 @@
 {
-  "contractVersion": 111,
+  "contractVersion": 112,
   "requiredMigrationCount": 112,
   "requiredRpcSignatures": [
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",

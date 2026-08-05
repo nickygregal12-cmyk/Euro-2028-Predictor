@@ -71,6 +71,7 @@ Every current column below is `uuid NOT NULL`.
 | `season_matchweek_cards.tournament_id` | contract 81; the card's season scope, so its composite keys cannot pair an entry from one season with a matchweek from another |
 | `season_matchweek_submission_outcomes.tournament_id` | contract 81; the same scope on the append-only record of what the lock did, so an outcome cannot be attributed across seasons |
 | `season_matchweek_scores.tournament_id` | contract 90; the settled total's season scope, so its composite keys cannot pair one season's entry with another season's matchweek — a failure that would leave every total arithmetically right and attached to the wrong competition |
+| `provider_entity_map.tournament_id` | contract 112; the season a provider identifier is being mapped WITHIN, and the reason the map has real referential integrity. A provider's team identifier is global and ours is not — the same club is a different `teams` row in every season — so it is the leading column of composite keys to `competition_rounds` and `teams`, and the database itself refuses a club from a different season. Present for every mapping kind, because a mapping without a season is not a fact |
 | `score_events.tournament_id` | explicit entry/match/team season proof |
 | `teams.tournament_id` | retain; teams remain season participants in Stage C |
 
