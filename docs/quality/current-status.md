@@ -254,6 +254,26 @@ and 38 unmapped rounds — all of them — because `provider_entity_map` is empt
 until somebody says which of our `teams` rows it is. The 578 invented development fixtures are untouched and remain
 the seed rather than football. SportMonks and API-Football stay uncontacted and their credentials unproven.
 
+**Development now holds real football, as of 5 August 2026.** Owner-authorised replacement of the invented seed in
+both league seasons, built entirely from payloads already archived — **no further provider calls**. Premier League
+from football-data (competition 2021, season 2502): 20 real clubs, 380 real fixtures, 21 August 2026 to 30 May 2027.
+Scottish Premiership from **SportMonks** (league 501, season 28275): 12 real clubs, 198 real fixtures. Two providers
+because football-data's plan carries 12 competitions and Scotland is not one of them, established by calling
+`/competitions` rather than by assumption. 105 `provider_entity_map` rows, and `provider_mapping_gaps` now returns
+`ready: true` where hours earlier it returned `ready: false` with every identifier unmapped. Full record in
+[`../ops/ops-real-league-data-adoption.md`](../ops/ops-real-league-data-adoption.md).
+
+**Two findings worth keeping.** SportMonks `62` is Rangers and football-data `62` is Everton — both now mapped, and
+distinguishable only because contract 112 keyed the map by `(provider, entity_kind, provider_id, tournament_id)` with
+composite foreign keys. That is the silent failure it was built against, arriving on the second league. And the real
+Scottish season is **33 rounds with the five post-split rounds carrying no fixtures at all**, because the split is not
+yet known — the source agreeing with the owner's 33 + 5 correction.
+
+**One inconsistency this leaves, recorded rather than discovered later.** `scripts/seed-dev/seed-league-seasons.ts`
+still generates the invented clubs, so re-running it would overwrite real football and cascade away every map row. It
+stays committed because CI and Browser E2E need a deterministic offline seed, and it needs a guard before it is safe
+to keep beside real data.
+
 **The target was then disabled, on owner direction, after exactly one API call.** Hourly polling during development spends quota on a fixture list nobody consumes. A weekly cadence is not expressible — the CHECK caps at 1440 minutes, because a target polled less often than daily is a manual refresh rather than a poll — so the target is disabled rather than given a schedule it does not keep. Verified: `due: 0`, `dispatched: 0`, one dispatch row in total. The row is kept as the reference for a correct target, and re-enabling is one statement.
 
 **What an operator must supply before it does anything**, stated here because the job is otherwise silently inert: two `vault` secrets — `provider_poll_function_url` (https only; an `http://` value raises rather than returning null, because sending the caller key in clear text is a misconfiguration to fix rather than an absence to tolerate) and `provider_poll_caller_key`, the project secret key named `provider-poll` that the Edge Function compares against in constant time — and at least one row in `public.provider_poll_targets`. Until then the job returns `configured: false` and `due: 0` every five minutes, which is an ordinary answer rather than an error: a job that failed loudly until somebody finished setting it up would be noise nobody reads by the time it means something.
