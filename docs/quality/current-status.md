@@ -241,6 +241,19 @@ the constant and its guard test now say so in a comment. **No provider was conta
 the function answers on its own configuration and its caller's key before it reads the request body. No provider
 credential has been exercised and nothing has been archived.
 
+**The first live poll ran on 5 August 2026, and it worked.** Owner-authorised for one bounded target before the
+first credential spend: `football-data` · `/competitions/PL/matches` · Premier League 2026/27 · hourly. The dispatcher
+returned `{"configured": true, "due": 1, "dispatched": 1, "failed": 0}`, the Edge Function answered HTTP 200, and
+**380 real Premier League fixtures** came back — 20 teams, 38 matchdays, kickoffs from 21 August 2026 to 30 May 2027,
+all `SCHEDULED`. Custody held in the order it was designed to: 365,300 bytes archived verbatim *before* decoding, then
+one append-only processing row recording the successful decode by the **committed** decoder, with no contract
+mismatch. Full evidence in [`../ops/ops-first-live-provider-poll.md`](../ops/ops-first-live-provider-poll.md).
+
+**It wrote no fixture, and that is the point.** `provider_mapping_gaps` reports `ready: false` with 20 unmapped teams
+and 38 unmapped rounds — all of them — because `provider_entity_map` is empty. Provider id `61` means nothing here
+until somebody says which of our `teams` rows it is. The 578 invented development fixtures are untouched and remain
+the seed rather than football. SportMonks and API-Football stay uncontacted and their credentials unproven.
+
 **What an operator must supply before it does anything**, stated here because the job is otherwise silently inert: two `vault` secrets — `provider_poll_function_url` (https only; an `http://` value raises rather than returning null, because sending the caller key in clear text is a misconfiguration to fix rather than an absence to tolerate) and `provider_poll_caller_key`, the project secret key named `provider-poll` that the Edge Function compares against in constant time — and at least one row in `public.provider_poll_targets`. Until then the job returns `configured: false` and `due: 0` every five minutes, which is an ordinary answer rather than an error: a job that failed loudly until somebody finished setting it up would be noise nobody reads by the time it means something.
 
 ## Development operating model — implemented controls
