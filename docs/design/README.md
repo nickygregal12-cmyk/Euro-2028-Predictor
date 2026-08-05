@@ -151,3 +151,7 @@ checklist.
 - [`../quality/current-status.md`](../quality/current-status.md) — the only live
   implementation and hosted-status authority
 - [`../../AGENTS.md`](../../AGENTS.md) — operating rules and authority order
+
+| 118 | the games hub stops showing a season a stale round — its windows can settle because its fixtures are finally visible to the read |
+
+Contract 118 is a correction rather than a presentation change: no surface moved, but a season competition's hub card had been stuck on its first locked round because the read returned it no fixtures.

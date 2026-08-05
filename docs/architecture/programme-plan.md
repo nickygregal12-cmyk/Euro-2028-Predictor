@@ -188,3 +188,5 @@ Verified against `main` at `1fb8ffd36ad113079181829a8bcc47175c43b6da` on 29 July
 - the competition-context engine is absent from `main`, while open PR #201 proposes an isolated, unwired foundation.
 
 Hosted state, provider capabilities, market claims and legal analysis require their own current evidence. They are not treated as verified merely because an earlier planning draft described them that way.
+
+Contract 118 closes the fourth instance of the tournament-only read defect (after 86, 98 and 116), in the games hub listing, and pairs it with the CI guard that catches the fifth.

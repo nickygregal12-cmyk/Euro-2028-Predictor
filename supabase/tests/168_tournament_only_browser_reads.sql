@@ -43,21 +43,17 @@ insert into tournament_only_reads (name, verdict) values
   ('get_my_lms',
    'SERVED. Tournament-only by design since contract 116: the season path is '
    'get_season_lms_round, which reads season_cup_window_fixtures and returns '
-   'the survival verdict from the settlement authority.'),
-  ('get_bonus_games',
-   'NOT SERVED, and the consequence is now traced rather than guessed. This is '
-   'the games hub listing — the read a player meets FIRST. Its per-window '
-   'fixtures block joins bonus_window_fixtures to public.matches with no branch '
-   'on competition kind, so a season window returns fixtures: []. Downstream, '
-   'deriveWindowFixtureAggregate then reports total 0, and '
-   'resolveCompetitionStatus treats a window as settled only when '
-   '"total > 0 and confirmed >= total" — which can never hold. So a season '
-   'competition''s FIRST LOCKED ROUND stays "in flight" permanently: the hub '
-   'card sticks on it, showing a stale round and a stale deadline, and never '
-   'advances. round_live and round_awaiting_confirmation are unreachable for a '
-   'season for the same reason. Traced through the code rather than executed, '
-   'so the mechanism is stated and not the symptom.');
+   'the survival verdict from the settlement authority.');
 
+-- get_bonus_games LEFT THIS LIST IN CONTRACT 118, which is the outcome the
+-- guard is for. It was listed with its consequence traced — a season
+-- competition's first locked round stuck "in flight" for ever, because empty
+-- fixtures meant a window could never satisfy "total > 0 and confirmed >=
+-- total". Contract 118 routed it through
+-- predictor_internal.bonus_window_fixture_facts, so it no longer touches the
+-- tournament relation and the stale-entry assertion below required its
+-- deletion. An entry earning its own removal is the list working.
+--
 -- WHAT THIS LIST NO LONGER CLAIMS, and why the correction is recorded rather
 -- than quietly dropped. get_my_cup, submit_cup_penalty_number and
 -- admin_settle_predictor_cup_round were listed here on a first pass, on the
