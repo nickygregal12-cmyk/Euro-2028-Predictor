@@ -502,7 +502,17 @@
  * `169_neutral_window_fixture_facts.sql` rather than argued here. No new table,
  * grant or seeded row is involved, so the seed itself is untouched.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 118
+/**
+ * Contract 119 adds one `predictor_internal` authority and redefines contract
+ * 114's lock trigger. It creates no relation, no policy and no grant, and adds
+ * no trigger binding.
+ *
+ * It is behaviour-neutral on a fresh seed, and measurably so: the new rule only
+ * applies to a fixture with a `season_fixture_revisions` row, a seeded database
+ * has none, and the authority returns the matchweek instant for everything
+ * else. So a seeded user's lock is the instant it already was.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 119
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -113,7 +113,18 @@ jobs:
           set -euo pipefail
           # Everything the hosted database has not yet applied.
           supabase migration list --db-url "${SUPABASE_DEV_DB_URL}" > /tmp/migration-list.txt 2>&1 || {
-            echo 'ERROR: could not read the hosted migration state.'
+            echo 'ERROR: could not read the hosted migration state. The CLI said:'
+            # Printed rather than swallowed. The first version of this step
+            # captured the CLI's output and then replaced it with the sentence
+            # above, so two consecutive real failures on 5 August 2026 said only
+            # that something went wrong -- and the obvious inference, a stale
+            # credential, sent the owner to check a secret that was correct.
+            # A guard that hides the one fact needed to act on it is worse than
+            # no guard, because it converts a five-minute fix into a diagnosis.
+            #
+            # The URL is a secret and never appears in the CLI's own error text,
+            # which reports the host and the failure reason.
+            sed -e 's/[[:alnum:]._-]*:[[:alnum:]._%-]*@/[redacted]@/g' /tmp/migration-list.txt
             exit 1
           }
           # Columns are LOCAL | REMOTE | TIME (UTC). A row with a local version
