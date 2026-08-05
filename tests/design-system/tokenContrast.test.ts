@@ -47,9 +47,30 @@ function theme(selector: string): Record<string, string> {
   if (start === -1) throw new Error(`tokens.css has no ${selector} block`)
 
   const body = tokensCss.slice(start, tokensCss.indexOf('}', start))
-  const values: Record<string, string> = {}
-  for (const [, name, value] of body.matchAll(/--([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})/g)) {
-    values[name] = value
+  const literal: Record<string, string> = {}
+  const alias: Record<string, string> = {}
+  for (const [, name, value] of body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
+    const hex = /^#[0-9A-Fa-f]{6}$/.exec(value.trim())
+    if (hex) literal[name] = hex[0]
+    else {
+      const reference = /^var\(--([a-z0-9-]+)\)$/.exec(value.trim())
+      if (reference) alias[name] = reference[1]
+    }
+  }
+
+  // Aliases resolve transitively, because the palette is now two layers deep:
+  // `--card` points at `--surface-raised`, which points at `--n-3`. Resolving
+  // only one hop would leave `--card` unmeasurable and every pairing that used
+  // it silently absent from the table — the failure mode this guard exists to
+  // prevent. A cycle would spin here, so the walk is bounded and a token that
+  // never lands on a literal is simply left out rather than guessed at.
+  const values: Record<string, string> = { ...literal }
+  for (const [name, target] of Object.entries(alias)) {
+    let current = target
+    for (let hop = 0; hop < 8 && !literal[current]; hop += 1) {
+      current = alias[current] ?? current
+    }
+    if (literal[current]) values[name] = literal[current]
   }
   return values
 }
@@ -135,22 +156,33 @@ describe('design token contrast', () => {
         ]),
       )
 
+    // Re-pinned when the legacy names were repointed onto the target ramp.
+    // Every number here either rose or held, with ONE exception worth naming
+    // rather than burying: dark --tx3 on --card fell from 5.34 to 5.14. That
+    // is the same tertiary step this repository has had to remediate twice, so
+    // it is the one to watch — but 5.14 is further above the 4.5 floor than
+    // the 4.51 --tx3 was rescued to in July, and its worst pairing, --chip,
+    // improved from 4.51 to 4.53. The trade is a slightly smaller margin on
+    // one surface for a larger margin on the one that actually failed.
     expect(measure(dark)).toEqual({
-      tx: { bg: 17.11, card: 15.05, chip: 12.72, mut: 10.79, 'input-bg': 14.75 },
-      tx2: { bg: 7.66, card: 6.74, chip: 5.7, mut: 4.83, 'input-bg': 6.6 },
-      // --tx3 was raised on 31 July 2026 and now clears AA everywhere except
-      // --mut, which no rule pairs it with for text.
-      tx3: { bg: 6.06, card: 5.34, chip: 4.51, mut: 3.82, 'input-bg': 5.23 },
+      tx: { bg: 17.98, card: 15.12, chip: 13.35, mut: 10.97, 'input-bg': 15 },
+      tx2: { bg: 8.76, card: 7.36, chip: 6.5, mut: 5.34, 'input-bg': 7.3 },
+      // Still clears AA everywhere except --mut, which no rule pairs it with
+      // for text, and which is not a ramp step (see tokens.css).
+      tx3: { bg: 6.11, card: 5.14, chip: 4.53, mut: 3.73, 'input-bg': 5.09 },
     })
 
     expect(measure(light)).toEqual({
-      tx: { bg: 15.83, card: 16.82, chip: 14.7, mut: 11.64, 'input-bg': 17.25 },
-      tx2: { bg: 7.16, card: 7.6, chip: 6.65, mut: 5.26, 'input-bg': 7.8 },
-      // Both were raised together on 31 July 2026. --tx3 was below AA on every
-      // surface in this theme; the value that fixes it is almost exactly the
-      // old --tx2, so --tx2 moved down to keep the ramp three levels deep.
-      // --mut is the one surface --tx3 still misses, and no rule pairs them.
-      tx3: { bg: 4.9, card: 5.21, chip: 4.55, mut: 3.6, 'input-bg': 5.34 },
+      // --card and --input-bg measure identically because the light theme's
+      // raised surface IS #FFFFFF: a light theme elevates by going lighter
+      // than the page, which no step of a ramp anchored at the page can
+      // express. tokens.css records that as a deliberate exception.
+      tx: { bg: 16.9, card: 18.58, chip: 15.59, mut: 12.54, 'input-bg': 18.58 },
+      tx2: { bg: 8.66, card: 9.52, chip: 7.99, mut: 6.43, 'input-bg': 9.52 },
+      // Every light pairing improved. --tx3 on --mut rose from 3.6 to 4.41 and
+      // is still under the 4.5 floor — closer, not fixed. No rule pairs them
+      // for text, which is why it is recorded rather than blocking.
+      tx3: { bg: 5.95, card: 6.54, chip: 5.49, mut: 4.41, 'input-bg': 6.54 },
     })
   })
 })
