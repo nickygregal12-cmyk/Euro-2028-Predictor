@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 107,
-  "latestMigrationVersion": "20260805030000",
-  "latestMigrationName": "lms_restart_driver",
-  "verifiedAt": "2026-08-05T08:19:00.000Z",
+  "requiredMigrationCount": 108,
+  "latestMigrationVersion": "20260805040000",
+  "latestMigrationName": "successor_window_calendar_guard",
+  "verifiedAt": "2026-08-05T09:26:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 30988219931 on eba71a5, completed successfully; contract 107 applied. Corroborated read-only: the ledger holds 107 rows through 20260805030000. predictor_internal.restart_lms_competition exists, is security definer with search_path pinned to the empty string, and is granted to none of anon, authenticated, service_role or PUBLIC. Its DEPLOYED BODY IS BYTE-IDENTICAL to the committed migration — md5 1b93d6cc8c263543a1b1051c2f005cc5 over 4014 characters on both sides — so the hosted function is the reviewed one rather than a resemblance of it. It takes an advisory lock, writes the no_winner_restarted terminal reason, links the successor by predecessor_competition_id and audits public_wipeout_restart; it references neither bonus_competition_windows nor bonus_lms_selections, confirming that window generation and selection copying are genuinely absent rather than merely untested. Contract 106 remains intact underneath: both rederives still resolve through current_public_competition_id and neither retains a live_competition_id call. Zero competitions are completed and zero successors exist, so no series has been restarted yet.",
-    "workflowRunId": 30988219931,
-    "repositoryHead": "eba71a59a9c8e0fc0a4c6b345537a9f8cec47576"
+    "source": "Development fast-lane rollout run 30993039183 on 821fec8, completed successfully; contract 108 applied. Corroborated read-only: the ledger holds 108 rows through 20260805040000. predictor_internal.assert_successor_window_after_predecessor is security definer with search_path pinned to the empty string, is granted to none of anon, authenticated, service_role or PUBLIC, and its DEPLOYED BODY IS BYTE-IDENTICAL to the committed migration — md5 f2ec4b3ca1341f814bdf5a9be1686296 over 1484 characters on both sides. The trigger is bound to public.bonus_competition_windows and is non-internal, so it judges every writer rather than one script. No browser or service role holds ANY grant on that table, so the trigger cannot refuse a write a player could have made. Zero successors exist, so nothing hosted is currently subject to the rule and the change is behaviour-neutral today.",
+    "workflowRunId": 30993039183,
+    "repositoryHead": "821fec83678d4d2e89a6c293b6920450d28af7dc"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
