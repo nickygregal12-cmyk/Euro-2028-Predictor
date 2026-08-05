@@ -55,6 +55,9 @@ export function routeCategory(pathname: string): string {
   // are a read of settled scores while the card is a write path under a lock,
   // and a failure in one says nothing about the other.
   if (pathname.startsWith('/dev/season-standings')) return 'season-standings'
+  // Its own category again: a pick that consumes a club for a cycle fails
+  // differently from a card write and from a standings read.
+  if (pathname.startsWith('/dev/season-lms')) return 'season-lms'
   if (pathname.startsWith('/predict')) return 'predictor'
   if (pathname.startsWith('/league')) return 'league'
   if (pathname.startsWith('/h2h/')) return 'head-to-head'

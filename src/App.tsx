@@ -80,6 +80,13 @@ const SeasonStandingsPreview = import.meta.env.DEV
       })),
     )
   : null
+const SeasonLmsPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/SeasonLmsPreview').then((m) => ({
+        default: m.SeasonLmsPreview,
+      })),
+    )
+  : null
 
 export default function App() {
   return (
@@ -105,6 +112,9 @@ export default function App() {
             ) : null}
             {import.meta.env.DEV && SeasonStandingsPreview ? (
               <Route path="/dev/season-standings" element={<SeasonStandingsPreview />} />
+            ) : null}
+            {import.meta.env.DEV && SeasonLmsPreview ? (
+              <Route path="/dev/season-lms" element={<SeasonLmsPreview />} />
             ) : null}
 
             <Route element={<AuthLayout />}>
