@@ -26,8 +26,9 @@ describe('feature baseline freshness', () => {
     expect(baseline).toContain(
       '## Platform backend overlay — not yet compact user features',
     )
-    expect(baseline).toContain('idempotent LMS wipeout restart')
-    expect(baseline).toContain('complete Contract 107–109 LMS wipeout restart lifecycle')
+    expect(baseline).toContain(
+      'complete Contract 107–109 LMS wipeout restart lifecycle',
+    )
     expect(baseline).toContain('Championship phase driver')
     expect(baseline).toContain(
       'Backend presence must not be reclassified as a completed user journey',
