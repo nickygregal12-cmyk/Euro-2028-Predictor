@@ -14,7 +14,7 @@
 
 begin;
 
-select plan(15);
+select plan(16);
 
 -- ---------------------------------------------------------------------------
 -- Six entrants, two initial groups of three, drawn by the real admin path.
