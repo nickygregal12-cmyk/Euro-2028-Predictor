@@ -77,6 +77,12 @@ describe('row-level security', () => {
       { schema: 'predictor_internal', name: 'operating_limits' },
       { schema: 'predictor_internal', name: 'provider_raw_responses' },
       { schema: 'predictor_internal', name: 'provider_response_processing' },
+      // Contract 114. The record of what the poll job sent. Internal rather
+      // than public for the same reason as the two custody tables above it:
+      // nothing outside the job has cause to read it, and its neighbours in
+      // `public` all exist because something reaches them through a definer
+      // function that needs a public foreign key.
+      { schema: 'predictor_internal', name: 'provider_poll_dispatches' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

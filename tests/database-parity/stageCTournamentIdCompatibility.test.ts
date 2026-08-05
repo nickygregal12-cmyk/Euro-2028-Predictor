@@ -248,10 +248,12 @@ const reviewedColumns = inventoryColumns()
 describe('Stage C tournament_id compatibility inventory after C1b', () => {
   it('keeps the parser positive control at the contract-81 boundary', () => {
     // Raised 38 → 40 by contract 81's two season card-status relations,
-    // 40 → 41 by contract 90's season score store, and 41 → 42 by contract
-    // 112's provider identity map, whose tournament_id is the leading column
-    // of the composite keys that make a cross-season mapping impossible.
-    expect(effectiveColumns).toHaveLength(42)
+    // 40 → 41 by contract 90's season score store, 41 → 42 by contract 112's
+    // provider identity map, whose tournament_id is the leading column of the
+    // composite keys that make a cross-season mapping impossible, and 42 → 43
+    // by contract 114's poll target, which is season-scoped so that deleting a
+    // competition season stops the job calling a provider about it.
+    expect(effectiveColumns).toHaveLength(43)
     expect(effectiveColumns).toContain('entries.tournament_id uuid not null')
     expect(effectiveColumns).toContain('game_memberships.tournament_id uuid not null')
     // Contract 68: the season fixture carries the same season scope every other

@@ -160,6 +160,7 @@ Delivered backend foundations now include:
 - season Last Man Standing persistence, settlement and the complete Contract 107–109 wipeout-restart lifecycle, including the past-window guard and idempotent successor calendar scheduler;
 - Predictor Championship neutral Cup sources, split-stage persistence, one-parent ancestry, a continuing table derived across both phases the Contract 110 round calendar that finally lets a season Championship persist a fixture at all, and the Contract 111 launch driver that draws and schedules one;
 - the Contract 113 round play window and the Contract 114 bounded season-card browser path (the matchweek card read and its three own-entry writes, every rule enforced by the triggers that already own it), the authority `fixtureReassignment.ts` needs and never had;
+- the Contract 115 provider poll dispatch, which installs `pg_net`, forbids any browser-reachable function in an exposed schema from calling into `net` — pg_net's own grants belong to whoever owns the extension, and where the platform owns it `postgres` cannot revoke them — and drives the deployed Edge Function from `pg_cron`;
 - the Contract 112 provider identity map, the precondition for importing a real fixture list, which resolves and reports gaps but writes nothing;
 - provider-response custody and strict decoding boundaries;
 - repeatable competition instances with explicit live/current resolution and correction-safe rederivation.

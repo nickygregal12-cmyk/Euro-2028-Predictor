@@ -242,7 +242,17 @@ const SEASON_RELATIONS = [
  * is enabled with no policy, every browser and service grant is revoked, and
  * only definer functions read it.
  */
-const PROVIDER_RELATIONS = ['table:provider_entity_map']
+const PROVIDER_RELATIONS = [
+  'table:provider_entity_map',
+  // Contract 114. Which provider endpoint is polled for which competition
+  // season, and how often. `public` for the same reason as the map: its only
+  // foreign key is to `tournaments`, and it is settled the same way — row level
+  // security enabled with no policy, every browser and service grant revoked,
+  // read only by definer functions. The dispatch record that pairs with it is
+  // deliberately in `predictor_internal` instead, alongside contract 96's
+  // custody tables, because nothing outside the job ever has cause to read it.
+  'table:provider_poll_targets',
+]
 
 const reviewedRelations = [
   ...new Set([
@@ -257,11 +267,13 @@ const reviewedRelations = [
 describe('Stage C public-relation coverage after C1b and the season fixtures', () => {
   it('keeps parser positive controls at the contract-81 schema boundary', () => {
     // Raised 47 → 49 by contract 81's two season card-status relations,
-    // 49 → 50 by contract 90's season score store, and 50 → 51 by contract
-    // 112's provider identity map. This count is a positive control on the
-    // migration parser: if it silently stopped recognising `create table`,
-    // every disposition below would be vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(51)
+    // 49 → 50 by contract 90's season score store, 50 → 51 by contract 112's
+    // provider identity map, and 51 → 52 by contract 114's poll target list.
+    // Contract 114's other new table is in `predictor_internal` and so is not
+    // counted here. This count is a positive control on the migration parser:
+    // if it silently stopped recognising `create table`, every disposition
+    // below would be vacuously satisfied by an empty set.
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(52)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

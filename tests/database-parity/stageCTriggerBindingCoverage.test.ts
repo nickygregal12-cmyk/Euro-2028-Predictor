@@ -227,7 +227,8 @@ describe('Stage C trigger binding coverage after C1b', () => {
     // 90 → 91 at contract 113, which keeps round play windows disjoint.
     // 91 → 94 at contract 114: the season card's delete-path lock triggers on
     // predictions and Jokers, and the shared write-version check on predictions.
-    expect(effectiveBindings).toHaveLength(94)
+    // 94 → 95 at contract 115, which stamps a poll target's updated_at.
+    expect(effectiveBindings).toHaveLength(95)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(

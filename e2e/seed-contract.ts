@@ -451,7 +451,38 @@
  * defaults to 0 on a table the seed does not touch, and the delete-path lock
  * triggers judge deletes the seed never performs. No seed change is required.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 114
+/**
+ * Contract 115 installs `pg_net`, adds two tables — one `public`, one
+ * `predictor_internal` — four `predictor_internal` functions, one `public` job
+ * function, one trigger and one `pg_cron` schedule. This is the first contract
+ * in the run whose surface comparison is NOT "one trigger and nothing else",
+ * and the difference is worth stating precisely rather than rounding down.
+ *
+ * Where the platform owns pg_net — which is the case on the CI image and the
+ * case to plan for on hosted — the comparison is four added rows, not one. One
+ * is the `updated_at` trigger. The other three are `routine|anon|net.http_post`,
+ * `routine|authenticated|net.http_post` and
+ * `routine|service_role|net.http_post` — pg_net's own grants, shipped by
+ * Supabase's image, which this migration attempts to revoke and cannot. On a
+ * project where this migration installs the extension and owns it, the revoke
+ * succeeds and only the trigger is added.
+ *
+ * Installing an extension is the part worth checking rather than assuming,
+ * because an extension's functions are executable by PUBLIC by default. The
+ * migration attempts the revoke, reports the residual, and enforces the
+ * boundary it does control: no browser-reachable function in an exposed schema
+ * may call into `net`, which is the actual path from a session to an outbound
+ * request.
+ *
+ * That distinction is why the three extra rows do not change this guard's
+ * answer. The surviving grant is on `net.http_post`, not on anything a seeded
+ * user's session reads, and browser roles reach this database through
+ * PostgREST, which exposes `public` and `graphql_public` only — `net` is not
+ * among them, so the grant is not callable from a session. The poll target list
+ * starts empty, the job reports itself unconfigured until two vault secrets
+ * exist, and nothing on any authenticated surface reads either new table.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 115
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
