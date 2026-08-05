@@ -223,10 +223,11 @@ describe('Stage C trigger binding coverage after C1b', () => {
     // 86 → 87 at contract 103, which adds the lineage default trigger.
     // 87 → 88 at contract 105, which binds split-member ancestry.
     // 88 → 89 at contract 108, which binds the successor-window calendar guard,
-    // and 89 → 90 at contract 112, which stamps the identity map's updated_at.
-    // 90 → 93 at contract 113: the season card's delete-path lock triggers on
+    // 89 → 90 at contract 112, which stamps the identity map's updated_at, and
+    // 90 → 91 at contract 113, which keeps round play windows disjoint.
+    // 91 → 94 at contract 114: the season card's delete-path lock triggers on
     // predictions and Jokers, and the shared write-version check on predictions.
-    expect(effectiveBindings).toHaveLength(93)
+    expect(effectiveBindings).toHaveLength(94)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(
@@ -266,9 +267,7 @@ describe('Stage C trigger binding coverage after C1b', () => {
     ).toHaveLength(1)
     // Contract 69: the Joker allowance, and the matchweek lock on both card
     // tables. The lock is one function bound twice because the rule is the
-    // same whichever half of the card is written — and twice more at contract
-    // 113, which brings the DELETE path under the same rule so a clear or an
-    // un-played Joker cannot rewrite a locked matchweek.
+    // same whichever half of the card is written.
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.enforce_season_matchweek_lock'),

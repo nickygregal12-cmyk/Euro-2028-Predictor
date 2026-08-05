@@ -430,12 +430,28 @@
  * The map also starts empty and has no caller, so a fresh seed neither
  * populates it nor consults it.
  *
- * Contract 113 re-verified: the season card RPCs read and write rows the seed
+ * Contract 113 adds two nullable columns to `competition_rounds`, three
+ * `predictor_internal` functions and one trigger. The browser-visible surface
+ * comparison against contract 112 is 229 rows before and 230 after, and the
+ * single added row is the trigger binding itself — no grant, no policy and no
+ * routine privilege for `anon`, `authenticated` or `service_role`.
+ *
+ * The column addition is the part worth checking rather than assuming, because
+ * adding a column to a table a browser can read widens what a browser can see.
+ * Measured: `competition_rounds` is granted to `service_role` only, so the new
+ * window columns reach no browser session at all. The migration asserts that in
+ * its own final block, so a future grant to `anon` or `authenticated` makes
+ * this migration's reasoning fail loudly rather than quietly become untrue.
+ *
+ * Both columns start NULL and nothing derives them on a fresh seed, so a seeded
+ * user meets no new gate: the trigger fires only on writes that set a window.
+ *
+ * Contract 114 re-verified: the season card RPCs read and write rows the seed
  * never creates (no seeded user holds a season entry), the new version column
  * defaults to 0 on a table the seed does not touch, and the delete-path lock
  * triggers judge deletes the seed never performs. No seed change is required.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 113
+export const SEED_REVIEWED_AT_CONTRACT = 114
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -1,4 +1,4 @@
--- Contract 113: the season matchweek card reaches the browser.
+-- Contract 114: the season matchweek card reaches the browser.
 --
 -- Contracts 68–96 built the Main Predictor's storage, locks, Jokers, scoring
 -- and settlement, and then deliberately exposed none of it: every season table

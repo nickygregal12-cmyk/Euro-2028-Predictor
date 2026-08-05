@@ -1,4 +1,4 @@
--- Contract 113: the season matchweek card reaches the browser.
+-- Contract 114: the season matchweek card reaches the browser.
 --
 -- Four functions, and the property that matters is what they DON'T add: no
 -- table grant appears, no rule is restated, and every refusal below comes out
