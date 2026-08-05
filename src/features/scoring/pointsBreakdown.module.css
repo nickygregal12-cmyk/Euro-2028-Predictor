@@ -62,20 +62,20 @@
 .categoryLabel {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
 .subtotal {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
 .pending {
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx3);
 }
 
@@ -105,14 +105,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
 .eventPoints {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--acc);
 }
 
@@ -130,7 +130,7 @@
   background: var(--gold-tint);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--gold-strong);
   white-space: nowrap;
 }
@@ -147,7 +147,7 @@
 .totalLabel {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-2);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--tx2);
@@ -156,6 +156,6 @@
 .total {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 20px;
+  font-size: var(--fs-4);
   color: var(--tx);
 }

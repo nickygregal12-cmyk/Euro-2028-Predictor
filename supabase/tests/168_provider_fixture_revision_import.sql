@@ -1,4 +1,4 @@
--- Contract 116: a provider kickoff change reaches the fixture.
+-- Contract 117: a provider kickoff change reaches the fixture.
 --
 -- Self-contained: every team, round, fixture and map row this suite needs is
 -- created here. Contract 112's suite was written against development seed data,

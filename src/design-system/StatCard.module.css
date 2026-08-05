@@ -30,10 +30,14 @@
   min-width: 0;
 }
 
+/* Rounds DOWN to --fs-4 where the other 26px stats round up. Measured, not
+   chosen: at --fs-5 a two-card row at 360px gives this 47px, and "2nd" wants
+   52px — the ellipsis then eats a stat that is three characters long. A stat
+   card whose number is truncated has failed at its only job. */
 .value {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 26px;
+  font-size: var(--fs-4);
   line-height: 1.1;
   color: var(--tx);
   overflow: hidden;
@@ -59,6 +63,6 @@
 
 .label {
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }

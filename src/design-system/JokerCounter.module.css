@@ -28,7 +28,7 @@
 .label {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--tx3);

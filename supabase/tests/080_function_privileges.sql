@@ -122,7 +122,12 @@ insert into expected_authenticated_functions (signature) values
   ('get_season_matchweek_card(uuid,integer)'),
   ('save_season_prediction(uuid,uuid,smallint,smallint,integer)'),
   ('set_season_matchweek_joker(uuid,integer,boolean)'),
-  ('confirm_season_matchweek_card(uuid,integer)');
+  ('confirm_season_matchweek_card(uuid,integer)'),
+  -- Contract 116: the season Last Man Standing round read. Same auth.uid()
+  -- boundary again, so it stays out of expected_service_functions for the
+  -- reason contract 95 established — service_role has no auth.uid() and the
+  -- call would refuse every time.
+  ('get_season_lms_round(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

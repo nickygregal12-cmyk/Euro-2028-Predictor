@@ -73,6 +73,13 @@ const SeasonMatchPredictorPreview = import.meta.env.DEV
       })),
     )
   : null
+const SeasonStandingsPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/SeasonStandingsPreview').then((m) => ({
+        default: m.SeasonStandingsPreview,
+      })),
+    )
+  : null
 
 export default function App() {
   return (
@@ -95,6 +102,9 @@ export default function App() {
             ) : null}
             {import.meta.env.DEV && SeasonMatchPredictorPreview ? (
               <Route path="/dev/season-predictor" element={<SeasonMatchPredictorPreview />} />
+            ) : null}
+            {import.meta.env.DEV && SeasonStandingsPreview ? (
+              <Route path="/dev/season-standings" element={<SeasonStandingsPreview />} />
             ) : null}
 
             <Route element={<AuthLayout />}>

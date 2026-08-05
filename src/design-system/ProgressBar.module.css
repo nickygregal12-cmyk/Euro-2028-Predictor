@@ -16,14 +16,14 @@
 .label {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
 .value {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx3);
 }
 

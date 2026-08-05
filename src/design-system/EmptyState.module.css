@@ -25,7 +25,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 16px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
@@ -33,7 +33,7 @@
   margin: 0;
   max-width: 30ch;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 

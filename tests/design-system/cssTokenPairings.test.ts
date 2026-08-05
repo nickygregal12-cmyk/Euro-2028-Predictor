@@ -120,22 +120,18 @@ function pairingsIn(css: string): Pairing[] {
  *    and inactive controls have lower bars — but the raised `--tx3` and `--tx2`
  *    clear the text threshold anyway, so the exemptions are no longer needed.
  *
- * What remains is two icon containers, and their verdict is a correction. They
- * were recorded as "live-data cyan — needs a palette decision", which read them
- * as text. `.globe` holds a `<GlobeIcon>` and nothing else, so WCAG 1.4.11's
- * 3:1 applies and 4.09:1 clears it. `--cyn` needed no change; the entry needed
- * reading properly.
+ * The last two entries went on 5 August 2026, when the neutral tokens were
+ * repointed onto the target ramp. They were the two `.globe` icon containers,
+ * held on the strength of WCAG 1.4.11's 3:1 bar for non-text — `.globe` holds
+ * a `<GlobeIcon>` and nothing else, and 4.09:1 cleared that. The deeper page
+ * and sunken surfaces lift the same pairing past 4.5:1, so they now clear the
+ * stricter text threshold and need no exemption at all. The exemption was
+ * correct; it is simply no longer load-bearing.
+ *
+ * An empty list is the point. This assertion fails if an entry stops failing,
+ * so an excuse cannot outlive the defect it was written for.
  */
-const REVIEWED: ReadonlyArray<readonly [where: string, verdict: string]> = [
-  [
-    'src/features/league/leaderboard.module.css .globe',
-    'icon container — holds only <GlobeIcon>, so 1.4.11 asks 3:1 and 4.09 clears it',
-  ],
-  [
-    'src/features/leagues/hub.module.css .globe',
-    'icon container — holds only <GlobeIcon>, so 1.4.11 asks 3:1 and 4.09 clears it',
-  ],
-]
+const REVIEWED: ReadonlyArray<readonly [where: string, verdict: string]> = []
 
 const reviewedRules = REVIEWED.map(([where]) => where)
 

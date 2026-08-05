@@ -30,15 +30,39 @@ const repositoryRoot = resolve(import.meta.dirname, '../..')
 const tokensCss = readFileSync(resolve(repositoryRoot, 'src/styles/tokens.css'), 'utf8')
 const designSystemDoc = readFileSync(resolve(repositoryRoot, 'docs/design-system.md'), 'utf8')
 
-/** Hex-valued custom properties inside one theme block. */
+/**
+ * Custom properties inside one theme block, resolved to the hex they end at.
+ *
+ * A token may now be an alias — `--card` points at `--surface-raised`, which
+ * points at `--n-3` — so the walk is transitive. Reading only literals would
+ * report every repointed token as "absent" and let the document keep a stale
+ * hex beside it, which is precisely the drift these assertions exist to catch.
+ * The hop count is bounded so a cycle fails as an unresolved token rather than
+ * hanging the suite.
+ */
 function theme(selector: string): Record<string, string> {
   const start = tokensCss.indexOf(selector)
   if (start === -1) throw new Error(`tokens.css has no ${selector} block`)
 
   const body = tokensCss.slice(start, tokensCss.indexOf('}', start))
-  const values: Record<string, string> = {}
-  for (const [, name, value] of body.matchAll(/--([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})/g)) {
-    values[name] = value.toUpperCase()
+  const literal: Record<string, string> = {}
+  const alias: Record<string, string> = {}
+  for (const [, name, value] of body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
+    const trimmed = value.trim()
+    if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) literal[name] = trimmed.toUpperCase()
+    else {
+      const reference = /^var\(--([a-z0-9-]+)\)$/.exec(trimmed)
+      if (reference) alias[name] = reference[1]
+    }
+  }
+
+  const values: Record<string, string> = { ...literal }
+  for (const [name, target] of Object.entries(alias)) {
+    let current = target
+    for (let hop = 0; hop < 8 && !literal[current]; hop += 1) {
+      current = alias[current] ?? current
+    }
+    if (literal[current]) values[name] = literal[current]
   }
   return values
 }

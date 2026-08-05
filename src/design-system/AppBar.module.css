@@ -17,7 +17,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-display);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -64,6 +64,6 @@
   color: var(--tx);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 12px;
+  font-size: var(--fs-1);
   line-height: 1;
 }

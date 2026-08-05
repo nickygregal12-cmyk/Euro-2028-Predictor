@@ -1,4 +1,4 @@
--- Contract 116: a provider kickoff change reaches the fixture.
+-- Contract 117: a provider kickoff change reaches the fixture.
 --
 -- ---------------------------------------------------------------------------
 -- WHAT THIS IS THE FIRST OF, AND WHAT IT IS NOT
@@ -101,7 +101,7 @@ create table predictor_internal.season_fixture_revisions (
 );
 
 comment on table predictor_internal.season_fixture_revisions is
-  'Contract 116. Append-only record of every kickoff a provider moved, with the '
+  'Contract 117. Append-only record of every kickoff a provider moved, with the '
   'instant it moved from. Unreviewed rows are the administrator''s queue.';
 
 alter table predictor_internal.season_fixture_revisions enable row level security;
