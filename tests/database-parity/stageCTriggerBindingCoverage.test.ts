@@ -223,10 +223,12 @@ describe('Stage C trigger binding coverage after C1b', () => {
     // 86 → 87 at contract 103, which adds the lineage default trigger.
     // 87 → 88 at contract 105, which binds split-member ancestry.
     // 88 → 89 at contract 108, which binds the successor-window calendar guard,
-    // 89 → 90 at contract 112, which stamps the identity map's updated_at,
-    // 90 → 91 at contract 113, which keeps round play windows disjoint, and
-    // 91 → 92 at contract 114, which stamps a poll target's updated_at.
-    expect(effectiveBindings).toHaveLength(92)
+    // 89 → 90 at contract 112, which stamps the identity map's updated_at, and
+    // 90 → 91 at contract 113, which keeps round play windows disjoint.
+    // 91 → 94 at contract 114: the season card's delete-path lock triggers on
+    // predictions and Jokers, and the shared write-version check on predictions.
+    // 94 → 95 at contract 115, which stamps a poll target's updated_at.
+    expect(effectiveBindings).toHaveLength(95)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(
@@ -271,7 +273,7 @@ describe('Stage C trigger binding coverage after C1b', () => {
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.enforce_season_matchweek_lock'),
       ),
-    ).toHaveLength(2)
+    ).toHaveLength(4)
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.assert_season_joker_allowance'),
@@ -291,7 +293,7 @@ describe('Stage C trigger binding coverage after C1b', () => {
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> public.enforce_write_version'),
       ),
-    ).toHaveLength(3)
+    ).toHaveLength(4)
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.enforce_match_result_boundary'),

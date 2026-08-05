@@ -1,0 +1,125 @@
+/* Competition shell. Phone-first: everything below is the phone layout, and the
+   only widening is a wider content column on larger screens (§11.5). */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  /* A flex child defaults to min-width:auto, which lets long content push a
+     column wider than its parent. Without this the whole page gains a
+     horizontal scrollbar on a narrow phone — measured at 446px inside a 360px
+     viewport before this line existed, caused by the competition name below. */
+  min-width: 0;
+}
+
+/* §11.1: a flat tint band, never a gradient hero. The accent is permitted on the
+   masthead, and this is the only place in this feature that uses it. */
+.masthead {
+  padding: var(--sp-4);
+  border-radius: var(--radius-card);
+  background: var(--chip);
+  border: 1px solid var(--line);
+}
+
+.eyebrow {
+  margin: 0 0 var(--sp-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+/* Real competition names are long ("Scottish Premiership — 2026/27") and the
+   display face at 28px is wide. `anywhere` rather than `break-word` because the
+   hostile case is one unbroken token, which `break-word` still refuses to
+   split — and a masthead that overflows takes the whole page with it. */
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-5);
+  letter-spacing: var(--tracking-tight);
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin: var(--sp-3) 0 0;
+}
+
+.statusItem {
+  margin: 0;
+}
+
+.statusValue {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  /* Deadlines, matchweek numbers and ranks are all numeric surfaces (§11.4). */
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+/* Horizontally scrollable on a phone (§11.5), so a fifth section never wraps
+   into a second row and shifts the content below it. */
+.subNav {
+  overflow-x: auto;
+  /* The scroll container is its own overflow region; the page must not scroll
+     sideways (§11.5). */
+  scrollbar-width: none;
+}
+
+.subNav::-webkit-scrollbar {
+  display: none;
+}
+
+.subNavList {
+  display: flex;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0 0 var(--sp-1);
+  list-style: none;
+  white-space: nowrap;
+}
+
+.subNavActive,
+.subNavDisabled {
+  display: inline-block;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  /* 44px minimum touch target height including padding. */
+  min-height: var(--tap-min);
+  line-height: 28px;
+}
+
+/* Accent is permitted on the active navigation indicator (§11.1) and nowhere
+   else in this component. */
+.subNavActive {
+  background: var(--chip);
+  border: 1px solid var(--acc);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.subNavDisabled {
+  border: 1px solid transparent;
+  color: var(--tx3);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+@media (min-width: 720px) {
+  .shell {
+    /* §11.5: a reading/list column of 760–820px, widened only for data tables. */
+    max-width: 800px;
+  }
+}

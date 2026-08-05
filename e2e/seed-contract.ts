@@ -446,45 +446,43 @@
  * Both columns start NULL and nothing derives them on a fresh seed, so a seeded
  * user meets no new gate: the trigger fires only on writes that set a window.
  *
- * Contract 114 installs `pg_net`, adds two tables — one `public`, one
+ * Contract 114 re-verified: the season card RPCs read and write rows the seed
+ * never creates (no seeded user holds a season entry), the new version column
+ * defaults to 0 on a table the seed does not touch, and the delete-path lock
+ * triggers judge deletes the seed never performs. No seed change is required.
+ */
+/**
+ * Contract 115 installs `pg_net`, adds two tables — one `public`, one
  * `predictor_internal` — four `predictor_internal` functions, one `public` job
  * function, one trigger and one `pg_cron` schedule. This is the first contract
  * in the run whose surface comparison is NOT "one trigger and nothing else",
  * and the difference is worth stating precisely rather than rounding down.
  *
  * Where the platform owns pg_net — which is the case on the CI image and the
- * case to plan for on hosted — the comparison against contract 113 is 230 rows
- * before and **234** after. One of the four is the `updated_at` trigger. The
- * other three are `routine|anon|net.http_post`,
- * `routine|authenticated|net.http_post` and `routine|service_role|net.http_post`
- * — pg_net's own grants, shipped by Supabase's image, which this migration
- * attempts to revoke and cannot. On a project where this migration installs the
- * extension and owns it, the revoke succeeds and the count is 231.
+ * case to plan for on hosted — the comparison is four added rows, not one. One
+ * is the `updated_at` trigger. The other three are `routine|anon|net.http_post`,
+ * `routine|authenticated|net.http_post` and
+ * `routine|service_role|net.http_post` — pg_net's own grants, shipped by
+ * Supabase's image, which this migration attempts to revoke and cannot. On a
+ * project where this migration installs the extension and owns it, the revoke
+ * succeeds and only the trigger is added.
  *
  * Installing an extension is the part worth checking rather than assuming,
- * because an extension's functions are executable by PUBLIC by default and
- * Supabase's image grants the `net` schema to `anon`, `authenticated` and
- * `service_role` outright. The migration attempts to revoke that and cannot
- * where the platform owns pg_net — `postgres` is neither superuser nor a member
- * of `supabase_admin` — so it reports the residual and enforces the boundary it
- * does control: no browser-reachable function in an exposed schema may call
- * into `net`, which is the actual path from a session to an outbound request.
+ * because an extension's functions are executable by PUBLIC by default. The
+ * migration attempts the revoke, reports the residual, and enforces the
+ * boundary it does control: no browser-reachable function in an exposed schema
+ * may call into `net`, which is the actual path from a session to an outbound
+ * request.
  *
- * That distinction matters for THIS guard specifically, and it is the reason
- * the three extra rows do not change its answer. The surviving grant is on
- * `net.http_post`, not on anything a seeded user's session reads, and browser
- * roles reach this database through PostgREST, which exposes `public` and
- * `graphql_public` only — `net` is not among them, so the grant is not callable
- * from a session. The migration additionally forbids any browser-reachable
- * function in an exposed schema from calling into `net`, which is the path that
- * would make the grant matter. A seeded user therefore gains no capability and
- * meets no new gate.
- *
- * A seeded user meets no new gate. The poll target list starts empty, the job
- * reports itself unconfigured until two vault secrets exist, and nothing on any
- * authenticated surface reads either new table.
+ * That distinction is why the three extra rows do not change this guard's
+ * answer. The surviving grant is on `net.http_post`, not on anything a seeded
+ * user's session reads, and browser roles reach this database through
+ * PostgREST, which exposes `public` and `graphql_public` only — `net` is not
+ * among them, so the grant is not callable from a session. The poll target list
+ * starts empty, the job reports itself unconfigured until two vault secrets
+ * exist, and nothing on any authenticated surface reads either new table.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 114
+export const SEED_REVIEWED_AT_CONTRACT = 115
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

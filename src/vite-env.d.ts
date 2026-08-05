@@ -18,6 +18,10 @@ interface ImportMetaEnv {
   // optional, so auth renders unchanged when they are unset.
   readonly VITE_TURNSTILE_SITE_KEY?: string
   readonly VITE_TURNSTILE_DEV_TOKEN?: string
+  // Route-level UI migration flag (src/app/routeFlags.ts). Fails closed: only
+  // the exact string "true" selects the next-generation journey, so an unset or
+  // misspelled value leaves the legacy route serving players.
+  readonly VITE_UI_SEASON_MATCH_PREDICTOR?: string
 }
 
 interface ImportMeta {

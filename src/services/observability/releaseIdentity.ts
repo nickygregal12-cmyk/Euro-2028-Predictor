@@ -44,6 +44,13 @@ function normaliseEnvironment(value: string): ReleaseEnvironment {
 export function routeCategory(pathname: string): string {
   if (pathname.startsWith('/auth/')) return 'auth'
   if (pathname.startsWith('/join/')) return 'invite'
+  // Season surfaces are categorised BEFORE `/predict`, and separately from it,
+  // because they are a different competition served by a different journey. The
+  // modernisation plan's §13.4 requires errors to be observable by old versus
+  // new implementation; sharing `predictor` with the tournament flow would make
+  // a regression in one look like a regression in the other, which is the
+  // opposite of what the gate asks for.
+  if (pathname.startsWith('/dev/season-predictor')) return 'season-predictor'
   if (pathname.startsWith('/predict')) return 'predictor'
   if (pathname.startsWith('/league')) return 'league'
   if (pathname.startsWith('/h2h/')) return 'head-to-head'

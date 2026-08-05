@@ -1,4 +1,4 @@
--- Contract 114: the database calls the provider.
+-- Contract 115: the database calls the provider.
 --
 -- ---------------------------------------------------------------------------
 -- THE GAP THIS CLOSES
@@ -241,7 +241,7 @@ create table public.provider_poll_targets (
 );
 
 comment on table public.provider_poll_targets is
-  'Contract 114. One provider endpoint polled on behalf of one competition '
+  'Contract 115. One provider endpoint polled on behalf of one competition '
   'season, at a stated cadence. Empty until an operator or a later contract '
   'records a target; this repository holds no authority for a provider''s URL '
   'shape and does not guess one.';
@@ -303,7 +303,7 @@ create table predictor_internal.provider_poll_dispatches (
 );
 
 comment on table predictor_internal.provider_poll_dispatches is
-  'Contract 114. Append-only record of every poll the database sent or failed '
+  'Contract 115. Append-only record of every poll the database sent or failed '
   'to send, correlated to pg_net''s request id. Never holds the caller key.';
 
 alter table predictor_internal.provider_poll_dispatches enable row level security;
