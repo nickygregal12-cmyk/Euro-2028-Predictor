@@ -4,9 +4,12 @@
  * Authority: ADR 0012 as amended by ADR 0020. The reschedule/exception model
  * is three distinct states, never collapsed into one flag:
  *
- * - **postponed/rescheduled** — movement between rounds is decided by
- *   `fixtureReassignment.ts`, not here. A fixture that has moved away is
- *   simply absent from this matchweek's card;
+ * - **postponed/rescheduled** — the fixture STAYS on this matchweek's card.
+ *   ADR 0020's owner amendment of 5 August 2026 reversed the earlier rule that
+ *   moved it to whichever round its new kickoff fell in: it keeps the matchweek
+ *   it was scheduled in, and only its own lock instant moves (contract 119).
+ *   Until that kickoff it is `awaiting_result` here like any unplayed fixture,
+ *   so a matchweek holding one cannot settle until it is played;
  * - **abandoned** — started and not completed: the partial score does NOT
  *   stand, and the prediction carries to the replayed fixture in full;
  * - **void** — never to be played: no points to anyone, and the fixture
@@ -34,8 +37,10 @@ export type SettlementFixture = {
   score: FixtureFinalScore | null
   /**
    * For `abandoned` only: the replay fixture the prediction carries to, once
-   * the replay exists. The replay is an ordinary fixture and is governed by
-   * whichever round its kickoff falls in (`fixtureReassignment.ts`).
+   * the replay exists. The replay is an ordinary fixture governed by the round
+   * it is assigned to — which, under ADR 0020's 5 August 2026 amendment, is the
+   * matchweek it was scheduled in whether it is replayed midweek alongside
+   * other games or alone. It is not re-rounded by where its kickoff lands.
    */
   replayFixtureId: string | null
 }

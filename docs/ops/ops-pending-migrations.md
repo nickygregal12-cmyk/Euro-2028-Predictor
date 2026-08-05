@@ -8,7 +8,19 @@ The repository is at **contract 119** and development is at **115**. **Four migr
 
 Contract 118 is the first in this set to change an EXISTING browser-reachable function rather than only add one — it redefines `get_bonus_games`, so the rollout should confirm the tournament path returns what it returned before, which `169_neutral_window_fixture_facts.sql` asserts in CI.
 
-**The fast lane has been failing before it applies anything.** Two runs on `8636bfb` ended at the first step with `ERROR: could not read the hosted migration state`, so nothing was applied and development is unchanged at 115 — verified independently. The database itself answers normally through other paths, so the failure is the runner's own Postgres connection. That step no longer swallows the CLI's own error: contract 119 makes it print the CLI text, credentials redacted, so the next dispatch names the cause rather than restating that something went wrong.
+**The fast lane fails before it applies anything, and the cause is now measured rather than inferred.** Contract 119 stopped that step swallowing the CLI's own error, and the first dispatch after it — run `31050470866` on `f648037`, 5 August 2026 — printed this:
+
+```
+failed to connect to postgres: failed to connect to
+  `host=aws-1-eu-west-2.pooler.supabase.com user=postgres.iouzoutneyjpugbbtdem database=postgres`:
+  failed SASL auth (FATAL: password authentication failed for user "postgres" (SQLSTATE 28P01))
+```
+
+**`SQLSTATE 28P01` is password authentication failed, so the `SUPABASE_DEV_DB_URL` repository secret carries a stale password.** Re-setting that secret is the owner action that unblocks all four pending migrations; nothing in the repository can clear it.
+
+Two things the same output rules out, both worth recording because they were the standing hypotheses. The host, project ref and user resolve correctly — `aws-1-eu-west-2.pooler.supabase.com`, `postgres.iouzoutneyjpugbbtdem`, the **development** project and not production — so the secret's shape and target are right and only its password is wrong. And the run reaches SASL authentication, so there is no network, DNS or TLS fault: the two earlier runs on `8636bfb` were recorded here as "the runner's own Postgres connection", and that reading was wrong.
+
+Nothing was applied: the failure precedes the snapshot and the push, and development is unchanged at 115 — verified independently.
 
 Contract 112 was pending for part of 5 August 2026 — the first time in this sequence the two were not level — and the ordinary fast-lane rollout closed it the same day. Contract 113 went the same way, and contracts 114 and 115 closed together. **One thing the contract 115 rollout established is a negative**, recorded here because it is the blocker rather than a footnote: two probes through `net.http_post` with a deliberately wrong `apikey` both returned HTTP 500 `function_not_configured`, detail `Missing named Supabase secret key: provider-poll`. A resolving key would have returned 401. No provider was contacted and no credential was spent, because the Edge Function checks its own configuration before it reads the request. The database can now call out; the Edge Function cannot yet authorise the caller.
 
