@@ -11,6 +11,7 @@
 This roadmap does **not** duplicate the programme phases or Stage A–L engineering plan. It records where delivery is now and the next executable sequence.
 
 > **What the finished product should look like:** [`design/README.md`](design/README.md) — the target design authority (Hub Architecture and Modernisation Plan rev 1.5, plus the landing-page prototype). It sets presentation and delivery; it changes no rule.
+> **How it becomes production code:** [`design/ui-modernisation-execution.md`](design/ui-modernisation-execution.md) — the reconciled UI migration order, the premium prototype's reference-only classification and the approved tooling phases. Adopted 5 August 2026.
 
 ## Current baseline
 
@@ -112,7 +113,7 @@ These are backend and control foundations. They do not mean that the season game
 ## Next executable sequence
 
 1. **Run the first bounded provider rehearsal in non-production.** Configure only the approved development credential/path, make one request, prove raw custody precedes decode, prove processing evidence is append-only and prove no official fixture, result, lock, score, total, rank or standing is written. If credentials or provider authority are unavailable, stop rather than weakening the boundary.
-2. **Build the season game surfaces from the accepted design authority.** Sequence the phone-first Match Predictor completion flow and retention standings; the LMS weekly-picks/read model and private-management paths; the Predictor Championship phase driver, tables and fixtures; then the Hub action/social shell. Backend availability is not a substitute for a usable surface.
+2. **Build the season game surfaces in the order [`design/ui-modernisation-execution.md`](design/ui-modernisation-execution.md) records.** The design plan's §13.2 and this roadmap previously disagreed about sequence; the reconciliation is deliberate and owned there: visual foundations and component gallery first, then thin global/competition shells, then the phone-first Match Predictor behind a route-level flag, then standings, LMS weekly selection, the Championship surfaces, the full Hub action/social experience, public acquisition, and legacy retirement last. Backend availability is not a substitute for a usable surface. The provider rehearsal in step 1 runs in parallel: it blocks provider-fed production behaviour, not tokens, components, fixture-backed states or shell work.
 3. **Instrument before cohort exposure.** Emit the Phase 1 taxonomy from the first surface commit, then run the headless season/anomaly log and only introduce a closed cohort after the provisional path is stable.
 4. **Keep production paused as a separate milestone.** Repository and development progress do not authorise production migration or publication. Production promotion retains backup, preflight, approval, exact-artifact verification and rollback evidence.
 5. **Keep Stage C2 blocked.** No ownership, erasure, pseudonymisation or replacement ownership-RLS work enters the platform until issue #272 records the independent data-protection decision.
