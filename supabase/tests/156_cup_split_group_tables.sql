@@ -1,4 +1,4 @@
--- Contract 104: the continuing split table, derived rather than copied.
+-- Contract 105: the continuing split table, derived rather than copied.
 --
 -- ADR 0025 decision 2 is explicit about the mechanism, not only the outcome:
 -- "Derive the continuing standings from both initial and split fixtures so
@@ -14,13 +14,13 @@
 
 begin;
 
-select plan(16);
+select plan(22);
 
 -- ---------------------------------------------------------------------------
--- Six entrants, two initial groups of three, drawn by the real admin path.
--- Matchday 1 is played in the league phase. The split then cuts ACROSS the
--- initial groups — split group A takes two entrants who already met each other
--- and one who did not — so the carry-forward has something to bite on.
+-- Seven entrants: six in the one valid source group that is divided into
+-- top and bottom halves, plus one entrant in another initial group used only
+-- to prove cross-parent split membership is refused. Matchday 1 is played in
+-- the league phase before the valid source group divides.
 --
 -- NOT covered here: the head-to-head tiebreak counting league-phase meetings.
 -- Reaching that key needs two entrants level on table points, window points,
@@ -64,18 +64,18 @@ select
   md5('c5-user-' || n)::uuid,
   format('c5-%s@example.test', n),
   'authenticated', 'authenticated', '{}'::jsonb, '{}'::jsonb, now(), now()
-from generate_series(1, 6) as n;
+from generate_series(1, 7) as n;
 
 set local session_replication_role = origin;
 
 insert into public.profiles (id, display_name, welcomed_at)
 select md5('c5-user-' || n)::uuid, format('C5 Player %s', n), now()
-from generate_series(1, 6) as n;
+from generate_series(1, 7) as n;
 
 insert into public.entries (id, user_id, tournament_id, submitted_at)
 select md5('c5-entry-' || n)::uuid, md5('c5-user-' || n)::uuid,
   current_setting('test.c5_tournament_id')::uuid, now()
-from generate_series(1, 6) as n;
+from generate_series(1, 7) as n;
 
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, registration_opens_at,
@@ -108,44 +108,52 @@ values
   (md5('c5-w3')::uuid, md5('c5-comp')::uuid, 3, 'Cup Matchday 3', now() + interval '3 days', now() + interval '4 days'),
   (md5('c5-w4')::uuid, md5('c5-comp')::uuid, 4, 'Cup Split Round 1', now() - interval '2 hours', now() - interval '1 hour');
 
-select public.admin_draw_predictor_cup(md5('c5-comp')::uuid, 'EURO2028-C5-SEED');
+insert into public.bonus_cup_groups (
+  id, competition_id, tournament_id, ordinal, size, phase_kind
+) values
+  (md5('c5-initial')::uuid, md5('c5-comp')::uuid,
+   current_setting('test.c5_tournament_id')::uuid, 1, 6, 'initial'),
+  (md5('c5-other-initial')::uuid, md5('c5-comp')::uuid,
+   current_setting('test.c5_tournament_id')::uuid, 2, 3, 'initial');
+
+insert into public.bonus_cup_members (
+  competition_id, user_id, group_id, phase_kind, draw_number
+)
+select
+  md5('c5-comp')::uuid,
+  md5('c5-user-' || n)::uuid,
+  md5('c5-initial')::uuid,
+  'initial',
+  n
+from generate_series(1, 6) as n;
+
+insert into public.bonus_cup_members (
+  competition_id, user_id, group_id, phase_kind, draw_number
+) values (
+  md5('c5-comp')::uuid, md5('c5-user-7')::uuid,
+  md5('c5-other-initial')::uuid, 'initial', 7
+);
+
+select set_config('test.c5_x', md5('c5-user-1')::text, true);
+select set_config('test.c5_y', md5('c5-user-2')::text, true);
+select set_config('test.c5_p', md5('c5-user-3')::text, true);
+select set_config('test.c5_q', md5('c5-user-4')::text, true);
+select set_config('test.c5_z', md5('c5-user-5')::text, true);
+select set_config('test.c5_r', md5('c5-user-6')::text, true);
+
+insert into public.bonus_cup_fixtures (
+  competition_id, tournament_id, stage, group_id, window_id, matchday,
+  home_user_id, away_user_id
+) values
+  (md5('c5-comp')::uuid, current_setting('test.c5_tournament_id')::uuid,
+   'group', md5('c5-initial')::uuid, md5('c5-w1')::uuid, 1,
+   current_setting('test.c5_x')::uuid, current_setting('test.c5_y')::uuid),
+  (md5('c5-comp')::uuid, current_setting('test.c5_tournament_id')::uuid,
+   'group', md5('c5-initial')::uuid, md5('c5-w1')::uuid, 1,
+   current_setting('test.c5_p')::uuid, current_setting('test.c5_q')::uuid);
 
 insert into public.bonus_window_fixtures (window_id, match_id) values
   (md5('c5-w1')::uuid, current_setting('test.c5_m1')::uuid);
-
--- The matchday-1 pairing in each initial group, plus each group's bye.
-select set_config('test.c5_x',
-  (select f.home_user_id::text from public.bonus_cup_fixtures f
-    join public.bonus_cup_groups g on g.id = f.group_id
-    where f.competition_id = md5('c5-comp')::uuid and g.ordinal = 1 and f.matchday = 1), true);
-select set_config('test.c5_y',
-  (select f.away_user_id::text from public.bonus_cup_fixtures f
-    join public.bonus_cup_groups g on g.id = f.group_id
-    where f.competition_id = md5('c5-comp')::uuid and g.ordinal = 1 and f.matchday = 1), true);
-select set_config('test.c5_z',
-  (select member.user_id::text from public.bonus_cup_members member
-    join public.bonus_cup_groups g on g.id = member.group_id
-    where g.ordinal = 1 and member.competition_id = md5('c5-comp')::uuid
-      and member.phase_kind = 'initial'
-      and member.user_id not in (
-        current_setting('test.c5_x')::uuid, current_setting('test.c5_y')::uuid
-      )), true);
-select set_config('test.c5_p',
-  (select f.home_user_id::text from public.bonus_cup_fixtures f
-    join public.bonus_cup_groups g on g.id = f.group_id
-    where f.competition_id = md5('c5-comp')::uuid and g.ordinal = 2 and f.matchday = 1), true);
-select set_config('test.c5_q',
-  (select f.away_user_id::text from public.bonus_cup_fixtures f
-    join public.bonus_cup_groups g on g.id = f.group_id
-    where f.competition_id = md5('c5-comp')::uuid and g.ordinal = 2 and f.matchday = 1), true);
-select set_config('test.c5_r',
-  (select member.user_id::text from public.bonus_cup_members member
-    join public.bonus_cup_groups g on g.id = member.group_id
-    where g.ordinal = 2 and member.competition_id = md5('c5-comp')::uuid
-      and member.phase_kind = 'initial'
-      and member.user_id not in (
-        current_setting('test.c5_p')::uuid, current_setting('test.c5_q')::uuid
-      )), true);
 
 create or replace function pg_temp.entry_of(p_user text)
 returns uuid
@@ -184,16 +192,41 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- The split. Group A cuts across the initial draw: X and Y already met in the
--- league phase, P did not meet either.
+-- The valid split. Both child groups point to the same six-player initial
+-- group; X and Y already met there, while P met Q.
 -- ---------------------------------------------------------------------------
 
 insert into public.bonus_cup_groups (id, competition_id, tournament_id, ordinal, size, phase_kind, parent_group_id)
 values
-  (md5('c5-split-a')::uuid, md5('c5-comp')::uuid, current_setting('test.c5_tournament_id')::uuid, 3, 3, 'split',
-    (select g.id from public.bonus_cup_groups g where g.competition_id = md5('c5-comp')::uuid and g.ordinal = 1)),
-  (md5('c5-split-b')::uuid, md5('c5-comp')::uuid, current_setting('test.c5_tournament_id')::uuid, 4, 3, 'split',
-    (select g.id from public.bonus_cup_groups g where g.competition_id = md5('c5-comp')::uuid and g.ordinal = 2));
+  (md5('c5-split-a')::uuid, md5('c5-comp')::uuid, current_setting('test.c5_tournament_id')::uuid, 3, 3, 'split', md5('c5-initial')::uuid),
+  (md5('c5-split-b')::uuid, md5('c5-comp')::uuid, current_setting('test.c5_tournament_id')::uuid, 4, 3, 'split', md5('c5-initial')::uuid);
+
+select has_function(
+  'predictor_internal', 'assert_bonus_cup_member_split_parent', array[]::text[],
+  'split membership ancestry has an internal integrity authority'
+);
+
+select ok(
+  exists (
+    select 1 from pg_trigger trigger
+    where trigger.tgrelid = 'public.bonus_cup_members'::regclass
+      and trigger.tgname = 'assert_bonus_cup_member_split_parent'
+      and not trigger.tgisinternal
+  ),
+  'the ancestry authority is bound to every Cup membership write'
+);
+
+select throws_ok(
+  $$insert into public.bonus_cup_members
+      (competition_id, user_id, group_id, phase_kind, draw_number)
+    values (
+      md5('c5-comp')::uuid, md5('c5-user-7')::uuid,
+      md5('c5-split-a')::uuid, 'split', 7
+    )$$,
+  '23514',
+  null,
+  'a split group refuses an entrant whose initial membership belongs to another parent'
+);
 
 insert into public.bonus_cup_members (competition_id, user_id, group_id, phase_kind, draw_number) values
   (md5('c5-comp')::uuid, current_setting('test.c5_x')::uuid, md5('c5-split-a')::uuid, 'split', 1),
@@ -202,6 +235,37 @@ insert into public.bonus_cup_members (competition_id, user_id, group_id, phase_k
   (md5('c5-comp')::uuid, current_setting('test.c5_z')::uuid, md5('c5-split-b')::uuid, 'split', 4),
   (md5('c5-comp')::uuid, current_setting('test.c5_q')::uuid, md5('c5-split-b')::uuid, 'split', 5),
   (md5('c5-comp')::uuid, current_setting('test.c5_r')::uuid, md5('c5-split-b')::uuid, 'split', 6);
+
+
+select throws_ok(
+  $$update public.bonus_cup_groups
+       set parent_group_id = md5('c5-other-initial')::uuid
+     where id = md5('c5-split-a')::uuid$$,
+  '23514',
+  null,
+  'a populated split group cannot rewrite the source table it claims to divide'
+);
+
+select throws_ok(
+  $$update public.bonus_cup_members
+       set group_id = md5('c5-other-initial')::uuid
+     where competition_id = md5('c5-comp')::uuid
+       and user_id = md5('c5-user-1')::uuid
+       and phase_kind = 'initial'$$,
+  '23514',
+  null,
+  'an initial membership cannot move after its split membership exists'
+);
+
+select throws_ok(
+  $$delete from public.bonus_cup_members
+     where competition_id = md5('c5-comp')::uuid
+       and user_id = md5('c5-user-1')::uuid
+       and phase_kind = 'initial'$$,
+  '23514',
+  null,
+  'an initial membership remains permanent after the split'
+);
 
 -- ---------------------------------------------------------------------------
 -- Carry-forward, before a single split fixture has been played
@@ -226,7 +290,7 @@ select is(
   (select t.parent_group_id from predictor_internal.cup_split_group_tables(md5('c5-comp')::uuid) t
     where t.user_id = current_setting('test.c5_x')::uuid),
   (select g.id from public.bonus_cup_groups g
-    where g.competition_id = md5('c5-comp')::uuid and g.ordinal = 1),
+    where g.competition_id = md5('c5-comp')::uuid and g.id = md5('c5-initial')::uuid),
   'the continuing table still names the initial group the entrant came from'
 );
 
@@ -308,8 +372,8 @@ select is(
 
 select is(
   (select count(*)::integer from predictor_internal.cup_final_group_tables(md5('c5-comp')::uuid)),
-  6,
-  'the league table still returns the initial roster only, so qualification and knockout seeding are unaffected by split membership'
+  7,
+  'the league table still returns the complete initial roster only, so qualification and knockout seeding are unaffected by split membership'
 );
 
 select is(

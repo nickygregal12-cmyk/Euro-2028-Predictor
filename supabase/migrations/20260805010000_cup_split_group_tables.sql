@@ -1,5 +1,5 @@
--- Contract 104: the Predictor Championship split table, derived across both
--- phases.
+-- Contract 105: split ancestry integrity and the Predictor Championship
+-- continuing table, derived across both phases.
 --
 -- ADR 0025 decision 2, second half. Contract 102 gave the split a persisted
 -- shape — `phase_kind`, `parent_group_id`, phase-aware membership and
@@ -71,6 +71,161 @@
 -- rank on points from a round whose result has not been confirmed. This is a
 -- new stage rather than a change to a delivered one, so nothing that exists
 -- today moves.
+
+begin;
+
+-- Contract 102 made parentage representable but did not yet prove that each
+-- split member actually came from the child group's parent. The read below
+-- relies on that ancestry, so close the integrity gap before exposing it.
+create or replace function predictor_internal.assert_bonus_cup_group_parent()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $parent$
+declare
+  v_parent_competition uuid;
+  v_parent_phase text;
+begin
+  if tg_op = 'UPDATE' then
+    -- A parent with children remains fixed in the same competition and phase.
+    if (new.competition_id is distinct from old.competition_id
+        or new.phase_kind is distinct from old.phase_kind)
+       and exists (
+         select 1
+         from public.bonus_cup_groups child
+         where child.parent_group_id = old.id
+       ) then
+      raise exception 'A Cup group with split children cannot change competition or phase'
+        using errcode = '23514';
+    end if;
+
+    -- Once members occupy a split group, its claimed source group is immutable.
+    if old.phase_kind = 'split'
+       and new.parent_group_id is distinct from old.parent_group_id
+       and exists (
+         select 1
+         from public.bonus_cup_members member
+         where member.competition_id = old.competition_id
+           and member.group_id = old.id
+           and member.phase_kind = 'split'
+       ) then
+      raise exception 'A populated split Cup group cannot change parent'
+        using errcode = '23514';
+    end if;
+  end if;
+
+  if new.phase_kind = 'split' then
+    select parent.competition_id, parent.phase_kind
+      into v_parent_competition, v_parent_phase
+      from public.bonus_cup_groups parent
+      where parent.id = new.parent_group_id;
+
+    if not found then
+      raise exception 'A split Cup group requires an existing parent group'
+        using errcode = '23503';
+    end if;
+    if v_parent_competition is distinct from new.competition_id then
+      raise exception 'A split Cup group and its parent must belong to the same competition'
+        using errcode = '23514';
+    end if;
+    if v_parent_phase <> 'initial' then
+      raise exception 'A split Cup group must point directly to an initial-phase group'
+        using errcode = '23514';
+    end if;
+  end if;
+
+  return new;
+end;
+$parent$;
+
+revoke all on function predictor_internal.assert_bonus_cup_group_parent()
+  from public, anon, authenticated, service_role;
+
+create or replace function predictor_internal.assert_bonus_cup_member_split_parent()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $member$
+declare
+  v_parent_group_id uuid;
+begin
+  if tg_op = 'DELETE' then
+    if old.phase_kind = 'initial'
+       and exists (
+         select 1
+         from public.bonus_cup_members split_member
+         where split_member.competition_id = old.competition_id
+           and split_member.user_id = old.user_id
+           and split_member.phase_kind = 'split'
+       ) then
+      raise exception 'Initial Cup membership is permanent after a split membership exists'
+        using errcode = '23514';
+    end if;
+    return old;
+  end if;
+
+  if tg_op = 'UPDATE' then
+    if new.phase_kind is distinct from old.phase_kind then
+      raise exception 'Cup membership phase is immutable'
+        using errcode = '23514';
+    end if;
+
+    if old.phase_kind = 'initial'
+       and (new.competition_id is distinct from old.competition_id
+         or new.user_id is distinct from old.user_id
+         or new.group_id is distinct from old.group_id)
+       and exists (
+         select 1
+         from public.bonus_cup_members split_member
+         where split_member.competition_id = old.competition_id
+           and split_member.user_id = old.user_id
+           and split_member.phase_kind = 'split'
+       ) then
+      raise exception 'Initial Cup membership cannot move after the split'
+        using errcode = '23514';
+    end if;
+  end if;
+
+  if new.phase_kind = 'split' then
+    select grp.parent_group_id
+      into v_parent_group_id
+      from public.bonus_cup_groups grp
+      where grp.competition_id = new.competition_id
+        and grp.id = new.group_id
+        and grp.phase_kind = 'split';
+
+    if not found then
+      raise exception 'Split Cup membership requires a split-phase group'
+        using errcode = '23503';
+    end if;
+
+    if not exists (
+      select 1
+      from public.bonus_cup_members initial_member
+      where initial_member.competition_id = new.competition_id
+        and initial_member.user_id = new.user_id
+        and initial_member.phase_kind = 'initial'
+        and initial_member.group_id = v_parent_group_id
+    ) then
+      raise exception 'A split Cup member must come from the split group parent'
+        using errcode = '23514';
+    end if;
+  end if;
+
+  return new;
+end;
+$member$;
+
+revoke all on function predictor_internal.assert_bonus_cup_member_split_parent()
+  from public, anon, authenticated, service_role;
+
+create trigger assert_bonus_cup_member_split_parent
+before insert or update or delete
+on public.bonus_cup_members
+for each row
+execute function predictor_internal.assert_bonus_cup_member_split_parent();
 
 create or replace function predictor_internal.cup_split_group_tables(p_competition_id uuid)
 returns table (
@@ -285,3 +440,5 @@ comment on function predictor_internal.cup_split_group_tables(uuid) is
 -- role reaches Cup standings through the bounded read, never through this.
 revoke all on function predictor_internal.cup_split_group_tables(uuid)
   from public, anon, authenticated, service_role;
+
+commit;
