@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 110,
-  "latestMigrationVersion": "20260805060000",
-  "latestMigrationName": "season_cup_round_calendar",
-  "verifiedAt": "2026-08-05T11:05:00.000Z",
+  "requiredMigrationCount": 111,
+  "latestMigrationVersion": "20260805070000",
+  "latestMigrationName": "season_cup_launch",
+  "verifiedAt": "2026-08-05T12:00:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout on a6ef054, completed successfully; contract 110 applied. Corroborated read-only: the ledger holds 110 rows through 20260805060000. predictor_internal.generate_season_cup_windows is deployed BYTE-IDENTICAL to the committed migration — md5 b601e66b98dfb17832dcdcc27ffd63a9 over 5878 characters on both sides — is security definer, and is granted to none of anon, authenticated, service_role or PUBLIC. It has no caller: it is the prerequisite the Championship phase driver will use, landed ahead of it, so the change is behaviour-neutral on development today.",
+    "source": "Development fast-lane rollout on b66ddca, completed successfully; contract 111 applied. Corroborated read-only: the ledger holds 111 rows through 20260805070000. predictor_internal.launch_season_cup is deployed BYTE-IDENTICAL to the committed migration — md5 bcaac580c7e2f2d92125c3104f0b5205 over 7984 characters on both sides — and neither it nor generate_season_cup_windows is granted to anon, authenticated, service_role or PUBLIC. Zero Cup groups exist, so nothing has been launched and the change is behaviour-neutral on development today. Contract 110 was applied earlier on a6ef054 and is unchanged beneath it.",
     "workflowRunId": 0,
-    "repositoryHead": "a6ef054030547410ad5283d3f906b2a3c4761145"
+    "repositoryHead": "b66ddca6569bed302867a4807ad502d183f1430a"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
