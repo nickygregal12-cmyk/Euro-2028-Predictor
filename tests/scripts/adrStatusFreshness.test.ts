@@ -14,7 +14,6 @@ const partiallyImplemented = [
   '0014-predictor-cup-season-formats.md',
   '0020-football-prediction-hub-product-model.md',
   '0023-hub-information-architecture.md',
-  '0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
 ] as const
 
 describe('ADR implementation-status freshness', () => {
@@ -38,18 +37,22 @@ describe('ADR implementation-status freshness', () => {
     expect(adr('0024-development-environment-operating-model.md')).toContain(
       '- **Status:** Implemented for the current pre-cohort development operating model',
     )
+    expect(
+      adr('0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md'),
+    ).toContain('- **Status:** Implemented')
   })
 
-  it('keeps the Contract 107 lifecycle boundary honest', () => {
+  it('records the complete Contract 107-109 LMS lifecycle without claiming surfaces', () => {
     const lms = adr('0013-last-man-standing-season-rules.md')
     const lifecycle = adr(
       '0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
     )
 
-    expect(lms).toContain('The successor intentionally has no windows')
-    expect(lifecycle).toContain('Contract 107 deliberately creates no windows')
+    expect(lms).toContain('Contracts 107–109 complete the public wipeout restart lifecycle')
+    expect(lms).toContain('player-facing journeys remain unfinished')
+    expect(lifecycle).toContain('Contract 109 closes the final lifecycle step')
     expect(index).toContain(
-      'the separate next-eligible-round/window scheduler remains',
+      '| [0025](0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md) | LMS restart lifecycle, Cup split-stage persistence and post-lock reveal scope | Implemented',
     )
   })
 

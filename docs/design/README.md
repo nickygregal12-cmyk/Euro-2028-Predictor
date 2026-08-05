@@ -58,12 +58,16 @@ The merged delta known at this 5 August review is:
 | 105 | one-parent split ancestry and a continuing table derived across both phases |
 | 106 | tournament Bonus rederivation remained correction-safe after completion |
 | 107 | the idempotent LMS wipeout restart creates a linked successor and copies no picks, cycles, projections or windows |
+| 108 | a restarted competition cannot inherit a round that opened or locked before its predecessor finished |
+| 109 | the next eligible future league matchweek is derived from the existing lock authority and the successor calendar is created exactly once |
 
-Contract 107 is a lifecycle transition, not a complete restart journey. The
-successor is deliberately inert until a separate calendar authority identifies
-the next eligible league round and creates its windows exactly once; the design
-must show that honest unavailable/not-started state rather than implying picks
-are open.
+The Contract 107–109 backend restart lifecycle is complete. Contract 107
+creates the linked successor, Contract 108 refuses inherited past rounds, and
+Contract 109 derives the first eligible future league matchweek from the existing
+lock authority and creates the successor calendar exactly once. When fixtures
+are incomplete and no lock can be derived, the successor remains honestly
+unavailable rather than guessing. Product surfaces must render those real states;
+backend completion is not evidence that the player or organiser journey exists.
 
 None of these changes presentation authority into scoring or lifecycle authority.
 **Appendix D.2's reconciliation list predates them** and must be checked against
