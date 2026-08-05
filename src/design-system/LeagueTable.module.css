@@ -27,7 +27,7 @@
   height: 30px;
   border-bottom: 1px solid var(--line);
   color: var(--tx3);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -57,7 +57,7 @@
 .row {
   min-height: var(--tap-min, 44px);
   border-bottom: 1px solid var(--line);
-  font-size: 13px;
+  font-size: var(--fs-2);
 }
 
 .group:last-child .row {
@@ -114,6 +114,10 @@
 /* Movement is a secondary signal beside the club name, not a column — a column
    would cost width that twenty rows at 360px cannot spare. Shape and colour
    both carry it, and it is labelled for assistive technology. */
+/* Deliberately off the type scale: this renders a movement triangle, so the
+   size is an icon dimension that happens to be expressed in font-size. §11.7's
+   six steps govern text, and sizing a glyph from them would make the arrow
+   larger than the rank it annotates. */
 .move {
   font-size: 8px;
   line-height: 1;
@@ -173,7 +177,7 @@
 
 .dividerLabel {
   color: var(--tx3);
-  font-size: 10px;
+  font-size: var(--fs-eyebrow);
   font-weight: 600;
   letter-spacing: 0.07em;
   text-transform: uppercase;
@@ -187,7 +191,7 @@
   padding: 0;
   list-style: none;
   color: var(--tx3);
-  font-size: 11px;
+  font-size: var(--fs-eyebrow);
 }
 
 .legendItem {
