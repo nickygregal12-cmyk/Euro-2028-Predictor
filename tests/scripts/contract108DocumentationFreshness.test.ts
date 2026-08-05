@@ -20,7 +20,10 @@ describe('Contract 108 documentation freshness', () => {
       'docs/adr/0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
       'docs/quality/feature-baseline.md',
     ]) {
-      expect(read(path), path).toMatch(/Contract[- ]108|contract 108/)
+      // Any whitespace, not just a space. `docs/design/README.md` wraps its
+      // prose between "Contract" and "108", and a documentation guard that a
+      // line break can defeat reports on formatting rather than on content.
+      expect(read(path), path).toMatch(/[Cc]ontract[-\s]108/)
     }
 
     expect(read('docs/roadmap.md')).toContain('the guard is not the scheduler')
