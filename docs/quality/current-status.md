@@ -254,6 +254,8 @@ and 38 unmapped rounds — all of them — because `provider_entity_map` is empt
 until somebody says which of our `teams` rows it is. The 578 invented development fixtures are untouched and remain
 the seed rather than football. SportMonks and API-Football stay uncontacted and their credentials unproven.
 
+**The target was then disabled, on owner direction, after exactly one API call.** Hourly polling during development spends quota on a fixture list nobody consumes. A weekly cadence is not expressible — the CHECK caps at 1440 minutes, because a target polled less often than daily is a manual refresh rather than a poll — so the target is disabled rather than given a schedule it does not keep. Verified: `due: 0`, `dispatched: 0`, one dispatch row in total. The row is kept as the reference for a correct target, and re-enabling is one statement.
+
 **What an operator must supply before it does anything**, stated here because the job is otherwise silently inert: two `vault` secrets — `provider_poll_function_url` (https only; an `http://` value raises rather than returning null, because sending the caller key in clear text is a misconfiguration to fix rather than an absence to tolerate) and `provider_poll_caller_key`, the project secret key named `provider-poll` that the Edge Function compares against in constant time — and at least one row in `public.provider_poll_targets`. Until then the job returns `configured: false` and `due: 0` every five minutes, which is an ordinary answer rather than an error: a job that failed loudly until somebody finished setting it up would be noise nobody reads by the time it means something.
 
 ## Development operating model — implemented controls

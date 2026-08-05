@@ -66,10 +66,34 @@ which of our `teams` rows it is.
 SportMonks and API-Football remain uncontacted. Their credentials are set as
 Edge Function secrets and remain unproven.
 
-## Standing state left behind
+## Standing state left behind — corrected the same hour
 
-The target row is **enabled at a 60-minute cadence**, so `pg_cron` will poll
-hourly from now on and archive roughly 365 KB per call — about 8.8 MB a day,
-with no consumer for any of it until the import exists. That is a deliberate
-choice to leave running, and a cheap one to widen; it is recorded here so the
-growth is expected rather than discovered.
+The target was created **enabled at a 60-minute cadence**, which would have
+archived roughly 365 KB an hour with no consumer for any of it. The owner's
+direction on seeing that: it does not need updating hourly during development,
+and there is no point spending API calls on it — check again in a week or so.
+
+A week is not expressible. `provider_poll_targets_cadence_bounded` caps
+`cadence_minutes` at 1440, and the migration says why in as many words: *a
+target polled less often than daily is not a poll, it is a manual refresh with
+extra machinery.* This is that case, so the target is **disabled** rather than
+given a cadence pretending to be a schedule.
+
+Verified after the change: `due_provider_poll_targets(now())` returns 0,
+`dispatch_due_provider_polls()` returns `{"configured": true, "due": 0,
+"dispatched": 0, "failed": 0}`, and `provider_poll_dispatches` holds **exactly
+one row** — the hourly cadence never came round a second time. **One API call
+has been spent against football-data in total.**
+
+The row is kept rather than deleted, so the working target survives as the
+reference for what a correct one looks like. Re-enabling is one statement:
+
+```sql
+update public.provider_poll_targets set enabled = true
+ where provider = 'football-data' and path = '/competitions/PL/matches';
+```
+
+A refresh before then is deliberate rather than scheduled: enable, call
+`public.dispatch_due_provider_polls()`, disable again. The job continues to run
+every five minutes and continues to do nothing, which is the state contract 115
+was designed to sit in.
