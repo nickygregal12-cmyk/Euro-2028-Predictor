@@ -9,7 +9,7 @@
 
 begin;
 
-select plan(20);
+select plan(22);
 
 -- ---------------------------------------------------------------------------
 -- A Last Man Standing competition mid-wipeout: three entrants, one window, a
