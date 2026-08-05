@@ -3,7 +3,7 @@
 - **Status:** Accepted direction — partially implemented
 - **Date:** 1 August 2026
 - **Supersedes:** the product-positioning and rehearsal-name deferral in ADR 0019. ADR 0019's club-identity and formal clearance cautions remain relevant to any later distinctive brand.
-- **Amends:** five named rules in ADRs 0012, 0013 and 0014, and the lock-policy ownership in ADR 0011. Every other rule in those records remains authoritative — see [§ Rule reconciliation](#rule-reconciliation-with-adrs-0011-0014).
+- **Amends:** five named rules in ADRs 0012, 0013 and 0014, and the lock-policy ownership in ADR 0011. **Amended by its own 5 August 2026 owner amendment below, which reverses § Fixture exceptions: a rescheduled fixture stays in its matchweek and its prediction stays open to its own kickoff, rather than being reassigned to another round.** Every other rule in those records remains authoritative — see [§ Rule reconciliation](#rule-reconciliation-with-adrs-0011-0014).
 
 > **Implementation progress — 5 August 2026.** The competition-season/game data model, separate game memberships, game-owned locks and substantial Match Predictor/LMS/Championship backend authorities are merged. The finished Football Prediction Hub shell, onboarding and complete game surfaces remain governed by ADR 0023 and the target design authority.
 
@@ -186,6 +186,52 @@ The owner brief specified ten per-fixture Jokers with more than one usable per m
 Ten doubled fixtures across roughly 380 in a season contribute about 2.6% of a season total — decorative rather than strategic, and not worth the interface, scoring and parity cost of a per-fixture token. Applied to a whole matchweek the same ten contribute on the order of 20%, which is close to the calibration the shipped tournament game already uses at five Jokers over thirty-six group matches. The matchweek unit is also materially easier to explain, to display and to reason about when a fixture leaves the round.
 
 This is recorded rather than silently applied because it reverses a direct owner instruction, and because ADR 0012 had already reached the same conclusion by the same arithmetic — a second record arriving at the opposite answer would have been the more suspicious outcome.
+
+### Owner amendment, 5 August 2026 — a rescheduled fixture does not move rounds
+
+**This reverses § Fixture exceptions above.** That section says a postponed or
+materially rescheduled fixture "is reassigned to the round its new kickoff falls
+in". The owner's decision is that it is **not** reassigned:
+
+- **the fixture stays in the matchweek it was scheduled in.** It still belongs to
+  that round for prediction, scoring, settlement and the matchweek Joker;
+- **its prediction stays editable until that fixture's own kickoff**, whether it
+  is replayed midweek alongside other games or on its own;
+- **a single moved match never creates a round of its own.** This was named
+  explicitly for Last Man Standing, where one rearranged fixture must not become
+  a round; it holds generally.
+
+**Why this is simpler than what it replaces, and not merely different.** The
+machinery it needs already exists. § Fixture exceptions already states the
+per-match guard as the integrity floor — "no prediction is accepted for any
+match after that match's own kickoff, enforced server-side" — and Stage C1's
+lock enforcement already compares against each fixture's *current* kickoff. This
+amendment promotes that guard from a floor to the operative rule for a moved
+fixture, rather than introducing anything new.
+
+It also removes a whole class of question that reassignment created. Nothing has
+to decide which round a midweek date belongs to, no boundary has to be placed
+between two matchweeks, a fixture cannot land in a round nobody predicted it in,
+and points cannot move between matchweeks after the fact. The reduced-fixture-set
+label and the Joker rules are unaffected, because the fixture never leaves.
+
+ADR 0011's lock law is untouched and still authoritative: a locked round never
+reopens, and the round lock stays derived from the earliest kickoff among the
+fixtures assigned to it. What this amendment changes is that a rescheduled
+fixture's *own* prediction remains open to its own kickoff — the round is not
+reopened for anything else.
+
+**What this supersedes in the repository, stated so it is not discovered later:**
+
+- `src/domain/season/fixtureReassignment.ts` decides a destination round by
+  window and returns `reassign` / `kickoff_revision` / `refused`. Its
+  reassignment model is superseded; the kickoff-revision and audit halves remain
+  meaningful. It has no caller today.
+- Contract 113 gave `competition_rounds` a play window and a resolver in order to
+  answer "which round does this kickoff fall in". **That question is no longer
+  asked by reassignment.** The window remains a true and useful fact — it is when
+  a round is played — but this amendment removes its original consumer, and any
+  later use of it needs its own justification rather than inheriting this one.
 
 ## Consequences
 
