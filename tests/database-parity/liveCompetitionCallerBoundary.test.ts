@@ -10,6 +10,11 @@ const proof = readFileSync(
   resolve(process.cwd(), 'supabase/tests/155_live_competition_callers.sql'),
   'utf8',
 )
+const agents = readFileSync(resolve(process.cwd(), 'AGENTS.md'), 'utf8')
+const currentStatus = readFileSync(
+  resolve(process.cwd(), 'docs/quality/current-status.md'),
+  'utf8',
+)
 const normalizedMigration = migration.toLowerCase()
 
 const operationalTargets = [
@@ -86,5 +91,11 @@ describe('contract 104 competition-instance caller boundary', () => {
     expect(proof).toContain("'c104@example.test'")
     expect(proof).toContain('insert into public.profiles')
     expect(proof).not.toContain('select id into v_user from public.profiles order by id limit 1')
+  })
+
+  it('keeps the live authorities explicit about repository and development state', () => {
+    expect(agents).toContain('The repository is at **contract 104**')
+    expect(agents).toContain('Development Supabase is hosted at **103**')
+    expect(currentStatus).toContain('Development Supabase is hosted at **103**')
   })
 })
