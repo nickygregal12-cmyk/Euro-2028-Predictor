@@ -332,8 +332,26 @@
  * functions were already revoked from every browser role and remain so, and
  * neither is reachable from a seeded user in the first place: they are internal
  * rederive legs called by the result-confirmation path, not RPCs.
+ *
+ * Contract 107 adds one `predictor_internal` function — the Last Man Standing
+ * restart driver — and does nothing else: three statements, `create or replace
+ * function`, `comment on function`, `revoke all`. No grant, relation, policy or
+ * trigger.
+ *
+ * Verified rather than assumed: applied to a database already at contract 106
+ * and the browser-visible surface compared before and after — 227 rows covering
+ * every anon, authenticated and service_role grant, every RLS policy and every
+ * non-internal trigger. Identical.
+ *
+ * Worth stating because this one WRITES where the recent internal additions
+ * only read: it completes a competition, inserts another and re-enters
+ * entrants. None of that is reachable from a seeded user. The function is
+ * revoked from every browser and service role, nothing calls it yet — the
+ * settlement job still only derives and reports — and it refuses any competition
+ * that is not Last Man Standing. A seeded Euro user's reads are unchanged
+ * because no restart can occur without a caller, and there is none.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 106
+export const SEED_REVIEWED_AT_CONTRACT = 107
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
