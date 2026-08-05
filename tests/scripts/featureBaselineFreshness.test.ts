@@ -27,13 +27,13 @@ describe('feature baseline freshness', () => {
       '## Platform backend overlay — not yet compact user features',
     )
     expect(baseline).toContain('idempotent LMS wipeout restart')
-    expect(baseline).toContain('Contract 108 additionally refuses successor rounds')
-    expect(baseline).toContain('LMS successor-window scheduler')
+    expect(baseline).toContain('complete Contract 107–109 LMS wipeout restart lifecycle')
+    expect(baseline).toContain('Championship phase driver')
     expect(baseline).toContain(
       'Backend presence must not be reclassified as a completed user journey',
     )
     expect(baseline).toContain(
-      "treat Contract 108's past-window guard as that scheduler",
+      'describe the Contract 109 successor scheduler as absent',
     )
   })
 
