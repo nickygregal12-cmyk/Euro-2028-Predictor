@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 113,
-  "latestMigrationVersion": "20260805090000",
-  "latestMigrationName": "round_play_windows",
-  "verifiedAt": "2026-08-05T14:52:00.000Z",
+  "requiredMigrationCount": 115,
+  "latestMigrationVersion": "20260805110000",
+  "latestMigrationName": "provider_poll_dispatch",
+  "verifiedAt": "2026-08-05T17:29:26.898Z",
   "evidence": {
-    "source": "Development fast-lane rollout on 8e01df9; contract 113 applied 5 August 2026. The lane derived the pending set and proved the migration additive by reading it before applying. Corroborated read-only afterwards: the ledger holds 113 rows through 20260805090000. public.competition_rounds carries both window columns, and EVERY round's window is NULL \u2014 the migration derives nothing on application, so the apply is behaviour-neutral. Both window CHECK constraints and the assert_round_window_disjoint trigger are bound. All three new predictor_internal objects are deployed BYTE-IDENTICAL to the committed migration: assert_round_window_disjoint md5 2c22a154a61fc6b39ae20a8b752f09a9 over 748 characters, derive_round_play_windows 64deb5daed934fd765d9969b5de84f37 over 1456, and resolve_round_for_kickoff 791c216ea4c53be145e86ff5a6fb044f over 757. Each is security definer with search_path pinned to the empty string and granted to no browser or service role. The column addition widens nothing: competition_rounds holds zero grants to anon or authenticated, which the migration asserts in its own final block. Contract 112 remains intact beneath it.",
-    "workflowRunId": 0,
-    "repositoryHead": "8e01df9697c668e0959dcdc45101a064144fd047"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 31030063029,
+    "repositoryHead": "16ce4d5c8a9fb4bf4d6a2affd6f818fb77c31934"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
