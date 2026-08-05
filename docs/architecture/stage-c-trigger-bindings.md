@@ -34,6 +34,7 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `bonus_competition_entrants.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate stored season/game scope |
 | `bonus_competition_entrants.aa_prepare_bonus_entrant_membership` | `predictor_internal.prepare_bonus_entrant_membership` | attach ordinary Bonus Games entrants to canonical membership |
 | `bonus_competition_windows.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate stored season/game scope |
+| `bonus_competition_windows.assert_successor_window_after_predecessor` | `predictor_internal.assert_successor_window_after_predecessor` | refuse a restarted competition a round that opened or locked before its predecessor finished (contract 108); first instances are exempt, so the Euro catalogue is untouched |
 | `bonus_competitions.a_prepare_game_availability_status` | `predictor_internal.prepare_game_availability_status` | keep legacy publication and canonical availability state coherent |
 | `bonus_competitions.prepare_competition_lineage` | `predictor_internal.prepare_competition_lineage` | default a bare insert to instance 1 of its own new series (contract 103); a chain is only ever continued by explicit lineage |
 | `bonus_competitions.assert_game_availability_shape` | `predictor_internal.assert_game_availability_shape` | enforce game availability against competition-season kind |

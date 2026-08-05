@@ -222,7 +222,8 @@ describe('Stage C trigger binding coverage after C1b', () => {
     // then 84 → 86 by contract 102's Cup group-parent and fixture-phase guards.
     // 86 → 87 at contract 103, which adds the lineage default trigger.
     // 87 → 88 at contract 105, which binds split-member ancestry.
-    expect(effectiveBindings).toHaveLength(88)
+    // 88 → 89 at contract 108, which binds the successor-window calendar guard.
+    expect(effectiveBindings).toHaveLength(89)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(
