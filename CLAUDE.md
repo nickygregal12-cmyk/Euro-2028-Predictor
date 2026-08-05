@@ -1,85 +1,67 @@
-# CLAUDE.md — multi-competition prediction platform
+# CLAUDE.md — Football Prediction Hub
 
-Convenience summary for coding-agent sessions. [`AGENTS.md`](AGENTS.md) and [`docs/quality/current-status.md`](docs/quality/current-status.md) are authoritative.
+Convenience summary for coding-agent sessions. [`AGENTS.md`](AGENTS.md), [`docs/quality/current-status.md`](docs/quality/current-status.md) and the machine contract records are authoritative. This file deliberately does not repeat the moving repository, development, production or Netlify contract values.
+
+## Start every session
+
+1. Read current `main`, open pull requests and the exact branch ancestry before changing anything.
+2. Read `config/deployment-contract.json` and `config/development-hosted-contract.json`; do not infer hosted state from an older report.
+3. Read [`docs/quality/current-status.md`](docs/quality/current-status.md) for implementation/hosted truth and [`docs/roadmap.md`](docs/roadmap.md) for the current executable sequence.
+4. Treat dated audits, investigations, reconciliations and automation handovers as evidence at their recorded commit—not as a current task list.
+5. Keep concurrent work separate. Do not restack, renumber, rewrite or merge another session's branch without first establishing ownership and overlap.
 
 ## Project framing
 
-- This is a multi-competition football prediction platform.
-- Euro 2028 is the first completed competition baseline, preserved at `euro-2028-baseline`, and its remaining work returns in January 2028.
-- Platform decisions are in [`docs/adr/README.md`](docs/adr/README.md); do not infer season rules from the tournament implementation.
-- Forward work follows [`docs/roadmap.md`](docs/roadmap.md) and the detailed inventory in [`MASTER-TODO.md`](MASTER-TODO.md).
-- Do not import rules or features from previous projects, old branches, prototypes or chats.
+- This is a mobile-first, multi-competition football prediction platform.
+- Euro 2028 is the recoverable first tournament baseline at `euro-2028-baseline`; its remaining tournament-specific scope returns in January 2028.
+- A competition season supplies real football. Each prediction game is joined separately and owns its own rules, entry/state, scoring or progression and standings.
+- Following a competition is not game entry. Joining a private league is not game enrolment.
+- Platform and game decisions live in [`docs/adr/README.md`](docs/adr/README.md). Do not infer season rules from the tournament implementation or presentation copy.
+- The finished presentation target lives in [`docs/design/README.md`](docs/design/README.md); it cannot change a scoring, lock, membership, settlement, progression or reveal rule.
 
-## Baseline
+## Current implementation boundary
 
-- React 19, TypeScript, Vite, Supabase and Netlify.
-- The tagged Euro baseline is contract 63 at `1fb8ffd36ad113079181829a8bcc47175c43b6da`.
-- Development Supabase: `iouzoutneyjpugbbtdem`.
-- Production Supabase: `vkfnsqdyhvtwyqkisxhk`.
-- The hosted contract/deploy statements above were last owner-verified on 29 July 2026; **REQUIRES OWNER VERIFICATION** via `docs/quality/current-status.md` before operational reliance.
-- Normal work happens against development; production promotion is milestone-only.
-- Stage A/B is active: authority/control alignment, then the pure context-engine foundation and separate behaviour-preserving surface migrations.
+The shared competition context/lock foundation and its Home, Matches, Match Centre and entry-lock consumers are delivered. The repository also contains the competition-season/game catalogue and backend authorities for season Match Predictor, season Last Man Standing and Predictor Championship, including recurring jobs, scoring/settlement, standings, repeatable competition instances, the idempotent LMS wipeout restart transition and split persistence.
 
-## Proportionate checks
-
-- UI/copy/docs: CI and a targeted preview/UI check when relevant.
-- Features/development schema: CI plus relevant Database parity or Browser E2E.
-- Production schema/auth/scoring/destructive work: fresh recovery evidence where needed, preflight, explicit approval, full verification and dated evidence.
-
-Ordinary development does not require production backup, production smoke or a new reconciliation document.
+Do not mistake backend presence for a completed product. The remaining work is governed by the roadmap and includes the LMS successor-window scheduler, Championship phase driver, bounded browser reads and surfaces, provider rehearsal, instrumentation/cohort evidence and launch operations. Stage C2 ownership/erasure work remains blocked by issue #272.
 
 ## Architecture
 
-- Shared competition rules live under `src/domain/competition/` and follow ADR 0011.
-- Tournament-only rules remain under `src/domain/tournament/`.
-- Season-only rules belong under the future `src/domain/season/`.
-- The shared domain may not import tournament/season implementations; tournament and season implementations may not import each other.
+- Shared competition rules live under `src/domain/competition/`.
+- Tournament-only rules live under `src/domain/tournament/`; season-only rules live under `src/domain/season/`.
+- Shared domain code may not import tournament or season implementations; tournament and season implementations may not import one another.
+- One game's scoring or progression code never imports another's.
 - Domain code is pure: no storage, network or ambient clock reads; time is an input.
-- Components render domain results rather than inventing rules.
-- Browser Supabase access goes through `src/services/supabase/`.
-- Keep pure response parsing/models separate from configured Supabase wrappers.
-- Database rules are authoritative for locks, submission, results, progression, scoring and profile reveal/access boundaries.
-- Competition entries, scoring and standings remain separate under ADRs 0011 and 0015.
+- Components render domain/read-model output and never call Supabase directly.
+- Browser database access goes through `src/services/supabase/` and bounded RPC/read-model contracts.
+- The database is authoritative for locks, submissions, official results, progression, scoring, lifecycle state and server-enforced reveal/access.
+- Live/provider data is provisional. Protected confirmation/correction remains the official scoring and progression gate.
 - Predicted and real brackets never blend.
-- Knockout UI consumes authoritative winner/result-method data.
-- Profile/H2H headline totals and ranks come from bounded server reads; browser domain logic derives only comparison/accuracy views.
-- Other-player profiles remain limited to authenticated league co-members unless a later privacy authority changes that boundary.
-- Feeds remain display-only; confirmation is the official scoring/progression gate.
+- Competition and game separation must be visible in the interface as well as true in storage.
 
-## Scoring
+## Scoring and game rules
 
-[`docs/scoring-rules.md`](docs/scoring-rules.md) remains authoritative for the Euro 2028 tournament configuration. Preserve the existing values, but never treat them as universal platform defaults:
+[`docs/scoring-rules.md`](docs/scoring-rules.md) remains authoritative for the preserved Euro Original Predictor configuration. It is not a platform default.
 
-- group result 3; exact score 5 total;
-- five Jokers, group-match points only;
-- positions 2 each plus 5 full-order bonus;
-- knockout 10 / 15 / 20 / 25 / 40, stacking;
-- Golden Boot 25;
-- group goals 40 / 30 / 20;
-- KO Predictor: exact 5 / result 3 / through +2;
-- Last Man Standing: the existing tournament format.
+Season Match Predictor, Last Man Standing and Predictor Championship rules come from ADRs 0012–0014 and their later amendments. Keep TypeScript, PostgreSQL, pgTAP and source guards aligned whenever a rule authority changes.
 
-Season rules come from ADR 0012, ADR 0013 and their future dedicated scoring authorities. Do not merge tournament and season implementations because terminology overlaps.
+## Development and verification
 
-## Current order
-
-1. Land ADRs 0011–0018 and the reframed forward authorities.
-2. Reconcile `docs/architecture-and-tournament-states.md` with the ADRs.
-3. Make Database parity apply to all `src/domain/**`.
-4. Land the pure competition-context foundation without wiring any surface.
-5. Migrate `entryLock.ts`, `matchCentre.ts`, `matchesTab.ts` and `homeDashboard.ts` separately, each with behaviour-equivalence evidence.
-6. Proceed to competition-season schema and ingestion only after the seam is proven.
-
-The tournament baseline, Bonus Games programme, Match Centre resilience, Account/privacy/contact-admin controls, automated accessibility scanning and Matches tournament-information page remain delivered foundations, not assumptions that season behaviour already exists.
+- Normal work targets the development environment. Production promotion is a separately approved milestone.
+- Additive development migrations use the guarded fast lane only after its checker derives the pending set and accepts every migration.
+- UI/copy/docs: CI, plus a targeted preview or interaction check when appearance/behaviour changes.
+- Application features or development schema: CI plus relevant Browser E2E and/or Database parity.
+- Scoring, locks, lifecycle, auth, destructive work or production changes: the full applicable evidence, explicit approval and target-specific verification.
+- A green repository check is not evidence that a hosted environment was changed.
 
 ## Hard boundaries
 
 - No direct push to `main`.
-- No unapproved production mutation, reset or repair.
-- No direct-table fallback around protected RPCs.
-- No Netlify/Supabase context crossing or guard bypass.
-- No current-project modification of the legacy World Cup deployment.
-- No scoring or rule change without authority and test updates.
-- No hosted claim without evidence.
-- No combined cross-competition entry, score or standings path.
-- No removal of a control document as cleanup; archive it.
+- No unapproved production mutation, reset, repair or contract-declaration change.
+- No guard bypass or direct-table fallback around a protected RPC.
+- No Supabase/Netlify environment crossing and no modification of the historic World Cup deployment.
+- No scoring, lifecycle or rule change without its authority and executable evidence.
+- Do not put successor-window generation inside the Contract 107 restart transition; the next eligible league round requires its own calendar authority and idempotent driver.
+- No hosted claim without fresh target-specific evidence.
+- No combined cross-competition entry, score, survival, progression or standings authority.
+- No rewriting dated evidence to make the current position look cleaner; correct the live authority and preserve history.

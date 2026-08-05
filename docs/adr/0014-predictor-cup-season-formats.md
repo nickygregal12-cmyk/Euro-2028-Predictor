@@ -1,8 +1,10 @@
 # ADR 0014 — Predictor Cup season formats
 
-- **Status:** Accepted direction — unimplemented
+- **Status:** Accepted direction — partially implemented
 - **Date:** 29 July 2026
 - **Amended by:** [ADR 0020](0020-football-prediction-hub-product-model.md) — the game is named **Predictor Championship** in the interface, with every internal identifier left unchanged, and global entry closes at Matchday 1 rather than at the draw. Every format rule below — the group cap of twenty, the meetings arithmetic, the split, the seeded playoff, points-per-game cross-group ranking, the published immutable fixture list, the settlement cutoff, the tie-break sequence and the jokers-never-apply law — is **unchanged and remains the format authority**.
+
+> **Implementation progress — 5 August 2026.** Format selection, launch threshold, neutral points/settlement machinery, season sources, circle-method scheduling rules, split persistence, one-parent ancestry and a continuing table derived across settled initial and split fixtures are merged. The phase-transition driver that creates/schedules the child groups, its bounded browser read and the Predictor Championship surfaces remain unbuilt.
 
 ## Context
 

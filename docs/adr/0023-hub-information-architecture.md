@@ -1,8 +1,10 @@
 # ADR 0023 — Hub information architecture and private competition model
 
-- **Status:** Accepted direction — unimplemented
+- **Status:** Accepted direction — partially implemented
 - **Date:** 3 August 2026
 - **Amends:** [ADR 0020](0020-football-prediction-hub-product-model.md) (public domestic game name, Hub/competition navigation and onboarding), [ADR 0013](0013-last-man-standing-season-rules.md) (creator limits around the private competitions it already permits), and [ADR 0015](0015-commercial-and-social-model.md) (the concrete private-container model). It supersedes the navigation clause in [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md) §0 and the navigation/catalogue section in [`../competition-structure.md`](../competition-structure.md).
+
+> **Implementation progress — 5 August 2026.** Competition/game identity, separate memberships, private/public competition instances, game leagues, bounded standings authorities and the Match Predictor public name exist in the backend. The permanent Hub rail/tab shell, onboarding, full private-creation/managed-entrant UX and the complete phone-first competition journeys remain unbuilt.
 
 ## Context
 

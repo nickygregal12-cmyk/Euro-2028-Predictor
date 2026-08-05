@@ -1,10 +1,29 @@
 -- Publish the three Euro 2028 Bonus Games and their canonical round/fixture plan.
 --
 -- This is operational reference-data publication, not a schema migration. It is
--- safe to rerun: competition/window rows are upserted and fixture links use the
--- existing primary key. No entrant, prediction, score, draw or result row is
--- created. Registration opening instants remain null in a newly configured
--- environment until the project owner deliberately opens each competition.
+-- safe to rerun **on a first instance**: competition/window rows are upserted
+-- and fixture links use the existing primary key. No entrant, prediction,
+-- score, draw or result row is created. Registration opening instants remain
+-- null in a newly configured environment until the project owner deliberately
+-- opens each competition.
+--
+-- The qualification matters, and contract 107 is what introduced it. Every
+-- statement below targets `visibility_kind = 'public' and completed_at is null`
+-- — the LIVE competition. After a Last Man Standing restart that is the
+-- SUCCESSOR, and the calendar below is fixed: a rerun would write all seven
+-- Euro rounds onto the fresh competition, plus their fixture links. A wipeout
+-- happens during a tournament, so some of those rounds have already locked and
+-- been played. `recompute_lms_for_tournament` settles them immediately against
+-- a field that has made no selections at all, and crowns the entire field
+-- champion. See contract 108
+-- (`20260805040000_successor_window_calendar_guard.sql`) for the full trace.
+--
+-- So this script refuses to run once a restart has happened. The calendar it
+-- carries is the ORIGINAL one, and a successor needs a different one — starting
+-- at the next eligible round rather than at round 1. Producing that is the
+-- window scheduler's job, and it does not exist yet. Failing here with a clear
+-- message is the honest outcome; contract 108 refuses the same write at the
+-- table, so removing this check does not make the write succeed.
 
 begin;
 
@@ -16,6 +35,30 @@ begin
     where tournament.name = 'UEFA Euro 2028'
   ) then
     raise exception 'UEFA Euro 2028 tournament row is required before publishing Bonus Games';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  v_successors integer;
+begin
+  select count(*)
+    into v_successors
+    from public.bonus_competitions competition
+    join public.tournaments tournament
+      on tournament.id = competition.tournament_id
+    where tournament.name = 'UEFA Euro 2028'
+      and competition.game_key in ('ko_predictor', 'last_man_standing', 'predictor_cup')
+      and competition.visibility_kind = 'public'
+      and competition.completed_at is null
+      and competition.predecessor_competition_id is not null;
+
+  if v_successors > 0 then
+    raise exception
+      'This catalogue publishes the ORIGINAL Euro 2028 round plan and % live competition(s) are restarted successors. Publishing it would give a fresh competition rounds that already locked. A successor needs the window scheduler, which starts it at the next eligible round; that scheduler does not exist yet.',
+      v_successors
+      using errcode = '23514';
   end if;
 end;
 $$;
