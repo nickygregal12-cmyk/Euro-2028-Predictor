@@ -1,0 +1,39 @@
+name: Restack feature baseline after Contract 107
+
+on:
+  push:
+    branches:
+      - docs/reconcile-feature-baseline-2026-08-05
+    paths:
+      - scripts/restack-feature-baseline-contract-107-once.py
+      - .github/workflows/restack-feature-baseline-contract-107-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: docs/reconcile-feature-baseline-2026-08-05
+          fetch-depth: 0
+      - name: Merge current main
+        run: |
+          git fetch origin main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-edit origin/main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Refresh Contract 107 feature boundary
+        run: python scripts/restack-feature-baseline-contract-107-once.py
+      - name: Remove one-run tooling and commit
+        run: |
+          rm scripts/restack-feature-baseline-contract-107-once.py
+          rm .github/workflows/restack-feature-baseline-contract-107-once.yml
+          git add docs/quality/feature-baseline.md scripts/restack-feature-baseline-contract-107-once.py .github/workflows/restack-feature-baseline-contract-107-once.yml
+          git commit -m "Docs: refresh feature baseline after Contract 107"
+          git push origin HEAD:docs/reconcile-feature-baseline-2026-08-05
