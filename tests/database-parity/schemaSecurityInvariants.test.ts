@@ -83,6 +83,12 @@ describe('row-level security', () => {
       // `public` all exist because something reaches them through a definer
       // function that needs a public foreign key.
       { schema: 'predictor_internal', name: 'provider_poll_dispatches' },
+      // Contract 116. Every kickoff a provider moved, with the instant it
+      // moved from. Internal because it is an administrator's review queue
+      // rather than anything a player reads, and because the fixture already
+      // carries the current kickoff — this exists to hold what the current
+      // value replaced, which no browser surface has a use for.
+      { schema: 'predictor_internal', name: 'season_fixture_revisions' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

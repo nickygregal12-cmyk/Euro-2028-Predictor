@@ -309,6 +309,30 @@ ${SEASONS.map(seasonTuple).join(',\n')}
       raise exception '% does not start on a Saturday', s.name;
     end if;
 
+    -- A season whose clubs came from a provider is never touched by this seed,
+    -- whatever else is true of it.
+    --
+    -- This is deliberately checked BEFORE the fixture guard below, and not
+    -- folded into it, because the two protect against different things. The
+    -- fixture guard stops a calendar being doubled. This one stops invented
+    -- clubs being added ALONGSIDE real ones in the narrow case where fixtures
+    -- were cleared but the clubs and their provider_entity_map rows survived --
+    -- the club insert is "on conflict (tournament_id, name) do nothing", and no
+    -- invented name collides with a real one, so all twenty would land and the
+    -- generator would then build a calendar over forty clubs.
+    --
+    -- Development adopted real football on 5 August 2026. This seed remains
+    -- committed because CI and Browser E2E need a deterministic calendar that
+    -- never calls a provider, so the two worlds now coexist and the boundary
+    -- between them has to be enforced rather than remembered.
+    if exists (
+      select 1 from public.provider_entity_map m
+       where m.tournament_id = v_season and m.entity_kind = 'team'
+    ) then
+      raise notice '% holds provider-mapped clubs; left untouched by the synthetic seed', s.name;
+      continue;
+    end if;
+
     -- Idempotent and all-or-nothing. A season that already has fixtures is left
     -- exactly as it is rather than topped up: a half-seeded calendar is harder
     -- to reason about than either state, and nothing here deletes a row.
@@ -400,6 +424,12 @@ function main() {
       `--`,
       `-- Idempotent and additive: it deletes nothing, and a season that already has`,
       `-- fixtures is left untouched.`,
+      `--`,
+      `-- It also refuses outright any season whose clubs came from a provider, which`,
+      `-- development's two league seasons did on 5 August 2026. That check is separate`,
+      `-- from the fixture one: it is the case where fixtures were cleared but the real`,
+      `-- clubs and their provider_entity_map rows survived, where the invented clubs`,
+      `-- would otherwise be added ALONGSIDE the real ones rather than instead of them.`,
       ``,
       seedSql(),
     ].join('\n'),

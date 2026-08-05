@@ -15,7 +15,12 @@ describe('provider poll contract', () => {
     expect(authorization).toBeGreaterThan(-1)
     expect(providerFetch).toBeGreaterThan(authorization)
     expect(edgeSource).toContain("request.headers.get('apikey')")
-    expect(edgeSource).toContain("const CALLER_KEY_NAME = 'provider-poll'")
+    // Underscore, and deliberately NOT the function slug: Supabase rejects a
+    // hyphen in a secret key name, so a constant that reuses the slug resolves
+    // to nothing and the function answers 500 rather than 401. Pinned here
+    // because the two strings differ by one character and read the same.
+    expect(edgeSource).toContain("const CALLER_KEY_NAME = 'provider_poll'")
+    expect(edgeSource).not.toContain("const CALLER_KEY_NAME = 'provider-poll'")
     expect(edgeSource).toContain("Deno.env.get('SUPABASE_SECRET_KEYS')")
     expect(edgeSource).not.toContain("request.headers.get('authorization')")
     expect(supabaseConfig).toContain('[functions.provider-poll]')

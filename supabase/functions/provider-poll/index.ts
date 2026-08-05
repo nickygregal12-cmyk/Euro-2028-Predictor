@@ -10,7 +10,13 @@ declare const Deno: {
 }
 
 const DECODER_VERSION = 'contract-73-v1'
-const CALLER_KEY_NAME = 'provider-poll'
+// UNDERSCORE, and not the same string as the function slug. The function is
+// deployed as `provider-poll` and lives at `/functions/v1/provider-poll`; the
+// secret key it authorises callers against is `provider_poll`, because Supabase
+// rejects a hyphen in a secret key name. The two looking alike is exactly why
+// this is worth a comment: the first version of this constant used the slug,
+// and the only symptom was a 500 saying the key was missing.
+const CALLER_KEY_NAME = 'provider_poll'
 const PROCESSING_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 const ARCHIVE_MAX_RESPONSE_BYTES = 12 * 1024 * 1024
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' }

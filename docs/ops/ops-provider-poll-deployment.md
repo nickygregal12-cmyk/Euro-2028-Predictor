@@ -84,3 +84,64 @@ therefore to create a **secret key named `provider-poll`** under API Keys.
 **That inference is not documented anywhere in this repository and has not been
 confirmed against Supabase's documentation or against a live 401.** The probe
 above is what would confirm it. Until then, treat the configuration as unproven.
+
+---
+
+## Correction — 5 August 2026, after contract 115
+
+The record above stands as written at its commit. This section corrects one
+fact it got wrong, rather than editing the original.
+
+**The caller key is named `provider_poll`, with an underscore.** The record
+above says to create a secret key named `provider-poll`, matching the function
+slug. That name cannot exist: Supabase rejects a hyphen in a secret key name.
+
+This was found by measurement rather than review, and only after contract 115
+gave the database a way to call out. Two probes through `net.http_post` with a
+deliberately wrong `apikey` both returned:
+
+```
+500 {"error":"function_not_configured",
+     "detail":"Missing named Supabase secret key: provider-poll"}
+```
+
+A resolving key would have returned `401 {"error":"unauthorized"}`. Neither
+probe contacted a provider or spent a provider credential, because the function
+checks its own configuration before it reads the request — which is why this was
+safe to run repeatedly against a live deployment.
+
+`CALLER_KEY_NAME` in `supabase/functions/provider-poll/index.ts` is now
+`provider_poll`, pinned by `tests/scripts/providerPollContract.test.ts` in both
+directions so the slug cannot creep back in. **The function slug is unchanged**:
+it is still deployed as `provider-poll` at `/functions/v1/provider-poll`, and
+`config.toml` still declares `[functions.provider-poll]`. The two names differ
+by one character and mean different things.
+
+The row in the probe table above should therefore read `provider_poll` wherever
+it names the key. It is left as it was so the sequence stays legible.
+
+### Redeployed and re-probed — 5 August 2026
+
+`provider-poll` **version 3**, `ACTIVE`, `verify_jwt: false`, bundle
+`ezbr_sha256 2b45e9698f63985ff6ee75da6e20c2c98fbb4bb157688254939df638fe24a81c`,
+deployed from the committed sources with `CALLER_KEY_NAME = 'provider_poll'`.
+
+A third probe through `net.http_post`, with the same deliberately wrong `apikey`
+as the two that preceded it:
+
+```
+401 {"error":"unauthorized"}
+```
+
+That is the whole discriminator. The same request returned `500
+function_not_configured` against version 1 and `401 unauthorized` against
+version 3, so the named secret key now resolves inside the function and a wrong
+key is refused. **No provider was contacted by any of the three probes** — the
+function answers on its own configuration and its caller's key before it reads
+the request body, let alone fetches.
+
+What this does NOT establish: no provider credential has been exercised, no
+provider response has been archived, and the three provider API keys remain
+unproven. Those are reached only by a real poll, which needs the two `vault`
+secrets and a `provider_poll_targets` row.
+

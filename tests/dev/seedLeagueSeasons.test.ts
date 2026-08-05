@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   roundRobin,
   SEASONS,
+  seedSql,
   singleRoundRobin,
 } from '../../scripts/seed-dev/seed-league-seasons'
 
@@ -188,5 +189,40 @@ describe('the configured seasons', () => {
       ).toBe(season.meetings * (season.clubs.length - 1))
       expect(schedule.length + season.postSplitRounds).toBe(38)
     }
+  })
+})
+
+/**
+ * The synthetic seed and real provider data now coexist. CI and Browser E2E
+ * need a deterministic calendar that never calls a provider; development holds
+ * real football since 5 August 2026. The boundary between them is enforced in
+ * the emitted SQL rather than remembered, so it is pinned here.
+ */
+describe('the synthetic seed refuses a season that holds provider data', () => {
+  const sql = seedSql()
+
+  it('checks for provider-mapped clubs, not merely for fixtures', () => {
+    expect(sql).toContain('from public.provider_entity_map m')
+    expect(sql).toContain("m.entity_kind = 'team'")
+    expect(sql).toContain('left untouched by the synthetic seed')
+  })
+
+  it('checks that BEFORE the fixture guard, because they protect different things', () => {
+    // The fixture guard stops a calendar being doubled. The provider guard
+    // stops invented clubs landing alongside real ones when fixtures were
+    // cleared but the clubs survived — `on conflict (tournament_id, name) do
+    // nothing` does not help there, because no invented name collides with a
+    // real one. Ordering matters: reached second, the provider guard would be
+    // skipped in exactly the case it exists for.
+    const providerGuard = sql.indexOf('public.provider_entity_map m')
+    const fixtureGuard = sql.indexOf('from public.season_fixtures where tournament_id = v_season')
+    expect(providerGuard).toBeGreaterThan(-1)
+    expect(fixtureGuard).toBeGreaterThan(-1)
+    expect(providerGuard).toBeLessThan(fixtureGuard)
+  })
+
+  it('still deletes nothing, so neither guard can be the only thing standing between it and real data', () => {
+    expect(sql).not.toMatch(/\bdelete\s+from\b/i)
+    expect(sql).not.toMatch(/\btruncate\b/i)
   })
 })

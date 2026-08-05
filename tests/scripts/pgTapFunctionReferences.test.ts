@@ -64,6 +64,26 @@ for (const file of sqlFiles(migrationsDirectory)) {
 }
 
 /**
+ * `predictor_internal` is not a functions-only schema and has not been since
+ * contract 96 put the provider custody tables there. That matters here because
+ * the reference scan below keys on `name(`, and `insert into
+ * predictor_internal.some_table (` matches it — the paren is the column list.
+ *
+ * Contract 116 found that: a correct test file was reported as calling a
+ * function that does not exist, which is precisely the cry-wolf failure the
+ * comment above warns about. So the tables are collected and excluded rather
+ * than the test file being written around the regex.
+ */
+const internalTables = new Set<string>()
+for (const file of sqlFiles(migrationsDirectory)) {
+  for (const match of read(migrationsDirectory, file).matchAll(
+    /create\s+table\s+(?:if\s+not\s+exists\s+)?predictor_internal\.([a-z_][a-z0-9_]*)/gi,
+  )) {
+    internalTables.add(match[1].toLowerCase())
+  }
+}
+
+/**
  * Every `predictor_internal` function name a pgTAP file references, by file.
  *
  * Both call sites count: a direct `predictor_internal.name(` call, and the
@@ -74,6 +94,7 @@ for (const file of sqlFiles(migrationsDirectory)) {
 function referencedBy(source: string): Set<string> {
   const names = new Set<string>()
   for (const match of source.matchAll(/predictor_internal\.([a-z_][a-z0-9_]*)\s*\(/gi)) {
+    if (internalTables.has(match[1].toLowerCase())) continue
     names.add(match[1].toLowerCase())
   }
   // Scoped to `function_privs_are` rather than any adjacent string pair.
