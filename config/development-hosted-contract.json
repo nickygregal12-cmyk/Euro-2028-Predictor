@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 111,
-  "latestMigrationVersion": "20260805070000",
-  "latestMigrationName": "season_cup_launch",
-  "verifiedAt": "2026-08-05T12:00:00.000Z",
+  "requiredMigrationCount": 112,
+  "latestMigrationVersion": "20260805080000",
+  "latestMigrationName": "provider_entity_map",
+  "verifiedAt": "2026-08-05T14:00:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout on b66ddca, completed successfully; contract 111 applied. Corroborated read-only: the ledger holds 111 rows through 20260805070000. predictor_internal.launch_season_cup is deployed BYTE-IDENTICAL to the committed migration — md5 bcaac580c7e2f2d92125c3104f0b5205 over 7984 characters on both sides — and neither it nor generate_season_cup_windows is granted to anon, authenticated, service_role or PUBLIC. Zero Cup groups exist, so nothing has been launched and the change is behaviour-neutral on development today. Contract 110 was applied earlier on a6ef054 and is unchanged beneath it.",
-    "workflowRunId": 0,
-    "repositoryHead": "b66ddca6569bed302867a4807ad502d183f1430a"
+    "source": "Development fast-lane rollout run 31012556164 on bc4d00dc; contract 112 applied 5 August 2026. The lane proved the pending set additive by reading the migration before applying it. Corroborated read-only afterwards: the ledger holds 112 rows through 20260805080000. public.provider_entity_map exists and is EMPTY, with row level security enabled, ZERO policies, and zero grants to anon, authenticated, service_role or PUBLIC \u2014 so no browser session can reach it. All five new predictor_internal objects are deployed BYTE-IDENTICAL to the committed migration: provider_mapping_gaps md5 e0bdc02fe0489ddc398c1d4c5956fb8b over 1651 characters, resolve_provider_round 7eca16f7cc79e8df13f98dc0ffaf7f89 over 244, resolve_provider_season 9a31d0caefa8e2feec3ee9c5ae4960c5 over 191, resolve_provider_team 0c5a7a2794971dcdd5e718cff7dcd364 over 230, and touch_provider_entity_map 1c4318bee4240d4113d86fad7eb15623 over 53. Every one is security definer with search_path pinned to the empty string, and none is granted to any browser or service role. The scoping that matters survived the apply: the team key is FOREIGN KEY (tournament_id, team_id) REFERENCES teams(tournament_id, id) and the round key is the matching composite, so the hosted database itself refuses to map a provider identifier onto a club in a different competition season. Five CHECK constraints, four unique indexes and the one updated_at trigger are present. Behaviour-neutral on development today: the map is empty and has no caller.",
+    "workflowRunId": 31012556164,
+    "repositoryHead": "bc4d00dcf8092004a75cd931c5c060fba7d538be"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
