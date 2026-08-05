@@ -37,14 +37,7 @@ const STATE_MATRIX: ReadonlyArray<readonly [state: string, disposition: Disposit
     'initial loading',
     { kind: 'covered', where: 'the Skeleton section and the layout-shaped card skeletons' },
   ],
-  [
-    'refreshing',
-    {
-      kind: 'outstanding',
-      reason:
-        'needs a component that shows content while newer data is requested; no shared primitive expresses subtle in-place progress yet',
-    },
-  ],
+  ['refreshing', { kind: 'section' }],
   ['ready', { kind: 'covered', where: 'every component section renders its ready state first' }],
   ['partial', { kind: 'covered', where: 'the LeagueTable no-movement-data and no-zones sections' }],
   [
@@ -53,22 +46,8 @@ const STATE_MATRIX: ReadonlyArray<readonly [state: string, disposition: Disposit
   ],
   ['unavailable', { kind: 'section' }],
   ['error retryable', { kind: 'covered', where: 'the Alert section’s dismissible error' }],
-  [
-    'error blocking',
-    {
-      kind: 'outstanding',
-      reason:
-        'a full-page contract or security failure with correlation information — it is a route-level surface rather than a component, so it belongs with the route work',
-    },
-  ],
-  [
-    'stale',
-    {
-      kind: 'outstanding',
-      reason:
-        'needs a freshness-timestamp treatment that no component owns yet; the label and the write restriction have to be decided together',
-    },
-  ],
+  ['error blocking', { kind: 'section' }],
+  ['stale', { kind: 'section' }],
   ['offline', { kind: 'section' }],
 
   // §9.2 — user action states.
@@ -133,11 +112,19 @@ describe('component gallery state coverage', () => {
   })
 
   it('records how much of the matrix is still missing', () => {
-    // Three remain: refreshing, blocking error and stale. Asserted as a number
-    // so closing one without updating this file fails, rather than the gap
-    // quietly shrinking with nobody noticing it had.
+    // Nothing, now. Kept rather than deleted: this is the assertion that fails
+    // if a state is ever added to the matrix without being rendered, which is
+    // how the first three went missing. An empty list is a result, not a
+    // reason to stop measuring.
     const outstanding = STATE_MATRIX.filter(([, d]) => d.kind === 'outstanding').map(([s]) => s)
 
-    expect(outstanding).toEqual(['refreshing', 'error blocking', 'stale'])
+    expect(outstanding).toEqual([])
+  })
+
+  it('renders every state §9.1 and §9.2 name', () => {
+    // The matrix is the transcription; this is the count that stops it being
+    // quietly trimmed to match whatever the harness happens to render.
+    expect(STATE_MATRIX).toHaveLength(11)
+    expect(STATE_MATRIX.filter(([, d]) => d.kind === 'section')).toHaveLength(6)
   })
 })

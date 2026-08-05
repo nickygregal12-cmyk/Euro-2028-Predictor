@@ -5,6 +5,20 @@
 [build.environment]
   NODE_VERSION = "22.22.2"
 
+# Deploy previews only — never production, never a branch deploy.
+#
+# The public landing page (modernisation plan Appendix E) is behind a
+# fail-closed route flag, so a preview built without it renders the behaviour
+# the flag replaces: `/` redirects to `/auth/login` and the page under review
+# cannot be reached at all. A reviewer clicking the preview link would be
+# looking at the old front door and reasonably conclude nothing had changed.
+#
+# `context.deploy-preview` scopes this to pull-request builds. Production keeps
+# the flag unset and therefore keeps the redirect, which is the whole point of
+# the flag: exposure is a separate, deliberate decision from merging.
+[context.deploy-preview.environment]
+  VITE_UI_PUBLIC_LANDING = "true"
+
 # SPA routing.
 #
 # Every rule below rewrites to the same SPA entry point; only the HTTP status

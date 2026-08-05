@@ -144,4 +144,52 @@ describe('VITE_* environment variable contract', () => {
       ).not.toMatch(/^(eyJ|sb_|sbp_|https:\/\/[a-z0-9]+@)/)
     }
   })
+
+  /**
+   * Hosted builds may switch a route flag on, but only where it was meant to.
+   *
+   * `netlify.toml` turns the public landing page on for deploy previews, so a
+   * reviewer clicking the preview link sees the page under review rather than
+   * the redirect it replaces. That convenience is one edit away from becoming
+   * an unreviewed production exposure — `[context.deploy-preview.environment]`
+   * and `[build.environment]` differ by one word — and the flag's whole value
+   * is that turning it on is a deliberate, separate act from merging.
+   */
+  describe('hosted route-flag exposure', () => {
+    const netlify = readRepositoryFile('netlify.toml')
+
+    it('switches the landing page on for deploy previews', () => {
+      expect(netlify).toMatch(
+        /\[context\.deploy-preview\.environment\][\s\S]*?VITE_UI_PUBLIC_LANDING\s*=\s*"true"/,
+      )
+    })
+
+    it('never switches a route flag on in the shared build environment', () => {
+      // `[build.environment]` applies to production as well as previews, so a
+      // route flag set there is on for players — which is exactly the decision
+      // the flag exists to keep separate from merging a pull request.
+      const buildEnvironment = netlify.slice(
+        netlify.indexOf('[build.environment]'),
+        netlify.indexOf('[context.'),
+      )
+
+      expect(
+        buildEnvironment,
+        'a VITE_UI_* route flag is set in [build.environment], which production also reads',
+      ).not.toMatch(/VITE_UI_/)
+    })
+
+    it('scopes every hosted route flag to the deploy-preview context', () => {
+      // Any other context — production, branch-deploy — setting a UI route flag
+      // is an exposure decision that must not arrive as a build-config edit.
+      for (const match of netlify.matchAll(/\[context\.([a-z-]+)\.environment\]([\s\S]*?)(?=\n\[|$)/g)) {
+        const [, context, body] = match
+        if (!/VITE_UI_/.test(body)) continue
+        expect(
+          context,
+          `${context} sets a VITE_UI_* route flag; only deploy-preview may`,
+        ).toBe('deploy-preview')
+      }
+    })
+  })
 })

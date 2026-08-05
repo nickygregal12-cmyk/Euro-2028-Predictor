@@ -1996,6 +1996,70 @@ function Gallery() {
           has been kept.
         </Alert>
       </Section>
+
+      <Section title="State — refreshing (content stays, progress is quiet)">
+        {/* §9.1: "Keep content visible; subtle progress; disable only actions
+            whose truth is uncertain." The third clause is the one that is easy
+            to get wrong in both directions — disabling everything makes a
+            background poll feel like an outage, and disabling nothing lets a
+            player act on a number that is being replaced as they read it. */}
+        <p className={styles.label} role="status">
+          Updating scores…
+        </p>
+        <Label>content is not replaced by a skeleton — it was already usable</Label>
+        <LeagueTable rows={PREMIER_LEAGUE_ROWS.slice(0, 4)} caption="Premier League" />
+        <Label>uncertain: this rank is mid-update, so acting on it is blocked</Label>
+        <Button variant="secondary" disabled>
+          Share my position
+        </Button>
+        <Label>certain: entering predictions does not depend on the numbers being refreshed</Label>
+        <Button variant="primary">Edit predictions</Button>
+      </Section>
+
+      <Section title="State — stale (freshness labelled, sensitive writes restricted)">
+        {/* §9.1: "Label timestamp/freshness; restrict sensitive writes." Stale
+            is NOT offline — the connection is fine and the data is simply older
+            than its threshold — so the copy says how old rather than implying a
+            failure the player might try to fix. */}
+        <Alert variant="info" title="Showing results from 14 minutes ago">
+          We have not been able to refresh since then. Nothing here is wrong, but a recent goal may
+          not be counted yet.
+        </Alert>
+        <Label>the freshness line sits with the figures it describes, not only at the top of the page</Label>
+        <div className={styles.row}>
+          <StatCard label="Points" value="176" />
+          <StatCard label="Rank" value="4th" />
+        </div>
+        <p className={styles.label}>Last updated 14:32 · usually every minute</p>
+        <Label>the sensitive write is restricted, and says what would make it safe</Label>
+        <Button variant="primary" disabled>
+          Confirm matchweek
+        </Button>
+        <p className={styles.label}>
+          Confirming is paused until we can check the latest state of your card.
+        </p>
+      </Section>
+
+      <Section title="State — error blocking (full page, correlation reference)">
+        {/* §9.1: "Contract/security/config failure prevents safe rendering.
+            Full-page error, support/correlation information and telemetry."
+            The distinction from a retryable error is the whole point: there is
+            no retry button here, because repeating a request that failed a
+            contract or permission check will fail identically and a button
+            that cannot work is a worse answer than an honest dead end. */}
+        <Alert variant="error" title="We can’t show this page safely">
+          Something in this competition’s configuration does not match what the app expects, so we
+          have stopped rather than show you numbers we cannot stand behind. Your predictions and
+          your points are unaffected.
+        </Alert>
+        <Label>a reference the player can quote, because support cannot search for "it broke"</Label>
+        <p className={styles.label}>Reference: 7F3C-2026-08-05-A19</p>
+        <Label>no retry — the same request fails the same way; the exits are elsewhere</Label>
+        <div className={styles.row}>
+          <Button variant="secondary">Back to hub</Button>
+          <Button variant="secondary">Contact support</Button>
+        </div>
+      </Section>
     </div>
   )
 }
