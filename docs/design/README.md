@@ -59,6 +59,12 @@ The merged delta known at this 5 August review is:
 | 106 | tournament Bonus rederivation remained correction-safe after completion |
 | 107 | the idempotent LMS wipeout restart creates a linked successor and copies no picks, cycles, projections or windows |
 
+Contract 107 is a lifecycle transition, not a complete restart journey. The
+successor is deliberately inert until a separate calendar authority identifies
+the next eligible league round and creates its windows exactly once; the design
+must show that honest unavailable/not-started state rather than implying picks
+are open.
+
 None of these changes presentation authority into scoring or lifecycle authority.
 **Appendix D.2's reconciliation list predates them** and must be checked against
 the live status before being treated as outstanding work.
