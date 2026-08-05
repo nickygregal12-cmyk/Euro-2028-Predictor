@@ -38,7 +38,7 @@ The LMS successor-window scheduler, Championship phase driver, bounded browser r
 
 | ID | Capability | Current classification | Evidence boundary |
 | --- | --- | --- | --- |
-| `FEAT-001` | Authentication, signup/login, password recovery, moderation and sign-out | Implemented and production-hosted | Auth routes/Supabase; Turnstile and recovery delivery are implemented, while ownership/incident readiness remains operational |
+| `FEAT-001` | Authentication, signup/login, password recovery, moderation and sign-out | Implemented and production-hosted | Auth routes/Supabase and recovery delivery exist; Turnstile integration remains opt-in, the production build does not require its key, and the six-character password floor remains tracked under `ACQ-R09` |
 | `FEAT-006` | First-use welcome gate | Implemented and production-hosted | `/welcome`, `welcomed_at`, Browser E2E |
 | `FEAT-009` | Group score prediction | Implemented and production-hosted | Predictor UI and protected prediction boundary |
 | `FEAT-015` | Joker selection | Implemented and production-hosted | UI, database guard and scoring config |
