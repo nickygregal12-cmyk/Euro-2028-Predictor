@@ -1,0 +1,180 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+import {
+  checkFreshness,
+  checkSweep,
+  currentContract,
+  loadManifest,
+  namedContracts,
+} from '../../scripts/check-documentation-authorities.mjs'
+
+/**
+ * The guard that replaces a habit.
+ *
+ * Every contract merged in this session made documents stale that had no
+ * reason to be touched by it, and each was corrected afterwards by a separate
+ * reconciliation pull request. Measured on 5 August 2026 at contract 109: ten
+ * of the live-authority documents named 107 or older as their newest contract.
+ *
+ * The family of per-contract guards that grew alongside that had a second
+ * problem. They asserted literal phrases, and two of them failed on prose
+ * rather than content — one could not see "Contract 108" across a line wrap,
+ * another could not see 109 inside "Contract 107–109". A guard that makes the
+ * writing worse in order to pass is one that gets worked around, so the number
+ * extraction below is tested against exactly those shapes.
+ */
+
+const manifest = loadManifest()
+
+describe('contract mentions are read the way they are written', () => {
+  it('reads a plain mention', () => {
+    expect(namedContracts('applied at contract 109 today')).toEqual([109])
+  })
+
+  it('reads a range as naming every contract in it', () => {
+    // The bug this pins: a lazy match stops at 107 and reports the document as
+    // stale while it is describing 109 perfectly well.
+    expect(namedContracts('the complete Contract 107–109 lifecycle')).toEqual([
+      107, 109,
+    ])
+    expect(namedContracts('contracts 98-110 landed since')).toEqual([98, 110])
+  })
+
+  it('reads across a line wrap, because prose wraps', () => {
+    expect(namedContracts('protected by Contract\n108 at the table')).toEqual([108])
+  })
+
+  it('reads the plural and the hyphen form', () => {
+    expect(namedContracts('Contracts 104 and 105')).toEqual([104])
+    expect(namedContracts('contract-103 prerequisite')).toEqual([103])
+  })
+
+  it('does not invent contracts from ordinary numbers', () => {
+    expect(namedContracts('227 rows, 4014 characters, 30 minutes')).toEqual([])
+    expect(namedContracts('ADR 0025 decision 1')).toEqual([])
+  })
+})
+
+describe('freshness', () => {
+  const authority = (path: string, kind: string) => ({
+    authorities: [{ path, kind, sweep: false }],
+  })
+
+  it('accepts a live document naming the current contract', () => {
+    expect(checkFreshness(authority('AGENTS.md', 'live'), currentContract())).toEqual(
+      [],
+    )
+  })
+
+  it('refuses a live document whose newest contract has been overtaken', () => {
+    const problems = checkFreshness(authority('AGENTS.md', 'live'), 999)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('AGENTS.md')
+    expect(problems[0]).toContain('999')
+  })
+
+  it('lets a disposition register name only what resolved an entry', () => {
+    // A register has nothing to say about a contract that closed no entry.
+    // Requiring it to name the current one would make it lie.
+    expect(
+      checkFreshness(authority('docs/quality/risk-register.md', 'dispositions'), 999),
+    ).toEqual([])
+  })
+
+  it('still refuses a register that names a contract which does not exist', () => {
+    const problems = checkFreshness(
+      authority('docs/quality/risk-register.md', 'dispositions'),
+      1,
+    )
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('does not exist')
+  })
+
+  it('exempts structural inventories, which a real database checks instead', () => {
+    expect(
+      checkFreshness(
+        authority('docs/architecture/stage-c-trigger-bindings.md', 'structural'),
+        1,
+      ),
+    ).toEqual([])
+  })
+
+  it('holds every live authority in the committed manifest', () => {
+    expect(checkFreshness(manifest, currentContract())).toEqual([])
+  })
+})
+
+describe('the sweep gate', () => {
+  const sweepManifest = {
+    authorities: [
+      { path: 'AGENTS.md', kind: 'live', sweep: true },
+      { path: 'docs/roadmap.md', kind: 'live', sweep: true },
+      { path: 'docs/quality/risk-register.md', kind: 'dispositions', sweep: false },
+    ],
+  }
+
+  it('says nothing when no migration was added', () => {
+    expect(checkSweep(sweepManifest, [], ['src/app.tsx'])).toEqual([])
+  })
+
+  it('refuses a migration that leaves a swept authority untouched', () => {
+    const problems = checkSweep(
+      sweepManifest,
+      ['supabase/migrations/20260805060000_x.sql'],
+      ['supabase/migrations/20260805060000_x.sql', 'AGENTS.md'],
+    )
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('docs/roadmap.md')
+    expect(problems[0]).not.toContain('- AGENTS.md')
+  })
+
+  it('accepts a migration that sweeps every one of them', () => {
+    expect(
+      checkSweep(
+        sweepManifest,
+        ['supabase/migrations/20260805060000_x.sql'],
+        ['supabase/migrations/20260805060000_x.sql', 'AGENTS.md', 'docs/roadmap.md'],
+      ),
+    ).toEqual([])
+  })
+
+  it('never demands a document that is not marked for sweeping', () => {
+    // The registers are live but item-scoped. Demanding them on every contract
+    // would train people to add a meaningless line to pass the gate.
+    const problems = checkSweep(
+      sweepManifest,
+      ['supabase/migrations/20260805060000_x.sql'],
+      ['supabase/migrations/20260805060000_x.sql'],
+    )
+    expect(problems[0]).not.toContain('risk-register')
+  })
+})
+
+describe('the manifest itself', () => {
+  it('classifies every document that is allowed to name a contract', () => {
+    for (const entry of manifest.authorities) {
+      expect(['live', 'dispositions', 'structural']).toContain(entry.kind)
+      expect(entry.why, `${entry.path} needs a reason`).toBeTruthy()
+      expect(
+        readFileSync(resolve(process.cwd(), entry.path), 'utf8').length,
+      ).toBeGreaterThan(0)
+    }
+  })
+
+  it('keeps dated evidence out of the freshness rules by classification', () => {
+    // Evidence must keep saying what was true when it was written. Listing the
+    // directories makes that a decision rather than an oversight.
+    expect(manifest.evidenceDirectories).toContain('docs/quality/investigations/')
+    expect(manifest.evidenceDirectories).toContain('docs/automation-runs/')
+    for (const directory of manifest.evidenceDirectories) {
+      expect(
+        manifest.authorities.some((entry: { path: string }) =>
+          entry.path.startsWith(directory),
+        ),
+        `${directory} is evidence and must not also be an authority`,
+      ).toBe(false)
+    }
+  })
+})

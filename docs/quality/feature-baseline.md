@@ -30,6 +30,7 @@ The stable compact rows below preserve the established feature/safeguard identif
 - season Last Man Standing setup, eligibility, deterministic auto-assignment, used-team cycles, selection writes, correction-aware settlement and entrant-state replay;
 - competition-neutral Predictor Championship/Cup points and settlement sources, circle-method scheduling rules, persisted split phases, one-parent ancestry and derived continuing standings;
 - server-only provider-response custody with archive-before-processing evidence and no authority to write official competition truth;
+- the Contract 110 season Championship round calendar, which schedules a competition over the next eligible league matchweeks and refuses a season that cannot supply its whole format;
 - repeatable competition instances, explicit live/current resolution, correction-safe rederivation after completion and the complete Contract 107–109 LMS wipeout restart lifecycle: linked successor creation without copied selections/cycles/projections/windows, a past-window guard, and an idempotent scheduler that derives the first eligible future league matchweek from the established lock authority.
 
 The Championship phase driver, bounded browser reads and season product surfaces remain partial/planned work in the roadmap. Backend presence must not be reclassified as a completed user journey. When a surface becomes a real supported capability, add one reviewed primary identifier and update the executable identifier-count guard in the same change.

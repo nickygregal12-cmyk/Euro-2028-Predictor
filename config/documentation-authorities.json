@@ -1,0 +1,145 @@
+{
+  "$comment": "Which documents may name a contract number, and what naming one obliges them to. See scripts/check-documentation-authorities.mjs for the rules and docs/ops/documentation-authorities.md for why this exists.",
+  "authorities": [
+    {
+      "path": "AGENTS.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "Agent operating rules state the repository and hosted contracts directly."
+    },
+    {
+      "path": "CLAUDE.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "Session summary; states the current implementation boundary."
+    },
+    {
+      "path": "MASTER-TODO.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "Detailed inventory; its delivered/outstanding marks move with each contract."
+    },
+    {
+      "path": "docs/roadmap.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "Execution sequence; its next-step list is falsified by the contract that does the step."
+    },
+    {
+      "path": "docs/quality/current-status.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "The declared live implementation and hosted-status authority."
+    },
+    {
+      "path": "docs/ops/ops-pending-migrations.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "The operational migration inventory."
+    },
+    {
+      "path": "docs/quality/feature-baseline.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "Feature and safeguard classification; its backend overlay moves with the backend."
+    },
+    {
+      "path": "docs/adr/README.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "ADR index; each row carries an implementation status."
+    },
+    {
+      "path": "docs/design/README.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "Design index; carries the merged-delta table against the plan's snapshot."
+    },
+    {
+      "path": "docs/competition-structure.md",
+      "kind": "live",
+      "sweep": false,
+      "allow": [
+        63
+      ],
+      "why": "Implementation-relationship section names delivered backend."
+    },
+    {
+      "path": "docs/architecture/programme-plan.md",
+      "kind": "live",
+      "sweep": false,
+      "allow": [
+        63
+      ],
+      "why": "Delivered-foundations list."
+    },
+    {
+      "path": "docs/architecture/multi-competition-hub-build-plan.md",
+      "kind": "live",
+      "sweep": false,
+      "allow": [
+        63
+      ],
+      "why": "Carries a dated progress overlay above a frozen planning record."
+    },
+    {
+      "path": "docs/quality/risk-register.md",
+      "kind": "dispositions",
+      "sweep": false,
+      "allow": [
+        63
+      ],
+      "why": "Risk dispositions name the contract that resolved them. Its contract references are per-item dispositions naming what resolved an entry, not a claim about current state, so it is required only never to name a contract that does not exist yet."
+    },
+    {
+      "path": "docs/quality/deferred-decisions.md",
+      "kind": "dispositions",
+      "sweep": false,
+      "allow": [
+        63
+      ],
+      "why": "Decision dispositions name the contract that implemented them. Its contract references are per-item dispositions naming what resolved an entry, not a claim about current state, so it is required only never to name a contract that does not exist yet."
+    },
+    {
+      "path": "docs/architecture/stage-c-trigger-bindings.md",
+      "kind": "structural",
+      "sweep": false,
+      "why": "An inventory of what the schema currently binds. It is held in step by tests/database-parity/stageCTriggerBindingCoverage.test.ts against a real database, which is a stronger check than counting contract numbers in prose."
+    }
+  ],
+  "evidenceDirectories": [
+    "docs/automation-runs/",
+    "docs/quality/audits/",
+    "docs/quality/investigations/",
+    "docs/quality/reconciliations/",
+    "docs/quality/history/",
+    "claude/nightly/"
+  ]
+}
