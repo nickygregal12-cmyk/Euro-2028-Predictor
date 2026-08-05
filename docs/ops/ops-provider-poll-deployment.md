@@ -119,3 +119,29 @@ by one character and mean different things.
 
 The row in the probe table above should therefore read `provider_poll` wherever
 it names the key. It is left as it was so the sequence stays legible.
+
+### Redeployed and re-probed — 5 August 2026
+
+`provider-poll` **version 3**, `ACTIVE`, `verify_jwt: false`, bundle
+`ezbr_sha256 2b45e9698f63985ff6ee75da6e20c2c98fbb4bb157688254939df638fe24a81c`,
+deployed from the committed sources with `CALLER_KEY_NAME = 'provider_poll'`.
+
+A third probe through `net.http_post`, with the same deliberately wrong `apikey`
+as the two that preceded it:
+
+```
+401 {"error":"unauthorized"}
+```
+
+That is the whole discriminator. The same request returned `500
+function_not_configured` against version 1 and `401 unauthorized` against
+version 3, so the named secret key now resolves inside the function and a wrong
+key is refused. **No provider was contacted by any of the three probes** — the
+function answers on its own configuration and its caller's key before it reads
+the request body, let alone fetches.
+
+What this does NOT establish: no provider credential has been exercised, no
+provider response has been archived, and the three provider API keys remain
+unproven. Those are reached only by a real poll, which needs the two `vault`
+secrets and a `provider_poll_targets` row.
+

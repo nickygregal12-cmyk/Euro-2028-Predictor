@@ -228,15 +228,18 @@ That is a simpler rule and mostly existing machinery — ADR 0020 already names 
 
 Two things it deliberately does not do, for the same reason contract 112 stopped where it did. It **imports no fixture**: turning a decoded fixture into a `season_fixtures` row needs the identity map to have rows, and it has none, so writing the import now would mean inventing the mapping as a side effect. And it **records no poll target**: there is no authority anywhere in this repository for a provider's URL shape, and a migration that guessed path templates would be publishing three guesses as fact. What it stores instead is a target *table* whose CHECK restates the Edge Function's own path rules, so a target the Edge Function would reject with a 400 cannot be stored at all.
 
-**The caller key does not yet resolve, and that is now measured rather than assumed.** After the contract 115
-rollout, two probes through `net.http_post` with a deliberately wrong `apikey` both returned HTTP 500
-`function_not_configured`, detail `Missing named Supabase secret key: provider-poll`. A resolving key would have
-returned 401 `unauthorized`, because the Edge Function checks its own configuration before it reads the request — so
-no provider was contacted and no provider credential was spent by either probe. The database can call out; the Edge
-Function cannot yet authorise the caller. Either the secret key is not named exactly `provider-poll`, or
-`SUPABASE_SECRET_KEYS` was captured when the function was deployed as version 1 and a redeploy is needed to pick the
-key up. Those two are distinguishable by redeploying the identical committed code and re-probing, which is the next
-step rather than a guess to record.
+**The caller key resolves — measured, after a fix the probe itself found.** The Edge Function authorised callers
+against a secret key named `provider-poll`, matching its own slug. That key cannot exist: Supabase rejects a hyphen in
+a secret key name. Two probes through `net.http_post` with a deliberately wrong `apikey` returned HTTP 500
+`function_not_configured`, detail `Missing named Supabase secret key: provider-poll`. `CALLER_KEY_NAME` is now
+`provider_poll`, the function was redeployed from the committed sources as **version 3** (`ACTIVE`, `verify_jwt:
+false`, `ezbr_sha256 2b45e969…`), and the identical probe returned **`401 unauthorized`**.
+
+That change of answer is the evidence: the named key now resolves inside the function and a wrong key is refused. The
+function slug is unchanged and still `provider-poll`; only the key name differs, by one character, which is why both
+the constant and its guard test now say so in a comment. **No provider was contacted by any of the three probes** —
+the function answers on its own configuration and its caller's key before it reads the request body. No provider
+credential has been exercised and nothing has been archived.
 
 **What an operator must supply before it does anything**, stated here because the job is otherwise silently inert: two `vault` secrets — `provider_poll_function_url` (https only; an `http://` value raises rather than returning null, because sending the caller key in clear text is a misconfiguration to fix rather than an absence to tolerate) and `provider_poll_caller_key`, the project secret key named `provider-poll` that the Edge Function compares against in constant time — and at least one row in `public.provider_poll_targets`. Until then the job returns `configured: false` and `due: 0` every five minutes, which is an ordinary answer rather than an error: a job that failed loudly until somebody finished setting it up would be noise nobody reads by the time it means something.
 
