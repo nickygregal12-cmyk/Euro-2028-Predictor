@@ -1916,6 +1916,86 @@ function Gallery() {
         <Label>no leagues → create prompt</Label>
         <LeagueSnapshot league={null} onOpen={() => {}} onCreate={() => {}} />
       </Section>
+
+      {/* The three states §9.1 and §9.2 name that this harness could not show.
+          Loading, empty, partial, locked, error and hostile data were already
+          here across ~70 sections; offline, unavailable and conflict were the
+          gap, and they are the three hardest to reach from a healthy database
+          — which is exactly why a gallery has to be able to render them on
+          demand rather than waiting for the conditions to occur. */}
+
+      <Section title="State — offline (banner, preserved state, only safe actions)">
+        {/* §9.1: "Offline banner; preserve local/last-known state; queue only
+            explicitly safe actions." All three parts are shown together,
+            because the banner alone is the easy half — the point is that the
+            content underneath SURVIVES and that writes stop. */}
+        <Alert variant="warning" title="You're offline">
+          Showing the last data we loaded. Your saved predictions are safe, and this page will
+          update by itself when the connection returns.
+        </Alert>
+        <Label>last-known content stays on screen — it is not replaced by an empty state</Label>
+        <LeagueSnapshot
+          league={{ id: 'offline', name: 'Saturday Night League', memberCount: 12, rank: 4, gapToTop: 6, lastActivityMs: 0 }}
+          onOpen={() => {}}
+          onCreate={() => {}}
+        />
+        <Label>writes are disabled rather than queued — a prediction is a timed act</Label>
+        <Button variant="primary" disabled>
+          Save predictions
+        </Button>
+        <Label>a read-only action stays available, because it needs nothing from the network</Label>
+        <Button variant="secondary">View scoring rules</Button>
+      </Section>
+
+      <Section title="State — unavailable (scope, reason, expected recovery)">
+        {/* §9.1: "Explain scope, reason and expected recovery where known."
+            Two rows, because the honest difference between them is whether we
+            know when it comes back — and a page that invents a recovery time
+            it does not have is worse than one that says it does not know. */}
+        <Label>recovery known</Label>
+        <EmptyState
+          title="Standings are paused until the matchweek settles"
+          description="Three results are still awaiting confirmation. The table returns as soon as they are confirmed — usually within an hour of the last final whistle."
+        />
+        <Label>recovery not known — say so rather than inventing a time</Label>
+        <EmptyState
+          title="Last Man Standing is not available for this season"
+          description="This competition has not opened a Last Man Standing game. If one opens, it appears here and is joined separately from your predictions."
+        />
+        <Label>partial unavailability inside an otherwise usable page</Label>
+        <Alert variant="info" title="Live scores are unavailable">
+          Confirmed results are unaffected — only the in-play view is missing. Everything below is
+          the official record.
+        </Alert>
+      </Section>
+
+      <Section title="State — conflict (do not overwrite; refresh, compare, reapply)">
+        {/* §9.2: "Server state changed after load. Do not overwrite; offer
+            refresh/compare/reapply." The prohibition is the requirement: the
+            player's own input is shown beside the server's value rather than
+            being silently replaced by it, and no action here writes without
+            them choosing one. */}
+        <Alert variant="warning" title="This prediction changed somewhere else">
+          You have this open in more than one place. We have not overwritten either version — choose
+          which one you want to keep.
+        </Alert>
+        <Label>both values are shown; neither has been applied</Label>
+        <div className={styles.row}>
+          <StatCard label="Yours (unsaved)" value="2–1" />
+          <StatCard label="Saved elsewhere" value="3–1" />
+        </div>
+        <Label>the three actions §9.2 requires — none of them writes on its own</Label>
+        <div className={styles.row}>
+          <Button variant="secondary">Refresh</Button>
+          <Button variant="secondary">Compare</Button>
+          <Button variant="primary">Reapply mine</Button>
+        </div>
+        <Label>conflict on an action that cannot be reapplied — refresh is the only honest offer</Label>
+        <Alert variant="error" title="This matchweek locked while you were editing">
+          Kickoff has passed, so this card can no longer be changed. What was saved before the lock
+          has been kept.
+        </Alert>
+      </Section>
     </div>
   )
 }
