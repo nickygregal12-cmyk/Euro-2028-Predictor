@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 109,
-  "latestMigrationVersion": "20260805050000",
-  "latestMigrationName": "lms_successor_window_scheduler",
-  "verifiedAt": "2026-08-05T09:28:00.000Z",
+  "requiredMigrationCount": 110,
+  "latestMigrationVersion": "20260805060000",
+  "latestMigrationName": "season_cup_round_calendar",
+  "verifiedAt": "2026-08-05T11:05:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout on 41fa111, completed successfully; contract 109 applied. Corroborated read-only: the ledger holds 109 rows through 20260805050000. All three new functions are deployed BYTE-IDENTICAL to the committed migration — next_eligible_league_round md5 83eb5286ba0ba1cd1287ddbdb829ebd1 over 844 characters, generate_lms_successor_windows md5 48477a28108e05f02ea9481b778a768b over 5578, process_due_lms_restarts md5 8f1f7c53c67ed12d1ce286cddd792b68 over 2540. Every one is granted to none of anon, authenticated, service_role or PUBLIC, including the public job, which is reachable only by the scheduler. The pg_cron entry season-restart-due-lms-competitions exists at 15 * * * *, fifteen minutes after the settlement job whose report it reads. The job is behaviour-neutral on development today: zero season_lms_settled audit rows, zero league matchweeks, zero season fixtures and zero successors, so its own selection finds nothing to act on.",
-    "workflowRunId": 30993039183,
-    "repositoryHead": "41fa111032a165102e6dd5eb7b7083d1293b7f7c"
+    "source": "Development fast-lane rollout on a6ef054, completed successfully; contract 110 applied. Corroborated read-only: the ledger holds 110 rows through 20260805060000. predictor_internal.generate_season_cup_windows is deployed BYTE-IDENTICAL to the committed migration — md5 b601e66b98dfb17832dcdcc27ffd63a9 over 5878 characters on both sides — is security definer, and is granted to none of anon, authenticated, service_role or PUBLIC. It has no caller: it is the prerequisite the Championship phase driver will use, landed ahead of it, so the change is behaviour-neutral on development today.",
+    "workflowRunId": 0,
+    "repositoryHead": "a6ef054030547410ad5283d3f906b2a3c4761145"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false

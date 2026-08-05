@@ -158,7 +158,7 @@ Delivered backend foundations now include:
 - shared competition context, competition-season and game-membership identity;
 - recurring domestic Match Predictor scheduling, lock handling, scoring and standings;
 - season Last Man Standing persistence, settlement and the complete Contract 107–109 wipeout-restart lifecycle, including the past-window guard and idempotent successor calendar scheduler;
-- Predictor Championship neutral Cup sources, split-stage persistence, one-parent ancestry and a continuing table derived across both phases;
+- Predictor Championship neutral Cup sources, split-stage persistence, one-parent ancestry, a continuing table derived across both phases and the Contract 110 round calendar that finally lets a season Championship persist a fixture at all;
 - provider-response custody and strict decoding boundaries;
 - repeatable competition instances with explicit live/current resolution and correction-safe rederivation.
 
