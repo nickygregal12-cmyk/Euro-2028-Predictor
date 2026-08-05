@@ -9,7 +9,7 @@
 .label {
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx2);
 }
 
@@ -45,8 +45,10 @@
   padding: 0 var(--sp-3);
   font-family: var(--font-body);
   /* 16px hard floor — mobile Safari auto-zooms on focus of any input <16px
-     (design-system §3 text-input floor, 2026-07-22 audit). */
-  font-size: 16px;
+     (design-system §3 text-input floor, 2026-07-22 audit). fs-3 IS 16px, which
+     is what makes the scale adoption safe here; if the scale ever moves fs-3
+     below 16, this floor wins and the token must not be used on an input. */
+  font-size: var(--fs-3);
   color: var(--tx);
   background: transparent;
   border: 0;
@@ -85,13 +87,13 @@
 .error {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--red);
 }
 
 .hint {
   margin: 0;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx3);
 }

@@ -9,8 +9,18 @@
   padding: 0 var(--sp-4);
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  /* fs-3, adopted from the target scale (UI-02). Was 15px — exactly the
+     "invented intermediate size" the six-step scale exists to remove (plan
+     §11.7). One visible pixel per label, and one fewer off-scale value. */
+  font-size: var(--fs-3);
   line-height: 1;
+  /* Micro feedback on state changes (§11.6): 120ms out-easing, colour and
+     border only — never layout. Reduced motion collapses it via the global
+     media rule in tokens.css, which zeroes transition durations. */
+  transition:
+    background-color var(--duration-micro) var(--ease-out),
+    border-color var(--duration-micro) var(--ease-out),
+    color var(--duration-micro) var(--ease-out);
   border: 1px solid transparent;
   border-radius: var(--radius-input);
   cursor: pointer;
