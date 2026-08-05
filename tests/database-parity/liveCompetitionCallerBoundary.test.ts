@@ -15,6 +15,9 @@ const currentStatus = readFileSync(
   resolve(process.cwd(), 'docs/quality/current-status.md'),
   'utf8',
 )
+const deploymentContract = JSON.parse(
+  readFileSync(resolve(process.cwd(), 'config/deployment-contract.json'), 'utf8'),
+) as { contractVersion: number; requiredMigrationCount: number }
 const normalizedMigration = migration.toLowerCase()
 
 const operationalTargets = [
@@ -93,8 +96,13 @@ describe('contract 104 competition-instance caller boundary', () => {
     expect(proof).not.toContain('select id into v_user from public.profiles order by id limit 1')
   })
 
-  it('keeps the live authorities explicit about repository and development state', () => {
-    expect(agents).toContain('The repository is at **contract 104**')
+  it('keeps the live authorities aligned with the advancing deployment contract', () => {
+    expect(agents).toContain(
+      `The repository is at **contract ${deploymentContract.contractVersion}**`,
+    )
+    expect(currentStatus).toContain(
+      `**${deploymentContract.contractVersion}** — ${deploymentContract.requiredMigrationCount} canonical migrations`,
+    )
     expect(agents).toContain('Development Supabase is hosted at **103**')
     expect(currentStatus).toContain('Development Supabase is hosted at **103**')
   })

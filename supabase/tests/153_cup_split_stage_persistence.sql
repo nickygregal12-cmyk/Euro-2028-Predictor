@@ -170,6 +170,10 @@ select is(pg_temp.capture_sqlstate($sql$insert into public.bonus_cup_members
   (competition_id,user_id,group_id,draw_number,phase_kind) values
   (md5('c102-comp')::uuid,md5('c102-user-7')::uuid,md5('c102-split-top')::uuid,7,'initial')$sql$),
   '23503', 'an initial membership cannot point at a split group');
+insert into public.bonus_cup_members
+  (competition_id,user_id,group_id,draw_number,phase_kind) values
+  (md5('c102-comp')::uuid,md5('c102-user-7')::uuid,
+   md5('c102-initial')::uuid,7,'initial');
 select is(pg_temp.capture_sqlstate($sql$insert into public.bonus_cup_members
   (competition_id,user_id,group_id,draw_number,phase_kind) values
   (md5('c102-comp')::uuid,md5('c102-user-7')::uuid,md5('c102-split-top')::uuid,1,'split')$sql$),

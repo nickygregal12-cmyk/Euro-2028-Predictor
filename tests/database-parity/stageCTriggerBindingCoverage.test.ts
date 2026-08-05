@@ -221,7 +221,8 @@ describe('Stage C trigger binding coverage after C1b', () => {
     // Raised 83 → 84 by contract 92's replay chain walk on season_fixtures,
     // then 84 → 86 by contract 102's Cup group-parent and fixture-phase guards.
     // 86 → 87 at contract 103, which adds the lineage default trigger.
-    expect(effectiveBindings).toHaveLength(87)
+    // 87 → 88 at contract 105, which binds split-member ancestry.
+    expect(effectiveBindings).toHaveLength(88)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(
@@ -252,6 +253,11 @@ describe('Stage C trigger binding coverage after C1b', () => {
     expect(
       effectiveBindings.filter((binding) =>
         binding.endsWith(' -> predictor_internal.assert_bonus_cup_fixture_group_phase'),
+      ),
+    ).toHaveLength(1)
+    expect(
+      effectiveBindings.filter((binding) =>
+        binding.endsWith(' -> predictor_internal.assert_bonus_cup_member_split_parent'),
       ),
     ).toHaveLength(1)
     // Contract 69: the Joker allowance, and the matchweek lock on both card
