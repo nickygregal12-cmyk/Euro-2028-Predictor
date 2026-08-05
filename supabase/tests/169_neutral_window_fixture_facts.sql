@@ -206,15 +206,26 @@ insert into public.bonus_competitions (tournament_id, game_key, published)
 values (current_setting('test.c118_tournament')::uuid, 'last_man_standing', true);
 
 insert into public.bonus_competition_windows (competition_id, sequence, label, opens_at, locks_at)
-select c.id, 1, 'C118 tournament round', now() - interval '2 days', now() - interval '1 day'
+select c.id, 900, 'C118 tournament round', now() - interval '2 days', now() - interval '1 day'
   from public.bonus_competitions c
- where c.tournament_id = current_setting('test.c118_tournament')::uuid;
+ where c.tournament_id = current_setting('test.c118_tournament')::uuid
+   and c.game_key = 'last_man_standing'
+ order by c.id
+ limit 1;
 
+-- `order by ... limit 1` rather than trusting uniqueness. The previous version
+-- assumed this tournament had exactly one competition and therefore exactly one
+-- window; it returned more than one row and raised. Whatever else creates a
+-- window here, the probe only needs ONE it can name, so it picks
+-- deterministically instead of asserting the shape of the world around it.
 select set_config('test.c118_tournament_window',
   (select w.id::text
      from public.bonus_competition_windows w
      join public.bonus_competitions c on c.id = w.competition_id
-    where c.tournament_id = current_setting('test.c118_tournament')::uuid), true);
+    where c.tournament_id = current_setting('test.c118_tournament')::uuid
+      and w.label = 'C118 tournament round'
+    order by w.id
+    limit 1), true);
 
 -- A knockout match: `matches_group_shape` requires group_id and matchday to be
 -- null for anything that is not a group game, so 'final' is the cheapest legal
@@ -227,7 +238,8 @@ values (current_setting('test.c118_tournament')::uuid, 'C118-FINAL', 'final',
 insert into public.bonus_window_fixtures (window_id, match_id)
 select current_setting('test.c118_tournament_window')::uuid, m.id
   from public.matches m
- where m.tournament_id = current_setting('test.c118_tournament')::uuid;
+ where m.tournament_id = current_setting('test.c118_tournament')::uuid
+   and m.match_ref = 'C118-FINAL';
 
 select is(
   (select count(*)::integer
