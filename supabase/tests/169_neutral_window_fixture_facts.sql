@@ -177,39 +177,52 @@ select is(
 -- ---------------------------------------------------------------------------
 -- The tournament path is unchanged, which matters more than the season path
 -- working: this contract redefines a function the Euro hub depends on.
+--
+-- SEEDED RATHER THAN FOUND. The first version of these two assertions selected
+-- an existing tournament window with `... from (select ... limit 1)`, and when
+-- that subquery matched nothing the statements produced NO TEST AT ALL — they
+-- did not fail, they vanished, and only the plan count caught it (10 ran of 12
+-- planned). A test that can silently not run is worse than one that fails, so
+-- the tournament fixture this needs is created here instead of hoped for.
 -- ---------------------------------------------------------------------------
 
-select is(
-  (select count(*)::integer
-     from predictor_internal.bonus_season_window_fixture_facts(window_row.id)),
-  0,
-  'a tournament window gets nothing from the season limb')
-  from (
-    select w.id
-      from public.bonus_competition_windows w
-      join public.bonus_competitions c on c.id = w.competition_id
-      join public.tournaments t on t.id = c.tournament_id
-     where t.kind = 'tournament'
-       and exists (select 1 from public.bonus_window_fixtures f where f.window_id = w.id)
-     limit 1
-  ) window_row;
+insert into public.bonus_competition_windows (competition_id, sequence, label, opens_at, locks_at)
+select c.id, 900, 'C118 tournament probe', now() - interval '2 days', now() - interval '1 day'
+  from public.bonus_competitions c
+  join public.tournaments t on t.id = c.tournament_id
+ where t.kind = 'tournament'
+   and c.game_key = 'last_man_standing'
+ limit 1;
+
+select set_config('test.c118_tournament_window',
+  (select id::text from public.bonus_competition_windows
+    where label = 'C118 tournament probe'), true);
+
+insert into public.bonus_window_fixtures (window_id, match_id)
+select current_setting('test.c118_tournament_window')::uuid, m.id
+  from public.matches m
+  join public.bonus_competition_windows w
+    on w.id = current_setting('test.c118_tournament_window')::uuid
+  join public.bonus_competitions c on c.id = w.competition_id
+ where m.tournament_id = c.tournament_id
+ limit 2;
 
 select is(
   (select count(*)::integer
-     from predictor_internal.bonus_window_fixture_facts(window_row.id)),
+     from predictor_internal.bonus_season_window_fixture_facts(
+       current_setting('test.c118_tournament_window')::uuid)),
+  0,
+  'a tournament window gets nothing from the season limb');
+
+select is(
   (select count(*)::integer
-     from public.bonus_window_fixtures f where f.window_id = window_row.id),
+     from predictor_internal.bonus_window_fixture_facts(
+       current_setting('test.c118_tournament_window')::uuid)),
+  (select count(*)::integer
+     from public.bonus_window_fixtures
+    where window_id = current_setting('test.c118_tournament_window')::uuid),
   'and the combiner returns exactly what the tournament relation holds for it — '
-  'the Euro hub reads the same rows it read before this contract')
-  from (
-    select w.id
-      from public.bonus_competition_windows w
-      join public.bonus_competitions c on c.id = w.competition_id
-      join public.tournaments t on t.id = c.tournament_id
-     where t.kind = 'tournament'
-       and exists (select 1 from public.bonus_window_fixtures f where f.window_id = w.id)
-     limit 1
-  ) window_row;
+  'the Euro hub reads the same rows it read before this contract');
 
 select is(
   (select count(*)::integer
