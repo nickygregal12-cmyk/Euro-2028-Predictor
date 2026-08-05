@@ -4,7 +4,7 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 5 August 2026
 
-The repository is at **contract 113**; development is at **112**. **One migration is pending** — `20260805090000_round_play_windows.sql`. The contract is merged and not yet rolled out, and the ordinary fast-lane rollout closes it.
+The repository is at **contract 114**; development is at **112**. **Two migrations are pending** — `20260805090000_round_play_windows.sql` (contract 113) and `20260805100000_season_card_rpcs.sql` (contract 114). Contract 114 adds a version column and two triggers to `season_predictions` plus delete-path lock triggers, redefines the season lock-enforcement function to cover deletes, and creates four browser RPCs granted to `authenticated` — the season matchweek card read and its three own-entry writes. It is additive; its behaviour change on development is the intended one: an authenticated player with an entry can, for the first time, read and write their own season card through the bounded path. The contract is merged and not yet rolled out, and the ordinary fast-lane rollout closes it.
 
 The pending migration is additive: it adds two nullable columns to `competition_rounds`, three `predictor_internal` functions and one trigger. It grants nothing to any browser or service role, derives no window on application, and the trigger fires only on writes that set one — so applying it is behaviour-neutral.
 
