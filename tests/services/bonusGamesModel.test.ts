@@ -77,10 +77,30 @@ describe('bonus games response parsing', () => {
     expect(mapBonusGamesResponse(raw, TOURNAMENT, USER).games[0].entrant).toBeNull()
   })
 
-  it('rejects an unknown game instead of guessing', () => {
+  it('skips a game this hub does not model, rather than failing the whole read', () => {
+    // This used to throw, and that made the entire hub unreadable the moment a
+    // season published a game outside the bonus set. `get_bonus_games` selects
+    // every published competition with no game-key filter, so publishing
+    // `main_predictor` — a real game, simply not a bonus game — took the read
+    // down along with every caller sharing it. The C1b decoder had already
+    // settled this the other way; the two now agree.
     const raw = payload()
-    ;(raw.competitions[0] as Record<string, unknown>).game_key = 'sweepstake'
-    expect(() => mapBonusGamesResponse(raw, TOURNAMENT, USER)).toThrow('unknown game')
+    ;(raw.competitions[0] as Record<string, unknown>).game_key = 'main_predictor'
+
+    expect(mapBonusGamesResponse(raw, TOURNAMENT, USER).games).toEqual([])
+  })
+
+  it('keeps the games it does model when an unknown one sits beside them', () => {
+    const raw = payload()
+    const known = raw.competitions[0] as Record<string, unknown>
+    ;(raw as unknown as { competitions: unknown[] }).competitions = [
+      { ...known, id: '00000000-0000-4000-8000-0000000000ff', game_key: 'main_predictor' },
+      known,
+    ]
+
+    const games = mapBonusGamesResponse(raw, TOURNAMENT, USER).games
+    expect(games).toHaveLength(1)
+    expect(games[0].competition.gameKey).toBe('ko_predictor')
   })
 
   it('rejects an unknown entrant outcome', () => {
