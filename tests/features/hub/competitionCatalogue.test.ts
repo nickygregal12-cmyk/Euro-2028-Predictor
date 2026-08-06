@@ -12,6 +12,7 @@ function competition(overrides: Partial<HubCompetition> = {}): HubCompetition {
   return {
     competitionSlug: 'premier-league',
     seasonSlug: '2026-27',
+    seasonRowName: 'Premier League 2026/27',
     name: 'Premier League',
     seasonLabel: '2026/27',
     status: 'upcoming',
@@ -23,6 +24,7 @@ function competition(overrides: Partial<HubCompetition> = {}): HubCompetition {
 
 const joinedGame = {
   kind: 'league-predictor',
+  gameKey: 'main_predictor',
   name: 'Main Predictor',
   description: 'A description.',
   joined: true,
@@ -31,6 +33,7 @@ const joinedGame = {
 
 const availableGame = {
   kind: 'last-man-standing',
+  gameKey: 'last_man_standing',
   name: 'Last Man Standing',
   description: 'A description.',
   joined: false,
@@ -111,6 +114,27 @@ describe('the shipped catalogue', () => {
       for (const game of entry.games) {
         expect(game.joined).toBe(game.status === 'joined')
       }
+    }
+  })
+
+  it('never hard-codes a membership claim — membership is the server’s to state', () => {
+    // The Hub shipped for a while with `joined: true` written into this file,
+    // so the interface disagreed with the player's actual entries. The
+    // catalogue is presentation copy; `applyHubMembership` overlays the real
+    // memberships from the C1b read.
+    for (const entry of HUB_COMPETITIONS) {
+      for (const game of entry.games) {
+        expect(game.joined, `${entry.competitionSlug}/${game.kind}`).toBe(false)
+        expect(game.status, `${entry.competitionSlug}/${game.kind}`).not.toBe('joined')
+      }
+    }
+  })
+
+  it('names a distinct database season row for every entry', () => {
+    const names = HUB_COMPETITIONS.map((entry) => entry.seasonRowName)
+    expect(new Set(names).size).toBe(names.length)
+    for (const name of names) {
+      expect(name.trim().length).toBeGreaterThan(0)
     }
   })
 

@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Button, EmptyIllustration, Masthead } from '../../design-system'
+import { Alert, Button, EmptyIllustration, Masthead, Skeleton } from '../../design-system'
+import { fetchHubMembership } from '../../services/supabase/competitionGames'
 import s from '../shared.module.css'
 import h from './hub.module.css'
 import {
@@ -8,6 +10,7 @@ import {
   partitionHubCompetitions,
   type HubCompetition,
 } from './competitionCatalogue'
+import { applyHubMembership } from './hubMembership'
 
 type CompetitionCardProps = {
   competition: HubCompetition
@@ -60,10 +63,50 @@ function CompetitionCard({ competition, onOpen, action, secondary }: Competition
   )
 }
 
+/**
+ * The catalogue supplies presentation copy; membership comes from the C1b
+ * catalogue read. The three states are deliberately distinct so a failed read
+ * is never dressed as "you have joined nothing" — the exact conflation the
+ * static Hub used to hard-code.
+ */
+type HubMembershipState =
+  | { status: 'loading' }
+  | { status: 'failed' }
+  | { status: 'ready'; competitions: HubCompetition[] }
+
+function useHubMembership(): { state: HubMembershipState; retry: () => void } {
+  const [state, setState] = useState<HubMembershipState>({ status: 'loading' })
+  const [nonce, setNonce] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    setState({ status: 'loading' })
+    fetchHubMembership(HUB_COMPETITIONS.map((entry) => entry.seasonRowName))
+      .then((seasons) => {
+        if (!active) return
+        const { competitions } = applyHubMembership(HUB_COMPETITIONS, seasons)
+        setState({ status: 'ready', competitions })
+      })
+      .catch(() => {
+        if (active) setState({ status: 'failed' })
+      })
+    return () => {
+      active = false
+    }
+  }, [nonce])
+
+  return { state, retry: () => setNonce((value) => value + 1) }
+}
+
 export function HubPage() {
   const navigate = useNavigate()
-  const { mine, discover } = partitionHubCompetitions(HUB_COMPETITIONS)
+  const { state, retry } = useHubMembership()
   const open = (competition: HubCompetition) => navigate(competitionPath(competition))
+
+  const { mine, discover } =
+    state.status === 'ready'
+      ? partitionHubCompetitions(state.competitions)
+      : { mine: [], discover: HUB_COMPETITIONS }
 
   return (
     <div className={s.page}>
@@ -81,14 +124,37 @@ export function HubPage() {
         </p>
       </div>
 
+      {state.status === 'failed' ? (
+        <Alert variant="warning" title="Couldn’t check your competitions">
+          Which games you have joined couldn’t be loaded right now, so everything is shown
+          under Discover without membership. Your entries are unaffected.
+          <div style={{ marginTop: 10 }}>
+            <Button variant="secondary" onClick={retry}>
+              Retry
+            </Button>
+          </div>
+        </Alert>
+      ) : null}
+
       <section className={h.section} aria-labelledby="hub-my-competitions">
         <div className={h.sectionHead}>
           <h2 className={h.sectionTitle} id="hub-my-competitions">
             My competitions
           </h2>
-          <span className={h.sectionCount}>{mine.length}</span>
+          <span className={h.sectionCount}>
+            {state.status === 'ready' ? mine.length : '–'}
+          </span>
         </div>
-        {mine.length === 0 ? (
+        {state.status === 'loading' ? (
+          <div className={h.empty}>
+            <Skeleton lines={3} />
+          </div>
+        ) : state.status === 'failed' ? (
+          <div className={h.empty}>
+            <EmptyIllustration variant="list" />
+            <p className={h.emptyText}>Membership is unavailable until the check succeeds.</p>
+          </div>
+        ) : mine.length === 0 ? (
           <div className={h.empty}>
             <EmptyIllustration variant="list" />
             <p className={h.emptyText}>
@@ -116,7 +182,11 @@ export function HubPage() {
           </h2>
           <span className={h.sectionCount}>{discover.length}</span>
         </div>
-        {discover.length === 0 ? (
+        {state.status === 'loading' ? (
+          <div className={h.empty}>
+            <Skeleton lines={3} />
+          </div>
+        ) : discover.length === 0 ? (
           <div className={h.empty}>
             <EmptyIllustration variant="complete" />
             <p className={h.emptyText}>
