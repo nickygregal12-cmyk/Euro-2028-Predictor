@@ -1,0 +1,40 @@
+/* Registration panel for a season Last Man Standing competition. Tokens only;
+   every size is a scale step. Phone-first, and sized to sit above the round. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  /* A flex child defaults to min-width:auto, which lets long copy push the
+     panel past the viewport instead of wrapping inside it. */
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* The instant is secondary to the sentence above it, but must stay above AA on
+   --card, so it takes --tx2 rather than --tx3. */
+.deadline {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
