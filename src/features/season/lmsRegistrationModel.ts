@@ -83,6 +83,11 @@ export const CHAMPIONSHIP_REGISTRATION_COPY: RegistrationCopy = {
   pitch: 'Play a head-to-head fixture every matchweek, scored from your Main Predictor points.',
 }
 
+export const MAIN_PREDICTOR_REGISTRATION_COPY: RegistrationCopy = {
+  gameName: 'the Main Predictor',
+  pitch: 'Predict every scoreline, every matchweek. Play a Joker to double a matchweek.',
+}
+
 export function presentLmsRegistration(
   facts: LmsRegistrationFacts,
   copy: RegistrationCopy,

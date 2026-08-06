@@ -1,6 +1,9 @@
 import { Alert, Button, ClubMatchCard, Skeleton } from '../../design-system'
+import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
+import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { MatchPredictorGateway } from './matchPredictorModel'
-import { SeasonCompetitionShell } from './SeasonCompetitionShell'
+import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
+import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonMatchPredictor } from './useSeasonMatchPredictor'
 import styles from './SeasonMatchPredictorPage.module.css'
 
@@ -30,6 +33,32 @@ import styles from './SeasonMatchPredictorPage.module.css'
 export type SeasonMatchPredictorPageProps = {
   gateway: MatchPredictorGateway
   matchweek: number
+  /**
+   * Competition identity, supplied by the route rather than read from the card.
+   *
+   * IT USED TO COME FROM THE CARD, and that is why the loading and failed
+   * states rendered a masthead reading "Loading competition" and "Match
+   * Predictor" over the season label "Season" — furniture asserting something
+   * untrue while the read was in flight, and still untrue after it failed. The
+   * route resolves the real competition before this page mounts at all, so the
+   * name is a fact by the time it is rendered.
+   */
+  competitionName: string
+  seasonLabel: string
+  /** Where each §7.3 section lives. Absent sections stay unavailable labels. */
+  destinations?: Partial<Record<SeasonShellSection, string>>
+  /**
+   * Entry for the season Match Predictor. Optional only because the DEV
+   * harness has no signed-in caller to register.
+   *
+   * WITHOUT IT THIS PAGE IS A TRAP. `get_season_matchweek_card` answers a
+   * caller who holds no entry with an ordinary card — `card_status` is
+   * `no_submission`, which is also what an entered player with nothing saved
+   * gets — so the card renders, invites a whole matchweek of predictions, and
+   * the first save is refused by `require_season_entry`. The panel states
+   * membership before that happens.
+   */
+  registration?: SeasonLmsRegistrationGateway
 }
 
 const SKELETON_ROWS = 10
@@ -46,16 +75,24 @@ function atLockCopy(atLock: 'unbanked' | 'banks_entered' | null, entered: number
   return null
 }
 
-export function SeasonMatchPredictorPage({ gateway, matchweek }: SeasonMatchPredictorPageProps) {
+export function SeasonMatchPredictorPage({
+  gateway,
+  matchweek,
+  competitionName,
+  seasonLabel,
+  destinations,
+  registration,
+}: SeasonMatchPredictorPageProps) {
   const view = useSeasonMatchPredictor(gateway, matchweek)
 
   if (view.status === 'loading') {
     return (
       <SeasonCompetitionShell
-        competitionName="Loading competition"
-        seasonLabel="Season"
+        competitionName={competitionName}
+        seasonLabel={seasonLabel}
         statusStrip={[]}
         active="play"
+        destinations={destinations}
       >
         <div className={styles.card} aria-busy="true" aria-live="polite">
           <span className={styles.srOnly}>Loading this matchweek</span>
@@ -73,10 +110,11 @@ export function SeasonMatchPredictorPage({ gateway, matchweek }: SeasonMatchPred
   if (view.status === 'failed' || view.page === null || view.presentation === null) {
     return (
       <SeasonCompetitionShell
-        competitionName="Match Predictor"
-        seasonLabel="Season"
+        competitionName={competitionName}
+        seasonLabel={seasonLabel}
         statusStrip={[]}
         active="play"
+        destinations={destinations}
       >
         <Alert variant="error" title="This matchweek is unavailable">
           {view.loadError ?? 'This matchweek could not be loaded.'}
@@ -100,11 +138,22 @@ export function SeasonMatchPredictorPage({ gateway, matchweek }: SeasonMatchPred
 
   return (
     <SeasonCompetitionShell
-      competitionName={page.competition.name}
-      seasonLabel={page.competition.seasonLabel}
+      competitionName={competitionName}
+      seasonLabel={seasonLabel}
       statusStrip={statusStrip}
       active="play"
+      destinations={destinations}
     >
+      {/* Above the card, deliberately. A player who is not entered must learn
+          it before filling one in, not from the refusal on their first save. */}
+      {registration ? (
+        <SeasonLmsRegistration
+          gateway={registration}
+          copy={MAIN_PREDICTOR_REGISTRATION_COPY}
+          onJoined={view.reload}
+        />
+      ) : null}
+
       {presentation.state === 'conflict_requires_refresh' ? (
         <Alert variant="error" title="This matchweek changed somewhere else">
           Your predictions were edited on another device, so this page is out of date. Reload it to

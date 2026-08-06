@@ -5,6 +5,9 @@ import { isNextUi } from '../../app/routeFlags'
 import { NotFoundPage } from '../notfound/NotFoundPage'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
+import { createSeasonGameRegistrationRpcGateway } from '../../services/supabase/seasonGameRegistration'
+import { findHubCompetition } from '../hub/competitionCatalogue'
+import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchPredictorPage } from './SeasonMatchPredictorPage'
@@ -55,6 +58,12 @@ export function SeasonMatchPredictorRoute({
   }>()
 
   const enabled = isNextUi('seasonMatchPredictor')
+  // One shared map, so this route stops being the one that forgets. Every
+  // section here rendered as an unavailable label until now — on the page a
+  // player would spend most of their time on.
+  const destinations = seasonShellDestinations(
+    seasonBasePath(competitionSlug ?? '', seasonSlug ?? ''),
+  )
 
   const gateway = useMemo(
     () => contextGateway ?? createSeasonPlayContextGateway(),
@@ -80,6 +89,19 @@ export function SeasonMatchPredictorRoute({
       now: now ?? (() => new Date()),
     })
   }, [context, now])
+
+  // Resolved by game key, because contract 121's play context answers which
+  // SEASON a URL means and nothing about that season's games. Its own read runs
+  // inside the panel, after the card has been asked for, so it adds nothing to
+  // time-to-first-card.
+  const seasonRowName = findHubCompetition(competitionSlug, seasonSlug)?.seasonRowName ?? null
+  const registration = useMemo(() => {
+    if (seasonRowName === null) return undefined
+    return createSeasonGameRegistrationRpcGateway({
+      seasonRowName,
+      gameKey: 'main_predictor',
+    })
+  }, [seasonRowName])
 
   if (!enabled) return <NotFoundPage />
 
@@ -114,6 +136,7 @@ export function SeasonMatchPredictorRoute({
         seasonLabel={state.context.seasonLabel}
         statusStrip={[`${state.context.matchweekCount} matchweeks played`]}
         active="play"
+        destinations={destinations}
       >
         <Alert variant="info" title="This season has no matchweek left to play">
           Every matchweek has passed its lock. Results and standings stay available; there is
@@ -128,5 +151,14 @@ export function SeasonMatchPredictorRoute({
   // to happen here rather than in the type.
   if (cardGateway === null) return null
 
-  return <SeasonMatchPredictorPage gateway={cardGateway} matchweek={state.matchweek} />
+  return (
+    <SeasonMatchPredictorPage
+      gateway={cardGateway}
+      matchweek={state.matchweek}
+      competitionName={state.context.competitionName}
+      seasonLabel={state.context.seasonLabel}
+      destinations={destinations}
+      registration={registration}
+    />
+  )
 }
