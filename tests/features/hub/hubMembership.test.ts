@@ -2,6 +2,25 @@ import { describe, expect, it } from 'vitest'
 import { applyHubMembership } from '../../../src/features/hub/hubMembership'
 import type { HubCompetition } from '../../../src/features/hub/competitionCatalogue'
 import type { HubSeasonMembership } from '../../../src/services/supabase/competitionGames'
+import type { CompetitionGame } from '../../../src/services/supabase/competitionGamesModel'
+
+const SERVER_NOW = '2026-08-06T12:00:00Z'
+
+/** The served game shape, with the fields this overlay does not read defaulted. */
+function servedGame(overrides: Partial<CompetitionGame> = {}): CompetitionGame {
+  return {
+    id: '60000000-0000-0000-0000-000000000101',
+    gameKey: 'main_predictor',
+    active: true,
+    displayName: 'Main Predictor',
+    registrationOpensAt: null,
+    registrationClosesAt: null,
+    completedAt: null,
+    allowRejoin: false,
+    membership: null,
+    ...overrides,
+  }
+}
 
 function entry(overrides: Partial<HubCompetition> = {}): HubCompetition {
   return {
@@ -33,7 +52,8 @@ function season(overrides: Partial<HubSeasonMembership> = {}): HubSeasonMembersh
     seasonStatus: 'draft',
     seasonGames: {
       competitionMember: false,
-      games: [{ gameKey: 'main_predictor', active: false, membership: null }],
+      serverNow: SERVER_NOW,
+      games: [servedGame({ active: false })],
     },
     ...overrides,
   }
@@ -46,12 +66,15 @@ function withGame(
   return season({
     seasonGames: {
       competitionMember: membershipStatus === 'active',
+      serverNow: SERVER_NOW,
       games: [
-        {
-          gameKey: 'main_predictor',
+        servedGame({
           active,
-          membership: membershipStatus === null ? null : { status: membershipStatus, joinedAt: null },
-        },
+          membership:
+            membershipStatus === null
+              ? null
+              : { status: membershipStatus, joinedAt: null, leftAt: null, disqualifiedAt: null },
+        }),
       ],
     },
   })
@@ -77,7 +100,7 @@ describe('applyHubMembership', () => {
   it('keeps membership for a game the server did not list unclaimed', () => {
     const result = applyHubMembership(
       [entry()],
-      [season({ seasonGames: { competitionMember: false, games: [] } })],
+      [season({ seasonGames: { competitionMember: false, serverNow: null, games: [] } })],
     )
 
     expect(result.competitions[0]?.games[0]).toMatchObject({
