@@ -29,6 +29,7 @@ What the episode actually exposed is narrower and more durable than the gap it r
 - `OPS-010` replaces it with the real exposure: a verified hosted record that cannot reach `main` on its own.
 - The machine-readable record now states contract 120, with its evidence naming the run identity and conclusion verified through the Actions API, and stating plainly which object-level assertions it does *not* re-derive.
 - The workflow can no longer fail silently in this way. A refused pull request no longer fails the run; it announces the branch through a job summary and an issue, so a stranded record is recoverable in a minute rather than discovered in an audit.
+- The owner enabled the repository setting that permits GitHub Actions to create pull requests, on 6 August 2026, which removes the cause rather than only the symptom. **Neither the setting nor the fallback is proven yet** — the next fast-lane rollout is the first run to exercise either, and the entry stays open until one of them is observed working.
 
 The general lesson is recorded because it will recur: **an automation that produces correct evidence and cannot deliver it is indistinguishable, to every downstream reader, from one that produced nothing.**
 
@@ -85,7 +86,7 @@ The general lesson is recorded because it will recur: **an automation that produ
 | `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Remaining: manual assistive-technology review, full-volume dress rehearsal and rollback rehearsal. |
 | `OPS-003` | Production observability operations incomplete | **Partial** | Name monitoring/backup/Cron owners, retention/escalation and incident procedure. |
 | `OPS-009` | Hosted development trails the repository contract | **Resolved 6 August 2026** | Fast-lane run 31083613351 applied contracts 116–120; hosted development is level with the repository. Reopen only on a fresh divergence. |
-| `OPS-010` | A verified hosted record can fail to reach `main` | **Open, reduced** | The follow-up workflow can no longer strand a record silently. Closing needs the repository setting that permits GitHub Actions to create pull requests, or a standing owner decision that the announced-and-merged-by-hand route is the intended one. |
+| `OPS-010` | A verified hosted record can fail to reach `main` | **Open pending proof; both causes addressed** | The follow-up workflow can no longer strand a record silently, and the owner enabled the repository setting permitting GitHub Actions to create pull requests on 6 August 2026. Neither half is proven yet: the next fast-lane rollout is the first run that will exercise both. Close it on that run opening its pull request unaided; if it is refused again, the fallback should say so in a job summary and an issue rather than in silence. |
 
 ## Medium
 
