@@ -584,7 +584,25 @@
  * parity in CI is the first execution of both the migration and
  * `175_round_window_stale_refresh.sql`.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 123
+/**
+ * Contract 124 adds one `predictor_internal` driver and redefines
+ * `cup_final_group_tables` — also `predictor_internal`, also revoked from every
+ * browser role — to filter its members to the initial phase. It creates no
+ * relation, trigger, policy or RLS change, adds no `public` function, and
+ * changes no grant a seeded session can reach.
+ *
+ * It writes nothing on application: the migration asserts it has created no
+ * split group. The redefinition is behaviour-neutral to every existing row,
+ * because `phase_kind` defaults to 'initial' and nothing has ever written
+ * anything else — so a seeded Euro user's Cup tables are identical before and
+ * after.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `176_season_cup_split_transition.sql`.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 124
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
