@@ -215,6 +215,28 @@ describe('what the split does to entrants', () => {
   })
 })
 
+describe('the group size domain is relaxed for the split and nothing else', () => {
+  it('lets a split half hold two, which ADR 0014 requires and the old floor refused', () => {
+    // The minimum field is four and four splits two and two, so under
+    // `size between 3 and 20` the smallest legal Championship could not split
+    // at all. CI found this, not review.
+    expect(splitSource).toMatch(/when 'split' then size between 2 and 20/)
+  })
+
+  it('keeps the group stage at three, so this is not a blanket relaxation', () => {
+    expect(splitSource).toMatch(/else size between 3 and 20/)
+    expect(splitSource).not.toMatch(/check \(\s*size between 2 and 20\s*\)/)
+  })
+
+  it('re-adds the constraint it drops, under the same name', () => {
+    // A drop with no matching add removes a guarantee permanently, and the
+    // additive lane reports the drop rather than refusing it.
+    expect(splitSource).toMatch(
+      /drop constraint bonus_cup_groups_size_allowed[\s\S]{0,200}?add constraint bonus_cup_groups_size_allowed/,
+    )
+  })
+})
+
 describe('the driver stays out of every browser', () => {
   it('is revoked from public and all three roles', () => {
     expect(splitSource).toMatch(

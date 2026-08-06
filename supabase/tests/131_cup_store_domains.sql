@@ -28,7 +28,7 @@
 -- all six fail against an unmigrated database.
 
 begin;
-select plan(6);
+select plan(8);
 
 -- ---------------------------------------------------------------------------
 -- The tournament-only domains are gone.
@@ -87,6 +87,29 @@ select ok(
      join pg_catalog.pg_class t on t.oid = c.conrelid
     where t.relname = 'bonus_cup_groups' and c.conname = 'bonus_cup_groups_size_allowed'),
   'group size is bounded at the platform cap of twenty, not the tournament shape'
+);
+
+-- Contract 124 made this domain PHASE-AWARE, and both halves of that are
+-- asserted so the change cannot later be read as having opened the group
+-- domain. A split half of two is required — ADR 0014's minimum field of four
+-- splits two and two — while a two-player GROUP STAGE is still not a group
+-- stage. The assertion above still holds because the initial branch is where
+-- the floor of three now lives.
+select ok(
+  (select pg_catalog.pg_get_constraintdef(c.oid) like '%size >= 2%'
+     from pg_catalog.pg_constraint c
+     join pg_catalog.pg_class t on t.oid = c.conrelid
+    where t.relname = 'bonus_cup_groups' and c.conname = 'bonus_cup_groups_size_allowed'),
+  'a split half may hold two entrants, which the pre-124 floor of three refused '
+  'and which the smallest legal Championship cannot split without'
+);
+
+select ok(
+  (select pg_catalog.pg_get_constraintdef(c.oid) like '%phase_kind%'
+     from pg_catalog.pg_constraint c
+     join pg_catalog.pg_class t on t.oid = c.conrelid
+    where t.relname = 'bonus_cup_groups' and c.conname = 'bonus_cup_groups_size_allowed'),
+  'and the relaxation is bounded by phase rather than applying to every group'
 );
 
 select ok(

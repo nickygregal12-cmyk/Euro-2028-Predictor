@@ -20,7 +20,7 @@
 
 begin;
 
-select plan(35);
+select plan(36);
 
 -- ---------------------------------------------------------------------------
 -- The boundary.
@@ -421,6 +421,15 @@ select is(
     where competition_id = md5('scs-cup')::uuid and action = 'championship_split'),
   1,
   'and the split is recorded once, with the plan it executed');
+
+-- The widening this contract made is bounded by phase. Without this a later
+-- reader could take "split halves may be two" as "groups may be two", which is
+-- not what ADR 0014 says and not what was changed.
+select throws_ok(
+  format($q$insert into public.bonus_cup_groups (competition_id, ordinal, size, phase_kind)
+            values (%L::uuid, 90, 2, 'initial')$q$, md5('scs-cup')),
+  '23514', null,
+  'a two-player GROUP STAGE is still refused — only a split half may hold two');
 
 select * from finish();
 rollback;

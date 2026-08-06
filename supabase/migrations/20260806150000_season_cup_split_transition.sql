@@ -115,6 +115,50 @@
 begin;
 
 -- ---------------------------------------------------------------------------
+-- A split half may hold two entrants. The store said it could not.
+--
+-- FOUND BY CI, NOT BY REVIEW. The first run of this contract's suite refused
+-- the bottom half of a five-entrant field with
+-- `bonus_cup_groups_size_allowed`, which the shared store has bounded at
+-- `size between 3 and 20` since the tournament-format widening. That floor was
+-- right for a GROUP — a two-player group stage is not a group stage — and it
+-- was set before a split phase existed to have an opinion about.
+--
+-- A two-player half is not an edge case. ADR 0014 puts the minimum field at
+-- four, four splits two and two, and five splits three and two. So under the
+-- old domain the smallest legal Championship could not split at all, and the
+-- next size up could only ever split its top half. The floor and the format
+-- disagreed, and the format is the authority.
+--
+-- The replacement is PHASE-AWARE rather than a blanket relaxation, because the
+-- reason a group stage needs three has not changed. An initial group of two is
+-- still refused; only a split half may go to two. `131_cup_store_domains.sql`
+-- asserts both halves of that, so the widening cannot later be read as having
+-- opened the group domain.
+--
+-- This drops and re-adds a CHECK, which removes a guarantee for the instant
+-- between the two statements and is reported as structural by the additive
+-- lane's checker. It removes no row: every existing group is initial-phase and
+-- satisfies the new predicate identically.
+-- ---------------------------------------------------------------------------
+
+alter table public.bonus_cup_groups
+  drop constraint bonus_cup_groups_size_allowed;
+
+alter table public.bonus_cup_groups
+  add constraint bonus_cup_groups_size_allowed
+  check (
+    case phase_kind
+      when 'split' then size between 2 and 20
+      else size between 3 and 20
+    end
+  );
+
+comment on constraint bonus_cup_groups_size_allowed on public.bonus_cup_groups is
+  'Contract 124. A group stage still needs three; a split half may hold two, '
+  'because ADR 0014''s minimum field of four splits two and two.';
+
+-- ---------------------------------------------------------------------------
 -- The initial-phase table stops counting a split entrant twice.
 --
 -- Redefined from its committed text in
@@ -666,6 +710,18 @@ begin
        and grantee in ('anon', 'authenticated', 'service_role')
   ) then
     raise exception 'a browser or service role can drive the Championship split';
+  end if;
+
+  -- The size domain moved for the split phase and NOT for the group stage.
+  -- A blanket relaxation would pass every assertion about the split while
+  -- quietly admitting a two-player group stage.
+  if pg_catalog.pg_get_constraintdef(
+       (select c.oid from pg_catalog.pg_constraint c
+          join pg_catalog.pg_class t on t.oid = c.conrelid
+         where t.relname = 'bonus_cup_groups'
+           and c.conname = 'bonus_cup_groups_size_allowed')
+     ) not like '%split%' then
+    raise exception 'the group-size domain is not phase-aware; a split half of two would be refused';
   end if;
 
   -- The redefinition kept the phase filter it was made for. A later
