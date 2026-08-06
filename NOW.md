@@ -30,7 +30,7 @@ before claiming it — two branches claiming one number is a known failure here.
 | Flag | State |
 | --- | --- |
 | `VITE_UI_PUBLIC_LANDING` | set in `deploy-preview` |
-| `VITE_UI_SEASON_MATCH_PREDICTOR` | **unset everywhere** — the journey serves its legacy implementation |
+| `VITE_UI_SEASON_MATCH_PREDICTOR` | set in `deploy-preview` |
 
 An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 

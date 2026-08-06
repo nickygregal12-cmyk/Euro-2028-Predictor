@@ -18,6 +18,14 @@
 # the flag: exposure is a separate, deliberate decision from merging.
 [context.deploy-preview.environment]
   VITE_UI_PUBLIC_LANDING = "true"
+  # The season Match Predictor, on for review and nowhere else. Its route
+  # renders 404 with the flag unset, which is the honest rollback — there was
+  # never a legacy season card to restore — so a reviewer following a preview
+  # link would otherwise find the address does not exist and reasonably
+  # conclude the journey was not built. Production keeps it unset, and turning
+  # it on there is a separate, deliberate exposure decision that this file
+  # cannot make.
+  VITE_UI_SEASON_MATCH_PREDICTOR = "true"
 
 # SPA routing.
 #
