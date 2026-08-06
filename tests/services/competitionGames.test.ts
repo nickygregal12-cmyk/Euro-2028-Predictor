@@ -150,12 +150,78 @@ describe('decodeSeasonGames', () => {
     expect(decoded.competitionMember).toBe(true)
     expect(decoded.games).toEqual([
       {
+        id: '60000000-0000-0000-0000-000000000101',
         gameKey: 'main_predictor',
         active: true,
-        membership: { status: 'active', joinedAt: '2026-08-01T10:00:00Z' },
+        displayName: 'Main Predictor',
+        registrationOpensAt: null,
+        registrationClosesAt: null,
+        completedAt: null,
+        allowRejoin: false,
+        membership: {
+          status: 'active',
+          joinedAt: '2026-08-01T10:00:00Z',
+          leftAt: null,
+          disqualifiedAt: null,
+        },
       },
-      { gameKey: 'last_man_standing', active: false, membership: null },
+      {
+        id: '60000000-0000-0000-0000-000000000101',
+        gameKey: 'last_man_standing',
+        active: false,
+        displayName: 'Main Predictor',
+        registrationOpensAt: null,
+        registrationClosesAt: null,
+        completedAt: null,
+        allowRejoin: false,
+        membership: null,
+      },
     ])
+  })
+
+  it('keeps the id, window and rejoin facts the RPC returns — the id is what a join is addressed by', () => {
+    const decoded = decodeSeasonGames(
+      seasonPayload({
+        games: [
+          gamePayload({
+            id: 'game-competition-1',
+            registration_opens_at: '2026-08-01T09:00:00Z',
+            registration_closes_at: '2026-09-01T09:00:00Z',
+            completed_at: null,
+            allow_rejoin: true,
+            membership: {
+              status: 'left',
+              joined_at: '2026-08-02T09:00:00Z',
+              left_at: '2026-08-10T09:00:00Z',
+              disqualified_at: null,
+            },
+          }),
+        ],
+      }),
+    )
+
+    expect(decoded.serverNow).toBe('2026-08-06T12:00:00Z')
+    expect(decoded.games[0]).toMatchObject({
+      id: 'game-competition-1',
+      registrationOpensAt: '2026-08-01T09:00:00Z',
+      registrationClosesAt: '2026-09-01T09:00:00Z',
+      allowRejoin: true,
+      membership: { status: 'left', leftAt: '2026-08-10T09:00:00Z' },
+    })
+  })
+
+  it('treats an absent allow_rejoin as no rejoin rather than the permissive default', () => {
+    const decoded = decodeSeasonGames(
+      seasonPayload({ games: [gamePayload({ allow_rejoin: undefined })] }),
+    )
+
+    expect(decoded.games[0].allowRejoin).toBe(false)
+  })
+
+  it('fails loudly on a game with no id, because it could not be joined or left', () => {
+    expect(() =>
+      decodeSeasonGames(seasonPayload({ games: [gamePayload({ id: undefined })] })),
+    ).toThrow('expected shape')
   })
 
   it('skips an unknown game key rather than failing or guessing', () => {

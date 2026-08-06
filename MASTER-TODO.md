@@ -266,7 +266,7 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 
 ## Stage H — hub and social product
 
-- [ ] Build the cross-competition dashboard.
+- [ ] Build the cross-competition dashboard. **The per-competition dashboard's entry half is done and needed no migration.** It had been rendering the static catalogue's `joined` flag — so it could disagree with the Hub one tap away — and an entry button that was enabled with no handler at all, doing nothing when pressed. `get_competition_games` already returned every fact needed (game `id`, registration window, `completed_at`, `allow_rejoin`, membership row, `server_now`); the decode layer was dropping them, including the id a join is addressed by. `decideGameMembership` resolves join/rejoin/leave against the server's instant and states a refusal as a sentence rather than rendering a control the server would reject. **Still open here:** the cross-competition view itself, next action and next lock, and current rank. Leaving is offered but cannot be predicted — `leave_competition_game` refuses once a `bonus_score_events` row exists for the caller and no browser read exposes that, so an honest "can I leave?" control still needs a read.
 - [ ] Build one weekly action surface across entered games.
 - [ ] Add league/game preferences without changing enrolment.
 - [ ] Add invitations, rerun/copy and “more competitions” discovery.

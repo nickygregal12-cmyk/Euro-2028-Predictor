@@ -19,11 +19,23 @@ function joinedPremierLeague(): HubSeasonMembership {
     seasonStatus: 'active',
     seasonGames: {
       competitionMember: true,
+      serverNow: '2026-08-06T12:00:00Z',
       games: [
         {
+          id: '60000000-0000-0000-0000-000000000101',
           gameKey: 'main_predictor',
           active: true,
-          membership: { status: 'active', joinedAt: '2026-08-01T10:00:00Z' },
+          displayName: 'Main Predictor',
+          registrationOpensAt: null,
+          registrationClosesAt: null,
+          completedAt: null,
+          allowRejoin: false,
+          membership: {
+            status: 'active',
+            joinedAt: '2026-08-01T10:00:00Z',
+            leftAt: null,
+            disqualifiedAt: null,
+          },
         },
       ],
     },
