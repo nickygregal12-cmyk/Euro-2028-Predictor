@@ -564,7 +564,27 @@
  * this environment has no usable Docker, so Database parity in CI is the first
  * execution of both the migration and `174_season_period_standings.sql`.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 122
+/**
+ * Contract 123 adds one `predictor_internal` relation
+ * (`round_window_refresh_conflicts`), its append-only trigger, two indexes and
+ * one `predictor_internal` function, and redefines contract 117's importer —
+ * also `predictor_internal`, also revoked from every browser role. It adds no
+ * `public` function, changes no grant, policy or RLS on any relation a seeded
+ * session can reach, and alters no browser-reachable function.
+ *
+ * It writes nothing on application: the migration asserts its own queue is
+ * empty and refreshes no window, so a seeded user is in exactly the state
+ * contract 122's backfill left them in. The only column it can ever write is
+ * `competition_rounds.window_opens_at`/`window_closes_at` on a league season
+ * whose fixtures a provider moved, and both are already read by nothing a
+ * seeded Euro user touches.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `175_round_window_stale_refresh.sql`.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 123
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
