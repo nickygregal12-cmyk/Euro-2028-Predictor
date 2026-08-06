@@ -135,10 +135,37 @@ describe('the CI bootstrap', () => {
   })
 
   it('is absent from the suites that gate a merge', () => {
-    // The visual config must not be swept into the existing runs, which have
-    // no baselines and would fail.
+    // "Runs it" means executes it, not mentions it: a workflow may legitimately
+    // name the config in a `paths:` filter. The first version of this assertion
+    // banned the string outright and then failed on exactly that — an
+    // over-broad guard that forbids something harmless teaches people to work
+    // around guards.
     for (const path of ['.github/workflows/ci.yml', '.github/workflows/browser-e2e.yml']) {
-      expect(read(path), `${path} runs the visual config`).not.toMatch(/playwright\.visual\.config/)
+      expect(read(path), `${path} runs the visual config`).not.toMatch(
+        /--config=playwright\.visual\.config/,
+      )
+    }
+  })
+
+  it('is excluded from the default config, which sweeps up every spec in e2e/', () => {
+    // THE ASSERTION ABOVE WAS NOT ENOUGH, and this is the one that was
+    // missing. `playwright.config.ts` declares `testDir: './e2e'` with no
+    // `testMatch`, so it collects every spec in the directory — including this
+    // one. Checking that the workflows do not name the visual *config* said
+    // nothing about the visual *spec* being picked up by a different config,
+    // and it was: the merge-gating browser suite ran 104 screenshot
+    // comparisons with no baselines and failed every one of them.
+    const defaultConfig = read('playwright.config.ts')
+    expect(defaultConfig).toMatch(/testIgnore:[\s\S]*?'visual-gallery\.spec\.ts'/)
+  })
+
+  it('is not collected by any config other than its own', () => {
+    // Stated as a property rather than as two examples, so a fourth config
+    // added later cannot quietly collect it. The auth and production configs
+    // use explicit `testMatch` lists; naming the visual spec in one would put
+    // it back into a gating run.
+    for (const path of ['playwright.auth.config.ts', 'playwright.production.config.ts']) {
+      expect(read(path), `${path} collects the visual spec`).not.toMatch(/visual-gallery/)
     }
   })
 })
