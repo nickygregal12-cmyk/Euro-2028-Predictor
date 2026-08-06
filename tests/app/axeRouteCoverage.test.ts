@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { declaredRoutes } from './declaredRoutes'
 
 /**
  * Accessibility scan coverage, against the routes the application declares.
@@ -23,8 +24,11 @@ import { describe, expect, it } from 'vitest'
  * deliberate deferral with a reason. Adding a route to the app becomes a
  * decision about accessibility cover rather than a silent escape from it.
  *
- * `spaRoutingStatus.test.ts` parses `App.tsx` the same way and for the same
- * reason; this reuses that convention rather than inventing a second one.
+ * `declaredRoutes.ts` reads `App.tsx` for this guard and for the route-title
+ * and Netlify-status guards. It used to be three copies of one regex, and that
+ * regex required `<Route path=` on a single line: a wrapped declaration was
+ * reported as covered by never being counted at all — the failure mode a
+ * coverage guard can least afford, and one that hid both competition routes.
  */
 
 const repositoryRoot = process.cwd()
@@ -33,20 +37,8 @@ function read(path: string): string {
   return readFileSync(resolve(repositoryRoot, path), 'utf8')
 }
 
-const appSource = read('src/App.tsx')
 const axeSource = read('e2e/axe-accessibility.spec.ts')
 const axeUnauthenticatedSource = read('e2e/axe-unauthenticated.spec.ts')
-
-/**
- * Routes declared in `src/App.tsx`.
- *
- * `/dev/*` previews are `import.meta.env.DEV`-gated and absent from a production
- * build; `*` is the SPA's own not-found route rather than a real path. Both
- * exclusions match `spaRoutingStatus.test.ts`.
- */
-const declaredRoutes = [...appSource.matchAll(/<Route path="([^"]+)"/g)]
-  .map((match) => match[1])
-  .filter((path) => path !== '*' && !path.startsWith('/dev/'))
 
 /**
  * Route literals across both axe specs.
@@ -104,6 +96,24 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
   // reason here said it "requires the protected administrator capability",
   // which was the wrong kind of wrong: there is nothing behind it to reach.
   ['/admin', 'redirect only — <Navigate> to /admin/results, which is scanned'],
+
+  // Both competition routes arrived in this list the day the shared route
+  // reader replaced three copies of a regex that could not see a wrapped
+  // `<Route>`. They were declared all along; nothing here was ever checking
+  // them.
+  [
+    '/competitions/:competitionSlug/:seasonSlug',
+    'parameterised — three concrete seasons are scanned in its place, the same ' +
+      'arrangement as /predict/groups/:letter',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/main-predictor',
+    'VITE_UI_SEASON_MATCH_PREDICTOR is off in the harness, so this route renders ' +
+      'the not-found page; and the seeded harness user has no season Match ' +
+      'Predictor entry, so with the flag on it would render the entry refusal ' +
+      'rather than a card. Scanning it needs the flag set for the E2E dev server ' +
+      'and a seeded season entry — both harness work, neither done here',
+  ],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)
