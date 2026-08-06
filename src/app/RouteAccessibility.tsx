@@ -48,6 +48,11 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
     path: '/competitions/:competitionSlug/:seasonSlug/leagues',
     title: 'Competition leagues',
   },
+  {
+    // Distinct from `/matches`, which is the Euro tournament's fixture list.
+    path: '/competitions/:competitionSlug/:seasonSlug/matches',
+    title: 'Competition matches',
+  },
   { path: '/competitions/:competitionSlug/:seasonSlug', title: 'Competition dashboard' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },

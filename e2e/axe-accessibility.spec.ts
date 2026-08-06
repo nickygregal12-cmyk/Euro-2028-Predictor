@@ -22,6 +22,7 @@ const ROUTES = [
   '/competitions/premier-league/2026-27/last-man-standing',
   '/competitions/premier-league/2026-27/championship',
   '/competitions/premier-league/2026-27/leagues',
+  '/competitions/premier-league/2026-27/matches',
   '/predict',
   '/prediction-trends',
   '/predict/groups/A',
