@@ -1,9 +1,12 @@
 # Higgsfield concept review — Football Prediction Hub visual direction
 
-**Status:** Concepts for owner review. **Nothing is implemented, committed or pushed.**
-**Date:** 1 August 2026
-**Scope:** three visual directions plus supporting concept assets. No application code, token, route, schema or product rule was changed.
-**Decision requested:** pick one direction (or reject all three) before any implementation work starts.
+**Status:** **Design research complete. Decision taken.** Broadcast Grid was approved and implemented **natively**, in this repository's own tokens and components. **Higgsfield is not a production or runtime dependency** — no generated asset ships, and nothing in the application calls it. The generated concepts below remain **historical design evidence** of how the direction was chosen.
+**Date:** 1 August 2026 (research); status corrected 6 August 2026.
+**Scope:** three visual directions plus supporting concept assets. No application code, token, route, schema or product rule was changed **by this exercise**.
+**Outcome:** Broadcast Grid selected. The tooling constraints in § 1 and the conflicting-authority findings in § 4 are preserved exactly as recorded — they are the conditions the research ran under, and § 4's four conflicts were reported rather than resolved here.
+**Implementation evidence:** [`../../src/design-system/Masthead.tsx`](../../src/design-system/Masthead.tsx) and [`Masthead.module.css`](../../src/design-system/Masthead.module.css) (CSS and inline SVG computed from tokens), [`EmptyIllustration.tsx`](../../src/design-system/EmptyIllustration.tsx) (same vocabulary), and § 13 below, which recorded the approval on the day. No generated image is committed, shipped or loaded at runtime.
+
+> **Why the header changed.** The original status line — "Concepts for owner review. Nothing is implemented, committed or pushed" — was accurate on 1 August 2026 and had become misleading: it left a completed research exercise reading as an open decision awaiting an owner, and left the approved direction looking unimplemented. **Nothing below this block was rewritten.** The evidence, costs, generation log and reported conflicts remain as they were written.
 
 ---
 

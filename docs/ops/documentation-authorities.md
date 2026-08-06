@@ -82,3 +82,44 @@ node scripts/check-documentation-authorities.mjs A B    # freshness and sweep
 ```
 
 CI runs the first form on pushes and the second on pull requests.
+
+## Safeguards for agent-readable documentation
+
+Added 6 August 2026. The two mechanical rules above stop documents going stale about contract numbers. They do not stop the larger failure, which an audit measured rather than guessed: **current facts and historical narrative interleaved in the same file, so an agent searching for a phrase lands in a paragraph that was true in July and treats it as true now.**
+
+These ten safeguards are the written rules. Some are enforceable and enforced; most are not, and saying which is which is more useful than pretending otherwise.
+
+| ID | Requirement | Enforcement |
+| --- | --- | --- |
+| `DOC-AI-001` | Every important fact has **one authoritative home**. Supporting files may link to it; they must not restate a moving fact. | Convention |
+| `DOC-AI-002` | Every active authority declares its authority class, status, scope, exclusions, last verification date, supersession position and implementation evidence — the control block below. | Convention |
+| `DOC-AI-003` | **No planning statement may be described as implemented without merged code, a migration, an executable test or verified hosted evidence**, named. | Convention; `tests/scripts/adrStatusFreshness.test.ts` enforces the ADR-status half |
+| `DOC-AI-004` | **No open pull request or branch is repository truth.** Proposed work is labelled proposed, and concurrent ownership is checked before editing a file. | Convention |
+| `DOC-AI-005` | **No material statement disappears during cleanup.** It is retained, moved with a traceable link, superseded explicitly, rejected with a recorded reason, or deferred with a stable identifier. | Convention; a reconciliation states the disposition of every statement it moves |
+| `DOC-AI-006` | Dated audits, investigations, reconciliations, automation reports and historical roadmaps **remain historical evidence** and are not rewritten to resemble current truth. | `evidenceDirectories` in the manifest; the manifest test refuses a path that is both evidence and an authority |
+| `DOC-AI-007` | Contract numbers, hosted-state values and moving commit facts belong **only** in the live-status and machine-readable authorities. | `scripts/check-documentation-authorities.mjs` freshness rule |
+| `DOC-AI-008` | Accepted but unimplemented decisions appear in a planning authority with **a stable identifier and acceptance evidence**. | [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) is the register |
+| `DOC-AI-009` | Documentation cleanup reduces **duplicated authority**, never product scope or a deferred requirement. | Convention; `DOC-AI-005` is how it is checked |
+| `DOC-AI-010` | An external audit or reference document supplied for a reconciliation **is not committed** as a repository document. Its supported facts are integrated into their existing authorities. | Convention |
+
+### The control block
+
+An active authority carries this near the top. It is for agents: it answers "what does this file decide, what does it not decide, and is it still true?" without reading the file.
+
+```md
+| Field | Value |
+| --- | --- |
+| Authority | Primary / Supporting / Historical |
+| Status | Active / Partially implemented / Blocked / Superseded |
+| Last verified | YYYY-MM-DD |
+| Governs | Exact subject owned by this file |
+| Does not govern | Subjects owned elsewhere |
+| Supersedes | Prior authority or `None` |
+| Superseded by | Later authority or `None` |
+| Related work | Issues and open PRs |
+| Implementation truth | Code, migration, tests or hosted authority |
+```
+
+Where a consistent body order helps, use: `Current decision`, `Implemented position`, `Remaining work`, `Explicitly not implemented`, `Dependencies and blockers`, `Concurrent work`, `Evidence`, `Supersession and history`.
+
+**Do not apply either shape to dated evidence.** A historical record forced into a current-authority format stops looking historical, which is exactly what `DOC-AI-006` exists to prevent. The block is being added to active authorities as they are next touched, rather than in one sweep — a mechanical pass over every document would be a large diff that changes no fact and reviews as noise.

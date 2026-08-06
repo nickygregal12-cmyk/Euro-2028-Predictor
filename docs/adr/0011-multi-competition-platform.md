@@ -37,6 +37,8 @@ This is the decision point. An engine built against a single-tournament assumpti
 
 **Euro 2028 becomes a configuration, not a special case:** a competition season of kind `tournament` with a single lock scope, retaining its existing group, knockout, Golden Boot and progression rules unchanged.
 
+> **Clarified by [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026:** one shared competition backend may serve **more than one separately branded frontend site**. This changes nothing in this record. There remains one multi-competition model, one engine, one Supabase backend and no tournament/backend fork — a frontend deployment is a presentation boundary, not a data boundary, and Euro 2028 remains a configuration of the shared model even when it is served from its own domain. ADR 0026 also restates this record's separation law at the new boundary: arriving through a particular site enrols nobody in anything.
+
 ## Consequences
 
 - The context engine is built once, with competition shape as an input. Existing timing logic in `entryLock.ts`, `matchCentre.ts`, `matchesTab.ts` and `homeDashboard.ts` migrates onto it.
