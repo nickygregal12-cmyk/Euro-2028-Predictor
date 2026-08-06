@@ -1,5 +1,112 @@
 # Nightly run — 6 August 2026
 
+Two unattended sessions ran overnight on 6 August 2026 and each wrote a report
+at this path. Both are kept, on the same reasoning as the 5 August record: they
+inspected different things and chose different batches, and a dated evidence
+file that silently holds one of two concurrent runs is worse than one that holds
+both.
+
+Session A ran first — it saw only PR #513 open, and went on to raise PR #514.
+Session B ran later, with both #513 and #514 already open. Neither is corrected
+against what was learned afterwards; each says what was true when it was
+written.
+
+---
+
+## Session A
+Unattended overnight session on `nickygregal12-cmyk/Euro-2028-Predictor`. British English throughout, per instructions.
+
+## 1. What I inspected
+
+Sources of truth, in the order specified:
+
+- **GitHub `main`**: at session start, `main` was at `7b5b698` ("UI-14/15: public landing page and foundations adoption", #508) — repository contract **119**. One open PR existed: **#513** ("Docs: record 2026-08-06 03:00 progress handover"), a docs-only handover record from a separate, independently running hourly automation stream that drives the contract-by-contract database migration/rollout sequence and its own progress notes. I did not touch it — it belongs to that other workstream, not to this run.
+- **Repo docs**: `CLAUDE.md`, `AGENTS.md`, `docs/quality/current-status.md`, `docs/roadmap.md`, `MASTER-TODO.md`, `docs/quality/risk-register.md`, `config/deployment-contract.json`, `config/development-hosted-contract.json`.
+- **Prior nightly evidence**: `claude/nightly/2026-08-05-nightly-run.md` (two independent sessions, A and B, from the previous night) — read in full to check what they found, what they recommended next, and what has since actually landed, rather than re-deriving the same ground.
+- **Code and tests**: full repository build, lint, typecheck and unit-test suite (after `npm ci`, since `node_modules` was not present at session start); targeted reading of the design-system foundation-adoption guard and the files it names; grep sweeps for stale risk-register items and previously-flagged patterns.
+- **Deployed app**: not touched. No Netlify or Supabase inspection was performed or needed — the chosen batch is application-code-only (CSS/tokens + one test file + one doc line).
+
+**Environment constraint, reconfirmed:** this sandbox has a Docker *client* but no daemon (`/var/run/docker.sock` does not exist, and this is not a systemd-managed host, so the daemon cannot be started here). `supabase start` and pgTAP/Database-parity therefore remain unrunnable in this environment, exactly as both sessions on 5 August found. Any migration, RPC, or RLS work is correctly out of scope for tonight, and everything below is application/test/docs only.
+
+## 2. Housekeeping checked before selecting new work
+
+- **PR #513** — docs-only handover from the separate hourly automation stream, not mine to merge or hold; left untouched.
+- Re-checked the specific loose ends the two 5 August sessions left open, before treating any of them as still live:
+  - **`DATA-009`** (session B's finding) — **already resolved**, at contract 106. `docs/quality/risk-register.md` records it closed with a `predictor_internal.current_public_competition_id` fallback and a pgTAP proof (`157_terminal_aware_bonus_rederive.sql`). Nothing to do.
+  - **`MASTER-TODO.md` Stage E/F staleness** (session A's finding) — **already current**. Both entries now correctly show contracts 107–109 as landed; no drift found.
+  - **`rateLimitParity.test.ts`** (session A's recommendation #4) — **already exists** at `tests/database-parity/rateLimitParity.test.ts`; already done.
+  - **`catchUpSummary()`'s hard-coded `rankDelta: null`** (session A's recommendation #3) — checked again. `rank_history` capture exists and is populated, but the only read surface on it (`get_h2h_rank_history`) is head-to-head-scoped, not "my own rank over time since last visit"; wiring the catch-up line would need a new RPC, which is schema/migration-shaped and blocked by the same Docker constraint. Left as a future recommendation (see §8), not attempted.
+  - **`SEO-001`** ("SPA fallback produces soft 404s") — found to be **already fixed in `netlify.toml`** (the catch-all `/*` redirect answers `404`, with a comment naming `SEO-001` directly) but the risk register still marks it "Open". This is a real but very small docs-staleness gap; I did not fix it tonight to keep this PR to one coherent concern (see §8).
+
+## 3. The batch I chose and why
+
+**Batch: close the last two items named by `tests/design-system/foundationAdoption.test.ts`** — the ratchet guard that tracks adoption of the design-token foundations (`docs/quality/current-status.md`'s "UI modernisation execution" entry; `MASTER-TODO.md`'s Stage-E-adjacent design item).
+
+Against the stated priority order:
+
+- **(a) Scoring/data-integrity/auth/admin defects**: none found live tonight — the one candidate from last night (`DATA-009`) is already closed.
+- **(b) Unblocking/completing partially-implemented work already in progress**: this is where the batch landed. `MASTER-TODO.md` named exactly one open checkbox for this: *"Finish the two adoption remainders the guard now names: the three DEV harness stylesheets, and `ProgressBar`'s 300ms width transition, which is the only routine transition still timed from a literal."* This is not a new idea I invented — it is the literal next item the repository's own inventory names, already scoped to a specific guard test, with a passing/failing assertion to prove the fix rather than my own judgement.
+- **(c) Highest-value active roadmap item**: the next roadmap items (season game surfaces, provider ingestion) are either large multi-file builds or schema-shaped; neither fits "smallest coherent batch, finishable and verifiable in this run."
+- **(d) Hardening**: this batch is design-system hygiene, not defect hardening, but it was the best-fitting, smallest, fully self-verified item available once (a)–(c) were checked and found already-closed or out-of-reach.
+
+**The defect, concretely:** `ProgressBar.module.css` timed its fill transition from a raw `0.3s` literal instead of a `--duration-*` token, and three DEV-harness stylesheets (`ComponentsPreview`, `SeasonPreview`, `SeasonLeaderboardPreview` — the gallery/preview chrome used to review the target design system, not product surface) set `font-size` from ad hoc pixel values instead of the six-step type scale. `tests/design-system/foundationAdoption.test.ts` is a *ratchet*: every literal is either fixed or explicitly listed with a reason, and these four files were the only ones still listed "outstanding" rather than genuinely exempt (crest monograms sized to their crest, and a movement triangle drawn as `font-size`, both stay excluded because they are off-scale by design, not by neglect).
+
+## 4. Exactly what changed
+
+**Branch:** `claude/nifty-mendel-ftksz2`
+**PR:** [#514](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/514) — "Close the last two foundation-token adoption remainders"
+
+Files:
+
+- `src/design-system/ProgressBar.module.css` — `transition: width 0.3s ease` → `transition: width var(--duration-sheet) var(--ease-out)`. `--duration-sheet` (240ms) is the largest of the tokens' own "routine" durations (120/180/240ms), chosen because the tokens file's own comment states nothing routine should exceed 300ms — closest without exceeding it, and there is no exact 300ms token to preserve the literal value unchanged.
+- `src/dev/ComponentsPreview.module.css`, `src/dev/SeasonPreview.module.css`, `src/dev/SeasonLeaderboardPreview.module.css` — every literal `font-size` mapped onto the nearest six-step scale value: `--fs-1` (12px) for existing 10–12px micro-labels/captions/uppercase tags, `--fs-2` (14px) for existing 13–14px body/control/input/value text (the scale step already used as the de facto body default across ~10 other production stylesheets), `--fs-3` (16px) for one 15px subheading, `--fs-4` (20px) for the exact-match 20px page headings.
+- `tests/design-system/foundationAdoption.test.ts` — removed the three now-clean DEV harness files from `FONT_SIZE_EXCLUSIONS` (two design-only exclusions remain: crest monograms, a movement triangle); the transition assertion now expects an empty list rather than naming `ProgressBar.module.css`.
+- `MASTER-TODO.md` — marked the item `[x]` with a note on what closed it.
+
+No product route, component, RPC, migration, scoring, lock or auth surface is touched. The three edited stylesheets are dev-only gallery/preview chrome, unreachable from the production entry point.
+
+## 5. What I tested and the results
+
+All run against the branch head in this sandbox (`npm ci` first — `node_modules` was absent at session start):
+
+| Check | Result |
+| --- | --- |
+| `npx oxlint --deny-warnings` | Pass |
+| `npx tsc -b` | Pass |
+| `./node_modules/.bin/vitest run` (full suite) | **2571 passed, 26 skipped, 0 failed** — skips are the pre-existing DB-gated suites, unchanged from `main` |
+| `npm run build` | Pass |
+| `npm audit --omit=dev --audit-level=high` | 0 vulnerabilities |
+| Database parity / pgTAP | Not run — not applicable; no SQL touched, and this sandbox has no Docker daemon regardless |
+| Browser E2E (Playwright) | Not run locally; no route, journey or DOM-visible product behaviour changed (dev-only preview CSS + one design-system component's transition timing). CI's own journey selection is still running against the PR. |
+| CI (GitHub Actions: `CI`, `Browser E2E`) | **In progress at time of writing** — I am subscribed to PR #514 and will react to the result rather than poll. |
+
+## 6. Merge outcome
+
+**PR #514: will merge as soon as CI reports green.** This is a low-risk, application-only change (CSS tokens + one guard test + one doc line, no scoring/lock/auth/schema surface) with full local verification already passing. Auto-merge could not be enabled through the GitHub API (`Auto-merge is not enabled for this repository` — a repository setting, not something available to change from here), so I will merge it manually once the CI and Browser E2E checks complete successfully, per the stated policy. If CI fails and the cause is not safely fixable within this run, the PR will be left open with the failure reported instead.
+
+**PR #513** (from the separate hourly automation stream): untouched, not mine to act on.
+
+## 7. What remains uncertain, and decisions needed from you
+
+1. **Repository-level auto-merge is off.** Every future low-risk unattended batch will need a manual merge once green, the same way this one does. Worth deciding whether to turn on "Allow auto-merge" in Settings → General → Pull Requests, which would let scheduled runs complete the stated merge policy without a human or a lingering session needed to press the button.
+2. **`SEO-001`'s risk-register status is stale** — the fix is already live in `netlify.toml` (with a comment naming the finding directly), but the register still says "Open". Small, safe, docs-only; not fixed tonight to keep this PR to one concern (see next batch, below).
+3. **This sandbox still has no Docker daemon.** Any batch needing a migration, RPC, RLS change, or pgTAP/Database-parity verification remains impossible to complete unattended here — this is the same standing constraint both 5 August sessions recorded, now confirmed a third time. Worth deciding whether future scheduled runs should be pointed at an environment with Docker access, or should keep being scoped to application-code-only batches, as tonight's was.
+4. Nothing else tonight needs your judgement — no production, Supabase or Netlify state was touched or mutated, and no scoring/lock/auth rule was read as ambiguous.
+
+## 8. Recommended next batch
+
+In priority order:
+
+1. **Correct `SEO-001`'s risk-register entry** to "Resolved" with a pointer to the `netlify.toml` fix and its guarding test — a one-line, docs-only, near-zero-risk follow-up.
+2. **Wire `rankDelta` into `catchUpSummary()`** (`src/domain/tournament/homeDashboard.ts`) using the existing `rank_history` capture — the domain/service/wiring/test slice is application-code-only and `vitest`-verifiable, but the read side needs a new bounded RPC (a caller's own rank history since a given snapshot, not the existing H2H-scoped one), which is schema-shaped and needs an environment with real Postgres access to prove with pgTAP. Flagging rather than attempting blind.
+3. If another Docker-free batch is wanted next: `docs/quality/risk-register.md`'s remaining Low items (`HYGIENE-002`'s three stray `src/**/*.test.*` files still not relocated into `tests/`, per session B's 5 August recommendation) is mechanical and fully `vitest`-verifiable — worth checking whether it is still outstanding before picking it up, the same way tonight's session found several "open" items already closed.
+4. Once Docker/local-Supabase access exists in whatever environment picks up next: the season game surfaces named in `docs/roadmap.md`'s "next executable sequence" step 2 are the highest-value item on the board, but are multi-file, route-level builds that need Browser E2E, not a single unattended pass.
+
+No production, Supabase, or Netlify mutation was made or attempted.
+
+---
+
+## Session B
 Unattended overnight session against `nickygregal12-cmyk/Euro-2028-Predictor`. British English throughout, per instructions.
 
 ## 1. What I inspected

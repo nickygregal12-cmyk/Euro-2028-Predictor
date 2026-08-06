@@ -9,14 +9,14 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 20px;
+  font-size: var(--fs-4);
   color: var(--tx);
 }
 
 .note {
   margin: 4px 0 16px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.5;
   color: var(--tx2);
 }
@@ -33,7 +33,7 @@
   display: block;
   width: 100%;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 
@@ -42,7 +42,7 @@
   min-width: 0;
   padding: 8px 10px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
   background: var(--sf);
   border: 1px solid var(--ln);
@@ -53,14 +53,14 @@
   width: 100%;
   border-collapse: collapse;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
 .caption {
   margin: 0 0 8px;
   text-align: left;
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 

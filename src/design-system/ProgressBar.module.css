@@ -39,7 +39,7 @@
   height: 100%;
   background: var(--acc);
   border-radius: inherit;
-  transition: width 0.3s ease;
+  transition: width var(--duration-sheet) var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {

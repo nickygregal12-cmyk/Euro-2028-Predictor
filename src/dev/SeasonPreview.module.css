@@ -12,14 +12,14 @@
   margin: 0;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 20px;
+  font-size: var(--fs-4);
   color: var(--tx);
 }
 
 .sub {
   margin: 4px 0 16px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   line-height: 1.5;
   color: var(--tx2);
 }
@@ -32,7 +32,7 @@
   margin: 0 0 8px;
   font-family: var(--font-display);
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--fs-3);
   color: var(--tx);
 }
 
@@ -51,7 +51,7 @@
   flex-direction: column;
   gap: 4px;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 
@@ -61,7 +61,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
   background: var(--input-bg);
 }
@@ -79,7 +79,7 @@
   align-items: center;
   min-height: 32px;
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
@@ -103,7 +103,7 @@
 
 .cellLabel {
   font-family: var(--font-body);
-  font-size: 11px;
+  font-size: var(--fs-1);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--tx2);
@@ -111,7 +111,7 @@
 
 .cellValue {
   font-family: var(--font-mono, var(--font-body));
-  font-size: 13px;
+  font-size: var(--fs-2);
   color: var(--tx);
   overflow-wrap: anywhere;
 }
@@ -144,7 +144,7 @@
 .kickoff {
   grid-column: 1;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   color: var(--tx2);
 }
 
@@ -155,7 +155,7 @@
   grid-column: 1;
   min-width: 0;
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: var(--fs-2);
   color: var(--tx);
 }
 
@@ -164,7 +164,7 @@
   grid-row: 1 / span 3;
   align-self: center;
   font-family: var(--font-mono, var(--font-body));
-  font-size: 11px;
+  font-size: var(--fs-1);
   color: var(--tx2);
   text-align: right;
 }
@@ -172,7 +172,7 @@
 .note {
   margin: 8px 0 0;
   font-family: var(--font-body);
-  font-size: 12px;
+  font-size: var(--fs-1);
   line-height: 1.5;
   color: var(--tx2);
 }
