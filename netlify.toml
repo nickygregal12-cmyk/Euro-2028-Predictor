@@ -91,11 +91,6 @@
   status = 200
 
 [[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
   from = "/predict"
   to = "/index.html"
   status = 200
@@ -232,6 +227,25 @@
 
 [[redirects]]
   from = "/profile/:playerId"
+  to = "/index.html"
+  status = 200
+
+# The season competition surfaces. Both are parameterised, so they sit with the
+# other parameterised rules and above the catch-all.
+#
+# The dashboard rule is a correction rather than a new route: the route has been
+# declared in `App.tsx` since the hub landed, but it is written across several
+# lines and the guard that relates routes to these rules matched only
+# single-line declarations. Netlify therefore answered it from the `/*` rule
+# with a 404 while the SPA rendered the dashboard — the soft-status inversion
+# these rules exist to prevent, inverted the other way.
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/main-predictor"
   to = "/index.html"
   status = 200
 

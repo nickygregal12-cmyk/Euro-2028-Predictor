@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { productionRoutePaths } from './routeDeclarations'
+import { appSource, declaredRoutes, routePaths } from './declaredRoutes'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 
@@ -9,15 +9,19 @@ function readRepositoryFile(path: string): string {
   return readFileSync(resolve(repositoryRoot, path), 'utf8')
 }
 
-const appSource = readRepositoryFile('src/App.tsx')
 const netlifyConfig = readRepositoryFile('netlify.toml')
 
 /**
- * Route paths declared in src/App.tsx. `/dev/*` previews are excluded because
- * they are `import.meta.env.DEV`-gated and absent from a production build, and
- * the catch-all `*` is the SPA's own not-found route rather than a real path.
+ * Route paths declared in src/App.tsx, parsed by the shared reader.
+ *
+ * This file used to carry its own regex, and it required `<Route path=` on one
+ * line. `/competitions/:competitionSlug/:seasonSlug` is wrapped across lines,
+ * so it was never in this list — and consequently never in the redirect table
+ * either. Netlify answered the competition dashboard with the catch-all's 404
+ * while the SPA rendered it, which is the exact soft-status inversion this file
+ * exists to catch.
  */
-const appRoutes = productionRoutePaths(appSource)
+const appRoutes = declaredRoutes
 
 type Redirect = { from: string; status: number }
 
@@ -101,7 +105,7 @@ describe('SPA routing answers a real status per path', () => {
   })
 
   it('keeps the dev-only previews out of the production rules', () => {
-    const devRoutes = [...appSource.matchAll(/<Route path="(\/dev\/[^"]*)"/g)].map((m) => m[1])
+    const devRoutes = routePaths(appSource).filter((route) => route.startsWith('/dev/'))
 
     expect(devRoutes.length).toBeGreaterThan(0)
     for (const devRoute of devRoutes) {

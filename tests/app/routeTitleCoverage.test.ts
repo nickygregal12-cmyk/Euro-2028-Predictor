@@ -1,8 +1,6 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { getRouteTitle } from '../../src/app/RouteAccessibility'
-import { productionRoutePaths } from './routeDeclarations'
+import { declaredRoutes, redirectRoutes } from './declaredRoutes'
 
 /**
  * Every declared route gets a title of its own.
@@ -32,24 +30,15 @@ import { productionRoutePaths } from './routeDeclarations'
  * reason.
  */
 
-const repositoryRoot = process.cwd()
-const appSource = readFileSync(resolve(repositoryRoot, 'src/App.tsx'), 'utf8')
-
-/** `/dev/*` is DEV-gated and `*` is the not-found route, as elsewhere. */
-const declaredRoutes = productionRoutePaths(appSource)
-
 /**
- * Routes that render `<Navigate>` and nothing else.
+ * `declaredRoutes` and `redirectRoutes` come from the shared reader.
  *
- * They have no page of their own, so sharing a title with their destination is
- * the truth rather than a shadow. Read from `App.tsx` rather than listed here:
- * the first version hard-coded `/admin` and the collision check then caught
- * `/more/points`, which is the same thing and was equally correct. Exempting
- * the property instead of the example is what stops that recurring.
+ * Both lists used to be built here from a regex requiring `<Route path=` on one
+ * line, which missed every wrapped declaration — including both competition
+ * routes. Exempting `<Navigate>`-only routes from the collision check is still
+ * a property rather than a list of examples: the first version hard-coded
+ * `/admin` and the check then caught `/more/points`, which was equally correct.
  */
-const redirectRoutes = [
-  ...appSource.matchAll(/<Route path="([^"]+)" element=\{<Navigate/g),
-].map((match) => match[1])
 
 /** A concrete path for a declared pattern — the parameter value is arbitrary. */
 const SAMPLE_PARAMS: Record<string, string> = {

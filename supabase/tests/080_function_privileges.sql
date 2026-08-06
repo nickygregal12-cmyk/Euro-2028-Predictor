@@ -132,7 +132,12 @@ insert into expected_authenticated_functions (signature) values
   -- group's table. Browser-reachable and authenticated-only for the same
   -- reason as the LMS round read above: it is scoped to the caller's own
   -- membership, and a non-entrant is told so rather than shown anything.
-  ('get_season_cup_phase(uuid)');
+  ('get_season_cup_phase(uuid)'),
+  -- Contract 121: which matchweek a season's card opens at. It carries the
+  -- same auth.uid() boundary as every season read above, so it stays out of
+  -- expected_service_functions for contract 95's reason — service_role has no
+  -- auth.uid() and the call refuses every time.
+  ('get_season_play_context(text,text)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

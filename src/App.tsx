@@ -18,6 +18,11 @@ const CompetitionDashboardPage = lazy(() =>
     default: m.CompetitionDashboardPage,
   })),
 )
+const SeasonMatchPredictorRoute = lazy(() =>
+  import('./features/season/SeasonMatchPredictorRoute').then((m) => ({
+    default: m.SeasonMatchPredictorRoute,
+  })),
+)
 const SeasonStandingsRoute = lazy(() =>
   import('./features/season/SeasonGameRoutes').then((m) => ({
     default: m.SeasonStandingsRoute,
@@ -182,6 +187,14 @@ export default function App() {
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug"
                       element={<CompetitionDashboardPage />}
+                    />
+                    {/* Declared above the parameterised dashboard would make no
+                        difference — React Router ranks by specificity, not by
+                        source order — but it is kept next to it because the two
+                        are the same competition seen at two depths. */}
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/main-predictor"
+                      element={<SeasonMatchPredictorRoute />}
                     />
                     <Route path="/competitions/euro/2028/original" element={<HomePage />} />
                     <Route path="/competitions/:competitionSlug/:seasonSlug/standings" element={<SeasonStandingsRoute />} />

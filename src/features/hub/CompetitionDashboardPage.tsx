@@ -12,6 +12,7 @@ import {
 } from '../../services/supabase/bonusGames'
 import s from '../shared.module.css'
 import h from './hub.module.css'
+import { isNextUi } from '../../app/routeFlags'
 import {
   findHubCompetition,
   type HubCompetition,
@@ -62,6 +63,17 @@ function gamePath(
     return '/competitions/euro/2028/original'
   }
 
+  // The season Match Predictor. Reached from here rather than named in the
+  // catalogue because the catalogue describes the games a competition offers,
+  // and where a game lives is a routing fact — the Euro entry above is the same
+  // decision, made once already.
+  if (game.kind === 'league-predictor' && isNextUi('seasonMatchPredictor')) {
+    return `/competitions/${competitionSlug}/${seasonSlug}/main-predictor`
+  }
+
+  // The other two season games carry no flag of their own: they are read-only
+  // surfaces plus an entry control, with no lock or scoring interaction to roll
+  // back, so the route is the whole change.
   const base = `/competitions/${competitionSlug}/${seasonSlug}`
   switch (game.kind) {
     case 'last-man-standing':
