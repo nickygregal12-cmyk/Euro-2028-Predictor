@@ -1,0 +1,205 @@
+import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter, Route, Routes } from 'react-router'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { HubSeasonMembership } from '../../../src/services/supabase/competitionGames'
+import type { CompetitionGame } from '../../../src/services/supabase/competitionGamesModel'
+
+const mocks = vi.hoisted(() => ({
+  fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
+  fetchSeasonLeaderboardPage: vi.fn(),
+  createSeasonLmsRpcGateway: vi.fn(),
+  createSeasonLmsRegistrationRpcGateway: vi.fn(),
+  createSeasonCupRpcGateway: vi.fn(),
+}))
+
+vi.mock('../../../src/services/supabase/competitionGames', () => ({
+  fetchHubMembership: mocks.fetchHubMembership,
+}))
+vi.mock('../../../src/services/supabase/seasonLeaderboard', () => ({
+  fetchSeasonLeaderboardPage: mocks.fetchSeasonLeaderboardPage,
+}))
+vi.mock('../../../src/services/supabase/seasonLms', () => ({
+  createSeasonLmsRpcGateway: mocks.createSeasonLmsRpcGateway,
+}))
+vi.mock('../../../src/services/supabase/seasonLmsRegistration', () => ({
+  createSeasonLmsRegistrationRpcGateway: mocks.createSeasonLmsRegistrationRpcGateway,
+}))
+vi.mock('../../../src/services/supabase/seasonCup', () => ({
+  createSeasonCupRpcGateway: mocks.createSeasonCupRpcGateway,
+}))
+vi.mock('../../../src/features/auth/AuthProvider', () => ({
+  useAuth: () => ({ userId: 'user-1' }),
+}))
+
+import {
+  SeasonChampionshipRoute,
+  SeasonLmsRoute,
+  SeasonStandingsRoute,
+} from '../../../src/features/season/SeasonGameRoutes'
+
+const TOURNAMENT_ID = '60000000-0000-0000-0000-000000000001'
+const LMS_ID = '60000000-0000-0000-0000-000000000102'
+const CUP_ID = '60000000-0000-0000-0000-000000000103'
+
+function game(overrides: Partial<CompetitionGame>): CompetitionGame {
+  return {
+    id: 'game-1',
+    gameKey: 'main_predictor',
+    active: true,
+    displayName: 'Main Predictor',
+    registrationOpensAt: null,
+    registrationClosesAt: null,
+    completedAt: null,
+    allowRejoin: false,
+    membership: null,
+    ...overrides,
+  }
+}
+
+function season(games: CompetitionGame[]): HubSeasonMembership[] {
+  return [
+    {
+      seasonName: 'Premier League 2026/27',
+      tournamentId: TOURNAMENT_ID,
+      seasonStatus: 'active',
+      seasonGames: {
+        competitionMember: true,
+        serverNow: '2026-08-06T12:00:00Z',
+        games,
+      },
+    },
+  ]
+}
+
+function renderRoute(element: React.ReactNode, path: string, url: string) {
+  render(
+    <MemoryRouter initialEntries={[url]}>
+      <Routes>
+        <Route path={path} element={element} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
+const DASHBOARD = '/competitions/:competitionSlug/:seasonSlug'
+
+describe('the season game routes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.createSeasonLmsRpcGateway.mockReturnValue({ load: vi.fn(), pick: vi.fn() })
+    mocks.createSeasonCupRpcGateway.mockReturnValue({ load: vi.fn(() => new Promise(() => {})) })
+    mocks.createSeasonLmsRegistrationRpcGateway.mockReturnValue({
+      load: vi.fn(() => new Promise(() => {})),
+      join: vi.fn(),
+    })
+    mocks.fetchSeasonLeaderboardPage.mockReturnValue(new Promise(() => {}))
+  })
+
+  it('resolves the season from the URL and hands the standings its id', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(season([game({})]))
+
+    renderRoute(
+      <SeasonStandingsRoute />,
+      `${DASHBOARD}/standings`,
+      '/competitions/premier-league/2026-27/standings',
+    )
+
+    // The catalogue's exact season row name, never a slug turned into an id.
+    await waitFor(() =>
+      expect(mocks.fetchHubMembership).toHaveBeenCalledWith(['Premier League 2026/27']),
+    )
+    await waitFor(() =>
+      expect(mocks.fetchSeasonLeaderboardPage).toHaveBeenCalledWith(TOURNAMENT_ID, {
+        after: null,
+      }),
+    )
+  })
+
+  it('gives Last Man Standing both its season and its competition id', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([game({ id: LMS_ID, gameKey: 'last_man_standing' })]),
+    )
+
+    renderRoute(
+      <SeasonLmsRoute />,
+      `${DASHBOARD}/last-man-standing`,
+      '/competitions/premier-league/2026-27/last-man-standing',
+    )
+
+    await waitFor(() =>
+      expect(mocks.createSeasonLmsRpcGateway).toHaveBeenCalledWith({
+        tournamentId: TOURNAMENT_ID,
+      }),
+    )
+    // Registration needs the competition, which only the server read supplies.
+    await waitFor(() =>
+      expect(mocks.createSeasonLmsRegistrationRpcGateway).toHaveBeenCalledWith({
+        tournamentId: TOURNAMENT_ID,
+        competitionId: LMS_ID,
+        userId: 'user-1',
+      }),
+    )
+  })
+
+  it('gives the Championship the competition id the read named', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([game({ id: CUP_ID, gameKey: 'predictor_cup' })]),
+    )
+
+    renderRoute(
+      <SeasonChampionshipRoute />,
+      `${DASHBOARD}/championship`,
+      '/competitions/premier-league/2026-27/championship',
+    )
+
+    await waitFor(() =>
+      expect(mocks.createSeasonCupRpcGateway).toHaveBeenCalledWith({
+        competitionId: CUP_ID,
+      }),
+    )
+  })
+
+  it('says so when the season does not list the game, rather than rendering blank', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(season([game({})]))
+
+    renderRoute(
+      <SeasonChampionshipRoute />,
+      `${DASHBOARD}/championship`,
+      '/competitions/premier-league/2026-27/championship',
+    )
+
+    await waitFor(() =>
+      expect(
+        screen.getByText('The Predictor Championship is not part of this season'),
+      ).toBeTruthy(),
+    )
+    expect(mocks.createSeasonCupRpcGateway).not.toHaveBeenCalled()
+  })
+
+  it('reports an unknown competition slug instead of resolving nothing', async () => {
+    renderRoute(
+      <SeasonStandingsRoute />,
+      `${DASHBOARD}/standings`,
+      '/competitions/not-a-league/1999-00/standings',
+    )
+
+    await waitFor(() =>
+      expect(screen.getByText('This competition season could not be found.')).toBeTruthy(),
+    )
+    expect(mocks.fetchHubMembership).not.toHaveBeenCalled()
+  })
+
+  it('shows a failed resolve as a failure, never as an empty page', async () => {
+    mocks.fetchHubMembership.mockRejectedValue(new Error('offline'))
+
+    renderRoute(
+      <SeasonStandingsRoute />,
+      `${DASHBOARD}/standings`,
+      '/competitions/premier-league/2026-27/standings',
+    )
+
+    await waitFor(() =>
+      expect(screen.getByText('This season could not be loaded right now.')).toBeTruthy(),
+    )
+  })
+})

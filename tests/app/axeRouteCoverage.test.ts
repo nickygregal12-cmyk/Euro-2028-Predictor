@@ -114,6 +114,25 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
       'rather than a card. Scanning it needs the flag set for the E2E dev server ' +
       'and a seeded season entry — both harness work, neither done here',
   ],
+
+  // The three season game surfaces, scanned as concrete instances in
+  // `e2e/axe-accessibility.spec.ts` for the same reason as the dashboard above:
+  // the guard relates declared patterns to scanned literals and cannot match
+  // `premier-league/2026-27` to `:competitionSlug`. Unlike main-predictor these
+  // carry no flag and need no seeded entry — they render for any signed-in
+  // caller — so the scan is real coverage rather than deferred work.
+  [
+    '/competitions/:competitionSlug/:seasonSlug/standings',
+    'parameterised — /competitions/premier-league/2026-27/standings is scanned in its place',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/last-man-standing',
+    'parameterised — /competitions/premier-league/2026-27/last-man-standing is scanned in its place',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/championship',
+    'parameterised — /competitions/premier-league/2026-27/championship is scanned in its place',
+  ],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)
