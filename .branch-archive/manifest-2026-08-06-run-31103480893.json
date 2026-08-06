@@ -1,0 +1,421 @@
+{
+  "generated_at": "2026-08-06T12:54:54.188Z",
+  "repository": "nickygregal12-cmyk/Euro-2028-Predictor",
+  "default_branch": "main",
+  "default_sha": "a4d132fc4993f478d781320e50db10fec9bb418b",
+  "protected_refs_at_start": [
+    "automation/development-hosted-contract-31100989022",
+    "claude/ui-ux-work-ywnnuj",
+    "main"
+  ],
+  "archived_branches": [
+    {
+      "name": "a11y/route-transitions",
+      "sha": "2c379cb6ec0273a38e3fa1c376ecab268810d84a"
+    },
+    {
+      "name": "agent/account-privacy-controls",
+      "sha": "cb2f17fe78bd9e212d7c5bfd005f02c3d4e2fe97"
+    },
+    {
+      "name": "agent/admin-control-room-foundation",
+      "sha": "92a49f810398efaee9084a73d5a50c707c729da1"
+    },
+    {
+      "name": "agent/admin-control-room-rebase-2",
+      "sha": "73696fd827941f3c047bead93c9e01855d22bb1a"
+    },
+    {
+      "name": "agent/admin-control-room-rebased",
+      "sha": "870246d4f6193b82f1602ef7c639f237e6c737b1"
+    },
+    {
+      "name": "agent/bounded-leaderboard-members",
+      "sha": "749966f127c4e8437ec6e42f465e4875fe1278ee"
+    },
+    {
+      "name": "agent/contract-103-competition-instance-lineage",
+      "sha": "68cea8ece40de7d2f28e3c7764116799f68d7646"
+    },
+    {
+      "name": "agent/migrate-match-centre-competition-context",
+      "sha": "c32c5240a5c32cf1100be5f0e71ae7aef9cc9406"
+    },
+    {
+      "name": "agent/operating-cap-enforcement",
+      "sha": "839fe67fd4d6689fd374aa85fe15a9b05c5651e8"
+    },
+    {
+      "name": "agent/post-lock-consensus",
+      "sha": "40398ddcf11d6bae5799cc5c5e84918da8ca71bf"
+    },
+    {
+      "name": "agent/production-contract-38-dry-run",
+      "sha": "3f75a79688be42206ade61c6a1834b99b53677ed"
+    },
+    {
+      "name": "agent/provider-contract-96-restack-runner",
+      "sha": "89654f3b048985b492c901b3352ae23583eb6f43"
+    },
+    {
+      "name": "agent/provider-contract-96-trigger",
+      "sha": "53aa94ed592ae4a479c7c37cc767ec86fab73888"
+    },
+    {
+      "name": "agent/provider-contract-96-trigger-2",
+      "sha": "77043fc524998a176720949bbbe8661e528ec730"
+    },
+    {
+      "name": "agent/provider-contract-96-trigger-3",
+      "sha": "eb6297e9727254826410137193bb3b512244c316"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-66",
+      "sha": "b8c89dd2ac6a2377e51401b29be418034c4c4116"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-67",
+      "sha": "0b27a80ca83cc11de61bb6381f1fc52b838a0130"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-68",
+      "sha": "6ab1f59791acc29905aeaa5bd51dce08280a137b"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-72",
+      "sha": "222c8cb1c9ca486113f08c3c589ce3efeb1bff7d"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-73",
+      "sha": "a33ebf6e52ac05c3a94557b8a86ccf0f809fd6dc"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-74",
+      "sha": "51120ca02fd716db69a45ad83bec78b84d8e751d"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-80",
+      "sha": "faa04f9a702fbfb002802ecef1b9773db4453c20"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-81",
+      "sha": "6debaa1cc88a94b871de4b6a429e9089c10138b8"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-84",
+      "sha": "104690dd7e3b6795dc71b4820bbde288ad864d84"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-86-staging",
+      "sha": "0fdb03c251351f9fef8f9d49805fbe893f0ef2bf"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-91-staging",
+      "sha": "35806ceaca18aae907ea7e3271de4c132641d964"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-92-staging",
+      "sha": "170b0e97d8e2b59da34751304ea8f52aef9b5c9c"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-94-final",
+      "sha": "1e5c1e593daec726091c01e093470c93a89495e2"
+    },
+    {
+      "name": "agent/provider-ingestion-contract-94-staging",
+      "sha": "a5e35326dd952c14643e8afdb7471a961d745571"
+    },
+    {
+      "name": "agent/reconcile-stage-c-contract-completion",
+      "sha": "50237c96934f189e03d1662870d52eb0ab8bfd66"
+    },
+    {
+      "name": "agent/refresh-stage-c-landed-status",
+      "sha": "f242030e4b5d0f618281fa47db35bff24b819aa9"
+    },
+    {
+      "name": "agent/regroup-docs-ops-only",
+      "sha": "2b8c6c8b5f999e7b6acead70d6ec218362b4c0f5"
+    },
+    {
+      "name": "agent/stage-c-lock-authority-before-state",
+      "sha": "ce153336c452d0205018758c1236d060d378bb84"
+    },
+    {
+      "name": "agent/stage-c1-restore-historical-probe",
+      "sha": "65a355a80d126846f13c0a74549459390c407752"
+    },
+    {
+      "name": "agent/stage-c1-restore-historical-probe-2",
+      "sha": "65a355a80d126846f13c0a74549459390c407752"
+    },
+    {
+      "name": "automation/2026-08-04-0500-authority-reconcile",
+      "sha": "b42b3548adcd140c42c6853eada6a832c6d618b7"
+    },
+    {
+      "name": "automation/2026-08-06-0100-handover",
+      "sha": "0196af279f0287e1124942d5edfb559ffe9f75c7"
+    },
+    {
+      "name": "automation/development-hosted-contract-30884482551",
+      "sha": "3b8b4ca9bf60c467bc3f419fa254ea6da805abb8"
+    },
+    {
+      "name": "automation/development-hosted-contract-30889736356",
+      "sha": "aa1cb3da34662900c31b435702cd35d9c521e392"
+    },
+    {
+      "name": "automation/development-hosted-contract-30897118745",
+      "sha": "9b60814bfde6fe3c5f8284e8b5d2e0a57813e93c"
+    },
+    {
+      "name": "automation/development-hosted-contract-30899305992",
+      "sha": "368d92fb81d8cc8a64717514285e9a1130723371"
+    },
+    {
+      "name": "automation/development-hosted-contract-30901081053",
+      "sha": "64486c7717ebe7c3e18dc23ebf434c38f5518ee4"
+    },
+    {
+      "name": "automation/development-hosted-contract-30903644470",
+      "sha": "c6a8d72e5cb4b63f4af49e988f3a1370fb11cfd4"
+    },
+    {
+      "name": "automation/development-hosted-contract-30906915108",
+      "sha": "19de049baf576e41c95549482919eb3ee94a0095"
+    },
+    {
+      "name": "automation/development-hosted-contract-30911943023",
+      "sha": "5864f2671614afecc1ede777da5a9dabfb0d0db2"
+    },
+    {
+      "name": "automation/development-hosted-contract-30916033941",
+      "sha": "c462042f23ad6d4f06dc59a981c155404151be41"
+    },
+    {
+      "name": "automation/development-hosted-contract-30920330240",
+      "sha": "e75c5c81cd3951ae55ef59f5699dfc388a0806fd"
+    },
+    {
+      "name": "automation/development-hosted-contract-30923985137",
+      "sha": "02763bb6731b4f2ef7931365a719ca6f779c146f"
+    },
+    {
+      "name": "automation/development-hosted-contract-30927288358",
+      "sha": "5c27d7f74b53a0a5d28b35400615d2d9d67e07fd"
+    },
+    {
+      "name": "automation/development-hosted-contract-30931550512",
+      "sha": "4de0cd0011d03fa0601b052208c19a14e99f70f9"
+    },
+    {
+      "name": "automation/development-hosted-contract-30959460638",
+      "sha": "62349751dbb507aa53099ef5d30d2e9a1a047ab0"
+    },
+    {
+      "name": "automation/development-hosted-contract-30968263589",
+      "sha": "9455521511e79e920e856dd82378ea8e25fd45d2"
+    },
+    {
+      "name": "automation/development-hosted-contract-30984799464",
+      "sha": "5204ace9d3e2d5c34cb0ef8d483c35c1b0c1d48f"
+    },
+    {
+      "name": "automation/development-hosted-contract-30988219931",
+      "sha": "df6aee823f2d5ae76b3afa2ac1c64a0578ac23c7"
+    },
+    {
+      "name": "automation/development-hosted-contract-30993039183",
+      "sha": "e39adcb9923b0b1f3afb5f1d8dbb78adf47795b7"
+    },
+    {
+      "name": "automation/development-hosted-contract-30995378830",
+      "sha": "3d8d1c6025b81cb40555723f7fdea7fa7632cf93"
+    },
+    {
+      "name": "automation/development-hosted-contract-30999696857",
+      "sha": "c16c31837c480d81d99c17f12153868d86c332f0"
+    },
+    {
+      "name": "automation/development-hosted-contract-31003461219",
+      "sha": "ca1d3ea6a7bbda2b8676105540abff9d091f93da"
+    },
+    {
+      "name": "automation/development-hosted-contract-31012556164",
+      "sha": "ce3880b51e0d13782470b9592a0312e93d944cdd"
+    },
+    {
+      "name": "automation/development-hosted-contract-31016875628",
+      "sha": "df36784c26bbf3bab3254c52926e4faf72f5838d"
+    },
+    {
+      "name": "automation/development-hosted-contract-31030063029",
+      "sha": "011ae126b07236d28da4b46d42f9fa39296592f5"
+    },
+    {
+      "name": "automation/development-hosted-contract-31083613351",
+      "sha": "6248969f10578c541a9a135f938acf356aea8ac6"
+    },
+    {
+      "name": "backup/admin-control-room-current-main-pre-rebase-4abfde1",
+      "sha": "4abfde18d046021c39e58fee4a6548bd7ee44d13"
+    },
+    {
+      "name": "backup/admin-control-room-pre-backup-refresh-d743f7c",
+      "sha": "d743f7c8103dd246414271e2ccd26c92d915ac56"
+    },
+    {
+      "name": "chore/baseline-reconciliation",
+      "sha": "798733ce69e0f2212b5954d2051bfb168c294976"
+    },
+    {
+      "name": "chore/branch-inventory",
+      "sha": "0aa233f30158381f669a0769424009c990697b1a"
+    },
+    {
+      "name": "chore/stack-plan",
+      "sha": "2325a8a0813af52a70d3ec34255ac49d0e6aaf0d"
+    },
+    {
+      "name": "claude/adr-0020-erasure",
+      "sha": "d8f9c6824d3a62282fc6bef86464ade89f3c77f9"
+    },
+    {
+      "name": "claude/club-identity-resolver",
+      "sha": "1ffd59a36393768a33cea7b73430cf5907331f77"
+    },
+    {
+      "name": "claude/document-batch-selection-asqsl3",
+      "sha": "54a39c67e1601b730abba41f55c2d99a8b3716b9"
+    },
+    {
+      "name": "claude/documentation-audit-b2h2ch",
+      "sha": "bdb731f7cdcbc65666d7761458d866bf2c53cc6a"
+    },
+    {
+      "name": "claude/fix-premium-prototype-deps",
+      "sha": "d080f1c13315eb0cc607cb958f0dacc24078e2f7"
+    },
+    {
+      "name": "claude/landed-state-verification-0xwgw0",
+      "sha": "83c5f8a8b2c60c0157487439aac18ecf91002c1c"
+    },
+    {
+      "name": "claude/nightly-report-collision-fix",
+      "sha": "6ec750e3872650ecb631dadd5b3de3753abc1955"
+    },
+    {
+      "name": "claude/phase0-corrections",
+      "sha": "3f35ee0d3ee70f35f776f72de76609305ae439a4"
+    },
+    {
+      "name": "claude/reconcile-hub-status",
+      "sha": "c8136e513985a645be6546fbe5d1f4a450377dad"
+    },
+    {
+      "name": "claude/repo-review-batch-18",
+      "sha": "e30e6847ff8a574fd781347d17f3a9f1f27e7df6"
+    },
+    {
+      "name": "claude/repo-review-batch-7",
+      "sha": "07282fec04111bd3b2cfcae342191c9f41a844f7"
+    },
+    {
+      "name": "claude/stage-c-adr-0020-reconciliation",
+      "sha": "a85be26a4303f346b6af39a813350e0b33e2e7db"
+    },
+    {
+      "name": "claude/ui-prototype-implementation-nn8et8",
+      "sha": "98799d4f875e8c312894c28fd91f7ec5b1dfd664"
+    },
+    {
+      "name": "codex/add-github-actions-ci-workflow-089far",
+      "sha": "5fc19ea155f7a21d21bf1d3db26b2c17ffbcbba6"
+    },
+    {
+      "name": "codex/provider-ingestion-contract-69",
+      "sha": "a09773e9a3e6a97445059bf8c8e7799e815458cc"
+    },
+    {
+      "name": "codex/provider-ingestion-contract-70",
+      "sha": "e9a5140fbf300f47a97facc8ea42def51142c9f6"
+    },
+    {
+      "name": "codex/provider-ingestion-contract-71",
+      "sha": "329022d97b69db41c65aeb8f49143c55dc11f573"
+    },
+    {
+      "name": "docs/reconcile-contract-108-follow-up",
+      "sha": "7b4ac4d894121d47868193e60778b357ee486849"
+    },
+    {
+      "name": "docs/sec002-authority-reconciliation",
+      "sha": "f0674a5209f03ba5fe9c701f8a7b2e094925ec43"
+    },
+    {
+      "name": "fix/nav-restore-and-continue",
+      "sha": "4972bda76debca5852ae0eb579ce39a90b844393"
+    },
+    {
+      "name": "fix/profile-source-availability",
+      "sha": "7838681b1a38430e786e70fb36ec7ace6b8799e2"
+    },
+    {
+      "name": "ops/production-payload-rehearsal-20260724",
+      "sha": "97c8cac83181977967409a4c9d2ea2ba0414bf5b"
+    },
+    {
+      "name": "reconcile/contract54-source-discovery",
+      "sha": "011c77bd9995e01b3ae66121a1fe445b9ebb8f26"
+    },
+    {
+      "name": "reconcile/match-centre-e2e-discovery",
+      "sha": "fe4f606e04cefd8a804d6bab6e57e2c4ddf42367"
+    },
+    {
+      "name": "release/align-contract60-controls",
+      "sha": "dbd47ccde0dd9d50a2a9f6963dfe982b4250bf8f"
+    },
+    {
+      "name": "release/align-production-smoke-contract48",
+      "sha": "c6ff884abdeedfa068cc4346ec3805c73b3add8d"
+    },
+    {
+      "name": "release/contract55-production-live",
+      "sha": "5de9abd70a4ef71a2cd5f1851f2dfee8395cdc9c"
+    },
+    {
+      "name": "release/contract55-production-promotion",
+      "sha": "0b180af9078288b6e1b67370c65b4ed216a99be9"
+    },
+    {
+      "name": "release/contract58-production-promotion",
+      "sha": "d6c770f6781bdfae9e44cbac97febdbe4fbbc07b"
+    },
+    {
+      "name": "temp/contract48-production-export",
+      "sha": "cf41d5010ae56e4ce8e43c8a358cfdf473bfc4d0"
+    },
+    {
+      "name": "temp/contract48-production-smoke",
+      "sha": "f5c46901c370cefc75c7ec24b0ee961b8afcde27"
+    },
+    {
+      "name": "temp/netlify-build-log-diagnostics",
+      "sha": "6d89f3ce878c21ae7346c532ff911783f0e13a03"
+    },
+    {
+      "name": "temp/netlify-contract48-production-deploy",
+      "sha": "94ca0775fa38410ceb26dc175389a112271ad46b"
+    },
+    {
+      "name": "temp/production-contract48-source",
+      "sha": "c236314e97204d235a110e1121d997fce03c9544"
+    },
+    {
+      "name": "ux/confirm-sign-out",
+      "sha": "b19e630c958390c8c90907fc24bfc09def3bc7f9"
+    }
+  ]
+}
