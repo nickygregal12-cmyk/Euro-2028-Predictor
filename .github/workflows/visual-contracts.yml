@@ -1,0 +1,79 @@
+name: Visual contracts
+
+# BOOTSTRAP FIRST, COMPARE LATER — and that ordering is why this workflow is
+# dispatch-only today.
+#
+# Playwright compares screenshots pixel by pixel. An image rendered in a
+# development container never matches one rendered on a GitHub runner: different
+# kernel, different font build, different graphics stack. So baselines committed
+# from anywhere other than the runner that will compare them hand CI a suite
+# that fails on its first run for reasons nobody can act on, and the usual next
+# step is to raise the tolerance until it passes — at which point the contract
+# stops holding anything.
+#
+# The sequence is therefore:
+#
+#   1. run this workflow with `update_baselines: true`. It renders the images on
+#      the runner and uploads them as an artifact. Nothing is compared;
+#   2. download the artifact, commit the PNGs under `e2e/visual-baselines/`, and
+#      review them — they are the reference every later diff is judged against,
+#      so they get read like code rather than accepted like output;
+#   3. add `pull_request` to the triggers below. From then on the suite compares
+#      every change against images produced by the same kind of machine.
+#
+# Step 3 is deliberately not done here. A pull-request trigger added before the
+# baselines exist would make every PR red.
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_baselines:
+        description: 'Render baselines on this runner and upload them, instead of comparing'
+        type: boolean
+        default: false
+
+jobs:
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned explicitly, as every other workflow here does. An image is only
+      # comparable to another produced by the same toolchain.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.2
+          cache: 'npm'
+
+      - name: Install application dependencies
+        run: npm ci
+
+      # The pinned browser build is part of the contract: an image is only
+      # comparable to another rendered by the same engine.
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Render baselines
+        if: ${{ inputs.update_baselines }}
+        run: npx playwright test --config=playwright.visual.config.ts --update-snapshots
+
+      - name: Compare against committed baselines
+        if: ${{ !inputs.update_baselines }}
+        run: npx playwright test --config=playwright.visual.config.ts
+
+      # On a bootstrap run this is the deliverable. On a comparison run it is
+      # the evidence: the diff images are what make a failure reviewable rather
+      # than a wall of "screenshot mismatch".
+      - name: Upload baselines and diffs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-contracts
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            e2e/visual-baselines/
+            test-results/
+            playwright-report-visual/

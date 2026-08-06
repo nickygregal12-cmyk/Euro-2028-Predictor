@@ -41,6 +41,7 @@ const COVERED_FILES = [
   'playwright.config.ts',
   'playwright.auth.config.ts',
   'playwright.production.config.ts',
+  'playwright.visual.config.ts',
 ] as const
 
 function committedTypeScriptSources(): string[] {
@@ -184,6 +185,7 @@ describe('JavaScript under scripts/', () => {
     'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',
     'scripts/reset-development-seed.mjs',
+    'scripts/run-lighthouse.mjs',
     'scripts/select-browser-journeys.mjs',
     'scripts/validate-deployment-contract.mjs',
     'scripts/validate-netlify-environment.mjs',

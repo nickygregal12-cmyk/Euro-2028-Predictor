@@ -12,7 +12,7 @@
   position: absolute;
   top: var(--sp-2);
   left: var(--sp-2);
-  z-index: 20;
+  z-index: var(--z-navigation);
   transform: translateY(calc(-100% - var(--sp-4)));
   padding: var(--sp-2) var(--sp-3);
   border: 2px solid var(--acc);

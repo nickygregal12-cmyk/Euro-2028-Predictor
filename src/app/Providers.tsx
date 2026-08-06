@@ -1,9 +1,19 @@
-import { Navigate, Outlet } from 'react-router'
+import { lazy, Suspense } from 'react'
+import { Navigate, Outlet, useLocation } from 'react-router'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { AuthSplash } from '../features/auth/AuthSplash'
 import { getPendingJoin } from '../features/leagues/pendingJoin'
+import { RouteAccessibility } from './RouteAccessibility'
+import { RouteFallback } from './RouteFallback'
+import { isNextUi } from './routeFlags'
 import { TournamentDataProvider } from './providers/TournamentDataProvider'
 import { PredictionsProvider } from './providers/PredictionsProvider'
+
+// Lazy, so the marketing page is never in a signed-in player's bundle. It is
+// the one route a returning player never sees.
+const LandingPage = lazy(() =>
+  import('../features/landing/LandingPage').then((m) => ({ default: m.LandingPage })),
+)
 
 // Session-aware app composition. AuthProvider sits at the top so both the auth
 // screens and the app share one session; two gates then split the tree:
@@ -16,15 +26,34 @@ import { PredictionsProvider } from './providers/PredictionsProvider'
 export function AuthLayout() {
   return (
     <AuthProvider>
+      {/* Inside the provider, so the route announcement can tell the two pages
+          that share `/` apart: signed out it is the public landing page, signed
+          in it is the Hub. See RouteAccessibility for why that matters. */}
+      <SessionAwareRouteAccessibility />
       <Outlet />
     </AuthProvider>
   )
 }
 
+/**
+ * Reads the session so `RouteAccessibility` does not have to.
+ *
+ * A separate component because `AuthLayout` renders the provider and cannot
+ * consume its own context; three lines here keep the title layer free of any
+ * dependency on the auth service. `loading` is not signed out — treating it as
+ * such would announce the landing page's title for a moment on every
+ * authenticated refresh, before the session resolves and the Hub appears.
+ */
+function SessionAwareRouteAccessibility() {
+  const { userId, loading } = useAuth()
+  return <RouteAccessibility signedOut={!loading && userId === null} />
+}
+
 export function RequireAuth() {
   const { userId, loading } = useAuth()
+  const { pathname } = useLocation()
   if (loading) return <AuthSplash />
-  if (!userId) return <Navigate to="/auth/login" replace />
+  if (!userId) return <SignedOutDestination pathname={pathname} />
   return (
     <TournamentDataProvider>
       <PredictionsProvider>
@@ -32,6 +61,40 @@ export function RequireAuth() {
       </PredictionsProvider>
     </TournamentDataProvider>
   )
+}
+
+/**
+ * What a signed-out visitor gets when they ask for a signed-in route.
+ *
+ * Everywhere except the root, the answer is unchanged and unchanging: the log
+ * in screen, which is where someone asking for their own predictions needs to
+ * go, and which returns them afterwards.
+ *
+ * The root is the exception Appendix E.1 creates. `/` signed out is not a
+ * locked door to the Hub, it is the public conversion page — a different page
+ * that happens to share the URL, in the way most products' front doors do. So
+ * the branch is on the path rather than on some property of the session.
+ *
+ * Rendering the landing page here, rather than declaring it as its own
+ * `<Route>`, is deliberate. React Router resolves one element per path, and `/`
+ * is already claimed by the Hub inside three nested gates that mount the
+ * tournament data providers, the welcome gate and the app shell. Giving the
+ * landing page its own path would have moved the signed-in Hub off `/` — a URL
+ * change for every existing player, and every bookmark and shared link they
+ * hold, to avoid a five-line branch.
+ *
+ * FAIL CLOSED, like every other route flag: unset means `/auth/login`, which is
+ * exactly what happened before this page existed.
+ */
+function SignedOutDestination({ pathname }: { pathname: string }) {
+  if (pathname === '/' && isNextUi('publicLanding')) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <LandingPage />
+      </Suspense>
+    )
+  }
+  return <Navigate to="/auth/login" replace />
 }
 
 export function RedirectIfAuthed() {

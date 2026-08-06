@@ -28,6 +28,13 @@
    thin: `--tx3` on `--bg` measures 4.90:1 in the light theme, so any
    decoration behind the eyebrow drops it under AA (measured at 4.27:1 before
    this change). Nothing may paint behind text here. */
+/* The 0/1 pair below is LOCAL stacking between two siblings inside this
+   component, not an application layer, so it is deliberately not drawn from
+   the `--z-*` scale. That scale orders the layers of the app — content,
+   sticky, navigation, overlay, modal, toast — and putting a decoration and
+   the text painted over it on it would say they were app layers, while
+   collapsing both onto `--z-content` would erase the one relationship the
+   pair exists to express. */
 .decoration {
   position: absolute;
   inset-block: 0;

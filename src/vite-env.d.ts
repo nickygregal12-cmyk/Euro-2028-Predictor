@@ -22,6 +22,9 @@ interface ImportMetaEnv {
   // the exact string "true" selects the next-generation journey, so an unset or
   // misspelled value leaves the legacy route serving players.
   readonly VITE_UI_SEASON_MATCH_PREDICTOR?: string
+  // Serves the public landing page at `/` to signed-out visitors instead of
+  // redirecting them to `/auth/login`.
+  readonly VITE_UI_PUBLIC_LANDING?: string
 }
 
 interface ImportMeta {

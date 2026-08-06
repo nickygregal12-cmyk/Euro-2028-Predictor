@@ -16,6 +16,7 @@
     "supabase/functions/**/*.ts",
     "playwright.config.ts",
     "playwright.auth.config.ts",
-    "playwright.production.config.ts"
+    "playwright.production.config.ts",
+    "playwright.visual.config.ts"
   ]
 }

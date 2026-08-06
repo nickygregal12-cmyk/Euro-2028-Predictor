@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
 import { AppShell } from './app/AppShell'
@@ -88,34 +88,57 @@ const SeasonLmsPreview = import.meta.env.DEV
     )
   : null
 
+/**
+ * Route titles and announcements for the routes that render without a session.
+ *
+ * `RouteAccessibility` moved inside `AuthLayout` so it can tell apart the two
+ * pages that share `/` — signed out it is the public landing page, signed in it
+ * is the Hub — and that reading needs the session. These routes sit outside
+ * `AuthLayout` on purpose: a component gallery must not mount a session, and
+ * the not-found page needs none. They keep the same titling through their own
+ * layout route, which is why the hook it uses tolerates having no provider
+ * above it rather than throwing.
+ */
+function SessionlessChrome() {
+  return (
+    <>
+      <RouteAccessibility />
+      <Outlet />
+    </>
+  )
+}
+
 export default function App() {
   return (
     <ThemeProvider>
       <BrowserRouter>
-        <RouteAccessibility />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            {import.meta.env.DEV && ComponentsPreview ? (
-              <Route path="/dev/components" element={<ComponentsPreview />} />
-            ) : null}
-            {import.meta.env.DEV && MatchCentreScenarioPreview ? (
-              <Route path="/dev/match-centre/:scenario" element={<MatchCentreScenarioPreview />} />
-            ) : null}
-            {import.meta.env.DEV && SeasonPreview ? (
-              <Route path="/dev/season" element={<SeasonPreview />} />
-            ) : null}
-            {import.meta.env.DEV && SeasonLeaderboardPreview ? (
-              <Route path="/dev/season-leaderboard" element={<SeasonLeaderboardPreview />} />
-            ) : null}
-            {import.meta.env.DEV && SeasonMatchPredictorPreview ? (
-              <Route path="/dev/season-predictor" element={<SeasonMatchPredictorPreview />} />
-            ) : null}
-            {import.meta.env.DEV && SeasonStandingsPreview ? (
-              <Route path="/dev/season-standings" element={<SeasonStandingsPreview />} />
-            ) : null}
-            {import.meta.env.DEV && SeasonLmsPreview ? (
-              <Route path="/dev/season-lms" element={<SeasonLmsPreview />} />
-            ) : null}
+            <Route element={<SessionlessChrome />}>
+              {import.meta.env.DEV && ComponentsPreview ? (
+                <Route path="/dev/components" element={<ComponentsPreview />} />
+              ) : null}
+              {import.meta.env.DEV && MatchCentreScenarioPreview ? (
+                <Route path="/dev/match-centre/:scenario" element={<MatchCentreScenarioPreview />} />
+              ) : null}
+              {import.meta.env.DEV && SeasonPreview ? (
+                <Route path="/dev/season" element={<SeasonPreview />} />
+              ) : null}
+              {import.meta.env.DEV && SeasonLeaderboardPreview ? (
+                <Route path="/dev/season-leaderboard" element={<SeasonLeaderboardPreview />} />
+              ) : null}
+              {import.meta.env.DEV && SeasonMatchPredictorPreview ? (
+                <Route path="/dev/season-predictor" element={<SeasonMatchPredictorPreview />} />
+              ) : null}
+              {import.meta.env.DEV && SeasonStandingsPreview ? (
+                <Route path="/dev/season-standings" element={<SeasonStandingsPreview />} />
+              ) : null}
+              {import.meta.env.DEV && SeasonLmsPreview ? (
+                <Route path="/dev/season-lms" element={<SeasonLmsPreview />} />
+              ) : null}
+
+              <Route path="*" element={<NotFoundPage />} />
+            </Route>
 
             <Route element={<AuthLayout />}>
               <Route element={<RedirectIfAuthed />}>
@@ -174,8 +197,6 @@ export default function App() {
                 </Route>
               </Route>
             </Route>
-
-            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

@@ -14,6 +14,12 @@
 
 These three are the whole unauthenticated route set a production build can serve without a backend. Every other route sits behind the authenticated shell, so auditing it would measure a redirect rather than a page. Extending the set is work for the first new journey, which brings its own fixture-backed routes with it.
 
+**Re-measured 5 August 2026, and the command needed fixing before it could be re-run.** `check:lighthouse` was `lhci autorun` alone, which worked for whoever had a `.env.local` and for nobody else: the application throws `Missing Supabase configuration` at module load, Vite inlines those variables at *build* time so they cannot be supplied to an existing `dist`, and the audit therefore died on a bare `NO_FCP` — "the page did not paint any content". The documented command was unrunnable on a clean checkout, which is also what would have happened had it been promoted to CI as it stood. `scripts/run-lighthouse.mjs` now supplies placeholder configuration when the caller has supplied none, then builds and audits; real values already in the environment are left alone, because Vite gives shell variables precedence over `.env` files and overriding them would audit a configuration the developer is not working on.
+
+Re-run that way on a clean environment, the routes score **94 / 94 / 94** on performance with accessibility 100 throughout and best practices 100 / 96 / 100 — at or above the baseline row above on every route. The one sub-100 best-practices score is `/auth/signup`'s single `errors-in-console` finding, which is also present on `main`.
+
+Worth recording because it removes a reason to build something: **Lighthouse refuses to score a page that painted nothing.** A blank build aborts with `NO_FCP` and `lhci autorun` exits 1 rather than returning flattering numbers, so the "green result from an empty page" failure this repository would otherwise have to guard against cannot occur. A blank-page assertion was written and then deleted for that reason.
+
 ## Why it audits a local build and not the deploy preview
 
 Because the deploy preview does not measure the product. Two pull requests that changed **no runtime code at all** — the design-authority documentation change and the Knip tooling baseline — scored **20** and **21** on their previews, while the same bundle scores 89–95 here and production scores in the mid-nineties. A tool pointed at the preview would report infrastructure as product quality, and the first thing it would do is send someone hunting for a regression in code that had not changed.

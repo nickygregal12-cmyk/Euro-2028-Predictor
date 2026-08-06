@@ -30,6 +30,11 @@ import { expect, test } from '@playwright/test'
  * and belongs with the fixtures that already build one.
  */
 const ROUTES = [
+  // The public landing page (modernisation plan Appendix E). `/` is two pages
+  // sharing one path — the Hub signed in, the conversion page signed out — and
+  // this harness is the only one that sees the second, so an accessibility
+  // scan of `/` from the authenticated suite says nothing about it.
+  '/',
   '/auth/login',
   '/auth/signup',
   '/auth/reset',

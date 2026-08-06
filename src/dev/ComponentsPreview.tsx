@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect, type ReactNode } from 'react'
+import { useLocation } from 'react-router'
+import { sectionAnchor } from './sectionAnchor'
 import styles from './ComponentsPreview.module.css'
 import { renderShareCard } from '../features/share/renderShareCard'
 import type { ShareCardModel, ShareVariant } from '../features/share/shareModel'
@@ -258,7 +260,7 @@ const HOSTILE_ROWS: LeagueTableRow[] = [
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className={styles.section}>
+    <section className={styles.section} data-section={sectionAnchor(title)}>
       <h2 className={styles.sectionTitle}>{title}</h2>
       <div className={styles.stack}>{children}</div>
     </section>
@@ -1916,6 +1918,150 @@ function Gallery() {
         <Label>no leagues → create prompt</Label>
         <LeagueSnapshot league={null} onOpen={() => {}} onCreate={() => {}} />
       </Section>
+
+      {/* The three states §9.1 and §9.2 name that this harness could not show.
+          Loading, empty, partial, locked, error and hostile data were already
+          here across ~70 sections; offline, unavailable and conflict were the
+          gap, and they are the three hardest to reach from a healthy database
+          — which is exactly why a gallery has to be able to render them on
+          demand rather than waiting for the conditions to occur. */}
+
+      <Section title="State — offline (banner, preserved state, only safe actions)">
+        {/* §9.1: "Offline banner; preserve local/last-known state; queue only
+            explicitly safe actions." All three parts are shown together,
+            because the banner alone is the easy half — the point is that the
+            content underneath SURVIVES and that writes stop. */}
+        <Alert variant="warning" title="You're offline">
+          Showing the last data we loaded. Your saved predictions are safe, and this page will
+          update by itself when the connection returns.
+        </Alert>
+        <Label>last-known content stays on screen — it is not replaced by an empty state</Label>
+        <LeagueSnapshot
+          league={{ id: 'offline', name: 'Saturday Night League', memberCount: 12, rank: 4, gapToTop: 6, lastActivityMs: 0 }}
+          onOpen={() => {}}
+          onCreate={() => {}}
+        />
+        <Label>writes are disabled rather than queued — a prediction is a timed act</Label>
+        <Button variant="primary" disabled>
+          Save predictions
+        </Button>
+        <Label>a read-only action stays available, because it needs nothing from the network</Label>
+        <Button variant="secondary">View scoring rules</Button>
+      </Section>
+
+      <Section title="State — unavailable (scope, reason, expected recovery)">
+        {/* §9.1: "Explain scope, reason and expected recovery where known."
+            Two rows, because the honest difference between them is whether we
+            know when it comes back — and a page that invents a recovery time
+            it does not have is worse than one that says it does not know. */}
+        <Label>recovery known</Label>
+        <EmptyState
+          title="Standings are paused until the matchweek settles"
+          description="Three results are still awaiting confirmation. The table returns as soon as they are confirmed — usually within an hour of the last final whistle."
+        />
+        <Label>recovery not known — say so rather than inventing a time</Label>
+        <EmptyState
+          title="Last Man Standing is not available for this season"
+          description="This competition has not opened a Last Man Standing game. If one opens, it appears here and is joined separately from your predictions."
+        />
+        <Label>partial unavailability inside an otherwise usable page</Label>
+        <Alert variant="info" title="Live scores are unavailable">
+          Confirmed results are unaffected — only the in-play view is missing. Everything below is
+          the official record.
+        </Alert>
+      </Section>
+
+      <Section title="State — conflict (do not overwrite; refresh, compare, reapply)">
+        {/* §9.2: "Server state changed after load. Do not overwrite; offer
+            refresh/compare/reapply." The prohibition is the requirement: the
+            player's own input is shown beside the server's value rather than
+            being silently replaced by it, and no action here writes without
+            them choosing one. */}
+        <Alert variant="warning" title="This prediction changed somewhere else">
+          You have this open in more than one place. We have not overwritten either version — choose
+          which one you want to keep.
+        </Alert>
+        <Label>both values are shown; neither has been applied</Label>
+        <div className={styles.row}>
+          <StatCard label="Yours (unsaved)" value="2–1" />
+          <StatCard label="Saved elsewhere" value="3–1" />
+        </div>
+        <Label>the three actions §9.2 requires — none of them writes on its own</Label>
+        <div className={styles.row}>
+          <Button variant="secondary">Refresh</Button>
+          <Button variant="secondary">Compare</Button>
+          <Button variant="primary">Reapply mine</Button>
+        </div>
+        <Label>conflict on an action that cannot be reapplied — refresh is the only honest offer</Label>
+        <Alert variant="error" title="This matchweek locked while you were editing">
+          Kickoff has passed, so this card can no longer be changed. What was saved before the lock
+          has been kept.
+        </Alert>
+      </Section>
+
+      <Section title="State — refreshing (content stays, progress is quiet)">
+        {/* §9.1: "Keep content visible; subtle progress; disable only actions
+            whose truth is uncertain." The third clause is the one that is easy
+            to get wrong in both directions — disabling everything makes a
+            background poll feel like an outage, and disabling nothing lets a
+            player act on a number that is being replaced as they read it. */}
+        <p className={styles.label} role="status">
+          Updating scores…
+        </p>
+        <Label>content is not replaced by a skeleton — it was already usable</Label>
+        <LeagueTable rows={PREMIER_LEAGUE_ROWS.slice(0, 4)} caption="Premier League" />
+        <Label>uncertain: this rank is mid-update, so acting on it is blocked</Label>
+        <Button variant="secondary" disabled>
+          Share my position
+        </Button>
+        <Label>certain: entering predictions does not depend on the numbers being refreshed</Label>
+        <Button variant="primary">Edit predictions</Button>
+      </Section>
+
+      <Section title="State — stale (freshness labelled, sensitive writes restricted)">
+        {/* §9.1: "Label timestamp/freshness; restrict sensitive writes." Stale
+            is NOT offline — the connection is fine and the data is simply older
+            than its threshold — so the copy says how old rather than implying a
+            failure the player might try to fix. */}
+        <Alert variant="info" title="Showing results from 14 minutes ago">
+          We have not been able to refresh since then. Nothing here is wrong, but a recent goal may
+          not be counted yet.
+        </Alert>
+        <Label>the freshness line sits with the figures it describes, not only at the top of the page</Label>
+        <div className={styles.row}>
+          <StatCard label="Points" value="176" />
+          <StatCard label="Rank" value="4th" />
+        </div>
+        <p className={styles.label}>Last updated 14:32 · usually every minute</p>
+        <Label>the sensitive write is restricted, and says what would make it safe</Label>
+        <Button variant="primary" disabled>
+          Confirm matchweek
+        </Button>
+        <p className={styles.label}>
+          Confirming is paused until we can check the latest state of your card.
+        </p>
+      </Section>
+
+      <Section title="State — error blocking (full page, correlation reference)">
+        {/* §9.1: "Contract/security/config failure prevents safe rendering.
+            Full-page error, support/correlation information and telemetry."
+            The distinction from a retryable error is the whole point: there is
+            no retry button here, because repeating a request that failed a
+            contract or permission check will fail identically and a button
+            that cannot work is a worse answer than an honest dead end. */}
+        <Alert variant="error" title="We can’t show this page safely">
+          Something in this competition’s configuration does not match what the app expects, so we
+          have stopped rather than show you numbers we cannot stand behind. Your predictions and
+          your points are unaffected.
+        </Alert>
+        <Label>a reference the player can quote, because support cannot search for "it broke"</Label>
+        <p className={styles.label}>Reference: 7F3C-2026-08-05-A19</p>
+        <Label>no retry — the same request fails the same way; the exits are elsewhere</Label>
+        <div className={styles.row}>
+          <Button variant="secondary">Back to hub</Button>
+          <Button variant="secondary">Contact support</Button>
+        </div>
+      </Section>
     </div>
   )
 }
@@ -1924,19 +2070,45 @@ function Gallery() {
  * Dev-only preview at /dev/components: the whole design system, every state,
  * side by side in both themes. Not part of the shipped app.
  */
+/**
+ * The widths a visual contract may pin the gallery to.
+ *
+ * Read from `?width=` rather than from the viewport, because the panels are
+ * normally flexible (`flex: 1 1 340px`) and a flexible panel photographs
+ * differently on every runner and every window size. A screenshot baseline
+ * built on that compares nothing reliably.
+ *
+ * `auto` is the default and is what a human browsing `/dev/components` gets, so
+ * adding the anchors does not change the harness for the people who use it.
+ */
+export type PreviewWidth = 'auto' | 'phone' | 'desktop'
+
+function requestedWidth(search: string): PreviewWidth {
+  const value = new URLSearchParams(search).get('width')
+  return value === 'phone' || value === 'desktop' ? value : 'auto'
+}
+
 export function ComponentsPreview() {
+  // `useLocation` rather than reading `window` directly, so the value tracks a
+  // client-side navigation between widths instead of only the first paint.
+  const width = requestedWidth(useLocation().search)
+
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-preview-width={width}>
       <header className={styles.header}>
         <h1 className={styles.h1}>Design system — /dev/components</h1>
         <p className={styles.sub}>Every component and state, dark and light.</p>
       </header>
       <div className={styles.themes}>
-        <section data-theme="dark" className={styles.panel}>
+        {/* `data-theme-panel` is the anchor a visual contract targets. Class
+            names are hashed by CSS modules and change whenever the stylesheet
+            does, so a baseline keyed on one would break for reasons that have
+            nothing to do with what it renders. */}
+        <section data-theme="dark" data-theme-panel="dark" className={styles.panel}>
           <div className={styles.panelTag}>Dark — Night broadcast</div>
           <Gallery />
         </section>
-        <section data-theme="light" className={styles.panel}>
+        <section data-theme="light" data-theme-panel="light" className={styles.panel}>
           <div className={styles.panelTag}>Light — Daylight clean</div>
           <Gallery />
         </section>

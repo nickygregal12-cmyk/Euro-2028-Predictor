@@ -45,7 +45,7 @@
 
 .scope ol[aria-label='Official third-place tie order'] > li > span:nth-child(2) small {
   color: var(--tx2);
-  font-size: 0.75rem;
+  font-size: var(--fs-1);
 }
 
 .scope ol[aria-label='Official third-place tie order'] > li > span:nth-child(3) {
@@ -53,7 +53,7 @@
   background: color-mix(in srgb, var(--acc) 12%, transparent);
   color: var(--tx2);
   padding: 0.3rem 0.55rem;
-  font-size: 0.72rem;
+  font-size: var(--fs-1);
   font-weight: 800;
   white-space: nowrap;
 }

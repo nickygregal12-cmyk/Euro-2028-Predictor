@@ -21,6 +21,7 @@ on:
       - 'index.html'
       - 'public/**'
       - 'netlify.toml'
+      - 'tests/design-system/visualContractHarness.test.ts'
       - 'tests/scripts/browserE2EWorkflow.test.ts'
       - 'tests/scripts/authRecoveryE2E.test.ts'
       - 'tests/scripts/e2eProjectGating.test.ts'

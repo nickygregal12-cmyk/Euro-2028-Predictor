@@ -42,6 +42,7 @@ function read(path: string): string {
 
 const defaultConfig = read('playwright.config.ts')
 const authConfig = read('playwright.auth.config.ts')
+const visualConfig = read('playwright.visual.config.ts')
 
 const specFiles = readdirSync(resolve(root, 'e2e'))
   .filter((entry) => entry.endsWith('.spec.ts'))
@@ -60,6 +61,7 @@ function projectNames(config: string): string[] {
 }
 
 const authMatch = specList(authConfig, 'testMatch')
+const visualMatch = specList(visualConfig, 'testMatch')
 const defaultIgnore = specList(defaultConfig, 'testIgnore')
 
 const defaultProjects = projectNames(defaultConfig)
@@ -67,6 +69,7 @@ const authProjects = projectNames(authConfig)
 
 /** The specs each config actually collects, derived rather than restated. */
 const authSpecs = specFiles.filter((spec) => authMatch.includes(spec))
+const visualSpecs = specFiles.filter((spec) => visualMatch.includes(spec))
 const defaultSpecs = specFiles.filter((spec) => !defaultIgnore.includes(spec))
 
 /**
@@ -98,17 +101,18 @@ describe('browser E2E project gating', () => {
 
   it('runs every spec on disk under exactly one config', () => {
     const orphaned = specFiles.filter(
-      (spec) => !authSpecs.includes(spec) && !defaultSpecs.includes(spec),
+      (spec) =>
+        !authSpecs.includes(spec) && !defaultSpecs.includes(spec) && !visualSpecs.includes(spec),
     )
 
     expect(
       orphaned,
       `these specs exist in e2e/ but no Playwright config collects them — they are ` +
-        `ignored by playwright.config.ts and absent from playwright.auth.config.ts's ` +
-        `testMatch, so they never run and never fail: ${orphaned.join(', ')}`,
+        `ignored by playwright.config.ts and absent from the auth and visual ` +
+        `configs' testMatch, so they never run and never fail: ${orphaned.join(', ')}`,
     ).toEqual([])
 
-    const doubled = authSpecs.filter((spec) => defaultSpecs.includes(spec))
+    const doubled = [...authSpecs, ...visualSpecs].filter((spec) => defaultSpecs.includes(spec))
 
     expect(
       doubled,
