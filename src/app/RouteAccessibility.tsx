@@ -63,6 +63,16 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/dev/components', title: 'Component gallery' },
 ]
 
+/**
+ * The season surfaces, most specific first — a game below a season before the
+ * season itself, since `matchPath` is called per pattern and the first hit
+ * wins. The second element names the game, or is null for the season overview.
+ */
+const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, game: string | null])[] = [
+  ['/competitions/:competitionSlug/:seasonSlug/main-predictor', 'Match Predictor'],
+  ['/competitions/:competitionSlug/:seasonSlug', null],
+]
+
 export function getRouteTitle(
   pathname: string,
   options?: { readonly signedOut?: boolean },
@@ -74,16 +84,21 @@ export function getRouteTitle(
     return `Group ${groupMatch.params.letter.toUpperCase()} predictions`
   }
 
-  const competitionMatch = matchPath(
-    '/competitions/:competitionSlug/:seasonSlug',
-    pathname,
-  )
-  if (competitionMatch?.params.competitionSlug && competitionMatch.params.seasonSlug) {
-    const competition = competitionMatch.params.competitionSlug
-      .split('-')
-      .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-      .join(' ')
-    return `${competition} ${competitionMatch.params.seasonSlug.replace('-', '/')}`
+  // The competition surfaces are titled from their slugs rather than from a
+  // fixed string, because "Competition dashboard" on every season would tell a
+  // player with three seasons open in three tabs the same thing three times.
+  // The game surfaces below a season are named too, for the same reason: the
+  // season alone does not say which of its games is on screen.
+  for (const [pattern, game] of COMPETITION_TITLE_PATTERNS) {
+    const competitionMatch = matchPath(pattern, pathname)
+    if (competitionMatch?.params.competitionSlug && competitionMatch.params.seasonSlug) {
+      const competition = competitionMatch.params.competitionSlug
+        .split('-')
+        .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+        .join(' ')
+      const season = competitionMatch.params.seasonSlug.replace('-', '/')
+      return game === null ? `${competition} ${season}` : `${competition} ${season} ${game}`
+    }
   }
 
   const match = STATIC_ROUTE_TITLES.find(({ path }) => matchPath({ path, end: true }, pathname))

@@ -12,6 +12,7 @@ import {
 } from '../../services/supabase/bonusGames'
 import s from '../shared.module.css'
 import h from './hub.module.css'
+import { isNextUi } from '../../app/routeFlags'
 import {
   findHubCompetition,
   type HubCompetition,
@@ -48,6 +49,14 @@ function gamePath(
 ): string | null {
   if (competitionSlug === 'euro' && seasonSlug === '2028' && game.kind === 'original-predictor') {
     return '/competitions/euro/2028/original'
+  }
+
+  // The season Match Predictor. Reached from here rather than named in the
+  // catalogue because the catalogue describes the games a competition offers,
+  // and where a game lives is a routing fact — the Euro entry above is the same
+  // decision, made once already.
+  if (game.kind === 'league-predictor' && isNextUi('seasonMatchPredictor')) {
+    return `/competitions/${competitionSlug}/${seasonSlug}/main-predictor`
   }
 
   return null
