@@ -1,6 +1,7 @@
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { LMS_REGISTRATION_COPY, type SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { LmsClub, SeasonLmsGateway } from './lmsRoundModel'
+import { formatInstant } from './formatInstant'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonLms } from './useSeasonLms'
 import styles from './SeasonLmsPage.module.css'
@@ -97,6 +98,8 @@ export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps
     )
   }
 
+  const deadline = formatInstant(page.round.locksAt)
+
   const choose = (club: LmsClub) => {
     const isPick = page.pick?.teamId === club.teamId
     const disabled = !presentation.canPick || club.used || picking !== null
@@ -127,6 +130,11 @@ export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps
       <header className={styles.header}>
         <p className={styles.eyebrow}>{page.round.label}</p>
         <h2 className={styles.heading}>Last Man Standing</h2>
+        {/* The round read has carried this instant all along and the surface
+            threw it away, so a player could see that a round was open without
+            being told how long for. The line is dropped rather than guessed
+            when the server sends no instant. */}
+        {deadline ? <p className={styles.deadline}>Picks lock {deadline}.</p> : null}
         <p className={styles.status}>{presentation.statusLine}</p>
         {presentation.outcomeLine ? (
           <p className={styles.outcome}>{presentation.outcomeLine}</p>

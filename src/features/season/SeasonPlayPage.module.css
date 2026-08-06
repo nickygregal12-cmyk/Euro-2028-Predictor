@@ -1,0 +1,73 @@
+/* Play: the games in this competition that are yours. Tokens only. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-4);
+  color: var(--tx);
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A joined game. The whole row is the target where there is one, so the tap
+   area is the card rather than a link inside it. */
+.entry,
+.entryInert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+  text-decoration: none;
+}
+
+.entry:hover {
+  border-color: var(--acc);
+}
+
+/* A joined game whose surface does not exist yet. Listed, because the
+   membership is real, but not dressed as somewhere to go. */
+.entryInert {
+  color: var(--tx2);
+}
+
+.name {
+  font-weight: 600;
+}
+
+.note {
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tx2);
+}

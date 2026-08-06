@@ -23,6 +23,9 @@ const SeasonMatchPredictorRoute = lazy(() =>
     default: m.SeasonMatchPredictorRoute,
   })),
 )
+const SeasonPlayRoute = lazy(() =>
+  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonPlayRoute })),
+)
 const SeasonStandingsRoute = lazy(() =>
   import('./features/season/SeasonGameRoutes').then((m) => ({
     default: m.SeasonStandingsRoute,
@@ -197,6 +200,7 @@ export default function App() {
                       element={<SeasonMatchPredictorRoute />}
                     />
                     <Route path="/competitions/euro/2028/original" element={<HomePage />} />
+                    <Route path="/competitions/:competitionSlug/:seasonSlug/play" element={<SeasonPlayRoute />} />
                     <Route path="/competitions/:competitionSlug/:seasonSlug/standings" element={<SeasonStandingsRoute />} />
                     <Route path="/competitions/:competitionSlug/:seasonSlug/last-man-standing" element={<SeasonLmsRoute />} />
                     <Route path="/competitions/:competitionSlug/:seasonSlug/championship" element={<SeasonChampionshipRoute />} />

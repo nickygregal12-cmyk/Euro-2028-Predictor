@@ -4,12 +4,18 @@ import { Alert, Skeleton } from '../../design-system'
 import { useAuth } from '../auth/AuthProvider'
 import { findHubCompetition, type HubCompetition } from '../hub/competitionCatalogue'
 import { fetchHubMembership } from '../../services/supabase/competitionGames'
-import type { CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
+import type {
+  CompetitionGame,
+  CompetitionGameKey,
+} from '../../services/supabase/competitionGamesModel'
 import { fetchSeasonLeaderboardPage } from '../../services/supabase/seasonLeaderboard'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
 import { createSeasonLmsRegistrationRpcGateway } from '../../services/supabase/seasonLmsRegistration'
 import { createSeasonCupRpcGateway } from '../../services/supabase/seasonCup'
+import { isNextUi } from '../../app/routeFlags'
+import { presentPlayInbox } from './playInboxModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
+import { SeasonPlayPage } from './SeasonPlayPage'
 import { SeasonStandingsPage } from './SeasonStandingsPage'
 import { SeasonLmsPage } from './SeasonLmsPage'
 import { SeasonCupPhasePage } from './SeasonCupPhasePage'
@@ -42,6 +48,8 @@ type Resolved = {
   tournamentId: string
   /** Game competition ids by key, as the season's catalogue lists them. */
   gameIds: Partial<Record<CompetitionGameKey, string>>
+  /** The season's games as the server listed them, membership included. */
+  games: readonly CompetitionGame[]
 }
 
 type RouteState =
@@ -80,7 +88,12 @@ function useSeasonRoute(): RouteState {
         for (const game of season.seasonGames.games) gameIds[game.gameKey] = game.id
         setState({
           status: 'ready',
-          resolved: { competition, tournamentId: season.tournamentId, gameIds },
+          resolved: {
+            competition,
+            tournamentId: season.tournamentId,
+            gameIds,
+            games: season.seasonGames.games,
+          },
         })
       })
       .catch(() => {
@@ -148,17 +161,23 @@ function RouteFrame({
       seasonLabel={state.resolved.competition.seasonLabel}
       statusStrip={statusStrip}
       active={section}
-      // Overview is the competition dashboard, which exists — so the player on
-      // a game page has a way back to the competition without the browser's
-      // back button. The other three sections have no season implementation
-      // and stay unavailable rather than becoming dead links.
+      // Overview is the competition dashboard and Play is the joined-games
+      // list; both exist, so a player on a game page has a way back to the
+      // competition and across to their other games without the browser's back
+      // button. Matches and Leagues have no season implementation and stay
+      // labels rather than becoming dead links.
       destinations={{
-        overview: `/competitions/${state.resolved.competition.competitionSlug}/${state.resolved.competition.seasonSlug}`,
+        overview: competitionBase(state.resolved),
+        play: `${competitionBase(state.resolved)}/play`,
       }}
     >
       {children(state.resolved)}
     </SeasonCompetitionShell>
   )
+}
+
+function competitionBase(resolved: Resolved): string {
+  return `/competitions/${resolved.competition.competitionSlug}/${resolved.competition.seasonSlug}`
 }
 
 /** A game the catalogue names and the season does not list. Shown, not hidden. */
@@ -288,4 +307,31 @@ function SeasonChampionshipRouteBody({
   )
 
   return <SeasonCupPhasePage gateway={gateway} registration={registration} />
+}
+
+export function SeasonPlayRoute() {
+  const state = useSeasonRoute()
+
+  return (
+    <RouteFrame title="Play" section="play" state={state}>
+      {(resolved) => {
+        const base = competitionBase(resolved)
+        return (
+          <SeasonPlayPage
+            overviewHref={base}
+            inbox={presentPlayInbox(
+              resolved.games,
+              base,
+              // The Match Predictor's route is flag-gated, so its destination is
+              // supplied here rather than assumed by the model — the flag stays
+              // the one place that decision is made.
+              isNextUi('seasonMatchPredictor')
+                ? { main_predictor: `${base}/main-predictor` }
+                : {},
+            )}
+          />
+        )
+      }}
+    </RouteFrame>
+  )
 }
