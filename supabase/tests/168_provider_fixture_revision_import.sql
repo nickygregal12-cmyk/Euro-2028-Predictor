@@ -222,7 +222,10 @@ select is(
       'kickoffAt', '2030-09-21T14:00:00+00:00')),
     null, timestamptz '2030-09-01 12:00:00+00'),
   jsonb_build_object('applied', true, 'considered', 1, 'revised', 0,
-                     'unchanged', 0, 'unmatched', 1, 'refused', 0),
+                     'unchanged', 0, 'unmatched', 1, 'refused', 0,
+                     -- Contract 123. Nothing was revised, so no round's window
+                     -- can be stale and the refresh is not run at all.
+                     'windows', null),
   'a fixture this platform does not hold is counted as unmatched, never created — what a competition consists of is not a kickoff importer''s decision'
 );
 

@@ -139,6 +139,104 @@ describe('contract 123 redefines contract 117 and changes only what it says it c
   })
 })
 
+/**
+ * The suite that compares the importer's WHOLE result must know every key it
+ * returns.
+ *
+ * WHY THIS EXISTS, and it is a mistake this contract made rather than one it
+ * anticipated. Adding `windows` to the importer's return broke three whole-object
+ * assertions in `168_provider_fixture_revision_import.sql`; two were updated by
+ * reading the file and the third was missed, and CI's Database parity job — a
+ * container this environment cannot run — is where that surfaced.
+ *
+ * A `jsonb_build_object` comparison is exact, so every key added to the return
+ * for the rest of this function's life breaks every one of those assertions at
+ * once, and finding them by eye is exactly the check that feels done and is
+ * not. This makes the omission a local test failure instead of a CI round trip.
+ */
+describe('168 compares the importer against every key it actually returns', () => {
+  /** The text inside a `jsonb_build_object(` at `from`, paren-balanced. */
+  function objectAt(source: string, from: number): string {
+    const open = source.indexOf('(', from)
+    let depth = 0
+    for (let at = open; at < source.length; at += 1) {
+      if (source[at] === '(') depth += 1
+      else if (source[at] === ')') {
+        depth -= 1
+        if (depth === 0) return source.slice(open + 1, at)
+      }
+    }
+    throw new Error('unbalanced jsonb_build_object')
+  }
+
+  /**
+   * Keys of a `jsonb_build_object` argument list — the arguments in even
+   * positions, split at paren depth zero.
+   *
+   * Splitting properly rather than scanning for `'key',` is not fussiness: the
+   * `windows` value is itself a `jsonb_build_object`, so a flat scan reports
+   * that nested object's five keys as the outer object's and the comparison
+   * fails on correct input.
+   */
+  function keysOf(object: string): string[] {
+    const stripped = object.replaceAll(/^[ \t]*--.*$/gm, '')
+    const parts: string[] = []
+    let depth = 0
+    let quoted = false
+    let start = 0
+
+    for (let at = 0; at < stripped.length; at += 1) {
+      const character = stripped[at]
+      if (character === "'") quoted = !quoted
+      else if (quoted) continue
+      else if (character === '(') depth += 1
+      else if (character === ')') depth -= 1
+      else if (character === ',' && depth === 0) {
+        parts.push(stripped.slice(start, at))
+        start = at + 1
+      }
+    }
+    parts.push(stripped.slice(start))
+
+    return parts
+      .filter((_, index) => index % 2 === 0)
+      .map((part) => /^\s*'([a-z_]+)'\s*$/.exec(part)?.[1] ?? '')
+      .filter(Boolean)
+  }
+
+  const importer = definition(refreshSource, 'import_provider_fixture_revisions')
+  const returned = keysOf(
+    objectAt(importer, importer.lastIndexOf('return pg_catalog.jsonb_build_object')),
+  )
+
+  const suite = readFileSync(
+    resolve(repositoryRoot, 'supabase/tests/168_provider_fixture_revision_import.sql'),
+    'utf8',
+  )
+  const comparisons = [...suite.matchAll(/jsonb_build_object\('applied', true,/g)].map((match) =>
+    keysOf(objectAt(suite, match.index)),
+  )
+
+  it('finds the success return and the assertions that compare against it', () => {
+    // `applied` plus the six counters plus `windows`. If either list empties,
+    // the assertion below passes on nothing.
+    expect(returned).toContain('applied')
+    expect(returned).toContain('windows')
+    expect(comparisons.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('gives every whole-object assertion the same key set the function returns', () => {
+    const expected = [...returned].sort()
+    const wrong = comparisons
+      .map((keys) => [...keys].sort())
+      .filter((keys) => keys.join(',') !== expected.join(','))
+    expect(
+      wrong,
+      `168 compares the importer's result against a key set it no longer returns; expected ${expected.join(', ')}`,
+    ).toEqual([])
+  })
+})
+
 describe('the refused path writes nothing', () => {
   const refresh = definition(refreshSource, 'refresh_round_play_windows')
   const conflictBranch = /if found then([\s\S]*?)continue;/.exec(refresh)?.[1] ?? ''
