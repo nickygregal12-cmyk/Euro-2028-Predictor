@@ -547,7 +547,24 @@
  * Database parity in CI is the first execution of either the migration or its
  * pgTAP suite.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 121
+/**
+ * Contract 122 adds one `public` function, `get_season_period_standings`, two
+ * `predictor_internal` helpers and a backfill. It creates no relation, trigger,
+ * policy or RLS change, and alters no existing function.
+ *
+ * The backfill is the only part that writes anything: it runs contract 113's
+ * `derive_round_play_windows` once per league season, setting
+ * `competition_rounds.window_opens_at` and `window_closes_at` from each round's
+ * own fixtures. A seeded Euro user is untouched — the loop selects
+ * `kind = 'league_season'` — and no seeded gate moves, because the columns it
+ * writes are read only by contract 113's resolver and by the new month
+ * calendar.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has no usable Docker, so Database parity in CI is the first
+ * execution of both the migration and `174_season_period_standings.sql`.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 122
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

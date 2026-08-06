@@ -207,6 +207,15 @@ competition tells them apart:
 
 - `get_season_play_context`
 
+Contract 122 adds one more, and its disposition is the same season-scoped one:
+it takes `p_tournament_id` and resolves nothing else, reading a season's own
+settled matchweek totals to build the monthly and form tables. Its month
+derivation reads `tournaments.display_timezone` alongside the round window, so
+it is a consumer of the C1 competition-season identity rather than a change to
+it:
+
+- `get_season_period_standings`
+
 Bonus Game C1 scope review covers:
 
 - `admin_draw_predictor_cup`
