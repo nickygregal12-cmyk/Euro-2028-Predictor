@@ -1,5 +1,5 @@
 import { Alert, Button, Skeleton } from '../../design-system'
-import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
+import type { RegistrationCopy, SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import { useSeasonLmsRegistration } from './useSeasonLmsRegistration'
 import styles from './SeasonLmsRegistration.module.css'
 
@@ -22,6 +22,8 @@ import styles from './SeasonLmsRegistration.module.css'
 
 export type SeasonLmsRegistrationProps = {
   gateway: SeasonLmsRegistrationGateway
+  /** The game's own wording; the rules below are identical across games. */
+  copy: RegistrationCopy
   /** Told after a successful join, so the round surface reloads with it. */
   onJoined?: () => void
 }
@@ -39,9 +41,14 @@ function formatInstant(instant: string | null): string | null {
   })
 }
 
-export function SeasonLmsRegistration({ gateway, onJoined }: SeasonLmsRegistrationProps) {
+export function SeasonLmsRegistration({
+  gateway,
+  copy,
+  onJoined,
+}: SeasonLmsRegistrationProps) {
   const { status, presentation, joining, error, join, reload } = useSeasonLmsRegistration(
     gateway,
+    copy,
     onJoined,
   )
 

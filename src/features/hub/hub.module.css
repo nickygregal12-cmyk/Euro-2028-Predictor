@@ -218,14 +218,6 @@
 
 /* --- Dashboard ----------------------------------------------------------- */
 
-.dashboardIntro {
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--fs-2);
-  line-height: 1.45;
-  color: var(--tx2);
-}
-
 /* The dashboard stacks game cards; it does not use the hairline row list above. */
 .gameStack {
   display: grid;

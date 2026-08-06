@@ -1,5 +1,10 @@
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import type { SeasonCupGateway } from './cupPhaseModel'
+import {
+  CHAMPIONSHIP_REGISTRATION_COPY,
+  type SeasonLmsRegistrationGateway,
+} from './lmsRegistrationModel'
+import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonCupPhase } from './useSeasonCupPhase'
 import styles from './SeasonCupPhasePage.module.css'
 
@@ -25,12 +30,29 @@ import styles from './SeasonCupPhasePage.module.css'
 
 export type SeasonCupPhasePageProps = {
   gateway: SeasonCupGateway
+  /**
+   * Registration for this competition, when the caller can name it. Optional
+   * for the same reason it is on the Last Man Standing page: the route knows
+   * which competition the player is looking at, and this surface must not
+   * resolve that for itself.
+   */
+  registration?: SeasonLmsRegistrationGateway
 }
 
 const SKELETON_ROWS = 6
 
-export function SeasonCupPhasePage({ gateway }: SeasonCupPhasePageProps) {
+export function SeasonCupPhasePage({ gateway, registration }: SeasonCupPhasePageProps) {
   const { status, page, presentation, error, reload } = useSeasonCupPhase(gateway)
+
+  // The panel hides itself once the caller is entered, so the entered branch
+  // below stays the single statement of membership.
+  const registrationPanel = registration ? (
+    <SeasonLmsRegistration
+      gateway={registration}
+      copy={CHAMPIONSHIP_REGISTRATION_COPY}
+      onJoined={reload}
+    />
+  ) : null
 
   if (status === 'loading') {
     return (
@@ -65,6 +87,10 @@ export function SeasonCupPhasePage({ gateway }: SeasonCupPhasePageProps) {
     return (
       <section className={styles.panel}>
         <h2 className={styles.heading}>Predictor Championship</h2>
+        {/* The join sits above the explanation rather than below it: the
+            player's question here is "can I get in", and an empty-state
+            paragraph answering "no group to show" was the whole dead end. */}
+        {registrationPanel}
         <EmptyState
           title="You are not entered"
           description="You are not entered in this Championship, so there is no group to show."

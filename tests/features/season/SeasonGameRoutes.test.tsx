@@ -159,6 +159,58 @@ describe('the season game routes', () => {
     )
   })
 
+  it('renders inside the competition shell, naming the competition', async () => {
+    // Consistency with the Match Predictor route: every season game page sits
+    // in the same shell, so competition identity does not appear and vanish
+    // between one game and the next.
+    mocks.fetchHubMembership.mockResolvedValue(season([game({})]))
+
+    renderRoute(
+      <SeasonStandingsRoute />,
+      `${DASHBOARD}/standings`,
+      '/competitions/premier-league/2026-27/standings',
+    )
+
+    await waitFor(() => expect(screen.getByText('Premier League')).toBeTruthy())
+    expect(screen.getByRole('navigation', { name: /sections/ })).toBeTruthy()
+  })
+
+  it('does not dress the shell with a placeholder identity before the season resolves', async () => {
+    // A masthead reading "Competition" would assert something untrue while the
+    // read is still in flight.
+    mocks.fetchHubMembership.mockReturnValue(new Promise(() => {}))
+
+    renderRoute(
+      <SeasonStandingsRoute />,
+      `${DASHBOARD}/standings`,
+      '/competitions/premier-league/2026-27/standings',
+    )
+
+    expect(screen.queryByRole('navigation', { name: /sections/ })).toBeNull()
+  })
+
+  it('gives the Championship a registration gateway, so "not entered" is not a dead end', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([game({ id: CUP_ID, gameKey: 'predictor_cup' })]),
+    )
+
+    renderRoute(
+      <SeasonChampionshipRoute />,
+      `${DASHBOARD}/championship`,
+      '/competitions/premier-league/2026-27/championship',
+    )
+
+    // Entry is join_competition_game for every game key, so the Championship
+    // uses the same gateway the LMS route does.
+    await waitFor(() =>
+      expect(mocks.createSeasonLmsRegistrationRpcGateway).toHaveBeenCalledWith({
+        tournamentId: TOURNAMENT_ID,
+        competitionId: CUP_ID,
+        userId: 'user-1',
+      }),
+    )
+  })
+
   it('says so when the season does not list the game, rather than rendering blank', async () => {
     mocks.fetchHubMembership.mockResolvedValue(season([game({})]))
 
