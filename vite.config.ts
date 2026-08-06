@@ -58,6 +58,36 @@ export default defineConfig(({ command, mode }) => {
     define: {
       __EURO28_RELEASE__: JSON.stringify(releaseMetadata),
     },
+    build: {
+      // ONE STYLESHEET, BECAUSE SPLITTING IT COST MORE THAN IT SAVED.
+      //
+      // Vite splits CSS per lazy chunk by default, which is the right instinct
+      // for a large application and the wrong one here. Measured at contract
+      // 125: 39 chunks, 177.9 KB raw, **44.2 KB gzipped** — and the identical
+      // bytes concatenated into one file gzip to **29.2 KB**. Fifteen
+      // kilobytes, a third of the CSS budget, was per-file compression loss
+      // rather than content.
+      //
+      // The mechanism is gzip's sliding dictionary: it has to see repetition
+      // before it can encode it, so a small file never gets going. Chunks of
+      // 2 KB raw and over compressed at ratio 0.23; chunks under 2 KB managed
+      // only 0.41, and eighteen of the thirty-nine were under 2 KB.
+      // `ConflictBanner.css` was the reductio — 86 bytes raw, **95 bytes
+      // gzipped**, larger compressed than not.
+      //
+      // WHAT THIS COSTS, STATED PLAINLY. Every visitor now downloads every
+      // route's styles rather than just the ones they open, so first paint
+      // waits on ~29 KB instead of ~12. That is the trade accepted here, and
+      // it is only defensible at this size: the conventional threshold for
+      // splitting CSS to earn its keep is around 50 KB, and the whole
+      // application's styles are well under it. Revisit if that stops being
+      // true — the fix would be to split deliberately along a measured
+      // boundary rather than to let the bundler split per route again.
+      //
+      // Nothing about how styles are authored changes. CSS Modules still scope
+      // per component; only the number of files the browser fetches does.
+      cssCodeSplit: false,
+    },
     // Honour a PORT assigned by the environment (e.g. the preview harness) so
     // the dev server binds where callers expect it; falls back to Vite's default
     // for a plain `npm run dev`.
