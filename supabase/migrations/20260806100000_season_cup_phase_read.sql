@@ -111,7 +111,7 @@ begin
   -- The table for the caller's own group, from whichever authority owns that
   -- phase. Ordered by the rank the authority assigned rather than re-derived.
   if v_phase_kind = 'split' then
-    select pg_catalog.coalesce(
+    select coalesce(
              pg_catalog.jsonb_agg(
                pg_catalog.jsonb_build_object(
                  'user_id', t.user_id,
@@ -133,7 +133,7 @@ begin
       from predictor_internal.cup_split_group_tables(p_competition_id) t
      where t.group_id = v_group_id;
   else
-    select pg_catalog.coalesce(
+    select coalesce(
              pg_catalog.jsonb_agg(
                pg_catalog.jsonb_build_object(
                  'user_id', t.user_id,
@@ -167,7 +167,7 @@ begin
       'phase_kind', v_group.phase_kind,
       'parent_group_id', v_group.parent_group_id
     ),
-    'table', pg_catalog.coalesce(v_table, '[]'::jsonb)
+    'table', coalesce(v_table, '[]'::jsonb)
   );
 end;
 $get_season_cup_phase$;
