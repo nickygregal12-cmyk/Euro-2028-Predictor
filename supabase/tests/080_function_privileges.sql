@@ -137,7 +137,11 @@ insert into expected_authenticated_functions (signature) values
   -- same auth.uid() boundary as every season read above, so it stays out of
   -- expected_service_functions for contract 95's reason — service_role has no
   -- auth.uid() and the call refuses every time.
-  ('get_season_play_context(text,text)');
+  ('get_season_play_context(text,text)'),
+  -- Contract 122: the monthly and form tables. Same entry boundary as contract
+  -- 95's cumulative read, and the same reason it is authenticated-only: a
+  -- season is not the one competition everybody is in.
+  ('get_season_period_standings(uuid,text,integer)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

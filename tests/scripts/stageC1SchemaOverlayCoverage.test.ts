@@ -53,9 +53,11 @@ describe('Stage C1 schema overlay coverage', () => {
     // 57 -> 58 at contract 116: `get_season_lms_round`, the season Last Man
     // Standing round read. 58 -> 59 at contract 121:
     // `get_season_play_context`, which tells the browser which matchweek a
-    // season's card opens at. The pin is a positive control on the inventory,
-    // so it moves only when a function is genuinely added to the manifest.
-    expect(reviewedFunctions).toHaveLength(59)
+    // season's card opens at. 59 -> 60 at contract 122:
+    // `get_season_period_standings`, the monthly and form tables. The pin is a
+    // positive control on the inventory, so it moves only when a function is
+    // genuinely added to the manifest.
+    expect(reviewedFunctions).toHaveLength(60)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {
