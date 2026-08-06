@@ -147,20 +147,29 @@ select throws_ok(
   'an ordinary signed-in player may reach the function and may not act — the '
   'grant is not the boundary');
 
+-- Back to the suite's own role before reading anything. `season_fixtures` is
+-- revoked from `authenticated`, so an assertion made while still wearing that
+-- role fails on the READ rather than on what it is checking.
+reset role;
+
 select is(
   (select status from public.season_fixtures where id = current_setting('test.sfr_fixture')::uuid),
   'scheduled',
   'and the fixture is genuinely untouched, not merely reported as refused');
 
-reset role;
-
 -- Now as a result administrator, through the same capability the tournament
 -- path uses rather than a second admin model.
+--
+-- THE ROLE IS NOT SWITCHED AGAIN, and that is the correction rather than a
+-- shortcut. `require_result_admin()` reads the JWT claims GUC, not the session
+-- role, and every function below is `security definer` — so the claims alone
+-- decide the outcome. Holding `authenticated` past the reachability test above
+-- only breaks the ASSERTIONS, which read `season_fixtures` and the revision
+-- record, both correctly revoked from that role. CI found exactly that.
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('sfr-user-1')::uuid, 'role', 'authenticated',
                     'app_metadata', json_build_object(
                       'admin_capabilities', json_build_array('results')))::text, true);
-set local role authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Confirming a result.
@@ -231,8 +240,6 @@ select is(
 -- ---------------------------------------------------------------------------
 -- Correcting, and what a correction must say.
 -- ---------------------------------------------------------------------------
-
-set local role authenticated;
 
 select throws_ok(
   format('select public.admin_correct_season_fixture_result(%L::uuid, 3::smallint, 1::smallint, null)',
@@ -329,8 +336,6 @@ select throws_ok(
          current_setting('test.sfr_fixture')),
   '22023', null,
   'and a negative one is refused before it reaches the table constraint');
-
-reset role;
 
 -- ---------------------------------------------------------------------------
 -- The record is evidence.
