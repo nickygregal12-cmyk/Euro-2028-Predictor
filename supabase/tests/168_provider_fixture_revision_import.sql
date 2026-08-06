@@ -154,7 +154,13 @@ select is(
     current_setting('test.pfr_payload_moved')::jsonb,
     null, timestamptz '2030-09-01 12:00:00+00'),
   jsonb_build_object('applied', true, 'considered', 1, 'revised', 1,
-                     'unchanged', 0, 'unmatched', 0, 'refused', 0),
+                     'unchanged', 0, 'unmatched', 0, 'refused', 0,
+                     -- Contract 123. The round the fixture stayed in now plays
+                     -- over a different span, so its stored window is refreshed
+                     -- in the same transaction and reported here.
+                     'windows', jsonb_build_object(
+                       'refreshed', 1, 'unchanged', 0, 'cleared', 0,
+                       'conflicted', 0, 'queued', 0)),
   'a mapped payload whose kickoff moved revises exactly one fixture'
 );
 
@@ -189,7 +195,11 @@ select is(
     current_setting('test.pfr_payload_moved')::jsonb,
     null, timestamptz '2030-09-01 12:00:00+00'),
   jsonb_build_object('applied', true, 'considered', 1, 'revised', 0,
-                     'unchanged', 1, 'unmatched', 0, 'refused', 0),
+                     'unchanged', 1, 'unmatched', 0, 'refused', 0,
+                     -- Contract 123. Nothing moved, so nothing is recomputed —
+                     -- the refresh is not run at all rather than run and found
+                     -- to have nothing to do.
+                     'windows', null),
   're-importing the same payload changes nothing and is counted as unchanged, so a scheduled importer does not fill the review queue with noise'
 );
 
@@ -212,7 +222,10 @@ select is(
       'kickoffAt', '2030-09-21T14:00:00+00:00')),
     null, timestamptz '2030-09-01 12:00:00+00'),
   jsonb_build_object('applied', true, 'considered', 1, 'revised', 0,
-                     'unchanged', 0, 'unmatched', 1, 'refused', 0),
+                     'unchanged', 0, 'unmatched', 1, 'refused', 0,
+                     -- Contract 123. Nothing was revised, so no round's window
+                     -- can be stale and the refresh is not run at all.
+                     'windows', null),
   'a fixture this platform does not hold is counted as unmatched, never created — what a competition consists of is not a kickoff importer''s decision'
 );
 

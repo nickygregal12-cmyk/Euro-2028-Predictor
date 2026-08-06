@@ -89,6 +89,17 @@ describe('row-level security', () => {
       // carries the current kickoff — this exists to hold what the current
       // value replaced, which no browser surface has a use for.
       { schema: 'predictor_internal', name: 'season_fixture_revisions' },
+      // Contract 123. Every round play window refresh that was refused because
+      // its proposed span overlapped another round's. Internal for the same
+      // reason as the revision queue above it: it records what was NOT written
+      // and why, which is an administrator's review surface and has no meaning
+      // to a player — the round already carries the window in force.
+      { schema: 'predictor_internal', name: 'round_window_refresh_conflicts' },
+      // Contract 125. Every official season result confirmed, corrected or
+      // cleared, with the result it replaced. Internal for the same reason as
+      // the queues above it: the fixture carries the result in force, and this
+      // carries what that value replaced, which no player surface reads.
+      { schema: 'predictor_internal', name: 'season_fixture_result_revisions' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

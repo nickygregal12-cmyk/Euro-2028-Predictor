@@ -53,8 +53,12 @@ function authUserReferences(): AuthReference[] {
       let table = 'unknown'
       for (let cursor = index; cursor >= 0; cursor -= 1) {
         const match =
-          lines[cursor].match(/create table (?:if not exists )?(?:public\.)?([a-z_]+)/i) ??
-          lines[cursor].match(/alter table (?:public\.)?([a-z_]+)/i)
+          // Any schema, not only `public`. Contract 125 creates
+          // `predictor_internal.season_fixture_result_revisions`, and a
+          // `public.`-only prefix made the parser read the SCHEMA as the table
+          // name and pin the column as `predictor_internal.actor_id`.
+          lines[cursor].match(/create table (?:if not exists )?(?:[a-z_]+\.)?([a-z_]+)/i) ??
+          lines[cursor].match(/alter table (?:[a-z_]+\.)?([a-z_]+)/i)
         if (match) {
           table = match[1].toLowerCase()
           break
@@ -101,6 +105,8 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'league_members.user_id -> cascade',
   'leagues.owner_id -> restrict',
   'match_result_revisions.actor_id -> set null',
+  // Contract 125, the season counterpart of the row above it.
+  'season_fixture_result_revisions.actor_id -> set null',
   'profiles.id -> cascade',
   'rank_history.user_id -> cascade',
   'rate_limit_events.user_id -> cascade',

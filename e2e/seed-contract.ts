@@ -564,7 +564,64 @@
  * this environment has no usable Docker, so Database parity in CI is the first
  * execution of both the migration and `174_season_period_standings.sql`.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 122
+/**
+ * Contract 123 adds one `predictor_internal` relation
+ * (`round_window_refresh_conflicts`), its append-only trigger, two indexes and
+ * one `predictor_internal` function, and redefines contract 117's importer —
+ * also `predictor_internal`, also revoked from every browser role. It adds no
+ * `public` function, changes no grant, policy or RLS on any relation a seeded
+ * session can reach, and alters no browser-reachable function.
+ *
+ * It writes nothing on application: the migration asserts its own queue is
+ * empty and refreshes no window, so a seeded user is in exactly the state
+ * contract 122's backfill left them in. The only column it can ever write is
+ * `competition_rounds.window_opens_at`/`window_closes_at` on a league season
+ * whose fixtures a provider moved, and both are already read by nothing a
+ * seeded Euro user touches.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `175_round_window_stale_refresh.sql`.
+ */
+/**
+ * Contract 124 adds one `predictor_internal` driver and redefines
+ * `cup_final_group_tables` — also `predictor_internal`, also revoked from every
+ * browser role — to filter its members to the initial phase. It creates no
+ * relation, trigger, policy or RLS change, adds no `public` function, and
+ * changes no grant a seeded session can reach.
+ *
+ * It writes nothing on application: the migration asserts it has created no
+ * split group. The redefinition is behaviour-neutral to every existing row,
+ * because `phase_kind` defaults to 'initial' and nothing has ever written
+ * anything else — so a seeded Euro user's Cup tables are identical before and
+ * after.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `176_season_cup_split_transition.sql`.
+ */
+/**
+ * Contract 125 adds one `predictor_internal` relation
+ * (`season_fixture_result_revisions`, RLS enabled and revoked from every
+ * browser role), its immutability trigger, one internal writer and three
+ * `public` administrator entry points granted to `authenticated`.
+ *
+ * The three entry points are the first thing in this run a seeded session can
+ * REACH, so they were checked rather than waved through: each calls
+ * `predictor_internal.require_result_admin()` before anything else, and a
+ * seeded player carries no `admin_role` and no `results` capability, so all
+ * three refuse with 42501 and touch nothing. No existing grant, policy or
+ * relation changes, and the migration records no result on application.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `177_season_fixture_result_entry.sql`, which drives the refusal with a real
+ * non-admin session rather than inspecting the grant.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 125
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
