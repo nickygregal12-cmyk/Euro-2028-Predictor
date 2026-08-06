@@ -27,6 +27,21 @@ const SIGNED_OUT_ROOT_TITLE = 'Home'
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/', title: 'Competitions' },
   { path: '/competitions/euro/2028/original', title: 'Euro 2028 Original Predictor' },
+  {
+    path: '/competitions/:competitionSlug/:seasonSlug/standings',
+    title: 'Main Predictor standings',
+  },
+  {
+    // Distinct from `/games/lms`, which is the Euro tournament's own Last Man
+    // Standing. Two pages titled the same would be indistinguishable in history,
+    // and ADR 0011 requires the competition/game separation to be visible.
+    path: '/competitions/:competitionSlug/:seasonSlug/last-man-standing',
+    title: 'Season Last Man Standing',
+  },
+  {
+    path: '/competitions/:competitionSlug/:seasonSlug/championship',
+    title: 'Predictor Championship',
+  },
   { path: '/competitions/:competitionSlug/:seasonSlug', title: 'Competition dashboard' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },

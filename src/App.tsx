@@ -18,6 +18,19 @@ const CompetitionDashboardPage = lazy(() =>
     default: m.CompetitionDashboardPage,
   })),
 )
+const SeasonStandingsRoute = lazy(() =>
+  import('./features/season/SeasonGameRoutes').then((m) => ({
+    default: m.SeasonStandingsRoute,
+  })),
+)
+const SeasonLmsRoute = lazy(() =>
+  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonLmsRoute })),
+)
+const SeasonChampionshipRoute = lazy(() =>
+  import('./features/season/SeasonGameRoutes').then((m) => ({
+    default: m.SeasonChampionshipRoute,
+  })),
+)
 const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })))
 const PredictEntryPage = lazy(() => import('./features/predict/PredictEntryPage').then((m) => ({ default: m.PredictEntryPage })))
 const PredictionTrendsPage = lazy(() => import('./features/trends/PredictionTrendsPage').then((m) => ({ default: m.PredictionTrendsPage })))
@@ -171,6 +184,9 @@ export default function App() {
                       element={<CompetitionDashboardPage />}
                     />
                     <Route path="/competitions/euro/2028/original" element={<HomePage />} />
+                    <Route path="/competitions/:competitionSlug/:seasonSlug/standings" element={<SeasonStandingsRoute />} />
+                    <Route path="/competitions/:competitionSlug/:seasonSlug/last-man-standing" element={<SeasonLmsRoute />} />
+                    <Route path="/competitions/:competitionSlug/:seasonSlug/championship" element={<SeasonChampionshipRoute />} />
                     <Route path="/predict" element={<PredictEntryPage />} />
                     <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
                     <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />

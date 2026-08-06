@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { productionRoutePaths } from './routeDeclarations'
 
 /**
  * Accessibility scan coverage, against the routes the application declares.
@@ -44,9 +45,7 @@ const axeUnauthenticatedSource = read('e2e/axe-unauthenticated.spec.ts')
  * build; `*` is the SPA's own not-found route rather than a real path. Both
  * exclusions match `spaRoutingStatus.test.ts`.
  */
-const declaredRoutes = [...appSource.matchAll(/<Route path="([^"]+)"/g)]
-  .map((match) => match[1])
-  .filter((path) => path !== '*' && !path.startsWith('/dev/'))
+const declaredRoutes = productionRoutePaths(appSource)
 
 /**
  * Route literals across both axe specs.
@@ -104,6 +103,29 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
   // reason here said it "requires the protected administrator capability",
   // which was the wrong kind of wrong: there is nothing behind it to reach.
   ['/admin', 'redirect only — <Navigate> to /admin/results, which is scanned'],
+
+  // The competition-scoped routes are parameterised for the same reason
+  // `/predict/groups/:letter` is: the pattern is not a page, so a real season is
+  // scanned in its place. Every one of these has concrete instances in
+  // `e2e/axe-accessibility.spec.ts`, so this is a matching limitation rather
+  // than a coverage gap — the guard compares declared patterns to scanned
+  // literals and cannot relate `premier-league/2026-27` to `:competitionSlug`.
+  [
+    '/competitions/:competitionSlug/:seasonSlug',
+    'parameterised — /competitions/premier-league/2026-27 and two more are scanned in its place',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/standings',
+    'parameterised — /competitions/premier-league/2026-27/standings is scanned in its place',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/last-man-standing',
+    'parameterised — /competitions/premier-league/2026-27/last-man-standing is scanned in its place',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/championship',
+    'parameterised — /competitions/premier-league/2026-27/championship is scanned in its place',
+  ],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)

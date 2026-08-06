@@ -76,6 +76,26 @@
   status = 200
 
 [[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/standings"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/last-man-standing"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/championship"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/predict"
   to = "/index.html"
   status = 200

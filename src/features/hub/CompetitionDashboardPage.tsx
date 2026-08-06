@@ -41,6 +41,18 @@ import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAct
  * the server never confirmed.
  */
 
+/**
+ * The route each game card opens.
+ *
+ * The season games resolve their own season from these slugs, so one entry per
+ * game kind covers every competition season the catalogue holds rather than
+ * naming them one at a time. Only the Euro Original Predictor keeps a fixed
+ * path, because it predates the competition-scoped routes and owns its own.
+ *
+ * `league-predictor` is the one that still returns null: the Main Predictor
+ * card needs the matchweek to open at, and resolving "the next playable
+ * matchweek" is the play-context read that arrives with its own contract.
+ */
 function gamePath(
   competitionSlug: string,
   seasonSlug: string,
@@ -50,7 +62,15 @@ function gamePath(
     return '/competitions/euro/2028/original'
   }
 
-  return null
+  const base = `/competitions/${competitionSlug}/${seasonSlug}`
+  switch (game.kind) {
+    case 'last-man-standing':
+      return `${base}/last-man-standing`
+    case 'predictor-championship':
+      return `${base}/championship`
+    default:
+      return null
+  }
 }
 
 type DashboardState =

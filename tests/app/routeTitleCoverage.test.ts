@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { getRouteTitle } from '../../src/app/RouteAccessibility'
+import { productionRoutePaths } from './routeDeclarations'
 
 /**
  * Every declared route gets a title of its own.
@@ -35,9 +36,7 @@ const repositoryRoot = process.cwd()
 const appSource = readFileSync(resolve(repositoryRoot, 'src/App.tsx'), 'utf8')
 
 /** `/dev/*` is DEV-gated and `*` is the not-found route, as elsewhere. */
-const declaredRoutes = [...appSource.matchAll(/<Route path="([^"]+)"/g)]
-  .map((match) => match[1])
-  .filter((path) => path !== '*' && !path.startsWith('/dev/'))
+const declaredRoutes = productionRoutePaths(appSource)
 
 /**
  * Routes that render `<Navigate>` and nothing else.

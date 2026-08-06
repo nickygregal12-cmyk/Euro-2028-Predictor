@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { productionRoutePaths } from './routeDeclarations'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 
@@ -16,9 +17,7 @@ const netlifyConfig = readRepositoryFile('netlify.toml')
  * they are `import.meta.env.DEV`-gated and absent from a production build, and
  * the catch-all `*` is the SPA's own not-found route rather than a real path.
  */
-const appRoutes = [...appSource.matchAll(/<Route path="([^"]+)"/g)]
-  .map((match) => match[1])
-  .filter((path) => path !== '*' && !path.startsWith('/dev/'))
+const appRoutes = productionRoutePaths(appSource)
 
 type Redirect = { from: string; status: number }
 
