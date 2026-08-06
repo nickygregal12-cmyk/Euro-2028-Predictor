@@ -14,7 +14,7 @@
 
 begin;
 
-select plan(18);
+select plan(17);
 
 -- ---------------------------------------------------------------------------
 -- The boundary.
@@ -77,23 +77,37 @@ select is(
   'Europe/London',
   'the fixture season carries the timezone the month derivation reads');
 
--- Pin the three rounds' windows directly. Contract 113's deriver builds these
--- from fixtures; this suite is about what the month derivation does with a
--- window, not about how the window was derived, so it sets them.
+-- THE ROUNDS ARE CREATED HERE, not assumed. A league season's rounds come from
+-- the development seed script rather than from a migration, so the database
+-- these suites run against holds the SEASONS and none of their matchweeks. The
+-- first version of this file read ordinals 1 to 4 and got NULL three times for
+-- exactly that reason. High ordinals keep it clear of anything another suite
+-- inserts into the same season.
+insert into public.competition_rounds (tournament_id, round_key, ordinal, kind, label) values
+  (current_setting('test.ps_season')::uuid, 'psm-mw1', 961, 'league_matchweek', 'Period Matchweek 1'),
+  (current_setting('test.ps_season')::uuid, 'psm-mw2', 962, 'league_matchweek', 'Period Matchweek 2'),
+  (current_setting('test.ps_season')::uuid, 'psm-mw3', 963, 'league_matchweek', 'Period Matchweek 3'),
+  (current_setting('test.ps_season')::uuid, 'psm-mw4', 964, 'league_matchweek', 'Period Matchweek 4 (no window)');
+
+-- Pin the three windows directly. Contract 113's deriver builds these from
+-- fixtures; this suite is about what the month derivation does WITH a window,
+-- not about how the window was derived, so it sets them. The fourth round is
+-- left without one — the Scottish post-split case, where nobody yet knows who
+-- plays.
 update public.competition_rounds
    set window_opens_at = '2027-01-16 15:00:00+00',
        window_closes_at = '2027-01-16 17:00:00+00'
- where tournament_id = current_setting('test.ps_season')::uuid and ordinal = 1;
+ where tournament_id = current_setting('test.ps_season')::uuid and round_key = 'psm-mw1';
 
 update public.competition_rounds
    set window_opens_at = '2027-01-31 19:30:00+00',
        window_closes_at = '2027-01-31 21:30:00+00'
- where tournament_id = current_setting('test.ps_season')::uuid and ordinal = 2;
+ where tournament_id = current_setting('test.ps_season')::uuid and round_key = 'psm-mw2';
 
 update public.competition_rounds
    set window_opens_at = '2027-07-31 23:30:00+00',
        window_closes_at = '2027-08-01 01:30:00+00'
- where tournament_id = current_setting('test.ps_season')::uuid and ordinal = 3;
+ where tournament_id = current_setting('test.ps_season')::uuid and round_key = 'psm-mw3';
 
 -- ---------------------------------------------------------------------------
 -- The calendar.
@@ -101,31 +115,27 @@ update public.competition_rounds
 
 select is(
   predictor_internal.season_matchweek_months(
-    current_setting('test.ps_season')::uuid) ->> '1',
+    current_setting('test.ps_season')::uuid) ->> '961',
   '2027-01',
   'a mid-month matchweek takes its own month');
 
 select is(
   predictor_internal.season_matchweek_months(
-    current_setting('test.ps_season')::uuid) ->> '2',
+    current_setting('test.ps_season')::uuid) ->> '962',
   '2027-01',
   'a matchweek opening late on the last day of January is still January');
 
 select is(
   predictor_internal.season_matchweek_months(
-    current_setting('test.ps_season')::uuid) ->> '3',
+    current_setting('test.ps_season')::uuid) ->> '963',
   '2027-08',
   'a 23:30Z kickoff on 31 July is AUGUST in Europe/London, not July — the '
   'competition timezone decides the month, not UTC');
 
 -- The round with no window is absent rather than guessed at.
-update public.competition_rounds
-   set window_opens_at = null, window_closes_at = null
- where tournament_id = current_setting('test.ps_season')::uuid and ordinal = 4;
-
 select is(
   predictor_internal.season_matchweek_months(
-    current_setting('test.ps_season')::uuid) ? '4',
+    current_setting('test.ps_season')::uuid) ? '964',
   false,
   'a round with no window is absent from the calendar rather than placed');
 
