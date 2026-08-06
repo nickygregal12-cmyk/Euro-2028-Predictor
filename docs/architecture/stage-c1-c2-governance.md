@@ -46,6 +46,57 @@ It includes:
 
 No C2 schema, function, policy, ownership or deletion change may be included in C1 for convenience.
 
+### Approved product direction — two separate paths
+
+**Amendment, 6 August 2026.** The owner has approved the product shape Stage C2 must implement. **This is a product decision, not a legal one.** It changes nothing about the block below: no hosted C2 change is authorised, and no independent data-protection approval is claimed or implied by this section. What it does is stop the design being reinvented each time the subject is reopened, and stop the two paths being conflated — which is the specific error that makes pseudonymisation get described as erasure.
+
+They are **two different journeys with different obligations**, and the product must not offer one while calling it the other.
+
+#### Ordinary Close Account (`PRIV-003`, `PRIV-004`)
+
+The routine account-closure path a user takes from their account page:
+
+- delete the Auth identity, credentials, email and direct profile identifiers;
+- clear private preferences and reminder settings;
+- transfer or archive owned leagues and competitions first, so no container is orphaned;
+- retain only the **minimum pseudonymised competitive history** justified by a documented legitimate-interests assessment.
+
+**No permanent public cross-competition former-player identifier** (`PRIV-004`). A stable label such as `Former player 1847` appearing beside the same person's rows in every competition is a persistent pseudonymous identity, not a removal of one — it re-identifies by correlation across the competitions it spans. A generic or competition-specific placeholder is required instead.
+
+Closure of this kind **must not be described to the user as erasure.** It is not.
+
+#### Formal erasure request (`PRIV-005`, `PRIV-006`)
+
+A separate data-rights workflow, not a button on the account page:
+
+- assess each request individually;
+- delete granular competitive history where required;
+- recompute ordinary standings deterministically where removal requires it;
+- retain only the minimum settled-outcome evidence where a legal basis genuinely remains.
+
+**Settled Cup and Last Man Standing outcomes are preserved deterministically** (`PRIV-006`). Removing a person must not resurrect an eliminated entrant, alter a settled winner or reopen a concluded competition — the outcome is a fact about other people's competitions as much as about the person leaving. Neutral settled-outcome placeholders are the mechanism; the former player's identity is not retained to achieve it.
+
+#### What remains blocked (`PRIV-007`)
+
+Documentation, architecture and test planning may proceed. **Hosted implementation may not**, until qualified independent UK data-protection review and the resulting work are complete:
+
+- amended Stage C2 architecture and schema coverage documents;
+- a field-by-field retention schedule;
+- a legitimate-interests assessment;
+- a proportionate DPIA and a processor/transfer inventory;
+- designed closure, export, erasure, restriction and objection workflows;
+- backup deletion or "put beyond use" handling;
+- neutral settled-outcome placeholders for Cup and LMS;
+- deterministic recomputation and audit tests;
+- published privacy and complaints procedures;
+- **independent qualified UK data-protection sign-off before any public deployment.**
+
+Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) stays open until those conditions are met. An AI-assisted review may inform the design and test planning above; **it does not substitute for the sign-off and no part of this document claims that it does.**
+
+The first external cohort is separately restricted to adults aged 18 or over (`AGE-001`, [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md)). That restriction stands alongside this work rather than being satisfied by it, and it remains until a Children's Code and age-risk assessment supports a different model.
+
+Each identifier above is tracked in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md).
+
 ## Safeguard disposition
 
 The stable safeguards remain valid, with implementation ownership divided as follows:
@@ -76,3 +127,4 @@ The combined-design reconciliation required before C1 SQL is complete through th
 - No hosted development write occurs without separate explicit owner approval, preflight and rollback evidence.
 - Production stays at contract 63 and its deployment pipeline remains paused until an intentional release milestone.
 - This amendment authorises no C2 work and no hosted schema operation.
+- The 6 August 2026 product-direction amendment above authorises **documentation, architecture and test planning only**. It authorises no migration, no hosted change, no user-facing deletion or export capability, and it is not a legal approval.

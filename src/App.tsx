@@ -18,6 +18,24 @@ const CompetitionDashboardPage = lazy(() =>
     default: m.CompetitionDashboardPage,
   })),
 )
+const SeasonMatchPredictorRoute = lazy(() =>
+  import('./features/season/SeasonMatchPredictorRoute').then((m) => ({
+    default: m.SeasonMatchPredictorRoute,
+  })),
+)
+const SeasonStandingsRoute = lazy(() =>
+  import('./features/season/SeasonGameRoutes').then((m) => ({
+    default: m.SeasonStandingsRoute,
+  })),
+)
+const SeasonLmsRoute = lazy(() =>
+  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonLmsRoute })),
+)
+const SeasonChampionshipRoute = lazy(() =>
+  import('./features/season/SeasonGameRoutes').then((m) => ({
+    default: m.SeasonChampionshipRoute,
+  })),
+)
 const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })))
 const PredictEntryPage = lazy(() => import('./features/predict/PredictEntryPage').then((m) => ({ default: m.PredictEntryPage })))
 const PredictionTrendsPage = lazy(() => import('./features/trends/PredictionTrendsPage').then((m) => ({ default: m.PredictionTrendsPage })))
@@ -87,6 +105,13 @@ const SeasonLmsPreview = import.meta.env.DEV
       })),
     )
   : null
+const SeasonCupPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/SeasonCupPreview').then((m) => ({
+        default: m.SeasonCupPreview,
+      })),
+    )
+  : null
 
 /**
  * Route titles and announcements for the routes that render without a session.
@@ -136,6 +161,9 @@ export default function App() {
               {import.meta.env.DEV && SeasonLmsPreview ? (
                 <Route path="/dev/season-lms" element={<SeasonLmsPreview />} />
               ) : null}
+              {import.meta.env.DEV && SeasonCupPreview ? (
+                <Route path="/dev/season-cup" element={<SeasonCupPreview />} />
+              ) : null}
 
               <Route path="*" element={<NotFoundPage />} />
             </Route>
@@ -160,7 +188,18 @@ export default function App() {
                       path="/competitions/:competitionSlug/:seasonSlug"
                       element={<CompetitionDashboardPage />}
                     />
+                    {/* Declared above the parameterised dashboard would make no
+                        difference — React Router ranks by specificity, not by
+                        source order — but it is kept next to it because the two
+                        are the same competition seen at two depths. */}
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/main-predictor"
+                      element={<SeasonMatchPredictorRoute />}
+                    />
                     <Route path="/competitions/euro/2028/original" element={<HomePage />} />
+                    <Route path="/competitions/:competitionSlug/:seasonSlug/standings" element={<SeasonStandingsRoute />} />
+                    <Route path="/competitions/:competitionSlug/:seasonSlug/last-man-standing" element={<SeasonLmsRoute />} />
+                    <Route path="/competitions/:competitionSlug/:seasonSlug/championship" element={<SeasonChampionshipRoute />} />
                     <Route path="/predict" element={<PredictEntryPage />} />
                     <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
                     <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />

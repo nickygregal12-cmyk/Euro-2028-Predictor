@@ -199,6 +199,14 @@ C1 also reviews the implicit tournament joins in:
 - `submit_entry`
 - `trg_recompute_on_result`
 
+C1 also reviews the season reads that take no tournament argument at all. They
+resolve a season from a route's two slugs, so there is no `p_tournament_id`
+semantic to widen; what C1 must confirm is that the resolution predicate names
+exactly one season, since two seasons can share a `season_key` and only the
+competition tells them apart:
+
+- `get_season_play_context`
+
 Bonus Game C1 scope review covers:
 
 - `admin_draw_predictor_cup`

@@ -1,11 +1,35 @@
 # Football Prediction Hub — information architecture
 
 **Status:** Accepted target design, 3 August 2026. No implementation is implied.  
-**Decision authority:** [ADR 0023](../adr/0023-hub-information-architecture.md).  
+**Decision authority:** [ADR 0023](../adr/0023-hub-information-architecture.md), scoped by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md).  
 **State authority:** [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md).  
 **Visual authority:** [`../design-system.md`](../design-system.md).
 
+| Field | Value |
+| --- | --- |
+| Authority | Supporting — elaborates ADR 0023, may not reverse it |
+| Status | Accepted target design — unimplemented |
+| Last verified | 2026-08-06 |
+| Governs | The **weekly platform's** route tree, shell behaviour, page ownership, onboarding steps and responsive interaction rules |
+| Does not govern | Any decision (ADRs 0023 and 0026); the Euro 2028 site's surfaces; scoring, locks, settlement or reveal; current implementation state ([`../quality/current-status.md`](../quality/current-status.md)) |
+| Supersedes | Tournament-era route and navigation descriptions where they disagree with ADR 0023 |
+| Superseded by | None |
+| Related work | No open pull request implements the shell described here |
+| Implementation truth | The route tree in § 2 is a target. What is registered today is decided by `src/App.tsx` and the route-declaration tests, not by this file |
+
 This document is the build-ready information-architecture authority for the Hub, competition shells, onboarding and cross-game navigation. Older tournament-era route and navigation descriptions are compatibility history where they disagree with ADR 0023.
+
+## 0. Two frontends, one backend
+
+Added 6 August 2026 under [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md).
+
+**This document describes the weekly platform.** There are two frontend deployments over one shared Supabase backend (`SITE-001`, `SITE-002`): the weekly platform on the eventual umbrella-brand domain (`SITE-003`) and Euro 2028 on the purchased tournament domain (`SITE-004`). The Euro site's information architecture is a separate, later design and is **not** the route tree below.
+
+One account and one profile work on both sites (`ACCOUNT-001`, `ACCOUNT-002`); separate browser sessions are acceptable initially (`ACCOUNT-003`). Signing up on either site joins no competition, game or private container (`ACCOUNT-004`) — the onboarding in § 3 is how entry happens, and there is no path around it.
+
+**Competition visibility is a server-owned publication state** — hidden, prelaunch, registration-open, live, completed, archived (`EURO-002`). While a competition's state is `hidden` it is absent from every surface this document defines: Hub Home, Play, Matches, Leagues, the competition catalogue in § 9, every switcher, page metadata, the sitemap, Open Graph content, and its own routes in § 2 (`EURO-001`, `EURO-003`). Absence is produced by the state and a route guard, never by a client catalogue that happens to omit an entry (`EURO-004`).
+
+Euro 2028's state is `hidden` and the weekly Hub currently lists it from a static catalogue. That is a known violation, recorded as `EURO-001` in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md); it is implementation work and is not addressed by this document.
 
 ## 1. Product hierarchy
 
@@ -49,6 +73,8 @@ The Hub is the global product. A competition season is the user's football conte
 ```
 
 Existing Euro paths may redirect to these routes during migration. Compatibility paths do not remain a second information architecture.
+
+**Every route above is subject to the publication state in § 0.** A competition whose state is `hidden` has no reachable route on the weekly platform — including `/competitions/euro/2028` and everything beneath it. A guessable path that renders, or that answers anything other than the site's ordinary not-found response, is a leak (`EURO-003`). Route guards, not catalogue omission, produce that (`EURO-004`).
 
 ## 3. First-run onboarding
 
@@ -263,6 +289,8 @@ Server-side per owner and competition season:
 - maximum 3 successful creations per rolling 24 hours.
 
 Completed/archived containers cease counting. Transfers validate the recipient cap. Authorised exception is explicit and audited.
+
+These are **per-owner product limits** (`CAP-002`) and are unchanged. They are a different class from the platform-wide public-user and league circuit breaker (`CAP-001`), from any per-league membership limit (`CAP-003`, no value approved) and from future commercial entitlements (`CAP-004`). See [ADR 0023 § Operating-limit classes](../adr/0023-hub-information-architecture.md#operating-limit-classes) — a staged change to the circuit breaker does not move the figures above.
 
 Championship creators choose name, start round and access only. Structure is calculated and previewed from entrants and remaining rounds; the audited full schedule publishes at entry close.
 

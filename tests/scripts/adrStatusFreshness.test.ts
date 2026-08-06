@@ -72,6 +72,11 @@ describe('ADR implementation-status freshness', () => {
     expect(index).toContain(
       '| [0024](0024-development-environment-operating-model.md) | Development environment operating model | Implemented for the current pre-cohort mode',
     )
-    expect(index.match(/Accepted direction — unimplemented/g)?.length ?? 0).toBe(5)
+    // 0007, 0008, 0009, 0015, 0016 — and 0026, added 6 August 2026. This guard
+    // exists to catch a DELIVERED backend still described as unimplemented, so
+    // it moves only when a genuinely unbuilt decision is recorded. ADR 0026
+    // decides two frontend sites, one shared account across them, a server-owned
+    // Euro publication state and an 18+ first cohort; none of it is built.
+    expect(index.match(/Accepted direction — unimplemented/g)?.length ?? 0).toBe(6)
   })
 })

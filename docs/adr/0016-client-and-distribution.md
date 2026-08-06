@@ -29,6 +29,8 @@ The layer laws already keep business rules pure in `src/domain/**` and data acce
 
 **Every routing, authentication-redirect, deep-link and storage decision from now on must work inside a webview**, whether or not the shell exists yet.
 
+> **Clarified by [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026:** one codebase may emit **two domain-specific web deployments** — the weekly platform and Euro 2028 — before any of the phases above begin. The shared delivery pipeline and common application foundations this record depends on are unchanged: two builds of one codebase differing in configuration, one test suite, one deployment of domain logic. The webview constraint above now applies to **two origins rather than one**, which makes it more important rather than less: an authentication redirect or deep link must name which site it means, and the redirect allow-list must carry both production domains (`SITE-006`). Whether the eventual native shell wraps one site or two is not decided here and is not on this record's critical path.
+
 ## Consequences
 
 - **Apple guideline 4.2 rejects bare webview wrappers.** The native capabilities above are not polish; they are the admission ticket. Push, deep links and biometric unlock must exist before submission.

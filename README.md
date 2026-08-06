@@ -43,6 +43,12 @@ Football Prediction Hub
 
 Following a competition and joining a game are separate actions. Every game owns its own entry, rules, scoring/state and standings.
 
+## Two sites, one account
+
+An accepted direction, **not yet built**: this repository will produce **two frontend deployments over one shared backend** — the weekly platform on the eventual umbrella-brand domain, and Euro 2028 on the purchased tournament domain. One account and one profile work on both; signing up joins no competition, game or private container; and Euro 2028 stays completely hidden from the weekly platform until an owner-approved publication state.
+
+Decision and rejected alternatives: [`docs/adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md`](docs/adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md). What remains unimplemented, with a stable identifier each: [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).
+
 ## Project structure
 
 ```text
@@ -117,6 +123,7 @@ Browser-critical journeys use authenticated desktop/phone Playwright coverage. E
 | Current risks | `docs/quality/risk-register.md` |
 | Migration inventory and hosted applied state | `docs/ops/ops-pending-migrations.md` |
 | Platform/product decisions | `docs/adr/README.md` |
+| Accepted requirements that are not yet implemented | `docs/quality/accepted-requirements.md` |
 | Hub routes, navigation, onboarding and page ownership | `docs/architecture/hub-information-architecture.md` |
 | Competition context, locks and match/game states | `docs/architecture-and-tournament-states.md` |
 | Interface and visual design system | `docs/design-system.md` |

@@ -512,7 +512,42 @@
  * has none, and the authority returns the matchweek instant for everything
  * else. So a seeded user's lock is the instant it already was.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 119
+/*
+ * Re-verified at contract 120, which adds one browser-reachable read and
+ * nothing else: `public.get_season_cup_phase`. It creates no relation, policy,
+ * trigger or column, alters no existing function, and adds no grant to any
+ * relation -- only `execute` on the new function, to `authenticated`.
+ *
+ * So a seeded user meets no new gate, and the check that matters here is that
+ * no EXISTING read acquired one. None did: the migration's only DDL is the
+ * function and its grant.
+ *
+ * The new read is also behaviour-neutral on a fresh seed. It resolves the
+ * caller's own `bonus_cup_members` row, and a seeded database holds no season
+ * Championship membership, so a seeded user receives `entered: false` -- the
+ * deliberate non-entrant answer rather than an error.
+ */
+/**
+ * Contract 121 adds one `public` function, `get_season_play_context`, and
+ * nothing else. It creates no relation, no trigger, no policy and no RLS
+ * change; it alters no existing relation, function or grant; and its only
+ * privilege movement is `grant execute ... to authenticated` on the new
+ * function itself, revoked from `public` and `anon`.
+ *
+ * It therefore cannot gate an authenticated read, which is the failure this
+ * number exists to catch: it ADDS a capability rather than restricting one, and
+ * a seeded user who never calls it is in exactly the state contract 119 left
+ * them in. Nothing a seeded Euro user reads goes near it — the function
+ * refuses any competition whose `kind` is not `league_season`.
+ *
+ * Reasoned rather than executed, and that is worth being explicit about: the
+ * environment this was raised in had no usable Docker, so no seeded session was
+ * driven against it. That is the same standard every entry above uses — each
+ * one argues from what the migration changes — but it is not a browser run, and
+ * Database parity in CI is the first execution of either the migration or its
+ * pgTAP suite.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 121
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

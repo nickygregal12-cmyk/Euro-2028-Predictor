@@ -4,6 +4,8 @@
 - **Date:** 3 August 2026
 - **Amends:** [ADR 0020](0020-football-prediction-hub-product-model.md) (public domestic game name, Hub/competition navigation and onboarding), [ADR 0013](0013-last-man-standing-season-rules.md) (creator limits around the private competitions it already permits), and [ADR 0015](0015-commercial-and-social-model.md) (the concrete private-container model). It supersedes the navigation clause in [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md) §0 and the navigation/catalogue section in [`../competition-structure.md`](../competition-structure.md).
 
+- **Amended by:** [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026 — this record is scoped to the weekly platform and gains a Euro visibility boundary. Three sections were also clarified on that date without changing any decision: § Operating-limit classes separates the four kinds of limit, § Administration and provider changes states the automatic/approval boundary by change class, and neither alters a value or a rule.
+
 > **Implementation progress — 5 August 2026.** Competition/game identity, separate memberships, private/public competition instances, game leagues, bounded standings authorities and the Match Predictor public name exist in the backend. The permanent Hub rail/tab shell, onboarding, full private-creation/managed-entrant UX and the complete phone-first competition journeys remain unbuilt.
 
 ## Context
@@ -15,6 +17,8 @@ A design workshop on 3 August 2026 settled the missing navigation, onboarding, g
 ## Decision
 
 ### Hub and competition modes
+
+> **Scoped by [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026.** Everything in this record describes **the weekly platform's** information architecture. There are two frontend sites over one shared backend, and the Euro 2028 site's surfaces are a separate, later design that this record does not attempt. Nothing below changes: the routes, shells, onboarding, private-container model, standings visibility and managed-entrant rules are the weekly platform's and remain in force. What is added is a boundary — see [§ Euro visibility boundary](#euro-visibility-boundary) — because a competition catalogue is exactly where a hidden competition leaks.
 
 The authenticated root route `/` always opens the **Football Prediction Hub**. It never redirects to the last competition.
 
@@ -81,6 +85,44 @@ A user may own at most **10 active private containers per competition season** a
 
 Completed or archived containers do not count. A transferred container counts against its new owner and a transfer that would exceed the cap fails unless an authorised administrator grants an exception. Limits are enforced server-side and may be raised later only by a new recorded decision or an explicit administrator exception.
 
+### Operating-limit classes
+
+Added 6 August 2026. **The per-owner limits above are unchanged** — this section adds a classification, because four different kinds of limit had begun to be discussed as though they were one, and a recommendation about the global circuit breaker was being read as licence to change a product rule.
+
+There are four classes, and a change to one is not a change to another:
+
+1. **Global operational circuit breaker** (`CAP-001`) — the platform-wide public-user cap and total-league ceiling. These are rollout safeguards against an unproven system, not capacity limits and not product features. They are the only class that exists to be raised in stages as evidence accumulates.
+2. **Per-owner product limits** (`CAP-002`) — the active-container totals, per-type maxima and creation-rate control decided above. These are product rules with reasoning of their own, they remain in force exactly as written, and **no recommendation about the circuit breaker changes them.**
+3. **Per-league membership limits** (`CAP-003`) — how many members one ordinary private league may hold. **No value is currently approved.** A figure of 100 has been proposed and is a recommendation only.
+4. **Future commercial entitlement limits** (`CAP-004`) — Free, Pro, League Plus and organisation allowances. None exists. When they do they stay separate from the circuit breaker, because an operational safeguard and a paid entitlement that happen to be the same number for a while are still different things, and conflating them means a commercial decision silently moves a safety limit.
+
+On the circuit breaker specifically, three positions are recorded and **none of them is an authorisation to change a limit**:
+
+- **Custom SMTP is configured and live-verified through the Euro 2028 Predictor domain** (`CAP-005`, [`../auth-plan.md`](../auth-plan.md) § 5). Email delivery was the original stated reason for holding public registration at its current cap; that reason no longer applies, and the cap's remaining justification is `CAP-001` — an untested system — rather than an email prerequisite that has since been met.
+- **Raising the public-user cap to 250 is the next recommended controlled test stage** (`CAP-006`), not a current production change. Hosted headroom is not the constraint; the constraint is that deadline-burst load has not been rehearsed.
+- **The global league ceiling should be redesigned to count active leagues rather than every row ever created** (`CAP-007`). A lifetime count fills permanently even when the platform is nearly idle, which makes the safeguard fail in the direction of blocking legitimate use. A figure of 1,000 active leagues has been proposed and is a recommendation. Changing the count from lifetime to active is an additive migration with pgTAP coverage and hosted verification, not a configuration change.
+
+No limit in any class is altered by this section.
+
+### Euro visibility boundary
+
+Added 6 August 2026 under [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), which is the decision authority; this section is where the Hub's own architecture honours it.
+
+A competition season carries a **server-owned publication state** — hidden, prelaunch, registration-open, live, completed or archived (`EURO-002`). While Euro 2028's state is `hidden`, it must be absent from every weekly-platform surface (`EURO-001`, `EURO-003`):
+
+- landing-page content;
+- signed-in Hub discovery and the competition catalogue;
+- competition cards and switchers;
+- navigation;
+- page metadata;
+- the sitemap;
+- Open Graph and share content;
+- guessable public routes.
+
+**Absence is enforced by the state and a route guard, not by a client catalogue omitting an entry** (`EURO-004`). A constant that happens not to list a competition is a presentation choice the next contributor can reverse without noticing; a guard that refuses the route is a control. The distinction matters here more than elsewhere, because the Hub's competition catalogue is currently a static constant and it currently lists Euro 2028 — which is the violation this section exists to name rather than to quietly fix.
+
+This is a visibility rule only. It does not change any competition's rules, entry model, scoring or standings, and a competition that becomes visible is still separately and voluntarily entered (`ACCOUNT-004`).
+
 ### Leagues and competitions are both first-class
 
 The global Leagues surface groups, but does not conflate:
@@ -130,6 +172,21 @@ The global Matches surface combines followed competitions chronologically with c
 The first release has one Super Admin. Authorisation is nevertheless capability-based so Results Admin, Competition Admin and Support Moderator can be added later without replacing a universal boolean.
 
 Normal provider fixture changes are archived, strictly decoded, applied automatically to the canonical fixture model, audited and surfaced in an administrator review queue. Ambiguous identity, contradictory round data or invalid state fails closed. Result confirmation remains a separate protected authority.
+
+**Clarified 6 August 2026 — which changes are automatic and which are not.** "Applied automatically" above covers one change class, and reading it as covering all of them would authorise a provider to create and delete this platform's fixtures. The boundary is:
+
+| Provider change | Handling | ID |
+| --- | --- | --- |
+| An existing, **correctly mapped** fixture's kickoff is revised | **Automatic**, under the delivered safeguards: archive before decode, fail closed on any unmapped identifier, refuse a kickoff moved into the past or a fixture no longer scheduled, and record the move append-only | `INGEST-001` |
+| A **newly discovered** fixture | **Administrative approval.** Proposed, never created automatically | `INGEST-002` |
+| Removal, cancellation, abandonment, material identity change or material round change | **Administrative approval** | `INGEST-003` |
+| Anything ambiguous — contradictory round data, unresolvable identity, invalid state | **Fails closed**, on the whole payload rather than per row | `INGEST-004` |
+
+An approval or rejection records **the provider evidence, the operator, the decision and the resulting calendar change** (`INGEST-005`). All four: an approval that does not say what it was approving, or who approved it, is not an audit record.
+
+**Provider data never becomes official result truth automatically** (`INGEST-006`). The protected confirmation and correction authority remains the only gate for scoring and progression, and nothing in the approval workflow may route around it. This is the boundary that lets the kickoff-revision path be permissive in the first place: the worst outcome of a wrong automatic revision is a mistimed lock, which is recoverable and audited — not a wrong score.
+
+Automatic fixture *creation* is therefore deliberately not the target. The target is a reliable proposal-and-approval workflow.
 
 ## Detailed architecture authority
 

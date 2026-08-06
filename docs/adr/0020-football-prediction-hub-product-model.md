@@ -4,6 +4,7 @@
 - **Date:** 1 August 2026
 - **Supersedes:** the product-positioning and rehearsal-name deferral in ADR 0019. ADR 0019's club-identity and formal clearance cautions remain relevant to any later distinctive brand.
 - **Amends:** five named rules in ADRs 0012, 0013 and 0014, and the lock-policy ownership in ADR 0011. **Amended by its own 5 August 2026 owner amendment below, which reverses § Fixture exceptions: a rescheduled fixture stays in its matchweek and its prediction stays open to its own kickoff, rather than being reassigned to another round.** Every other rule in those records remains authoritative — see [§ Rule reconciliation](#rule-reconciliation-with-adrs-0011-0014).
+- **Amended by:** [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md) — the Context paragraph placing the whole hub on `euro28predictor.com` is superseded by two frontend sites over one shared backend, and § Routes gains the Euro visibility boundary. The product model itself is unchanged.
 
 > **Implementation progress — 5 August 2026.** The competition-season/game data model, separate game memberships, game-owned locks and substantial Match Predictor/LMS/Championship backend authorities are merged. The finished Football Prediction Hub shell, onboarding and complete game surfaces remain governed by ADR 0023 and the target design authority.
 
@@ -12,6 +13,8 @@
 The repository already implements a multi-competition football prediction platform, but its visible root route and application title still present Euro 2028 as the whole product. The owner has now defined the operating product for the 2026/27 rehearsal season.
 
 The platform is football-only. Euro and World Cup tournaments remain focused competitions with their own tournament rules and domains, while domestic league seasons run reusable weekly game formats. The purchased `euro28predictor.com` domain remains useful: it may host the whole private rehearsal hub during 2026/27 and should open directly into Euro 2028 when that tournament becomes the public acquisition event.
+
+> **Superseded in part by [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026.** The sentence above is retained as the reasoning of the time; the arrangement it describes is not the decision. `euro28predictor.com` does **not** host the whole hub. There are two frontend sites over one shared backend (`SITE-001`, `SITE-002`): the weekly platform on the eventual umbrella-brand domain (`SITE-003`) and Euro 2028 on the purchased tournament domain (`SITE-004`). One account and one profile work on both (`ACCOUNT-001`), and Euro 2028 is **completely hidden from the weekly platform** until an owner-approved publication state (`EURO-001`). Everything else in this record — the product hierarchy, competition seasons, separately joined games and game-owned locks — is unchanged.
 
 ## Decision
 
@@ -151,6 +154,8 @@ Tournament-specific headline points remain tournament points. LMS, Predictor Cha
 
 Three provider integrations may be tested through adapters against one internal fixture/result model. Fixture changes import automatically and notify an administrator for review. Results do not require confirmation before entering the feed, but official scoring/progression authority remains governed by the existing fail-closed result rules.
 
+> **Clarified 6 August 2026.** "Fixture changes import automatically" was never a single rule and had begun to read as one. The boundary is by change class, and it is stated in full in [ADR 0023](0023-hub-information-architecture.md) § Administration and provider changes: an existing correctly mapped fixture's **kickoff** may be revised automatically under the delivered safeguards (`INGEST-001`), while a **newly discovered** fixture, a removal, a cancellation, an abandonment, a material identity change or a material round change each require administrative approval (`INGEST-002`, `INGEST-003`). Ambiguity fails closed (`INGEST-004`). The last sentence above is unchanged and is the reason the rest can be permissive: provider data never becomes official result truth automatically (`INGEST-006`).
+
 The rehearsal includes in-app and email reminders one hour before a lock only when the user has incomplete predictions. Users control notifications per competition and per game.
 
 ### Routes
@@ -164,6 +169,8 @@ Competition routes use stable slugs:
 ```
 
 Game routes are children of the competition season. Existing Euro routes may remain temporarily as compatibility paths while the full competition-scoped routing migration is completed.
+
+> **Amended by [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026.** The slug shapes above are unchanged, but they no longer all live on one site. `/competitions/euro/2028` belongs to the Euro site; while the Euro publication state is `hidden` it must not be reachable on the weekly platform — including as a guessable path, in the sitemap or in Open Graph content (`EURO-003`). A route is withheld by a server-owned visibility state and a route guard (`EURO-004`), never by omission from a client catalogue.
 
 ## Rule reconciliation with ADRs 0011–0014
 
