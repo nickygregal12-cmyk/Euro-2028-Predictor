@@ -113,7 +113,18 @@ jobs:
           set -euo pipefail
           # Everything the hosted database has not yet applied.
           supabase migration list --db-url "${SUPABASE_DEV_DB_URL}" > /tmp/migration-list.txt 2>&1 || {
-            echo 'ERROR: could not read the hosted migration state.'
+            echo 'ERROR: could not read the hosted migration state. The CLI said:'
+            # Printed rather than swallowed. The first version of this step
+            # captured the CLI's output and then replaced it with the sentence
+            # above, so two consecutive real failures on 5 August 2026 said only
+            # that something went wrong -- and the obvious inference, a stale
+            # credential, sent the owner to check a secret that was correct.
+            # A guard that hides the one fact needed to act on it is worse than
+            # no guard, because it converts a five-minute fix into a diagnosis.
+            #
+            # The URL is a secret and never appears in the CLI's own error text,
+            # which reports the host and the failure reason.
+            sed -e 's/[[:alnum:]._-]*:[[:alnum:]._%-]*@/[redacted]@/g' /tmp/migration-list.txt
             exit 1
           }
           # Columns are LOCAL | REMOTE | TIME (UTC). A row with a local version
@@ -159,6 +170,102 @@ jobs:
           # here already names the statement and the workflow to use instead.
           node scripts/check-migration-additive.mjs ${files}
           echo 'FAST_LANE_PENDING=1' >> "$GITHUB_ENV"
+
+      # Contract 119 made this lane print the CLI's own error instead of
+      # replacing it with a sentence. That was an improvement and still not an
+      # answer: the CLI reported `SQLSTATE 28P01 password authentication
+      # failed`, the obvious reading was a stale password, and the owner said
+      # it was not — correctly, because a repository secret is ONE stored
+      # value and the same value succeeded at 17:29 and failed at 20:08 the
+      # same day. "The password has always been wrong" was never consistent
+      # with that.
+      #
+      # The reason the message misleads is that Supavisor answers 28P01 for a
+      # tenant it cannot find as well as for a password it rejects, and
+      # deliberately does not distinguish them — so a URL pointing at the
+      # wrong pooler cluster is indistinguishable from a bad credential.
+      #
+      # This step distinguishes them, by connecting with a password that is
+      # KNOWN to be wrong:
+      #
+      #   - if a deliberately wrong password produces "Tenant or user not
+      #     found", the tenant is not on that cluster. The real password is
+      #     irrelevant and the host is the thing to fix;
+      #   - if it produces the same 28P01 the real attempt produced, the
+      #     tenant IS there and the stored credential is genuinely being
+      #     rejected.
+      #
+      # It then asks the sibling cluster the same question, so the output
+      # names the host that does recognise the project rather than leaving
+      # that to be guessed too.
+      #
+      # Diagnosis only: it reads nothing, writes nothing, and cannot change
+      # the outcome of the run it is explaining. It never exits non-zero,
+      # because the failure it reports on has already failed the job and a
+      # second error here would only obscure the first.
+      - name: Name the connection failure rather than leaving it to inference
+        if: failure()
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set +e
+          command -v psql >/dev/null 2>&1 || {
+            echo 'psql is unavailable on this runner; skipping the probe.'
+            exit 0
+          }
+          [ -n "${SUPABASE_DEV_DB_URL}" ] || exit 0
+
+          # Only the non-secret parts leave this parse. The project ref is
+          # already declared in this workflow in plain text, so the host and
+          # user reveal nothing the file does not already state; the password
+          # is never read out of the URL at all.
+          read -r host port user <<< "$(node -e '
+            try {
+              const u = new URL(process.env.SUPABASE_DEV_DB_URL)
+              process.stdout.write([u.hostname, u.port || "5432", u.username].join(" "))
+            } catch { process.stdout.write("") }
+          ')"
+          [ -n "${host}" ] || { echo 'The secret is not a parseable URL; nothing to probe.'; exit 0; }
+
+          case "${host}" in
+            aws-0-*) sibling="aws-1-${host#aws-0-}" ;;
+            aws-1-*) sibling="aws-0-${host#aws-1-}" ;;
+            *)       sibling='' ;;
+          esac
+
+          echo "Configured host: ${host}:${port}"
+          echo "Configured user: ${user}"
+          echo
+
+          # Long enough to be unmistakable in a log, and not a credential.
+          wrong='this-password-is-deliberately-wrong-it-is-a-probe'
+
+          probe() {
+            PGCONNECT_TIMEOUT=15 psql \
+              "postgresql://${user}:${wrong}@${1}:${port}/postgres" \
+              -c 'select 1' 2>&1 \
+              | sed -e 's#://[^@]*@#://[redacted]@#g' \
+              | head -3
+          }
+
+          echo "--- configured cluster, with a KNOWN-WRONG password ---"
+          probe "${host}"
+          if [ -n "${sibling}" ]; then
+            echo
+            echo "--- sibling cluster ${sibling}, same known-wrong password ---"
+            probe "${sibling}"
+          fi
+
+          echo
+          echo 'HOW TO READ THIS:'
+          echo '  "Tenant or user not found"        -> the project is not on that cluster.'
+          echo '                                      The host is wrong; the password is not.'
+          echo '  "password authentication failed"  -> the cluster knows the project, so the'
+          echo '                                      stored credential is the thing rejected.'
+          echo '  a timeout on both                 -> egress to 5432 is blocked, and this'
+          echo '                                      probe has proven nothing either way.'
+          exit 0
 
       - name: Take the lightweight pre-apply snapshot
         if: env.FAST_LANE_PENDING == '1'

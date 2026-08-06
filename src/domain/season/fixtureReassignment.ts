@@ -1,10 +1,40 @@
 /**
  * Fixture reassignment rules for domestic rounds.
  *
- * Authority: ADR 0020 (amending ADR 0012). A fixture postponed or materially
- * rescheduled before it completes moves to the round containing its new
- * kickoff, and the destination round's lock governs it from then on. The
- * binding distinction: this is REASSIGNMENT, not unlocking —
+ * ---------------------------------------------------------------------------
+ * SUPERSEDED, AND RETAINED RATHER THAN DELETED — read this before the rules
+ * ---------------------------------------------------------------------------
+ *
+ * This header used to state, as current authority, that a fixture postponed or
+ * materially rescheduled before it completes MOVES to the round containing its
+ * new kickoff and is governed by that round's lock from then on.
+ *
+ * **ADR 0020's owner amendment of 5 August 2026 reverses exactly that.** A
+ * rescheduled fixture stays in the matchweek it was scheduled in, and its own
+ * prediction stays open to its own kickoff. The live path is contract 117,
+ * which revises a kickoff and by construction never writes
+ * `competition_round_id`, and contract 119, which gives that fixture its own
+ * lock instant. Neither asks this module anything.
+ *
+ * So the reassignment half below is **not the rule this platform follows**, and
+ * `resolveFixtureReassignment` has no caller outside its own test. It is kept
+ * because the amendment superseded a model, not a file: the kickoff-revision
+ * and audit shapes remain meaningful, and deleting the module would also delete
+ * the record of a decision that was taken deliberately. Any future caller needs
+ * its own justification under the amendment rather than inheriting the one this
+ * header used to claim.
+ *
+ * The same applies to contract 113's `competition_rounds` play window, which
+ * exists to answer "which round does this kickoff fall in" — a question
+ * reassignment no longer asks. ADR 0020 § "What this supersedes in the
+ * repository" is the authority for both.
+ *
+ * ---------------------------------------------------------------------------
+ * THE SUPERSEDED MODEL, AS DECIDED
+ * ---------------------------------------------------------------------------
+ *
+ * Authority: ADR 0020 (amending ADR 0012), before its own later amendment. The
+ * binding distinction was that this is REASSIGNMENT, not unlocking —
  *
  * - a locked round never reopens, whatever happens to its fixture list;
  * - completed fixtures and settled points never move;
@@ -12,10 +42,12 @@
  *   fixture (enforced in scoring, restated here because callers ask);
  * - every assignment change is audited.
  *
- * This module decides and describes; it never mutates. The persistence
- * workflow (C1b onward) executes the decision and stores the audit record.
- * Pure domain: no storage, network or ambient clock — the decision instant
- * is an input and appears verbatim in the audit record.
+ * The first two survive the amendment untouched: ADR 0011's lock law is not
+ * what changed. The third is enforced in scoring either way.
+ *
+ * This module decides and describes; it never mutates. Pure domain: no storage,
+ * network or ambient clock — the decision instant is an input and appears
+ * verbatim in the audit record.
  */
 
 export type ReassignmentFixture = {

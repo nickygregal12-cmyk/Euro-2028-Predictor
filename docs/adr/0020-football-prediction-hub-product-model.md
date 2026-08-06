@@ -214,6 +214,37 @@ weeks earlier. What the owner asked for is the opposite: **order by kickoff,
 label by round.** Round membership decides scoring; the kickoff decides where it
 is shown and when it locks.
 
+### Owner decision, 5 August 2026 — which fixtures get their own lock
+
+The amendment above says a rescheduled fixture's prediction stays open to its
+own kickoff. Making that executable exposed a fork the amendment does not
+settle, because two readings share the same arithmetic:
+
+- **only a rescheduled fixture** gets its own lock, and every other matchweek
+  keeps locking together at its earliest kickoff;
+- **every fixture** locks at its own kickoff, moved or not.
+
+They agree on every fixture that moved, so no test of a moved fixture can tell
+them apart. They differ on the ones nobody touched: applied universally, an
+ordinary Friday-to-Monday matchweek becomes predictable in stages, and Monday's
+game could be predicted knowing Saturday's results.
+
+**The owner chose the narrow reading.** An ordinary matchweek locks together
+exactly as it does today; a fixture gets its own lock only because it moved.
+That preserves the fairness property the season Match Predictor already had.
+
+"Moved" is a stored fact rather than an inference: a fixture is rescheduled when
+`predictor_internal.season_fixture_revisions` holds a row for it, which is
+contract 117's append-only record of what a provider changed. The alternative —
+deciding a fixture moved because its kickoff falls outside some window — would
+need that window defined, and would silently reclassify fixtures whenever the
+definition was tuned.
+
+The rule is strictly permissive. A fixture's own kickoff is never earlier than
+its round's earliest, so the instant this produces is never earlier than the
+matchweek instant: no prediction that was legal becomes illegal, and no player
+loses a window they had.
+
 **Why this is simpler than what it replaces, and not merely different.** The
 machinery it needs already exists. § Fixture exceptions already states the
 per-match guard as the integrity floor — "no prediction is accepted for any
