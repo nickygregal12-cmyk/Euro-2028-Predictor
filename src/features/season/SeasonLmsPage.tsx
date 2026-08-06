@@ -1,5 +1,7 @@
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
+import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { LmsClub, SeasonLmsGateway } from './lmsRoundModel'
+import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonLms } from './useSeasonLms'
 import styles from './SeasonLmsPage.module.css'
 
@@ -23,20 +25,37 @@ import styles from './SeasonLmsPage.module.css'
  * The model refuses to infer one from the other because whether a draw
  * eliminates is a stored rule, and this renders that separation rather than
  * collapsing it back.
+ *
+ * REGISTRATION IS OPTIONAL AND SUPPLIED BY THE CALLER. Until it is passed, this
+ * page behaves exactly as it did — which matters, because the refusal it shows
+ * a non-entrant ("Join Last Man Standing to make a pick") named an action the
+ * interface did not offer. It is the route, not this page, that knows WHICH
+ * competition the player is looking at: a season can hold a restarted
+ * successor alongside its predecessor, and resolving that is a server-side
+ * question this surface must not answer for itself.
  */
 
 export type SeasonLmsPageProps = {
   gateway: SeasonLmsGateway
   now: () => Date
+  /** Registration for this competition, when the caller can name it. */
+  registration?: SeasonLmsRegistrationGateway
 }
 
 const SKELETON_ROWS = 5
 
-export function SeasonLmsPage({ gateway, now }: SeasonLmsPageProps) {
+export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps) {
   const { status, page, presentation, picking, error, conflict, pick, reload } = useSeasonLms(
     gateway,
     now,
   )
+
+  // Rendered above the round wherever the round can be reached, including when
+  // there is no round yet: registration for a competition that has not started
+  // playing is exactly when a player most needs it.
+  const registrationPanel = registration ? (
+    <SeasonLmsRegistration gateway={registration} onJoined={reload} />
+  ) : null
 
   if (status === 'loading') {
     return (
@@ -65,6 +84,7 @@ export function SeasonLmsPage({ gateway, now }: SeasonLmsPageProps) {
   if (!page.round) {
     return (
       <section className={styles.panel}>
+        {registrationPanel}
         <EmptyState
           title="No round to play"
           description={presentation.refusal ?? 'There is no round to play yet.'}
@@ -108,6 +128,8 @@ export function SeasonLmsPage({ gateway, now }: SeasonLmsPageProps) {
           <p className={styles.outcome}>{presentation.outcomeLine}</p>
         ) : null}
       </header>
+
+      {registrationPanel}
 
       {/* A refusal is stated once, above the choices, rather than repeated on
           every disabled control. */}

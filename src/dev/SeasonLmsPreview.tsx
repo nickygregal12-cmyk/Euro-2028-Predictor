@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react'
 import { SeasonLmsPage } from '../features/season/SeasonLmsPage'
 import { createDevSeasonLmsGateway, type LmsScenario } from './seasonLmsGateway'
+import {
+  createDevSeasonLmsRegistrationGateway,
+  type RegistrationScenario,
+} from './seasonLmsRegistrationGateway'
 import styles from './SeasonMatchPredictorPreview.module.css'
 
 /**
@@ -28,9 +32,36 @@ const SCENARIOS: readonly { id: LmsScenario; label: string; hint: string }[] = [
   { id: 'version_conflict', label: 'Conflict', hint: 'Changed on another device' },
 ]
 
+/**
+ * Registration is a SEPARATE axis rather than more round scenarios, because it
+ * is a separate read: the round comes from contract 116 and registration from
+ * the games hub, and the pairing that matters most — "not entered" beside an
+ * open window — is only reachable by setting the two independently.
+ */
+const REGISTRATION: readonly { id: RegistrationScenario | 'none'; label: string; hint: string }[] =
+  [
+    { id: 'none', label: 'No panel', hint: 'Caller supplies no competition' },
+    { id: 'open', label: 'Open', hint: 'Joinable, with a deadline' },
+    { id: 'open_no_deadline', label: 'Open, no deadline', hint: 'No closing instant recorded' },
+    { id: 'not_open', label: 'Not open', hint: 'Registration opens later' },
+    { id: 'closed', label: 'Closed', hint: 'Arrived too late — says so' },
+    { id: 'finished', label: 'Finished', hint: 'The competition is over' },
+    { id: 'entered', label: 'Entered', hint: 'Panel hides; the round states it' },
+    { id: 'join_refused', label: 'Join refused', hint: 'Ambiguous 55000 — claims no reason' },
+    { id: 'load_failed', label: 'Load failed', hint: 'A failure, not a closed window' },
+  ]
+
 export function SeasonLmsPreview() {
   const [scenario, setScenario] = useState<LmsScenario>('healthy')
+  const [registration, setRegistration] = useState<RegistrationScenario | 'none'>('open')
   const gateway = useMemo(() => createDevSeasonLmsGateway(scenario), [scenario])
+  const registrationGateway = useMemo(
+    () =>
+      registration === 'none'
+        ? undefined
+        : createDevSeasonLmsRegistrationGateway(registration),
+    [registration],
+  )
   const now = useMemo(() => () => new Date(), [])
 
   return (
@@ -60,16 +91,33 @@ export function SeasonLmsPreview() {
             </label>
           ))}
         </fieldset>
+
+        <fieldset className={styles.group}>
+          <legend>Registration</legend>
+          {REGISTRATION.map((option) => (
+            <label key={option.id} className={styles.option}>
+              <input
+                type="radio"
+                name="registration"
+                checked={registration === option.id}
+                onChange={() => setRegistration(option.id)}
+              />
+              <span>
+                {option.label} <em>{option.hint}</em>
+              </span>
+            </label>
+          ))}
+        </fieldset>
       </div>
 
       <div className={styles.themes}>
         <section data-theme="dark" className={styles.panel}>
           <div className={styles.panelTag}>Dark</div>
-          <SeasonLmsPage gateway={gateway} now={now} />
+          <SeasonLmsPage gateway={gateway} now={now} registration={registrationGateway} />
         </section>
         <section data-theme="light" className={styles.panel}>
           <div className={styles.panelTag}>Light</div>
-          <SeasonLmsPage gateway={gateway} now={now} />
+          <SeasonLmsPage gateway={gateway} now={now} registration={registrationGateway} />
         </section>
       </div>
     </div>
