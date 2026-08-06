@@ -106,6 +106,21 @@
   status = 200
 
 [[redirects]]
+  from = "/play"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/fixtures"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/leagues"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/predict"
   to = "/index.html"
   status = 200

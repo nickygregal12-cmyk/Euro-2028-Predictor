@@ -44,6 +44,11 @@ const SeasonLeaguesRoute = lazy(() =>
     default: m.SeasonLeaguesRoute,
   })),
 )
+const CompetitionChooserPage = lazy(() =>
+  import('./features/hub/CompetitionChooserPage').then((m) => ({
+    default: m.CompetitionChooserPage,
+  })),
+)
 const SeasonMatchesRoute = lazy(() =>
   import('./features/season/SeasonMatchesRoute').then((m) => ({
     default: m.SeasonMatchesRoute,
@@ -216,6 +221,12 @@ export default function App() {
                     <Route path="/competitions/:competitionSlug/:seasonSlug/championship" element={<SeasonChampionshipRoute />} />
                     <Route path="/competitions/:competitionSlug/:seasonSlug/leagues" element={<SeasonLeaguesRoute />} />
                     <Route path="/competitions/:competitionSlug/:seasonSlug/matches" element={<SeasonMatchesRoute />} />
+                    {/* The global tabs ask which competition; the Euro
+                        tournament's own journeys keep their addresses and are
+                        reached from its competition dashboard. */}
+                    <Route path="/play" element={<CompetitionChooserPage section="play" title="Play" />} />
+                    <Route path="/fixtures" element={<CompetitionChooserPage section="matches" title="Fixtures" />} />
+                    <Route path="/leagues" element={<CompetitionChooserPage section="leagues" title="Leagues" />} />
                     <Route path="/predict" element={<PredictEntryPage />} />
                     <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
                     <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
