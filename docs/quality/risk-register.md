@@ -1,12 +1,37 @@
 # Euro 2028 Predictor — Current Risk Register
 
-**Status date:** 30 July 2026  
+**Status date:** 6 August 2026  
 **Live status authority:** [`current-status.md`](current-status.md)  
 **Current baseline:** stated in [`current-status.md`](current-status.md), not here — repository contract, hosted contracts and the deploy-gate position all live there. Production deploys are intentionally paused by the contract gate. This line used to restate those numbers and drifted ten contracts behind while doing it  
 **Current published application:** last good Netlify production deploy recorded in [`current-status.md`](current-status.md)  
 **Recovery:** same-day encrypted production backup/restore evidence plus exact 60→63 preflight and preserved-data postflight.
 
 Current code, executable tests and verified hosted evidence override older classifications. Production remains a controlled future-tournament target rather than an active Euro 2028 service.
+
+## Correction record — 6 August 2026
+
+An external forensic project-state audit of repository commit `7a566a3` found this register presenting 30 July positions as current while the repository had moved substantially on. The register has been revalidated entry by entry against the audited repository state; the 30 July record below is preserved unchanged as history. What moved:
+
+- The register rules restated "repository/development 64" as current contract truth — the exact restating-numbers drift the header already warns against. The rule now points at the live authorities instead of restating their values.
+- `SEO-001` was still Open although the repository's Netlify configuration now answers 404 from the catch-all (the rule's comment names the finding) under test guard. Production publication of that fix remains outstanding because production deploys are paused.
+- `DB-001` was still an open advisor finding although the Stage C1 and C1b migrations redefine `public.enforce_joker_rules()` with a pinned empty `search_path`, inside the migration range the development contract records as applied.
+- `DOC-001`'s closure was conditional on the Stage C governance PR landing; the accepted governance amendment is on `main`, but documentation drift recurred — this register's own staleness is the evidence — so the finding stays open rather than closing.
+- `OPS-009` is newly recorded: hosted development trails the repository contract, which blocks realistic end-to-end proof of the newest browser reads. **Superseded the same day — see the second 6 August record below.**
+- `UX-002` gained a further reduction: the Account surface no longer collapses a failed standings read into pre-results copy, and a failed reminder-preference save now says so instead of silently reverting.
+
+## Correction record — 6 August 2026, second entry
+
+Recorded hours after the first, and the gap between them is the point: `OPS-009` was written when hosted development was five contracts behind, and was already wrong when the ink dried. Fast-lane run 31083613351 applied contracts 116 to 120 that morning, so the database gap the entry described had closed before the entry was read by anyone.
+
+What the episode actually exposed is narrower and more durable than the gap it replaced. The follow-up workflow produced a *correct* contract-120 record, pushed it to the automation branch the workflow names after its run, and then failed on pull-request creation because the repository forbids GitHub Actions from opening pull requests. Nothing was wrong except that nobody was told where the right answer was, and `main` went on stating the old number to every agent that read it.
+
+- `OPS-009` is resolved as recorded, not deleted — it was true when written.
+- `OPS-010` replaces it with the real exposure: a verified hosted record that cannot reach `main` on its own.
+- The machine-readable record now states contract 120, with its evidence naming the run identity and conclusion verified through the Actions API, and stating plainly which object-level assertions it does *not* re-derive.
+- The workflow can no longer fail silently in this way. A refused pull request no longer fails the run; it announces the branch through a job summary and an issue, so a stranded record is recoverable in a minute rather than discovered in an audit.
+- The owner enabled the repository setting that permits GitHub Actions to create pull requests, on 6 August 2026, which removes the cause rather than only the symptom. **Neither the setting nor the fallback is proven yet** — the next fast-lane rollout is the first run to exercise either, and the entry stays open until one of them is observed working.
+
+The general lesson is recorded because it will recur: **an automation that produces correct evidence and cannot deliver it is indistinguishable, to every downstream reader, from one that produced nothing.**
 
 ## Correction record — 30 July 2026
 
@@ -16,7 +41,9 @@ Current code, executable tests and verified hosted evidence override older class
 
 | ID | Current position |
 | --- | --- |
-| `OPS-006` | **Controlled, not resolved by alignment.** Repository/development are 64 while production remains 63. The production contract gate correctly pauses new deploys and keeps the last good application live. Reopen as Critical only if the guard is bypassed or the split becomes unrecorded. |
+| `OPS-006` | **Controlled, not resolved by alignment.** Repository and development remain ahead of production (exact positions live in `config/deployment-contract.json`, `config/development-hosted-contract.json` and [`current-status.md`](current-status.md)). The production contract gate correctly pauses new deploys and keeps the last good application live. Reopen as Critical only if the guard is bypassed or the split becomes unrecorded. |
+| `OPS-009` | **Resolved as recorded; reopened in a different form as `OPS-010`.** Recorded earlier on 6 August as hosted development trailing the repository. The fast lane closed that gap the same day — run 31083613351 applied contracts 116 to 120 and hosted development is level with the repository. The database was never the durable problem; getting the *record* of it onto `main` was. |
+| `OPS-010` | **Open, reduced.** A correct hosted-contract record can be produced and still not reach `main`: the follow-up workflow pushed the contract-120 record to an automation branch and then failed, because the repository forbids GitHub Actions from creating pull requests. `main` reported the previous contract for roughly ninety minutes while the correct record already existed. The stranding is now announced rather than silent (job summary plus an issue, and a refused pull request no longer fails the run), and the record itself has been landed by hand. What remains open is the repository setting, which no workflow can grant itself. |
 | `POSTLOCK-001` | **Resolved and production-hosted.** Bounded post-lock consensus and the richer locked My Entry/Trends experience are published. |
 | `LEAGUE-001` | **Resolved and production-hosted.** Final overall/private standings apply the approved five tie-breakers only after every result. |
 | `PRIV-001` | **Resolved and production-hosted.** Tournament-wide consensus is suppressed below ten submitted entries. |
@@ -24,7 +51,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `MIG-001` | **Resolved.** Pull-request CI rejects stale/colliding added migrations and enforces strict ordering. |
 | `CI-001` | **Resolved.** Database parity watches `src/domain/**` and runs the complete parity directory. |
 | `DATA-003` | **Resolved and hosted.** Same-tournament/reference guards are present in both hosted environments. |
-| `DOC-001` | **Correction pending merge.** Live authorities have been reconciled on the Stage C governance branch; close when CI passes and it lands. |
+| `DOC-001` | **Open — drift recurred.** The 30 July reconciliation landed with the accepted Stage C governance amendment, but the 6 August audit found fresh drift, including this register's own staleness. Structural fixes (a single small current-state surface with generated values) remain open. |
 | `FUNC-003` | **Resolved in production.** Canonical Bonus Game cards and the repeatable catalogue prevent silent disappearance. |
 | `TEST-GAP-01` | **Resolved by PR #187.** All three Bonus Games have authenticated desktop/phone browser lifecycle proof. |
 | `TEST-GAP-02` | **Resolved by PR #189.** H2H rank-history capture has direct behavioural pgTAP. |
@@ -58,6 +85,8 @@ Current code, executable tests and verified hosted evidence override older class
 | `CI-001` | Database parity excluded new domain siblings | **Resolved** | Preserve the root `src/domain/**` trigger and complete parity directory. |
 | `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Remaining: manual assistive-technology review, full-volume dress rehearsal and rollback rehearsal. |
 | `OPS-003` | Production observability operations incomplete | **Partial** | Name monitoring/backup/Cron owners, retention/escalation and incident procedure. |
+| `OPS-009` | Hosted development trails the repository contract | **Resolved 6 August 2026** | Fast-lane run 31083613351 applied contracts 116–120; hosted development is level with the repository. Reopen only on a fresh divergence. |
+| `OPS-010` | A verified hosted record can fail to reach `main` | **Open pending proof; both causes addressed** | The follow-up workflow can no longer strand a record silently, and the owner enabled the repository setting permitting GitHub Actions to create pull requests on 6 August 2026. Neither half is proven yet: the next fast-lane rollout is the first run that will exercise both. Close it on that run opening its pull request unaided; if it is refused again, the fallback should say so in a job summary and an issue rather than in silence. |
 
 ## Medium
 
@@ -70,7 +99,7 @@ Current code, executable tests and verified hosted evidence override older class
 | `REL-008` | Netlify deploy-preview policy was inconsistent across documentation branches | **Reduced; final contract-63 preview passed.** |
 | `MIG-001` | Concurrent branches can add stale/colliding migration timestamps | **Resolved by the committed guard and focused tests.** |
 | `PRIV-001` | Tournament-wide prediction consensus had no minimum cohort | **Resolved and production-hosted.** |
-| `DB-001` | `public.enforce_joker_rules` has mutable search path | **Open advisor finding** |
+| `DB-001` | `public.enforce_joker_rules` has mutable search path | **Resolved in the repository chain and within the migrations the development contract records as applied** — the Stage C1 foundation migration redefines the function with `set search_path = ''` and the C1b redefinition preserves the pin. Production still runs the older definition until promotion. |
 | `DB-002` | Authenticated `SECURITY DEFINER` allowlist needs continued review | **Open assurance finding; intended RPCs remain explicitly granted** |
 | `DB-003` | Several foreign keys lack supporting indexes | **Open pending representative query evidence** |
 | `PERF-001` | League summaries may scale serially | **Open** |
@@ -78,12 +107,12 @@ Current code, executable tests and verified hosted evidence override older class
 | `TYPE-001` | Hand-written types/casts can hide schema drift | **Open** |
 | `A11Y-001` | Assistive-technology review incomplete | **Partial; automated coverage exists, manual review remains** |
 | `UX-001` | Trustworthy invite context before auth incomplete | **Partial** |
-| `UX-002` | Unavailable and empty data can be conflated | **Reduced; secondary surfaces remain.** `PredictionTrendsPage`'s player-name read now tracks its own failure separately from a genuinely player-less pick and warns rather than silently falling back (2026-08-05). |
+| `UX-002` | Unavailable and empty data can be conflated | **Reduced; secondary surfaces remain.** `PredictionTrendsPage`'s player-name read now tracks its own failure separately from a genuinely player-less pick and warns rather than silently falling back (2026-08-05). `AccountPage` now distinguishes a failed standings read from the pre-results state and reports a failed reminder-preference save instead of silently reverting the toggle (2026-08-06). |
 | `FUNC-003` | Bonus Games rendered as absent when reference data was empty | **Resolved in production** |
 | `SEC-001` | Invite/aggregate disclosure needs abuse review | **Open; aggregate minimum cohort is implemented, broader invite/abuse review remains** |
 | `DATA-007` | Rate limiting is count-then-insert | **Open** |
 | `DATA-009` | Contract 104 gated the tournament-path Bonus Games recompute functions (`recompute_ko_predictor_for_match`, `recompute_lms_for_tournament`) on `completed_at is null`, so a post-completion correction silently no-opped instead of rederiving — the opposite of what the season LMS settlement job deliberately does for the identical problem | **Resolved at contract 106.** Both functions now resolve through `predictor_internal.current_public_competition_id`, which falls back to the most recently completed public instance, so a corrected result rederives after a competition ends. Proven behaviourally rather than structurally by `supabase/tests/157_terminal_aware_bonus_rederive.sql`: a completed KO Predictor competition has its result corrected and both entrants' stored scores must move to zero. Verified on development — neither function retains a `live_competition_id` call. The risk was recorded as latent and unreachable when found; contract 107 would have made it reachable, which is why it was closed first. See `docs/quality/investigations/2026-08-05-tournament-bonus-recompute-completion-gate.md` for the original trace. |
-| `DOC-001` | Documentation authority can drift | **Correction pending governance PR merge.** |
+| `DOC-001` | Documentation authority can drift | **Open — drift recurred after the 30 July correction merged; see the 6 August correction record.** |
 
 ## Low
 
@@ -91,7 +120,7 @@ Current code, executable tests and verified hosted evidence override older class
 | --- | --- | --- |
 | `HYGIENE-002` | Some pure modules may be test/reference-only | **Open; verify before deletion** |
 | `CODE-001` | Large orchestration files are hotspots | **Open** |
-| `SEO-001` | SPA fallback produces soft 404s | **Open** |
+| `SEO-001` | SPA fallback produces soft 404s | **Resolved in repository configuration; production publication pending.** `netlify.toml`'s catch-all answers 404 (the rule's comment names this finding) and `tests/app/spaRoutingStatus.test.ts` guards it. Production deploys remain paused, so the hosted production application predates the fix; hosted closure follows the next approved production publication. |
 | `SEO-002` | Metadata largely global | **Open** |
 | `UX-003` | Other-player profile action incomplete | **Resolved; secure co-member profile and H2H navigation are production-hosted** |
 | `DATA-008` | Scores have no practical database maximum | **Open** |
@@ -104,6 +133,6 @@ Current code, executable tests and verified hosted evidence override older class
 - Repository implementation, database promotion and application publication are separate closure states.
 - Do not call the whole product launch-ready because the baseline is tag-ready.
 - Do not retain broad findings after the concrete defect is resolved.
-- Current contract truth is repository/development 64 and production/application 63; the recorded, fail-closed split is a controlled state.
+- Current contract truth lives in `config/deployment-contract.json`, `config/development-hosted-contract.json` and [`current-status.md`](current-status.md) — never restated here, because a restated number drifts. The recorded, fail-closed split between environments is a controlled state.
 - A guard blocking incompatible deployment is a safeguard, not a defect to bypass.
 - Historical audits and reconciliations remain immutable; corrections are recorded alongside them rather than rewriting history.

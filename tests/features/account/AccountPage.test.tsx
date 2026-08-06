@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   retryInitialLoad: vi.fn(),
   updateMyDisplayName: vi.fn<() => Promise<void>>(),
   updateReminderEmails: vi.fn<() => Promise<void>>(),
-  fetchLeaderboardPage: vi.fn(),
+  fetchLeaderboardPage: vi.fn<() => Promise<unknown>>(),
 }))
 
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
@@ -77,7 +77,7 @@ vi.mock('../../../src/services/supabase/leaderboard', () => ({
   fetchLeaderboardPage: mocks.fetchLeaderboardPage,
 }))
 
-const EMPTY_LEADERBOARD = {
+const EMPTY_LEADERBOARD_PAGE = {
   rows: [],
   totalCount: 0,
   pageSize: 1,
@@ -85,6 +85,11 @@ const EMPTY_LEADERBOARD = {
   nextCursor: null,
   you: null,
 }
+
+beforeEach(() => {
+  mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD_PAGE)
+  mocks.updateReminderEmails.mockResolvedValue(undefined)
+})
 
 function renderPage() {
   render(
@@ -99,7 +104,6 @@ describe('AccountPage sign out', () => {
     vi.clearAllMocks()
     mocks.signOut.mockResolvedValue(undefined)
     mocks.clearMyPredictions.mockResolvedValue(undefined)
-    mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD)
   })
 
   it('does not sign out when confirmation is cancelled', () => {
@@ -158,7 +162,6 @@ describe('AccountPage danger zone', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.clearMyPredictions.mockResolvedValue(undefined)
-    mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD)
   })
 
   it('clears predictions only after the tier-1 confirm, then reloads the entry', async () => {
@@ -195,44 +198,54 @@ describe('AccountPage danger zone', () => {
 describe('AccountPage reminder preference', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD)
   })
 
-  it('says so and reverts when the save fails, instead of silently springing back', async () => {
-    mocks.updateReminderEmails.mockRejectedValueOnce(new Error('network down'))
-    renderPage()
-
-    const toggle = (await screen.findByRole('checkbox', {
-      name: /Deadline reminder emails/,
-    })) as HTMLInputElement
+  async function findEnabledToggle(): Promise<HTMLInputElement> {
+    const toggle = screen.getByRole<HTMLInputElement>('checkbox')
     await waitFor(() => expect(toggle.disabled).toBe(false))
+    return toggle
+  }
+
+  it('saves a toggle and keeps the new value with no error shown', async () => {
+    renderPage()
+    const toggle = await findEnabledToggle()
     expect(toggle.checked).toBe(true)
+
+    fireEvent.click(toggle)
+
+    await waitFor(() => {
+      expect(mocks.updateReminderEmails).toHaveBeenCalledWith('user-1', false)
+    })
+    expect(toggle.checked).toBe(false)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('says a failed toggle did not save instead of silently reverting', async () => {
+    mocks.updateReminderEmails.mockRejectedValueOnce(new Error('internal provider detail'))
+    renderPage()
+    const toggle = await findEnabledToggle()
 
     fireEvent.click(toggle)
 
     const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toContain('couldn’t turn reminder emails off')
+    expect(alert.textContent).toContain('didn’t save')
     expect(alert.textContent).toContain('still on')
-    // Reverted to the truth the server still holds.
+    expect(alert.textContent).not.toContain('internal provider detail')
     expect(toggle.checked).toBe(true)
   })
 
-  it('shows no error and keeps the new value when the save succeeds', async () => {
-    mocks.updateReminderEmails.mockResolvedValueOnce(undefined)
+  it('clears the stale error once a retry saves', async () => {
+    mocks.updateReminderEmails.mockRejectedValueOnce(new Error('offline'))
     renderPage()
+    const toggle = await findEnabledToggle()
 
-    const toggle = (await screen.findByRole('checkbox', {
-      name: /Deadline reminder emails/,
-    })) as HTMLInputElement
-    await waitFor(() => expect(toggle.disabled).toBe(false))
+    fireEvent.click(toggle)
+    await screen.findByRole('alert')
 
     fireEvent.click(toggle)
 
-    await waitFor(() =>
-      expect(mocks.updateReminderEmails).toHaveBeenCalledWith('user-1', false),
-    )
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
     expect(toggle.checked).toBe(false)
-    expect(screen.queryByText(/couldn’t turn reminder emails/)).toBeNull()
   })
 })
 
@@ -241,25 +254,19 @@ describe('AccountPage standings headline', () => {
     vi.clearAllMocks()
   })
 
-  it('does not claim standings are merely pending when the load failed', async () => {
-    // "Standings update once results land" is only true when the leaderboard
-    // answered and was empty. A failed load must not borrow that sentence.
-    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('boom'))
+  it('keeps the pre-results copy for a genuinely empty leaderboard', async () => {
     renderPage()
 
-    await waitFor(() =>
-      expect(screen.getByText('Your standings didn’t load — check back shortly')).toBeTruthy(),
-    )
-    expect(screen.queryByText('Standings update once results land')).toBeNull()
+    expect(await screen.findByText('Standings update once results land')).toBeTruthy()
   })
 
-  it('keeps the pre-results copy for a genuinely empty leaderboard', async () => {
-    mocks.fetchLeaderboardPage.mockResolvedValueOnce(EMPTY_LEADERBOARD)
+  it('says the standings failed to load rather than claiming results are pending', async () => {
+    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('leaderboard down'))
     renderPage()
 
-    await waitFor(() =>
-      expect(screen.getByText('Standings update once results land')).toBeTruthy(),
-    )
-    expect(screen.queryByText(/didn’t load/)).toBeNull()
+    expect(
+      await screen.findByText('Your standings couldn’t be loaded right now.'),
+    ).toBeTruthy()
+    expect(screen.queryByText('Standings update once results land')).toBeNull()
   })
 })

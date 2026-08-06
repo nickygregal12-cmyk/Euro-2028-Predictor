@@ -45,13 +45,11 @@ export function AccountPage() {
     data.status === 'ready' ? entryLocked : true
 
   // Headline: points + rank (pre-results guard as on the Profile page).
+  // A failed read is not the pre-results state — the two get different copy.
   const [headline, setHeadline] = useState<{
     points: number
     rank: number | null
   } | null>(null)
-  // Failure is tracked apart from absence: "no standings yet" and "the
-  // standings did not load" are different truths, and printing the first when
-  // the second happened tells the player something false.
   const [headlineFailed, setHeadlineFailed] = useState(false)
   useEffect(() => {
     if (!tournamentId) return
@@ -205,13 +203,9 @@ export function AccountPage() {
     try {
       await updateReminderEmails(userId, next)
     } catch {
-      // Reverted AND said out loud. A toggle that silently springs back leaves
-      // the player believing reminders are set the way they chose.
       setAccount({ ...account, reminderEmails: !next })
       setPrefError(
-        next
-          ? 'We couldn’t turn reminder emails on, so they are still off. Try again.'
-          : 'We couldn’t turn reminder emails off, so they are still on. Try again.',
+        `That didn’t save — reminder emails are still ${account.reminderEmails ? 'on' : 'off'}. Try again.`,
       )
     } finally {
       setPrefBusy(false)
@@ -275,7 +269,7 @@ export function AccountPage() {
               {headline
                 ? `${headline.points} pts${headline.rank !== null ? ` · ${headline.rank}${ordinal(headline.rank)} overall` : ''}`
                 : headlineFailed
-                  ? 'Your standings didn’t load — check back shortly'
+                  ? 'Your standings couldn’t be loaded right now.'
                   : 'Standings update once results land'}
             </span>
             {champion ? (
@@ -442,11 +436,7 @@ export function AccountPage() {
             onChange={toggleReminders}
           />
         </label>
-        {prefError ? (
-          <p role="alert" className={a.fieldError}>
-            {prefError}
-          </p>
-        ) : null}
+        {prefError ? <p role="alert" className={a.fieldError}>{prefError}</p> : null}
       </div>
 
       <AccountPrivacySupport
