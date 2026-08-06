@@ -13,9 +13,9 @@ describe('BottomNav', () => {
 
     const expectedDestinations = {
       Home: '/',
-      Predict: '/predict',
-      Matches: '/matches',
-      League: '/league',
+      Predict: '/play',
+      Matches: '/fixtures',
+      League: '/leagues',
       More: '/more',
     }
 

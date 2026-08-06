@@ -27,7 +27,7 @@ const SIGNED_OUT_ROOT_TITLE = 'Home'
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/', title: 'Competitions' },
   { path: '/competitions/euro/2028/original', title: 'Euro 2028 Original Predictor' },
-  { path: '/competitions/:competitionSlug/:seasonSlug/play', title: 'Play' },
+  { path: '/competitions/:competitionSlug/:seasonSlug/play', title: 'Competition play' },
   {
     path: '/competitions/:competitionSlug/:seasonSlug/standings',
     title: 'Main Predictor standings',
@@ -60,6 +60,9 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/auth/update-password', title: 'Set new password' },
   { path: '/welcome', title: 'Welcome' },
   { path: '/join/:code', title: 'Join league' },
+  { path: '/play', title: 'Play' },
+  { path: '/fixtures', title: 'Fixtures' },
+  { path: '/leagues', title: 'Leagues' },
   { path: '/predict', title: 'Predict' },
   { path: '/predict/third-place', title: 'Third-place predictions' },
   { path: '/predict/bracket', title: 'Knockout bracket' },
@@ -68,7 +71,7 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/prediction-trends', title: 'Prediction trends' },
   { path: '/league/overall', title: 'Overall standings' },
   { path: '/league/:id', title: 'League details' },
-  { path: '/league', title: 'Leagues' },
+  { path: '/league', title: 'Tournament leagues' },
   { path: '/h2h/:rivalId', title: 'Head-to-head' },
   { path: '/games/knockout', title: 'Knockout predictions' },
   { path: '/games/ko-predictor', title: 'KO Predictor' },

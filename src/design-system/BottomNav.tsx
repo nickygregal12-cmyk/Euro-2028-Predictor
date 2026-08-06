@@ -14,9 +14,9 @@ const ITEMS: {
   Icon: (p: IconProps) => React.ReactElement
 }[] = [
   { key: 'home', label: 'Home', to: '/', Icon: HomeIcon },
-  { key: 'predict', label: 'Predict', to: '/predict', Icon: BallIcon },
-  { key: 'matches', label: 'Matches', to: '/matches', Icon: CalendarIcon },
-  { key: 'league', label: 'League', to: '/league', Icon: TrophyIcon },
+  { key: 'predict', label: 'Predict', to: '/play', Icon: BallIcon },
+  { key: 'matches', label: 'Matches', to: '/fixtures', Icon: CalendarIcon },
+  { key: 'league', label: 'League', to: '/leagues', Icon: TrophyIcon },
   { key: 'more', label: 'More', to: '/more', Icon: MoreIcon },
 ]
 

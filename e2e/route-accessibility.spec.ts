@@ -26,10 +26,10 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await expect(predictLink).toBeFocused()
   await page.keyboard.press('Enter')
 
-  await expect(page).toHaveURL((url) => url.pathname === '/predict')
-  await expect(page).toHaveTitle('Predict | Football Prediction Hub')
+  await expect(page).toHaveURL((url) => url.pathname === '/play')
+  await expect(page).toHaveTitle('Play | Football Prediction Hub')
   await expect(main).toBeFocused()
-  await expect(page.locator(liveRegion)).toHaveText('Predict page loaded')
+  await expect(page.locator(liveRegion)).toHaveText('Play page loaded')
 
   const groupsButton = page.getByRole('button', { name: /Groups A–F/ })
   await groupsButton.focus()

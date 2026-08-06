@@ -153,10 +153,10 @@ async function changeFinalWinner(page: Page) {
 }
 
 async function navigateToReview(page: Page) {
-  await page
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: 'Predict', exact: true })
-    .click()
+  // Reached by address rather than through the bottom bar. That tab is the
+  // weekly platform's Predict now and asks which competition; the Euro
+  // tournament's own predictor still lives here and is what this spec tests.
+  await page.goto('/predict')
   await expectAuthenticatedPath(page, '/predict')
   await page.getByRole('button', { name: /Review and submit/ }).click()
   await expectAuthenticatedPath(page, '/predict/review')
