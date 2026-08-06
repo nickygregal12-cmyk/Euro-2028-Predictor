@@ -17,10 +17,24 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 
 // Measured 30 July 2026 at contract 63: entry 63.4 KB, all JS 254.7 KB,
 // all CSS 35.6 KB.
+//
+// CSS RE-RATCHETED 6 AUGUST 2026, DOWNWARDS. `cssCodeSplit: false` collapsed
+// 39 per-route stylesheets into one and took all CSS from 44.5 KB to 29.8 KB —
+// the 15 KB was per-file gzip loss rather than content, and the reasoning is
+// recorded at length in `vite.config.ts`. Leaving the ceiling at 45 would have
+// banked the saving as silent room and invited exactly the drift that caused
+// it, so the budget follows the measurement down. 34 KB keeps roughly four
+// kilobytes of headroom, which is now a great deal of it: a new surface's
+// styles join an existing dictionary instead of starting a fresh one, so they
+// cost a fraction of what they used to.
+//
+// ALL JS IS THE TIGHT ONE NOW, at 292.8 of 300 KB. Nothing here addresses it;
+// it is recorded so the next session meets it as a known position rather than
+// as a surprise on a red check.
 const BUDGETS = {
   entryChunkKb: 75,
   totalJsKb: 300,
-  totalCssKb: 45,
+  totalCssKb: 34,
 }
 
 /**
