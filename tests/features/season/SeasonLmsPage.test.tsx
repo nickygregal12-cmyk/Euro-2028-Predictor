@@ -37,6 +37,14 @@ describe('the season LMS page', () => {
     expect(screen.queryByText(/eliminated/i)).toBeNull()
   })
 
+  it('says when picks lock, from an instant the round read always carried', async () => {
+    // The surface loaded `locksAt` and threw it away, so a player could see a
+    // round was open without being told how long for.
+    render(<SeasonLmsPage gateway={createDevSeasonLmsGateway('healthy', NOW)} now={NOW} />)
+
+    await waitFor(() => expect(screen.getByText(/^Picks lock /)).toBeTruthy())
+  })
+
   it('marks a consumed club as used and unpickable', async () => {
     render(<SeasonLmsPage gateway={createDevSeasonLmsGateway('used_clubs', NOW)} now={NOW} />)
 

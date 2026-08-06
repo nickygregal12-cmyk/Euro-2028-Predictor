@@ -34,12 +34,14 @@ vi.mock('../../../src/features/auth/AuthProvider', () => ({
 import {
   SeasonChampionshipRoute,
   SeasonLmsRoute,
+  SeasonPlayRoute,
   SeasonStandingsRoute,
 } from '../../../src/features/season/SeasonGameRoutes'
 
 const TOURNAMENT_ID = '60000000-0000-0000-0000-000000000001'
 const LMS_ID = '60000000-0000-0000-0000-000000000102'
 const CUP_ID = '60000000-0000-0000-0000-000000000103'
+const ACTIVE = { status: 'active', joinedAt: null, leftAt: null, disqualifiedAt: null }
 
 function game(overrides: Partial<CompetitionGame>): CompetitionGame {
   return {
@@ -235,6 +237,42 @@ describe('the season game routes', () => {
         userId: 'user-1',
       }),
     )
+  })
+
+  it('lists only the joined games on Play, and links each to its surface', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([
+        game({ id: CUP_ID, gameKey: 'predictor_cup', membership: ACTIVE }),
+        game({ id: LMS_ID, gameKey: 'last_man_standing' }),
+      ]),
+    )
+
+    renderRoute(
+      <SeasonPlayRoute />,
+      `${DASHBOARD}/play`,
+      '/competitions/premier-league/2026-27/play',
+    )
+
+    const link = await screen.findByRole('link', { name: /Predictor Championship/ })
+    expect(link.getAttribute('href')).toBe('/competitions/premier-league/2026-27/championship')
+    // Not joined, so not listed — that is what separates Play from Overview.
+    expect(screen.queryByText('Last Man Standing')).toBeNull()
+  })
+
+  it('points an empty Play at Overview rather than rendering a bare empty list', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(season([game({})]))
+
+    renderRoute(
+      <SeasonPlayRoute />,
+      `${DASHBOARD}/play`,
+      '/competitions/premier-league/2026-27/play',
+    )
+
+    await waitFor(() =>
+      expect(screen.getByText('You have not joined a game here yet')).toBeTruthy(),
+    )
+    const overview = screen.getByRole('link', { name: /See the games/ })
+    expect(overview.getAttribute('href')).toBe('/competitions/premier-league/2026-27')
   })
 
   it('says so when the season does not list the game, rather than rendering blank', async () => {

@@ -25,6 +25,17 @@
   color: var(--tx2);
 }
 
+/* The caller's own position, stated rather than left to be found in the table.
+   --tx and a heavier weight because this is the one line most players came for. */
+.yourStanding {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-variant-numeric: var(--numeric);
+  font-weight: 600;
+  color: var(--tx);
+}
+
 /* Column head and row share one grid so the cells line up without a <table>:
    the rank and the two numeric columns are fixed, the name takes the rest. */
 .columns,

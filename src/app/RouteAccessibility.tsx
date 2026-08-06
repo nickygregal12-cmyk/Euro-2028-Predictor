@@ -27,6 +27,7 @@ const SIGNED_OUT_ROOT_TITLE = 'Home'
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/', title: 'Competitions' },
   { path: '/competitions/euro/2028/original', title: 'Euro 2028 Original Predictor' },
+  { path: '/competitions/:competitionSlug/:seasonSlug/play', title: 'Play' },
   {
     path: '/competitions/:competitionSlug/:seasonSlug/standings',
     title: 'Main Predictor standings',

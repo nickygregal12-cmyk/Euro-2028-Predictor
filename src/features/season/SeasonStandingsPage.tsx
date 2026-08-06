@@ -103,6 +103,10 @@ export function SeasonStandingsPage({ gateway, gameName }: SeasonStandingsPagePr
     )
   }
 
+  // Either the caller's row is on screen or the model pinned it below; both
+  // carry the same rank, so the sentence does not depend on how far they paged.
+  const you = view.pinnedYou ?? view.rows.find((row) => row.isYou) ?? null
+
   return (
     <section className={styles.panel}>
       <h2 className={styles.heading}>{gameName} standings</h2>
@@ -110,6 +114,18 @@ export function SeasonStandingsPage({ gateway, gameName }: SeasonStandingsPagePr
         {view.totalCount} {view.totalCount === 1 ? 'player' : 'players'}, ranked on points from
         settled matchweeks.
       </p>
+
+      {/* Where the caller stands, said once and in words. The table already
+          marks their row, but a player arriving at a 200-row leaderboard should
+          not have to find themselves in it to learn their own position — and
+          the read has always carried it. Absent when they hold no settled
+          matchweek, because there is no position to state. */}
+      {you ? (
+        <p className={styles.yourStanding}>
+          You are {you.rankLabel.replace('=', 'joint ')} of {view.totalCount} on {you.points}{' '}
+          {you.points === 1 ? 'point' : 'points'}.
+        </p>
+      ) : null}
 
       <div className={styles.columns} aria-hidden="true">
         <span className={styles.rank}>#</span>
