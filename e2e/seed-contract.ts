@@ -512,7 +512,22 @@
  * has none, and the authority returns the matchweek instant for everything
  * else. So a seeded user's lock is the instant it already was.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 119
+/*
+ * Re-verified at contract 120, which adds one browser-reachable read and
+ * nothing else: `public.get_season_cup_phase`. It creates no relation, policy,
+ * trigger or column, alters no existing function, and adds no grant to any
+ * relation -- only `execute` on the new function, to `authenticated`.
+ *
+ * So a seeded user meets no new gate, and the check that matters here is that
+ * no EXISTING read acquired one. None did: the migration's only DDL is the
+ * function and its grant.
+ *
+ * The new read is also behaviour-neutral on a fresh seed. It resolves the
+ * caller's own `bonus_cup_members` row, and a seeded database holds no season
+ * Championship membership, so a seeded user receives `entered: false` -- the
+ * deliberate non-entrant answer rather than an error.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 120
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

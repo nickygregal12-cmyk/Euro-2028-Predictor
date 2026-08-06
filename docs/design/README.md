@@ -69,6 +69,7 @@ The merged delta known at this 5 August review is:
 | 115 | the database can call a provider on a schedule at last — no surface, no fixture imported, and nothing polled until an operator records a target |
 | 116 | the season Last Man Standing round reaches the browser — the entrant's own round, its fixtures, their pick and the server's survival verdict |
 | 117 | a provider kickoff change reaches the fixture automatically — still no surface, and a moved match keeps its matchweek heading |
+| 120 | the Championship's phase and its continuing table reach the browser — the split surface can show which phase an entrant is in and the table they are actually in |
 | 119 | a rescheduled fixture stays editable to its own kickoff — the surface must show that one card in a locked matchweek is still open |
 
 The Contract 107–109 backend restart lifecycle is complete. Contract 107
@@ -91,7 +92,7 @@ real fixture list depends on something eventually doing that. Contract 117 is th
 arriving on its own: a provider kickoff change now reaches the fixture
 automatically, and a moved match keeps the matchweek heading it was scheduled
 under — a presentation rule as much as a data one, and the reason these screens
-sort by kickoff while labelling by round. Contract 119 adds the state that follows from
+sort by kickoff while labelling by round. Contract 120 gives the Championship surface the phase and continuing table it will need: an entrant's own phase, their group and its table, from the authority that owns that phase. It is a read and changes no rule. Contract 119 adds the state that follows from
 both: inside a locked matchweek, one card can still be open, because that
 fixture was moved and locks at its own kickoff. A surface that greys the whole
 matchweek would be showing a rule the platform no longer has. Contract 116 does

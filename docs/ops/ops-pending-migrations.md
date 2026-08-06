@@ -4,7 +4,7 @@ This is the operational migration inventory. Machine-readable development hosted
 
 ## Current state — 5 August 2026
 
-The repository is at **contract 119** and development is at **115**. **Four migrations are pending** — contract 116 (`20260805120000_season_lms_round_read.sql`, the season Last Man Standing round read), contract 117 (`20260805130000_provider_fixture_revision_import.sql`, the provider kickoff revision import), contract 118 (`20260805140000_neutral_window_fixture_facts.sql`, the neutral window fixture facts) and contract 119 (`20260806090000_rescheduled_fixture_lock.sql`, the rescheduled-fixture lock).
+The repository is at **contract 120** and development is at **115**. **Five migrations are pending** — contract 116 (`20260805120000_season_lms_round_read.sql`, the season Last Man Standing round read), contract 117 (`20260805130000_provider_fixture_revision_import.sql`, the provider kickoff revision import), contract 118 (`20260805140000_neutral_window_fixture_facts.sql`, the neutral window fixture facts) contract 119 (`20260806090000_rescheduled_fixture_lock.sql`, the rescheduled-fixture lock) and contract 120 (`20260806100000_season_cup_phase_read.sql`, the Championship phase and continuing-table read).
 
 Contract 118 is the first in this set to change an EXISTING browser-reachable function rather than only add one — it redefines `get_bonus_games`, so the rollout should confirm the tournament path returns what it returned before, which `169_neutral_window_fixture_facts.sql` asserts in CI.
 
