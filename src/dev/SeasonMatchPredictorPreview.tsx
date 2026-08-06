@@ -134,11 +134,21 @@ export function SeasonMatchPredictorPreview() {
       <div className={styles.themes}>
         <section data-theme="dark" className={styles.panel}>
           <div className={styles.panelTag}>Dark</div>
-          <SeasonMatchPredictorPage gateway={gateway} matchweek={matchweek} />
+          <SeasonMatchPredictorPage
+            gateway={gateway}
+            matchweek={matchweek}
+            competitionName="Premier League"
+            seasonLabel="2026/27"
+          />
         </section>
         <section data-theme="light" className={styles.panel}>
           <div className={styles.panelTag}>Light</div>
-          <SeasonMatchPredictorPage gateway={gateway} matchweek={matchweek} />
+          <SeasonMatchPredictorPage
+            gateway={gateway}
+            matchweek={matchweek}
+            competitionName="Premier League"
+            seasonLabel="2026/27"
+          />
         </section>
       </div>
     </div>

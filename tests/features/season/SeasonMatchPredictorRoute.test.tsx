@@ -174,4 +174,24 @@ describe('with the flag on', () => {
     expect(screen.getByText(/loading this competition season/i)).toBeInTheDocument()
     vi.unstubAllEnvs()
   })
+
+  it('offers every section of the competition, on the page a player lives on', async () => {
+    // This route rendered the shell with NO destinations at all, so Overview,
+    // Play, Matches, Games and Leagues were five inert labels on the busiest
+    // page in the product. It is exactly the drift the shared destination map
+    // exists to stop, and this route was the one that had not adopted it.
+    vi.stubEnv('VITE_UI_SEASON_MATCH_PREDICTOR', 'true')
+
+    renderRoute({ load: async () => context({ matchweek: null }) })
+
+    const matches = await screen.findByRole('link', { name: 'Matches' })
+    expect(matches.getAttribute('href')).toBe('/competitions/premier-league/2026-27/matches')
+    expect(screen.getByRole('link', { name: 'Leagues' }).getAttribute('href')).toBe(
+      '/competitions/premier-league/2026-27/leagues',
+    )
+    expect(screen.getByRole('link', { name: 'Overview' }).getAttribute('href')).toBe(
+      '/competitions/premier-league/2026-27',
+    )
+    vi.unstubAllEnvs()
+  })
 })
