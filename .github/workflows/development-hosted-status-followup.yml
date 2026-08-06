@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  issues: write
 
 jobs:
   record-hosted-contract:
@@ -23,6 +24,22 @@ jobs:
         with:
           node-version: 22.22.2
 
+      # THE RECORD REACHING `main` IS THE JOB; THE PULL REQUEST IS ONLY ONE ROUTE THERE.
+      #
+      # On 6 August 2026 this step pushed a correct contract-120 record and then
+      # died on `gh pr create`, because the repository forbids GitHub Actions
+      # from creating pull requests. The permission block above was already
+      # right — that setting is not something a workflow can grant itself. With
+      # `set -euo pipefail` the refusal failed the job *after* the push, so a
+      # correct record sat on a branch nobody was told about while `main` went
+      # on reporting the previous contract to every agent that read it.
+      #
+      # So PR creation is best-effort from here. If it is refused, the run says
+      # so loudly — an issue, a job summary and the exact command to finish the
+      # job by hand — and still exits successfully, because the record was
+      # written and pushed and that part did not fail. A stranded-but-announced
+      # record is recoverable in a minute; a stranded-and-silent one is the
+      # defect this comment exists to prevent.
       - name: Update the machine-readable hosted contract and open a PR
         shell: bash
         env:
@@ -68,8 +85,51 @@ jobs:
           git add config/development-hosted-contract.json
           git commit -m "Record development hosted contract ${expected}"
           git push origin "${branch}"
-          gh pr create \
-            --base main \
-            --head "${branch}" \
-            --title "Docs: record development hosted contract ${expected}" \
-            --body "Generated after successful Development fast-lane rollout run ${SOURCE_RUN_ID}. Updates the machine-readable hosted contract only; production remains contract 63 and unauthorised for promotion."
+          title="Docs: record development hosted contract ${expected}"
+          body="Generated after successful Development fast-lane rollout run ${SOURCE_RUN_ID}. Updates the machine-readable hosted contract only; production remains contract 63 and unauthorised for promotion."
+
+          # `|| pr_failed=1` rather than an unguarded call: the branch is
+          # already pushed by this point, so a refusal here must not discard
+          # the run's real output.
+          pr_failed=0
+          gh pr create --base main --head "${branch}" --title "${title}" --body "${body}" || pr_failed=1
+
+          if [ "${pr_failed}" -eq 0 ]; then
+            echo "Opened a pull request for ${branch}."
+            exit 0
+          fi
+
+          echo "::warning::Could not open a pull request for ${branch}. The record is pushed and needs a human or agent to merge it."
+
+          {
+            echo "## Hosted contract ${expected} recorded, pull request NOT opened"
+            echo
+            echo "The machine-readable hosted contract was updated and pushed to \`${branch}\`,"
+            echo "but this run could not open a pull request for it. The usual cause is the"
+            echo "repository setting that forbids GitHub Actions from creating pull requests;"
+            echo "the workflow's own permissions are already correct and cannot override it."
+            echo
+            echo "**\`main\` still reports the previous hosted contract until this branch lands.**"
+            echo
+            echo "To finish by hand:"
+            echo
+            echo '```'
+            echo "gh pr create --base main --head ${branch} \\"
+            echo "  --title '${title}'"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          # An issue, because a job summary is only seen by whoever opens the
+          # run. Its failure must not fail the job either — the summary above
+          # has already recorded everything needed to recover.
+          gh issue create \
+            --title "Hosted contract ${expected} is recorded on a branch but not on main" \
+            --body "$(printf '%s\n' \
+              "Development fast-lane rollout run ${SOURCE_RUN_ID} succeeded and the follow-up recorded hosted contract ${expected} on \`${branch}\`." \
+              "" \
+              "Opening the pull request was refused, so \`main\` still reports the previous hosted contract. Agents reading only \`main\` will repeat the stale number until this lands." \
+              "" \
+              "Close this by merging \`${branch}\` into \`main\`. No hosted mutation is involved — the rollout already happened; this is the record of it." \
+              "" \
+              "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")" \
+            || echo "::warning::Could not create the follow-up issue either. The job summary holds the recovery command."
