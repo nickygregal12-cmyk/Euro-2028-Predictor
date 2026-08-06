@@ -16,8 +16,22 @@ An external forensic project-state audit of repository commit `7a566a3` found th
 - `SEO-001` was still Open although the repository's Netlify configuration now answers 404 from the catch-all (the rule's comment names the finding) under test guard. Production publication of that fix remains outstanding because production deploys are paused.
 - `DB-001` was still an open advisor finding although the Stage C1 and C1b migrations redefine `public.enforce_joker_rules()` with a pinned empty `search_path`, inside the migration range the development contract records as applied.
 - `DOC-001`'s closure was conditional on the Stage C governance PR landing; the accepted governance amendment is on `main`, but documentation drift recurred — this register's own staleness is the evidence — so the finding stays open rather than closing.
-- `OPS-009` is newly recorded: hosted development trails the repository contract, which blocks realistic end-to-end proof of the newest browser reads.
+- `OPS-009` is newly recorded: hosted development trails the repository contract, which blocks realistic end-to-end proof of the newest browser reads. **Superseded the same day — see the second 6 August record below.**
 - `UX-002` gained a further reduction: the Account surface no longer collapses a failed standings read into pre-results copy, and a failed reminder-preference save now says so instead of silently reverting.
+
+## Correction record — 6 August 2026, second entry
+
+Recorded hours after the first, and the gap between them is the point: `OPS-009` was written when hosted development was five contracts behind, and was already wrong when the ink dried. Fast-lane run 31083613351 applied contracts 116 to 120 that morning, so the database gap the entry described had closed before the entry was read by anyone.
+
+What the episode actually exposed is narrower and more durable than the gap it replaced. The follow-up workflow produced a *correct* contract-120 record, pushed it to the automation branch the workflow names after its run, and then failed on pull-request creation because the repository forbids GitHub Actions from opening pull requests. Nothing was wrong except that nobody was told where the right answer was, and `main` went on stating the old number to every agent that read it.
+
+- `OPS-009` is resolved as recorded, not deleted — it was true when written.
+- `OPS-010` replaces it with the real exposure: a verified hosted record that cannot reach `main` on its own.
+- The machine-readable record now states contract 120, with its evidence naming the run identity and conclusion verified through the Actions API, and stating plainly which object-level assertions it does *not* re-derive.
+- The workflow can no longer fail silently in this way. A refused pull request no longer fails the run; it announces the branch through a job summary and an issue, so a stranded record is recoverable in a minute rather than discovered in an audit.
+- The owner enabled the repository setting that permits GitHub Actions to create pull requests, on 6 August 2026, which removes the cause rather than only the symptom. **Neither the setting nor the fallback is proven yet** — the next fast-lane rollout is the first run to exercise either, and the entry stays open until one of them is observed working.
+
+The general lesson is recorded because it will recur: **an automation that produces correct evidence and cannot deliver it is indistinguishable, to every downstream reader, from one that produced nothing.**
 
 ## Correction record — 30 July 2026
 
@@ -28,7 +42,8 @@ An external forensic project-state audit of repository commit `7a566a3` found th
 | ID | Current position |
 | --- | --- |
 | `OPS-006` | **Controlled, not resolved by alignment.** Repository and development remain ahead of production (exact positions live in `config/deployment-contract.json`, `config/development-hosted-contract.json` and [`current-status.md`](current-status.md)). The production contract gate correctly pauses new deploys and keeps the last good application live. Reopen as Critical only if the guard is bypassed or the split becomes unrecorded. |
-| `OPS-009` | **Open.** Hosted development trails the repository contract (the two contract files record the exact gap). Newly committed browser reads compile against functions the hosted development database does not yet have, so realistic end-to-end proof of those reads is blocked until the guarded fast lane applies the pending set. |
+| `OPS-009` | **Resolved as recorded; reopened in a different form as `OPS-010`.** Recorded earlier on 6 August as hosted development trailing the repository. The fast lane closed that gap the same day — run 31083613351 applied contracts 116 to 120 and hosted development is level with the repository. The database was never the durable problem; getting the *record* of it onto `main` was. |
+| `OPS-010` | **Open, reduced.** A correct hosted-contract record can be produced and still not reach `main`: the follow-up workflow pushed the contract-120 record to an automation branch and then failed, because the repository forbids GitHub Actions from creating pull requests. `main` reported the previous contract for roughly ninety minutes while the correct record already existed. The stranding is now announced rather than silent (job summary plus an issue, and a refused pull request no longer fails the run), and the record itself has been landed by hand. What remains open is the repository setting, which no workflow can grant itself. |
 | `POSTLOCK-001` | **Resolved and production-hosted.** Bounded post-lock consensus and the richer locked My Entry/Trends experience are published. |
 | `LEAGUE-001` | **Resolved and production-hosted.** Final overall/private standings apply the approved five tie-breakers only after every result. |
 | `PRIV-001` | **Resolved and production-hosted.** Tournament-wide consensus is suppressed below ten submitted entries. |
@@ -70,7 +85,8 @@ An external forensic project-state audit of repository commit `7a566a3` found th
 | `CI-001` | Database parity excluded new domain siblings | **Resolved** | Preserve the root `src/domain/**` trigger and complete parity directory. |
 | `TEST-001` | Critical rules lack complete end-to-end evidence | **Reduced** | Remaining: manual assistive-technology review, full-volume dress rehearsal and rollback rehearsal. |
 | `OPS-003` | Production observability operations incomplete | **Partial** | Name monitoring/backup/Cron owners, retention/escalation and incident procedure. |
-| `OPS-009` | Hosted development trails the repository contract | **Open** | Apply the pending migration set to development through the guarded fast lane, then verify the newest browser reads against the hosted database. Newly merged reads are unprovable end-to-end until this closes. |
+| `OPS-009` | Hosted development trails the repository contract | **Resolved 6 August 2026** | Fast-lane run 31083613351 applied contracts 116–120; hosted development is level with the repository. Reopen only on a fresh divergence. |
+| `OPS-010` | A verified hosted record can fail to reach `main` | **Open pending proof; both causes addressed** | The follow-up workflow can no longer strand a record silently, and the owner enabled the repository setting permitting GitHub Actions to create pull requests on 6 August 2026. Neither half is proven yet: the next fast-lane rollout is the first run that will exercise both. Close it on that run opening its pull request unaided; if it is refused again, the fallback should say so in a job summary and an issue rather than in silence. |
 
 ## Medium
 
