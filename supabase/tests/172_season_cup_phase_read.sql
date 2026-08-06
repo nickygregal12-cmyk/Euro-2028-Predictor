@@ -45,10 +45,10 @@ select is(
   'it is security definer, like every other bounded read');
 
 select is(
-  (select pg_catalog.array_to_string(p.proconfig, ',')
+  (select p.proconfig @> array['search_path=""']
      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
     where n.nspname = 'public' and p.proname = 'get_season_cup_phase'),
-  'search_path=',
+  true,
   'with search_path pinned to the empty string, so a definer function cannot be '
   'redirected by a caller''s search path');
 

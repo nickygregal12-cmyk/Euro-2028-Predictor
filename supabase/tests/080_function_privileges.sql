@@ -127,7 +127,12 @@ insert into expected_authenticated_functions (signature) values
   -- boundary again, so it stays out of expected_service_functions for the
   -- reason contract 95 established — service_role has no auth.uid() and the
   -- call would refuse every time.
-  ('get_season_lms_round(uuid)');
+  ('get_season_lms_round(uuid)'),
+  -- Contract 120. The caller's own Championship phase and their own
+  -- group's table. Browser-reachable and authenticated-only for the same
+  -- reason as the LMS round read above: it is scoped to the caller's own
+  -- membership, and a non-entrant is told so rather than shown anything.
+  ('get_season_cup_phase(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
