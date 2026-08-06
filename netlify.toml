@@ -96,6 +96,11 @@
   status = 200
 
 [[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/leagues"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/predict"
   to = "/index.html"
   status = 200

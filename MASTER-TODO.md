@@ -232,7 +232,7 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 - [x] Extend TypeScript/PostgreSQL parity for season scoring.
 - [x] Cover backend late entry, unbanked rounds, blank/partial cards, reschedules and corrections.
 - [ ] Build the fast phone entry and completion flow.
-- [ ] Build matchweek, monthly and form standings as first-class retention surfaces that never feed back into the canonical total.
+- [x] Build matchweek, monthly and form standings as first-class retention surfaces that never feed back into the canonical total. `SeasonStandingsPage` renders the cumulative table over `get_season_leaderboard`; `SeasonPeriodStandings` renders the monthly and rolling-form views over contract 122's `get_season_period_standings`, beneath it and always carrying the sentence that the season is decided by the cumulative total alone. Neither derived view writes anything, and switching between them is a server load rather than a browser filter, so ADR 0012's retention rules stay where the authority lives. A monthly read that raises — a settled matchweek with no play window — renders as a failure, never as "no months yet".
 - [ ] Prove the complete user journey across hostile loading, unavailable, correction and replay states.
 - [ ] Measure completion and low-rank retention during the closed cohort and record the result.
 

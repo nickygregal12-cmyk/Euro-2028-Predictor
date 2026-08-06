@@ -1,0 +1,127 @@
+/* Phone-first private-league list and its two forms. Tokens only; every size
+   is a scale step. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  /* A grid/flex child defaults to min-width:auto, which lets a long league
+     name push the page wider than the viewport instead of ellipsising inside
+     it. Same fix as the competition shell. */
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-4);
+  color: var(--tx);
+}
+
+.scope {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* Why no league opens into a table. Boxed rather than set as body copy, so it
+   reads as a statement about the surface rather than as league detail. */
+.note {
+  margin: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--chip);
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  min-width: 0;
+}
+
+.cardName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-3);
+  color: var(--tx);
+  /* A 40-character name on a narrow phone ellipsises rather than widening the
+     card past the viewport. */
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.forms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  min-width: 0;
+}
+
+.formHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+/* A rule the caller has not met, in place of the control it would refuse.
+   --tx2 rather than an error colour: this is not a failure, it is an order of
+   operations. */
+.refusal {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* Two columns once there is room for both forms side by side. */
+@media (min-width: 640px) {
+  .forms {
+    flex-direction: row;
+  }
+
+  .form {
+    flex: 1 1 0;
+  }
+}

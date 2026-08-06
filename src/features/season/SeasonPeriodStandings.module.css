@@ -1,0 +1,218 @@
+/* The two derived season tables. Tokens only; every size is a scale step.
+   Secondary to the cumulative table above it by design — see the component
+   header: a monthly winner must not be given a season leader's weight. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+  /* A grid/flex child defaults to min-width:auto, which lets a long row push
+     the panel wider than the viewport instead of ellipsising inside it. */
+  min-width: 0;
+}
+
+/* --fs-3 rather than the table's --fs-4: this section sits below the season's
+   own standings and reads as subordinate to it. */
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* Period switch. A radio group styled as a segmented control: the inputs are
+   visually hidden but present and focusable, so keyboard order, arrow-key
+   selection and screen-reader grouping are the browser's rather than ours. */
+.chooser {
+  display: flex;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.choiceLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  cursor: pointer;
+}
+
+/* Selection is a fill, a border and a weight change together — never colour
+   alone (§11.8). The accent may touch the active indicator (§11.1). */
+.choice input:checked + .choiceLabel {
+  border-color: var(--acc);
+  background: color-mix(in srgb, var(--acc) 14%, transparent);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+/* The visually hidden input still owns the focus ring, so it has to be drawn
+   on the label the sighted user can actually see. */
+.choice input:focus-visible + .choiceLabel {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.tableHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tx2);
+}
+
+/* The caller's own position, stated rather than left to be found in the table. */
+.yourStanding {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-variant-numeric: var(--numeric);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+/* Column head and row share one grid so the cells line up without a <table>:
+   the rank and the two numeric columns are fixed, the label takes the rest.
+   Same template as the cumulative table, so the two read as one family. */
+.columns,
+.row {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem 3rem;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2);
+}
+
+.columns {
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  /* --tx2 rather than --tx3: this sits on --card, where --tx3 has measured
+     below AA on tinted surfaces before. */
+  color: var(--tx2);
+  min-height: 30px;
+}
+
+.columns abbr {
+  text-decoration: none;
+  border: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  min-height: var(--tap-min);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.list .row:last-child {
+  border-bottom: 0;
+}
+
+/* The caller's own row. Tinted and named "You" in the label column, never
+   colour alone (§11.8: status is not conveyed by colour alone). */
+.rowYou {
+  background: var(--chip);
+}
+
+/* Pinned copy of the player's row when it sits below the rows shown. The top
+   rule replaces the gap so it reads as attached to the table above. */
+.pinnedList {
+  border-top: 1px solid var(--line);
+}
+
+.rowPinned {
+  border-bottom: 0;
+}
+
+.rank {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  text-align: center;
+}
+
+.name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.played,
+.points {
+  font-variant-numeric: var(--numeric);
+  text-align: right;
+}
+
+.played {
+  color: var(--tx2);
+}
+
+.points {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

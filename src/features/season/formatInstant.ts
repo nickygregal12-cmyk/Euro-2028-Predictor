@@ -23,3 +23,27 @@ export function formatInstant(instant: string | null): string | null {
     minute: '2-digit',
   })
 }
+
+/**
+ * A `YYYY-MM` calendar month as a player reads it: "January 2027".
+ *
+ * IT IS NOT AN INSTANT AND MUST NOT BE PARSED AS ONE. Contract 122 already
+ * resolved the month in the competition's own timezone, precisely so a 20:00
+ * UTC kickoff on 31 January is January in London rather than February
+ * somewhere else. Handing `2027-01` to `new Date()` would parse it as midnight
+ * UTC and `toLocaleString` would then shift it back across the boundary in any
+ * negative-offset locale — undoing the one decision the contract made. So the
+ * month and year are read as the numbers they are, and only the month NAME is
+ * localised.
+ */
+export function formatMonth(month: string | null): string | null {
+  if (!month) return null
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(month)
+  if (!match) return null
+  const year = Number(match[1])
+  const index = Number(match[2]) - 1
+  // Day 1 at midday, in the viewer's local time, so no offset can move it into
+  // an adjacent month while the formatter reads the month name off it.
+  const name = new Date(year, index, 1, 12).toLocaleString(undefined, { month: 'long' })
+  return `${name} ${year}`
+}

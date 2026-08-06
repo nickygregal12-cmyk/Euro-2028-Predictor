@@ -1,4 +1,6 @@
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
+import type { SeasonPeriodStandingsGateway } from './periodStandingsModel'
+import { SeasonPeriodStandings } from './SeasonPeriodStandings'
 import type { SeasonStandingsGateway, StandingsRow } from './standingsModel'
 import { useSeasonStandings } from './useSeasonStandings'
 import styles from './SeasonStandingsPage.module.css'
@@ -29,6 +31,13 @@ export type SeasonStandingsPageProps = {
   gateway: SeasonStandingsGateway
   /** Named so the table cannot be mistaken for a competition-wide ranking. */
   gameName: string
+  /**
+   * ADR 0012's two retention views, rendered beneath the table when supplied.
+   * Optional because they are derived: a surface that can show the season's
+   * ranking is complete without them, and the DEV harness has no reason to
+   * carry them.
+   */
+  periods?: SeasonPeriodStandingsGateway
 }
 
 const SKELETON_ROWS = 8
@@ -59,7 +68,11 @@ function Row({ row, pinned = false }: { row: StandingsRow; pinned?: boolean }) {
   )
 }
 
-export function SeasonStandingsPage({ gateway, gameName }: SeasonStandingsPageProps) {
+export function SeasonStandingsPage({
+  gateway,
+  gameName,
+  periods,
+}: SeasonStandingsPageProps) {
   const { status, view, loadingMore, error, loadMore, reload } = useSeasonStandings(gateway)
 
   if (status === 'loading') {
@@ -161,6 +174,11 @@ export function SeasonStandingsPage({ gateway, gameName }: SeasonStandingsPagePr
           {loadingMore ? 'Loading…' : 'Load more'}
         </Button>
       ) : null}
+
+      {/* Only once the season has a table of its own. Both derived views read
+          the same settled matchweeks, so before the first settlement they are
+          two more empty states under an empty state. */}
+      {periods ? <SeasonPeriodStandings gateway={periods} /> : null}
     </section>
   )
 }
