@@ -3,6 +3,7 @@ import { userFacingError } from '../../shared/errors/userFacingError'
 import {
   type LmsRegistrationFacts,
   type LmsRegistrationPresentation,
+  type RegistrationCopy,
   type SeasonLmsRegistrationGateway,
   lmsRegistrationRefusal,
   presentLmsRegistration,
@@ -37,6 +38,7 @@ export type SeasonLmsRegistrationState = {
 
 export function useSeasonLmsRegistration(
   gateway: SeasonLmsRegistrationGateway,
+  copy: RegistrationCopy,
   onJoined?: () => void,
 ): SeasonLmsRegistrationState {
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
@@ -93,7 +95,7 @@ export function useSeasonLmsRegistration(
   return {
     status,
     facts,
-    presentation: facts ? presentLmsRegistration(facts) : null,
+    presentation: facts ? presentLmsRegistration(facts, copy) : null,
     joining,
     error,
     join,

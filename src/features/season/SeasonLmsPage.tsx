@@ -1,5 +1,5 @@
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
-import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
+import { LMS_REGISTRATION_COPY, type SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { LmsClub, SeasonLmsGateway } from './lmsRoundModel'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonLms } from './useSeasonLms'
@@ -54,7 +54,11 @@ export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps
   // there is no round yet: registration for a competition that has not started
   // playing is exactly when a player most needs it.
   const registrationPanel = registration ? (
-    <SeasonLmsRegistration gateway={registration} onJoined={reload} />
+    <SeasonLmsRegistration
+      gateway={registration}
+      copy={LMS_REGISTRATION_COPY}
+      onJoined={reload}
+    />
   ) : null
 
   if (status === 'loading') {

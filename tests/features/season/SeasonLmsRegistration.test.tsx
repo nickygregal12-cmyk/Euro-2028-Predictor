@@ -3,13 +3,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { SeasonLmsRegistration } from '../../../src/features/season/SeasonLmsRegistration'
 import { SeasonLmsPage } from '../../../src/features/season/SeasonLmsPage'
 import { createDevSeasonLmsRegistrationGateway } from '../../../src/dev/seasonLmsRegistrationGateway'
+import { LMS_REGISTRATION_COPY } from '../../../src/features/season/lmsRegistrationModel'
 import { createDevSeasonLmsGateway } from '../../../src/dev/seasonLmsGateway'
 
 const NOW = () => new Date('2027-01-14T12:00:00Z')
 
 describe('the season LMS registration panel', () => {
   it('offers a join when the window is open', async () => {
-    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('open')} />)
+    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('open')} copy={LMS_REGISTRATION_COPY} />)
 
     await waitFor(() => expect(screen.getByText('Join Last Man Standing')).toBeTruthy())
     expect(screen.getByRole('button', { name: 'Join' })).toBeTruthy()
@@ -17,28 +18,28 @@ describe('the season LMS registration panel', () => {
 
   it('renders nothing once entered, leaving membership to the round surface', async () => {
     const { container } = render(
-      <SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('entered')} />,
+      <SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('entered')} copy={LMS_REGISTRATION_COPY} />,
     )
 
     await waitFor(() => expect(container.querySelector('section')).toBeNull())
   })
 
   it('explains a closed window instead of hiding the panel', async () => {
-    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('closed')} />)
+    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('closed')} copy={LMS_REGISTRATION_COPY} />)
 
     await waitFor(() => expect(screen.getByText('Registration has closed')).toBeTruthy())
     expect(screen.queryByRole('button', { name: 'Join' })).toBeNull()
   })
 
   it('says a window has not opened, without offering a join', async () => {
-    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('not_open')} />)
+    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('not_open')} copy={LMS_REGISTRATION_COPY} />)
 
     await waitFor(() => expect(screen.getByText('Registration has not opened')).toBeTruthy())
     expect(screen.queryByRole('button', { name: 'Join' })).toBeNull()
   })
 
   it('renders a load failure as a failure with a retry, never a closed window', async () => {
-    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('load_failed')} />)
+    render(<SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('load_failed')} copy={LMS_REGISTRATION_COPY} />)
 
     await waitFor(() =>
       expect(screen.getByText('We could not load registration')).toBeTruthy(),
@@ -52,6 +53,7 @@ describe('the season LMS registration panel', () => {
     render(
       <SeasonLmsRegistration
         gateway={createDevSeasonLmsRegistrationGateway('open')}
+        copy={LMS_REGISTRATION_COPY}
         onJoined={onJoined}
       />,
     )
@@ -66,7 +68,10 @@ describe('the season LMS registration panel', () => {
     // The reload clears the error, so the sentence has to survive it — the
     // player would otherwise get no explanation at all.
     render(
-      <SeasonLmsRegistration gateway={createDevSeasonLmsRegistrationGateway('join_refused')} />,
+      <SeasonLmsRegistration
+        gateway={createDevSeasonLmsRegistrationGateway('join_refused')}
+        copy={LMS_REGISTRATION_COPY}
+      />,
     )
 
     const join = await screen.findByRole('button', { name: 'Join' })

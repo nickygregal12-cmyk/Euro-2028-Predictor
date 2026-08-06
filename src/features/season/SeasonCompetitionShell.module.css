@@ -86,6 +86,7 @@
 }
 
 .subNavActive,
+.subNavLink,
 .subNavDisabled {
   display: inline-block;
   padding: var(--sp-2) var(--sp-3);
@@ -108,7 +109,23 @@
 
 .subNavDisabled {
   border: 1px solid transparent;
+  /* --tx3 is legible here because this sits on the page background rather than
+     a tinted surface, and the label is deliberately quieter than a real
+     destination. */
   color: var(--tx3);
+}
+
+/* A reachable section. --tx2 rather than --tx3, so a link the player can follow
+   reads as more available than one that is not built. */
+.subNavLink {
+  border: 1px solid transparent;
+  color: var(--tx2);
+  text-decoration: none;
+}
+
+.subNavLink:hover {
+  border-color: var(--line);
+  color: var(--tx);
 }
 
 .content {

@@ -198,10 +198,12 @@ export function CompetitionDashboardPage() {
         </div>
       </Masthead>
 
-      <p className={h.dashboardIntro}>
-        This dashboard will prioritise incomplete predictions, the next lock, live results,
-        current ranks and active game decisions for this competition.
-      </p>
+      {/* This paragraph used to promise what the dashboard *would* one day
+          prioritise — incomplete predictions, the next lock, live results,
+          ranks. A roadmap rendered as body text tells a player nothing about
+          their own competition, so it is replaced by the games below, which
+          are real. What belongs here instead is next action and next lock, and
+          those arrive with the reads that can answer them. */}
 
       {state.status === 'failed' ? (
         <Alert variant="warning" title="Couldn’t check your entries">

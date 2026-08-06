@@ -60,8 +60,32 @@ export type LmsRegistrationPresentation = {
   closesAt: string | null
 }
 
+/**
+ * The game-specific wording. Everything else about registration is identical
+ * across games, because the rules are: `join_competition_game` governs entry
+ * for every game key, so a second copy of this logic per game would be three
+ * chances to disagree about one rule.
+ */
+export type RegistrationCopy = {
+  /** The game's name as the interface calls it (ADR 0020 names). */
+  gameName: string
+  /** One line on what playing it involves, shown beside the join control. */
+  pitch: string
+}
+
+export const LMS_REGISTRATION_COPY: RegistrationCopy = {
+  gameName: 'Last Man Standing',
+  pitch: 'Pick one club a round to win. Use a club once and it is spent for the cycle.',
+}
+
+export const CHAMPIONSHIP_REGISTRATION_COPY: RegistrationCopy = {
+  gameName: 'the Predictor Championship',
+  pitch: 'Play a head-to-head fixture every matchweek, scored from your Main Predictor points.',
+}
+
 export function presentLmsRegistration(
   facts: LmsRegistrationFacts,
+  copy: RegistrationCopy,
 ): LmsRegistrationPresentation {
   const now = new Date(facts.serverNow).getTime()
   const opensAt = facts.registrationOpensAt
@@ -86,7 +110,7 @@ export function presentLmsRegistration(
       ...base,
       state: 'finished',
       headline: 'This competition has finished',
-      explanation: 'Last Man Standing is over for this season. A new one can start later.',
+      explanation: `${copy.gameName[0].toUpperCase()}${copy.gameName.slice(1)} is over for this season. A new one can start later.`,
       canJoin: false,
     }
   }
@@ -96,7 +120,7 @@ export function presentLmsRegistration(
       ...base,
       state: 'entered',
       headline: 'You are entered',
-      explanation: 'You are entered in this Last Man Standing competition.',
+      explanation: `You are entered in this ${copy.gameName} competition.`,
       canJoin: false,
     }
   }
@@ -125,8 +149,8 @@ export function presentLmsRegistration(
   return {
     ...base,
     state: 'open',
-    headline: 'Join Last Man Standing',
-    explanation: 'Pick one club a round to win. Use a club once and it is spent for the cycle.',
+    headline: `Join ${copy.gameName}`,
+    explanation: copy.pitch,
     canJoin: true,
   }
 }

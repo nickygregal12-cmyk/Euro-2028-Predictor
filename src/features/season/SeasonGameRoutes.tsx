@@ -9,6 +9,7 @@ import { fetchSeasonLeaderboardPage } from '../../services/supabase/seasonLeader
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
 import { createSeasonLmsRegistrationRpcGateway } from '../../services/supabase/seasonLmsRegistration'
 import { createSeasonCupRpcGateway } from '../../services/supabase/seasonCup'
+import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
 import { SeasonStandingsPage } from './SeasonStandingsPage'
 import { SeasonLmsPage } from './SeasonLmsPage'
 import { SeasonCupPhasePage } from './SeasonCupPhasePage'
@@ -95,34 +96,68 @@ function useSeasonRoute(): RouteState {
   return state
 }
 
+/**
+ * Every season game page renders inside the competition shell, exactly as the
+ * Match Predictor route does. The shell supplies competition identity and the
+ * §7.3 sub-navigation; this only decides which section is current and what the
+ * status strip says.
+ *
+ * Before the season resolves there is no competition to name, so the shell is
+ * not rendered with a placeholder identity — a masthead reading "Competition"
+ * would be furniture asserting something untrue. The skeleton stands alone
+ * until the name is a fact.
+ */
 function RouteFrame({
   title,
+  section,
   state,
+  statusStrip = [],
   children,
 }: {
   title: string
+  section: SeasonShellSection
   state: RouteState
+  statusStrip?: readonly string[]
   children: (resolved: Resolved) => React.ReactNode
 }) {
-  return (
-    <div className={s.page}>
-      <div className={s.header}>
-        <span className={s.eyebrow}>
-          {state.status === 'ready' ? state.resolved.competition.name : 'Competition'}
-        </span>
-        <h1 className={s.title}>{title}</h1>
-      </div>
-
-      {state.status === 'loading' ? (
+  if (state.status === 'loading') {
+    return (
+      <div className={s.page}>
+        <Skeleton width="60%" height={28} />
         <Skeleton width="100%" height={220} />
-      ) : state.status === 'failed' ? (
+      </div>
+    )
+  }
+
+  if (state.status === 'failed') {
+    return (
+      <div className={s.page}>
+        <div className={s.header}>
+          <h1 className={s.title}>{title}</h1>
+        </div>
         <Alert variant="error" title="We could not open this game">
           {state.message}
         </Alert>
-      ) : (
-        children(state.resolved)
-      )}
-    </div>
+      </div>
+    )
+  }
+
+  return (
+    <SeasonCompetitionShell
+      competitionName={state.resolved.competition.name}
+      seasonLabel={state.resolved.competition.seasonLabel}
+      statusStrip={statusStrip}
+      active={section}
+      // Overview is the competition dashboard, which exists — so the player on
+      // a game page has a way back to the competition without the browser's
+      // back button. The other three sections have no season implementation
+      // and stay unavailable rather than becoming dead links.
+      destinations={{
+        overview: `/competitions/${state.resolved.competition.competitionSlug}/${state.resolved.competition.seasonSlug}`,
+      }}
+    >
+      {children(state.resolved)}
+    </SeasonCompetitionShell>
   )
 }
 
@@ -138,7 +173,13 @@ function MissingGame({ name }: { name: string }) {
 export function SeasonStandingsRoute() {
   const state = useSeasonRoute()
   return (
-    <RouteFrame title="Main Predictor standings" state={state}>
+    /* `play` rather than `games`: §7.4 puts standings inside the GAME shell as
+       one of the Main Predictor's own sections, and the competition sub-nav has
+       no entry for it. Of the five §7.3 sections, `play` is where that game
+       already lives — the Match Predictor route claims it too — so the two
+       Main Predictor surfaces stay together rather than one drifting under a
+       heading that means "other games". */
+    <RouteFrame title="Main Predictor standings" section="play" state={state}>
       {(resolved) => (
         <SeasonStandingsPage
           gameName="Main Predictor"
@@ -157,7 +198,7 @@ export function SeasonLmsRoute() {
   const { userId } = useAuth()
 
   return (
-    <RouteFrame title="Last Man Standing" state={state}>
+    <RouteFrame title="Last Man Standing" section="games" state={state}>
       {(resolved) => {
         const competitionId = resolved.gameIds.last_man_standing
         if (!competitionId) return <MissingGame name="Last Man Standing" />
@@ -203,23 +244,48 @@ function SeasonLmsRouteBody({
 
 export function SeasonChampionshipRoute() {
   const state = useSeasonRoute()
+  const { userId } = useAuth()
 
   return (
-    <RouteFrame title="Predictor Championship" state={state}>
+    <RouteFrame title="Predictor Championship" section="games" state={state}>
       {(resolved) => {
         const competitionId = resolved.gameIds.predictor_cup
         if (!competitionId) return <MissingGame name="The Predictor Championship" />
-        return <SeasonChampionshipRouteBody competitionId={competitionId} />
+        return (
+          <SeasonChampionshipRouteBody
+            tournamentId={resolved.tournamentId}
+            competitionId={competitionId}
+            userId={userId}
+          />
+        )
       }}
     </RouteFrame>
   )
 }
 
-function SeasonChampionshipRouteBody({ competitionId }: { competitionId: string }) {
+function SeasonChampionshipRouteBody({
+  tournamentId,
+  competitionId,
+  userId,
+}: {
+  tournamentId: string
+  competitionId: string
+  userId: string | null
+}) {
   const gateway = useMemo(
     () => createSeasonCupRpcGateway({ competitionId }),
     [competitionId],
   )
+  // The same registration gateway the Last Man Standing route uses: entry is
+  // `join_competition_game` for every game key, so there is one path, not one
+  // per game.
+  const registration = useMemo(
+    () =>
+      userId
+        ? createSeasonLmsRegistrationRpcGateway({ tournamentId, competitionId, userId })
+        : undefined,
+    [tournamentId, competitionId, userId],
+  )
 
-  return <SeasonCupPhasePage gateway={gateway} />
+  return <SeasonCupPhasePage gateway={gateway} registration={registration} />
 }
