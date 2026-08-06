@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   clearMyPredictions: vi.fn<() => Promise<void>>(),
   retryInitialLoad: vi.fn(),
   updateMyDisplayName: vi.fn<() => Promise<void>>(),
+  updateReminderEmails: vi.fn<() => Promise<void>>(),
+  fetchLeaderboardPage: vi.fn<() => Promise<unknown>>(),
 }))
 
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
@@ -64,7 +66,7 @@ vi.mock('../../../src/services/supabase/profile', () => ({
   fetchMyAccount: () =>
     Promise.resolve({ displayName: 'Nicky', reminderEmails: true }),
   updateMyDisplayName: mocks.updateMyDisplayName,
-  updateReminderEmails: vi.fn(),
+  updateReminderEmails: mocks.updateReminderEmails,
 }))
 
 vi.mock('../../../src/services/supabase/predictions', () => ({
@@ -72,16 +74,22 @@ vi.mock('../../../src/services/supabase/predictions', () => ({
 }))
 
 vi.mock('../../../src/services/supabase/leaderboard', () => ({
-  fetchLeaderboardPage: () =>
-    Promise.resolve({
-      rows: [],
-      totalCount: 0,
-      pageSize: 1,
-      hasMore: false,
-      nextCursor: null,
-      you: null,
-    }),
+  fetchLeaderboardPage: mocks.fetchLeaderboardPage,
 }))
+
+const EMPTY_LEADERBOARD_PAGE = {
+  rows: [],
+  totalCount: 0,
+  pageSize: 1,
+  hasMore: false,
+  nextCursor: null,
+  you: null,
+}
+
+beforeEach(() => {
+  mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD_PAGE)
+  mocks.updateReminderEmails.mockResolvedValue(undefined)
+})
 
 function renderPage() {
   render(
@@ -184,5 +192,81 @@ describe('AccountPage danger zone', () => {
       expect(mocks.updateMyDisplayName).toHaveBeenCalledWith('user-1', 'New Nick')
       expect(mocks.refreshProfile).toHaveBeenCalled()
     })
+  })
+})
+
+describe('AccountPage reminder preference', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  async function findEnabledToggle(): Promise<HTMLInputElement> {
+    const toggle = screen.getByRole<HTMLInputElement>('checkbox')
+    await waitFor(() => expect(toggle.disabled).toBe(false))
+    return toggle
+  }
+
+  it('saves a toggle and keeps the new value with no error shown', async () => {
+    renderPage()
+    const toggle = await findEnabledToggle()
+    expect(toggle.checked).toBe(true)
+
+    fireEvent.click(toggle)
+
+    await waitFor(() => {
+      expect(mocks.updateReminderEmails).toHaveBeenCalledWith('user-1', false)
+    })
+    expect(toggle.checked).toBe(false)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('says a failed toggle did not save instead of silently reverting', async () => {
+    mocks.updateReminderEmails.mockRejectedValueOnce(new Error('internal provider detail'))
+    renderPage()
+    const toggle = await findEnabledToggle()
+
+    fireEvent.click(toggle)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('didn’t save')
+    expect(alert.textContent).toContain('still on')
+    expect(alert.textContent).not.toContain('internal provider detail')
+    expect(toggle.checked).toBe(true)
+  })
+
+  it('clears the stale error once a retry saves', async () => {
+    mocks.updateReminderEmails.mockRejectedValueOnce(new Error('offline'))
+    renderPage()
+    const toggle = await findEnabledToggle()
+
+    fireEvent.click(toggle)
+    await screen.findByRole('alert')
+
+    fireEvent.click(toggle)
+
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+    expect(toggle.checked).toBe(false)
+  })
+})
+
+describe('AccountPage standings headline', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('keeps the pre-results copy for a genuinely empty leaderboard', async () => {
+    renderPage()
+
+    expect(await screen.findByText('Standings update once results land')).toBeTruthy()
+  })
+
+  it('says the standings failed to load rather than claiming results are pending', async () => {
+    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('leaderboard down'))
+    renderPage()
+
+    expect(
+      await screen.findByText('Your standings couldn’t be loaded right now.'),
+    ).toBeTruthy()
+    expect(screen.queryByText('Standings update once results land')).toBeNull()
   })
 })

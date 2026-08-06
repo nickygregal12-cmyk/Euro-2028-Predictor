@@ -45,10 +45,12 @@ export function AccountPage() {
     data.status === 'ready' ? entryLocked : true
 
   // Headline: points + rank (pre-results guard as on the Profile page).
+  // A failed read is not the pre-results state — the two get different copy.
   const [headline, setHeadline] = useState<{
     points: number
     rank: number | null
   } | null>(null)
+  const [headlineFailed, setHeadlineFailed] = useState(false)
   useEffect(() => {
     if (!tournamentId) return
     let active = true
@@ -56,13 +58,16 @@ export function AccountPage() {
       .then((page) => {
         if (!active) return
         const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
+        setHeadlineFailed(false)
         setHeadline({
           points: page.you?.totalPoints ?? 0,
           rank: preResults ? null : (page.you?.rank ?? null),
         })
       })
       .catch(() => {
-        if (active) setHeadline(null)
+        if (!active) return
+        setHeadline(null)
+        setHeadlineFailed(true)
       })
     return () => {
       active = false
@@ -188,15 +193,20 @@ export function AccountPage() {
 
   // --- Preferences ---------------------------------------------------------
   const [prefBusy, setPrefBusy] = useState(false)
+  const [prefError, setPrefError] = useState<string | null>(null)
   const toggleReminders = async () => {
     if (!userId || !account) return
     setPrefBusy(true)
+    setPrefError(null)
     const next = !account.reminderEmails
     setAccount({ ...account, reminderEmails: next })
     try {
       await updateReminderEmails(userId, next)
     } catch {
       setAccount({ ...account, reminderEmails: !next })
+      setPrefError(
+        `That didn’t save — reminder emails are still ${account.reminderEmails ? 'on' : 'off'}. Try again.`,
+      )
     } finally {
       setPrefBusy(false)
     }
@@ -258,7 +268,9 @@ export function AccountPage() {
             <span className={a.oneLiner}>
               {headline
                 ? `${headline.points} pts${headline.rank !== null ? ` · ${headline.rank}${ordinal(headline.rank)} overall` : ''}`
-                : 'Standings update once results land'}
+                : headlineFailed
+                  ? 'Your standings couldn’t be loaded right now.'
+                  : 'Standings update once results land'}
             </span>
             {champion ? (
               <span className={a.champion}>
@@ -424,6 +436,7 @@ export function AccountPage() {
             onChange={toggleReminders}
           />
         </label>
+        {prefError ? <p role="alert" className={a.fieldError}>{prefError}</p> : null}
       </div>
 
       <AccountPrivacySupport
