@@ -50,6 +50,27 @@ New pages consume typed read models and commands; they do not depend on raw Supa
 Release principle
 No big-bang cutover. Use flags, internal cohorts, comparison evidence and immediate rollback.
 
+# Amendment — 6 August 2026: the Euro 2028 boundary is two sites, and Euro is hidden
+
+**[ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md) supersedes this plan's Euro positioning.** Revision 1.5 integrated a "standalone Euro 2028 authority" written when there was one deployment; the owner has since decided a stronger boundary, and the parts of this plan that assume Euro 2028 is a visible section of the weekly product are **no longer the target**.
+
+What changed:
+
+| This plan says | Now |
+| --- | --- |
+| Euro reuses "the same account, **domain** and backend contracts" (§ Information architecture) | Same account and backend; **its own domain**. Two frontend deployments over one shared backend (`SITE-001`, `SITE-002`, `SITE-004`) |
+| "Domestic users may discover Euro 2028" (§ E.6) | **Not while its publication state is hidden** (`EURO-001`). Discovery resumes only at an owner-approved publication state |
+| Euro appears as an acquisition band on the weekly landing page, after the domestic competitions (§ E.3, § E.7) | **Absent from the weekly platform entirely** while hidden — landing content, Hub discovery, cards, navigation, metadata, sitemap, Open Graph and guessable routes (`EURO-003`) |
+| The Euro experience is a shell within this design | **A separate site with its own information architecture**, not yet designed. It is not Appendix E with different copy |
+
+What is unchanged: the domestic landing hierarchy, content order and design decisions in Appendix E that do not concern Euro; the E.4 token discipline; the E.6 rule that membership is never implied and no cross-product aggregate ranking exists — which ADR 0026 restates as `ACCOUNT-004` and strengthens rather than relaxes.
+
+**This amendment changes presentation scope only.** It sets no scoring, lock, membership, settlement, progression or reveal rule, consistent with the Authority line above.
+
+**Nothing here is implemented, and the sections below are deliberately not rewritten.** Appendix E, [`hub-landing-prototype.html`](hub-landing-prototype.html), `tests/design/landingPrototypeContract.test.ts` and `src/features/landing/` currently agree with *each other* and with revision 1.5 — the prototype carries a Euro band, the contract test pins its position, and `LandingPage.tsx` renders `EuroSection`. Removing Euro is therefore one atomic change across all four, tracked as `EURO-003` in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md). Rewriting this appendix alone would leave the executable prototype and its test contradicting their own authority, which is the drift this plan's contract test exists to prevent.
+
+The weekly landing page is not publicly exposed in the meantime: `VITE_UI_PUBLIC_LANDING` is set for deploy previews only and production keeps the login redirect.
+
 # Contents
 1. Executive decision and guiding principles
 2. Current repository baseline
@@ -453,6 +474,8 @@ Unknown freshness is not presented as live or official.
 07
 Target site and information architecture
 The signed-in Hub is global for the recurring domestic product; competition season is context; each game remains independently joined and scored. Euro 2028 may use a separate acquisition shell while reusing the same account, domain and backend contracts.
+
+> **Amended 6 August 2026 — see the amendment above Contents.** Euro 2028 reuses the account and backend contracts but **not the domain**: it is a separate frontend deployment on the purchased tournament domain (`SITE-004`), and it is hidden from this Hub entirely until an owner-approved publication state (`EURO-001`).
 
 ## 7.1 Product hierarchy
 Football Prediction Hub (recurring domestic product)|+-- Scottish Premiership season+-- Premier League season|   +-- Overview|   +-- Play / action inbox|   +-- Matches and football information|   +-- Independently joined games|   +-- Private leagues / competitions|+-- Shared account, identity and platform services|+-- Euro 2028 standalone acquisition experience    +-- Dedicated public entry and tournament shell    +-- Reuses approved tournament rules and backend contracts    +-- Offers an explicit, optional path into the domestic Hub
@@ -1567,6 +1590,8 @@ Public landing and campaign positioning; tournament navigation and onboarding; t
 ## E.6 Conversion and membership safety
 A Euro account may be offered the domestic Hub, but the invitation is explicit. It must not silently follow a domestic competition, join Match Predictor, enter LMS or create a private-league membership.
 Domestic users may discover Euro 2028, but the tournament remains independently joined and scored. No cross-game or cross-product aggregate ranking is introduced.
+
+> **Amended 6 August 2026 by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md).** The first sentence is superseded: **domestic users may not discover Euro 2028 while its publication state is hidden** (`EURO-001`). Discovery resumes only at an owner-approved publication state, and is then produced by that server-owned state rather than by a client catalogue (`EURO-004`). The rest of this section stands and is strengthened — the tournament remains independently joined and scored, membership is never implied (`ACCOUNT-004`), and no cross-product aggregate ranking exists.
 Acquisition telemetry distinguishes anonymous landing conversion, account creation, tournament entry, domestic follow, domestic game join and private-league join. These are separate events and funnels.
 
 ## E.7 Prototype acceptance checklist
@@ -1576,4 +1601,9 @@ The signed-in preview uses the permanent global rail and, when shown at full des
 Repeated sports information is row-led with stable numeric columns; informational sections do not become nested cards.
 The sign-up mock explains that competition and game selection follows, and the selection step starts empty.
 Euro 2028 appears as a separate acquisition/tournament proposition and its conversion into the domestic Hub is optional.
+
+> **Amended 6 August 2026.** The two Euro items in this checklist — "both domestic competitions are visible before Euro 2028" and the line directly above — describe a landing page on which Euro 2028 appears at all. While Euro's publication state is hidden it must not appear on the weekly platform in any form (`EURO-003`), so both items lapse rather than being reordered. Every other item in this checklist stands unchanged.
+>
+> The checklist is **not** rewritten here because `tests/design/landingPrototypeContract.test.ts` pins these two items against [`hub-landing-prototype.html`](hub-landing-prototype.html), and `src/features/landing/` implements them. Authority, prototype, test and component change together under `EURO-003`, or they drift apart.
+
 End of plan - revision 1.5

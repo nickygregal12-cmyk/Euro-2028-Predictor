@@ -9,7 +9,7 @@ const register = readFileSync(
 
 describe('acquisition risk register freshness', () => {
   it('delegates moving hosted state to the live authorities', () => {
-    expect(register).toContain('**Last reconciled:** 5 August 2026')
+    expect(register).toContain('**Last reconciled:** 6 August 2026')
     expect(register).toContain(
       'Moving repository, hosted-database and Netlify contract values remain in',
     )
