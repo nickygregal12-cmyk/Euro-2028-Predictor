@@ -175,6 +175,7 @@ The following retained signatures may remain physically named `p_tournament_id`,
 - `get_season_leaderboard`
 - `get_season_lms_round`
 - `get_season_matchweek_card`
+- `get_season_play_matchweek`
 - `save_season_prediction`
 - `set_season_matchweek_joker`
 - `confirm_season_matchweek_card`

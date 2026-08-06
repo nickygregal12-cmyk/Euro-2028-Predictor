@@ -70,6 +70,7 @@ The merged delta known at this 5 August review is:
 | 116 | the season Last Man Standing round reaches the browser — the entrant's own round, its fixtures, their pick and the server's survival verdict |
 | 117 | a provider kickoff change reaches the fixture automatically — still no surface, and a moved match keeps its matchweek heading |
 | 119 | a rescheduled fixture stays editable to its own kickoff — the surface must show that one card in a locked matchweek is still open |
+| 120 | a season's card knows which matchweek to open at — the surface stops needing a number handed to it, and gains an end-of-season state where there is no next matchweek |
 
 The Contract 107–109 backend restart lifecycle is complete. Contract 107
 creates the linked successor, Contract 108 refuses inherited past rounds, and
@@ -94,7 +95,12 @@ under — a presentation rule as much as a data one, and the reason these screen
 sort by kickoff while labelling by round. Contract 119 adds the state that follows from
 both: inside a locked matchweek, one card can still be open, because that
 fixture was moved and locks at its own kickoff. A surface that greys the whole
-matchweek would be showing a rule the platform no longer has. Contract 116 does
+matchweek would be showing a rule the platform no longer has. Contract 120 is the
+one that unblocks a surface rather than constraining one: it answers which
+matchweek a season's card should open at, which is the question that kept the
+season Match Predictor page off the route table. It also introduces a state the
+page did not have to render before — a season past its last lock, where there is
+no next matchweek and the card has nothing to open. Contract 116 does
 have a surface ahead of it: it is the read a season Last Man Standing round needs
 before one can be drawn at all, since the tournament read returns a season round
 with no fixtures in it.

@@ -127,7 +127,12 @@ insert into expected_authenticated_functions (signature) values
   -- boundary again, so it stays out of expected_service_functions for the
   -- reason contract 95 established — service_role has no auth.uid() and the
   -- call would refuse every time.
-  ('get_season_lms_round(uuid)');
+  ('get_season_lms_round(uuid)'),
+  -- Contract 120: which matchweek a season's card opens at. It carries the
+  -- same auth.uid() boundary as every season read above, so it stays out of
+  -- expected_service_functions for contract 95's reason — service_role has no
+  -- auth.uid() and the call refuses every time.
+  ('get_season_play_matchweek(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

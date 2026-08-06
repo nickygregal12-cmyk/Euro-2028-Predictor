@@ -512,7 +512,27 @@
  * has none, and the authority returns the matchweek instant for everything
  * else. So a seeded user's lock is the instant it already was.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 119
+/**
+ * Contract 120 adds one `public` function, `get_season_play_matchweek`, and
+ * nothing else. It creates no relation, no trigger, no policy and no RLS
+ * change; it alters no existing relation, function or grant; and its only
+ * privilege movement is `grant execute ... to authenticated` on the new
+ * function itself, revoked from `public` and `anon`.
+ *
+ * It therefore cannot gate an authenticated read, which is the failure this
+ * number exists to catch: it ADDS a capability rather than restricting one, and
+ * a seeded user who never calls it is in exactly the state contract 119 left
+ * them in. Nothing a seeded Euro user reads goes near it — the function
+ * refuses any competition whose `kind` is not `league_season`.
+ *
+ * Reasoned rather than executed, and that is worth being explicit about: the
+ * environment this was raised in had no usable Docker, so no seeded session was
+ * driven against it. That is the same standard every entry above uses — each
+ * one argues from what the migration changes — but it is not a browser run, and
+ * Database parity in CI is the first execution of either the migration or its
+ * pgTAP suite.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 120
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
