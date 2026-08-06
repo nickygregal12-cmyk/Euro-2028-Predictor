@@ -22,7 +22,7 @@ Use evidence in this order:
 3. [`docs/quality/current-status.md`](docs/quality/current-status.md);
 4. ADRs for decisions;
 5. [`docs/design/README.md`](docs/design/README.md) for what the finished product should look like — the target design authority, presentation and delivery only;
-6. [`docs/roadmap.md`](docs/roadmap.md) for future sequence and [`MASTER-TODO.md`](MASTER-TODO.md) for the detailed active/parked inventory;
+6. [`docs/roadmap.md`](docs/roadmap.md) for future sequence, [`MASTER-TODO.md`](MASTER-TODO.md) for the detailed active/parked inventory, and [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md) for requirements that were accepted and are not built;
 7. dated reconciliations and older audits for historical evidence only.
 
 A planning document never overrides an ADR. Process, prepared tooling or a chat statement is not implementation evidence.
@@ -180,6 +180,8 @@ Never weaken an environment or deployment-contract guard merely to make a build 
 - `docs/roadmap.md` is the only live execution sequence.
 - `MASTER-TODO.md` is the only detailed active/parked inventory.
 - `docs/build-todo.md` is a compatibility pointer, not a separate checklist.
+- `docs/quality/accepted-requirements.md` is the only home for a requirement that was **accepted and never built**. Give it a stable identifier, its dependency and what would prove it done. **Mark a row implemented, superseded or rejected in place — never delete one**, because deleting it destroys the only trace the requirement existed. `tests/scripts/acceptedRequirements.test.ts` enforces the register's shape and its links.
+- Do not describe an accepted decision as implemented without merged code, a migration, an executable test or verified hosted evidence, named.
 - Update risk, scoring, architecture or operational runbooks only when their subject changes.
 - Dated audits and reconciliations are immutable historical evidence.
 - Archive superseded controls under the governed history directory; never delete one as cleanup.
