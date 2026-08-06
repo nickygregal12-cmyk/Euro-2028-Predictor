@@ -89,6 +89,7 @@ describe('row-level security', () => {
       // carries the current kickoff — this exists to hold what the current
       // value replaced, which no browser surface has a use for.
       { schema: 'predictor_internal', name: 'season_fixture_revisions' },
+      { schema: 'predictor_internal', name: 'round_window_refresh_conflicts' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

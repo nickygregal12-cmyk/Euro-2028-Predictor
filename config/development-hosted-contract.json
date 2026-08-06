@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 120,
-  "latestMigrationVersion": "20260806100000",
-  "latestMigrationName": "season_cup_phase_read",
-  "verifiedAt": "2026-08-06T08:09:32.092Z",
+  "requiredMigrationCount": 122,
+  "latestMigrationVersion": "20260806130000",
+  "latestMigrationName": "season_period_standings",
+  "verifiedAt": "2026-08-06T12:22:32.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 31083613351, applying contracts 116-120 in one run. THE RUN IS THE EVIDENCE AND ITS OWN LOGS HOLD THE OBJECT-LEVEL DETAIL: the workflow derived the pending set, proved each migration additive by reading it before applying, took a pre-apply snapshot, applied, and confirmed hosted development matched the repository. Confirmed independently through the GitHub Actions API before this record was placed on main: workflow 'Development fast-lane rollout', run number 43, event workflow_dispatch, head branch main, head sha 7a566a35ad4ce5c6289d8ee761c139bcd57edd4b, status completed, conclusion SUCCESS, started 2026-08-06T08:07:34Z and finished 08:09:17Z. The repository at that head holds 120 migrations through 20260806100000_season_cup_phase_read.sql, so the count below is the repository's own and not a hand-typed number. WHAT THIS RECORD DOES NOT CLAIM: no object-level hash, grant, RLS or cron assertion was re-derived here \u2014 those belong to the run's logs and snapshot artifact, and to the pgTAP suites that ship with each contract. This field is deliberately thinner than the contract-115 record it replaces: the machine-readable state is the count, the version and the run that established them, and a rollout's narrative belongs with the rollout rather than accumulating here. HOW IT REACHED MAIN: the follow-up workflow generated the identical record on automation/development-hosted-contract-31083613351 and then failed, because the repository forbids GitHub Actions from creating pull requests, leaving a correct record stranded on a branch while main went on reporting 115 for roughly ninety minutes. The same change that carries this record makes that failure mode impossible to repeat silently.",
-    "workflowRunId": 31083613351,
-    "repositoryHead": "7a566a35ad4ce5c6289d8ee761c139bcd57edd4b"
+    "source": "Development fast-lane rollout run 31100989022, applying contracts 121 and 122 in one run on main at 33bff3a. The lane derived the pending set, proved each migration additive by reading it before applying, took a pre-apply snapshot and confirmed afterwards that hosted development matched the repository. THE FOLLOW-UP OPENED ITS OWN PULL REQUEST THIS TIME — PR #527 — which is the first time that automation has completed unaided: the 6 August contract-120 record was stranded on a branch because the repository forbade GitHub Actions from creating pull requests, and the owner enabled that setting the same day. This record carries the identical content by hand because #527's checks sit in action_required, which is a separate and smaller gap: a bot-authored pull request needs its workflows released before it can merge. WHAT THIS RECORD DOES NOT CLAIM: no object-level hash, grant, RLS or cron assertion was re-derived here. Those belong to the run's own logs and snapshot artifact, and to the pgTAP suites shipped with contracts 121 and 122, both of which executed under Database parity before their merges.",
+    "workflowRunId": 31100989022,
+    "repositoryHead": "33bff3ad3af30d9a0d3ef4bdde9d6431ab065284"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false

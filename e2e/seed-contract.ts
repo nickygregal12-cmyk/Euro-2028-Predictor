@@ -564,7 +564,21 @@
  * this environment has no usable Docker, so Database parity in CI is the first
  * execution of both the migration and `174_season_period_standings.sql`.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 122
+/**
+ * Contract 123 adds one column, one queue table, three internal functions and
+ * three row triggers on `season_fixtures`, and redefines contract 122's browser
+ * read to report staleness. It creates no policy or RLS change on any seeded
+ * relation and adds no grant to any browser role.
+ *
+ * The triggers are the only part a seeded session can reach, and they write one
+ * timestamp on `competition_rounds` — no gate, no refusal, no exception path.
+ * A seeded Euro user never reaches them: `season_fixtures` holds league-season
+ * rows only.
+ *
+ * Reasoned rather than executed, on the standard the entries above use: no
+ * Docker here, so Database parity in CI is the first execution.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 123
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
