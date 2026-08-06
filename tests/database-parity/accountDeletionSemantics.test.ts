@@ -28,8 +28,12 @@ function collectAuthUserReferences(): AuthUserReference[] {
       let table = 'unknown'
       for (let cursor = index; cursor >= 0; cursor -= 1) {
         const match =
-          lines[cursor].match(/create table (?:if not exists )?(?:public\.)?([a-z_]+)/i) ??
-          lines[cursor].match(/alter table (?:public\.)?([a-z_]+)/i)
+          // Any schema, not only `public`. Contract 125 creates
+          // `predictor_internal.season_fixture_result_revisions`, and a
+          // `public.`-only prefix made the parser read the SCHEMA as the table
+          // name and pin the column as `predictor_internal.actor_id`.
+          lines[cursor].match(/create table (?:if not exists )?(?:[a-z_]+\.)?([a-z_]+)/i) ??
+          lines[cursor].match(/alter table (?:[a-z_]+\.)?([a-z_]+)/i)
         if (match) {
           table = match[1]
           break
@@ -91,6 +95,10 @@ describe('account deletion — declared foreign-key semantics', () => {
       '20260730180000_cup_winner_deletion_semantics.sql bonus_cup_fixtures.winner_user_id → restrict',
       '20260803070000_c1b_game_catalogue_memberships.sql game_memberships.user_id → cascade',
       '20260803070000_c1b_game_catalogue_memberships.sql game_membership_events.actor_id → set null',
+      // Contract 125. Who confirmed, corrected or cleared a season result. Set
+      // null on erasure for the same reason as every other actor column: the
+      // audit trail is evidence and survives the account that made it.
+      '20260806160000_season_fixture_result_entry.sql season_fixture_result_revisions.actor_id → set null',
     ])
   })
 
@@ -148,6 +156,7 @@ describe('account deletion — consequences', () => {
       'bonus_competition_audit.actor_id',
       'game_membership_events.actor_id',
       'match_result_revisions.actor_id',
+      'season_fixture_result_revisions.actor_id',
     ])
   })
 

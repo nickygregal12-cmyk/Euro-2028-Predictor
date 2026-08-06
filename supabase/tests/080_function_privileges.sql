@@ -78,6 +78,13 @@ insert into expected_authenticated_functions (signature) values
   ('admin_confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
   ('admin_correct_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
   ('admin_match_result_revisions(uuid)'),
+  -- Contract 125. The season counterparts of the three tournament result
+  -- RPCs above. Granted to `authenticated` on the same reasoning: the grant
+  -- lets a signed-in caller reach the function, and require_result_admin()
+  -- inside decides whether they may act.
+  ('admin_confirm_season_fixture_result(uuid,smallint,smallint,text)'),
+  ('admin_correct_season_fixture_result(uuid,smallint,smallint,text)'),
+  ('admin_clear_season_fixture_result(uuid,text)'),
   ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
 -- Contract 50: the Bonus Games hub read plus voluntary entry and withdrawal.
