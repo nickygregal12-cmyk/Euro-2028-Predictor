@@ -53,11 +53,12 @@ const Z_INDEX_EXCLUSIONS: ReadonlyArray<readonly [file: string, reason: string]>
 /**
  * Stylesheets allowed to set `font-size` from a literal, each with its reason.
  *
- * Two kinds. The first is genuinely off-scale by design and says so in place —
- * crest monograms that must fit inside a fixed crest, and a movement triangle
- * whose size is an icon dimension that happens to be spelled `font-size`. The
- * second is the DEV harnesses, which are chrome around the gallery rather than
- * product surface; they are a real remaining item, not a permanent exemption.
+ * Genuinely off-scale by design, and says so in place — crest monograms that
+ * must fit inside a fixed crest, and a movement triangle whose size is an icon
+ * dimension that happens to be spelled `font-size`. The DEV harnesses (
+ * `ComponentsPreview`, `SeasonPreview`, `SeasonLeaderboardPreview`) were the
+ * other kind — chrome around the gallery, not product surface — and have since
+ * been adopted onto the six-step scale, closing the last item the guard named.
  */
 const FONT_SIZE_EXCLUSIONS: ReadonlyArray<readonly [file: string, reason: string]> = [
   [
@@ -67,12 +68,6 @@ const FONT_SIZE_EXCLUSIONS: ReadonlyArray<readonly [file: string, reason: string
   [
     'src/design-system/LeagueTable.module.css',
     'a movement triangle: an icon dimension expressed as font-size, and the six steps govern text',
-  ],
-  ['src/dev/ComponentsPreview.module.css', 'DEV harness chrome, not product surface — outstanding'],
-  ['src/dev/SeasonPreview.module.css', 'DEV harness chrome, not product surface — outstanding'],
-  [
-    'src/dev/SeasonLeaderboardPreview.module.css',
-    'DEV harness chrome, not product surface — outstanding',
   ],
 ]
 
@@ -141,11 +136,13 @@ describe('foundation token adoption', () => {
     }
   })
 
-  it('routes the one adopted transition through the motion tokens', () => {
+  it('routes every transition through the motion tokens', () => {
     // The four durations describe entering, leaving and changing state. A
     // looping spinner, shimmer or pulse is none of those, and forcing a 1.4s
     // ambient loop onto a 240ms token would be adoption for its own sake — so
-    // this checks the transitions rather than the animations.
+    // this checks the transitions rather than the animations. ProgressBar's
+    // width fill was the last one still timed from a literal (0.3s); it now
+    // uses --duration-sheet, so this list is empty rather than naming one file.
     const rawTransitions = stylesheets.filter(({ path, source }) =>
       source
         .split('\n')
@@ -160,6 +157,6 @@ describe('foundation token adoption', () => {
     expect(
       rawTransitions.map(({ path }) => path),
       'transitions timed from a literal rather than --duration-*',
-    ).toEqual(['src/design-system/ProgressBar.module.css'])
+    ).toEqual([])
   })
 })
