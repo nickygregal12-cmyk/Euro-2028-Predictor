@@ -130,6 +130,8 @@ Landed 3 August 2026 across PRs #372, #373, #375, #377, #379, #381 and #383. Thi
 | Last Man Standing | selections, windows, entrant state | contract 89's hourly settlement job, with contract 88's lock-time auto-assignment | no |
 | Predictor Cup | Cup stores and neutral sources (contracts 74–79), plus contract 102 phase-aware groups, memberships and the distinct split fixture stage | **nothing yet drives the season lifecycle** — `select_season_cup_format`, `settle_season_cup_tie`, `resolve_public_cup_launch` and `cup_league_schedule` still have zero call sites and zero trigger bindings; contract 102 is persistence, not the split creator or scheduler | no |
 
+**One season surface now has a production route, and the heading's "none yet visible" is accordingly narrower than it was.** The season Match Predictor is registered at `/competitions/:competitionSlug/:seasonSlug/main-predictor`, behind `VITE_UI_SEASON_MATCH_PREDICTOR`. What it renders today is a 404, everywhere: the flag is set in no environment, and setting it would not help, because the route resolves its season through contract 120 and **contract 120 is applied to no hosted database**. So this is a registered route rather than a visible surface, and the distinction is the point — the remaining gap is a hosted migration, not UI work. Standings and Last Man Standing are still reachable only from their DEV harnesses.
+
 ### TypeScript/PostgreSQL parity coverage
 
 ADR 0012 requires it for season scoring and ADR 0022 requires it for the Cup. Current state, by module:

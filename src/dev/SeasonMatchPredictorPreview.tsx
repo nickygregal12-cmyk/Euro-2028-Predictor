@@ -11,19 +11,18 @@ import styles from './SeasonMatchPredictorPreview.module.css'
 /**
  * DEV harness for the season Match Predictor: every state, driven deliberately.
  *
- * WHY THE PAGE LIVES HERE AND NOT ON A PRODUCTION ROUTE YET. The page itself is
- * production code under `src/features/season/`. What is missing is its data:
- * no browser role can read a season fixture, prediction or Joker, because the
- * bounded RPCs have not been built. Registering a production route now would
- * mean shipping a route that can only ever render "unavailable", and would drag
- * `netlify.toml`, the route-title table and the axe route matrix along with it
- * for a page nobody can use. So the route registration waits for the read path,
- * and the surface is proven here in the meantime.
+ * WHY THIS SURVIVES THE PRODUCTION ROUTE. The page is now registered at
+ * `/competitions/:competitionSlug/:seasonSlug/main-predictor`, so this is no
+ * longer the only way to see it — but it is still the only way to see all of
+ * it. The real route shows the state the database happens to be in; this shows
+ * every state on demand, including the three that are hard to produce
+ * deliberately (a save failure, a version conflict, and a published matchweek
+ * with no fixtures) and the clock positions on either side of a lock. Deleting
+ * it would trade six reachable states for one.
  *
- * The flag that will select it in production is already real and already read
- * below — `VITE_UI_SEASON_MATCH_PREDICTOR`. This harness shows which
- * implementation the flag currently selects, so the rollback switch is
- * observable before it controls anything a player sees.
+ * The flag that selects the production route is read below —
+ * `VITE_UI_SEASON_MATCH_PREDICTOR`. This harness reports which implementation
+ * it currently selects, so the rollback switch stays observable.
  */
 
 const SCENARIOS: readonly { id: GatewayScenario; label: string; hint: string }[] = [
