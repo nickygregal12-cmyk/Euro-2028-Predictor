@@ -39,6 +39,13 @@ jobs:
           else
             npm run check:documentation-authorities
           fi
+      - name: Check the generated current-state surface is current
+        # NOW.md is generated from the contract files, not maintained. This is
+        # what stops it becoming another page that states a moving value and
+        # goes stale — the failure `DOC-001` is open against. It fails on an
+        # out-of-date file and on a hand edit, because both differ from what the
+        # generator would produce.
+        run: npm run check:now
       - name: Verify Git-less environment hygiene behavior
         shell: bash
         run: |

@@ -184,6 +184,7 @@ describe('JavaScript under scripts/', () => {
     'scripts/check-bundle-budget.mjs',
     'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',
+    'scripts/generate-now.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
     'scripts/select-browser-journeys.mjs',
