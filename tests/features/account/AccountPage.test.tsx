@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   clearMyPredictions: vi.fn<() => Promise<void>>(),
   retryInitialLoad: vi.fn(),
   updateMyDisplayName: vi.fn<() => Promise<void>>(),
+  updateReminderEmails: vi.fn<() => Promise<void>>(),
+  fetchLeaderboardPage: vi.fn(),
 }))
 
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
@@ -64,7 +66,7 @@ vi.mock('../../../src/services/supabase/profile', () => ({
   fetchMyAccount: () =>
     Promise.resolve({ displayName: 'Nicky', reminderEmails: true }),
   updateMyDisplayName: mocks.updateMyDisplayName,
-  updateReminderEmails: vi.fn(),
+  updateReminderEmails: mocks.updateReminderEmails,
 }))
 
 vi.mock('../../../src/services/supabase/predictions', () => ({
@@ -72,16 +74,17 @@ vi.mock('../../../src/services/supabase/predictions', () => ({
 }))
 
 vi.mock('../../../src/services/supabase/leaderboard', () => ({
-  fetchLeaderboardPage: () =>
-    Promise.resolve({
-      rows: [],
-      totalCount: 0,
-      pageSize: 1,
-      hasMore: false,
-      nextCursor: null,
-      you: null,
-    }),
+  fetchLeaderboardPage: mocks.fetchLeaderboardPage,
 }))
+
+const EMPTY_LEADERBOARD = {
+  rows: [],
+  totalCount: 0,
+  pageSize: 1,
+  hasMore: false,
+  nextCursor: null,
+  you: null,
+}
 
 function renderPage() {
   render(
@@ -96,6 +99,7 @@ describe('AccountPage sign out', () => {
     vi.clearAllMocks()
     mocks.signOut.mockResolvedValue(undefined)
     mocks.clearMyPredictions.mockResolvedValue(undefined)
+    mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD)
   })
 
   it('does not sign out when confirmation is cancelled', () => {
@@ -154,6 +158,7 @@ describe('AccountPage danger zone', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.clearMyPredictions.mockResolvedValue(undefined)
+    mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD)
   })
 
   it('clears predictions only after the tier-1 confirm, then reloads the entry', async () => {
@@ -184,5 +189,77 @@ describe('AccountPage danger zone', () => {
       expect(mocks.updateMyDisplayName).toHaveBeenCalledWith('user-1', 'New Nick')
       expect(mocks.refreshProfile).toHaveBeenCalled()
     })
+  })
+})
+
+describe('AccountPage reminder preference', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD)
+  })
+
+  it('says so and reverts when the save fails, instead of silently springing back', async () => {
+    mocks.updateReminderEmails.mockRejectedValueOnce(new Error('network down'))
+    renderPage()
+
+    const toggle = (await screen.findByRole('checkbox', {
+      name: /Deadline reminder emails/,
+    })) as HTMLInputElement
+    await waitFor(() => expect(toggle.disabled).toBe(false))
+    expect(toggle.checked).toBe(true)
+
+    fireEvent.click(toggle)
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('couldn’t turn reminder emails off')
+    expect(alert.textContent).toContain('still on')
+    // Reverted to the truth the server still holds.
+    expect(toggle.checked).toBe(true)
+  })
+
+  it('shows no error and keeps the new value when the save succeeds', async () => {
+    mocks.updateReminderEmails.mockResolvedValueOnce(undefined)
+    renderPage()
+
+    const toggle = (await screen.findByRole('checkbox', {
+      name: /Deadline reminder emails/,
+    })) as HTMLInputElement
+    await waitFor(() => expect(toggle.disabled).toBe(false))
+
+    fireEvent.click(toggle)
+
+    await waitFor(() =>
+      expect(mocks.updateReminderEmails).toHaveBeenCalledWith('user-1', false),
+    )
+    expect(toggle.checked).toBe(false)
+    expect(screen.queryByText(/couldn’t turn reminder emails/)).toBeNull()
+  })
+})
+
+describe('AccountPage standings headline', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('does not claim standings are merely pending when the load failed', async () => {
+    // "Standings update once results land" is only true when the leaderboard
+    // answered and was empty. A failed load must not borrow that sentence.
+    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('boom'))
+    renderPage()
+
+    await waitFor(() =>
+      expect(screen.getByText('Your standings didn’t load — check back shortly')).toBeTruthy(),
+    )
+    expect(screen.queryByText('Standings update once results land')).toBeNull()
+  })
+
+  it('keeps the pre-results copy for a genuinely empty leaderboard', async () => {
+    mocks.fetchLeaderboardPage.mockResolvedValueOnce(EMPTY_LEADERBOARD)
+    renderPage()
+
+    await waitFor(() =>
+      expect(screen.getByText('Standings update once results land')).toBeTruthy(),
+    )
+    expect(screen.queryByText(/didn’t load/)).toBeNull()
   })
 })

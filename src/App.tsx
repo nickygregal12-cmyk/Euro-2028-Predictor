@@ -87,6 +87,13 @@ const SeasonLmsPreview = import.meta.env.DEV
       })),
     )
   : null
+const SeasonCupPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/SeasonCupPreview').then((m) => ({
+        default: m.SeasonCupPreview,
+      })),
+    )
+  : null
 
 /**
  * Route titles and announcements for the routes that render without a session.
@@ -135,6 +142,9 @@ export default function App() {
               ) : null}
               {import.meta.env.DEV && SeasonLmsPreview ? (
                 <Route path="/dev/season-lms" element={<SeasonLmsPreview />} />
+              ) : null}
+              {import.meta.env.DEV && SeasonCupPreview ? (
+                <Route path="/dev/season-cup" element={<SeasonCupPreview />} />
               ) : null}
 
               <Route path="*" element={<NotFoundPage />} />
