@@ -238,7 +238,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **${f.repositoryContract}** | latest \`${f.latestMigration}\` |
-| Development hosted | **${f.developmentContract}** | verified \`${f.developmentVerifiedAt ?? 'unrecorded'}\`${f.developmentRunId ? `, fast-lane run \`${f.developmentRunId}\`` : ''} |
+| Development hosted | **${f.developmentContract}** | at \`${f.developmentLatest}\`, verified \`${f.developmentVerifiedAt ?? 'unrecorded'}\`${f.developmentRunId ? `, fast-lane run \`${f.developmentRunId}\`` : ''} |
 | Production | **${f.productionContract}** | promotion **${f.productionPromotionAuthorised ? 'AUTHORISED' : 'not authorised'}** |
 
 Production promotion is read from the hosted record. It is never inferred from
