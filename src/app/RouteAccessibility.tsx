@@ -43,6 +43,11 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
     path: '/competitions/:competitionSlug/:seasonSlug/championship',
     title: 'Predictor Championship',
   },
+  {
+    // Distinct from `/league`, which is the Euro tournament's own league hub.
+    path: '/competitions/:competitionSlug/:seasonSlug/leagues',
+    title: 'Competition leagues',
+  },
   { path: '/competitions/:competitionSlug/:seasonSlug', title: 'Competition dashboard' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },

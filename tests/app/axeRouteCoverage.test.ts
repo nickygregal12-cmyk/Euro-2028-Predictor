@@ -137,6 +137,10 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
     '/competitions/:competitionSlug/:seasonSlug/championship',
     'parameterised — /competitions/premier-league/2026-27/championship is scanned in its place',
   ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/leagues',
+    'parameterised — /competitions/premier-league/2026-27/leagues is scanned in its place',
+  ],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)
