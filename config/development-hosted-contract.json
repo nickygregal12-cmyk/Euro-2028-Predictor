@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 122,
-  "latestMigrationVersion": "20260806130000",
-  "latestMigrationName": "season_period_standings",
-  "verifiedAt": "2026-08-06T12:22:32.253Z",
+  "requiredMigrationCount": 125,
+  "latestMigrationVersion": "20260806160000",
+  "latestMigrationName": "season_fixture_result_entry",
+  "verifiedAt": "2026-08-06T15:13:19.235Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 31100989022, applying contracts 121 and 122. THE RUN IS THE EVIDENCE AND ITS OWN LOGS HOLD THE OBJECT-LEVEL DETAIL: the workflow derived the pending set, proved each migration additive by reading it before applying, took a pre-apply snapshot, applied, and confirmed hosted development matched the repository. Confirmed independently through the GitHub Actions API before this record was placed on main: workflow 'Development fast-lane rollout', run number 44, event workflow_dispatch, head branch main, head sha 60973a05c5389b504ea0a5ede0045532a130fb12, status completed, conclusion SUCCESS, started 2026-08-06T12:20:36Z and finished 12:22:20Z. The repository at that head holds 122 migrations through 20260806130000_season_period_standings.sql, counted from the tree rather than typed, so the count below is the repository's own. WHAT THIS RECORD DOES NOT CLAIM: no object-level hash, grant, RLS or cron assertion was re-derived here — those belong to the run's logs and snapshot artifact, and to the pgTAP suites that ship with each contract. It makes no claim about production, which is stated separately below and is unchanged at contract 63 with promotion unauthorised. HOW IT REACHED MAIN: the follow-up workflow generated this record on automation/development-hosted-contract-31100989022 and opened pull request #527 against the then-current main. That pull request went stale as main advanced through merges it did not contain, so the same record was restacked onto current main rather than regenerated — every machine-readable value here is the automation's own and only this narrative was extended. Main went on reporting contract 120 for roughly two hours while this correct record already existed, which is the recurrence the contract-120 record's own evidence warned about.",
-    "workflowRunId": 31100989022,
-    "repositoryHead": "60973a05c5389b504ea0a5ede0045532a130fb12"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 31114548204,
+    "repositoryHead": "a90eb2e4f37f97fab554d6e97564dcc38b68015b"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
