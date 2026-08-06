@@ -148,6 +148,13 @@ function RouteFrame({
       seasonLabel={state.resolved.competition.seasonLabel}
       statusStrip={statusStrip}
       active={section}
+      // Overview is the competition dashboard, which exists — so the player on
+      // a game page has a way back to the competition without the browser's
+      // back button. The other three sections have no season implementation
+      // and stay unavailable rather than becoming dead links.
+      destinations={{
+        overview: `/competitions/${state.resolved.competition.competitionSlug}/${state.resolved.competition.seasonSlug}`,
+      }}
     >
       {children(state.resolved)}
     </SeasonCompetitionShell>

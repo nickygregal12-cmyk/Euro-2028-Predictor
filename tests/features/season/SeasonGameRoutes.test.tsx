@@ -175,6 +175,32 @@ describe('the season game routes', () => {
     expect(screen.getByRole('navigation', { name: /sections/ })).toBeTruthy()
   })
 
+  it('gives the scrollable sub-nav keyboard access, and a real way back to Overview', async () => {
+    // `scrollable-region-focusable`, serious: §7.3 makes this bar scroll
+    // horizontally on narrow screens, and when every item in it was a
+    // non-interactive label the region had no keyboard-focusable content — a
+    // keyboard or switch user could neither reach it nor scroll it. The mobile
+    // browser suite caught it the first time the shell was ever scanned.
+    mocks.fetchHubMembership.mockResolvedValue(season([game({})]))
+
+    renderRoute(
+      <SeasonStandingsRoute />,
+      `${DASHBOARD}/standings`,
+      '/competitions/premier-league/2026-27/standings',
+    )
+
+    const nav = await screen.findByRole('navigation', { name: /sections/ })
+    expect(nav.getAttribute('tabindex')).toBe('0')
+
+    // Overview is a real destination, so the region also has focusable content
+    // of its own rather than only being reachable as a scroll container.
+    const overview = screen.getByRole('link', { name: 'Overview' })
+    expect(overview.getAttribute('href')).toBe('/competitions/premier-league/2026-27')
+
+    // The sections with no season implementation stay labels, not dead links.
+    expect(screen.queryByRole('link', { name: 'Matches' })).toBeNull()
+  })
+
   it('does not dress the shell with a placeholder identity before the season resolves', async () => {
     // A masthead reading "Competition" would assert something untrue while the
     // read is still in flight.
