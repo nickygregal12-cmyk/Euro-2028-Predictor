@@ -21,6 +21,7 @@ import { joinLeague } from '../../services/supabase/leagues'
 import { isNextUi } from '../../app/routeFlags'
 import { presentPlayInbox } from './playInboxModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
+import { seasonShellDestinations } from './seasonDestinations'
 import { SeasonLeaguesPage } from './SeasonLeaguesPage'
 import { SeasonPlayPage } from './SeasonPlayPage'
 import { SeasonStandingsPage } from './SeasonStandingsPage'
@@ -168,16 +169,10 @@ function RouteFrame({
       seasonLabel={state.resolved.competition.seasonLabel}
       statusStrip={statusStrip}
       active={section}
-      // Overview is the competition dashboard, Play is the joined-games list
-      // and Leagues is the competition's private leagues; all three exist, so
-      // a player on a game page has a way back to the competition and across
-      // to their other games without the browser's back button. Matches has no
-      // season implementation and stays a label rather than a dead link.
-      destinations={{
-        overview: competitionBase(state.resolved),
-        play: `${competitionBase(state.resolved)}/play`,
-        leagues: `${competitionBase(state.resolved)}/leagues`,
-      }}
+      // One shared map, so a section becoming reachable does not have to be
+      // remembered at every route that renders the shell — which is how one of
+      // them kept showing a shipped section as unavailable.
+      destinations={seasonShellDestinations(competitionBase(state.resolved))}
     >
       {children(state.resolved)}
     </SeasonCompetitionShell>

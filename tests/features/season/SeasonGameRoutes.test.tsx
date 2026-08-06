@@ -219,8 +219,16 @@ describe('the season game routes', () => {
     const overview = screen.getByRole('link', { name: 'Overview' })
     expect(overview.getAttribute('href')).toBe('/competitions/premier-league/2026-27')
 
-    // The sections with no season implementation stay labels, not dead links.
-    expect(screen.queryByRole('link', { name: 'Matches' })).toBeNull()
+    // Every §7.3 section now has a season implementation, so the shell offers
+    // all of them. Overview and Games share one destination on purpose — the
+    // dashboard is where the games catalogue lives until Overview has state of
+    // its own to show; see `seasonDestinations.ts`.
+    expect(screen.getByRole('link', { name: 'Matches' }).getAttribute('href')).toBe(
+      '/competitions/premier-league/2026-27/matches',
+    )
+    expect(screen.getByRole('link', { name: 'Games' }).getAttribute('href')).toBe(
+      '/competitions/premier-league/2026-27',
+    )
   })
 
   it('does not dress the shell with a placeholder identity before the season resolves', async () => {
