@@ -1,12 +1,15 @@
 # Multi-competition platform — master TODO
 
-**Status date:** 5 August 2026  
+**Status date:** 6 August 2026  
 **Current facts:** [`docs/quality/current-status.md`](docs/quality/current-status.md)  
 **Execution sequence:** [`docs/roadmap.md`](docs/roadmap.md)  
 **Programme map:** [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md)  
-**Decision authority:** [`docs/adr/README.md`](docs/adr/README.md), including later amendments through ADR 0025
+**Decision authority:** [`docs/adr/README.md`](docs/adr/README.md), including later amendments through ADR 0026  
+**Accepted but unbuilt requirements:** [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md)
 
 This is the detailed inventory. It does not replace the roadmap's ordering or the current-status facts. Items are moved between the two sections; they are not silently discarded.
+
+Where an item below implements an accepted requirement, it names that requirement's stable identifier. The register owns the requirement's dependency and acceptance evidence; this file owns the task and its stage.
 
 # Part I — Parked: Euro 2028 remaining scope
 
@@ -293,6 +296,36 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 - [ ] Keep the web release/rollback path independent of store review.
 
 ## Stage J — launch readiness
+
+### Two sites, shared accounts and the Euro publication boundary
+
+Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md). **None of this is built.** Identifiers and acceptance evidence: [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).
+
+- [ ] **Hide Euro 2028 from the weekly platform** (`EURO-001`–`EURO-004`). This is a **present defect, not a future feature**: the Hub lists Euro 2028 from its static catalogue and its routes are reachable. Order: server-owned publication state, then route guards, then removal from landing content, Hub discovery, cards, navigation, metadata, sitemap, Open Graph and guessable routes. Client-side omission does not close this.
+- [ ] Build the second frontend deployment and bind it to the purchased tournament domain (`SITE-002`, `SITE-004`).
+- [ ] Bind the weekly platform to the umbrella-brand domain (`SITE-003`) — **blocked on ADR 0019's brand trigger.**
+- [ ] Add both production origins to the Supabase Auth redirect allow-list and verify each with a real confirmation and recovery send (`SITE-006`).
+- [ ] Move the transactional sender to the neutral umbrella brand (`SITE-007`) — **blocked on the brand trigger.** Custom SMTP itself is done and live-verified.
+- [ ] Prove one account and one profile work on both origins, and that signing up on either joins nothing (`ACCOUNT-001`, `ACCOUNT-002`, `ACCOUNT-004`).
+- [ ] Enforce the 18+ first cohort as a server-side signup rule with eligibility wording and fixtures (`AGE-001`). Footer copy does not close this.
+- [ ] Keep acquisition source out of every policy, grant and visibility check when it is first recorded (`ACCOUNT-005`).
+
+### Provider change approval
+
+- [ ] Build the proposal-and-approval queue for provider changes that are **not** automatic kickoff revisions: newly discovered fixtures, removals, cancellations, abandonments and material identity or round changes (`INGEST-002`, `INGEST-003`), recording provider evidence, operator, decision and resulting calendar change (`INGEST-005`). Automatic fixture *creation* is deliberately not the target.
+
+### Operating limits
+
+- [ ] Decide and apply the public-user cap for the cohort (`CAP-006`) — a recommendation of 250 exists and is **not approved**. Custom SMTP is live, so email delivery no longer justifies the current cap; the remaining justification is burst load, unrehearsed.
+- [ ] Redesign the global league ceiling to count **active** leagues rather than every row ever created (`CAP-007`) — additive migration, pgTAP and hosted verification. Proposed figures are recommendations.
+- [ ] Decide whether ordinary private leagues get a membership cap (`CAP-003`) — **no value approved.**
+- [ ] Keep ADR 0023's per-owner limits unchanged unless a new recorded decision moves them (`CAP-002`).
+
+### Account closure and erasure — blocked
+
+- [ ] Ordinary Close Account and formal erasure as two separate journeys (`PRIV-003`–`PRIV-006`). **Blocked by `PRIV-007`:** qualified independent UK data-protection review, and the LIA, DPIA, retention, privacy and process work it requires. Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) stays open. Documentation, architecture and test planning may proceed; hosted implementation may not.
+
+### Remaining launch readiness
 
 - [ ] Close manual accessibility evidence.
 - [ ] Prove monitoring, alerting, incident and ownership procedures.

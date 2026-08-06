@@ -2,7 +2,19 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 4 August 2026
+**Status date:** 6 August 2026
+
+| Field | Value |
+| --- | --- |
+| Authority | Primary |
+| Status | Active |
+| Last verified | 2026-08-06 |
+| Governs | What is implemented, what is hosted where, and the release posture — the moving values, held here and in the machine contract records |
+| Does not govern | Decisions ([`../adr/README.md`](../adr/README.md)); execution order ([`../roadmap.md`](../roadmap.md)); accepted-but-unbuilt requirements ([`accepted-requirements.md`](accepted-requirements.md)); defects ([`risk-register.md`](risk-register.md)) |
+| Supersedes | Any older audit, reconciliation or TODO narrative describing current state |
+| Superseded by | None |
+| Related work | Issues [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272), [#303](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/303), [#27](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/27), [#28](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/28) |
+| Implementation truth | `config/deployment-contract.json` and `config/development-hosted-contract.json` are the machine-readable record; this file reads them rather than competing with them |
 
 ## Product position
 
@@ -341,7 +353,10 @@ One coherent C1 migration exist in PR #317 and pass disposable proof. No hosted 
 - hosted/concurrent leaderboard performance evidence before a material cap increase;
 - notification/client distribution;
 - manual accessibility, legal, operations, load and public-launch proof;
-- brand selection after Phase 0 discovery and before the closed cohort.
+- brand selection after Phase 0 discovery and before the closed cohort;
+- the second frontend site, the server-owned Euro publication state and its route guards, and the 18+ signup rule — accepted by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), none implemented. **One is a present defect rather than a gap:** the weekly Hub lists Euro 2028 from its static catalogue while the competition should be hidden, and its routes are reachable (`EURO-001`).
+
+The stable identifier, dependency and acceptance evidence for every accepted-but-unbuilt requirement live in [`accepted-requirements.md`](accepted-requirements.md). This file states what is true now; that register states what was agreed and is still owed.
 
 ## Documentation authority
 
@@ -353,6 +368,7 @@ One coherent C1 migration exist in PR #317 and pass disposable proof. No hosted 
 - Stage C assertion boundary: [`../architecture/stage-c1-contract-classification.md`](../architecture/stage-c1-contract-classification.md).
 - Stage C1 implementation authority: [`../architecture/stage-c1-schema-overlay.md`](../architecture/stage-c1-schema-overlay.md).
 - Detailed active/parked inventory: [`../../MASTER-TODO.md`](../../MASTER-TODO.md).
+- Accepted requirements that are not yet built: [`accepted-requirements.md`](accepted-requirements.md).
 - Decisions: [`../adr/README.md`](../adr/README.md).
 - Current risks and findings: [`risk-register.md`](risk-register.md).
 - Scoring: [`../scoring-rules.md`](../scoring-rules.md).
