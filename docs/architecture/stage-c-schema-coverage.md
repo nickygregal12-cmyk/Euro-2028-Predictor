@@ -208,7 +208,6 @@ These names may remain but their semantics must support both kinds safely:
 - `get_season_leaderboard`
 - `get_season_lms_round`
 - `get_season_matchweek_card`
-- `get_season_play_matchweek`
 - `save_season_prediction`
 - `set_season_matchweek_joker`
 - `confirm_season_matchweek_card`
@@ -236,6 +235,18 @@ Review in the same implementation PR:
 - `save_knockout_prediction`
 - `submit_entry`
 - `trg_recompute_on_result`
+
+### Season-scoped reads identified without a tournament argument
+
+These carry no `p_tournament_id` to widen, so the compatibility question above
+does not apply to them. They resolve a season from the two slugs in a route and
+their C1 review is a different one: that the resolution predicate identifies
+exactly one season. `(competitions.slug, tournaments.season_key)` is a real
+composite key — `slug` is unique and `(competition_id, season_key)` is unique —
+but two seasons may share a `season_key`, so a predicate that dropped the
+competition would still return a season and would return the wrong one.
+
+- `get_season_play_context`
 
 ### Bonus-game functions requiring season proof
 

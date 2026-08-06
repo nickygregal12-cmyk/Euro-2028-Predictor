@@ -52,7 +52,7 @@ describe('Stage C1 schema overlay coverage', () => {
     expect(newRelations).toHaveLength(4)
     // 57 -> 58 at contract 116: `get_season_lms_round`, the season Last Man
     // Standing round read. 58 -> 59 at contract 120:
-    // `get_season_play_matchweek`, which tells the browser which matchweek a
+    // `get_season_play_context`, which tells the browser which matchweek a
     // season's card opens at. The pin is a positive control on the inventory,
     // so it moves only when a function is genuinely added to the manifest.
     expect(reviewedFunctions).toHaveLength(59)

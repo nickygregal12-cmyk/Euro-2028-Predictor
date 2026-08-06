@@ -162,7 +162,7 @@ Delivered backend foundations now include:
 - the Contract 113 round play window and the Contract 114 bounded season-card browser path (the matchweek card read and its three own-entry writes, every rule enforced by the triggers that already own it), the authority `fixtureReassignment.ts` needs and never had;
 - the Contract 116 season Last Man Standing round read, which gives a season entrant the fixtures `get_my_lms` cannot see and the server's own survival verdict for their pick;
 - the Contract 119 rescheduled-fixture lock, which lets a moved fixture stay editable to its own kickoff while an ordinary matchweek still locks together;
-- the Contract 120 season play-matchweek read, which tells the browser which matchweek a season's card opens at by exposing the next-eligible-round authority contract 109 already owns, rather than adding a second answer to the same scheduling question;
+- the Contract 120 season play-context read, which tells the browser which matchweek a season's card opens at by exposing the next-eligible-round authority contract 109 already owns, rather than adding a second answer to the same scheduling question;
 - the Contract 117 provider fixture revision import, which revises a kickoff and refuses to create, delete or move a fixture between rounds;
 - the Contract 115 provider poll dispatch, which installs `pg_net`, forbids any browser-reachable function in an exposed schema from calling into `net` — pg_net's own grants belong to whoever owns the extension, and where the platform owns it `postgres` cannot revoke them — and drives the deployed Edge Function from `pg_cron`;
 - the Contract 112 provider identity map, the precondition for importing a real fixture list, which resolves and reports gaps but writes nothing;

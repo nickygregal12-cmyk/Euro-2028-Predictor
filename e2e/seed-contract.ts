@@ -513,7 +513,7 @@
  * else. So a seeded user's lock is the instant it already was.
  */
 /**
- * Contract 120 adds one `public` function, `get_season_play_matchweek`, and
+ * Contract 120 adds one `public` function, `get_season_play_context`, and
  * nothing else. It creates no relation, no trigger, no policy and no RLS
  * change; it alters no existing relation, function or grant; and its only
  * privilege movement is `grant execute ... to authenticated` on the new
