@@ -17,6 +17,7 @@
     "scripts/check-documentation-authorities.mjs",
     "scripts/check-migration-additive.mjs",
     "scripts/deployment-contract-expectations.mjs",
+    "scripts/generate-now.mjs",
     "scripts/reset-development-seed.mjs",
     "scripts/run-lighthouse.mjs",
     "scripts/select-browser-journeys.mjs",

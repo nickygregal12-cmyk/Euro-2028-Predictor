@@ -1,0 +1,314 @@
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { resolve } from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+/**
+ * NOW.md against the sources it is generated from.
+ *
+ * `DOC-001` stayed open through two documentation reconciliations for one
+ * reason: a page that STATES a moving value has to be edited whenever the value
+ * moves, and the edit is what gets forgotten. Development sat at contract 120 on
+ * `main` for two hours after the fast lane took it to 122 — the correct record
+ * existed the whole time, on a branch nobody was reading.
+ *
+ * So the fix is a page nobody types into. These tests hold the properties that
+ * make that fix real rather than nominal:
+ *
+ *   - it agrees with the machine-readable contracts;
+ *   - the template hard-codes no contract number, so it cannot be right today
+ *     and quietly wrong tomorrow;
+ *   - production authorisation is READ, never inferred from repository progress;
+ *   - the requirement register is linked, not copied into a second list;
+ *   - it cannot silently remain stale after a contract file changes.
+ */
+
+const repositoryRoot = process.cwd()
+const scriptPath = resolve(repositoryRoot, 'scripts/generate-now.mjs')
+
+function read(path: string): string {
+  return readFileSync(resolve(repositoryRoot, path), 'utf8')
+}
+
+const deploymentContract = JSON.parse(read('config/deployment-contract.json')) as {
+  contractVersion: number
+  requiredMigrationCount: number
+}
+const hostedContract = JSON.parse(read('config/development-hosted-contract.json')) as {
+  requiredMigrationCount: number
+  productionContract: number
+  productionPromotionAuthorised: boolean
+  latestMigrationVersion: string
+  latestMigrationName: string
+}
+const now = read('NOW.md')
+
+/** Run the generator against a tree, returning stdout or throwing with stderr. */
+function generate(root: string, args: string[] = ['--stdout']): string {
+  return execFileSync('node', [scriptPath, '--root', root, ...args], {
+    encoding: 'utf8',
+    cwd: repositoryRoot,
+  })
+}
+
+function expectFailure(root: string, args: string[] = ['--stdout']): string {
+  try {
+    generate(root, args)
+  } catch (error) {
+    const failure = error as { status?: number; stderr?: string }
+    expect(failure.status).toBe(1)
+    return failure.stderr ?? ''
+  }
+  throw new Error('the generator was expected to fail closed and did not')
+}
+
+/**
+ * A minimal tree the generator can read. Defaults describe a coherent
+ * repository; each test perturbs exactly one fact.
+ */
+function writeFixture(options: {
+  repositoryContract?: number
+  migrationCount?: number
+  developmentContract?: number
+  productionContract?: number
+  productionPromotionAuthorised?: boolean
+}): string {
+  const repositoryContract = options.repositoryContract ?? 3
+  const migrationCount = options.migrationCount ?? repositoryContract
+  const developmentContract = options.developmentContract ?? repositoryContract
+
+  const root = mkdtempSync(resolve(tmpdir(), 'generated-now-'))
+  mkdirSync(resolve(root, 'config'), { recursive: true })
+  mkdirSync(resolve(root, 'supabase/migrations'), { recursive: true })
+  mkdirSync(resolve(root, 'src/app'), { recursive: true })
+  mkdirSync(resolve(root, 'docs/quality'), { recursive: true })
+
+  const names = Array.from(
+    { length: migrationCount },
+    (_, index) => `2026080100${String(index).padStart(4, '0')}_fixture_${index}.sql`,
+  )
+  for (const name of names) {
+    writeFileSync(resolve(root, 'supabase/migrations', name), '-- fixture\n')
+  }
+
+  writeFileSync(
+    resolve(root, 'config/deployment-contract.json'),
+    JSON.stringify({
+      contractVersion: repositoryContract,
+      requiredMigrationCount: repositoryContract,
+      requiredRpcSignatures: [],
+    }),
+  )
+
+  const hostedLatest = names[developmentContract - 1] ?? names.at(-1) ?? ''
+  const [version, ...rest] = hostedLatest.replace(/\.sql$/, '').split('_')
+  writeFileSync(
+    resolve(root, 'config/development-hosted-contract.json'),
+    JSON.stringify({
+      projectRef: 'fixture',
+      requiredMigrationCount: developmentContract,
+      latestMigrationVersion: version,
+      latestMigrationName: rest.join('_'),
+      verifiedAt: '2026-08-01T00:00:00.000Z',
+      evidence: { source: 'fixture', workflowRunId: 1 },
+      productionContract: options.productionContract ?? 1,
+      productionPromotionAuthorised: options.productionPromotionAuthorised ?? false,
+    }),
+  )
+
+  writeFileSync(
+    resolve(root, 'src/app/routeFlags.ts'),
+    'export const a = import.meta.env.VITE_UI_FIXTURE_FLAG\n',
+  )
+  writeFileSync(resolve(root, 'netlify.toml'), '[build.environment]\n')
+  writeFileSync(
+    resolve(root, 'docs/quality/accepted-requirements.md'),
+    [
+      '| ID | Requirement | Depends on | Acceptance evidence | Status |',
+      '| --- | --- | --- | --- | --- |',
+      '| `SITE-001` | one | — | proof | Accepted — unimplemented |',
+      '| `PRIV-003` | two | — | proof | Accepted — **blocked** |',
+      '| `INGEST-001` | three | — | proof | **Implemented** — retained |',
+      '',
+    ].join('\n'),
+  )
+
+  return root
+}
+
+describe('NOW.md agrees with the machine-readable contracts', () => {
+  it('states the repository, development and production contracts it is given', () => {
+    expect(now).toContain(`| Repository | **${deploymentContract.requiredMigrationCount}** |`)
+    expect(now).toContain(`| Development hosted | **${hostedContract.requiredMigrationCount}** |`)
+    expect(now).toContain(`| Production | **${hostedContract.productionContract}** |`)
+  })
+
+  it('names the migration the hosted record names', () => {
+    expect(now).toContain(
+      `${hostedContract.latestMigrationVersion}_${hostedContract.latestMigrationName}.sql`,
+    )
+  })
+
+  it('offers the next free contract as one past the repository, not a guess', () => {
+    expect(now).toContain(
+      `**Next free contract number:** ${deploymentContract.requiredMigrationCount + 1}`,
+    )
+  })
+})
+
+describe('the template hard-codes no contract number', () => {
+  it('contains no two- or three-digit literal that could become a stale contract', () => {
+    const source = read('scripts/generate-now.mjs')
+
+    // Everything after the last import is template and logic. A literal contract
+    // number anywhere in it would be right today and silently wrong later, which
+    // is exactly the failure this page exists to end.
+    const body = source.slice(source.lastIndexOf('import '))
+    const suspicious = [...body.matchAll(/\bcontract[- ](\d{2,3})\b/gi)].map((m) => m[1])
+
+    expect(suspicious).toEqual([])
+  })
+
+  it('derives a different tree without carrying this repository forward', () => {
+    const output = generate(writeFixture({ repositoryContract: 7, developmentContract: 5 }))
+
+    expect(output).toContain('| Repository | **7** |')
+    expect(output).toContain('| Development hosted | **5** |')
+    expect(output).not.toContain(`**${deploymentContract.requiredMigrationCount}**`)
+  })
+})
+
+describe('production authorisation is read, never inferred', () => {
+  it('keeps production unauthorised however far the repository has come', () => {
+    const output = generate(
+      writeFixture({
+        repositoryContract: 400,
+        developmentContract: 400,
+        productionContract: 1,
+        productionPromotionAuthorised: false,
+      }),
+    )
+
+    expect(output).toContain('promotion **not authorised**')
+    expect(output).not.toContain('promotion **AUTHORISED**')
+  })
+
+  it('reports authorisation only when the hosted record states it', () => {
+    const output = generate(
+      writeFixture({ productionPromotionAuthorised: true, productionContract: 2 }),
+    )
+
+    expect(output).toContain('promotion **AUTHORISED**')
+  })
+
+  it('refuses a hosted record whose authorisation flag is not a boolean', () => {
+    const root = writeFixture({})
+    const hosted = JSON.parse(
+      readFileSync(resolve(root, 'config/development-hosted-contract.json'), 'utf8'),
+    )
+    hosted.productionPromotionAuthorised = 'yes'
+    writeFileSync(
+      resolve(root, 'config/development-hosted-contract.json'),
+      JSON.stringify(hosted),
+    )
+
+    expect(expectFailure(root)).toContain('productionPromotionAuthorised')
+  })
+
+  it('states in the page itself that promotion is never inferred', () => {
+    expect(now).toContain('never inferred')
+  })
+})
+
+describe('the requirement register is linked, not copied', () => {
+  it('links the register and counts it without restating a requirement', () => {
+    expect(now).toContain('docs/quality/accepted-requirements.md')
+    expect(now).toContain('not** copied here')
+
+    // A requirement's own prose must not appear. If a row were copied, the
+    // register and this page would need keeping in step — a second list.
+    const register = read('docs/quality/accepted-requirements.md')
+    const rows = register
+      .split('\n')
+      .filter((line) => /^\| `(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP)-\d{3}` \|/.test(line))
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) {
+      expect(now).not.toContain(row)
+    }
+  })
+
+  it('counts only what is outstanding, excluding rows marked implemented', () => {
+    // The register retains implemented rows deliberately — deleting one destroys
+    // the only trace the requirement existed — so a page headed "not built" must
+    // exclude them. An earlier draft matched `**Implemented**` exactly and
+    // silently counted `**Implemented and in force**` as outstanding.
+    const output = generate(writeFixture({}))
+
+    expect(output).toContain('**2** accepted requirements are outstanding')
+    expect(output).toContain('A further 1 are marked implemented')
+  })
+})
+
+describe('it cannot silently remain stale', () => {
+  it('is current for the repository as it stands', () => {
+    expect(() => generate(repositoryRoot, ['--check'])).not.toThrow()
+  })
+
+  it('fails --check once a contract file changes underneath it', () => {
+    const root = writeFixture({ repositoryContract: 3 })
+    generate(root, [])
+
+    const contractPath = resolve(root, 'config/deployment-contract.json')
+    const contract = JSON.parse(readFileSync(contractPath, 'utf8'))
+    contract.contractVersion = 4
+    contract.requiredMigrationCount = 4
+    writeFileSync(contractPath, JSON.stringify(contract))
+    writeFileSync(
+      resolve(root, 'supabase/migrations/202608010000003_fixture_3.sql'),
+      '-- fixture\n',
+    )
+
+    expect(expectFailure(root, ['--check'])).toContain('out of date')
+  })
+
+  it('declares its generator in the file, so a hand edit is visibly wrong', () => {
+    expect(now).toContain('GENERATED BY scripts/generate-now.mjs')
+    expect(now).toContain('DO NOT EDIT BY HAND')
+  })
+})
+
+describe('it fails closed when two sources disagree', () => {
+  it('refuses a contract count the migration chain does not support', () => {
+    expect(expectFailure(writeFixture({ repositoryContract: 5, migrationCount: 4 }))).toContain(
+      'the chain holds 4',
+    )
+  })
+
+  it('refuses a development contract ahead of the repository', () => {
+    // A migration cannot be applied before it exists.
+    const root = writeFixture({ repositoryContract: 3 })
+    const hostedPath = resolve(root, 'config/development-hosted-contract.json')
+    const hosted = JSON.parse(readFileSync(hostedPath, 'utf8'))
+    hosted.requiredMigrationCount = 9
+    writeFileSync(hostedPath, JSON.stringify(hosted))
+
+    expect(expectFailure(root)).toContain('ahead of the repository')
+  })
+
+  it('refuses a production contract ahead of the repository', () => {
+    expect(
+      expectFailure(writeFixture({ repositoryContract: 3, productionContract: 8 })),
+    ).toContain('ahead of the repository')
+  })
+
+  it('refuses a hosted record naming a migration the chain does not hold', () => {
+    const root = writeFixture({ repositoryContract: 3 })
+    const hostedPath = resolve(root, 'config/development-hosted-contract.json')
+    const hosted = JSON.parse(readFileSync(hostedPath, 'utf8'))
+    hosted.latestMigrationName = 'a_migration_that_does_not_exist'
+    writeFileSync(hostedPath, JSON.stringify(hosted))
+
+    expect(expectFailure(root)).toContain('not in the migration chain')
+  })
+})

@@ -83,6 +83,35 @@ node scripts/check-documentation-authorities.mjs A B    # freshness and sweep
 
 CI runs the first form on pushes and the second on pull requests.
 
+## The generated current-state surface
+
+[`NOW.md`](../../NOW.md) is one page of current facts — contracts, pending
+migrations, journey flags, outstanding requirement counts and where each
+authority lives. It is **generated** by `scripts/generate-now.mjs` from the
+machine-readable sources, and CI runs `npm run check:now` to fail an
+out-of-date file or a hand edit.
+
+It is deliberately **not** in the manifest above. The freshness rule asks a
+document to name the current contract as its newest; an exact regeneration
+check is stronger than that, and marking it `sweep` would force a manual touch
+on a file whose whole point is that nobody types into it.
+
+Three properties are held by `tests/scripts/generatedNowSurface.test.ts` rather
+than by convention:
+
+- **it fails closed** when two sources disagree — a contract count the migration
+  chain does not support, a development or production contract ahead of the
+  repository, a hosted record naming a migration that does not exist. A wrong
+  current-state page is worse than none, because it is the page an agent trusts
+  fastest;
+- **production promotion authorisation is read, never inferred.** No amount of
+  repository progress can make the page report production as authorised;
+- **the requirement register is linked and counted, never copied.** A second
+  list would be a second thing to keep in step.
+
+It holds no rule and decides nothing. Every authority it names outranks it, and
+where it disagrees with one, it is the one that is wrong.
+
 ## Safeguards for agent-readable documentation
 
 Added 6 August 2026. The two mechanical rules above stop documents going stale about contract numbers. They do not stop the larger failure, which an audit measured rather than guessed: **current facts and historical narrative interleaved in the same file, so an agent searching for a phrase lands in a paragraph that was true in July and treats it as true now.**

@@ -26,7 +26,9 @@
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "check:documentation-authorities": "node scripts/check-documentation-authorities.mjs",
     "check:dead-code": "knip --no-exit-code",
-    "check:lighthouse": "node scripts/run-lighthouse.mjs"
+    "check:lighthouse": "node scripts/run-lighthouse.mjs",
+    "generate:now": "node scripts/generate-now.mjs",
+    "check:now": "node scripts/generate-now.mjs --check"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
