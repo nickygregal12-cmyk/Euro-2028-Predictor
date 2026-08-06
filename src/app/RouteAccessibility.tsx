@@ -27,6 +27,7 @@ const SIGNED_OUT_ROOT_TITLE = 'Home'
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/', title: 'Competitions' },
   { path: '/competitions/euro/2028/original', title: 'Euro 2028 Original Predictor' },
+  { path: '/competitions/:competitionSlug/:seasonSlug/play', title: 'Play' },
   {
     path: '/competitions/:competitionSlug/:seasonSlug/standings',
     title: 'Main Predictor standings',
@@ -41,6 +42,11 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   {
     path: '/competitions/:competitionSlug/:seasonSlug/championship',
     title: 'Predictor Championship',
+  },
+  {
+    // Distinct from `/league`, which is the Euro tournament's own league hub.
+    path: '/competitions/:competitionSlug/:seasonSlug/leagues',
+    title: 'Competition leagues',
   },
   { path: '/competitions/:competitionSlug/:seasonSlug', title: 'Competition dashboard' },
   { path: '/auth/login', title: 'Log in' },

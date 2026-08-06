@@ -1,11 +1,12 @@
 # Multi-competition platform — roadmap
 
-**Status date:** 5 August 2026  
+**Status date:** 6 August 2026  
 **Purpose:** current delivery position and next executable slice.  
 **Current facts:** [`quality/current-status.md`](quality/current-status.md)  
 **Parent programme:** [`architecture/programme-plan.md`](architecture/programme-plan.md)  
 **Engineering workstream:** [`architecture/multi-competition-hub-build-plan.md`](architecture/multi-competition-hub-build-plan.md)  
 **Detailed inventory:** [`../MASTER-TODO.md`](../MASTER-TODO.md)  
+**Accepted but unbuilt requirements:** [`quality/accepted-requirements.md`](quality/accepted-requirements.md)  
 **Decision authority:** [`adr/README.md`](adr/README.md)
 
 This roadmap does **not** duplicate the programme phases or Stage A–L engineering plan. It records where delivery is now and the next executable sequence.
@@ -125,6 +126,11 @@ These are backend and control foundations. They do not mean that the season game
 4. **Keep production paused as a separate milestone.** Repository and development progress do not authorise production migration or publication. Production promotion retains backup, preflight, approval, exact-artifact verification and rollback evidence.
 5. **Keep Stage C2 blocked.** No ownership, erasure, pseudonymisation or replacement ownership-RLS work enters the platform until issue #272 records the independent data-protection decision.
 6. **Review ACQ-R02 only at its trigger.** Reopen maintained standings only on a material cap increase or adverse rehearsal/hosted concurrency evidence, not merely because the design exists.
+7. **Hide Euro 2028 from the weekly platform, then build the second site.** [ADR 0026](adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md) decides two frontend sites over one shared backend, one account across both and a server-owned publication state. **The first item is a live defect rather than a future feature:** the weekly Hub lists Euro 2028 from its static catalogue while the competition should be hidden (`EURO-001`), and its routes are reachable. The order is the server-owned state and route guards first (`EURO-002`, `EURO-004`), then removal from landing content, Hub discovery, cards, navigation, metadata, sitemap, Open Graph and guessable routes (`EURO-003`), and only then the separate Euro deployment (`SITE-002`, `SITE-004`). Documentation of the boundary is not the implementation of it.
+8. **Take the two brand-blocked items when the brand lands, not before.** The weekly platform's domain (`SITE-003`) and the neutral transactional sender (`SITE-007`) both wait on ADR 0019's Phase 0 trigger. Custom SMTP is already live through the Euro domain, so nothing is blocked on email delivery — only on the name.
+9. **Enforce the 18+ first cohort before any external account exists** (`AGE-001`). A server-side signup rule with matching eligibility wording and fixtures, on the pattern the display-name and password rules already use. It is not satisfied by footer copy, and it is not satisfied by the Stage C2 work either.
+
+Every clause of steps 7–9 carries a stable identifier, a dependency and its acceptance evidence in [`quality/accepted-requirements.md`](quality/accepted-requirements.md). That register — not this list — is the authority for what remains accepted and unbuilt; this list decides only the order.
 
 ## Parked Euro 2028 scope
 

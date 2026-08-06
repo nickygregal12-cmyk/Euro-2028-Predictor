@@ -93,12 +93,29 @@ function integer(value: unknown, field: string): number {
   return value
 }
 
-function gameKeyOf(value: unknown): BonusGameKey {
+/**
+ * A game this hub knows, or null for one it does not.
+ *
+ * IT USED TO THROW, AND THAT MADE THE WHOLE HUB UNREADABLE the moment a
+ * competition season published a game outside this list. `get_bonus_games`
+ * selects every published competition for a season with no game-key filter, so
+ * publishing `main_predictor` — which is a real game and simply not a bonus
+ * game — took the entire read down with it, and every caller of it: the Bonus
+ * Games hub and the season registration panels that share the read.
+ *
+ * The C1b decoder next door had already settled this question the other way,
+ * in as many words: "An unknown game_key is the one tolerated surprise — a
+ * future game the catalogue does not describe yet is skipped, never guessed
+ * at." Two decoders in one repository disagreeing about one question is how
+ * this became a defect rather than a design; they now agree.
+ *
+ * Skipping is also the right answer on its own merits here. This is the BONUS
+ * games hub: a game it does not model is one it should not list, and refusing
+ * to render the three it does understand because a fourth exists helps nobody.
+ */
+function knownGameKey(value: unknown): BonusGameKey | null {
   const key = text(value, 'game key')
-  if (!(GAME_KEYS as readonly string[]).includes(key)) {
-    throw new Error('Bonus games returned an unknown game.')
-  }
-  return key as BonusGameKey
+  return (GAME_KEYS as readonly string[]).includes(key) ? (key as BonusGameKey) : null
 }
 
 function outcomeOf(value: unknown): EntrantOutcome {
@@ -168,12 +185,17 @@ export function mapBonusGamesResponse(
     throw new Error('Bonus games returned an invalid server time.')
   }
 
-  const games = arrayOf(root.competitions, 'competition list').map((entry) => {
+  const games: BonusGameRead[] = []
+  for (const entry of arrayOf(root.competitions, 'competition list')) {
     const row = recordOf(entry)
     const id = text(row.id, 'competition id')
+    const gameKey = knownGameKey(row.game_key)
+    // Not a bonus game. Skipped rather than fatal — see `knownGameKey`.
+    if (gameKey === null) continue
+
     const competition: CompetitionRecord = {
       id,
-      gameKey: gameKeyOf(row.game_key),
+      gameKey,
       tournamentId,
       // The hub read only ever returns published competitions.
       published: true,
@@ -189,14 +211,14 @@ export function mapBonusGamesResponse(
       drawCompletedAt: instantOrNull(row.draw_completed_at, 'draw completion'),
       completedAt: instantOrNull(row.completed_at, 'completion instant'),
     }
-    return {
+    games.push({
       competition,
       windows: arrayOf(row.windows, 'window list').map((window) =>
         windowOf(window, id),
       ),
       entrant: entrantOf(row.entrant, id, userId),
-    }
-  })
+    })
+  }
 
   return { serverNow, games }
 }

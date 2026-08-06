@@ -4,12 +4,25 @@ import { Alert, Skeleton } from '../../design-system'
 import { useAuth } from '../auth/AuthProvider'
 import { findHubCompetition, type HubCompetition } from '../hub/competitionCatalogue'
 import { fetchHubMembership } from '../../services/supabase/competitionGames'
-import type { CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
+import type {
+  CompetitionGame,
+  CompetitionGameKey,
+} from '../../services/supabase/competitionGamesModel'
 import { fetchSeasonLeaderboardPage } from '../../services/supabase/seasonLeaderboard'
+import {
+  fetchMyEntryId,
+  fetchSeasonPeriodStandings,
+} from '../../services/supabase/seasonPeriodStandings'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
 import { createSeasonLmsRegistrationRpcGateway } from '../../services/supabase/seasonLmsRegistration'
 import { createSeasonCupRpcGateway } from '../../services/supabase/seasonCup'
+import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
+import { joinLeague } from '../../services/supabase/leagues'
+import { isNextUi } from '../../app/routeFlags'
+import { presentPlayInbox } from './playInboxModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
+import { SeasonLeaguesPage } from './SeasonLeaguesPage'
+import { SeasonPlayPage } from './SeasonPlayPage'
 import { SeasonStandingsPage } from './SeasonStandingsPage'
 import { SeasonLmsPage } from './SeasonLmsPage'
 import { SeasonCupPhasePage } from './SeasonCupPhasePage'
@@ -42,6 +55,8 @@ type Resolved = {
   tournamentId: string
   /** Game competition ids by key, as the season's catalogue lists them. */
   gameIds: Partial<Record<CompetitionGameKey, string>>
+  /** The season's games as the server listed them, membership included. */
+  games: readonly CompetitionGame[]
 }
 
 type RouteState =
@@ -80,7 +95,12 @@ function useSeasonRoute(): RouteState {
         for (const game of season.seasonGames.games) gameIds[game.gameKey] = game.id
         setState({
           status: 'ready',
-          resolved: { competition, tournamentId: season.tournamentId, gameIds },
+          resolved: {
+            competition,
+            tournamentId: season.tournamentId,
+            gameIds,
+            games: season.seasonGames.games,
+          },
         })
       })
       .catch(() => {
@@ -148,17 +168,24 @@ function RouteFrame({
       seasonLabel={state.resolved.competition.seasonLabel}
       statusStrip={statusStrip}
       active={section}
-      // Overview is the competition dashboard, which exists — so the player on
-      // a game page has a way back to the competition without the browser's
-      // back button. The other three sections have no season implementation
-      // and stay unavailable rather than becoming dead links.
+      // Overview is the competition dashboard, Play is the joined-games list
+      // and Leagues is the competition's private leagues; all three exist, so
+      // a player on a game page has a way back to the competition and across
+      // to their other games without the browser's back button. Matches has no
+      // season implementation and stays a label rather than a dead link.
       destinations={{
-        overview: `/competitions/${state.resolved.competition.competitionSlug}/${state.resolved.competition.seasonSlug}`,
+        overview: competitionBase(state.resolved),
+        play: `${competitionBase(state.resolved)}/play`,
+        leagues: `${competitionBase(state.resolved)}/leagues`,
       }}
     >
       {children(state.resolved)}
     </SeasonCompetitionShell>
   )
+}
+
+function competitionBase(resolved: Resolved): string {
+  return `/competitions/${resolved.competition.competitionSlug}/${resolved.competition.seasonSlug}`
 }
 
 /** A game the catalogue names and the season does not list. Shown, not hidden. */
@@ -172,6 +199,8 @@ function MissingGame({ name }: { name: string }) {
 
 export function SeasonStandingsRoute() {
   const state = useSeasonRoute()
+  const { userId } = useAuth()
+
   return (
     /* `play` rather than `games`: §7.4 puts standings inside the GAME shell as
        one of the Main Predictor's own sections, and the competition sub-nav has
@@ -181,15 +210,45 @@ export function SeasonStandingsRoute() {
        heading that means "other games". */
     <RouteFrame title="Main Predictor standings" section="play" state={state}>
       {(resolved) => (
-        <SeasonStandingsPage
-          gameName="Main Predictor"
-          gateway={{
-            load: (cursor) =>
-              fetchSeasonLeaderboardPage(resolved.tournamentId, { after: cursor }),
-          }}
-        />
+        <SeasonStandingsRouteBody tournamentId={resolved.tournamentId} userId={userId} />
       )}
     </RouteFrame>
+  )
+}
+
+function SeasonStandingsRouteBody({
+  tournamentId,
+  userId,
+}: {
+  tournamentId: string
+  userId: string | null
+}) {
+  // Memoised so the page's own effects do not re-run on every parent render:
+  // a new gateway object is a new dependency and the table would reload in a
+  // loop without this.
+  const gateway = useMemo(
+    () => ({
+      load: (cursor: string | null) =>
+        fetchSeasonLeaderboardPage(tournamentId, { after: cursor }),
+    }),
+    [tournamentId],
+  )
+  // ADR 0012's retention views, only for a signed-in caller: finding their own
+  // row needs their own entry, and the read refuses a caller with none anyway.
+  const periods = useMemo(
+    () =>
+      userId
+        ? {
+            load: (period: 'month' | 'form') =>
+              fetchSeasonPeriodStandings(tournamentId, period),
+            myEntryId: () => fetchMyEntryId(userId, tournamentId),
+          }
+        : undefined,
+    [tournamentId, userId],
+  )
+
+  return (
+    <SeasonStandingsPage gameName="Main Predictor" gateway={gateway} periods={periods} />
   )
 }
 
@@ -288,4 +347,82 @@ function SeasonChampionshipRouteBody({
   )
 
   return <SeasonCupPhasePage gateway={gateway} registration={registration} />
+}
+
+export function SeasonLeaguesRoute() {
+  const state = useSeasonRoute()
+
+  return (
+    <RouteFrame title="Leagues" section="leagues" state={state}>
+      {(resolved) => {
+        // A private league in this competition ranks the Main Predictor: it is
+        // the game `create_game_league` accepts, because it is the one that
+        // takes predictions. If the season does not run it, there is nothing
+        // for a league here to be about, and that is stated rather than shown
+        // as an empty list.
+        const game = resolved.games.find((entry) => entry.gameKey === 'main_predictor')
+        if (!game) return <MissingGame name="The Main Predictor" />
+        return (
+          <SeasonLeaguesRouteBody
+            gameCompetitionId={game.id}
+            joinedGame={game.membership?.status === 'active'}
+          />
+        )
+      }}
+    </RouteFrame>
+  )
+}
+
+function SeasonLeaguesRouteBody({
+  gameCompetitionId,
+  joinedGame,
+}: {
+  gameCompetitionId: string
+  joinedGame: boolean
+}) {
+  const gateway = useMemo(
+    () => ({
+      load: () => fetchMyGameLeagues(gameCompetitionId),
+      create: (name: string) => createGameLeague(gameCompetitionId, name),
+      // `join_league` resolves the game from the code itself, so it needs no
+      // game-scoped variant and the tournament wrapper is the same call.
+      join: (code: string) => joinLeague(code),
+    }),
+    [gameCompetitionId],
+  )
+
+  return (
+    <SeasonLeaguesPage
+      gateway={gateway}
+      gameName="Main Predictor"
+      joinedGame={joinedGame}
+    />
+  )
+}
+
+export function SeasonPlayRoute() {
+  const state = useSeasonRoute()
+
+  return (
+    <RouteFrame title="Play" section="play" state={state}>
+      {(resolved) => {
+        const base = competitionBase(resolved)
+        return (
+          <SeasonPlayPage
+            overviewHref={base}
+            inbox={presentPlayInbox(
+              resolved.games,
+              base,
+              // The Match Predictor's route is flag-gated, so its destination is
+              // supplied here rather than assumed by the model — the flag stays
+              // the one place that decision is made.
+              isNextUi('seasonMatchPredictor')
+                ? { main_predictor: `${base}/main-predictor` }
+                : {},
+            )}
+          />
+        )
+      }}
+    </RouteFrame>
+  )
 }

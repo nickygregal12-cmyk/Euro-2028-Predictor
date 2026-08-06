@@ -76,6 +76,11 @@
   status = 200
 
 [[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/play"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/competitions/:competitionSlug/:seasonSlug/standings"
   to = "/index.html"
   status = 200
@@ -87,6 +92,11 @@
 
 [[redirects]]
   from = "/competitions/:competitionSlug/:seasonSlug/championship"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/leagues"
   to = "/index.html"
   status = 200
 

@@ -8,7 +8,8 @@ Convenience summary for coding-agent sessions. [`AGENTS.md`](AGENTS.md), [`docs/
 2. Read `config/deployment-contract.json` and `config/development-hosted-contract.json`; do not infer hosted state from an older report.
 3. Read [`docs/quality/current-status.md`](docs/quality/current-status.md) for implementation/hosted truth and [`docs/roadmap.md`](docs/roadmap.md) for the current executable sequence.
 4. Treat dated audits, investigations, reconciliations and automation handovers as evidence at their recorded commit—not as a current task list.
-5. Keep concurrent work separate. Do not restack, renumber, rewrite or merge another session's branch without first establishing ownership and overlap.
+5. Read [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md) before concluding something was never decided. It is the register of requirements that were **accepted and are not built**, each with a stable identifier, its blocker and what would prove it done. A row leaves it by being marked implemented, never by deletion.
+6. Keep concurrent work separate. Do not restack, renumber, rewrite or merge another session's branch without first establishing ownership and overlap.
 
 ## Project framing
 
@@ -16,6 +17,7 @@ Convenience summary for coding-agent sessions. [`AGENTS.md`](AGENTS.md), [`docs/
 - Euro 2028 is the recoverable first tournament baseline at `euro-2028-baseline`; its remaining tournament-specific scope returns in January 2028.
 - A competition season supplies real football. Each prediction game is joined separately and owns its own rules, entry/state, scoring or progression and standings.
 - Following a competition is not game entry. Joining a private league is not game enrolment.
+- **Two frontend sites, one shared backend, one account** (ADR 0026, accepted and unbuilt): the weekly platform and Euro 2028 are separate deployments on separate domains. Euro 2028 must stay **completely hidden from the weekly platform** until an owner-approved publication state — and today it is not, which is a recorded defect (`EURO-001`), not a licence to add more.
 - Platform and game decisions live in [`docs/adr/README.md`](docs/adr/README.md). Do not infer season rules from the tournament implementation or presentation copy.
 - The finished presentation target lives in [`docs/design/README.md`](docs/design/README.md); it cannot change a scoring, lock, membership, settlement, progression or reveal rule.
 

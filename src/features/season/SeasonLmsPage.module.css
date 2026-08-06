@@ -39,6 +39,16 @@
   color: var(--tx);
 }
 
+/* When picks lock. Quieter than the status line and numeric-aligned, because a
+   deadline is context for the choice rather than the choice itself. */
+.deadline {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
 /* What the pick DID, kept visually distinct from what the player IS: the two
    are different facts and the model refuses to merge them. */
 .outcome {

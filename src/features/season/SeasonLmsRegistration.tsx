@@ -1,5 +1,6 @@
 import { Alert, Button, Skeleton } from '../../design-system'
 import type { RegistrationCopy, SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
+import { formatInstant } from './formatInstant'
 import { useSeasonLmsRegistration } from './useSeasonLmsRegistration'
 import styles from './SeasonLmsRegistration.module.css'
 
@@ -26,19 +27,6 @@ export type SeasonLmsRegistrationProps = {
   copy: RegistrationCopy
   /** Told after a successful join, so the round surface reloads with it. */
   onJoined?: () => void
-}
-
-function formatInstant(instant: string | null): string | null {
-  if (!instant) return null
-  const at = new Date(instant)
-  if (Number.isNaN(at.getTime())) return null
-  return at.toLocaleString(undefined, {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
 }
 
 export function SeasonLmsRegistration({

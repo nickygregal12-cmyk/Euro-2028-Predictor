@@ -234,6 +234,17 @@ Engineering and operations:
 - complete legal, privacy, provider and store disclosures;
 - run exact-head release controls without weakening a gate.
 
+Two sites, Euro visibility and the first cohort — added 6 August 2026 under [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md). **None is built**; identifiers and acceptance evidence are in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md):
+
+- build the second frontend deployment from this codebase and bind each site to its domain (`SITE-002`, `SITE-004`); the weekly platform's domain waits on ADR 0019's brand trigger (`SITE-003`);
+- carry both production origins in the Auth redirect allow-list, verified per origin by a real confirmation and recovery send (`SITE-006`);
+- implement the server-owned competition publication state and the route guards over it (`EURO-002`, `EURO-004`), then remove Euro 2028 from every weekly surface while it is hidden (`EURO-001`, `EURO-003`) — **the landing half is one atomic change across Appendix E, the prototype, its contract test and `src/features/landing/`**;
+- enforce the 18+ first cohort server-side, with eligibility wording and fixtures (`AGE-001`);
+- build the provider proposal-and-approval queue for change classes that are not automatic kickoff revisions (`INGEST-002`, `INGEST-003`, `INGEST-005`);
+- decide and apply the operating caps deliberately rather than inheriting them (`CAP-001`, `CAP-006`, `CAP-007`).
+
+Account closure and formal erasure (`PRIV-003`–`PRIV-006`) are **blocked**, not merely unbuilt, by the independent data-protection review in `PRIV-007` and issue #272. Stage J cannot exit while a public product has no closure path, so this is a dependency on an external review rather than an engineering estimate.
+
 Go-to-market:
 
 - implement instrumentation dashboards needed to judge launch;

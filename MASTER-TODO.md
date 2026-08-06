@@ -1,12 +1,15 @@
 # Multi-competition platform — master TODO
 
-**Status date:** 5 August 2026  
+**Status date:** 6 August 2026  
 **Current facts:** [`docs/quality/current-status.md`](docs/quality/current-status.md)  
 **Execution sequence:** [`docs/roadmap.md`](docs/roadmap.md)  
 **Programme map:** [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md)  
-**Decision authority:** [`docs/adr/README.md`](docs/adr/README.md), including later amendments through ADR 0025
+**Decision authority:** [`docs/adr/README.md`](docs/adr/README.md), including later amendments through ADR 0026  
+**Accepted but unbuilt requirements:** [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md)
 
 This is the detailed inventory. It does not replace the roadmap's ordering or the current-status facts. Items are moved between the two sections; they are not silently discarded.
+
+Where an item below implements an accepted requirement, it names that requirement's stable identifier. The register owns the requirement's dependency and acceptance evidence; this file owns the task and its stage.
 
 # Part I — Parked: Euro 2028 remaining scope
 
@@ -229,7 +232,7 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 - [x] Extend TypeScript/PostgreSQL parity for season scoring.
 - [x] Cover backend late entry, unbanked rounds, blank/partial cards, reschedules and corrections.
 - [ ] Build the fast phone entry and completion flow.
-- [ ] Build matchweek, monthly and form standings as first-class retention surfaces that never feed back into the canonical total.
+- [x] Build matchweek, monthly and form standings as first-class retention surfaces that never feed back into the canonical total. `SeasonStandingsPage` renders the cumulative table over `get_season_leaderboard`; `SeasonPeriodStandings` renders the monthly and rolling-form views over contract 122's `get_season_period_standings`, beneath it and always carrying the sentence that the season is decided by the cumulative total alone. Neither derived view writes anything, and switching between them is a server load rather than a browser filter, so ADR 0012's retention rules stay where the authority lives. A monthly read that raises — a settled matchweek with no play window — renders as a failure, never as "no months yet".
 - [ ] Prove the complete user journey across hostile loading, unavailable, correction and replay states.
 - [ ] Measure completion and low-rank retention during the closed cohort and record the result.
 
@@ -270,6 +273,7 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 - [x] Fix the route-declaration blind spot that let a wrapped `<Route>` escape the SPA-status, title and axe controls at once — `/competitions/:competitionSlug/:seasonSlug` was answering HTTP 404 while rendering. One shared extractor, with the wrapped case pinned by a test.
 - [x] Give the Predictor Championship an entry path, and put every season game page in the competition shell. *(Entry is `join_competition_game` for every game key, so Last Man Standing and the Championship share one registration model parameterised only by wording. The dashboard's placeholder intro paragraph was removed rather than left promising features as body text.)*
 - [ ] Build the cross-competition dashboard. **The per-competition dashboard's entry half is done and needed no migration.** It had been rendering the static catalogue's `joined` flag — so it could disagree with the Hub one tap away — and an entry button that was enabled with no handler at all, doing nothing when pressed. `get_competition_games` already returned every fact needed (game `id`, registration window, `completed_at`, `allow_rejoin`, membership row, `server_now`); the decode layer was dropping them, including the id a join is addressed by. `decideGameMembership` resolves join/rejoin/leave against the server's instant and states a refusal as a sentence rather than rendering a control the server would reject. **Still open here:** the cross-competition view itself, next action and next lock, and current rank. Leaving is offered but cannot be predicted — `leave_competition_game` refuses once a `bonus_score_events` row exists for the caller and no browser read exposes that, so an honest "can I leave?" control still needs a read.
+- [x] Build the competition-scoped Play section: the games the caller has joined in this competition, each linking to its own surface. *(§7.3's Play. It computes no deadline or rank — each game's read owns that. A joined game with no surface is listed without a link rather than hidden.)*
 - [ ] Build one weekly action surface across entered games.
 - [ ] Add league/game preferences without changing enrolment.
 - [ ] Add invitations, rerun/copy and “more competitions” discovery.
@@ -293,6 +297,36 @@ Owned by [`docs/design/ui-modernisation-execution.md`](docs/design/ui-modernisat
 - [ ] Keep the web release/rollback path independent of store review.
 
 ## Stage J — launch readiness
+
+### Two sites, shared accounts and the Euro publication boundary
+
+Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md). **None of this is built.** Identifiers and acceptance evidence: [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).
+
+- [ ] **Hide Euro 2028 from the weekly platform** (`EURO-001`–`EURO-004`). This is a **present defect, not a future feature**: the Hub lists Euro 2028 from its static catalogue and its routes are reachable. Order: server-owned publication state, then route guards, then removal from landing content, Hub discovery, cards, navigation, metadata, sitemap, Open Graph and guessable routes. Client-side omission does not close this.
+- [ ] Build the second frontend deployment and bind it to the purchased tournament domain (`SITE-002`, `SITE-004`).
+- [ ] Bind the weekly platform to the umbrella-brand domain (`SITE-003`) — **blocked on ADR 0019's brand trigger.**
+- [ ] Add both production origins to the Supabase Auth redirect allow-list and verify each with a real confirmation and recovery send (`SITE-006`).
+- [ ] Move the transactional sender to the neutral umbrella brand (`SITE-007`) — **blocked on the brand trigger.** Custom SMTP itself is done and live-verified.
+- [ ] Prove one account and one profile work on both origins, and that signing up on either joins nothing (`ACCOUNT-001`, `ACCOUNT-002`, `ACCOUNT-004`).
+- [ ] Enforce the 18+ first cohort as a server-side signup rule with eligibility wording and fixtures (`AGE-001`). Footer copy does not close this.
+- [ ] Keep acquisition source out of every policy, grant and visibility check when it is first recorded (`ACCOUNT-005`).
+
+### Provider change approval
+
+- [ ] Build the proposal-and-approval queue for provider changes that are **not** automatic kickoff revisions: newly discovered fixtures, removals, cancellations, abandonments and material identity or round changes (`INGEST-002`, `INGEST-003`), recording provider evidence, operator, decision and resulting calendar change (`INGEST-005`). Automatic fixture *creation* is deliberately not the target.
+
+### Operating limits
+
+- [ ] Decide and apply the public-user cap for the cohort (`CAP-006`) — a recommendation of 250 exists and is **not approved**. Custom SMTP is live, so email delivery no longer justifies the current cap; the remaining justification is burst load, unrehearsed.
+- [ ] Redesign the global league ceiling to count **active** leagues rather than every row ever created (`CAP-007`) — additive migration, pgTAP and hosted verification. Proposed figures are recommendations.
+- [ ] Decide whether ordinary private leagues get a membership cap (`CAP-003`) — **no value approved.**
+- [ ] Keep ADR 0023's per-owner limits unchanged unless a new recorded decision moves them (`CAP-002`).
+
+### Account closure and erasure — blocked
+
+- [ ] Ordinary Close Account and formal erasure as two separate journeys (`PRIV-003`–`PRIV-006`). **Blocked by `PRIV-007`:** qualified independent UK data-protection review, and the LIA, DPIA, retention, privacy and process work it requires. Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) stays open. Documentation, architecture and test planning may proceed; hosted implementation may not.
+
+### Remaining launch readiness
 
 - [ ] Close manual accessibility evidence.
 - [ ] Prove monitoring, alerting, incident and ownership procedures.

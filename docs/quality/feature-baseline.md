@@ -203,6 +203,14 @@ Archived source: [`history/feature-baseline-2026-07-23R.md`](history/feature-bas
 | `SAFE-055` | Submission/clear regression tests |
 | `SAFE-056` | Bonus Games catalogue visibility fallback |
 
+## Accepted requirements that are not features yet
+
+This baseline classifies **capabilities that exist**, on the `FEAT-*`/`PLAN-*`/`SAFE-*` identifiers its continuity register protects. A decision that has been accepted and never built has no capability to classify, so it gets no speculative identifier here — which is exactly how such requirements went missing before.
+
+They live in [`accepted-requirements.md`](accepted-requirements.md), on their own identifier space (`SITE-*`, `ACCOUNT-*`, `EURO-*`, `AGE-*`, `PRIV-*`, `INGEST-*`, `CAP-*`), each with its owning decision, dependency and acceptance evidence. A row moves from that register into this baseline when it becomes a working capability with evidence — not before, and not by being deleted from either file.
+
+One of them contradicts a current surface rather than merely being absent: `EURO-001` records that the weekly Hub still lists Euro 2028 while its publication state should be hidden.
+
 ## Current route and data baseline
 
 The application contains authenticated Original Predictor, league, H2H, match, profile, Account, Trends, Bonus Games and protected administrator routes plus a real catch-all. Development-only routes remain gated. This document is not the exhaustive route manifest and does not copy migration or Netlify contract counts; executable route coverage and [`current-status.md`](current-status.md) decide those facts.

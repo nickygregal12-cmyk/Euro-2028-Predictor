@@ -92,6 +92,14 @@ Run a small invited cohort as a research instrument, not merely a soak test:
 - weekly qualitative feedback;
 - quantitative dashboards using the Phase 1 taxonomy.
 
+**Entry conditions added 6 August 2026 by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md).** These gate the cohort opening, not the metrics above:
+
+- **the cohort is adults only** (`AGE-001`) — a server-side signup rule with matching eligibility wording and test fixtures, standing until a Children's Code and age-risk assessment supports a different model;
+- **Euro 2028 is hidden** (`EURO-001`–`EURO-004`) — the first external cohort must not be able to see or reach a competition whose publication state is hidden, by catalogue, navigation, metadata, sitemap, share preview or guessable route;
+- **the operating caps are a deliberate setting, not an inherited one** (`CAP-001`, `CAP-006`) — custom SMTP is live, so email delivery no longer justifies the current public-user cap; whatever the cap is when the cohort opens should be a decision someone made, with the burst-load rehearsal behind it.
+
+Account closure and formal erasure (`PRIV-003`–`PRIV-007`) remain **blocked** for the cohort, not merely unbuilt: Stage C2 needs qualified independent UK data-protection review first. A cohort that cannot close an account is a recorded, accepted position for a small invited group; it is not a position that survives Phase 6.
+
 **Failable product gate:**
 
 | Metric | Threshold | Meaning if missed | Evidence position (30 July 2026) |
@@ -141,8 +149,9 @@ The 2026/27 rehearsal targets zero or near-zero platform cost. Provider, hosting
 
 ## 6. Relationship to repository authorities
 
-- ADRs 0011–0018 own the decisions.
+- ADRs 0011–0018 own the decisions. [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md) adds the two-site, shared-account, Euro-publication and 18+ cohort decisions, which bear on Phases 4–7.
 - This file owns phases, workstreams and product gates.
+- [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) owns the stable identifier, dependency and acceptance evidence for each accepted requirement that is not yet built. This file names which phase they gate; it does not restate their status.
 - [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) owns engineering sequencing and engineering exit evidence.
 - [`../roadmap.md`](../roadmap.md) records the current position and next executable slice; it points here for programme phases and to the child plan for engineering stages rather than maintaining another complete sequence.
 - [`../quality/current-status.md`](../quality/current-status.md) owns what is actually implemented and hosted.

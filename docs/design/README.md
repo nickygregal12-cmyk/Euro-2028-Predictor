@@ -18,6 +18,18 @@ architecture), with no document describing the finished product. Anyone asking
 | [`ui-modernisation-execution.md`](ui-modernisation-execution.md) | How the target design becomes production code: the reconciled migration order, the `src/premium/**` reference-only classification (guarded by `tests/design/premiumPrototypeBoundary.test.ts`), the approved tooling phases and the first-slice acceptance criteria | **Current delivery sequence**, adopted 5 August 2026 |
 | [`../design-system.md`](../design-system.md) | Component-level rules built for the Euro tournament: score input, match card, group tables, bracket, navigation | **In force for what exists**; superseded on presentation by the plan where the two describe the same surface |
 
+## The Euro 2028 boundary moved — 6 August 2026
+
+Appendix E of the target plan describes the public acquisition landing page and a "standalone Euro 2028 boundary". [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md) has since decided what that boundary actually is, and it is stronger than a section of one site:
+
+- **two separate frontend deployments over one shared backend** — the weekly platform on the eventual umbrella-brand domain (`SITE-002`, `SITE-003`), Euro 2028 on the purchased tournament domain (`SITE-004`);
+- **while Euro 2028's publication state is hidden, it must not be promoted anywhere on the weekly platform** (`EURO-001`, `EURO-003`) — not on the landing page, not in Hub discovery, not in a competition card, navigation, page metadata, the sitemap or an Open Graph preview. The weekly landing target is domestic;
+- **the Euro site's own surfaces are a separate, later design.** They are not Appendix E with different copy, and this folder does not yet hold them.
+
+This changes **presentation scope only**. It sets no scoring, lock, membership, settlement, progression or reveal rule, consistent with the boundary this authority already observes. Where Appendix E's existing domestic landing hierarchy and design decisions do not concern Euro, they are unchanged.
+
+The removal itself is implementation work and is **not done**: `EURO-001` in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) records that the weekly Hub still lists Euro 2028 today.
+
 ## What this authority does and does not do
 
 It is a **presentation and delivery** authority. Its own Document Control section

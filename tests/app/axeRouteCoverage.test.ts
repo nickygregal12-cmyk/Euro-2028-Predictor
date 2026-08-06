@@ -122,6 +122,10 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
   // carry no flag and need no seeded entry — they render for any signed-in
   // caller — so the scan is real coverage rather than deferred work.
   [
+    '/competitions/:competitionSlug/:seasonSlug/play',
+    'parameterised — /competitions/premier-league/2026-27/play is scanned in its place',
+  ],
+  [
     '/competitions/:competitionSlug/:seasonSlug/standings',
     'parameterised — /competitions/premier-league/2026-27/standings is scanned in its place',
   ],
@@ -132,6 +136,10 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
   [
     '/competitions/:competitionSlug/:seasonSlug/championship',
     'parameterised — /competitions/premier-league/2026-27/championship is scanned in its place',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/leagues',
+    'parameterised — /competitions/premier-league/2026-27/leagues is scanned in its place',
   ],
 ]
 

@@ -130,7 +130,7 @@ These identifiers are permanent references for migration comments, pgTAP and app
 | `CS-006` | A locked scope never reopens after rescheduling or stale data. |
 | `CS-007` | A per-fixture server guard rejects every prediction submitted at or after kickoff. |
 | `CS-008` | Entries, standings, score history and game enrolment remain independent per season and game. |
-| `CS-009` | Account deletion erases auth identity while preserving a pseudonymised competitive record. |
+| `CS-009` | Account deletion erases auth identity while preserving a pseudonymised competitive record. **Scoped 6 August 2026 to ordinary Close Account (`PRIV-003`); formal erasure (`PRIV-005`) is a separate journey — see § 6.2.** |
 | `CS-010` | A season with user or settled result data is archived, not hard-deleted. |
 | `CS-011` | Every public table has RLS, browser relation/view grants are explicit, and every security-definer function pins `search_path`. |
 | `CS-012` | Euro 2028 backfill preserves every identifier, rule, score, result, league, entry and access boundary. |
@@ -200,6 +200,17 @@ Fewer matchweeks played is rejected because it rewards late entry. Head-to-head 
 ### 6.2 Account deletion and anonymisation
 
 **Decision:** erase the auth identity while preserving a pseudonymised competitive record.
+
+> **Amended 6 August 2026 — this section describes one journey; there are two.**
+>
+> The owner approved a split model, recorded in [`stage-c1-c2-governance.md`](stage-c1-c2-governance.md) § Approved product direction. The shape below is the **ordinary Close Account** path (`PRIV-003`) and remains the design for it. A **formal erasure request** (`PRIV-005`) is a separate data-rights workflow that may delete granular competitive history and recompute standings — precisely what this section's "preserving a pseudonymised competitive record" does not do. A product that offers only the path below, while describing it as erasure, is the specific error the split exists to prevent.
+>
+> Two constraints this table does not yet carry:
+>
+> - **`PRIV-004` — the pseudonymised `display_name` must not become a permanent public identifier spanning competitions.** A stable label beside the same person's rows in every competition re-identifies by correlation. A generic or competition-specific placeholder is required; `anonymized_at` is unaffected.
+> - **`PRIV-006` — settled Cup and Last Man Standing outcomes are preserved deterministically.** Removal must not resurrect an eliminated entrant or alter a settled winner, and neutral settled-outcome placeholders are the mechanism rather than retaining the former player's identity.
+>
+> **The block is unchanged:** none of this may be implemented in a hosted environment until `PRIV-007` — qualified independent UK data-protection review, and the LIA, DPIA, retention, privacy and process work it requires — is complete. Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) stays open, no legal approval is claimed, and this remains a design document that authorises no migration.
 
 The durable competitive anchor is the existing `profiles` row.
 
