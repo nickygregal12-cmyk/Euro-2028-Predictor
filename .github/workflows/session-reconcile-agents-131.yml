@@ -1,0 +1,52 @@
+name: Session reconcile AGENTS hosted contract 131
+
+on:
+  push:
+    branches:
+      - ops/dev-fastlane-126-131-20260807
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ops/dev-fastlane-126-131-20260807
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Reconcile the stale live Development sentence
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const path = 'AGENTS.md'
+          let source = fs.readFileSync(path, 'utf8')
+          const oldText = 'Development Supabase is hosted at **125** — six behind, with contracts 126 to 131 pending. Fast-lane run 31114548204 applied contracts 123, 124 and 125 on 6 August 2026 at head `a90eb2e`, and the Supabase management API was queried directly afterwards and returned 125 applied migrations ending at `20260806160000_season_fixture_result_entry`.'
+          const newText = 'Development Supabase is hosted at **131** — level with the repository, with no pending Development migrations. Guarded fast-lane run 31186564948 applied canonical contracts 126 to 131 on 7 August 2026 from exact main `50b01154`, after proving the Development target, the exact pending set and additive scope and taking the lightweight pre-apply snapshot; the workflow parity check and an independent Supabase migration-ledger read both ended at `20260806220000_period_standings_display_names`.'
+          const matches = source.split(oldText).length - 1
+          if (matches !== 1) throw new Error(`Expected exactly one stale Development sentence, found ${matches}`)
+          source = source.replace(oldText, newText)
+          fs.writeFileSync(path, source)
+          NODE
+
+          npx vitest run tests/database-parity/liveCompetitionCallerBoundary.test.ts --reporter=verbose
+          node scripts/check-hosted-migration-inventory.mjs
+
+          rm .github/workflows/session-reconcile-agents-131.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md .github/workflows/session-reconcile-agents-131.yml
+          git commit -m 'Align AGENTS with Development contract 131'
+          git push origin HEAD:ops/dev-fastlane-126-131-20260807
