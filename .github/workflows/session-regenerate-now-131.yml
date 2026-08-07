@@ -1,0 +1,36 @@
+name: Session regenerate NOW for Development 131
+
+on:
+  push:
+    branches:
+      - ops/dev-fastlane-126-131-20260807
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ops/dev-fastlane-126-131-20260807
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - name: Regenerate derived NOW surface and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/generate-now.mjs
+          node scripts/generate-now.mjs --check
+          rm .github/workflows/session-regenerate-now-131.yml
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add NOW.md .github/workflows/session-regenerate-now-131.yml
+          git commit -m 'Regenerate NOW after Development contract 131'
+          git push origin HEAD:ops/dev-fastlane-126-131-20260807
