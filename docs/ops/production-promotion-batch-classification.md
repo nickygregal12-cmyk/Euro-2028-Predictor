@@ -1,15 +1,16 @@
 # Production promotion batch classification
 
-**Status date:** 6 August 2026  
+**Status date:** 7 August 2026  
 **Status:** Proposed rehearsal boundaries; no production promotion authorised  
-**Source chain:** Development's verified 125-row migration history  
+**Hosted support chain:** Development verified through contract 125  
+**Repository chain:** `main` through contract 131  
 **Authority:** Planning evidence for PR #545 only.
 
 ## Decision rule
 
 A batch endpoint must be dependency-complete and give a useful stop/go checkpoint. It must not be chosen only because a fixed number of migrations has elapsed.
 
-The chain from Production contract 63 to Development contract 125 divides into four coherent groups.
+Production is at contract 63. Hosted Development is at 125. The repository is at 131. The production promotion chain is therefore classified in two layers: contracts 64–125 are eligible for rehearsal because the same chain is already hosted in Development; contracts 126–131 are repository-only and are **not** eligible for Production until Development hosts and verifies them.
 
 ## Proposed Batch A — contracts 64–67
 
@@ -48,7 +49,7 @@ This is the smallest meaningful rehearsal batch. It is preferred over stopping a
 7. Prove `pg_net` remains absent and the only production-shaped cron job remains the existing automatic submission job.
 8. Verify an application build compatible with both contract 63 and 67, because database and application deployment are separate decisions.
 
-**Current readiness:** not ready. Backup workflow pins, clean contract-63 rebuild parity and exact-head checks remain outstanding.
+**Current readiness:** not ready. A fresh contract-63 backup/restore rehearsal and the remaining production-shaped evidence are still required.
 
 ## Proposed Batch B — contracts 68–96
 
@@ -90,7 +91,7 @@ Provider custody at 97 remains inert evidence storage. No provider credentials, 
 
 **Endpoint:** contract **125**, `20260806160000_season_fixture_result_entry`
 
-This group advances the deliberately separated execution and current read/write authorities:
+This is the highest contract currently hosted and verified in Development. It advances the deliberately separated execution and current read/write authorities:
 
 - provider polling dispatch and `pg_net` boundary (115);
 - season Last Man Standing read (116);
@@ -112,18 +113,29 @@ This batch requires separate approval for every hosted dependency:
 
 Applying the migrations must not be interpreted as permission to configure or call a provider. A no-op/unconfigured dispatch state is the required default unless separately authorised.
 
-## Open interaction with contracts 126–127
+## Deferred Batch E — contracts 126–131
 
-PR #541 proposes contracts 126 and 127. They are not included in this classification because they are not merged into `main` and not hosted in Development. Before any rehearsal begins, the branch must be refreshed against the then-current canonical migration chain. No batch number is reserved by this document.
+Contracts **126–131 are merged to `main` but are not hosted in Development**. They are therefore deliberately outside the current Production promotion target.
+
+| Contract | Migration | Current status |
+| ---: | --- | --- |
+| 126 | `rejoin_before_start` | Repository-only; Development verification required first. |
+| 127 | `season_competition_bootstrap` | Repository-only; Development verification required first. |
+| 128 | `season_league_standings` | Repository-only; Development verification required first. |
+| 129 | `season_head_to_head` | Repository-only; Development verification required first. |
+| 130 | `season_prediction_consensus` | Repository-only; Development verification required first. |
+| 131 | `period_standings_display_names` | Repository-only; Development verification required first. |
+
+Before Batch E can become eligible for Production, Development must host the exact 126–131 chain and pass hosted migration inventory, database parity/pgTAP, Browser E2E and the feature-specific contract checks on that hosted state. Production must not leapfrog Development.
 
 ## Current recommendation
 
 Proceed only with **Batch A rehearsal preparation to contract 67**:
 
-- update the production-backup workflow's source expectation so it validates contract 63 without assuming the future target;
+- use the repaired production-backup authority so the source is validated at hosted contract 63 rather than the repository tip;
 - prepare a disposable restore and exact 64–67 allowlist;
 - run forward rehearsal;
 - produce a readiness record;
 - request explicit owner authorisation only after every Batch A gate passes.
 
-Production remains at contract 63. This recommendation authorises planning and rehearsal only, not a hosted production change.
+Production remains at contract 63. Development remains the hosted support ceiling at contract 125 until separately advanced. Contracts 126–131 remain repository-only. This recommendation authorises planning and rehearsal only, not a hosted production change.
