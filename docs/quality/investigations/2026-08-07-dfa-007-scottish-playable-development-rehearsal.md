@@ -85,6 +85,8 @@ A post-call database check confirmed no draw timestamp, groups or Cup fixtures w
 
 The public Championship launch contract therefore requires a 100-player field. Creating 98 synthetic retained users merely to turn this evidence green would hide the real product dependency and would violate the purpose of a truthful Development rehearsal. The Championship portion of DFA-007 remains incomplete until Development has an approved deterministic seeded-field strategy or the owning requirement/launch policy is deliberately changed.
 
+ADR 0024 does require deterministic seed users, but the implemented reset command is deliberately **local only**: `scripts/reset-development-seed.mjs` hard-refuses both hosted project refs and states that hosted Development changes use a separate guarded path. The repository therefore has no existing governed command that can legitimately expand the hosted Championship field to 100. That missing hosted-seed path is a real prerequisite rather than a reason to bypass the launch threshold with direct Auth/table writes.
+
 ## DFA-007 verdict
 
 **Partially proven, not complete.**
@@ -101,7 +103,7 @@ Proven on hosted Development:
 Still missing from the accepted DFA-007 evidence:
 
 - a lock-consistent seeded Matchweek 1 prediction card that can demonstrate an actual Match Predictor points feed without post-lock fabrication;
-- a seeded Predictor Championship field large enough to pass its public launch threshold;
+- a governed hosted Development seed path capable of producing a Predictor Championship field large enough to pass its public launch threshold;
 - after launch, the bounded Championship opponent/fixture read and the My Fixture / Fixtures UI needed to prove opponent, fixture, phase and table as one player journey.
 
 The correct next step is to solve those missing authorities/test-fixture requirements deliberately. This rehearsal should not be repeated by overwriting the now-valid Matchweek 2 player state.
