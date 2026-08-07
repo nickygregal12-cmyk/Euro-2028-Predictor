@@ -1,16 +1,17 @@
 /*
- * ClubIdentity owns a fixed layout box and renders the visual mark as a shirt
- * inside it. Keeping the box dimensions unchanged means switching from the old
- * square tile to the accepted shirt-style identity cannot reflow fixture cards
- * or league tables.
+ * The component keeps its old fixed layout footprint. The visible mark is a
+ * generic football shirt drawn by ::before, so dense tables and fixture cards
+ * do not reflow when the identity treatment changes.
  */
 .club {
   --club-font-size: 10px;
 
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
+  color: #fff;
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
@@ -18,20 +19,10 @@
   user-select: none;
 }
 
-/*
- * A deliberately generic football-shirt silhouette: short sleeves, shoulders
- * and a straight body. It evokes a kit without reproducing any protected club
- * badge or proprietary shirt artwork. The drop-shadow follows the clipped edge,
- * so white-heavy shirts remain visible on both light and dark surfaces.
- */
-.shirt {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 88%;
-  height: 90%;
-  overflow: hidden;
+.club::before {
+  content: '';
+  position: absolute;
+  inset: 5% 6%;
   clip-path: polygon(
     35% 0,
     65% 0,
@@ -47,26 +38,19 @@
     27% 8%
   );
   background-color: var(--club-primary);
-  color: #fff;
-  font-size: var(--club-font-size);
   filter: drop-shadow(0 0 0.65px var(--line));
 }
 
-/* Applied where the monogram is illegible on the primary — sky blue, yellow,
-   white. Set explicitly in the club's tokens rather than computed, so the
-   choice is reviewable. */
 .onDark {
   color: #0b0b0c;
 }
 
-/* Patterns are generic football conventions — stripes, hoops, halves, a sash.
-   Centuries old and owned by nobody, which is what makes them safe where a
-   crest is not. */
-.solid {
+/* Generic kit patterns only; the shape never reproduces a club crest. */
+.solid::before {
   background-image: none;
 }
 
-.stripes {
+.stripes::before {
   background-image: repeating-linear-gradient(
     90deg,
     var(--club-primary) 0 22%,
@@ -74,7 +58,7 @@
   );
 }
 
-.hoops {
+.hoops::before {
   background-image: repeating-linear-gradient(
     180deg,
     var(--club-primary) 0 22%,
@@ -82,7 +66,7 @@
   );
 }
 
-.halves {
+.halves::before {
   background-image: linear-gradient(
     90deg,
     var(--club-primary) 0 50%,
@@ -90,7 +74,7 @@
   );
 }
 
-.sash {
+.sash::before {
   background-image: linear-gradient(
     115deg,
     var(--club-primary) 0 38%,
@@ -99,8 +83,6 @@
   );
 }
 
-/* The monogram sits on a small scrim over patterned shirts. Without it, a
-   three-letter code can become unreadable at dense table sizes. */
 .stripes .monogram,
 .hoops .monogram,
 .halves .monogram,
@@ -114,14 +96,16 @@
   position: relative;
   z-index: 1;
   display: block;
-  max-width: 80%;
+  max-width: 72%;
   overflow: hidden;
+  color: inherit;
+  font-size: var(--club-font-size);
   transform: translateY(7%);
   text-overflow: clip;
   white-space: nowrap;
 }
 
-/* These dimensions intentionally match the previous ClubIdentity boxes. */
+/* Deliberately unchanged from the pre-shirt identity footprint. */
 .card {
   width: 30px;
   height: 30px;
@@ -134,8 +118,6 @@
   --club-font-size: 8px;
 }
 
-/* Below roughly 20px a three-letter monogram is no longer useful. The mark
-   still has its full accessible name and must sit beside visible club text. */
 .venue {
   width: 18px;
   height: 18px;
@@ -149,7 +131,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shirt {
+  .club::before {
     transition: none;
   }
 }
