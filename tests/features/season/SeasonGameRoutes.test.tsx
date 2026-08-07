@@ -195,8 +195,10 @@ describe('the season game routes', () => {
     expect(screen.getByRole('link', { name: 'Matches' }).getAttribute('href')).toBe(
       `${PREMIER}/matches`,
     )
-    // This is now a real destination, not an alias for Overview.
-    expect(screen.getByRole('link', { name: 'Games' }).getAttribute('href')).toBe(
+    // Games is the active competition section on a game child, while the
+    // deterministic parent link remains a real way back to the Games index.
+    expect(screen.getByText('Games').getAttribute('aria-current')).toBe('page')
+    expect(screen.getByRole('link', { name: 'Back to Games' }).getAttribute('href')).toBe(
       `${PREMIER}/games`,
     )
   })
