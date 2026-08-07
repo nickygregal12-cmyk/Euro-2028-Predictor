@@ -2,9 +2,9 @@ import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import {
   competitionRefFromPath,
+  competitionRoute,
   competitionSectionRoute,
   logicalWeeklyParent,
-  switchCompetitionPath,
   weeklyRoutes,
 } from '../../app/weeklyRoutes'
 import styles from './SeasonCompetitionShell.module.css'
@@ -50,19 +50,16 @@ export function SeasonCompetitionShell({
       ? 'games'
       : active
   const parent = logicalWeeklyParent(pathname)
-  const switchTarget = ref
-    ? ref.competitionSlug === 'premier-league'
-      ? {
-          ref: { competitionSlug: 'scottish-premiership', seasonSlug: '2026-27' },
-          label: 'Scottish Premiership',
-        }
-      : {
-          ref: { competitionSlug: 'premier-league', seasonSlug: '2026-27' },
-          label: 'Premier League',
-        }
+  const switchRef = ref
+    ? {
+        competitionSlug:
+          ref.competitionSlug === 'premier-league' ? 'scottish-premiership' : 'premier-league',
+        seasonSlug: '2026-27',
+      }
     : null
-  const switchHref = switchTarget
-    ? `${switchCompetitionPath(pathname, switchTarget.ref)}${search}${hash}`
+  const switchLabel = ref?.competitionSlug === 'premier-league' ? 'Scottish Premiership' : 'Premier League'
+  const switchHref = ref && switchRef
+    ? `${pathname.replace(competitionRoute(ref), competitionRoute(switchRef))}${search}${hash}`
     : null
 
   return (
@@ -82,9 +79,9 @@ export function SeasonCompetitionShell({
         <p className={styles.eyebrow}>{seasonLabel}</p>
         <div className={styles.mastheadRow}>
           <h1 className={styles.name}>{competitionName}</h1>
-          {switchTarget && switchHref ? (
+          {switchHref ? (
             <Link className={styles.switcherLink} to={switchHref}>
-              Switch to {switchTarget.label}
+              Switch to {switchLabel}
             </Link>
           ) : null}
         </div>
