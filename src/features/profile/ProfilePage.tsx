@@ -222,7 +222,6 @@ export function ProfilePage() {
           events: eventsAvailable,
         }}
         locked={state.locked}
-        onViewEntry={() => navigate('/predict/review')}
         onEdit={() => navigate('/account')}
       />
     </div>
