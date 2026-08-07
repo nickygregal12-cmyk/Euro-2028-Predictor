@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, useLocation } from 'react-router'
 import {
   competitionRefFromPath,
   competitionSectionRoute,
@@ -42,9 +42,7 @@ export function SeasonCompetitionShell({
   destinations,
   children,
 }: SeasonCompetitionShellProps) {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const { pathname, search, hash } = location
+  const { pathname, search, hash } = useLocation()
   const ref = competitionRefFromPath(pathname)
   const gamesPath = ref ? competitionSectionRoute(ref, 'games') : null
   const effectiveActive: SeasonShellSection =
@@ -52,16 +50,20 @@ export function SeasonCompetitionShell({
       ? 'games'
       : active
   const parent = logicalWeeklyParent(pathname)
-  const currentCompetitionKey = ref ? `${ref.competitionSlug}/${ref.seasonSlug}` : ''
-
-  const switchCompetition = (value: string) => {
-    if (!ref || value === currentCompetitionKey) return
-    const [competitionSlug, seasonSlug] = value.split('/')
-    if (!competitionSlug || !seasonSlug) return
-    navigate(
-      `${switchCompetitionPath(pathname, { competitionSlug, seasonSlug })}${search}${hash}`,
-    )
-  }
+  const switchTarget = ref
+    ? ref.competitionSlug === 'premier-league'
+      ? {
+          ref: { competitionSlug: 'scottish-premiership', seasonSlug: '2026-27' },
+          label: 'Scottish Premiership',
+        }
+      : {
+          ref: { competitionSlug: 'premier-league', seasonSlug: '2026-27' },
+          label: 'Premier League',
+        }
+    : null
+  const switchHref = switchTarget
+    ? `${switchCompetitionPath(pathname, switchTarget.ref)}${search}${hash}`
+    : null
 
   return (
     <div className={styles.shell}>
@@ -80,19 +82,10 @@ export function SeasonCompetitionShell({
         <p className={styles.eyebrow}>{seasonLabel}</p>
         <div className={styles.mastheadRow}>
           <h1 className={styles.name}>{competitionName}</h1>
-          {ref ? (
-            <label className={styles.switcher}>
-              <span className={styles.switcherLabel}>Switch competition</span>
-              <select
-                className={styles.switcherSelect}
-                aria-label="Switch competition"
-                value={currentCompetitionKey}
-                onChange={(event) => switchCompetition(event.target.value)}
-              >
-                <option value="premier-league/2026-27">Premier League 2026/27</option>
-                <option value="scottish-premiership/2026-27">Scottish Premiership 2026/27</option>
-              </select>
-            </label>
+          {switchTarget && switchHref ? (
+            <Link className={styles.switcherLink} to={switchHref}>
+              Switch to {switchTarget.label}
+            </Link>
           ) : null}
         </div>
         {statusStrip.length > 0 ? (
