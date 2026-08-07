@@ -219,6 +219,19 @@ jobs:
           set -euo pipefail
           psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
           begin;
+          -- Local Supabase boots from the repository migration tip. Normalize
+          -- platform-owned state so this disposable restore exactly matches the
+          -- verified Production contract-67 source before Batch B is rehearsed.
+          drop extension if exists pg_net cascade;
+          do $cron$
+          declare
+            v_job record;
+          begin
+            for v_job in select jobid from cron.job loop
+              perform cron.unschedule(v_job.jobid);
+            end loop;
+          end
+          $cron$;
           drop schema if exists predictor_internal cascade;
           drop schema if exists public cascade;
           create schema public;
@@ -235,8 +248,23 @@ jobs:
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' --file data.sql
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file managed-schema-customizations.sql
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file migration-history.sql
+
+          psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
+          select cron.schedule(
+            'euro28-auto-submit-due-entries',
+            '* * * * *',
+            'select public.process_due_entry_submissions();'
+          );
+          SQL
+
           restored="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
           [ "${restored}" = '67|20260803180000|matchweek_lock_scope' ] || { echo "ERROR: restored source is ${restored}"; exit 1; }
+          pg_net_state="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select exists(select 1 from pg_extension where extname='pg_net');")"
+          [ "${pg_net_state}" = 'f' ] || { echo 'ERROR: disposable restored source still has pg_net installed.'; exit 1; }
+          cron_count="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*) from cron.job where active;")"
+          [ "${cron_count}" = '1' ] || { echo "ERROR: disposable restored source has ${cron_count} active cron jobs, expected 1."; exit 1; }
+          source_cron_count="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*) from cron.job where active and jobname='euro28-auto-submit-due-entries' and schedule='* * * * *' and command='select public.process_due_entry_submissions();';")"
+          [ "${source_cron_count}" = '1' ] || { echo 'ERROR: disposable restored source is missing the verified contract-67 cron job.'; exit 1; }
 
       - name: Forward-rehearse exactly contracts 68-96 locally
         id: rehearsal
