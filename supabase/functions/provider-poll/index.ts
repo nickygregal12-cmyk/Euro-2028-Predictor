@@ -9,7 +9,7 @@ declare const Deno: {
   serve(handler: (request: Request) => Response | Promise<Response>): void
 }
 
-const DECODER_VERSION = 'contract-73-v1'
+const DECODER_VERSION = 'contract-132-v1'
 // UNDERSCORE, and not the same string as the function slug. The function is
 // deployed as `provider-poll` and lives at `/functions/v1/provider-poll`; the
 // secret key it authorises callers against is `provider_poll`, because Supabase

@@ -100,3 +100,13 @@ archived payloads, not a repeatable path — nothing in the repository can take
 tomorrow's payload and apply it. That remains the automatic fixture import ADR
 0020 §Ingestion decides, and it is now unblocked for the first time: the map has
 rows, so a decoded fixture finally resolves to real rows.
+
+## Contract 132: repeatable initial provider adoption
+
+Fresh provider fixture data now has a repeatable initial-season path. A successful `contract-132-v1` normalized response is staged into `predictor_internal.provider_fixture_proposals`; staging writes no canonical clubs, rounds, fixtures or results. Publication requires `public.admin_approve_initial_provider_fixtures(...)` and the caller must hold the existing `competitions` admin capability.
+
+The initial approval is deliberately complete-season and competition-specific: Scottish Premiership requires 12 clubs, 33 published pre-split matchweeks and 198 fixtures; Premier League requires 20 clubs, 38 matchweeks and 380 fixtures. Multiple bounded raw responses may be staged before one approval. Conflicting duplicate provider evidence fails closed.
+
+SportMonks adoption requests must include `round` alongside participants and scores (for example `include=participants;scores;round`). Contract 132 normalizes `round.name` as the provider matchweek identity and retains participant names so team mappings can be reviewed and created. An opaque SportMonks `round_id` is only a decoder fallback when round detail was not requested and is not suitable for initial approval.
+
+Provider match status and scores are retained on the proposal evidence row only. Approved canonical `season_fixtures` are created as `scheduled` with null scores. Already-played matches still require explicit confirmation through the protected season-result authority before standings or scoring treat them as official.

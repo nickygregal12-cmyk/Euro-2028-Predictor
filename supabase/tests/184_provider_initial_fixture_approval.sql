@@ -330,13 +330,13 @@ select is(
 
 select throws_ok(
   format(
-    'update predictor_internal.provider_fixture_proposals set decision_reason = %L where tournament_id = %L::uuid limit 1',
+    'update predictor_internal.provider_fixture_proposals set decision_reason = %L where id = (select id from predictor_internal.provider_fixture_proposals where tournament_id = %L::uuid limit 1)',
     'rewritten',
     current_setting('test.c132_season')
   ),
-  '42601',
-  null,
-  'Postgres itself rejects UPDATE LIMIT syntax before it could disguise evidence mutation');
+  '42501',
+  'A decided provider fixture proposal is immutable',
+  'decided provider proposal evidence cannot be rewritten');
 
 select throws_ok(
   format(
