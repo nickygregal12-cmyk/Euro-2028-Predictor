@@ -1,18 +1,20 @@
 import type { ReactNode } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import {
   competitionRefFromPath,
   competitionSectionRoute,
   logicalWeeklyParent,
+  switchCompetitionPath,
   weeklyRoutes,
 } from '../../app/weeklyRoutes'
+import { HUB_COMPETITIONS } from '../hub/competitionCatalogue'
 import styles from './SeasonCompetitionShell.module.css'
 
 /**
- * The competition shell owns competition identity, parent exits and the one
- * competition-level navigation system. The global bottom navigation is hidden
- * by AppShell while this route family is active, so Hub and competition modes
- * no longer compete for the same screen.
+ * The competition shell owns competition identity, parent exits, quick
+ * competition switching and the one competition-level navigation system. The
+ * global bottom navigation is hidden by AppShell while this route family is
+ * active, so Hub and competition modes no longer compete for the same screen.
  */
 export type SeasonShellSection = 'overview' | 'play' | 'matches' | 'games' | 'leagues'
 
@@ -41,7 +43,9 @@ export function SeasonCompetitionShell({
   destinations,
   children,
 }: SeasonCompetitionShellProps) {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { pathname, search, hash } = location
   const ref = competitionRefFromPath(pathname)
   const gamesPath = ref ? competitionSectionRoute(ref, 'games') : null
   const effectiveActive: SeasonShellSection =
@@ -49,6 +53,16 @@ export function SeasonCompetitionShell({
       ? 'games'
       : active
   const parent = logicalWeeklyParent(pathname)
+  const currentCompetitionKey = ref ? `${ref.competitionSlug}/${ref.seasonSlug}` : ''
+
+  const switchCompetition = (value: string) => {
+    if (!ref || value === currentCompetitionKey) return
+    const target = HUB_COMPETITIONS.find(
+      (competition) => `${competition.competitionSlug}/${competition.seasonSlug}` === value,
+    )
+    if (!target) return
+    navigate(`${switchCompetitionPath(pathname, target)}${search}${hash}`)
+  }
 
   return (
     <div className={styles.shell}>
@@ -65,7 +79,29 @@ export function SeasonCompetitionShell({
 
       <header className={styles.masthead}>
         <p className={styles.eyebrow}>{seasonLabel}</p>
-        <h1 className={styles.name}>{competitionName}</h1>
+        <div className={styles.mastheadRow}>
+          <h1 className={styles.name}>{competitionName}</h1>
+          {ref && HUB_COMPETITIONS.length > 1 ? (
+            <label className={styles.switcher}>
+              <span className={styles.switcherLabel}>Switch competition</span>
+              <select
+                className={styles.switcherSelect}
+                aria-label="Switch competition"
+                value={currentCompetitionKey}
+                onChange={(event) => switchCompetition(event.target.value)}
+              >
+                {HUB_COMPETITIONS.map((competition) => (
+                  <option
+                    key={`${competition.competitionSlug}/${competition.seasonSlug}`}
+                    value={`${competition.competitionSlug}/${competition.seasonSlug}`}
+                  >
+                    {competition.name} {competition.seasonLabel}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+        </div>
         {statusStrip.length > 0 ? (
           <dl className={styles.status}>
             {statusStrip.map((entry) => (
