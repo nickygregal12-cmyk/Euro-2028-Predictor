@@ -4,25 +4,28 @@ import { AppBar, PageShell, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useTheme } from './providers/ThemeProvider'
+import { isCompetitionModePath, weeklyRoutes } from './weeklyRoutes'
 
-// Maps the current path to the active bottom-nav tab. The five tab destinations
-// are declared with their semantic links in BottomNav.
 function activeTab(pathname: string): NavKey {
-  if (pathname.startsWith('/predict')) return 'predict'
-  // The per-fixture match centre (/match/:ref) belongs to the Matches tab.
-  if (pathname.startsWith('/matches') || pathname.startsWith('/match/')) return 'matches'
-  if (pathname.startsWith('/league')) return 'league'
-  if (pathname.startsWith('/more')) return 'more'
+  if (pathname === weeklyRoutes.play) return 'predict'
+  if (pathname === weeklyRoutes.matches || pathname.startsWith('/match/')) return 'matches'
+  if (pathname === weeklyRoutes.leagues || pathname.startsWith('/league/')) return 'league'
+  if (
+    pathname === weeklyRoutes.more ||
+    pathname.startsWith('/more/') ||
+    pathname === '/account' ||
+    pathname.startsWith('/profile')
+  ) {
+    return 'more'
+  }
   return 'home'
 }
 
-// The app bar's left slot carries section context only; page titles stay
-// content-owned (design-system §6). Labels mirror the BottomNav tabs.
 const TAB_CONTEXT: Record<NavKey, string> = {
   home: 'Home',
-  predict: 'Predict',
+  predict: 'Play',
   matches: 'Matches',
-  league: 'League',
+  league: 'Leagues',
   more: 'More',
 }
 
@@ -31,14 +34,16 @@ export function AppShell() {
   const navigate = useNavigate()
   const { displayName } = useAuth()
   const { theme, toggle } = useTheme()
+  const competitionMode = isCompetitionModePath(location.pathname)
   const tab = activeTab(location.pathname)
 
   return (
     <PageShell
       active={tab}
+      showBottomNav={!competitionMode}
       topBar={
         <AppBar
-          context={TAB_CONTEXT[tab]}
+          context={competitionMode ? 'Competition' : TAB_CONTEXT[tab]}
           theme={theme}
           onToggleTheme={toggle}
           displayName={displayName}
@@ -46,8 +51,6 @@ export function AppShell() {
         />
       }
     >
-      {/* Lazily-loaded route chunks resolve here; the nav stays put while the
-          content area shows the fallback. */}
       <Suspense fallback={<RouteFallback />}>
         <Outlet />
       </Suspense>

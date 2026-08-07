@@ -18,12 +18,12 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await page.keyboard.press('Enter')
   await expect(main).toBeFocused()
 
-  const predictLink = page
+  const playLink = page
     .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: 'Predict', exact: true })
+    .getByRole('link', { name: 'Play', exact: true })
 
-  await predictLink.focus()
-  await expect(predictLink).toBeFocused()
+  await playLink.focus()
+  await expect(playLink).toBeFocused()
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL((url) => url.pathname === '/play')
@@ -31,13 +31,35 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await expect(main).toBeFocused()
   await expect(page.locator(liveRegion)).toHaveText('Play page loaded')
 
-  const competitionLink = page.getByRole('link', { name: /Euro 2028 2028/ })
-  await competitionLink.focus()
-  await expect(competitionLink).toBeFocused()
+  const homeLink = page
+    .getByRole('navigation', { name: 'Primary' })
+    .getByRole('link', { name: 'Home', exact: true })
+  await homeLink.focus()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL((url) => url.pathname === '/')
+
+  const competitionButton = page.getByRole('button', { name: 'View Premier League' })
+  await competitionButton.focus()
+  await expect(competitionButton).toBeFocused()
   await page.keyboard.press('Enter')
 
-  await expect(page).toHaveURL((url) => url.pathname === '/competitions/euro/2028/play')
-  await expect(page).toHaveTitle('Competition play | Football Prediction Hub')
+  await expect(page).toHaveURL(
+    (url) => url.pathname === '/competitions/premier-league/2026-27',
+    { timeout: 15_000 },
+  )
   await expect(main).toBeFocused()
-  await expect(page.locator(liveRegion)).toHaveText('Competition play page loaded')
+
+  const competitionPlay = page
+    .getByRole('navigation', { name: 'Premier League sections' })
+    .getByRole('link', { name: 'Play', exact: true })
+  await competitionPlay.focus()
+  await expect(competitionPlay).toBeFocused()
+  await page.keyboard.press('Enter')
+
+  await expect(page).toHaveURL(
+    (url) => url.pathname === '/competitions/premier-league/2026-27/play',
+  )
+  await expect(page).toHaveTitle('Premier League 2026/27 Play | Football Prediction Hub')
+  await expect(main).toBeFocused()
+  await expect(page.locator(liveRegion)).toHaveText('Premier League 2026/27 Play page loaded')
 })

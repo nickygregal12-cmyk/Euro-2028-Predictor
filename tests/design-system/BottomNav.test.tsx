@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { BottomNav } from '../../src/design-system/BottomNav'
 
 describe('BottomNav', () => {
-  it('renders primary destinations as real links', () => {
+  it('renders the canonical weekly destinations as real links', () => {
     render(
       <MemoryRouter>
         <BottomNav active="matches" />
@@ -13,9 +13,9 @@ describe('BottomNav', () => {
 
     const expectedDestinations = {
       Home: '/',
-      Predict: '/play',
-      Matches: '/fixtures',
-      League: '/leagues',
+      Play: '/play',
+      Matches: '/matches',
+      Leagues: '/leagues',
       More: '/more',
     }
 

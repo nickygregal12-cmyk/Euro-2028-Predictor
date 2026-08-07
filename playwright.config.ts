@@ -5,21 +5,34 @@ const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './e2e',
-  // `axe-unauthenticated` must run only under playwright.auth.config.ts, which
-// serves the app with VITE_DEV_AUTOLOGIN=false. Here it would be signed in and
-// `RedirectIfAuthed` would bounce it off the routes it exists to scan.
-//
-// `visual-gallery` must run only under playwright.visual.config.ts. This
-// config's `testDir` sweeps up every spec in `e2e/`, so when the visual suite
-// arrived it was picked up here too and ran 104 screenshot comparisons with no
-// baselines to compare against — every one of them failing, on a suite that
-// gates the merge. Its own config is dispatch-only until the baselines are
-// bootstrapped on the runner; this is the other half of keeping it there.
+  // The weekly frontend no longer exposes the tournament-era route tree. These
+  // specs are retained as Euro 2028 return evidence against the
+  // `euro-2028-baseline` recovery point, but running them against the weekly
+  // App would test routes that this milestone deliberately retired. The
+  // project-gating contract verifies that this list contains only the explicit
+  // parked-Euro set and that every non-parked spec still runs under exactly one
+  // active config.
+  //
+  // The first four entries belong to other active Playwright configs.
   testIgnore: [
     'auth-recovery.spec.ts',
     'auth-capacity.spec.ts',
     'axe-unauthenticated.spec.ts',
     'visual-gallery.spec.ts',
+    'admin-results.spec.ts',
+    'authenticated-browser.spec.ts',
+    'automatic-submission.spec.ts',
+    'bonus-games.spec.ts',
+    'bracket-conflict.spec.ts',
+    'entry-creation.spec.ts',
+    'foreground-refresh.spec.ts',
+    'locked-state.spec.ts',
+    'match-centre-navigation.spec.ts',
+    'matches-tournament-info.spec.ts',
+    'operating-cap.spec.ts',
+    'overall-standings.spec.ts',
+    'prediction-trends.spec.ts',
+    'private-league-invite.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

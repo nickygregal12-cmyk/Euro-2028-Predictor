@@ -7,57 +7,12 @@ import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonMatchPredictor } from './useSeasonMatchPredictor'
 import styles from './SeasonMatchPredictorPage.module.css'
 
-/**
- * The phone-first season Match Predictor matchweek card.
- *
- * Renders the read model and issues commands; it computes no lock, no score and
- * no allowance of its own. Every state it can show comes from `presentCard`,
- * which implements §12.1's state machine, so a state this page displays is a
- * state the plan defines rather than one the component invented.
- *
- * WHAT THE PLAYER IS TOLD AT THE TOP, ALWAYS. §12.1's Match Predictor branch is
- * the least intuitive rule in the game: an untouched matchweek banks nothing,
- * while a matchweek the player touched banks exactly what they entered and
- * scores zero for the blanks. A player who does not know that cannot tell the
- * difference between "I left it" and "I left it half done", and the second one
- * costs them. So it is stated on the card rather than buried in a help page —
- * and it changes wording as the card changes state, because the consequence
- * changes with it.
- *
- * LOADING IS A LAYOUT-SHAPED SKELETON, not a spinner (§11.2, §13.4). The
- * skeleton renders the same number of fixture rows at the same heights, so the
- * content does not jump when it arrives — which is also what keeps cumulative
- * layout shift at zero on this route.
- */
-
 export type SeasonMatchPredictorPageProps = {
   gateway: MatchPredictorGateway
   matchweek: number
-  /**
-   * Competition identity, supplied by the route rather than read from the card.
-   *
-   * IT USED TO COME FROM THE CARD, and that is why the loading and failed
-   * states rendered a masthead reading "Loading competition" and "Match
-   * Predictor" over the season label "Season" — furniture asserting something
-   * untrue while the read was in flight, and still untrue after it failed. The
-   * route resolves the real competition before this page mounts at all, so the
-   * name is a fact by the time it is rendered.
-   */
   competitionName: string
   seasonLabel: string
-  /** Where each §7.3 section lives. Absent sections stay unavailable labels. */
   destinations?: Partial<Record<SeasonShellSection, string>>
-  /**
-   * Entry for the season Match Predictor. Optional only because the DEV
-   * harness has no signed-in caller to register.
-   *
-   * WITHOUT IT THIS PAGE IS A TRAP. `get_season_matchweek_card` answers a
-   * caller who holds no entry with an ordinary card — `card_status` is
-   * `no_submission`, which is also what an entered player with nothing saved
-   * gets — so the card renders, invites a whole matchweek of predictions, and
-   * the first save is refused by `require_season_entry`. The panel states
-   * membership before that happens.
-   */
   registration?: SeasonLmsRegistrationGateway
 }
 
@@ -91,7 +46,7 @@ export function SeasonMatchPredictorPage({
         competitionName={competitionName}
         seasonLabel={seasonLabel}
         statusStrip={[]}
-        active="play"
+        active="games"
         destinations={destinations}
       >
         <div className={styles.card} aria-busy="true" aria-live="polite">
@@ -113,7 +68,7 @@ export function SeasonMatchPredictorPage({
         competitionName={competitionName}
         seasonLabel={seasonLabel}
         statusStrip={[]}
-        active="play"
+        active="games"
         destinations={destinations}
       >
         <Alert variant="error" title="This matchweek is unavailable">
@@ -141,11 +96,9 @@ export function SeasonMatchPredictorPage({
       competitionName={competitionName}
       seasonLabel={seasonLabel}
       statusStrip={statusStrip}
-      active="play"
+      active="games"
       destinations={destinations}
     >
-      {/* Above the card, deliberately. A player who is not entered must learn
-          it before filling one in, not from the refusal on their first save. */}
       {registration ? (
         <SeasonLmsRegistration
           gateway={registration}

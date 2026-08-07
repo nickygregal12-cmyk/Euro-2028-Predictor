@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router'
-import { Alert, Skeleton } from '../../design-system'
+import { useLocation, useNavigate, useParams } from 'react-router'
+import { Alert, Button, Skeleton } from '../../design-system'
+import { competitionRoute, logicalWeeklyParent, weeklyRoutes } from '../../app/weeklyRoutes'
 import { useAuth } from '../auth/AuthProvider'
 import { findHubCompetition, type HubCompetition } from '../hub/competitionCatalogue'
 import { fetchHubMembership } from '../../services/supabase/competitionGames'
@@ -29,34 +30,10 @@ import { SeasonLmsPage } from './SeasonLmsPage'
 import { SeasonCupPhasePage } from './SeasonCupPhasePage'
 import s from '../shared.module.css'
 
-/**
- * The production routes for the season game surfaces.
- *
- * WHAT THESE ADD is the layer the pages were built without: URL resolution.
- * Each page has been production code for some time and reachable only from a
- * DEV harness, because nothing turned `/competitions/premier-league/2026-27`
- * into the season and competition identifiers its gateway needs. That is all
- * these containers do — resolve identity, then mount the page that already
- * exists.
- *
- * IDENTITY IS RESOLVED FROM SERVER DATA, NOT FROM THE SLUG. The catalogue maps
- * the URL to the exact `tournaments.name` the C1 migrations created, and
- * `fetchHubMembership` turns that into the season's id and its games' ids. The
- * slug never becomes an identifier: `competitions.slug` is not browser-readable
- * and deriving one client-side would silently disagree with the server's rule.
- *
- * A GAME THE SEASON DOES NOT HOLD IS AN ERROR, NOT AN EMPTY PAGE. If the
- * catalogue names a game and the database does not list it, that is a
- * disagreement worth showing rather than a surface to render blank — the
- * empty-versus-failed line every read in this repository is held to.
- */
-
 type Resolved = {
   competition: HubCompetition
   tournamentId: string
-  /** Game competition ids by key, as the season's catalogue lists them. */
   gameIds: Partial<Record<CompetitionGameKey, string>>
-  /** The season's games as the server listed them, membership included. */
   games: readonly CompetitionGame[]
 }
 
@@ -117,17 +94,6 @@ function useSeasonRoute(): RouteState {
   return state
 }
 
-/**
- * Every season game page renders inside the competition shell, exactly as the
- * Match Predictor route does. The shell supplies competition identity and the
- * §7.3 sub-navigation; this only decides which section is current and what the
- * status strip says.
- *
- * Before the season resolves there is no competition to name, so the shell is
- * not rendered with a placeholder identity — a masthead reading "Competition"
- * would be furniture asserting something untrue. The skeleton stands alone
- * until the name is a fact.
- */
 function RouteFrame({
   title,
   section,
@@ -141,9 +107,27 @@ function RouteFrame({
   statusStrip?: readonly string[]
   children: (resolved: Resolved) => React.ReactNode
 }) {
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const parent = logicalWeeklyParent(pathname)
+
+  const exits = (
+    <div className={s.actions}>
+      {parent && parent.href !== weeklyRoutes.hub ? (
+        <Button variant="secondary" fullWidth onClick={() => navigate(parent.href)}>
+          {parent.label}
+        </Button>
+      ) : null}
+      <Button variant="secondary" fullWidth onClick={() => navigate(weeklyRoutes.hub)}>
+        Back to Hub
+      </Button>
+    </div>
+  )
+
   if (state.status === 'loading') {
     return (
       <div className={s.page}>
+        {exits}
         <Skeleton width="60%" height={28} />
         <Skeleton width="100%" height={220} />
       </div>
@@ -159,6 +143,7 @@ function RouteFrame({
         <Alert variant="error" title="We could not open this game">
           {state.message}
         </Alert>
+        {exits}
       </div>
     )
   }
@@ -169,9 +154,6 @@ function RouteFrame({
       seasonLabel={state.resolved.competition.seasonLabel}
       statusStrip={statusStrip}
       active={section}
-      // One shared map, so a section becoming reachable does not have to be
-      // remembered at every route that renders the shell — which is how one of
-      // them kept showing a shipped section as unavailable.
       destinations={seasonShellDestinations(competitionBase(state.resolved))}
     >
       {children(state.resolved)}
@@ -180,10 +162,9 @@ function RouteFrame({
 }
 
 function competitionBase(resolved: Resolved): string {
-  return `/competitions/${resolved.competition.competitionSlug}/${resolved.competition.seasonSlug}`
+  return competitionRoute(resolved.competition)
 }
 
-/** A game the catalogue names and the season does not list. Shown, not hidden. */
 function MissingGame({ name }: { name: string }) {
   return (
     <Alert variant="warning" title={`${name} is not part of this season`}>
@@ -197,13 +178,7 @@ export function SeasonStandingsRoute() {
   const { userId } = useAuth()
 
   return (
-    /* `play` rather than `games`: §7.4 puts standings inside the GAME shell as
-       one of the Main Predictor's own sections, and the competition sub-nav has
-       no entry for it. Of the five §7.3 sections, `play` is where that game
-       already lives — the Match Predictor route claims it too — so the two
-       Main Predictor surfaces stay together rather than one drifting under a
-       heading that means "other games". */
-    <RouteFrame title="Main Predictor standings" section="play" state={state}>
+    <RouteFrame title="Match Predictor standings" section="games" state={state}>
       {(resolved) => (
         <SeasonStandingsRouteBody tournamentId={resolved.tournamentId} userId={userId} />
       )}
@@ -218,9 +193,6 @@ function SeasonStandingsRouteBody({
   tournamentId: string
   userId: string | null
 }) {
-  // Memoised so the page's own effects do not re-run on every parent render:
-  // a new gateway object is a new dependency and the table would reload in a
-  // loop without this.
   const gateway = useMemo(
     () => ({
       load: (cursor: string | null) =>
@@ -228,8 +200,6 @@ function SeasonStandingsRouteBody({
     }),
     [tournamentId],
   )
-  // ADR 0012's retention views, only for a signed-in caller: finding their own
-  // row needs their own entry, and the read refuses a caller with none anyway.
   const periods = useMemo(
     () =>
       userId
@@ -242,9 +212,7 @@ function SeasonStandingsRouteBody({
     [tournamentId, userId],
   )
 
-  return (
-    <SeasonStandingsPage gameName="Main Predictor" gateway={gateway} periods={periods} />
-  )
+  return <SeasonStandingsPage gameName="Match Predictor" gateway={gateway} periods={periods} />
 }
 
 export function SeasonLmsRoute() {
@@ -277,9 +245,6 @@ function SeasonLmsRouteBody({
   competitionId: string
   userId: string | null
 }) {
-  // Memoised so the page's own effects do not re-run on every parent render:
-  // a new gateway object is a new dependency, and the round read would reload
-  // in a loop without this.
   const gateway = useMemo(
     () => createSeasonLmsRpcGateway({ tournamentId }),
     [tournamentId],
@@ -330,9 +295,6 @@ function SeasonChampionshipRouteBody({
     () => createSeasonCupRpcGateway({ competitionId }),
     [competitionId],
   )
-  // The same registration gateway the Last Man Standing route uses: entry is
-  // `join_competition_game` for every game key, so there is one path, not one
-  // per game.
   const registration = useMemo(
     () =>
       userId
@@ -350,13 +312,8 @@ export function SeasonLeaguesRoute() {
   return (
     <RouteFrame title="Leagues" section="leagues" state={state}>
       {(resolved) => {
-        // A private league in this competition ranks the Main Predictor: it is
-        // the game `create_game_league` accepts, because it is the one that
-        // takes predictions. If the season does not run it, there is nothing
-        // for a league here to be about, and that is stated rather than shown
-        // as an empty list.
         const game = resolved.games.find((entry) => entry.gameKey === 'main_predictor')
-        if (!game) return <MissingGame name="The Main Predictor" />
+        if (!game) return <MissingGame name="The Match Predictor" />
         return (
           <SeasonLeaguesRouteBody
             gameCompetitionId={game.id}
@@ -379,8 +336,6 @@ function SeasonLeaguesRouteBody({
     () => ({
       load: () => fetchMyGameLeagues(gameCompetitionId),
       create: (name: string) => createGameLeague(gameCompetitionId, name),
-      // `join_league` resolves the game from the code itself, so it needs no
-      // game-scoped variant and the tournament wrapper is the same call.
       join: (code: string) => joinLeague(code),
     }),
     [gameCompetitionId],
@@ -389,7 +344,7 @@ function SeasonLeaguesRouteBody({
   return (
     <SeasonLeaguesPage
       gateway={gateway}
-      gameName="Main Predictor"
+      gameName="Match Predictor"
       joinedGame={joinedGame}
     />
   )
@@ -408,12 +363,7 @@ export function SeasonPlayRoute() {
             inbox={presentPlayInbox(
               resolved.games,
               base,
-              // The Match Predictor's route is flag-gated, so its destination is
-              // supplied here rather than assumed by the model — the flag stays
-              // the one place that decision is made.
-              isNextUi('seasonMatchPredictor')
-                ? { main_predictor: `${base}/main-predictor` }
-                : {},
+              isNextUi('seasonMatchPredictor') ? { main_predictor: 'enabled' } : {},
             )}
           />
         )

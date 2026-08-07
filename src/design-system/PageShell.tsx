@@ -8,17 +8,25 @@ export type PageShellProps = {
   // (design-system §6, one title system).
   topBar?: ReactNode
   active: NavKey
+  /** Competition mode owns its navigation and therefore hides the global tabs. */
+  showBottomNav?: boolean
   /** Dev/demo-only override. Production navigation should omit this. */
   onNavigate?: (key: NavKey) => void
   children: ReactNode
 }
 
 /**
- * The app frame: optional top bar, scrolling content, and the fixed BottomNav.
- * Fills its container height (use 100dvh at the app root); the content region
- * scrolls independently so the bars stay put. Presentational only.
+ * The app frame: optional top bar, scrolling content, and the global BottomNav
+ * when the current route is in Hub mode. Competition mode keeps the top bar for
+ * account/theme access but supplies its own competition navigation.
  */
-export function PageShell({ topBar, active, onNavigate, children }: PageShellProps) {
+export function PageShell({
+  topBar,
+  active,
+  showBottomNav = true,
+  onNavigate,
+  children,
+}: PageShellProps) {
   return (
     <div className={styles.shell}>
       <a className={styles.skipLink} href="#main-content">
@@ -28,7 +36,7 @@ export function PageShell({ topBar, active, onNavigate, children }: PageShellPro
       <main id="main-content" className={styles.content} tabIndex={-1}>
         {children}
       </main>
-      <BottomNav active={active} onNavigate={onNavigate} />
+      {showBottomNav ? <BottomNav active={active} onNavigate={onNavigate} /> : null}
     </div>
   )
 }

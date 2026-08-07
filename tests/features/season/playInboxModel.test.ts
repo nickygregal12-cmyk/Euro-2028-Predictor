@@ -29,8 +29,6 @@ function joined(gameKey: CompetitionGame['gameKey'], id = 'game-1'): Competition
 
 describe('presentPlayInbox', () => {
   it('lists only the games the caller has actually joined', () => {
-    // This is what separates Play from Overview: Overview is the competition,
-    // Play is yours.
     const inbox = presentPlayInbox(
       [joined('last_man_standing', 'lms'), game({ gameKey: 'predictor_cup', id: 'cup' })],
       BASE,
@@ -49,35 +47,31 @@ describe('presentPlayInbox', () => {
     expect(presentPlayInbox([left], BASE).empty).toBe(true)
   })
 
-  it('sends each joined game to its own surface', () => {
+  it('sends each joined game to its canonical Games child', () => {
     const inbox = presentPlayInbox(
       [joined('last_man_standing', 'lms'), joined('predictor_cup', 'cup')],
       BASE,
     )
 
     expect(inbox.entries.map((entry) => entry.href)).toEqual([
-      `${BASE}/last-man-standing`,
-      `${BASE}/championship`,
+      `${BASE}/games/lms`,
+      `${BASE}/games/championship`,
     ])
   })
 
-  it('lists a joined game with no surface, but gives it no link', () => {
-    // Hiding it would misreport what the player has joined; linking it would be
-    // a dead link. It is listed and inert.
+  it('lists a joined Match Predictor with no enabled surface, but gives it no link', () => {
     const inbox = presentPlayInbox([joined('main_predictor')], BASE)
 
     expect(inbox.entries).toHaveLength(1)
-    expect(inbox.entries[0]).toMatchObject({ name: 'Main Predictor', href: null })
+    expect(inbox.entries[0]).toMatchObject({ name: 'Match Predictor', href: null })
   })
 
-  it('takes the Match Predictor destination from the caller, not from itself', () => {
-    // Its route is flag-gated, and this model cannot read a flag without
-    // becoming impure — so the flag stays the one place that decision is made.
+  it('uses the caller only as the Match Predictor enable signal, then builds the canonical route', () => {
     const inbox = presentPlayInbox([joined('main_predictor')], BASE, {
-      main_predictor: `${BASE}/main-predictor`,
+      main_predictor: 'enabled',
     })
 
-    expect(inbox.entries[0].href).toBe(`${BASE}/main-predictor`)
+    expect(inbox.entries[0].href).toBe(`${BASE}/games/match-predictor`)
   })
 
   it('reports an empty inbox rather than an empty list', () => {
@@ -87,10 +81,9 @@ describe('presentPlayInbox', () => {
     expect(inbox.entries).toEqual([])
   })
 
-  it('names games as the interface names them, not as the database does', () => {
+  it('names games as the public interface names them, not as the database does', () => {
     const inbox = presentPlayInbox([joined('predictor_cup')], BASE)
 
-    // ADR 0020 renames the Cup in the interface; the game_key never changed.
     expect(inbox.entries[0].name).toBe('Predictor Championship')
   })
 })

@@ -5,11 +5,32 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
-  /* A flex child defaults to min-width:auto, which lets long content push a
-     column wider than its parent. Without this the whole page gains a
-     horizontal scrollbar on a narrow phone — measured at 446px inside a 360px
-     viewport before this line existed, caused by the competition name below. */
   min-width: 0;
+}
+
+.parentNav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.parentLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  text-decoration: none;
+}
+
+.parentLink:hover {
+  color: var(--tx);
+  border-color: var(--tx3);
 }
 
 /* §11.1: a flat tint band, never a gradient hero. The accent is permitted on the
@@ -30,10 +51,6 @@
   color: var(--tx3);
 }
 
-/* Real competition names are long ("Scottish Premiership — 2026/27") and the
-   display face at 28px is wide. `anywhere` rather than `break-word` because the
-   hostile case is one unbroken token, which `break-word` still refuses to
-   split — and a masthead that overflows takes the whole page with it. */
 .name {
   margin: 0;
   font-family: var(--font-display);
@@ -58,17 +75,12 @@
   margin: 0;
   font-family: var(--font-body);
   font-size: var(--fs-2);
-  /* Deadlines, matchweek numbers and ranks are all numeric surfaces (§11.4). */
   font-variant-numeric: var(--numeric);
   color: var(--tx2);
 }
 
-/* Horizontally scrollable on a phone (§11.5), so a fifth section never wraps
-   into a second row and shifts the content below it. */
 .subNav {
   overflow-x: auto;
-  /* The scroll container is its own overflow region; the page must not scroll
-     sideways (§11.5). */
   scrollbar-width: none;
 }
 
@@ -93,13 +105,10 @@
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: var(--fs-2);
-  /* 44px minimum touch target height including padding. */
   min-height: var(--tap-min);
   line-height: 28px;
 }
 
-/* Accent is permitted on the active navigation indicator (§11.1) and nowhere
-   else in this component. */
 .subNavActive {
   background: var(--chip);
   border: 1px solid var(--acc);
@@ -109,14 +118,9 @@
 
 .subNavDisabled {
   border: 1px solid transparent;
-  /* --tx3 is legible here because this sits on the page background rather than
-     a tinted surface, and the label is deliberately quieter than a real
-     destination. */
   color: var(--tx3);
 }
 
-/* A reachable section. --tx2 rather than --tx3, so a link the player can follow
-   reads as more available than one that is not built. */
 .subNavLink {
   border: 1px solid transparent;
   color: var(--tx2);
@@ -136,7 +140,6 @@
 
 @media (min-width: 720px) {
   .shell {
-    /* §11.5: a reading/list column of 760–820px, widened only for data tables. */
     max-width: 800px;
   }
 }

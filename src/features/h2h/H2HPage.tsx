@@ -1,6 +1,6 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton, type MatchTeam } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
@@ -38,6 +38,7 @@ const STAGE_UP: Record<string, KnockoutStage> = {
   final: 'FINAL',
   champion: 'CHAMPION',
 }
+const SAFE_H2H_PARENT = '/leagues'
 
 type State =
   | { status: 'loading' }
@@ -49,9 +50,21 @@ type HistoryState =
   | { status: 'error'; message: string }
   | { status: 'ready'; data: H2HRankHistory }
 
+function returnPath(state: unknown): string {
+  if (typeof state !== 'object' || state === null || !('returnTo' in state)) {
+    return SAFE_H2H_PARENT
+  }
+  const value = (state as { returnTo?: unknown }).returnTo
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+    ? value
+    : SAFE_H2H_PARENT
+}
+
 export function H2HPage() {
   const { rivalId } = useParams<{ rivalId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const parent = returnPath(location.state)
   const { displayName } = useAuth()
   const data = useTournamentData()
   const preds = usePredictions()
@@ -247,7 +260,7 @@ export function H2HPage() {
 
   const header = (
     <div className={s.header}>
-      <button type="button" className={s.backLink} onClick={() => navigate(-1)}>
+      <button type="button" className={s.backLink} onClick={() => navigate(parent)}>
         <ChevronLeftIcon size={16} /> Back
       </button>
       <h1 className={s.title}>Head to head</h1>
@@ -319,7 +332,13 @@ export function H2HPage() {
         rankHistory={rankHistory}
       />
       {rivalId && (
-        <Button variant="secondary" fullWidth onClick={() => navigate(`/profile/${rivalId}`)}>
+        <Button
+          variant="secondary"
+          fullWidth
+          onClick={() =>
+            navigate(`/profile/${rivalId}`, { state: { returnTo: location.pathname } })
+          }
+        >
           View player profile
         </Button>
       )}

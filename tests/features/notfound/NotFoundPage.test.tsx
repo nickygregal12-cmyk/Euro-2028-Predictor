@@ -4,7 +4,7 @@ import { MemoryRouter, Routes, Route } from 'react-router'
 import { NotFoundPage } from '../../../src/features/notfound/NotFoundPage'
 
 // The catch-all route now shows a real recovery view instead of silently
-// redirecting to Home (hygiene batch item 5).
+// redirecting to the Hub (hygiene batch item 5).
 
 describe('NotFoundPage / catch-all route', () => {
   it('renders a 404 recovery view with a clear way back', () => {
@@ -15,7 +15,7 @@ describe('NotFoundPage / catch-all route', () => {
     )
     expect(screen.getByText('404')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: /gone walkabout/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /back to home/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /back to hub/i })).toBeInTheDocument()
   })
 
   it('an unknown path resolves to the 404 view (not the home route)', () => {
@@ -31,7 +31,7 @@ describe('NotFoundPage / catch-all route', () => {
     expect(screen.queryByText('home content')).not.toBeInTheDocument()
   })
 
-  it('back-to-home navigates to /', async () => {
+  it('back-to-hub navigates to /', async () => {
     render(
       <MemoryRouter initialEntries={['/no-such-page']}>
         <Routes>
@@ -40,7 +40,7 @@ describe('NotFoundPage / catch-all route', () => {
         </Routes>
       </MemoryRouter>,
     )
-    fireEvent.click(screen.getByRole('button', { name: /back to home/i }))
+    fireEvent.click(screen.getByRole('button', { name: /back to hub/i }))
     expect(await screen.findByText('home content')).toBeInTheDocument()
   })
 })
