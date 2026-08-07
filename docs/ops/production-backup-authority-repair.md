@@ -1,6 +1,6 @@
 # Production backup authority repair
 
-**Status date:** 6 August 2026  
+**Status date:** 7 August 2026  
 **Status:** Authority routing implemented; exact-head validation pending  
 **Scope:** Ensure a production backup validates the hosted Production source rather than the repository migration tip.
 
@@ -8,7 +8,7 @@
 
 `.github/workflows/production-backup.yml` runs `scripts/deployment-contract-expectations.mjs` before restoring the dump. That command previously always derived its expectation from `config/deployment-contract.json` and the complete migration directory.
 
-At the current boundary those values are contract 125, while hosted Production is contract 63. A fresh production backup would therefore restore the correct contract-63 dump and then reject it for not containing 125 migrations.
+The repository is now at contract **131**, while hosted Production remains at contract **63**. Without this repair, a fresh production backup would restore the correct contract-63 dump and then reject it for not containing the repository-tip migration count.
 
 This is a verification-authority defect, not a production database defect. No backup was run and no hosted state changed while finding or repairing it.
 
@@ -31,7 +31,7 @@ EXPECTED_LATEST_MIGRATION_VERSION=20260729154931
 EXPECTED_LATEST_MIGRATION_NAME=prediction_consensus_minimum_cohort
 ```
 
-For every other caller it continues to emit the repository deployment-contract boundary. The routing produces a preformatted environment payload rather than carrying a union of incompatible formatter function signatures through the checked-JavaScript gate.
+For every other caller it continues to emit the repository deployment-contract boundary, currently contract 131. The routing produces a preformatted environment payload rather than carrying a union of incompatible formatter function signatures through the checked-JavaScript gate.
 
 ## Gate
 
@@ -43,4 +43,4 @@ Do not trigger `Production backup` until:
 4. the encrypted artifact is retained under the existing custody procedure;
 5. only then is the contract 64–67 forward rehearsal performed against a disposable restored target.
 
-No production promotion is authorised by this repair.
+No production promotion is authorised by this repair. Repository contracts 126–131 do not change the hosted Production source boundary and remain ineligible for Production until Development hosts and verifies them.
