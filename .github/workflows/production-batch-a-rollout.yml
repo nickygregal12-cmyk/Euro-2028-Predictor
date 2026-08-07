@@ -1,0 +1,389 @@
+name: Production Batch A rollout
+
+# One-shot guarded promotion of the already-rehearsed Production contract
+# boundary 63 -> 67. The owner explicitly authorised the Production rollout on
+# 7 August 2026. This is intentionally not a Production fast lane: it accepts
+# only the four reviewed Batch A migrations, requires the exact contract-63
+# hosted source and the rehearsed Production-shaped data boundary, and verifies
+# the exact contract-67 result after the write.
+#
+# The workflow is triggered only by the push that adds/changes this file on
+# main. Later ordinary pushes do not run it. Remove this one-shot workflow after
+# the hosted contract/evidence record has been reconciled.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/production-batch-a-rollout.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  SOURCE_CONTRACT: '63'
+  SOURCE_VERSION: '20260729154931'
+  SOURCE_NAME: prediction_consensus_minimum_cohort
+  TARGET_CONTRACT: '67'
+  TARGET_VERSION: '20260803180000'
+  TARGET_NAME: matchweek_lock_scope
+
+jobs:
+  batch-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse an unsafe repository state or Batch A shape
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || {
+            echo 'ERROR: Production Batch A rollout runs only from refs/heads/main.'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || {
+            echo 'ERROR: checked-out HEAD is not exact origin/main.'
+            exit 1
+          }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || {
+            echo 'ERROR: checkout is not clean.'
+            exit 1
+          }
+
+          expected_batch=$(cat <<'EOF'
+          20260730180000_cup_winner_deletion_semantics.sql
+          20260730235602_stage_c1_competition_season_foundation.sql
+          20260803070000_c1b_game_catalogue_memberships.sql
+          20260803180000_matchweek_lock_scope.sql
+          EOF
+          )
+          actual_batch="$(git ls-files 'supabase/migrations/*.sql' | sort | sed -n '64,67p' | xargs -n1 basename)"
+          [ "${actual_batch}" = "${expected_batch}" ] || {
+            echo 'ERROR: repository contracts 64-67 no longer match the approved Batch A allowlist.'
+            printf 'Expected:\n%s\nActual:\n%s\n' "${expected_batch}" "${actual_batch}"
+            exit 1
+          }
+
+          development_count="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${development_count}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: Development is only contract ${development_count}; Batch A target is ${TARGET_CONTRACT}."
+            exit 1
+          }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install PostgreSQL 17 client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Preflight the Production secret without printing it
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*)
+              echo 'ERROR: Production secret resolves to Development.'
+              exit 1
+              ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *)
+              echo 'ERROR: Production secret does not name the expected Production project.'
+              exit 1
+              ;;
+          esac
+
+      - name: Prove the live source is the rehearsed contract-63 boundary
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/production-batch-a
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+              'auth_users', (select count(*) from auth.users),
+              'profiles', (select count(*) from public.profiles),
+              'tournaments', (select count(*) from public.tournaments),
+              'teams', (select count(*) from public.teams),
+              'matches', (select count(*) from public.matches),
+              'entries', (select count(*) from public.entries),
+              'match_predictions', (select count(*) from public.match_predictions),
+              'leagues', (select count(*) from public.leagues),
+              'league_members', (select count(*) from public.league_members),
+              'score_events', (select count(*) from public.score_events),
+              'entry_totals', (select count(*) from public.entry_totals),
+              'pg_net_installed', exists(select 1 from pg_extension where extname = 'pg_net'),
+              'active_cron_jobs', (
+                select coalesce(
+                  json_agg(json_build_object('schedule', schedule, 'command', command) order by jobid),
+                  '[]'::json
+                )
+                from cron.job
+                where active
+              )
+            )::text;
+          " > /tmp/production-batch-a/pre-state.json
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const state = JSON.parse(readFileSync('/tmp/production-batch-a/pre-state.json', 'utf8').trim())
+          const expected = {
+            migration_count: 63,
+            latest_version: '20260729154931',
+            latest_name: 'prediction_consensus_minimum_cohort',
+            auth_users: 1,
+            profiles: 1,
+            tournaments: 1,
+            teams: 24,
+            matches: 51,
+            entries: 1,
+            match_predictions: 36,
+            leagues: 1,
+            league_members: 1,
+            score_events: 0,
+            entry_totals: 1,
+            pg_net_installed: false,
+            active_cron_jobs: [{
+              schedule: '* * * * *',
+              command: 'select public.process_due_entry_submissions();',
+            }],
+          }
+          if (JSON.stringify(state) !== JSON.stringify(expected)) {
+            console.error('ERROR: live Production no longer matches the rehearsed contract-63 source boundary.')
+            console.error('Observed:', JSON.stringify(state))
+            process.exit(1)
+          }
+          console.log('Production source boundary verified at contract 63.')
+          NODE
+
+      - name: Isolate exactly contracts 64-67 and prove the dry run
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/production-batch-a/later-migrations
+          : > /tmp/production-batch-a/moved-files.txt
+
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            filename="$(basename "${file}")"
+            version="${filename:0:14}"
+            if [[ "${version}" > "${TARGET_VERSION}" ]]; then
+              mv "${file}" "/tmp/production-batch-a/later-migrations/${filename}"
+              printf '%s\n' "${file}" >> /tmp/production-batch-a/moved-files.txt
+            fi
+          done
+
+          supabase migration list --db-url "${SUPABASE_PROD_DB_URL}" \
+            > /tmp/production-batch-a/migration-list-before.txt
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" --dry-run \
+            > /tmp/production-batch-a/dry-run.txt 2>&1
+          cat /tmp/production-batch-a/dry-run.txt
+
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' /tmp/production-batch-a/dry-run.txt \
+            | awk '!seen[$0]++' > /tmp/production-batch-a/dry-run-migrations.txt
+          expected=$(cat <<'EOF'
+          20260730180000_cup_winner_deletion_semantics.sql
+          20260730235602_stage_c1_competition_season_foundation.sql
+          20260803070000_c1b_game_catalogue_memberships.sql
+          20260803180000_matchweek_lock_scope.sql
+          EOF
+          )
+          actual="$(cat /tmp/production-batch-a/dry-run-migrations.txt)"
+          [ "${actual}" = "${expected}" ] || {
+            echo 'ERROR: Production dry run is not exactly the approved Batch A.'
+            printf 'Expected:\n%s\nActual:\n%s\n' "${expected}" "${actual}"
+            exit 1
+          }
+
+      - name: Apply exactly Production Batch A
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" \
+            2>&1 | tee /tmp/production-batch-a/apply.txt
+
+      - name: Restore the repository migration tree in the runner
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/production-batch-a/moved-files.txt ]; then
+            while IFS= read -r file; do
+              [ -n "${file}" ] || continue
+              filename="$(basename "${file}")"
+              if [ -e "/tmp/production-batch-a/later-migrations/${filename}" ]; then
+                mv "/tmp/production-batch-a/later-migrations/${filename}" "${file}"
+              fi
+            done < /tmp/production-batch-a/moved-files.txt
+          fi
+
+      - name: Verify exact contract-67 Production state
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+              'auth_users', (select count(*) from auth.users),
+              'profiles', (select count(*) from public.profiles),
+              'tournaments', (select count(*) from public.tournaments),
+              'teams', (select count(*) from public.teams),
+              'matches', (select count(*) from public.matches),
+              'entries', (select count(*) from public.entries),
+              'match_predictions', (select count(*) from public.match_predictions),
+              'leagues', (select count(*) from public.leagues),
+              'league_members', (select count(*) from public.league_members),
+              'score_events', (select count(*) from public.score_events),
+              'entry_totals', (select count(*) from public.entry_totals),
+              'pg_net_installed', exists(select 1 from pg_extension where extname = 'pg_net'),
+              'active_cron_jobs', (
+                select coalesce(
+                  json_agg(json_build_object('schedule', schedule, 'command', command) order by jobid),
+                  '[]'::json
+                )
+                from cron.job
+                where active
+              ),
+              'domestic_seasons', (
+                select coalesce(
+                  json_agg(
+                    json_build_object(
+                      'slug', c.slug,
+                      'name', t.name,
+                      'season_key', t.season_key,
+                      'kind', t.kind,
+                      'display_timezone', t.display_timezone,
+                      'status', t.status
+                    ) order by c.slug
+                  ),
+                  '[]'::json
+                )
+                from public.tournaments t
+                join public.competitions c on c.id = t.competition_id
+                where c.slug in ('premier-league', 'scottish-premiership')
+                  and t.season_key = '2026-27'
+              ),
+              'lock_scopes', (
+                select json_object_agg(game_key, lock_scope)
+                from public.game_definitions
+                where game_key in ('main_predictor', 'last_man_standing', 'original_predictor', 'ko_predictor')
+              )
+            )::text;
+          " > /tmp/production-batch-a/post-state.json
+
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const state = JSON.parse(readFileSync('/tmp/production-batch-a/post-state.json', 'utf8').trim())
+          const expected = {
+            migration_count: 67,
+            latest_version: '20260803180000',
+            latest_name: 'matchweek_lock_scope',
+            auth_users: 1,
+            profiles: 1,
+            tournaments: 3,
+            teams: 24,
+            matches: 51,
+            entries: 1,
+            match_predictions: 36,
+            leagues: 1,
+            league_members: 1,
+            score_events: 0,
+            entry_totals: 1,
+            pg_net_installed: false,
+            active_cron_jobs: [{
+              schedule: '* * * * *',
+              command: 'select public.process_due_entry_submissions();',
+            }],
+            domestic_seasons: [
+              {
+                slug: 'premier-league',
+                name: 'Premier League 2026/27',
+                season_key: '2026-27',
+                kind: 'league_season',
+                display_timezone: 'Europe/London',
+                status: 'draft',
+              },
+              {
+                slug: 'scottish-premiership',
+                name: 'Scottish Premiership 2026/27',
+                season_key: '2026-27',
+                kind: 'league_season',
+                display_timezone: 'Europe/London',
+                status: 'draft',
+              },
+            ],
+            lock_scopes: {
+              original_predictor: 'entry',
+              main_predictor: 'matchweek',
+              ko_predictor: 'match',
+              last_man_standing: 'matchweek',
+            },
+          }
+          for (const [key, value] of Object.entries(expected)) {
+            if (JSON.stringify(state[key]) !== JSON.stringify(value)) {
+              console.error(`ERROR: contract-67 verification mismatch for ${key}.`)
+              console.error('Expected:', JSON.stringify(value))
+              console.error('Observed:', JSON.stringify(state[key]))
+              process.exit(1)
+            }
+          }
+          console.log('Production Batch A verified at exact contract 67.')
+          NODE
+
+          supabase migration list --db-url "${SUPABASE_PROD_DB_URL}" \
+            > /tmp/production-batch-a/migration-list-after.txt
+
+      - name: Upload non-sensitive Batch A rollout evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-batch-a-rollout-evidence
+          path: |
+            /tmp/production-batch-a/pre-state.json
+            /tmp/production-batch-a/post-state.json
+            /tmp/production-batch-a/migration-list-before.txt
+            /tmp/production-batch-a/migration-list-after.txt
+            /tmp/production-batch-a/dry-run.txt
+            /tmp/production-batch-a/dry-run-migrations.txt
+            /tmp/production-batch-a/apply.txt
+          retention-days: 7
+          if-no-files-found: warn
