@@ -152,7 +152,9 @@ describe('Predictor Championship instance UI', () => {
     renderIndex()
 
     expect(await screen.findByText('Private Championship')).toBeTruthy()
-    const link = screen.getByRole('link', { name: /You\s+vs\s+Alex Turner/ })
+    const link = screen.getByRole('link', { name: /Your Championship/ })
+    expect(link.textContent).toContain('You')
+    expect(link.textContent).toContain('Alex Turner')
     expect(link.getAttribute('href')).toBe(`/championship/${PRIVATE_ID}`)
   })
 
