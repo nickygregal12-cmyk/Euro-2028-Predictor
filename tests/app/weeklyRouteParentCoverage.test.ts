@@ -1,0 +1,63 @@
+import { readFileSync } from 'node:fs'
+import { describe, expect, it } from 'vitest'
+import { logicalWeeklyParent } from '../../src/app/weeklyRoutes'
+
+const APP_SOURCE = readFileSync('src/App.tsx', 'utf8')
+const SHELL_START = APP_SOURCE.indexOf('<Route element={<AppShell />}>')
+const ADMIN_START = APP_SOURCE.indexOf('<Route element={<RequireAdmin />}>', SHELL_START)
+
+const REDIRECT_ONLY = new Set(['/fixtures', '/league', '/more/points'])
+
+const SHIPPED_WEEKLY_ROUTES = [
+  '/',
+  '/play',
+  '/matches',
+  '/leagues',
+  '/more',
+  '/competitions/:competitionSlug/:seasonSlug',
+  '/competitions/:competitionSlug/:seasonSlug/play',
+  '/competitions/:competitionSlug/:seasonSlug/matches',
+  '/competitions/:competitionSlug/:seasonSlug/games',
+  '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
+  '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
+  '/competitions/:competitionSlug/:seasonSlug/games/lms',
+  '/competitions/:competitionSlug/:seasonSlug/games/championship',
+  '/competitions/:competitionSlug/:seasonSlug/leagues',
+  '/league/:id',
+  '/h2h/:rivalId',
+  '/account',
+  '/profile',
+  '/profile/:playerId',
+  '/more/scoring',
+] as const
+
+function materialise(template: string): string {
+  return template
+    .replace(':competitionSlug', 'premier-league')
+    .replace(':seasonSlug', '2026-27')
+    .replace(':id', 'private-1')
+    .replace(':rivalId', 'player-2')
+    .replace(':playerId', 'player-2')
+}
+
+describe('weekly route parent coverage', () => {
+  it('enumerates every rendered non-admin route inside the authenticated App shell', () => {
+    expect(SHELL_START).toBeGreaterThanOrEqual(0)
+    expect(ADMIN_START).toBeGreaterThan(SHELL_START)
+
+    const shellSource = APP_SOURCE.slice(SHELL_START, ADMIN_START)
+    const declared = Array.from(shellSource.matchAll(/<Route\s+path="([^"]+)"/g), (match) => match[1])
+      .filter((path) => !REDIRECT_ONLY.has(path))
+      .sort()
+
+    expect(declared).toEqual([...SHIPPED_WEEKLY_ROUTES].sort())
+  })
+
+  it('gives every shipped non-root weekly route a deterministic parent', () => {
+    for (const template of SHIPPED_WEEKLY_ROUTES) {
+      if (template === '/') continue
+      const pathname = materialise(template)
+      expect(logicalWeeklyParent(pathname), `${template} -> ${pathname}`).not.toBeNull()
+    }
+  })
+})
