@@ -217,7 +217,7 @@ function objectBoundary(dbUrl) {
       'season_fixtures', to_regclass('public.season_fixtures') is not null,
       'season_predictions', to_regclass('public.season_predictions') is not null,
       'season_matchweek_scores', to_regclass('public.season_matchweek_scores') is not null,
-      'season_cup_rounds', to_regclass('public.season_cup_rounds') is not null
+      'season_cup_window_fixtures', to_regclass('public.season_cup_window_fixtures') is not null
     )::text;`,
   )
 }
