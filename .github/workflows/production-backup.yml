@@ -276,7 +276,7 @@ jobs:
           fi
 
       - name: Upload encrypted backup artifact (7-day retention)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: production-backup-encrypted
           path: /tmp/production-backup/artifact/*.backup.tar.gz.age

@@ -330,7 +330,7 @@ jobs:
 
       - name: Prepare — upload encrypted backup (7-day retention)
         if: inputs.mode == 'prepare'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stage-c1-development-backup-${{ github.run_id }}
           path: /tmp/stage-c1-development-rollout/backups/*.backup.tar.gz.age
@@ -339,7 +339,7 @@ jobs:
 
       - name: Prepare — upload non-sensitive evidence (7-day retention)
         if: inputs.mode == 'prepare'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stage-c1-development-evidence-${{ github.run_id }}
           path: |
@@ -561,7 +561,7 @@ jobs:
 
       - name: Apply — upload postflight and final manifest (7-day retention)
         if: inputs.mode == 'apply' && steps.apply_migration.outcome == 'success'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: stage-c1-development-rollout-${{ github.run_id }}
           path: |
