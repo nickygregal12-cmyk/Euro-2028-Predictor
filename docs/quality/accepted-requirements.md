@@ -4,13 +4,13 @@
 | --- | --- |
 | Authority | Primary |
 | Status | Active |
-| Last verified | 2026-08-06 |
+| Last verified | 2026-08-07 |
 | Governs | The stable identifier, owning decision, dependency and acceptance evidence for every requirement that has been **accepted and is not implemented** |
 | Does not govern | Current implementation or hosted state ([`current-status.md`](current-status.md) and the machine contract records); execution order ([`../roadmap.md`](../roadmap.md)); the detailed active/parked inventory ([`../../MASTER-TODO.md`](../../MASTER-TODO.md)); defects ([`risk-register.md`](risk-register.md)); deliberate postponements ([`deferred-decisions.md`](deferred-decisions.md)) |
 | Supersedes | None |
 | Superseded by | None |
-| Related work | Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) (`PRIV-003`–`PRIV-007`); no open pull request implements any row |
-| Implementation truth | Every row is unimplemented by definition. A row leaves this register when merged code, a migration, an executable test or verified hosted evidence exists for it — and it leaves by being *marked implemented here*, not by being deleted |
+| Related work | Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) (`PRIV-003`–`PRIV-007`); Domestic Frontend Alpha requirements `DFA-001`–`DFA-012` |
+| Implementation truth | Every Accepted row is unimplemented by definition. A row leaves the active gap only when merged code, a migration, an executable test or verified hosted evidence exists for it — and it leaves by being *marked implemented here*, not by being deleted |
 
 ## What this file is for
 
@@ -27,6 +27,27 @@ This register is that list, and nothing else. It is deliberately short on prose:
 - **Acceptance evidence is what would let the row be marked implemented** — a named artefact class, not a promise. "A route guard test" is evidence; "done" is not.
 - **A row is marked implemented, superseded or rejected in place.** Deleting a row destroys the only trace that the requirement existed, which is the failure this file prevents.
 - **Identifiers are unique across the repository.** `PRIV-001` and `PRIV-002` are already allocated in [`risk-register.md`](risk-register.md); new privacy identifiers continue from `PRIV-003`. `FEAT-*`, `PLAN-*` and `SAFE-*` belong to [`feature-baseline.md`](feature-baseline.md) and are not used here.
+
+## Domestic Frontend Alpha
+
+Authority: [ADR 0023](../adr/0023-hub-information-architecture.md), Domestic Frontend Alpha reconciliation accepted 7 August 2026. Detailed page/route behaviour: [`../architecture/hub-information-architecture.md`](../architecture/hub-information-architecture.md).
+
+These rows capture stable accepted gaps. They do not duplicate `EURO-001`–`EURO-004`; Euro absence retains those existing identifiers.
+
+| ID | Requirement | Depends on | Acceptance evidence | Status |
+| --- | --- | --- | --- | --- |
+| `DFA-001` | First sign-in is a one-time guided setup across followed competitions, optional favourite team, per-competition game selection and private-play choice; interrupted onboarding resumes and a pending invitation survives auth/onboarding | Required account/display-name setup; page reads/writes for preferences and memberships | Browser journey covering first sign-in, interrupted resume, returning sign-in and pending-invite recovery | Accepted — unimplemented as the complete flow |
+| `DFA-002` | One optional favourite domestic team is a changeable profile preference only; it may personalise prominence but never affects game membership, predictions, scoring, rankings, permissions or urgent-action priority | A persisted preference keyed to canonical team identity | Migration/service contract plus settings/onboarding UI and tests proving no competitive rule consumes the preference | Accepted — unimplemented |
+| `DFA-003` | Reusable shirt-style club identity uses canonical team identity, bounded patterns/colours, accessible label, neutral fallback, light/dark support and layout-stable repeated rendering; it is never the sole identifier | Canonical domestic team identity and target design-system adoption | Reusable component, gallery/visual/accessibility contracts and adoption on the first high-value football surfaces | Accepted — unimplemented |
+| `DFA-004` | Weekly game navigation converges on canonical Match Predictor/LMS/Championship routes beneath `/competitions/:competition/:season/games/`, with one typed/generated route authority rather than scattered string literals | Existing route migration and `EURO-001`–`EURO-004` for hidden tournament absence | Route declaration/URL-construction tests and redirects proving no permanent parallel weekly route tree | Accepted — partially implemented, target not complete |
+| `DFA-005` | Every shipped non-root weekly route has a deterministic logical parent independent of browser history, including game, private-container, Match Centre, player/H2H, failure and not-found routes | `DFA-004` route convergence | Executable route/navigation matrix proving every shipped route has its required parent/fallback and useful Match Centre return context | Accepted — unimplemented as an exhaustive contract |
+| `DFA-006` | Competition/game cards expose meaningful state and direct action; Competition Play answers “What do I need to do this week?” from game-owned truth; each game has the accepted compact secondary navigation | Bounded game/action reads | Component/browser tests for Match Predictor, LMS and Championship action states plus Play aggregation and secondary navigation | Accepted — partially implemented, full cross-game model unimplemented |
+| `DFA-007` | Scottish Premiership is the first truthful Development rehearsal: real Matchweek 1 results feed normal protected scoring from lock-consistent seeded test predictions; LMS and seeded Predictor Championship begin at Matchweek 2 with no invented Matchweek 1 history | Current Development contract batch applied; protected result/scoring authorities; season competition setup | Seed/rehearsal evidence showing real MW1 football, reload-persistent MW2 LMS pick, Championship opponent/fixtures/phase/table and normal Match Predictor points feed | Accepted — unimplemented as the complete rehearsal |
+| `DFA-008` | First domestic release provides create + invite + join journeys for private Match Predictor leagues, private LMS competitions and private Predictor Championships, preserving existing creator limits and game rules | Existing server-side container/join authorities plus any missing reads/commands | Phone/browser journeys creating, inviting and joining each of the three container types without client-side rule duplication | Accepted — incomplete |
+| `DFA-009` | Development exposes a visible Competition Admin readiness/setup journey for fixture/provider state, current matchweek, Match Predictor availability, LMS setup/current round, Championship launch/field/phase, result-confirmation readiness and refusal/review conditions | Protected admin reads/commands; current Development contract batch applied | Authorised/unauthorised browser coverage plus guarded preview/execute evidence for server-supported setup actions | Accepted — unimplemented |
+| `DFA-010` | Final signed-in Hub Home is personalised and action-led: one primary urgent/next action, at most two compact secondary actions, then live football, relevant personalisation/rank/recap/private activity/discovery | `DFA-001`, `DFA-006` and supporting reads | Phone/desktop browser contract demonstrating priority ordering across normal, urgent and live states | Accepted — current competition chooser is only an intermediate shell |
+| `DFA-011` | Public landing delivery is two-stage: structure/content hierarchy may be defined early, but the **final visual** page and non-interactive scripted phone preview are built from settled signed-in product states late in the Alpha | `DFA-003`, `DFA-006`, `DFA-010`; settled signed-in visual language | Landing contract proving real CTAs outside the simulated phone, fixed/local demo state, no interactive simulated controls/session/API writes, reduced-motion/static state, visibility pause and representative real product visuals | Accepted — existing landing implementation is an intermediate shell, not final visual acceptance |
+| `DFA-012` | Post-core-Alpha retention work prioritises server-state deadline reminders for incomplete Match Predictor / missing LMS pick, then player/game history for Match Predictor, LMS and Championship | Core playable Alpha and server-owned lock/action state | Reminder eligibility tests plus user preference; history reads and browser journeys for all three games | Accepted — unimplemented as the domestic retention journey |
 
 ## Two-site architecture, shared accounts and Euro acquisition
 
@@ -68,7 +89,7 @@ Authority: [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c
 
 ## Provider change handling
 
-Authority: [ADR 0023](../adr/0023-hub-information-architecture.md) § Administration and provider changes, clarified 6 August 2026; [ADR 0020](../adr/0020-football-prediction-hub-product-model.md) § Ingestion.
+Authority: [ADR 0023](../adr/0023-hub-information-architecture.md) § Development competition administration, clarified 6 August 2026; [ADR 0020](../adr/0020-football-prediction-hub-product-model.md) § Ingestion.
 
 | ID | Requirement | Depends on | Acceptance evidence | Status |
 | --- | --- | --- | --- | --- |
@@ -103,4 +124,4 @@ Authority: [`../ops/documentation-authorities.md`](../ops/documentation-authorit
 
 This register was created on 6 August 2026 by the documentation reconciliation that also produced [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md). It supersedes no prior file. Before it existed, accepted-but-unimplemented requirements were spread across ADR prose, the roadmap and `MASTER-TODO.md` without stable identifiers, which is how several were lost and later rediscovered by audit.
 
-Linking this register from [`../roadmap.md`](../roadmap.md), [`feature-baseline.md`](feature-baseline.md) and [`../../MASTER-TODO.md`](../../MASTER-TODO.md) is deliberately deferred: all three are owned by open pull requests at the time of writing, and competing edits to a planning authority are how a requirement gets lost.
+The 7 August 2026 Domestic Frontend Alpha reconciliation extends the same register rather than creating a second requirements file. Requirement rows remain here until implementation evidence exists; roadmap/TODO references may point to these identifiers without restating their acceptance evidence.
