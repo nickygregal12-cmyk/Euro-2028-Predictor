@@ -2,13 +2,13 @@
 
 > The only live implementation and hosted-status authority. Current code, migrations, executable tests and freshly verified hosted evidence override older audits, reconciliations, TODOs and chat narratives.
 
-**Status date:** 6 August 2026
+**Status date:** 7 August 2026
 
 | Field | Value |
 | --- | --- |
 | Authority | Primary |
 | Status | Active |
-| Last verified | 2026-08-06 |
+| Last verified | 2026-08-07 |
 | Governs | What is implemented, what is hosted where, and the release posture — the moving values, held here and in the machine contract records |
 | Does not govern | Decisions ([`../adr/README.md`](../adr/README.md)); execution order ([`../roadmap.md`](../roadmap.md)); accepted-but-unbuilt requirements ([`accepted-requirements.md`](accepted-requirements.md)); defects ([`risk-register.md`](risk-register.md)) |
 | Supersedes | Any older audit, reconciliation or TODO narrative describing current state |
