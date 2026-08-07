@@ -1,22 +1,55 @@
-/* Club marks are square, not 3:2 — a club is not a nation. Sizes otherwise
-   mirror TeamFlag so the two swap cleanly in shared layouts. The hairline
-   --line outline matches TeamFlag, so white-heavy kits (Spurs, Fulham) don't
-   dissolve into light surfaces. */
+/*
+ * ClubIdentity owns a fixed layout box and renders the visual mark as a shirt
+ * inside it. Keeping the box dimensions unchanged means switching from the old
+ * square tile to the accepted shirt-style identity cannot reflow fixture cards
+ * or league tables.
+ */
 .club {
+  --club-font-size: 10px;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-input);
-  background-color: var(--club-primary);
-  color: #fff;
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.04em;
   line-height: 1;
   user-select: none;
+}
+
+/*
+ * A deliberately generic football-shirt silhouette: short sleeves, shoulders
+ * and a straight body. It evokes a kit without reproducing any protected club
+ * badge or proprietary shirt artwork. The drop-shadow follows the clipped edge,
+ * so white-heavy shirts remain visible on both light and dark surfaces.
+ */
+.shirt {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88%;
+  height: 90%;
+  overflow: hidden;
+  clip-path: polygon(
+    35% 0,
+    65% 0,
+    73% 8%,
+    100% 20%,
+    88% 43%,
+    76% 36%,
+    76% 100%,
+    24% 100%,
+    24% 36%,
+    12% 43%,
+    0 20%,
+    27% 8%
+  );
+  background-color: var(--club-primary);
+  color: #fff;
+  font-size: var(--club-font-size);
+  filter: drop-shadow(0 0 0.65px var(--line));
 }
 
 /* Applied where the monogram is illegible on the primary — sky blue, yellow,
@@ -66,62 +99,57 @@
   );
 }
 
-/* The monogram sits on a scrim rather than directly on the pattern. Without it,
-   a three-letter code over stripes or hoops is unreadable at 26px, which is the
-   size that matters most — league tables are the densest surface in the
-   product and the one players screenshot. */
+/* The monogram sits on a small scrim over patterned shirts. Without it, a
+   three-letter code can become unreadable at dense table sizes. */
 .stripes .monogram,
 .hoops .monogram,
 .halves .monogram,
 .sash .monogram {
-  padding: 0.1em 0.25em;
+  padding: 0.1em 0.22em;
   border-radius: 2px;
   background-color: color-mix(in srgb, var(--club-primary) 82%, transparent);
 }
 
 .monogram {
+  position: relative;
+  z-index: 1;
   display: block;
+  max-width: 80%;
+  overflow: hidden;
+  transform: translateY(7%);
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
-/* Crest monograms are deliberately off the type scale, and this one was
-   measured rather than argued. The size is a function of the crest diameter
-   above it, not of the reading scale: taking these to --fs-eyebrow (11px) put
-   three-letter marks outside their own circle in the gallery — WBA rendered
-   31px wide inside a 26px crest, 26 marks overflowing where none had before.
-   A monogram that leaves its crest is a worse outcome than a size that is not
-   a named step, so the crest wins and the reason lives here. */
+/* These dimensions intentionally match the previous ClubIdentity boxes. */
 .card {
   width: 30px;
   height: 30px;
-  font-size: 10px;
+  --club-font-size: 9px;
 }
 
 .table {
   width: 26px;
   height: 26px;
-  font-size: 9px;
+  --club-font-size: 8px;
 }
 
-/* Below roughly 20px a three-letter monogram is no longer legible. At `venue`
-   the mark carries colour and pattern only; callers pass hideMonogram, and the
-   accessible name still names the club. */
+/* Below roughly 20px a three-letter monogram is no longer useful. The mark
+   still has its full accessible name and must sit beside visible club text. */
 .venue {
   width: 18px;
   height: 18px;
-  font-size: 0;
+  --club-font-size: 0;
 }
 
-/* Off the scale with the other crest monograms above, for their reason. */
 .champion {
   width: 38px;
   height: 38px;
-  font-size: 12px;
+  --club-font-size: 11px;
 }
 
-/* Pattern edges shimmer against a moving background. Fixed here rather than in
-   each consuming surface. */
 @media (prefers-reduced-motion: reduce) {
-  .club {
+  .shirt {
     transition: none;
   }
 }
