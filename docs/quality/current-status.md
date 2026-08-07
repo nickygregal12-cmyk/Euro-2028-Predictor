@@ -16,6 +16,8 @@
 | Related work | Issues [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272), [#303](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/303), [#27](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/27), [#28](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/28) |
 | Implementation truth | `config/deployment-contract.json` and `config/development-hosted-contract.json` are the machine-readable record; this file reads them rather than competing with them |
 
+Development Supabase is hosted at **131**, level with the repository; Production remains at **63** and promotion is not authorised.
+
 ## Product position
 
 The product is the **Football Prediction Hub** (ADR 0020): a multi-competition football prediction platform. Euro 2028 is the first recoverable competition baseline, not the endpoint of the programme. The first supported domestic competition seasons are Premier League 2026/27 and Scottish Premiership 2026/27, alongside Euro 2028.
