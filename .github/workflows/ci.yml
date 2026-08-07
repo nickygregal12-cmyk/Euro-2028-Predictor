@@ -55,6 +55,32 @@ jobs:
           ln -s "$GITHUB_WORKSPACE/node_modules" "$archive/node_modules"
           cd "$archive"
           npx vitest run tests/scripts/envFileHygiene.test.ts --reporter=verbose
+      # Temporary PR-only probe. The normal build correctly refuses the two
+      # Contract 133 RPC names while repository contract 131 is active. These
+      # steps validate the front-end slice without weakening that fail-closed
+      # deployment guard. Remove once Contract 133 is attached.
+      - name: Type-check pending Championship UI
+        run: npx tsc -b
+      - name: Test pending Championship UI
+        run: >-
+          npx vitest run
+          tests/app/weeklyRoutes.test.ts
+          tests/features/season/SeasonGameSubNav.test.tsx
+          tests/features/season/SeasonGameRoutes.test.tsx
+          tests/features/season/SeasonChampionshipPages.test.tsx
+          --reporter=verbose
+      - name: Lint pending Championship UI
+        run: >-
+          npx oxlint --deny-warnings
+          src/app/weeklyRoutes.ts
+          src/services/supabase/seasonCupPlayer.ts
+          src/features/season/SeasonChampionshipPages.tsx
+          src/features/season/SeasonGameRoutes.tsx
+          src/features/season/SeasonGameSubNav.tsx
+          tests/app/weeklyRoutes.test.ts
+          tests/features/season/SeasonChampionshipPages.test.tsx
+          tests/features/season/SeasonGameRoutes.test.tsx
+          tests/features/season/SeasonGameSubNav.test.tsx
       - name: Build
         shell: bash
         run: |
