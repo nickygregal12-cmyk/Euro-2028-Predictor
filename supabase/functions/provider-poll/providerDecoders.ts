@@ -7,7 +7,9 @@ export type NormalizedFixture = {
   seasonProviderId: string | null
   roundProviderId: string | null
   homeTeamProviderId: string
+  homeTeamName: string
   awayTeamProviderId: string
+  awayTeamName: string
   kickoffAt: string
   status: string
   homeScore: number | null
@@ -46,7 +48,7 @@ function stringAt(provider: ProviderName, value: unknown, path: string): string 
   if (typeof value !== 'string' || value.trim() === '') {
     throw new ProviderDecodeError(provider, path, 'expected a non-empty string')
   }
-  return value
+  return value.trim()
 }
 
 function idAt(provider: ProviderName, value: unknown, path: string): string {
@@ -166,7 +168,16 @@ export function decodeSportMonks(payload: unknown): NormalizedFixture[] {
     const { home, away } = exactlyTwoParticipants(provider, row.participants, `${path}.participants`)
     const homeId = idAt(provider, home.id, `${path}.participants.home.id`)
     const awayId = idAt(provider, away.id, `${path}.participants.away.id`)
+    const homeName = stringAt(provider, home.name, `${path}.participants.home.name`)
+    const awayName = stringAt(provider, away.name, `${path}.participants.away.name`)
     const scores = row.scores === undefined ? [] : arrayAt(provider, row.scores, `${path}.scores`)
+    const roundProviderId = row.round === undefined
+      ? nullableIdAt(provider, row.round_id, `${path}.round_id`)
+      : stringAt(
+          provider,
+          objectAt(provider, row.round, `${path}.round`).name,
+          `${path}.round.name`,
+        )
     let homeScore: number | null = null
     let awayScore: number | null = null
     let homeSeen = false
@@ -204,9 +215,11 @@ export function decodeSportMonks(payload: unknown): NormalizedFixture[] {
       providerFixtureId: idAt(provider, row.id, `${path}.id`),
       competitionProviderId: nullableIdAt(provider, row.league_id, `${path}.league_id`),
       seasonProviderId: nullableIdAt(provider, row.season_id, `${path}.season_id`),
-      roundProviderId: nullableIdAt(provider, row.round_id, `${path}.round_id`),
+      roundProviderId,
       homeTeamProviderId: homeId,
+      homeTeamName: homeName,
       awayTeamProviderId: awayId,
+      awayTeamName: awayName,
       kickoffAt: unixInstantAt(
         provider,
         row.starting_at_timestamp,
@@ -244,7 +257,9 @@ export function decodeApiFootball(payload: unknown): NormalizedFixture[] {
       seasonProviderId: nullableIdAt(provider, league.season, `${path}.league.season`),
       roundProviderId: nullableIdAt(provider, league.round, `${path}.league.round`),
       homeTeamProviderId,
+      homeTeamName: stringAt(provider, home.name, `${path}.teams.home.name`),
       awayTeamProviderId,
+      awayTeamName: stringAt(provider, away.name, `${path}.teams.away.name`),
       kickoffAt: isoInstantAt(provider, fixture.date, `${path}.fixture.date`),
       status: stringAt(provider, status.short ?? status.long, `${path}.fixture.status`),
       homeScore: nullableScoreAt(provider, goals.home, `${path}.goals.home`),
@@ -288,7 +303,9 @@ export function decodeFootballData(payload: unknown): NormalizedFixture[] {
         : null,
       roundProviderId: nullableIdAt(provider, row.matchday ?? row.stage, `${path}.round`),
       homeTeamProviderId,
+      homeTeamName: stringAt(provider, home.name, `${path}.homeTeam.name`),
       awayTeamProviderId,
+      awayTeamName: stringAt(provider, away.name, `${path}.awayTeam.name`),
       kickoffAt: isoInstantAt(provider, row.utcDate, `${path}.utcDate`),
       status: stringAt(provider, row.status, `${path}.status`),
       homeScore: nullableScoreAt(provider, fullTime.home, `${path}.score.fullTime.home`),
