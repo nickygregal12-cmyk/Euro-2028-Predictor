@@ -77,6 +77,10 @@ export const BASELINE_SPECS = [
   'axe-accessibility.spec.ts',
 ]
 
+/**
+ * @param {string} path
+ * @returns {string[] | null}
+ */
 function specForE2eFile(path) {
   const file = path.slice('e2e/'.length)
   if (PARKED_EURO_SPECS.includes(file)) return null
@@ -84,6 +88,10 @@ function specForE2eFile(path) {
   return null
 }
 
+/**
+ * @param {readonly string[]} changedPaths
+ * @returns {{ full: boolean, reason?: string, specs?: string[] }}
+ */
 export function selectJourneys(changedPaths) {
   if (!Array.isArray(changedPaths) || changedPaths.length === 0) {
     return { full: true, reason: 'no changed paths were supplied' }
