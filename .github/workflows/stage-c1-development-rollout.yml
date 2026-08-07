@@ -373,7 +373,7 @@ jobs:
 
       - name: Apply — download preparation evidence
         if: inputs.mode == 'apply'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: stage-c1-development-evidence-${{ inputs.prepare_run_id }}
           path: /tmp/stage-c1-development-rollout/prepared
@@ -382,7 +382,7 @@ jobs:
 
       - name: Apply — download encrypted recovery artifact
         if: inputs.mode == 'apply'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: stage-c1-development-backup-${{ inputs.prepare_run_id }}
           path: /tmp/stage-c1-development-rollout/prepared
