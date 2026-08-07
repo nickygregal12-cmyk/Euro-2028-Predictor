@@ -3,11 +3,14 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   CRITICAL_COUNT_KEYS,
+  EXPECTED_CRITICAL_COUNT_DELTAS,
   EXPECTED_MIGRATIONS,
   SOURCE_CONTRACT,
   TARGET_CONTRACT,
+  assertCriticalCountsAfterBatchA,
   assertCriticalCountsUnchanged,
   assertDisposableLocalDatabase,
+  assertDomesticSeasonBoundary,
   assertSourceInventory,
 } from '../../scripts/database-rollout/rehearse-production-batch-a.mjs'
 
@@ -96,7 +99,7 @@ describe('Production Batch A rehearsal', () => {
     }
   })
 
-  it('fails when a critical source count is missing or changes', () => {
+  it('keeps source counts exact and permits only the two intentional domestic season rows after Batch A', () => {
     const counts = Object.fromEntries(CRITICAL_COUNT_KEYS.map((key) => [key, 1]))
     expect(() => assertSourceInventory({ counts })).not.toThrow()
     expect(() => assertSourceInventory({ counts: { ...counts, teams: undefined } })).toThrow()
@@ -104,6 +107,39 @@ describe('Production Batch A rehearsal', () => {
     expect(() =>
       assertCriticalCountsUnchanged(counts, { ...counts, matches: 2 }),
     ).toThrow()
+
+    expect(EXPECTED_CRITICAL_COUNT_DELTAS).toEqual({ tournaments: 2 })
+    const expectedPost = { ...counts, tournaments: 3 }
+    expect(() => assertCriticalCountsAfterBatchA(counts, expectedPost)).not.toThrow()
+    expect(() =>
+      assertCriticalCountsAfterBatchA(counts, { ...expectedPost, matches: 2 }),
+    ).toThrow()
+    expect(() =>
+      assertCriticalCountsAfterBatchA(counts, { ...expectedPost, tournaments: 4 }),
+    ).toThrow()
+  })
+
+  it('pins the two intentional domestic season seed rows', () => {
+    const expected = [
+      {
+        slug: 'premier-league',
+        name: 'Premier League 2026/27',
+        season_key: '2026-27',
+        kind: 'league_season',
+        display_timezone: 'Europe/London',
+        status: 'draft',
+      },
+      {
+        slug: 'scottish-premiership',
+        name: 'Scottish Premiership 2026/27',
+        season_key: '2026-27',
+        kind: 'league_season',
+        display_timezone: 'Europe/London',
+        status: 'draft',
+      },
+    ]
+    expect(() => assertDomesticSeasonBoundary(expected)).not.toThrow()
+    expect(() => assertDomesticSeasonBoundary(expected.slice(0, 1))).toThrow()
   })
 
   it('proves the provider and scheduler boundary remains pre-provider', () => {
