@@ -72,6 +72,13 @@ export const CRITICAL_COUNT_KEYS = [
   'entry_totals',
 ]
 
+export const EXPECTED_ACTIVE_CRON_JOBS = [
+  { schedule: '* * * * *', command: 'select public.process_due_entry_submissions();' },
+  { schedule: '* * * * *', command: 'select public.process_due_season_matchweek_submissions();' },
+  { schedule: '0 * * * *', command: 'select public.process_due_season_lms_settlements();' },
+  { schedule: '30 * * * *', command: 'select public.process_due_season_matchweek_scores();' },
+]
+
 function fail(message) {
   throw new Error(message)
 }
@@ -285,15 +292,8 @@ function assertDomesticSeasons(seasons) {
 
 function assertBatchBBoundaries(boundary, objects) {
   if (boundary.pg_net_installed !== false) fail('Batch B unexpectedly installed pg_net')
-  if (!Array.isArray(boundary.active_cron_jobs) || boundary.active_cron_jobs.length !== 1) {
-    fail('Batch B must retain exactly one active cron job')
-  }
-  const [job] = boundary.active_cron_jobs
-  if (
-    job.schedule !== '* * * * *' ||
-    String(job.command).trim() !== 'select public.process_due_entry_submissions();'
-  ) {
-    fail('Batch B changed the pre-provider cron boundary')
+  if (JSON.stringify(boundary.active_cron_jobs) !== JSON.stringify(EXPECTED_ACTIVE_CRON_JOBS)) {
+    fail(`Unexpected Batch B cron boundary: ${JSON.stringify(boundary.active_cron_jobs)}`)
   }
   for (const [name, present] of Object.entries(objects)) {
     if (present !== true) fail(`Batch B target object missing: ${name}`)
