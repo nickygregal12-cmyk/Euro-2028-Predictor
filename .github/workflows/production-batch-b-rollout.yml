@@ -395,7 +395,12 @@ jobs:
             score_events: 0,
             entry_totals: 1,
             pg_net_installed: false,
-            active_cron_jobs: [{schedule:'* * * * *', command:'select public.process_due_entry_submissions();'}],
+            active_cron_jobs: [
+              {schedule:'* * * * *', command:'select public.process_due_entry_submissions();'},
+              {schedule:'* * * * *', command:'select public.process_due_season_matchweek_submissions();'},
+              {schedule:'0 * * * *', command:'select public.process_due_season_lms_settlements();'},
+              {schedule:'30 * * * *', command:'select public.process_due_season_matchweek_scores();'},
+            ],
             season_fixtures_exists: true,
             season_predictions_exists: true,
             season_matchweek_scores_exists: true,
