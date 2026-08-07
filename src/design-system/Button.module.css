@@ -14,13 +14,12 @@
      §11.7). One visible pixel per label, and one fewer off-scale value. */
   font-size: var(--fs-3);
   line-height: 1;
-  /* Micro feedback on state changes (§11.6): 120ms out-easing, colour and
-     border only — never layout. Reduced motion collapses it via the global
-     media rule in tokens.css, which zeroes transition durations. */
-  transition:
-    background-color var(--duration-micro) var(--ease-out),
-    border-color var(--duration-micro) var(--ease-out),
-    color var(--duration-micro) var(--ease-out);
+  /* Keep state-pair colours atomic. Animating foreground and background
+     together can pass through a low-contrast intermediate colour even when
+     both endpoints are AA-safe (caught by Chromium/axe after Playwright 1.62).
+     Border colour is decorative, so it retains the 120ms micro feedback
+     without creating a transient WCAG 1.4.3 failure. */
+  transition: border-color var(--duration-micro) var(--ease-out);
   border: 1px solid transparent;
   border-radius: var(--radius-input);
   cursor: pointer;
