@@ -38,7 +38,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Pinned explicitly, as every other workflow here does. An image is only
       # comparable to another produced by the same toolchain.

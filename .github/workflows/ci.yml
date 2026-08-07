@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # The documentation sweep compares this change against its base, so
           # it needs history. The default depth of 1 leaves `git diff A...B`
