@@ -379,3 +379,8 @@ The stable identifier, dependency and acceptance evidence for every accepted-but
 - State architecture: [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md).
 - Operations: the relevant `docs/ops/` runbook.
 - Dated reconciliations and audits: historical evidence only.
+
+## Contract 132 current state
+
+Contract 132 adds a tested initial provider-calendar approval boundary. New provider fixtures can be staged without becoming public, complete Scottish Premiership or Premier League calendars require explicit competition-admin approval, and provider scores cannot become official results through this path. Hosted rollout remains Development first, then Production after parity gates pass.
+

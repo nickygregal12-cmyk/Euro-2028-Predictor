@@ -201,3 +201,8 @@ Verified against `main` at `1fb8ffd36ad113079181829a8bcc47175c43b6da` on 29 July
 Hosted state, provider capabilities, market claims and legal analysis require their own current evidence. They are not treated as verified merely because an earlier planning draft described them that way.
 
 Contract 118 closes the fourth instance of the tournament-only read defect (after 86, 98 and 116), in the games hub listing, and pairs it with the CI guard that catches the fifth.
+
+## Contract 132 architecture checkpoint
+
+The provider ingestion programme now has a controlled initial-publication stage between normalized evidence and canonical season fixtures. Complete-season approval is an explicit competition-admin action; later fixture revisions remain under the existing revision authority and official results remain separately protected.
+

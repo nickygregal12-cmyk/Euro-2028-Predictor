@@ -287,3 +287,8 @@ The following material was genuinely removed from the engineering plan:
 They were removed because they are either external research requiring dated evidence, already governed elsewhere, or factually stale. Their removal does not change an accepted ADR or implemented capability.
 
 Contract 118 is a hub correction rather than a new surface: `get_bonus_games` returned a season window no fixtures, so the hub could never advance past its first locked round. Neutral fact functions fix the read; the hub client is unchanged.
+
+## Contract 132 multi-competition data boundary
+
+Scottish Premiership and Premier League season calendars can now be initialized from provider evidence through a common staged approval contract. Competition-specific completeness constraints are enforced before publication, while provider result evidence remains outside official score truth.
+

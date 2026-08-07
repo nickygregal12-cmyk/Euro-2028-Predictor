@@ -186,3 +186,8 @@ Never weaken an environment or deployment-contract guard merely to make a build 
 - Dated audits and reconciliations are immutable historical evidence.
 - Archive superseded controls under the governed history directory; never delete one as cleanup.
 - Do not create a new status, audit or reconciliation document for routine development work.
+
+## Contract 132 — initial provider calendar approval
+
+Contract 132 adds the reviewed first-publication path for real season calendars: successfully decoded provider fixtures are staged as immutable pending evidence and only a competition administrator may approve a complete initial Scottish Premiership (198 fixtures / 33 rounds / 12 teams) or Premier League (380 / 38 / 20) calendar. Provider scores remain evidence only; official result truth continues through the protected season-result authority.
+
