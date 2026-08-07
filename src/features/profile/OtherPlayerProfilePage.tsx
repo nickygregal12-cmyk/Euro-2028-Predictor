@@ -1,6 +1,6 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton, type MatchTeam } from '../../design-system'
 import { ChevronLeftIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
@@ -13,6 +13,7 @@ import { ProfileScreen, type ProfileFullStats } from './ProfileScreen'
 import s from '../shared.module.css'
 
 const CHAMPION_STAGE = 'CHAMPION'
+const SAFE_PLAYER_PARENT = '/leagues'
 
 type State =
   | { status: 'loading' }
@@ -28,9 +29,21 @@ function lockDateLabel(lockAt: string | null): string {
   }).format(new Date(lockAt))
 }
 
+function returnPath(state: unknown): string {
+  if (typeof state !== 'object' || state === null || !('returnTo' in state)) {
+    return SAFE_PLAYER_PARENT
+  }
+  const value = (state as { returnTo?: unknown }).returnTo
+  return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+    ? value
+    : SAFE_PLAYER_PARENT
+}
+
 export function OtherPlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const parent = returnPath(location.state)
   const { userId } = useAuth()
   const data = useTournamentData()
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
@@ -123,7 +136,7 @@ export function OtherPlayerProfilePage() {
 
   const header = (
     <div className={s.header}>
-      <button type="button" className={s.backLink} onClick={() => navigate(-1)}>
+      <button type="button" className={s.backLink} onClick={() => navigate(parent)}>
         <ChevronLeftIcon size={16} /> Back
       </button>
       <h1 className={s.title}>Player profile</h1>
@@ -192,7 +205,9 @@ export function OtherPlayerProfilePage() {
           stats={derived.stats}
           events={profile.detail.events}
           locked
-          onH2H={() => navigate(`/h2h/${profile.playerId}`)}
+          onH2H={() =>
+            navigate(`/h2h/${profile.playerId}`, { state: { returnTo: location.pathname } })
+          }
         />
       )}
     </div>
