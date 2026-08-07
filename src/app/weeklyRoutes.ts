@@ -76,26 +76,15 @@ export function competitionRefFromPath(pathname: string): CompetitionRouteRef | 
   return { competitionSlug: match[1], seasonSlug: match[2] }
 }
 
-/**
- * Replace only the competition-season prefix while preserving the exact
- * competition-local route suffix. This is the authority used by the shell's
- * quick competition switcher, so switching competition never silently throws a
- * player back to Overview when the equivalent Play/Games/standings route exists.
- */
+/** Preserve the current competition-local suffix while replacing its season. */
 export function switchCompetitionPath(
   pathname: string,
   target: CompetitionRouteRef,
 ): string {
-  const current = competitionRefFromPath(pathname)
-  if (!current) {
+  if (!competitionRefFromPath(pathname)) {
     throw new Error(`Cannot switch competition outside competition mode: ${pathname}`)
   }
-
-  const currentBase = competitionRoute(current)
-  const targetBase = competitionRoute(target)
-  if (pathname === currentBase) return targetBase
-  if (!pathname.startsWith(`${currentBase}/`)) return targetBase
-  return `${targetBase}${pathname.slice(currentBase.length)}`
+  return pathname.replace(/^\/competitions\/[^/]+\/[^/]+/, competitionRoute(target))
 }
 
 export function isCompetitionModePath(pathname: string): boolean {
