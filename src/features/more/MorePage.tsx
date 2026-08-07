@@ -3,8 +3,8 @@ import { ChevronRightIcon } from '../../design-system/icons'
 import s from '../shared.module.css'
 import m from './more.module.css'
 
-// Sign-out and the profile details moved to More → Account (design-system
-// §Account); this page keeps only the link rows.
+// Keep More limited to destinations that are part of the canonical weekly
+// route tree. Retired tournament-only routes must not survive as visible rows.
 export function MorePage() {
   const navigate = useNavigate()
 
@@ -25,18 +25,8 @@ export function MorePage() {
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
 
-      <button type="button" className={m.linkRow} onClick={() => navigate('/prediction-trends')}>
-        Prediction trends
-        <ChevronRightIcon size={18} className={m.chev} />
-      </button>
-
-      <button type="button" className={m.linkRow} onClick={() => navigate('/games')}>
-        Bonus Games
-        <ChevronRightIcon size={18} className={m.chev} />
-      </button>
-
       <button type="button" className={m.linkRow} onClick={() => navigate('/more/scoring')}>
-        How scoring works
+        How the games work
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
     </div>

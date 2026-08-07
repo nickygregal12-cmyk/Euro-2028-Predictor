@@ -28,14 +28,14 @@ function renderWelcome() {
       <Routes>
         <Route path="/welcome" element={<WelcomePage />} />
         <Route path="/join/:code" element={<p>Invite destination</p>} />
-        <Route path="/predict/groups/A" element={<p>Group A destination</p>} />
-        <Route path="/" element={<p>Home destination</p>} />
+        <Route path="/more/scoring" element={<p>Games help destination</p>} />
+        <Route path="/" element={<p>Hub destination</p>} />
       </Routes>
     </MemoryRouter>,
   )
 }
 
-describe('WelcomePage pending invite continuation', () => {
+describe('WelcomePage domestic first-use continuation', () => {
   beforeEach(() => {
     clearPendingJoin()
     mocks.markWelcomed.mockReset()
@@ -54,11 +54,22 @@ describe('WelcomePage pending invite continuation', () => {
     expect(screen.getByText('Invite destination')).toBeVisible()
   })
 
-  it('keeps Group A as the default first-use destination', () => {
+  it('sends ordinary first use to the canonical weekly Hub', () => {
     renderWelcome()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Start with Group A →' }))
-    expect(screen.getByText('Group A destination')).toBeVisible()
+    expect(screen.getByText(/Premier League and Scottish Premiership/)).toBeVisible()
+    expect(screen.queryByText(/Group A/)).toBeNull()
+    expect(screen.queryByText(/Wembley/)).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Go to your Hub →' }))
+    expect(screen.getByText('Hub destination')).toBeVisible()
+  })
+
+  it('links the orientation to the domestic games explainer', () => {
+    renderWelcome()
+
+    fireEvent.click(screen.getByRole('button', { name: 'How the games work →' }))
+    expect(screen.getByText('Games help destination')).toBeVisible()
   })
 
   it('does not replay an invite when the welcome screen was already seen', () => {
@@ -66,7 +77,7 @@ describe('WelcomePage pending invite continuation', () => {
     mocks.auth.welcomeStatus = 'seen'
     renderWelcome()
 
-    expect(screen.getByText('Home destination')).toBeVisible()
+    expect(screen.getByText('Hub destination')).toBeVisible()
     expect(mocks.markWelcomed).not.toHaveBeenCalled()
   })
 })
