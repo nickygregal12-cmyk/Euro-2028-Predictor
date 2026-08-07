@@ -1,0 +1,324 @@
+name: Production Batch A rehearsal
+
+# Manual, read-only against hosted Production. The only migration write in this
+# workflow targets the disposable local restore on 127.0.0.1:54322.
+#
+# This combines the fresh encrypted contract-63 backup/restore evidence with a
+# forward rehearsal of exactly contracts 64-67. It does NOT promote Production.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type REHEARSE-PRODUCTION-BATCH-A to proceed
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-batch-a-rehearsal
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: REHEARSE-PRODUCTION-BATCH-A
+  BACKUP_WORK_DIR: /tmp/production-batch-a-rehearsal
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  backup-restore-forward-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || {
+            echo 'ERROR: Production Batch A rehearsal runs only from refs/heads/main.'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || {
+            echo 'ERROR: checked-out HEAD is not exact origin/main.'
+            exit 1
+          }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || {
+            echo 'ERROR: checkout is not clean.'
+            exit 1
+          }
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || {
+            echo "ERROR: only Production project ${EXPECTED_PROJECT_REF} is permitted as the read-only source."
+            exit 1
+          }
+          [ "${INPUT_PROJECT_REF}" != "${FORBIDDEN_DEVELOPMENT_REF}" ] || {
+            echo 'ERROR: Development cannot be used as the Production rehearsal source.'
+            exit 1
+          }
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || {
+            echo 'ERROR: confirmation phrase does not match.'
+            exit 1
+          }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - name: Derive the hosted Production source boundary
+        run: |
+          set -euo pipefail
+          node scripts/production-hosted-contract-expectations.mjs >> "$GITHUB_ENV"
+          node scripts/production-hosted-contract-expectations.mjs --json
+
+      - name: Refuse a source other than contract 63
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${EXPECTED_MIGRATION_COUNT}" = '63' ] || {
+            echo "ERROR: Batch A rehearsal is defined only from Production contract 63; authority says ${EXPECTED_MIGRATION_COUNT}."
+            exit 1
+          }
+          [ "${EXPECTED_LATEST_MIGRATION_VERSION}" = '20260729154931' ] || exit 1
+          [ "${EXPECTED_LATEST_MIGRATION_NAME}" = 'prediction_consensus_minimum_cohort' ] || exit 1
+          development_count="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${development_count}" -ge 67 ] || {
+            echo 'ERROR: Development has not hosted the Batch A target chain.'
+            exit 1
+          }
+
+      - name: Preflight required secrets without printing them
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          }
+          [ -n "${BACKUP_AGE_PUBLIC_KEY}" ] || {
+            echo 'ERROR: repository secret BACKUP_AGE_PUBLIC_KEY is not set.'
+            exit 1
+          }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: production DB secret does not name the expected Production project.'; exit 1 ;;
+          esac
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret names Development.'; exit 1 ;;
+          esac
+          case "${BACKUP_AGE_PUBLIC_KEY}" in
+            age1*) ;;
+            *) echo 'ERROR: BACKUP_AGE_PUBLIC_KEY is not an age recipient public key.'; exit 1 ;;
+          esac
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install age and PostgreSQL 17 client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Capture fresh Production backup source (read-only)
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "${BACKUP_WORK_DIR}/bundle/verification"
+          date -u +'%Y%m%dT%H%M%SZ' > "${BACKUP_WORK_DIR}/capture-timestamp.txt"
+          printf '%s\n' "${GITHUB_SHA}" > "${BACKUP_WORK_DIR}/bundle/repository-commit.txt"
+          printf '%s\n' "${EXPECTED_PROJECT_REF}" > "${BACKUP_WORK_DIR}/bundle/project-ref.txt"
+          git ls-files 'supabase/migrations/*.sql' | sort > "${BACKUP_WORK_DIR}/bundle/migration-files.txt"
+          supabase --version > "${BACKUP_WORK_DIR}/bundle/supabase-cli-version.txt"
+          /usr/lib/postgresql/17/bin/pg_dump --version > "${BACKUP_WORK_DIR}/bundle/pg-dump-version.txt"
+
+          psql "${SUPABASE_PROD_DB_URL}" -X -v ON_ERROR_STOP=1 -A -t \
+            -f scripts/database-rollout/production-backup-inventory.sql \
+            > "${BACKUP_WORK_DIR}/bundle/database-state.json"
+          [ -s "${BACKUP_WORK_DIR}/bundle/database-state.json" ] || exit 1
+
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BACKUP_WORK_DIR}/bundle/roles.sql" --role-only
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BACKUP_WORK_DIR}/bundle/schema.sql"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BACKUP_WORK_DIR}/bundle/data.sql" --use-copy --data-only \
+            -x storage.buckets_vectors -x storage.vector_indexes
+          /usr/lib/postgresql/17/bin/pg_dump \
+            --dbname "${SUPABASE_PROD_DB_URL}" \
+            --schema supabase_migrations --no-owner --no-privileges \
+            --file "${BACKUP_WORK_DIR}/bundle/migration-history.sql"
+
+          for required_dump in roles.sql schema.sql data.sql migration-history.sql; do
+            [ -s "${BACKUP_WORK_DIR}/bundle/${required_dump}" ] || {
+              echo "ERROR: dump is empty: ${required_dump}"
+              exit 1
+            }
+          done
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?auth"?\."?users"?' "${BACKUP_WORK_DIR}/bundle/data.sql" || exit 1
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?public"?\."?profiles"?' "${BACKUP_WORK_DIR}/bundle/data.sql" || exit 1
+
+          cp scripts/database-rollout/managed-schema-customizations.sql "${BACKUP_WORK_DIR}/bundle/"
+          cp scripts/database-rollout/prepare-disposable-restore-target.sql "${BACKUP_WORK_DIR}/bundle/"
+          cp scripts/database-rollout/restore-rehearsal-verification.sql "${BACKUP_WORK_DIR}/bundle/verification/"
+          cp scripts/database-rollout/rehearse-production-batch-a.mjs "${BACKUP_WORK_DIR}/bundle/verification/"
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Prepare empty disposable restore target
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          drop schema if exists predictor_internal cascade;
+          drop schema if exists public cascade;
+          create schema public;
+          grant usage on schema public to anon, authenticated, service_role;
+          alter default privileges for role postgres in schema public
+            revoke all on tables from anon, authenticated;
+          drop schema if exists supabase_migrations cascade;
+          truncate table auth.users cascade;
+          truncate table storage.objects, storage.buckets cascade;
+          commit;
+          SQL
+
+      - name: Restore plaintext Production dump into disposable target
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "${BACKUP_WORK_DIR}/bundle"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file roles.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file schema.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --command 'SET session_replication_role = replica' --file data.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file managed-schema-customizations.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file migration-history.sql
+
+      - name: Verify restored contract-63 copy before forward rehearsal
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -v expected_migration_count="${EXPECTED_MIGRATION_COUNT}" \
+            -v expected_latest_version="${EXPECTED_LATEST_MIGRATION_VERSION}" \
+            -v expected_latest_name="${EXPECTED_LATEST_MIGRATION_NAME}" \
+            -f scripts/database-rollout/restore-rehearsal-verification.sql \
+            > "${BACKUP_WORK_DIR}/restore-rehearsal-counts.json"
+          cat "${BACKUP_WORK_DIR}/restore-rehearsal-counts.json"
+
+      - name: Rehearse exactly Production Batch A on the disposable restore
+        id: batch_a_rehearsal
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/database-rollout/rehearse-production-batch-a.mjs \
+            --db-url "${LOCAL_DB_URL}" \
+            --source-inventory "${BACKUP_WORK_DIR}/bundle/database-state.json" \
+            --output "${BACKUP_WORK_DIR}/bundle/verification/batch-a-rehearsal.json"
+          cp "${BACKUP_WORK_DIR}/bundle/verification/batch-a-rehearsal.json" \
+            "${BACKUP_WORK_DIR}/batch-a-rehearsal-summary.json"
+
+      - name: Seal backup checksums after rehearsal evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd "${BACKUP_WORK_DIR}/bundle"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          )
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup
+
+      - name: Encrypt the fresh Production backup to the owner age public key
+        env:
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          cd "${BACKUP_WORK_DIR}"
+          mkdir -p artifact
+          captured_at="$(cat capture-timestamp.txt)"
+          bundle_tar="euro28-prod-batch-a-${captured_at}.backup.tar.gz"
+          tar -C bundle -czf "${bundle_tar}" .
+          stat -c '%s' "${bundle_tar}" > plaintext-size-bytes.txt
+          age -r "${BACKUP_AGE_PUBLIC_KEY}" -o "artifact/${bundle_tar}.age" "${bundle_tar}"
+          stat -c '%s' "artifact/${bundle_tar}.age" > encrypted-size-bytes.txt
+          find bundle -type f -exec shred -u {} +
+          rm -rf bundle
+          shred -u "${bundle_tar}"
+
+      - name: Refuse any non-encrypted upload candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "${BACKUP_WORK_DIR}"
+          [ ! -e bundle ] || { echo 'ERROR: plaintext bundle remains.'; exit 1; }
+          non_age="$(find artifact -type f ! -name '*.backup.tar.gz.age')"
+          [ -z "${non_age}" ] || { echo 'ERROR: non-encrypted upload candidate exists.'; exit 1; }
+          encrypted_count="$(find artifact -type f -name '*.backup.tar.gz.age' | wc -l | tr -d ' ')"
+          [ "${encrypted_count}" = '1' ] || exit 1
+
+      - name: Upload encrypted Production backup artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-batch-a-rehearsal-encrypted
+          path: /tmp/production-batch-a-rehearsal/artifact/*.backup.tar.gz.age
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Write non-sensitive rehearsal summary
+        if: always()
+        shell: bash
+        env:
+          BATCH_A_OUTCOME: ${{ steps.batch_a_rehearsal.outcome }}
+        run: |
+          set -euo pipefail
+          {
+            echo '## Production Batch A rehearsal'
+            echo ''
+            echo "- Source contract: ${EXPECTED_MIGRATION_COUNT}"
+            echo '- Target contract: 67'
+            echo "- Forward rehearsal step: ${BATCH_A_OUTCOME}"
+            echo '- Hosted Production writes: none'
+            echo '- Migration writes: disposable local Supabase only'
+            if [ -s "${BACKUP_WORK_DIR}/batch-a-rehearsal-summary.json" ]; then
+              echo ''
+              echo '```json'
+              cat "${BACKUP_WORK_DIR}/batch-a-rehearsal-summary.json"
+              echo '```'
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Fail closed if the requested Batch A forward rehearsal failed
+        if: ${{ steps.batch_a_rehearsal.outcome != 'success' }}
+        run: |
+          echo 'ERROR: the fresh backup was encrypted/uploaded, but Batch A rehearsal did not pass.'
+          exit 1
