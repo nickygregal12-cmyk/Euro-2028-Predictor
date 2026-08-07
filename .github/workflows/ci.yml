@@ -17,7 +17,7 @@ jobs:
           # it needs history. The default depth of 1 leaves `git diff A...B`
           # with no common ancestor to resolve.
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22.22.2
           cache: npm
