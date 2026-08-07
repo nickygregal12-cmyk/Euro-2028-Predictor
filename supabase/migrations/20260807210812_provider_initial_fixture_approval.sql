@@ -763,7 +763,7 @@ begin
           using errcode = '23514';
       end if;
     else
-      select count(*)::integer, min(t.id)
+      select count(*)::integer, min(t.id::text)::uuid
         into v_existing_count, v_team_id
         from public.teams t
        where t.tournament_id = p_tournament_id
