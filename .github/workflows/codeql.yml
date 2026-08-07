@@ -1,0 +1,93 @@
+# Static analysis of this repository's own source (`ACQ-R19`).
+#
+# WHY THIS IS SEPARATE FROM CI. The existing gates answer "does this change
+# work" — build, types, lint, tests, contracts, bundle budgets, dependency
+# audit. None of them asks "does this change introduce a vulnerable pattern",
+# and lint is not a substitute: oxlint enforces style and a curated
+# accessibility set, not taint tracking. This is the missing question.
+#
+# It runs on pull requests, on pushes to main, and weekly. The schedule matters
+# as much as the trigger: CodeQL's queries are updated after this code is
+# written, so a weekly run finds tomorrow's known pattern in today's unchanged
+# file — which a pull-request-only trigger never would.
+#
+# `actions` is analysed alongside the application because the workflows here
+# hold real authority: they reach hosted Supabase, and the audit specifically
+# flagged unpinned third-party actions as a supply-chain surface.
+name: CodeQL
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly, deliberately off the hour and off Monday, so it does not land in
+    # the same window as the Dependabot pull requests.
+    - cron: '17 4 * * 3'
+
+# Runs on one ref queue behind each other rather than piling up — but a scan in
+# flight is never killed.
+#
+# Several agent sessions push here at once and the runner pool is shared, so
+# leaving revisions to race is a real cost. Cancelling is the wrong way to pay
+# it for THIS workflow: the artifact a security scan produces is the result, and
+# a cancelled scan reports nothing while looking like it ran. CI can be
+# cancelled freely because its value is the pass/fail of the current head; a
+# scan's value is the finding it files.
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  analyse:
+    name: Analyse ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    # MEASURED, NOT GUESSED. The first version of this workflow set 20 minutes
+    # on no evidence and the `javascript-typescript` job was killed by it. The
+    # two languages are nothing alike: `actions` finished in 45 seconds, while
+    # JS/TS runs the whole `security-extended` suite over `src/`, `tests/` and
+    # `e2e/`. 60 still bounds a genuinely hung run — CodeQL's own default is 360
+    # — without failing an analysis that was working.
+    timeout-minutes: 60
+
+    permissions:
+      # The only write this needs. Everything else stays read-only, matching the
+      # posture the audit found the other workflows already holding.
+      security-events: write
+      contents: read
+      actions: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - javascript-typescript
+          - actions
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # `security-extended` over the default set: the default is tuned for
+          # low noise on large codebases, and the additional queries are worth
+          # having on a codebase this size.
+          #
+          # It is not free, and an earlier version of this comment claimed it
+          # was — "small enough to afford" — which the first run disproved by
+          # exceeding a 20-minute limit. The cost is time, the timeout above now
+          # reflects it, and if that stops being an acceptable trade the honest
+          # change is to drop back to the default suite rather than to trim the
+          # timeout again.
+          queries: security-extended
+
+      # No build step. This project is TypeScript and workflow YAML, both of
+      # which CodeQL analyses from source, so `autobuild` would add a
+      # dependency install for nothing.
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
