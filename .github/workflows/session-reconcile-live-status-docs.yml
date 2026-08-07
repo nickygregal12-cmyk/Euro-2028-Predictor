@@ -119,6 +119,9 @@ jobs:
           text, count = pattern.subn(replacement, text, count=1)
           if count != 1:
               raise SystemExit(f'current-status repository baseline: expected one match, found {count}')
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'current-status duplicate hosted baseline: expected one match, found {count}')
           text, count = re.subn(
               r'^\| Development Supabase `iouzoutneyjpugbbtdem` \|.*$',
               '| Development Supabase `iouzoutneyjpugbbtdem` | healthy Postgres 17. **Contract 131 applied and independently verified 7 August 2026**; guarded fast-lane run `31186564948` carried contracts 126–131 and ended at `20260806220000_period_standings_display_names`. | No migration pending; re-verify target identity and privileges before any future hosted write |',
