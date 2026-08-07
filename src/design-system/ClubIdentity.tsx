@@ -20,22 +20,18 @@ export type ClubIdentityProps = {
 }
 
 /**
- * The single path by which a club is represented visually (ADR 0017).
+ * The single path by which a club is represented visually (ADR 0017 / DFA-003).
  *
- * Clubs are rendered from colour, a generic kit pattern and a three-letter
- * monogram — never a crest. Crests are simultaneously registered trade marks
- * and original artistic works, and no descriptive-use defence exists in
- * copyright. Because this component is the only rendering path, adding licensed
- * crests later is one change here rather than a redesign.
+ * Clubs are rendered as a compact shirt-style identity from colour, a generic
+ * kit pattern and a three-letter monogram — never a crest. The outer box stays
+ * layout-stable across all variants; only the clipped shirt inside it changes.
+ * That lets dense league tables, fixture cards and future licensed-crest work
+ * share one predictable footprint.
  *
- * Sizes mirror TeamFlag so the two are interchangeable in shared layouts, but
- * the box is square rather than 3:2 — a club mark is not a flag.
- *
- * Accessibility: colour is never the only carrier. Every instance renders a
- * monogram (unless the adjacent text already names the club) and always exposes
- * the full club name to assistive technology. This is also what resolves
- * collisions — Liverpool and Manchester United are both red; Chelsea, Everton
- * and Leicester are all blue.
+ * Accessibility: colour is never the only carrier. Every instance exposes the
+ * full club name to assistive technology and, where space permits, renders the
+ * monogram visually as a second differentiator. Adjacent visible club text is
+ * still required by consuming surfaces; this mark is never the sole identifier.
  */
 export function ClubIdentity({
   name,
@@ -51,9 +47,7 @@ export function ClubIdentity({
 
   return (
     <span
-      className={`${styles.club} ${styles[size]} ${styles[resolved]} ${
-        onPrimary === 'dark' ? styles.onDark : ''
-      }`}
+      className={`${styles.club} ${styles[size]}`}
       style={
         {
           '--club-primary': primary,
@@ -62,12 +56,21 @@ export function ClubIdentity({
       }
       role="img"
       aria-label={name}
+      data-club-shape="shirt"
     >
-      {hideMonogram ? null : (
-        <span className={styles.monogram} aria-hidden="true">
-          {monogram.toUpperCase()}
-        </span>
-      )}
+      <span
+        className={`${styles.shirt} ${styles[resolved]} ${
+          onPrimary === 'dark' ? styles.onDark : ''
+        }`}
+        aria-hidden="true"
+        data-club-shirt="true"
+      >
+        {hideMonogram ? null : (
+          <span className={styles.monogram} aria-hidden="true">
+            {monogram.toUpperCase()}
+          </span>
+        )}
+      </span>
     </span>
   )
 }
