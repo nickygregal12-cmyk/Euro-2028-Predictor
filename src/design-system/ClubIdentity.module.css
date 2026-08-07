@@ -1,16 +1,16 @@
-/* Club marks are square, not 3:2 — a club is not a nation. Sizes otherwise
-   mirror TeamFlag so the two swap cleanly in shared layouts. The hairline
-   --line outline matches TeamFlag, so white-heavy kits (Spurs, Fulham) don't
-   dissolve into light surfaces. */
+/*
+ * The component keeps its old fixed layout footprint. The visible mark is a
+ * generic football shirt drawn by ::before, so dense tables and fixture cards
+ * do not reflow when the identity treatment changes.
+ */
 .club {
+  --club-font-size: 10px;
+
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex: none;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-input);
-  background-color: var(--club-primary);
   color: #fff;
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
@@ -19,21 +19,38 @@
   user-select: none;
 }
 
-/* Applied where the monogram is illegible on the primary — sky blue, yellow,
-   white. Set explicitly in the club's tokens rather than computed, so the
-   choice is reviewable. */
+.club::before {
+  content: '';
+  position: absolute;
+  inset: 5% 6%;
+  clip-path: polygon(
+    35% 0,
+    65% 0,
+    73% 8%,
+    100% 20%,
+    88% 43%,
+    76% 36%,
+    76% 100%,
+    24% 100%,
+    24% 36%,
+    12% 43%,
+    0 20%,
+    27% 8%
+  );
+  background-color: var(--club-primary);
+  filter: drop-shadow(0 0 0.65px var(--line));
+}
+
 .onDark {
   color: #0b0b0c;
 }
 
-/* Patterns are generic football conventions — stripes, hoops, halves, a sash.
-   Centuries old and owned by nobody, which is what makes them safe where a
-   crest is not. */
-.solid {
+/* Generic kit patterns only; the shape never reproduces a club crest. */
+.solid::before {
   background-image: none;
 }
 
-.stripes {
+.stripes::before {
   background-image: repeating-linear-gradient(
     90deg,
     var(--club-primary) 0 22%,
@@ -41,7 +58,7 @@
   );
 }
 
-.hoops {
+.hoops::before {
   background-image: repeating-linear-gradient(
     180deg,
     var(--club-primary) 0 22%,
@@ -49,7 +66,7 @@
   );
 }
 
-.halves {
+.halves::before {
   background-image: linear-gradient(
     90deg,
     var(--club-primary) 0 50%,
@@ -57,7 +74,7 @@
   );
 }
 
-.sash {
+.sash::before {
   background-image: linear-gradient(
     115deg,
     var(--club-primary) 0 38%,
@@ -66,62 +83,54 @@
   );
 }
 
-/* The monogram sits on a scrim rather than directly on the pattern. Without it,
-   a three-letter code over stripes or hoops is unreadable at 26px, which is the
-   size that matters most — league tables are the densest surface in the
-   product and the one players screenshot. */
 .stripes .monogram,
 .hoops .monogram,
 .halves .monogram,
 .sash .monogram {
-  padding: 0.1em 0.25em;
+  padding: 0.1em 0.22em;
   border-radius: 2px;
   background-color: color-mix(in srgb, var(--club-primary) 82%, transparent);
 }
 
 .monogram {
+  position: relative;
   display: block;
+  max-width: 72%;
+  overflow: hidden;
+  color: inherit;
+  font-size: var(--club-font-size);
+  transform: translateY(7%);
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
-/* Crest monograms are deliberately off the type scale, and this one was
-   measured rather than argued. The size is a function of the crest diameter
-   above it, not of the reading scale: taking these to --fs-eyebrow (11px) put
-   three-letter marks outside their own circle in the gallery — WBA rendered
-   31px wide inside a 26px crest, 26 marks overflowing where none had before.
-   A monogram that leaves its crest is a worse outcome than a size that is not
-   a named step, so the crest wins and the reason lives here. */
+/* Deliberately unchanged from the pre-shirt identity footprint. */
 .card {
   width: 30px;
   height: 30px;
-  font-size: 10px;
+  --club-font-size: 9px;
 }
 
 .table {
   width: 26px;
   height: 26px;
-  font-size: 9px;
+  --club-font-size: 8px;
 }
 
-/* Below roughly 20px a three-letter monogram is no longer legible. At `venue`
-   the mark carries colour and pattern only; callers pass hideMonogram, and the
-   accessible name still names the club. */
 .venue {
   width: 18px;
   height: 18px;
-  font-size: 0;
+  --club-font-size: 0;
 }
 
-/* Off the scale with the other crest monograms above, for their reason. */
 .champion {
   width: 38px;
   height: 38px;
-  font-size: 12px;
+  --club-font-size: 11px;
 }
 
-/* Pattern edges shimmer against a moving background. Fixed here rather than in
-   each consuming surface. */
 @media (prefers-reduced-motion: reduce) {
-  .club {
+  .club::before {
     transition: none;
   }
 }
