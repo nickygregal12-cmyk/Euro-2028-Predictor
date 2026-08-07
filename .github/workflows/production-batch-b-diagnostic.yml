@@ -1,0 +1,227 @@
+name: Production Batch B diagnostic
+
+# Read-only Production diagnostic for the authorised contract 67 -> 96 Batch B.
+# This workflow can read/dump Production and restore/rehearse against disposable
+# local Supabase only. It intentionally contains no hosted migration write.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/production-batch-b-diagnostic.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  SOURCE_CONTRACT: '67'
+  SOURCE_VERSION: '20260803180000'
+  SOURCE_NAME: matchweek_lock_scope
+  TARGET_CONTRACT: '96'
+  TARGET_VERSION: '20260804243000'
+  TARGET_NAME: cup_tie_settlement_refusal_order
+  WORK_DIR: /tmp/production-batch-b-diagnostic
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  diagnose-batch-b-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse unsafe repository or migration state
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || exit 1
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || exit 1
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || exit 1
+
+          expected_batch=$(cat <<'EOF'
+          20260803193000_season_fixtures.sql
+          20260803203000_season_predictions.sql
+          20260803213000_season_scoring.sql
+          20260803223000_lms_pick_resolution.sql
+          20260803233000_lms_persistence.sql
+          20260804003000_lms_round_conclusion.sql
+          20260804013000_season_cup_rules.sql
+          20260804023000_cup_neutral_points_source.sql
+          20260804033000_cup_neutral_settlement_source.sql
+          20260804043000_season_cup_sources.sql
+          20260804053000_cup_league_schedule.sql
+          20260804063000_cup_store_competition_domains.sql
+          20260804073000_season_card_lock_resolution.sql
+          20260804093000_season_card_status.sql
+          20260804103000_season_card_no_prefill.sql
+          20260804113000_season_matchweek_scheduler.sql
+          20260804123000_lms_eligibility_parity.sql
+          20260804133000_lms_settlement.sql
+          20260804143000_lms_season_selection.sql
+          20260804153000_lms_used_cycle.sql
+          20260804163000_lms_auto_assignment.sql
+          20260804173000_lms_settlement_job.sql
+          20260804183000_season_matchweek_scores.sql
+          20260804193000_matchweek_settlement_parity.sql
+          20260804203000_season_fixture_replay_link.sql
+          20260804213000_season_matchweek_scoring_job.sql
+          20260804223000_season_standings_parity.sql
+          20260804233000_season_leaderboard_read.sql
+          20260804243000_cup_tie_settlement_refusal_order.sql
+          EOF
+          )
+          actual_batch="$(git ls-files 'supabase/migrations/*.sql' | sort | sed -n '68,96p' | xargs -n1 basename)"
+          [ "${actual_batch}" = "${expected_batch}" ] || {
+            echo 'ERROR: contracts 68-96 no longer match the authorised Batch B allowlist.'
+            exit 1
+          }
+
+          development_count="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${development_count}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: Development authority is only ${development_count}; Batch B target is ${TARGET_CONTRACT}."
+            exit 1
+          }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install PostgreSQL client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Preflight Production read-only source
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || exit 1
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret resolves to Development.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production secret does not name expected Production.'; exit 1 ;;
+          esac
+          umask 077
+          mkdir -p "${WORK_DIR}/bundle/verification" "${WORK_DIR}/evidence"
+          live="$(psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
+          [ "${live}" = '67|20260803180000|matchweek_lock_scope' ] || {
+            echo "ERROR: Production source moved to ${live}; diagnostic refuses to continue."
+            exit 1
+          }
+          printf '%s\n' "${live}" > "${WORK_DIR}/evidence/source-contract.txt"
+
+      - name: Capture contract-67 restore source
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          git ls-files 'supabase/migrations/*.sql' | sort > "${WORK_DIR}/bundle/migration-files.txt"
+          psql "${SUPABASE_PROD_DB_URL}" -X -v ON_ERROR_STOP=1 -A -t \
+            -f scripts/database-rollout/production-backup-inventory.sql \
+            > "${WORK_DIR}/bundle/database-state.json"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${WORK_DIR}/bundle/roles.sql" --role-only
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${WORK_DIR}/bundle/schema.sql"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${WORK_DIR}/bundle/data.sql" --use-copy --data-only \
+            -x storage.buckets_vectors -x storage.vector_indexes
+          /usr/lib/postgresql/17/bin/pg_dump --dbname "${SUPABASE_PROD_DB_URL}" \
+            --schema supabase_migrations --no-owner --no-privileges \
+            --file "${WORK_DIR}/bundle/migration-history.sql"
+          cp scripts/database-rollout/managed-schema-customizations.sql "${WORK_DIR}/bundle/"
+          for f in roles.sql schema.sql data.sql migration-history.sql database-state.json managed-schema-customizations.sql; do
+            [ -s "${WORK_DIR}/bundle/${f}" ] || exit 1
+          done
+
+      - name: Start disposable local Supabase
+        run: supabase start
+
+      - name: Restore contract-67 source into disposable local Supabase
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          drop schema if exists predictor_internal cascade;
+          drop schema if exists public cascade;
+          create schema public;
+          grant usage on schema public to anon, authenticated, service_role;
+          alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated;
+          drop schema if exists supabase_migrations cascade;
+          truncate table auth.users cascade;
+          truncate table storage.objects, storage.buckets cascade;
+          commit;
+          SQL
+          cd "${WORK_DIR}/bundle"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file roles.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file schema.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' --file data.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file managed-schema-customizations.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file migration-history.sql
+          restored="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
+          [ "${restored}" = '67|20260803180000|matchweek_lock_scope' ] || {
+            echo "ERROR: restored source is ${restored}"
+            exit 1
+          }
+
+      - name: Diagnose contracts 68-96 rehearsal locally
+        id: rehearsal
+        shell: bash
+        run: |
+          set -uo pipefail
+          set +e
+          node scripts/database-rollout/rehearse-production-batch-b.mjs \
+            --db-url "${LOCAL_DB_URL}" \
+            --source-inventory "${WORK_DIR}/bundle/database-state.json" \
+            --output "${WORK_DIR}/bundle/verification/batch-b-rehearsal.json" \
+            2>&1 | tee "${WORK_DIR}/evidence/rehearsal.log"
+          status=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${status}" > "${WORK_DIR}/evidence/rehearsal-exit-code.txt"
+          if [ -f "${WORK_DIR}/bundle/verification/batch-b-rehearsal.json" ]; then
+            cp "${WORK_DIR}/bundle/verification/batch-b-rehearsal.json" "${WORK_DIR}/evidence/batch-b-rehearsal.json"
+          fi
+          exit "${status}"
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup
+
+      - name: Delete plaintext Production restore source
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d "${WORK_DIR}/bundle" ]; then
+            find "${WORK_DIR}/bundle" -type f -exec shred -u {} + || true
+            rm -rf "${WORK_DIR}/bundle"
+          fi
+
+      - name: Upload non-sensitive diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-batch-b-diagnostic-evidence
+          path: /tmp/production-batch-b-diagnostic/evidence
+          retention-days: 7
+          if-no-files-found: error
