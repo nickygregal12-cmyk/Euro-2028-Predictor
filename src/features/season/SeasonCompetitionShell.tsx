@@ -7,7 +7,6 @@ import {
   switchCompetitionPath,
   weeklyRoutes,
 } from '../../app/weeklyRoutes'
-import { HUB_COMPETITIONS } from '../hub/competitionCatalogue'
 import styles from './SeasonCompetitionShell.module.css'
 
 /**
@@ -57,11 +56,11 @@ export function SeasonCompetitionShell({
 
   const switchCompetition = (value: string) => {
     if (!ref || value === currentCompetitionKey) return
-    const target = HUB_COMPETITIONS.find(
-      (competition) => `${competition.competitionSlug}/${competition.seasonSlug}` === value,
+    const [competitionSlug, seasonSlug] = value.split('/')
+    if (!competitionSlug || !seasonSlug) return
+    navigate(
+      `${switchCompetitionPath(pathname, { competitionSlug, seasonSlug })}${search}${hash}`,
     )
-    if (!target) return
-    navigate(`${switchCompetitionPath(pathname, target)}${search}${hash}`)
   }
 
   return (
@@ -81,7 +80,7 @@ export function SeasonCompetitionShell({
         <p className={styles.eyebrow}>{seasonLabel}</p>
         <div className={styles.mastheadRow}>
           <h1 className={styles.name}>{competitionName}</h1>
-          {ref && HUB_COMPETITIONS.length > 1 ? (
+          {ref ? (
             <label className={styles.switcher}>
               <span className={styles.switcherLabel}>Switch competition</span>
               <select
@@ -90,14 +89,8 @@ export function SeasonCompetitionShell({
                 value={currentCompetitionKey}
                 onChange={(event) => switchCompetition(event.target.value)}
               >
-                {HUB_COMPETITIONS.map((competition) => (
-                  <option
-                    key={`${competition.competitionSlug}/${competition.seasonSlug}`}
-                    value={`${competition.competitionSlug}/${competition.seasonSlug}`}
-                  >
-                    {competition.name} {competition.seasonLabel}
-                  </option>
-                ))}
+                <option value="premier-league/2026-27">Premier League 2026/27</option>
+                <option value="scottish-premiership/2026-27">Scottish Premiership 2026/27</option>
               </select>
             </label>
           ) : null}
