@@ -15,11 +15,18 @@ select jsonb_pretty(jsonb_build_object(
   'counts', jsonb_build_object(
     'auth_users', (select count(*) from auth.users),
     'profiles', (select count(*) from public.profiles),
+    'tournaments', (select count(*) from public.tournaments),
+    'teams', (select count(*) from public.teams),
+    'matches', (select count(*) from public.matches),
     'entries', (select count(*) from public.entries),
     'submitted_entries', (select count(*) from public.entries where submitted_at is not null),
     'match_predictions', (select count(*) from public.match_predictions),
     'tie_resolutions', (select count(*) from public.predicted_tie_resolutions),
     'progression_rows', (select count(*) from public.predicted_progression),
+    'leagues', (select count(*) from public.leagues),
+    'league_members', (select count(*) from public.league_members),
+    'score_events', (select count(*) from public.score_events),
+    'entry_totals', (select count(*) from public.entry_totals),
     'matches_with_scores', (
       select count(*)
       from public.matches
