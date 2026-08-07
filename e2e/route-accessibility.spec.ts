@@ -59,7 +59,7 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await expect(page).toHaveURL(
     (url) => url.pathname === '/competitions/premier-league/2026-27/play',
   )
-  await expect(page).toHaveTitle('Competition play | Football Prediction Hub')
+  await expect(page).toHaveTitle('Premier League 2026/27 Play | Football Prediction Hub')
   await expect(main).toBeFocused()
-  await expect(page.locator(liveRegion)).toHaveText('Competition play page loaded')
+  await expect(page.locator(liveRegion)).toHaveText('Premier League 2026/27 Play page loaded')
 })
