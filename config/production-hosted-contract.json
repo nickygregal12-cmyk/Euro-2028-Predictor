@@ -1,0 +1,12 @@
+{
+  "projectRef": "vkfnsqdyhvtwyqkisxhk",
+  "requiredMigrationCount": 63,
+  "latestMigrationVersion": "20260729154931",
+  "latestMigrationName": "prediction_consensus_minimum_cohort",
+  "verifiedAt": "2026-08-06T17:25:00.000Z",
+  "evidence": {
+    "source": "Read directly from hosted Production through the Supabase management connection on 6 August 2026. The supabase_migrations.schema_migrations table contained exactly 63 rows ending at 20260729154931_prediction_consensus_minimum_cohort. The same read-only pass confirmed PostgreSQL 17, pg_cron 1.6.4, supabase_vault 0.3.1, no pg_net extension, and one active cron job for process_due_entry_submissions(). No production write, migration, backup, secret change or deployment occurred.",
+    "repositoryHead": "7ffa24138fd2f3e7f8466dd287b8f11ebc50e289"
+  },
+  "promotionAuthorised": false
+}
