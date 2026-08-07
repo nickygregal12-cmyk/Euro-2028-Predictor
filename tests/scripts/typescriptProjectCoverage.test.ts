@@ -207,6 +207,7 @@ describe('JavaScript under scripts/', () => {
     ['scripts/check-fixtures.mjs', 29],
     ['scripts/check-migration-timestamps.mjs', 10],
     ['scripts/database-rollout/rehearse-production-batch-a.mjs', null],
+    ['scripts/database-rollout/rehearse-production-batch-b.mjs', null],
     ['scripts/og/renderAssets.js', 61],
     ['scripts/ops/create-verified-supabase-backup.mjs', 31],
     ['scripts/ops/run-stage-c1-hosted-postflight.mjs', 5],
