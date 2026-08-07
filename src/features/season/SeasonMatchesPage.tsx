@@ -1,4 +1,5 @@
-import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
+import { Alert, Button, ClubIdentity, EmptyState, Skeleton } from '../../design-system'
+import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
 import type { MatchRow, SeasonMatchesGateway } from './matchesModel'
 import { useSeasonMatches } from './useSeasonMatches'
 import styles from './SeasonMatchesPage.module.css'
@@ -33,6 +34,11 @@ import styles from './SeasonMatchesPage.module.css'
  * them, unusually for this repository, because the zone is data rather than an
  * ambient fact and keeping it out of the view is what stops it being defaulted
  * away.
+ *
+ * CLUB IDENTITY IS VISUAL CONTEXT ONLY. This bounded fixture read currently
+ * supplies club names rather than provider kit metadata, so the shared resolver
+ * uses its intentional neutral fallback where colour truth is unavailable. The
+ * screen-reader summary remains the single spoken fixture description.
  */
 
 export type SeasonMatchesPageProps = {
@@ -46,11 +52,23 @@ export type SeasonMatchesPageProps = {
 const SKELETON_ROWS = 6
 
 function Match({ match }: { match: MatchRow }) {
+  const homeIdentity = resolveClubIdentity({
+    externalId: `${match.id}:home`,
+    name: match.homeName,
+  })
+  const awayIdentity = resolveClubIdentity({
+    externalId: `${match.id}:away`,
+    name: match.awayName,
+  })
+
   return (
     <li className={styles.match}>
       <span className={styles.srOnly}>{match.accessibleSummary}</span>
       <span className={styles.home} aria-hidden="true">
-        {match.homeName}
+        <span className={styles.clubName}>{match.homeName}</span>
+        <span className={styles.clubVisual}>
+          <ClubIdentity name={match.homeName} tokens={homeIdentity} size="table" />
+        </span>
       </span>
       <span
         className={match.played ? styles.score : styles.kickoff}
@@ -61,7 +79,10 @@ function Match({ match }: { match: MatchRow }) {
         {match.score ?? match.kickoff ?? '—'}
       </span>
       <span className={styles.away} aria-hidden="true">
-        {match.awayName}
+        <span className={styles.clubVisual}>
+          <ClubIdentity name={match.awayName} tokens={awayIdentity} size="table" />
+        </span>
+        <span className={styles.clubName}>{match.awayName}</span>
       </span>
     </li>
   )

@@ -1,4 +1,5 @@
-import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
+import { Alert, Button, ClubIdentity, EmptyState, Skeleton } from '../../design-system'
+import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
 import { LMS_REGISTRATION_COPY, type SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { LmsClub, SeasonLmsGateway } from './lmsRoundModel'
 import { formatInstant } from './formatInstant'
@@ -34,6 +35,12 @@ import styles from './SeasonLmsPage.module.css'
  * competition the player is looking at: a season can hold a restarted
  * successor alongside its predecessor, and resolving that is a server-side
  * question this surface must not answer for itself.
+ *
+ * CLUB IDENTITY IS PRESENTATIONAL. The bounded LMS read currently supplies the
+ * canonical team id and name but not provider kit colours, so the shared
+ * identity resolver deliberately falls back to the neutral shirt where colour
+ * truth is unavailable. The text name remains the control's accessible label;
+ * the repeated shirt is decorative here rather than a second spoken name.
  */
 
 export type SeasonLmsPageProps = {
@@ -103,6 +110,8 @@ export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps
   const choose = (club: LmsClub) => {
     const isPick = page.pick?.teamId === club.teamId
     const disabled = !presentation.canPick || club.used || picking !== null
+    const identity = resolveClubIdentity({ externalId: club.teamId, name: club.name })
+
     return (
       <button
         key={club.teamId}
@@ -112,15 +121,20 @@ export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps
         disabled={disabled}
         onClick={() => pick(club.teamId)}
       >
-        <span className={styles.clubName}>{club.name}</span>
-        {/* "Used" is suppressed on the player's own pick. The club IS used —
-            the pick is what consumed it — but labelling it that way reads as
-            "unavailable to you", which is the opposite of what it means here.
-            One of the two labels is the truth the player needs, and it is
-            "Your pick". */}
-        {club.used && !isPick ? <span className={styles.clubNote}>Used</span> : null}
-        {isPick ? <span className={styles.clubPick}>Your pick</span> : null}
-        {picking === club.teamId ? <span className={styles.clubNote}>Saving…</span> : null}
+        <span className={styles.clubVisual} aria-hidden="true">
+          <ClubIdentity name={club.name} tokens={identity} size="table" />
+        </span>
+        <span className={styles.clubCopy}>
+          <span className={styles.clubName}>{club.name}</span>
+          {/* "Used" is suppressed on the player's own pick. The club IS used —
+              the pick is what consumed it — but labelling it that way reads as
+              "unavailable to you", which is the opposite of what it means here.
+              One of the two labels is the truth the player needs, and it is
+              "Your pick". */}
+          {club.used && !isPick ? <span className={styles.clubNote}>Used</span> : null}
+          {isPick ? <span className={styles.clubPick}>Your pick</span> : null}
+          {picking === club.teamId ? <span className={styles.clubNote}>Saving…</span> : null}
+        </span>
       </button>
     )
   }

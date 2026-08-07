@@ -79,10 +79,10 @@
 
 .club {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--sp-2);
   min-width: 0;
   min-height: var(--tap-min);
   padding: var(--sp-2) var(--sp-3);
@@ -113,6 +113,25 @@
 .clubPicked {
   border-color: var(--acc);
   background: color-mix(in srgb, var(--acc) 12%, transparent);
+}
+
+/* The shirt uses the same fixed table footprint as other dense football rows.
+   It is decorative inside this button because the adjacent club name is the
+   control label; keeping it separate avoids speaking the same club twice. */
+.clubVisual {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.clubCopy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
 }
 
 .clubName {
