@@ -109,7 +109,7 @@ describe('authenticated browser E2E workflow', () => {
   })
 
   it('pins the Playwright dependency and exposes stable scripts', () => {
-    expect(packageJson.devDependencies['@playwright/test']).toBe('1.61.1')
+    expect(packageJson.devDependencies['@playwright/test']).toBe('1.62.1')
     expect(packageJson.scripts['test:e2e']).toBe('playwright test')
     expect(packageJson.scripts['test:e2e:install']).toBe(
       'playwright install --with-deps chromium',
