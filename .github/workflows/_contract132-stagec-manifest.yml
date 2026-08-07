@@ -1,0 +1,50 @@
+name: Contract 132 Stage C manifest sync
+
+on:
+  push:
+    branches:
+      - feature/provider-initial-fixture-approval-contract-132
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/provider-initial-fixture-approval-contract-132
+      - name: Register Contract 132 admin RPCs in Stage C compatibility inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/architecture/stage-c-schema-coverage.md')
+          s = p.read_text()
+          needle = "- `admin_actual_third_place_tie_status`\n"
+          insert = "- `admin_actual_third_place_tie_status`\n- `admin_approve_initial_provider_fixtures`\n"
+          if '- `admin_approve_initial_provider_fixtures`' not in s:
+              if needle not in s:
+                  raise SystemExit('Stage C retained-signature insertion point missing')
+              s = s.replace(needle, insert, 1)
+          needle = "- `admin_clear_actual_third_place_tie`\n"
+          insert = "- `admin_clear_actual_third_place_tie`\n- `admin_reject_initial_provider_fixtures`\n"
+          if '- `admin_reject_initial_provider_fixtures`' not in s:
+              if needle not in s:
+                  raise SystemExit('Stage C reject insertion point missing')
+              s = s.replace(needle, insert, 1)
+          p.write_text(s)
+          PY
+          git rm .github/workflows/_contract132-stagec-manifest.yml
+      - name: Commit reviewed inventory update and remove one-shot workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/architecture/stage-c-schema-coverage.md
+          git commit -m "docs: register contract 132 Stage C RPCs"
+          git push origin HEAD:feature/provider-initial-fixture-approval-contract-132
