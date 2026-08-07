@@ -133,13 +133,11 @@ describe('the season matches route', () => {
     expect(await screen.findByText('This season could not be loaded')).toBeTruthy()
   })
 
-  it('offers Matches as a destination from within the shell', async () => {
-    // §7.3's Matches section stops being an unavailable label the moment it has
-    // a season implementation.
+  it('offers the canonical Games destination from within the shell', async () => {
     renderRoute(async () => context())
 
     await screen.findByText('Scottish Premiership')
     const games = screen.getByRole('link', { name: 'Games' })
-    expect(games.getAttribute('href')).toBe('/competitions/scottish-premiership/2026-27')
+    expect(games.getAttribute('href')).toBe('/competitions/scottish-premiership/2026-27/games')
   })
 })
