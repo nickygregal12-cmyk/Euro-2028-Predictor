@@ -194,17 +194,19 @@ describe('JavaScript under scripts/', () => {
   ] as const
 
   /**
-   * Deliberately not checked yet, with the error count each would contribute
-   * measured on 30 July and 2 August 2026. None of them is a deploy gate. The
-   * Stage C1 operational scripts are separately covered by fail-closed runtime,
-   * source and disposable-database tests; their checkJs backlog is predominantly
-   * missing JSDoc parameter annotations on values the runtime validation already
-   * narrows. Recorded here so the backlog is a visible decision rather than an
-   * oversight, and so a new script cannot join it silently.
+   * Deliberately not checked yet. Existing entries retain the checkJs error
+   * counts measured on 30 July and 2 August 2026. New operational scripts may
+   * be classified here with `null` until their backlog is deliberately measured;
+   * that keeps the coverage decision explicit without inventing a debt count.
+   * None of these is a deploy gate. The Stage C1 and database-rollout operational
+   * scripts are separately covered by fail-closed runtime, source and
+   * disposable-database tests. Recorded here so a new script cannot join the
+   * deferred set silently.
    */
   const DEFERRED = [
     ['scripts/check-fixtures.mjs', 29],
     ['scripts/check-migration-timestamps.mjs', 10],
+    ['scripts/database-rollout/rehearse-production-batch-a.mjs', null],
     ['scripts/og/renderAssets.js', 61],
     ['scripts/ops/create-verified-supabase-backup.mjs', 31],
     ['scripts/ops/run-stage-c1-hosted-postflight.mjs', 5],
