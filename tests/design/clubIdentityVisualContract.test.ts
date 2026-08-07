@@ -1,16 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-const component = readFileSync('src/design-system/ClubIdentity.tsx', 'utf8')
 const css = readFileSync('src/design-system/ClubIdentity.module.css', 'utf8')
 const matchCard = readFileSync('src/design-system/ClubMatchCard.tsx', 'utf8')
 const leagueTable = readFileSync('src/design-system/LeagueTable.tsx', 'utf8')
 const gallery = readFileSync('src/dev/ComponentsPreview.tsx', 'utf8')
 
 describe('DFA-003 club identity visual contract', () => {
-  it('keeps one explicit shirt-shaped rendering primitive', () => {
-    expect(component).toContain('data-club-shape="shirt"')
-    expect(component).toContain('data-club-shirt="true"')
+  it('draws one shirt-shaped primitive without extra React markup', () => {
+    expect(css).toMatch(/\.club::before\s*\{/)
     expect(css).toMatch(/clip-path:\s*polygon\(/)
   })
 
