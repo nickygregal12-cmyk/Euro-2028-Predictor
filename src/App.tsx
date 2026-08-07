@@ -24,26 +24,26 @@ const CompetitionGamesPage = lazy(() =>
   })),
 )
 const SeasonMatchPredictorRoute = lazy(() =>
-  import('./features/season/SeasonMatchPredictorRoute').then((m) => ({
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonMatchPredictorRoute,
   })),
 )
 const SeasonPlayRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonPlayRoute })),
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonPlayRoute })),
 )
 const SeasonStandingsRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonStandingsRoute })),
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonStandingsRoute })),
 )
 const SeasonLmsRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonLmsRoute })),
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonLmsRoute })),
 )
 const SeasonChampionshipRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonChampionshipRoute,
   })),
 )
 const SeasonLeaguesRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonLeaguesRoute,
   })),
 )

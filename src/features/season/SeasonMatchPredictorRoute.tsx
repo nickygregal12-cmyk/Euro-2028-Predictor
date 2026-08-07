@@ -11,6 +11,7 @@ import { findHubCompetition } from '../hub/competitionCatalogue'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
+import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { SeasonMatchPredictorPage } from './SeasonMatchPredictorPage'
 import { useSeasonPlayContext } from './useSeasonPlayContext'
 import styles from './SeasonMatchPredictorRoute.module.css'
@@ -118,6 +119,7 @@ export function SeasonMatchPredictorRoute({
         active="games"
         destinations={destinations}
       >
+        <SeasonGameSubNav game="match-predictor" />
         <Alert variant="info" title="This season has no matchweek left to play">
           Every matchweek has passed its lock. Results and standings stay available; there is
           nothing further to enter.
