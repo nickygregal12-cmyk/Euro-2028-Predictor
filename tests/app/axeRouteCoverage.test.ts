@@ -25,11 +25,15 @@ const inJourneyScannedRoutes = readdirSync(resolve(repositoryRoot, 'e2e'))
 
 /**
  * Parameterised weekly routes are accounted for here until the E2E harness has
- * concrete domestic-season fixtures for each destination. This is intentionally
- * explicit: adding a route must add either a real scan or a reasoned deferral.
+ * concrete domestic-season fixtures for each destination. Redirect-only
+ * compatibility paths are also explicit: axe scans their canonical target,
+ * while route tests prove the redirect itself.
  */
 const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
   ['/admin', 'redirect only — /admin/results is the actual administrator surface'],
+  ['/fixtures', 'compatibility redirect only — canonical /matches is axe-scanned directly'],
+  ['/league', 'compatibility redirect only — canonical /leagues is axe-scanned directly'],
+  ['/more/points', 'compatibility redirect only — canonical /profile is axe-scanned directly'],
   [
     '/competitions/:competitionSlug/:seasonSlug',
     'parameterised competition route — concrete domestic season coverage remains harness work',
