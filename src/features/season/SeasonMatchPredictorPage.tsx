@@ -3,6 +3,7 @@ import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
 import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { MatchPredictorGateway } from './matchPredictorModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
+import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonMatchPredictor } from './useSeasonMatchPredictor'
 import styles from './SeasonMatchPredictorPage.module.css'
@@ -49,6 +50,7 @@ export function SeasonMatchPredictorPage({
         active="games"
         destinations={destinations}
       >
+        <SeasonGameSubNav game="match-predictor" />
         <div className={styles.card} aria-busy="true" aria-live="polite">
           <span className={styles.srOnly}>Loading this matchweek</span>
           <Skeleton width="60%" height={20} />
@@ -71,6 +73,7 @@ export function SeasonMatchPredictorPage({
         active="games"
         destinations={destinations}
       >
+        <SeasonGameSubNav game="match-predictor" />
         <Alert variant="error" title="This matchweek is unavailable">
           {view.loadError ?? 'This matchweek could not be loaded.'}
         </Alert>
@@ -99,6 +102,8 @@ export function SeasonMatchPredictorPage({
       active="games"
       destinations={destinations}
     >
+      <SeasonGameSubNav game="match-predictor" />
+
       {registration ? (
         <SeasonLmsRegistration
           gateway={registration}

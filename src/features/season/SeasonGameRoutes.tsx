@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
-import { competitionRoute, logicalWeeklyParent, weeklyRoutes } from '../../app/weeklyRoutes'
+import {
+  competitionRoute,
+  logicalWeeklyParent,
+  weeklyRoutes,
+  type DomesticGameRoute,
+} from '../../app/weeklyRoutes'
 import { useAuth } from '../auth/AuthProvider'
 import { findHubCompetition, type HubCompetition } from '../hub/competitionCatalogue'
 import { fetchHubMembership } from '../../services/supabase/competitionGames'
@@ -22,6 +27,7 @@ import { joinLeague } from '../../services/supabase/leagues'
 import { isNextUi } from '../../app/routeFlags'
 import { presentPlayInbox } from './playInboxModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
+import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { seasonShellDestinations } from './seasonDestinations'
 import { SeasonLeaguesPage } from './SeasonLeaguesPage'
 import { SeasonPlayPage } from './SeasonPlayPage'
@@ -98,12 +104,14 @@ function RouteFrame({
   title,
   section,
   state,
+  game,
   statusStrip = [],
   children,
 }: {
   title: string
   section: SeasonShellSection
   state: RouteState
+  game?: DomesticGameRoute
   statusStrip?: readonly string[]
   children: (resolved: Resolved) => React.ReactNode
 }) {
@@ -156,6 +164,7 @@ function RouteFrame({
       active={section}
       destinations={seasonShellDestinations(competitionBase(state.resolved))}
     >
+      {game ? <SeasonGameSubNav game={game} /> : null}
       {children(state.resolved)}
     </SeasonCompetitionShell>
   )
@@ -178,7 +187,12 @@ export function SeasonStandingsRoute() {
   const { userId } = useAuth()
 
   return (
-    <RouteFrame title="Match Predictor standings" section="games" state={state}>
+    <RouteFrame
+      title="Match Predictor standings"
+      section="games"
+      state={state}
+      game="match-predictor"
+    >
       {(resolved) => (
         <SeasonStandingsRouteBody tournamentId={resolved.tournamentId} userId={userId} />
       )}
@@ -220,7 +234,7 @@ export function SeasonLmsRoute() {
   const { userId } = useAuth()
 
   return (
-    <RouteFrame title="Last Man Standing" section="games" state={state}>
+    <RouteFrame title="Last Man Standing" section="games" state={state} game="lms">
       {(resolved) => {
         const competitionId = resolved.gameIds.last_man_standing
         if (!competitionId) return <MissingGame name="Last Man Standing" />
@@ -266,7 +280,12 @@ export function SeasonChampionshipRoute() {
   const { userId } = useAuth()
 
   return (
-    <RouteFrame title="Predictor Championship" section="games" state={state}>
+    <RouteFrame
+      title="Predictor Championship"
+      section="games"
+      state={state}
+      game="championship"
+    >
       {(resolved) => {
         const competitionId = resolved.gameIds.predictor_cup
         if (!competitionId) return <MissingGame name="The Predictor Championship" />
