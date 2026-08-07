@@ -1,21 +1,21 @@
 # Football Prediction Hub — information architecture
 
-**Status:** Accepted target design, 3 August 2026. No implementation is implied.  
+**Status:** Accepted target design, 3 August 2026; Domestic Frontend Alpha reconciliation 7 August 2026. No implementation is implied.  
 **Decision authority:** [ADR 0023](../adr/0023-hub-information-architecture.md), scoped by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md).  
 **State authority:** [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md).  
-**Visual authority:** [`../design-system.md`](../design-system.md).
+**Visual authority:** [`../design-system.md`](../design-system.md) for built component contracts; target presentation/delivery is elaborated by [`../design/ui-modernisation-execution.md`](../design/ui-modernisation-execution.md).
 
 | Field | Value |
 | --- | --- |
 | Authority | Supporting — elaborates ADR 0023, may not reverse it |
-| Status | Accepted target design — unimplemented |
-| Last verified | 2026-08-06 |
-| Governs | The **weekly platform's** route tree, shell behaviour, page ownership, onboarding steps and responsive interaction rules |
+| Status | Accepted target design — partially implemented |
+| Last verified | 2026-08-07 |
+| Governs | The **weekly platform's** route tree, shell behaviour, page ownership, onboarding steps, deterministic parent navigation and responsive interaction rules |
 | Does not govern | Any decision (ADRs 0023 and 0026); the Euro 2028 site's surfaces; scoring, locks, settlement or reveal; current implementation state ([`../quality/current-status.md`](../quality/current-status.md)) |
 | Supersedes | Tournament-era route and navigation descriptions where they disagree with ADR 0023 |
 | Superseded by | None |
-| Related work | No open pull request implements the shell described here |
-| Implementation truth | The route tree in § 2 is a target. What is registered today is decided by `src/App.tsx` and the route-declaration tests, not by this file |
+| Related work | Domestic Frontend Alpha is the next named weekly-frontend milestone; exact current implementation remains in current status / feature baseline |
+| Implementation truth | The route tree below is the target. What is registered today is decided by `src/App.tsx` and the route-declaration tests, not by this file |
 
 This document is the build-ready information-architecture authority for the Hub, competition shells, onboarding and cross-game navigation. Older tournament-era route and navigation descriptions are compatibility history where they disagree with ADR 0023.
 
@@ -25,28 +25,31 @@ Added 6 August 2026 under [ADR 0026](../adr/0026-public-site-separation-shared-a
 
 **This document describes the weekly platform.** There are two frontend deployments over one shared Supabase backend (`SITE-001`, `SITE-002`): the weekly platform on the eventual umbrella-brand domain (`SITE-003`) and Euro 2028 on the purchased tournament domain (`SITE-004`). The Euro site's information architecture is a separate, later design and is **not** the route tree below.
 
-One account and one profile work on both sites (`ACCOUNT-001`, `ACCOUNT-002`); separate browser sessions are acceptable initially (`ACCOUNT-003`). Signing up on either site joins no competition, game or private container (`ACCOUNT-004`) — the onboarding in § 3 is how entry happens, and there is no path around it.
+One account and one profile work on both sites (`ACCOUNT-001`, `ACCOUNT-002`); separate browser sessions are acceptable initially (`ACCOUNT-003`). Signing up on either site joins no competition, game or private container (`ACCOUNT-004`) — the onboarding in § 3 is how weekly-platform entry happens, and there is no path around voluntary game membership.
 
-**Competition visibility is a server-owned publication state** — hidden, prelaunch, registration-open, live, completed, archived (`EURO-002`). While a competition's state is `hidden` it is absent from every surface this document defines: Hub Home, Play, Matches, Leagues, the competition catalogue in § 9, every switcher, page metadata, the sitemap, Open Graph content, and its own routes in § 2 (`EURO-001`, `EURO-003`). Absence is produced by the state and a route guard, never by a client catalogue that happens to omit an entry (`EURO-004`).
+**Competition visibility is a server-owned publication state** — hidden, prelaunch, registration-open, live, completed, archived (`EURO-002`). While a competition's state is `hidden` it is absent from every weekly surface this document defines: Hub Home, Play, Matches, Leagues, the competition catalogue, every switcher, page metadata, the sitemap, Open Graph content, and its own routes (`EURO-001`, `EURO-003`). Absence is produced by the state and a route guard, never by a client catalogue that happens to omit an entry (`EURO-004`).
 
-Euro 2028's state is `hidden` and the weekly Hub currently lists it from a static catalogue. That is a known violation, recorded as `EURO-001` in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md); it is implementation work and is not addressed by this document.
+Euro 2028's hidden-state implementation gap remains a current requirement, not a reason to preserve tournament-era weekly navigation.
 
-## 1. Product hierarchy
+## 1. Product hierarchy and Domestic Frontend Alpha
 
 ```text
 Football Prediction Hub
 └── Competition season
     ├── Competition overview
-    ├── Match or Original Predictor
+    ├── Match Predictor
     ├── Last Man Standing
     ├── Predictor Championship
-    ├── KO Predictor where supported
     └── competition-scoped matches, leagues and statistics
 ```
 
+For the weekly Domestic Frontend Alpha the active product scope is Premier League 2026/27 and Scottish Premiership 2026/27, with Match Predictor, Last Man Standing and Predictor Championship. Tournament-only games belong to the later Euro frontend rather than the weekly Alpha.
+
 The Hub is the global product. A competition season is the user's football context. A game is an independently joined competition with its own rules, entry, status and standings.
 
-## 2. Canonical routes
+The frontend test is simple: within a few seconds the player can tell what needs action, when it locks, what is happening in the football, and how they are doing.
+
+## 2. Canonical weekly routes
 
 ```text
 /                                             Hub Home
@@ -62,45 +65,78 @@ The Hub is the global product. A competition season is the user's football conte
 /competitions/:competition/:season/leagues    private leagues/competitions
 
 /competitions/:competition/:season/games/match-predictor
-/competitions/:competition/:season/games/original-predictor
 /competitions/:competition/:season/games/lms
 /competitions/:competition/:season/games/championship
-/competitions/:competition/:season/games/ko-predictor
 
 /competitions/:competition/:season/matches/:fixtureId
 /competitions/:competition/:season/leagues/:containerId
 /competitions/:competition/:season/players/:playerId
 ```
 
-Existing Euro paths may redirect to these routes during migration. Compatibility paths do not remain a second information architecture.
+Compatibility paths may redirect to canonical routes during migration. They do not remain a second information architecture. `main_predictor` and similar compatibility identifiers may remain internal without dictating a user-facing route.
 
-**Every route above is subject to the publication state in § 0.** A competition whose state is `hidden` has no reachable route on the weekly platform — including `/competitions/euro/2028` and everything beneath it. A guessable path that renders, or that answers anything other than the site's ordinary not-found response, is a leak (`EURO-003`). Route guards, not catalogue omission, produce that (`EURO-004`).
+Route construction should converge on one typed/generated authority instead of independently maintained string literals in cards, breadcrumbs, tests and redirects.
 
-## 3. First-run onboarding
+**Every route above is subject to the publication state in § 0.** A competition whose state is `hidden` has no reachable weekly-platform route. A guessable path that renders, or that answers anything other than the site's ordinary not-found response, is a leak (`EURO-003`). Route guards, not catalogue omission, produce that (`EURO-004`).
+
+### 2.1 Deterministic parent / exit map
+
+Browser history is useful but never the only way out of a page. A deep URL may be the first route opened.
+
+| Route class | Deterministic parent |
+| --- | --- |
+| Competition page | **Back to Hub** |
+| Game page | **Back to Games**, while retaining competition-shell navigation |
+| Private container / creation page | **Back to Leagues** |
+| Match Centre | **Back to Matches**, restoring useful date/filter/scroll context where practical |
+| Player / H2H page | Originating standings/container when known; otherwise safe competition context |
+| Failure / not-found | Logical parent plus Hub |
+
+Executable route/navigation coverage must enumerate shipped weekly routes and prove each non-root route has a parent/fallback. This is separate from checking that React can render the route.
+
+## 3. First-sign-in onboarding and returning users
 
 ### Step 1 — account identity
 
 Complete authentication, email verification where required and moderated display-name creation.
 
-### Step 2 — choose competitions
+### Step 2 — choose competitions to follow
 
-Show every available competition season as a card. The user may follow one or several without joining a game. One may be marked favourite.
+Show the available domestic competition seasons:
 
-### Step 3 — choose games
+- Premier League 2026/27;
+- Scottish Premiership 2026/27.
 
-Show only games supported by each selected competition. Nothing is preselected. Match Predictor may carry a non-coercive `Recommended` label.
+The user may follow either or both. Following controls football visibility and personalisation; it does not join a game.
+
+### Step 3 — optional favourite team
+
+Offer one optional favourite club from the currently visible domestic teams. `No favourite / Skip` is always available.
+
+Favourite team is:
+
+- a profile preference;
+- changeable later;
+- never a competition/game membership;
+- never a prediction, score, rank or permission input;
+- permitted to affect subtle prominence/personalisation only;
+- always lower priority than an urgent or incomplete action.
+
+The selector may use the shirt-style club identity in § 18, but team name/label remains present.
+
+### Step 4 — choose games per followed competition
+
+Show only the three weekly launch games supported by that competition. Nothing is preselected.
 
 | Game | Onboarding description |
 | --- | --- |
-| **Match Predictor** | Predict each match score every matchweek. Exact scores and correct results build a season total, with strategic whole-matchweek Jokers. |
-| **Original Predictor** | Predict the complete tournament before it begins: groups, qualification, bracket, champion and awards. |
-| **Last Man Standing** | Pick one team to win each round. Survive, but do not reuse a team until the available-team list resets. |
+| **Match Predictor** | Predict each match score every matchweek. Exact scores and correct results build a season total, with the game's existing Joker rules. |
+| **Last Man Standing** | Pick one team to win each round under the existing used-team and reset rules. |
 | **Predictor Championship** | Match Predictor points become football fixtures against named opponents: win for three table points, draw for one. |
-| **KO Predictor** | Predict knockout scores round by round and choose who advances when a draw is predicted. |
 
-Each card names cadence, lock style, private availability and whether late entry is permitted.
+Each card names cadence, what the player actually does, current availability/start state, lock/deadline shape and private availability. Match Predictor may be visually primary, but entry remains voluntary.
 
-### Step 4 — private play
+### Step 5 — private play
 
 Offer:
 
@@ -108,7 +144,17 @@ Offer:
 - create a permitted private league/competition;
 - skip.
 
-An invitation survives authentication and resumes at the exact competition, game and private container.
+### Step 6 — finish into personalised Hub
+
+The first signed-in destination after completed onboarding is a Hub primarily shaped by the player's followed competitions, game memberships and current actions rather than the whole catalogue.
+
+### Returning / interrupted flows
+
+- completed onboarding → personalised Hub directly;
+- interrupted onboarding → resume the incomplete step rather than restart;
+- pending invitation → survives authentication **and onboarding**, then resumes at the exact competition, game and private container;
+- followed competitions and favourite team → editable later through normal preferences;
+- game participation → editable only where the game's lifecycle allows it.
 
 ## 4. Global Hub shell
 
@@ -118,7 +164,7 @@ An invitation survives authentication and resumes at the exact competition, game
 Home · Play · Matches · Leagues · More
 ```
 
-Mobile uses bottom navigation. Desktop may use a left rail. The meaning and order remain identical.
+Mobile uses bottom navigation. Desktop may use a left rail. Meaning and order remain identical.
 
 ### Global top bar
 
@@ -126,52 +172,43 @@ Mobile uses bottom navigation. Desktop may use a left rail. The meaning and orde
 - notification indicator;
 - avatar/account menu.
 
-A competition switcher is not necessary on Hub Home because the competition cards are the primary selector.
+Competition switching does not permanently occupy Hub Home because the Hub is intentionally cross-competition.
 
-### Hub Home order
+### Final personalised Hub Home order
 
-1. compact Broadcast Grid masthead;
-2. one primary action;
-3. at most two compact secondary actions;
-4. live matches when present;
-5. favourite competition;
-6. other followed competitions;
-7. recent results, weekly recap and league movement;
-8. available games and competition discovery.
+The current competition chooser may remain an intermediate shell until the reads below exist. The final signed-in Home prioritises:
 
-Live football moves above ordinary browsing and non-urgent actions. An urgent incomplete-action warning remains visible.
+1. one primary urgent/next action;
+2. at most two compact secondary actions;
+3. live football;
+4. favourite-team / followed-competition context;
+5. current rank and league movement;
+6. recent matchweek results/recap;
+7. private league/competition activity;
+8. appropriate domestic discovery.
+
+Urgent incomplete action stays visible even while live football becomes prominent.
 
 ### Play
 
-The global action inbox groups tasks by urgency and deadline. Every task names competition season and game. Suggested groups:
-
-- Urgent;
-- This week;
-- Complete/waiting.
+The global action inbox groups tasks by urgency/deadline and names competition season plus game. It may group as Urgent / This week / Complete or waiting, but the underlying requirement is the same as Competition Play in § 7: it aggregates game-owned truth instead of recomputing deadlines in the browser.
 
 ### Matches
 
-Combine followed competitions chronologically. Default groups:
-
-- Live;
-- Today;
-- Upcoming;
-- Results.
-
-Provide clear competition labels and filters. Opening and returning from a match preserves the selected date/filter where practical.
+Combine followed competitions chronologically. Default groups may include Live / Today / Upcoming / Results. Provide clear competition labels and filters. Opening and returning from Match Centre preserves selected date/filter and useful position where practical.
 
 ### Leagues
 
 Separate:
 
-- My leagues — Match/Original Predictor;
+- My leagues — Match Predictor;
 - My competitions — LMS and Predictor Championship.
 
 Cards show competition, game, format, status, creator and next action.
 
 ### More
 
-Profile, notifications, account, following/game preferences, How to Play, scoring/rules, accessibility, support and legal. Admin appears only to an authorised role.
+Profile, notifications, account, followed competitions, favourite team, game preferences, How to Play, scoring/rules, accessibility, support and legal. Admin appears only to an authorised capability.
 
 ## 5. Competition shell
 
@@ -185,7 +222,7 @@ The shell includes:
 
 - obvious Back to Hub;
 - competition name and season;
-- competition switcher;
+- quick competition switcher between visible domestic competition seasons;
 - notification/avatar access;
 - compact competition masthead;
 - focused competition navigation.
@@ -196,7 +233,7 @@ The two navigation systems are never shown together.
 
 Overview is a state-driven dashboard, not a static collection of game cards.
 
-Baseline order before detailed state workshops:
+Baseline order:
 
 1. competition masthead;
 2. primary action;
@@ -209,18 +246,28 @@ Baseline order before detailed state workshops:
 
 When any match is live, live football becomes the dominant content. When a lock is urgent, its warning remains above or attached to the live block.
 
-Joined game cards show the state meaningful to that game:
+Joined game cards expose state meaningful to the game:
 
-- Match/Original Predictor — points, rank, completion and next lock;
-- LMS — selection/survival/elimination;
-- Championship — opponent, current result and table position;
-- KO Predictor — round completion and standings.
+- Match Predictor — completion, complete/incomplete, next lock, useful points/rank and Continue/View action;
+- LMS — pick required/current pick, active/eliminated, current round, next lock and Make/View pick;
+- Championship — current opponent, fixture/result state, table position, phase/group and matchup/table action, with the reminder that Match Predictor points feed it automatically.
 
-## 7. Competition Play
+## 7. Competition Play — “What do I need to do this week?”
 
-One competition-scoped task list across its joined games. It prevents users opening three game homes simply to discover whether action is required.
+Competition Play is one competition-scoped task list across its joined games. It prevents the player opening three game homes just to discover whether action is required.
+
+Typical states:
+
+```text
+Match Predictor incomplete  → Continue predictions
+LMS selection missing       → Make pick
+Predictor Championship      → View matchup/status
+                               (Match Predictor points feed it automatically)
+```
 
 Actions retain game identity and open the exact relevant stage/round. Completed and locked items remain visible in a quiet waiting state rather than disappearing without explanation.
+
+Each game's own server authority continues to decide whether action is genuinely required, when it locks and what may be written. The Competition Play model may later feed Hub Home priority and reminder eligibility.
 
 ## 8. Competition Matches
 
@@ -230,46 +277,104 @@ Actions retain game identity and open the exact relevant stage/round. Completed 
 Fixtures · Results · Table · Stats
 ```
 
-### Tournament
+A matchweek switcher belongs on Match Predictor and domestic Matches/history where matchweek is meaningful. LMS and Predictor Championship retain their own round/fixture terminology and server-owned state.
 
-```text
-Fixtures · Groups · Bracket · Stats
-```
+The Matches switcher:
 
-The switcher:
-
-- sits immediately beneath the competition masthead/navigation context;
-- is horizontally scrollable where required;
-- becomes sticky on long tables;
+- sits immediately beneath competition context;
+- remains phone-accessible;
 - has an unmistakable active state;
 - remembers the last selected subview for that competition;
 - preserves useful scroll on detail/back navigation.
 
-Contextual links may move between subviews:
+### Match Centre
 
-- View league table;
-- See Group B;
-- View bracket;
-- See qualification picture.
+After the basic playable Alpha, Match Centre becomes a primary engagement surface connecting football to prediction consequences. High-value combinations include:
 
-The Match Centre shows real score/state, user prediction, provisional/final points, scoring explanation, private-league picks, movement and relevant LMS/Championship context. Live feed data remains provisional until official confirmation.
+- score/state and timing;
+- the player's prediction;
+- provisional/final prediction points and status;
+- scoring explanation;
+- post-lock consensus/trends;
+- private-league position/movement where supported;
+- H2H/rival comparison where supported;
+- LMS relevance when the player's selected club is involved;
+- Predictor Championship matchup context.
+
+Provider/live state remains visibly provisional until protected official result confirmation.
 
 ## 9. Competition Games
 
-Joined games first; available games second. Every card states:
+Joined games first; available games second. The weekly Alpha exposes exactly:
+
+1. Match Predictor;
+2. Last Man Standing;
+3. Predictor Championship.
+
+Every card states:
 
 - game name;
-- separate entry/status;
-- separate points or survival state;
-- deadline;
-- direct action;
-- concise rules link.
+- entry/membership status;
+- meaningful current state;
+- next action;
+- deadline/round where relevant;
+- direct canonical route;
+- concise rules/help route.
 
-The game catalogue stays visible in honest `not open`, `unavailable` or `not joined` states. Missing hosted configuration never silently erases a delivered game.
+The game catalogue remains honest in `not open`, `unavailable` or `not joined` states. A delivered game with a valid route/backend authority does not become an unexplained dead end.
 
-## 10. Competition Leagues
+## 10. Game-level secondary navigation
 
-Show private Match/Original Predictor leagues and private LMS/Championship competitions in separate sections. Creation actions are game-specific.
+This navigation is subordinate to competition context and always includes a clear route back to Competition Games.
+
+### Match Predictor
+
+```text
+Play · Standings · Trends · History
+```
+
+### Last Man Standing
+
+```text
+Pick · Standings · History · Rules
+```
+
+### Predictor Championship
+
+```text
+My Fixture · Table · Fixtures · History
+```
+
+It is direct and phone-friendly; it is not a third global shell.
+
+## 11. Competition Leagues and private creation
+
+Separate:
+
+### My leagues
+
+- Match Predictor private leagues.
+
+### My competitions
+
+- Last Man Standing private competitions;
+- Predictor Championship private competitions.
+
+Explicit creation actions:
+
+```text
+Create Match Predictor League
+Create LMS Competition
+Create Predictor Championship
+```
+
+Canonical creation routes converge on:
+
+```text
+/competitions/:competition/:season/leagues/new/match-predictor
+/competitions/:competition/:season/leagues/new/lms
+/competitions/:competition/:season/leagues/new/championship
+```
 
 Every invitation and container header names:
 
@@ -277,9 +382,11 @@ Every invitation and container header names:
 Competition season → Game → League or competition
 ```
 
-Creator tools include invite regeneration, participant removal where lawful, ownership transfer, archive/copy and game-specific management. No money, prize or payment administration exists.
+Match Predictor setup covers name, access/invite, create and share/join. LMS setup uses the existing permitted start/setup/preset/access rules and managed entrants only where authorised. Championship setup covers name, starting round, access/invite, entrant field and a calculated format preview from the deterministic format authority.
 
-## 11. Private creation limits
+Creator tools and limits remain governed by ADR 0023. No money, prize or payment administration exists.
+
+## 12. Private creation limits
 
 Server-side per owner and competition season:
 
@@ -290,13 +397,9 @@ Server-side per owner and competition season:
 
 Completed/archived containers cease counting. Transfers validate the recipient cap. Authorised exception is explicit and audited.
 
-These are **per-owner product limits** (`CAP-002`) and are unchanged. They are a different class from the platform-wide public-user and league circuit breaker (`CAP-001`), from any per-league membership limit (`CAP-003`, no value approved) and from future commercial entitlements (`CAP-004`). See [ADR 0023 § Operating-limit classes](../adr/0023-hub-information-architecture.md#operating-limit-classes) — a staged change to the circuit breaker does not move the figures above.
+These are **per-owner product limits** (`CAP-002`) and are unchanged. They are distinct from the platform-wide circuit breaker (`CAP-001`), any future per-league membership limit (`CAP-003`, no value approved) and future commercial entitlements (`CAP-004`).
 
-Championship creators choose name, start round and access only. Structure is calculated and previewed from entrants and remaining rounds; the audited full schedule publishes at entry close.
-
-LMS creators choose name, start round, preset/access and permitted immutable setup. Offline entrants may be added only before the first lock.
-
-## 12. Standings and discovery
+## 13. Standings and discovery
 
 Signed-in non-entrants see public top 10 plus field size/status. Entrants see full pagination and their neighbourhood.
 
@@ -304,18 +407,19 @@ Private invitation previews are bounded. Full private standings are participant/
 
 Standings visibility does not grant pre-lock prediction detail. Reveal remains governed separately.
 
-## 13. Favourite and following
+## 14. Following and favourite team
 
-Favourite affects ordering on Home, Play, Matches and switchers. It never:
+Following gives football information/discovery without competitive entry.
 
-- joins a game;
+Favourite team may affect subtle ordering/prominence and club-flavoured context. It never:
+
+- joins a competition or game;
 - hides urgent actions elsewhere;
-- changes a score;
+- changes a score, prediction or rank;
+- grants a permission;
 - removes other followed competitions.
 
-Following gives access to football information and discovery without requiring competitive entry.
-
-## 14. Managed LMS entrants
+## 15. Managed LMS entrants
 
 Creator bulk view lists managed name, current pick and action status. Managed entrants:
 
@@ -327,20 +431,152 @@ Creator bulk view lists managed name, current pick and action status. Managed en
 
 No other launch game supports managed entrants.
 
-## 15. Administration
+## 16. Scottish Premiership Development rehearsal
 
-Initial assignment: one Super Admin.
+Scottish Premiership is the first truthful end-to-end domestic Development rehearsal.
 
-Future permission capabilities:
+### Matchweek 1
 
-- results;
-- competition configuration;
-- support/moderation;
-- role administration.
+Use real completed Matchweek 1 football results. Do not fabricate scores.
 
-Provider fixture changes archive before decode, update automatically when valid, audit old/new values and create review alerts. Ambiguity fails closed. Official result confirmation/correction stays protected and returns an impact summary.
+Where seeded test users require historical prediction state, synthetic predictions may be inserted only with timestamps/states consistent with the original lock, after which the normal protected result/scoring/rederivation path produces standings and downstream state. Provider data remains provisional evidence until protected result confirmation.
 
-## 16. Read-model boundary
+### Matchweek 2
+
+Use Matchweek 2 as:
+
+- the first playable Last Man Standing round;
+- the starting round of the seeded Development Predictor Championship.
+
+LMS invents no Matchweek 1 history. The player can join, see the actual Matchweek 2 clubs, select one, change it before lock and reload with the choice preserved.
+
+The Championship seeded field uses the authoritative deterministic format. Opponent, fixtures, phase/group and table are reachable through normal frontend routes, and Match Predictor points feed its fixtures through the existing authoritative mechanism. No invented Matchweek 1 Championship history is required.
+
+## 17. Development competition administration
+
+Development needs a visible operator journey for competition readiness rather than relying on invisible SQL/manual knowledge.
+
+At minimum show:
+
+- season/provider and fixture readiness;
+- current matchweek;
+- Match Predictor availability;
+- LMS setup/current round;
+- Championship launch/field/phase;
+- result-confirmation readiness;
+- relevant refusal/review states.
+
+Where server authorities already permit it, Competition Admin may expose guarded preview/execute actions such as starting LMS at a permitted round or launching Predictor Championship from a permitted round. The UI remains a caller of authoritative server rules, not a second rules engine.
+
+Provider fixture handling and official-result boundaries remain those of ADR 0023.
+
+## 18. Reusable shirt-style club identity
+
+The target weekly presentation includes one reusable team/club shirt identity component (implementation name not prescribed).
+
+It supports a bounded pattern vocabulary sufficient for active clubs, for example:
+
+- solid;
+- horizontal hoops;
+- vertical stripes;
+- halves/panels where needed;
+- primary/secondary colour combinations.
+
+Examples are recognisable abstract treatments such as Rangers blue and Celtic green-and-white hoops; the requirement is not replica-kit reproduction.
+
+Component contract:
+
+- key from canonical team identity, never provider IDs;
+- render consistently across repeated football rows/selections;
+- preserve a neutral initials/identity fallback;
+- expose an accessible team name/label;
+- work in light and dark themes;
+- never be the sole team identifier;
+- preserve row height/layout stability;
+- remain restrained enough for the premium design language.
+
+Initial adoption order: onboarding favourite-team selector → Match Predictor rows → Matches/results → Match Centre → LMS club selector → relevant Championship opponent/fixture context → other team selectors where space allows.
+
+This is a **target component contract**. Until the component is implemented, `docs/design-system.md` remains truthful about the design system that actually exists and should not pretend the shirt mark is already built.
+
+## 19. Reminders and player history
+
+Post-core-Alpha reminder priority starts with:
+
+- Match Predictor incomplete near lock;
+- LMS selection missing near lock.
+
+Eligibility derives from server-owned game/lock state, with a simple user enable/disable preference. The frontend does not reconstruct a separate deadline.
+
+History then becomes intentional retention surface:
+
+- Match Predictor — matchweeks, points/performance, best week, exact/correct-result totals, monthly/form where supported;
+- LMS — runs, survival/elimination, round history, picks/used clubs, best run;
+- Championship — fixtures/results, W/D/L, table/phase and opponent history.
+
+## 20. Public landing page and scripted phone preview
+
+The public acquisition page has two delivery stages.
+
+### Define early
+
+Settle:
+
+- headline and short proposition;
+- Create account / Sign in CTAs;
+- domestic competition positioning;
+- concise three-game explanation;
+- reserved phone-preview area;
+- responsive and accessibility rules.
+
+### Final visual implementation late
+
+The final landing visual, especially the phone-framed walkthrough, is built only after the signed-in Alpha journeys and visual language have settled. An earlier implemented landing shell may remain useful for acquisition, but it is not the final visual source of truth.
+
+The final preview reuses real product visual patterns and the shirt-style identity from § 18. It is presentation-only and non-interactive. A representative sequence may show personalised Hub → Match Predictor completion → LMS club selection → Championship opponent/table → Match Centre provisional impact → return to Hub.
+
+Requirements:
+
+- fixed/local demo data;
+- no account/session dependency;
+- no live competitive API calls;
+- no prediction submission;
+- no links/forms inside the simulated phone;
+- pointer/touch cannot activate simulated controls;
+- keyboard focus does not enter the simulated UI;
+- real Create account / Sign in CTAs remain outside the phone;
+- subtle `Demo` / `Product preview` label;
+- respect `prefers-reduced-motion` with a useful static state;
+- pause when page visibility is lost;
+- avoid rapid flashing / distracting perpetual motion;
+- preferably play one coherent walkthrough then rest on a strong Hub state;
+- if continuously looping, expose an external pause/play control.
+
+Phone content order keeps conversion first: headline → proposition → CTAs → preview. The landing page should primarily show the product rather than explain every feature in long copy.
+
+## 21. Alpha phone-first acceptance
+
+The Development Alpha is not complete until a phone-width journey proves:
+
+- first sign-in guided setup before personalised Hub;
+- returning sign-in directly to personalised Hub;
+- optional/changeable favourite team reflected through appropriate identity;
+- weekly Hub limited to the two domestic competition seasons while Euro is hidden;
+- Match Predictor real current fixtures save/reload correctly;
+- truthful Scottish Matchweek 1 settled state;
+- Scottish LMS begins at Matchweek 2 with selectable club;
+- Scottish Championship starts from Matchweek 2 with opponent/table/fixtures reachable;
+- all three games reachable for both domestic competitions;
+- private create/invite/join for all three game types;
+- Competition Play summarises the right weekly actions;
+- global, competition and game navigation match this authority;
+- every deep page has a deterministic parent/exit;
+- shirt-style identity is present on core football rows/selections;
+- Match Centre shows player prediction plus meaningful game context;
+- final public product preview is unclickable and built from settled real product visual states;
+- core journeys remain usable and understandable at phone width.
+
+## 22. Read-model boundary
 
 Major surfaces should receive bounded page-shaped snapshots, whether RPC-shaped or assembled behind one service boundary:
 
@@ -360,24 +596,19 @@ get_admin_control_room
 
 These names are architectural examples, not pre-authorised public RPC signatures. Components do not assemble raw business truth.
 
-## 17. Responsive rules
+## 23. Responsive rules
 
 Phone-first at 360px.
 
 - Hub and competition modes each have one primary navigation system.
-- Competition and Matches switchers remain directly accessible, not buried in dropdowns.
-- Long tables retain sticky headers/switcher and a visible user neighbourhood.
+- Competition, game and Matches switchers remain directly accessible rather than buried in dropdowns.
+- Long tables retain usable headers/context and a visible user neighbourhood.
 - Desktop may add a contextual right column without changing content priority.
 - Mastheads remain contained bands, never large heroes.
+- Deterministic parent/exit controls remain visible at deep-link entry, not only after browser navigation.
 
-## 18. Next workshop sequence
+## 24. Delivery authority relationship
 
-The next design authority to settle is the Competition Overview across:
+This file owns **where things live and how the user moves between them**. It does not own implementation order. The immediate Domestic Frontend Alpha sequence is recorded in ADR 0023 and the execution authorities [`../design/ui-modernisation-execution.md`](../design/ui-modernisation-execution.md) / [`../roadmap.md`](../roadmap.md).
 
-1. normal week;
-2. deadline approaching;
-3. matches live;
-4. finished/awaiting confirmation;
-5. matchweek complete.
-
-Then: Play → Matches detail → Games → Leagues → global Home → creation/onboarding detail → admin.
+Current implementation truth remains in [`../quality/current-status.md`](../quality/current-status.md) and [`../quality/feature-baseline.md`](../quality/feature-baseline.md). Accepted-but-unimplemented requirements remain in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) until evidence closes them.

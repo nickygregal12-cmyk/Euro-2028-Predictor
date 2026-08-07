@@ -23,7 +23,14 @@ describe('ADR implementation-status freshness', () => {
       expect(source).toContain(
         '- **Status:** Accepted direction — partially implemented',
       )
-      expect(source).toContain('Implementation progress — 5 August 2026')
+      if (file === '0023-hub-information-architecture.md') {
+        expect(source).toContain(
+          'Implementation progress — current implementation belongs in',
+        )
+        expect(source).toContain('../quality/current-status.md')
+      } else {
+        expect(source).toContain('Implementation progress — 5 August 2026')
+      }
       expect(source).not.toContain(
         '- **Status:** Accepted direction — unimplemented',
       )

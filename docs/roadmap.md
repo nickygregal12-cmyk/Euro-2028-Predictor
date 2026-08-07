@@ -1,6 +1,6 @@
 # Multi-competition platform — roadmap
 
-**Status date:** 6 August 2026  
+**Status date:** 7 August 2026  
 **Purpose:** current delivery position and next executable slice.  
 **Current facts:** [`quality/current-status.md`](quality/current-status.md)  
 **Parent programme:** [`architecture/programme-plan.md`](architecture/programme-plan.md)  
@@ -12,7 +12,7 @@
 This roadmap does **not** duplicate the programme phases or Stage A–L engineering plan. It records where delivery is now and the next executable sequence.
 
 > **What the finished product should look like:** [`design/README.md`](design/README.md) — the target design authority (Hub Architecture and Modernisation Plan rev 1.5, plus the landing-page prototype). It sets presentation and delivery; it changes no rule.
-> **How it becomes production code:** [`design/ui-modernisation-execution.md`](design/ui-modernisation-execution.md) — the reconciled UI migration order, the premium prototype's reference-only classification and the approved tooling phases. Adopted 5 August 2026.
+> **How it becomes production code:** [`design/ui-modernisation-execution.md`](design/ui-modernisation-execution.md) — the reconciled UI migration order, the premium prototype's reference-only classification and the approved tooling phases. Adopted 5 August 2026 and amended for Domestic Frontend Alpha on 7 August 2026.
 
 ## Current baseline
 
@@ -116,12 +116,44 @@ The repository has moved well beyond the original Stage C foundation. The moving
 - the Contract 112 provider identity map, which relates a provider's season, round and team identifiers to this platform's rows within one competition season. Every ingestion step was blocked on it: a decoded fixture names team `1234` playing team `5678` in round `40`, and nothing anywhere said which of our clubs those were. It is the map alone — it writes no fixture, because the authority for a moved kickoff resolves by round window and `competition_rounds` has none, which is a lock-adjacent decision needing its own contract rather than a side effect of ingestion plumbing;
 - the Contract 111 season Predictor Championship launch driver, and the Contract 110 round calendar beneath it. Until it, `bonus_cup_fixtures.window_id` was `NOT NULL` and nothing in the repository created a window for a season competition, so no season Championship fixture could be persisted in either phase — which is why its phase-transition driver could not be built.
 
-These are backend and control foundations. They do not mean that the season game surfaces, Championship split driver, provider rehearsal or closed-cohort product have been delivered.
+These are backend and control foundations. They do not mean that every Domestic Frontend Alpha journey has been delivered.
 
-## Next executable sequence
+## Domestic Frontend Alpha amendment — 7 August 2026
+
+The next named weekly-product milestone is **Domestic Frontend Alpha**. This section is the current delivery order for the frontend/product programme and supersedes the 6 August frontend ordering retained below. The goal is a genuinely usable Development product for Premier League 2026/27 and Scottish Premiership 2026/27 across Match Predictor, Last Man Standing and Predictor Championship — not continued accumulation of isolated backend and UI slices.
+
+After currently active PRs settle:
+
+1. **Stabilise/apply the current Development contract batch** under ADR 0024. This is an operational prerequisite, not Production promotion.
+2. **Canonical weekly route/navigation replacement** (`DFA-004`) — converge on Hub → competition → game and one typed/generated route authority.
+3. **Euro/tournament-route absence on the weekly site** (`EURO-001`–`EURO-004`) — publication state/route guards first, then all weekly discovery/content/metadata surfaces.
+4. **Deterministic parent/back navigation** (`DFA-005`) — every shipped non-root weekly route has a logical parent independent of browser history and executable orphan-route coverage.
+5. **First-sign-in onboarding and personalisation** (`DFA-001`, `DFA-002`) — followed competitions, optional favourite team, independent game choice, private-play choice, interrupted-resume and pending-invite recovery.
+6. **Reusable shirt-style club identity** (`DFA-003`) — one canonical-team component with accessible label/fallback and bounded abstract shirt patterns.
+7. **Truthful Scottish Matchweek 1 settled Development state** (`DFA-007`) — real football results; lock-consistent synthetic test-user predictions only where needed; normal protected scoring/rederivation.
+8. **Scottish Last Man Standing begins at Matchweek 2** (`DFA-007`) — join, real clubs, select/change before lock and reload persistence; no invented Matchweek 1 LMS history.
+9. **Scottish Predictor Championship begins at Matchweek 2** (`DFA-007`) — seeded deterministic field, opponent/fixtures/phase/table reachable, Match Predictor points feeding it through the existing authority.
+10. **All three games usable for both domestic competitions** — joined first, available second; every game card has honest state, direct action, deadline/round where relevant, route and help/rules.
+11. **Private create/invite/join for all three game types** (`DFA-008`) — Match Predictor league, LMS competition and Predictor Championship while preserving existing server-owned limits and rules.
+12. **Competition Play weekly-action aggregation** (`DFA-006`) — one answer to “What do I need to do this week?” derived from each game's authoritative state.
+13. **Development competition administration** (`DFA-009`) — visible readiness and guarded callers for setup actions the protected server authorities already permit; never a second rules engine.
+14. **Match Centre engagement** — connect football state to the player's prediction and appropriate points/trends/league/LMS/Championship consequences while preserving provisional-vs-official truth.
+15. **Final personalised Hub Home** (`DFA-010`) — one primary urgent/next action, at most two compact secondary actions, then live football and relevant favourite/followed/rank/recap/private context.
+16. **Lock the final signed-in visual language and representative product states** across phone/desktop, light/dark and reduced motion.
+17. **Build the final public landing visual and scripted non-interactive phone preview** (`DFA-011`) from those settled signed-in states. The current landing implementation remains an intermediate acquisition shell, not final visual acceptance.
+18. **Reminders and player history** (`DFA-012`) — incomplete Match Predictor / missing LMS pick near lock first, then useful season history for all three games.
+19. **Full phone-first Development acceptance journey** — prove first sign-in through repeat use as one coherent weekly product.
+
+The player-level test is the one in ADR 0023: within a few seconds a player should understand what needs action, when it locks, what is happening in the football and how they are doing.
+
+Provider ingestion, CI, security and operational work may continue in parallel where dependencies justify it. They do not silently reorder the signed-in Alpha back into a backend-first accumulation phase. Production migration/publication remains separately controlled and is not authorised by this sequence.
+
+## 6 August executable sequence — retained history
+
+The sequence below records the position before the Domestic Frontend Alpha amendment. It is retained because its provider, cohort, Production, C2 and brand constraints remain useful evidence. Where it describes remaining frontend order, the 7 August Alpha sequence above now wins.
 
 1. **Continue provider ingestion from the rehearsal that has already run.** The first bounded non-production rehearsal — one owner-authorised request, raw custody proven to precede decode, processing evidence proven append-only, no official fixture, result, lock, score, total, rank or standing written — **was completed on 5 August 2026** and is recorded in [`ops/ops-first-live-provider-poll.md`](ops/ops-first-live-provider-poll.md). This step stood written as though it were still ahead, which is worth correcting rather than quietly deleting: a fresh session reads this list to choose work, and an item that is already done sends it to redo finished work instead of the next one. What genuinely remains under [`../MASTER-TODO.md`](../MASTER-TODO.md) Stage D is automatic fixture **creation** and the administrative reassignment workflow — deliberately not attempted by contract 117, because a fixture appearing that this platform did not know about changes what a competition *is* — plus deterministic anomaly fixtures, proving stale data fails closed, and the headless season and its anomaly log. The custody boundary itself is not reopened by any of it.
-2. **Build the season game surfaces in the order [`design/ui-modernisation-execution.md`](design/ui-modernisation-execution.md) records.** The design plan's §13.2 and this roadmap previously disagreed about sequence; the reconciliation is deliberate and owned there: visual foundations and component gallery first, then thin global/competition shells, then the phone-first Match Predictor behind a route-level flag, then standings, LMS weekly selection, the Championship surfaces, the full Hub action/social experience, public acquisition, and legacy retirement last. Backend availability is not a substitute for a usable surface. The provider ingestion work remaining in step 1 runs in parallel: it blocks provider-fed production behaviour, not tokens, components, fixture-backed states or shell work.
+2. **Build the season game surfaces in the order [`design/ui-modernisation-execution.md`](design/ui-modernisation-execution.md) records.** The design plan's §13.2 and this roadmap previously disagreed about sequence; the reconciliation is deliberate and owned there: visual foundations and component gallery first, then thin global/competition shells, then the phone-first Match Predictor behind a route-level flag, then standings, LMS weekly selection, the Championship surfaces, the full Hub action/social experience, public acquisition, and legacy retirement last. Backend availability is not a substitute for a usable surface. The provider ingestion work remaining in step 1 runs in parallel: it blocks provider-fed production behaviour, not tokens, components, fixture-backed states or shell work. **For remaining work this clause is superseded by the Domestic Frontend Alpha order above.**
 3. **Instrument before cohort exposure.** Emit the Phase 1 taxonomy from the first surface commit, then run the headless season/anomaly log and only introduce a closed cohort after the provisional path is stable.
 4. **Keep production paused as a separate milestone.** Repository and development progress do not authorise production migration or publication. Production promotion retains backup, preflight, approval, exact-artifact verification and rollback evidence.
 5. **Keep Stage C2 blocked.** No ownership, erasure, pseudonymisation or replacement ownership-RLS work enters the platform until issue #272 records the independent data-protection decision.
@@ -130,7 +162,7 @@ These are backend and control foundations. They do not mean that the season game
 8. **Take the two brand-blocked items when the brand lands, not before.** The weekly platform's domain (`SITE-003`) and the neutral transactional sender (`SITE-007`) both wait on ADR 0019's Phase 0 trigger. Custom SMTP is already live through the Euro domain, so nothing is blocked on email delivery — only on the name.
 9. **Enforce the 18+ first cohort before any external account exists** (`AGE-001`). A server-side signup rule with matching eligibility wording and fixtures, on the pattern the display-name and password rules already use. It is not satisfied by footer copy, and it is not satisfied by the Stage C2 work either.
 
-Every clause of steps 7–9 carries a stable identifier, a dependency and its acceptance evidence in [`quality/accepted-requirements.md`](quality/accepted-requirements.md). That register — not this list — is the authority for what remains accepted and unbuilt; this list decides only the order.
+Every accepted-but-unimplemented clause carries its stable identifier, dependency and acceptance evidence in [`quality/accepted-requirements.md`](quality/accepted-requirements.md). That register — not this list — is the authority for what remains accepted and unbuilt; this list decides only the order.
 
 ## Parked Euro 2028 scope
 

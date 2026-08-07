@@ -22,8 +22,10 @@ const register = read('docs/quality/accepted-requirements.md')
 
 // The identifier space this register owns. FEAT/PLAN/SAFE belong to
 // feature-baseline.md and are deliberately excluded — a requirement that is not
-// built has no capability to classify there.
-const REGISTER_ID = /\b(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP)-\d{3}\b/g
+// built has no capability to classify there. DFA is the Domestic Frontend Alpha
+// namespace accepted by ADR 0023 on 7 August 2026.
+const REGISTER_ID = /\b(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP|DFA)-\d{3}\b/g
+const REGISTER_ROW = /^\| `(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP|DFA)-\d{3}` \|/
 
 /**
  * Identifiers a document DEFINES, i.e. that lead one of its table rows —
@@ -33,7 +35,7 @@ const REGISTER_ID = /\b(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP)-\d{3}\b/g
 function definedIds(text: string): string[] {
   return text
     .split('\n')
-    .filter((line) => /^\| `(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP)-\d{3}` \|/.test(line))
+    .filter((line) => REGISTER_ROW.test(line))
     .map((line) => line.match(REGISTER_ID)?.[0] ?? '')
     .filter(Boolean)
 }
@@ -73,9 +75,7 @@ describe('accepted-but-unimplemented requirement register', () => {
   })
 
   it('gives every requirement a dependency and acceptance-evidence column', () => {
-    const rows = register
-      .split('\n')
-      .filter((line) => /^\| `(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP)-\d{3}` \|/.test(line))
+    const rows = register.split('\n').filter((line) => REGISTER_ROW.test(line))
 
     for (const row of rows) {
       // | ID | Requirement | Depends on | Acceptance evidence | Status |
