@@ -152,12 +152,27 @@ async function changeFinalWinner(page: Page) {
   await replacement.click()
 }
 
+async function navigateWithinApp(page: Page, path: string) {
+  // Keep the authenticated providers mounted. A document navigation would reset
+  // the save controller and erase the conflict/in-flight state this journey is
+  // explicitly verifying. The global Predict tab now opens the competition
+  // chooser, so use the same History API contract BrowserRouter receives from
+  // an in-app route transition without testing unrelated chooser UI.
+  await page.evaluate((nextPath) => {
+    const current = window.history.state ?? {}
+    const idx = typeof current.idx === 'number' ? current.idx + 1 : 1
+    window.history.pushState(
+      { ...current, idx, key: `e2e-${Date.now().toString(36)}` },
+      '',
+      nextPath,
+    )
+    window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }))
+  }, path)
+  await expectAuthenticatedPath(page, path)
+}
+
 async function navigateToReview(page: Page) {
-  // Reached by address rather than through the bottom bar. That tab is the
-  // weekly platform's Predict now and asks which competition; the Euro
-  // tournament's own predictor still lives here and is what this spec tests.
-  await page.goto('/predict')
-  await expectAuthenticatedPath(page, '/predict')
+  await navigateWithinApp(page, '/predict')
   await page.getByRole('button', { name: /Review and submit/ }).click()
   await expectAuthenticatedPath(page, '/predict/review')
 }
