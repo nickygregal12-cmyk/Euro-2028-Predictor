@@ -52,7 +52,7 @@ export function SeasonCompetitionShell({
 
   return (
     <div className={styles.shell}>
-      <div className={styles.parentNav} aria-label="Competition exits">
+      <div className={styles.parentNav} role="group" aria-label="Competition exits">
         {parent && parent.href !== weeklyRoutes.hub ? (
           <Link className={styles.parentLink} to={parent.href}>
             {parent.label}
