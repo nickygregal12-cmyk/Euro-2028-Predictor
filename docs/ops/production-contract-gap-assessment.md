@@ -1,12 +1,14 @@
 # Production contract gap assessment
 
-**Status date:** 6 August 2026  
+**Status date:** 7 August 2026  
 **Status:** Read-only assessment in progress; no production promotion authorised  
 **Scope:** Define the evidence and staged route required to bring production forward from its current supported contract without mutating production.
 
 ## Current position
 
-The repository is at contract **125** on `main`. Hosted Development is independently confirmed at contract **125**, ending at migration `20260806160000_season_fixture_result_entry`. Hosted Production is independently confirmed at contract **63**, ending at `20260729154931_prediction_consensus_minimum_cohort`. Promotion remains explicitly unauthorised.
+The repository is at contract **131** on `main`. Hosted Development is independently confirmed at contract **125**, ending at migration `20260806160000_season_fixture_result_entry`. Hosted Production is independently confirmed at contract **63**, ending at `20260729154931_prediction_consensus_minimum_cohort`. Promotion remains explicitly unauthorised.
+
+Contracts **126–131 are repository-only** at this point. They are not yet part of a supported hosted promotion target and must not be promoted to Production before Development has hosted and verified the same chain.
 
 This document starts the work recorded under `OPS-006`: production must not remain on an indefinitely frozen version with no declared support boundary, but the existence of a contract gap does not itself authorise closing it.
 
@@ -44,7 +46,7 @@ These findings are **not automatically migration blockers**: many security-defin
 
 The recorded contract-63 baseline reproduces exactly. No unexpected migration-history drift was found, and the provider-dispatch prerequisites have not appeared early in Production. This clears the first stop condition only: it does **not** clear object-level drift, recovery readiness or any migration batch.
 
-## Why this cannot be treated as one 63 → 125 deployment
+## Why this cannot be treated as one 63 → 131 deployment
 
 The gap contains multiple distinct change classes:
 
@@ -54,9 +56,10 @@ The gap contains multiple distinct change classes:
 - provider-ingestion custody, scheduling and fixture-revision paths;
 - cron, vault and `pg_net` dependencies;
 - application routes and feature-flagged journeys;
-- operational authority and hosted-state records.
+- operational authority and hosted-state records;
+- a repository-only tail at contracts 126–131 that has not yet been proven in hosted Development.
 
-A single undifferentiated promotion would make failure attribution, rollback judgement and postflight verification needlessly broad. The promotion therefore requires reviewed batches with an explicit stop/go decision between them.
+A single undifferentiated promotion would make failure attribution, rollback judgement and postflight verification needlessly broad. The promotion therefore requires reviewed batches with an explicit stop/go decision between them. Production must not be promoted beyond the highest contract already hosted and verified in Development.
 
 ## Phase 0 — remaining read-only evidence
 
@@ -68,8 +71,8 @@ Before batch selection, the assessment still must capture without exposing user 
 4. row-count and invariant evidence for critical Auth/profile, tournament, prediction, scoring and league data;
 5. performance-advisor findings and classification of security-advisor findings;
 6. whether any production-only object drift exists outside the canonical migrations;
-7. confirmation that the production backup workflow secrets remain configured and that its pinned restore expectation is updated before use;
-8. a fresh list of contracts 64 onward classified by dependency, blast radius and rollback character.
+7. confirmation that the production backup workflow secrets remain configured and that its hosted-source expectation is correct before use;
+8. a fresh list of contracts 64 onward classified by dependency, blast radius, hosted support state and rollback character.
 
 This evidence must be attached to a reviewable record before any promotion workflow is enabled.
 
@@ -112,17 +115,21 @@ Required proof:
 - cron jobs either deliberately unconfigured/no-op or separately approved;
 - no provider request made during promotion verification.
 
-### Batch D — current supported contract
+### Batch D — hosted Development-supported target
 
-Advance the remaining reviewed contracts to the declared supported production target, then update application deployment and hosted-state records.
+Advance the remaining reviewed contracts only as far as the highest contract already hosted and verified in Development, currently **125**, then update application deployment and hosted-state records as separately authorised.
 
 Required proof:
 
 - exact-head CI, database parity and Browser E2E green;
-- production postflight inventory agrees with the repository contract;
+- production postflight inventory agrees with the authorised target contract;
 - Netlify production contract value matches the promoted database;
 - rollback route, monitoring ownership and incident decision points recorded;
 - production support target stated explicitly rather than inferred from `main`.
+
+### Batch E — repository-only contracts 126–131
+
+Contracts **126–131** are merged repository history but are not yet hosted in Development. They are therefore **deferred from Production**. Before they can become a production target, Development must first host the exact chain and pass hosted inventory, database parity, Browser E2E and any feature-specific verification required by those contracts.
 
 ## Stop conditions
 
@@ -135,22 +142,24 @@ The assessment or any future promotion must stop on the first occurrence of:
 - unexpected writes or derived-row creation during rehearsal;
 - inability to prove the application build is compatible with both pre- and post-batch schema at the chosen handover point;
 - missing production credential/backup custody evidence;
+- an attempted Production target above the highest contract already hosted and verified in Development;
 - any required check being cancelled, skipped or unavailable rather than passed.
 
 ## Work now started
 
 - [x] Establish a dedicated branch for production-gap assessment.
-- [x] Record the current repository/development/production boundary.
+- [x] Record the repository/development/production boundary.
 - [x] Define the read-only evidence required before batch selection.
 - [x] Define an initial staged promotion shape and stop conditions.
 - [x] Confirm production migration history directly against hosted Production.
 - [x] Capture the first extension, cron and security-advisor baseline.
+- [x] Classify contracts 64–125 into dependency-complete rehearsal batches.
+- [x] Record contracts 126–131 as repository-only and ineligible for Production until Development hosts and verifies them.
+- [x] Repair the production backup workflow so it validates the hosted contract-63 source independently of the repository tip.
 - [ ] Complete object-level hosted drift/parity evidence.
-- [ ] Classify contracts 64–125 and propose exact batch endpoints.
-- [ ] Update the production backup workflow expectation to the chosen first endpoint.
 - [ ] Rehearse the first batch on a disposable restored copy.
 - [ ] Seek explicit owner authorisation for the first production-changing operation.
 
 ## Authority boundary
 
-This file is an execution record, not promotion authority. Production remains at contract 63 until a separate, explicit owner instruction authorises a named batch against a named commit and verified fresh recovery evidence.
+This file is an execution record, not promotion authority. Production remains at contract 63 until a separate, explicit owner instruction authorises a named batch against a named commit and verified fresh recovery evidence. Contracts 126–131 remain repository-only until Development hosts and verifies them.
