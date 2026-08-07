@@ -1,5 +1,8 @@
 import { Link, useLocation } from 'react-router'
 import {
+  competitionChampionshipFixturesRoute,
+  competitionChampionshipInstanceRoute,
+  competitionChampionshipTableRoute,
   competitionGameRoute,
   competitionGameStandingsRoute,
   competitionRefFromPath,
@@ -12,6 +15,12 @@ type Item = {
   key: string
   label: string
   href: string | null
+}
+
+function championshipInstanceId(pathname: string, base: string): string | null {
+  if (!pathname.startsWith(`${base}/`)) return null
+  const first = pathname.slice(base.length + 1).split('/').filter(Boolean)[0]
+  return first ?? null
 }
 
 function itemsFor(game: DomesticGameRoute, pathname: string): { active: string; items: Item[] } {
@@ -44,12 +53,29 @@ function itemsFor(game: DomesticGameRoute, pathname: string): { active: string; 
     }
   }
 
+  const competitionId = championshipInstanceId(pathname, base)
+  if (!competitionId) {
+    return {
+      active: 'championships',
+      items: [{ key: 'championships', label: 'Championships', href: base }],
+    }
+  }
+
+  const fixture = competitionChampionshipInstanceRoute(ref, competitionId)
+  const table = competitionChampionshipTableRoute(ref, competitionId)
+  const fixtures = competitionChampionshipFixturesRoute(ref, competitionId)
+  const active = pathname.startsWith(fixtures)
+    ? 'fixtures'
+    : pathname.startsWith(table)
+      ? 'table'
+      : 'fixture'
+
   return {
-    active: 'table',
+    active,
     items: [
-      { key: 'fixture', label: 'My Fixture', href: null },
-      { key: 'table', label: 'Table', href: base },
-      { key: 'fixtures', label: 'Fixtures', href: null },
+      { key: 'fixture', label: 'My Fixture', href: fixture },
+      { key: 'table', label: 'Table', href: table },
+      { key: 'fixtures', label: 'Fixtures', href: fixtures },
       { key: 'history', label: 'History', href: null },
     ],
   }
@@ -69,12 +95,15 @@ export function SeasonGameSubNav({ game }: { game: DomesticGameRoute }) {
   const base = competitionGameRoute(ref, game)
   const gamesHref = competitionSectionRoute(ref, 'games')
   const { active, items } = itemsFor(game, pathname)
+  const instanceId = game === 'championship' ? championshipInstanceId(pathname, base) : null
+  const backHref = instanceId ? base : gamesHref
+  const backLabel = instanceId ? 'Back to Championships' : 'Back to Games'
 
   return (
     <div className={styles.wrap}>
       {pathname !== base ? (
-        <Link className={styles.back} to={gamesHref}>
-          Back to Games
+        <Link className={styles.back} to={backHref}>
+          {backLabel}
         </Link>
       ) : null}
       <nav
