@@ -82,7 +82,7 @@ create table predictor_internal.provider_fixture_proposals (
       )
     ),
   constraint provider_fixture_proposals_raw_fixture_unique
-    unique (raw_response_id, provider_fixture_id)
+    unique (raw_response_id, tournament_id, provider_fixture_id)
 );
 
 create index provider_fixture_proposals_pending_lookup
@@ -361,7 +361,7 @@ begin
       v_home_score,
       v_away_score
     )
-    on conflict (raw_response_id, provider_fixture_id) do nothing;
+    on conflict (raw_response_id, tournament_id, provider_fixture_id) do nothing;
 
     if found then
       v_inserted := v_inserted + 1;
