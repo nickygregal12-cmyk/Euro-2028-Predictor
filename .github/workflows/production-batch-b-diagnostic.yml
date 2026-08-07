@@ -162,6 +162,10 @@ jobs:
           set -euo pipefail
           psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
           begin;
+          -- Local Supabase currently boots with pg_net installed even though the
+          -- verified Production contract-67 source does not. Remove that local-only
+          -- platform default so the restored rehearsal matches Production exactly.
+          drop extension if exists pg_net cascade;
           drop schema if exists predictor_internal cascade;
           drop schema if exists public cascade;
           create schema public;
@@ -181,6 +185,11 @@ jobs:
           restored="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
           [ "${restored}" = '67|20260803180000|matchweek_lock_scope' ] || {
             echo "ERROR: restored source is ${restored}"
+            exit 1
+          }
+          pg_net_state="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select exists(select 1 from pg_extension where extname='pg_net');")"
+          [ "${pg_net_state}" = 'f' ] || {
+            echo "ERROR: disposable restored source still has pg_net installed."
             exit 1
           }
 
