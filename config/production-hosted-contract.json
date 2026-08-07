@@ -1,12 +1,13 @@
 {
   "projectRef": "vkfnsqdyhvtwyqkisxhk",
-  "requiredMigrationCount": 96,
-  "latestMigrationVersion": "20260804243000",
-  "latestMigrationName": "cup_tie_settlement_refusal_order",
-  "verifiedAt": "2026-08-07T19:33:04.000Z",
+  "requiredMigrationCount": 131,
+  "latestMigrationVersion": "20260806220000",
+  "latestMigrationName": "period_standings_display_names",
+  "verifiedAt": "2026-08-07T20:33:19.000Z",
   "evidence": {
-    "source": "Production Batch B retry run 31211668118 on repository head 99eacdd7c171aac0a9569abe3d7dba012d44868d completed successfully on 7 August 2026. It proved live Production at contract 67, captured and encrypted a fresh contract-67 backup, forward-rehearsed exactly migrations 68-96 on a Production-shaped disposable restore, re-proved the live source, proved the hosted dry run contained exactly migrations 68-96, applied that batch, and verified the exact contract-96 post-state. An independent Supabase management read then confirmed exactly 96 migrations ending at 20260804243000_cup_tie_settlement_refusal_order, pg_net absent, the four expected active cron jobs, unchanged critical row counts, and the expected Batch B tables present.",
-    "repositoryHead": "99eacdd7c171aac0a9569abe3d7dba012d44868d"
+    "source": "Production continuation run 31216257649 completed successfully on 7 August 2026. It pinned current main 9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9, verified the canonical contract-131 Database parity run 31199361790 with no migration/test drift, verified the immutable Production-shaped contract-96-to-131 rehearsal and encrypted contract-96 rollback artifact from run 31214393775, re-proved live Production at exact contract 96 with unchanged protected counts, dry-ran and applied guarded batches C (97-114), D (115-125) and E (126-131), verified each intermediate ledger, cron, pg_net and protected-row-count boundary, and finished at exactly 131 migrations ending 20260806220000_period_standings_display_names. An independent Supabase read after the run confirmed contract 131, pg_net installed, six active cron jobs and zero provider_poll_targets.",
+    "repositoryHead": "9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9",
+    "workflowRunId": 31216257649
   },
   "promotionAuthorised": false
 }
