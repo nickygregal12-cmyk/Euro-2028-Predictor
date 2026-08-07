@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 125,
-  "latestMigrationVersion": "20260806160000",
-  "latestMigrationName": "season_fixture_result_entry",
-  "verifiedAt": "2026-08-06T15:13:04.000Z",
+  "requiredMigrationCount": 131,
+  "latestMigrationVersion": "20260806220000",
+  "latestMigrationName": "period_standings_display_names",
+  "verifiedAt": "2026-08-07T14:16:55.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 31114548204 (run number 45), workflow_dispatch on main at head a90eb2e4f37f97fab554d6e97564dcc38b68015b, applying contracts 123, 124 and 125 in one run. THE RUN IS THE EVIDENCE AND ITS OWN LOGS HOLD THE OBJECT-LEVEL DETAIL: the lane refused an unsafe dispatch, preflighted the development secret, derived the pending set and proved each migration additive by reading it, took a pre-apply snapshot, applied, and confirmed hosted development matched the repository. Every step reported success and the connection-failure step was skipped, so the credential that this document has twice guessed about is working. INDEPENDENTLY CONFIRMED AFTER THE RUN, not inferred from it: the Supabase management API was queried directly for project iouzoutneyjpugbbtdem and returned 125 applied migrations ending at 20260806160000_season_fixture_result_entry, which is the repository's own latest. That is a second reading of the target rather than a second reading of the workflow. CONTRACT 124 WAS THE FIRST STRUCTURAL MIGRATION THIS LANE HAS CARRIED: it drops and re-adds bonus_cup_groups_size_allowed so a split half may hold two entrants. The additive checker classified it as structural rather than destructive — no row is lost and the guarantee returns in the next statement — and reported it rather than passing it in silence, which is the handling that category was added for. WHAT THIS RECORD DOES NOT CLAIM: no object-level hash, grant, RLS or cron assertion was re-derived here. Those belong to the run's logs and snapshot artifact, and to the pgTAP suites that shipped with each contract — 175, 176 and 177 all passed on the merged commit before it was applied anywhere.",
-    "workflowRunId": 31114548204,
-    "repositoryHead": "a90eb2e4f37f97fab554d6e97564dcc38b68015b"
+    "source": "Development fast-lane 126-131 evidence run 31186564948. The guarded session bridge was pinned to exact main 50b01154e5a6cfc2ebc1b2312eaceb42e8a39b57 and proved its only branch delta was the bridge workflow before doing any hosted work. It hard-refused Production, proved SUPABASE_DEV_DB_URL resolved to Development project iouzoutneyjpugbbtdem, required the pending set to be exactly contracts 126-131, and passed the repository additive-migration checker over all six canonical migration files. It then took the ADR 0024 lightweight pre-apply data/schema snapshot, applied the canonical migrations with supabase db push, and confirmed no migration remained pending with repository contract/count 131. Every step succeeded. Independent post-run verification through the Supabase management API returned the six exact canonical rows 20260806170000_rejoin_before_start through 20260806220000_period_standings_display_names. A read-only catalogue check also confirmed the new internal helpers remain non-executable to anon/authenticated while intended public RPCs are reachable to authenticated. The evidence artifact development-fast-lane-126-131-evidence is retained for seven days under artifact 8997049916. Production was not contacted or changed.",
+    "workflowRunId": 31186564948,
+    "repositoryHead": "50b01154e5a6cfc2ebc1b2312eaceb42e8a39b57"
   },
   "productionContract": 63,
   "productionPromotionAuthorised": false
