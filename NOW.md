@@ -13,16 +13,16 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **125** | latest `20260806160000_season_fixture_result_entry.sql` |
-| Development hosted | **122** | at `20260806130000_season_period_standings.sql`, verified `2026-08-06T12:22:32.253Z`, fast-lane run `31100989022` |
+| Repository | **131** | latest `20260806220000_period_standings_display_names.sql` |
+| Development hosted | **125** | at `20260806160000_season_fixture_result_entry.sql`, verified `2026-08-06T15:13:04.000Z`, fast-lane run `31114548204` |
 | Production | **63** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** 3 — `20260806140000_round_window_stale_refresh.sql`, `20260806150000_season_cup_split_transition.sql`, `20260806160000_season_fixture_result_entry.sql`
+**Pending development migrations:** 6 — `20260806170000_rejoin_before_start.sql`, `20260806180000_season_competition_bootstrap.sql`, `20260806190000_season_league_standings.sql`, `20260806200000_season_head_to_head.sql`, `20260806210000_season_prediction_consensus.sql`, `20260806220000_period_standings_display_names.sql`
 
-**Next free contract number:** 126. Check open pull requests
+**Next free contract number:** 132. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

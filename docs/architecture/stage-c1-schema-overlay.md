@@ -216,6 +216,16 @@ it:
 
 - `get_season_period_standings`
 
+Contracts 129 and 130 add two more with the same season-scoped disposition.
+Both take `p_tournament_id` and a matchweek ordinal, resolve the round through
+contract 114's `season_card_context`, and read only that season's own fixtures,
+predictions and settled totals. Neither resolves a competition or touches C1
+identity; both are consumers of it, and both refuse a caller who holds no entry
+in the season they name:
+
+- `get_season_head_to_head`
+- `get_season_prediction_consensus`
+
 Bonus Game C1 scope review covers:
 
 - `admin_draw_predictor_cup`

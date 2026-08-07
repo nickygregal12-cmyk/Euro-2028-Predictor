@@ -205,10 +205,12 @@ These names may remain but their semantics must support both kinds safely:
 - `get_player_profile`
 - `get_prediction_consensus`
 - `get_rival_entry`
+- `get_season_head_to_head`
 - `get_season_leaderboard`
 - `get_season_lms_round`
 - `get_season_matchweek_card`
 - `get_season_period_standings`
+- `get_season_prediction_consensus`
 - `save_season_prediction`
 - `set_season_matchweek_joker`
 - `confirm_season_matchweek_card`

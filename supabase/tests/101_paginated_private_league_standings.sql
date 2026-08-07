@@ -16,9 +16,16 @@ $$;
 
 select public.set_operating_limits(250, 20);
 
+-- Contract 128: pinned to a TOURNAMENT-kind season. This suite exercises the
+-- tournament private-league table — score_events, entry_totals and the five
+-- final tie-breakers — and `get_league_members` now refuses a league on a
+-- competition season by name, because those relations are empty there. Taking
+-- whichever season happened to be created first made the suite depend on seed
+-- ordering for a fact it was never testing.
 select set_config(
   'test.private_league_tournament',
-  (select id::text from public.tournaments order by created_at, id limit 1),
+  (select id::text from public.tournaments
+    where kind = 'tournament' order by created_at, id limit 1),
   true
 );
 

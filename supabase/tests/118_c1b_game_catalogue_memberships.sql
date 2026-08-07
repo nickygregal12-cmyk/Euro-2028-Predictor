@@ -299,6 +299,23 @@ select is(
   'Last Man Standing can be left explicitly'
 );
 
+-- Contract 126: the refusal is about a RUNNING game, and running now means the
+-- first round has locked. Before this contract the flag alone refused, so this
+-- assertion passed against a competition holding no round at all — which is
+-- exactly the state the deploy preview found and the state a player is in for
+-- months before the game can be played. The window below puts the competition
+-- into the state the assertion has always claimed to be testing.
+reset role;
+
+insert into public.bonus_competition_windows
+  (competition_id, sequence, label, opens_at, locks_at)
+values (
+  current_setting('test.c1b_lms_game')::uuid, 1, 'Round 1',
+  now() - interval '2 days', now() - interval '1 day'
+);
+
+set local role authenticated;
+
 select is(
   pg_temp.capture_sqlstate(format(
     'select public.join_competition_game(%L::uuid)',
