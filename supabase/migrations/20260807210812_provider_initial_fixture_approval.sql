@@ -431,6 +431,7 @@ begin
   end if;
 
   if p_tournament_id is null
+     or p_provider is null
      or p_provider not in ('sportmonks', 'api-football', 'football-data')
   then
     raise exception 'A supported provider and tournament are required'
@@ -792,7 +793,7 @@ begin
      where p.tournament_id = p_tournament_id
        and p.provider = p_provider
        and p.state = 'pending'
-     order by p.round_provider_id::integer
+     order by ordinal
   loop
     v_round_id := null;
     select m.competition_round_id
@@ -981,6 +982,7 @@ begin
   end if;
 
   if p_tournament_id is null
+     or p_provider is null
      or p_provider not in ('sportmonks', 'api-football', 'football-data')
   then
     raise exception 'A supported provider and tournament are required'
