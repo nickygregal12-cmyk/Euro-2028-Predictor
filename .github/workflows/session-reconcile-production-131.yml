@@ -1,0 +1,223 @@
+name: Session reconcile Production contract 131
+
+on:
+  push:
+    branches:
+      - ops/reconcile-production-131-20260807
+
+permissions:
+  actions: read
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ops/reconcile-production-131-20260807
+
+      - name: Verify successful Production promotion and exact main source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main \
+            ops/production-96-131-rollout-20260807 \
+            ops/production-96-131-live-20260807
+          expected_main='9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9'
+          [ "$(git rev-parse origin/main)" = "${expected_main}" ] || {
+            echo 'ERROR: main advanced before Production-131 reconciliation.'
+            exit 1
+          }
+          changed="$(git diff --name-only origin/main...HEAD)"
+          [ "${changed}" = '.github/workflows/session-reconcile-production-131.yml' ] || {
+            echo 'ERROR: reconciliation branch contains unexpected work.'
+            printf '%s\n' "${changed}"
+            exit 1
+          }
+
+          gh api repos/${GITHUB_REPOSITORY}/actions/runs/31216257649 > /tmp/promotion.json
+          jq -e '
+            .conclusion == "success" and
+            .status == "completed" and
+            .head_sha == "38a1895e091e35679ef8edd35e20c4da2da91766" and
+            .name == "Session Production contracts 97-131 final promotion"
+          ' /tmp/promotion.json >/dev/null || {
+            cat /tmp/promotion.json
+            echo 'ERROR: successful Production-131 promotion evidence does not match.'
+            exit 1
+          }
+
+          for spec in \
+            'ops/production-96-131-rollout-20260807|.github/workflows/session-production-96-131-rollout.yml' \
+            'ops/production-96-131-live-20260807|.github/workflows/session-production-96-131-live.yml'
+          do
+            branch="${spec%%|*}"
+            expected="${spec#*|}"
+            base="$(git merge-base origin/main "origin/${branch}")"
+            actual="$(git diff --name-only "${base}..origin/${branch}")"
+            [ "${actual}" = "${expected}" ] || {
+              echo "ERROR: ${branch} contains unique work beyond its failed one-shot workflow."
+              printf 'Expected:\n%s\nActual:\n%s\n' "${expected}" "${actual}"
+              exit 1
+            }
+          done
+
+      - name: Reconcile machine records and live authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          RUN = '31216257649'
+          MAIN = '9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9'
+          TIP_VERSION = '20260806220000'
+          TIP_NAME = 'period_standings_display_names'
+
+          prod_path = Path('config/production-hosted-contract.json')
+          prod = json.loads(prod_path.read_text())
+          if prod.get('requiredMigrationCount') != 96:
+              raise SystemExit(f"production machine record expected 96 before reconcile, got {prod.get('requiredMigrationCount')}")
+          prod['requiredMigrationCount'] = 131
+          prod['latestMigrationVersion'] = TIP_VERSION
+          prod['latestMigrationName'] = TIP_NAME
+          prod['verifiedAt'] = '2026-08-07T20:33:19.000Z'
+          prod['evidence'] = {
+              'source': (
+                  'Production continuation run 31216257649 completed successfully on 7 August 2026. '
+                  'It pinned current main 9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9, verified the canonical contract-131 Database parity run 31199361790 with no migration/test drift, verified the immutable Production-shaped contract-96-to-131 rehearsal and encrypted contract-96 rollback artifact from run 31214393775, re-proved live Production at exact contract 96 with unchanged protected counts, dry-ran and applied guarded batches C (97-114), D (115-125) and E (126-131), verified each intermediate ledger, cron, pg_net and protected-row-count boundary, and finished at exactly 131 migrations ending 20260806220000_period_standings_display_names. An independent Supabase read after the run confirmed contract 131, pg_net installed, six active cron jobs and zero provider_poll_targets.'
+              ),
+              'repositoryHead': MAIN,
+              'workflowRunId': 31216257649,
+          }
+          prod['promotionAuthorised'] = False
+          prod_path.write_text(json.dumps(prod, indent=2) + '\n')
+
+          dev_path = Path('config/development-hosted-contract.json')
+          dev = json.loads(dev_path.read_text())
+          if dev.get('requiredMigrationCount') != 131 or dev.get('productionContract') != 96:
+              raise SystemExit('development hosted record is not the expected 131/96 pre-reconcile shape')
+          dev['productionContract'] = 131
+          source = dev['evidence']['source']
+          old = 'The productionContract field is separately synchronized to the independently verified Production contract-96 record merged in PR #575 after successful Batch B retry run 31211668118.'
+          new = 'The productionContract field is separately synchronized to the independently verified Production contract-131 continuation completed by guarded run 31216257649 on 7 August 2026.'
+          if source.count(old) != 1:
+              raise SystemExit('development record Production cross-reference did not match expected contract-96 wording')
+          dev['evidence']['source'] = source.replace(old, new)
+          dev['productionPromotionAuthorised'] = False
+          dev_path.write_text(json.dumps(dev, indent=2) + '\n')
+
+          path = Path('AGENTS.md')
+          text = path.read_text()
+          old = '- production Supabase is hosted at contract 96 while the last published application remains at the Euro baseline contract;'
+          new = '- production Supabase is hosted at contract 131, level with the repository and Development, while the last published application remains at the Euro baseline contract;'
+          if text.count(old) != 1:
+              raise SystemExit(f'AGENTS current-baseline bullet expected once, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          old_sentence = 'Production Supabase is hosted at 96 and further promotion remains unauthorised.'
+          count = text.count(old_sentence)
+          if count != 2:
+              raise SystemExit(f'AGENTS duplicated live Production sentence expected twice, found {count}')
+          text = text.replace(old_sentence, 'Production Supabase is hosted at 131, level with the repository and Development; no migration promotion is pending, and any future Production migration requires a new authorisation.')
+          path.write_text(text)
+
+          path = Path('docs/ops/ops-pending-migrations.md')
+          text = path.read_text()
+          old = 'This is the operational migration inventory. Machine-readable development hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.'
+          new = 'This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.'
+          if text.count(old) != 1:
+              raise SystemExit('ops authority paragraph did not match once')
+          text = text.replace(old, new, 1)
+          old = '**Production is hosted at contract 96 after guarded Batch B retry run `31211668118`; further promotion remains unauthorised.**'
+          new = '**Production is also hosted at contract 131 after guarded continuation run `31216257649`; repository, Development and Production are aligned and no migration promotion is pending.**'
+          if text.count(old) != 1:
+              raise SystemExit('ops current Production paragraph did not match once')
+          text = text.replace(old, new, 1)
+          text, count = re.subn(
+              r'^\| Production Supabase \| \*\*96\*\* \|.*$',
+              '| Production Supabase | **131** | Guarded continuation run `31216257649` applied canonical batches C (97-114), D (115-125) and E (126-131); final and independent reads end at `20260806220000_period_standings_display_names`, with pg_net installed, six active cron jobs and zero provider poll targets. | LEVEL WITH REPOSITORY |',
+              text,
+              count=1,
+              flags=re.M,
+          )
+          if count != 1:
+              raise SystemExit(f'ops live Production table row expected once, found {count}')
+          path.write_text(text)
+
+          path = Path('docs/quality/current-status.md')
+          text = path.read_text()
+          old = 'Development Supabase is hosted at **131**, level with the repository; Production Supabase is hosted at **96** and further promotion remains unauthorised.'
+          new = 'Development Supabase and Production Supabase are both hosted at **131**, level with the repository; no migration promotion is pending.'
+          if text.count(old) != 1:
+              raise SystemExit(f'current-status headline expected once, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          text, count = re.subn(
+              r'^\| Production Supabase `vkfnsqdyhvtwyqkisxhk` \|.*$',
+              '| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **Contract 131 applied and independently verified 7 August 2026** after guarded continuation run `31216257649`; machine record is `config/production-hosted-contract.json`. | No migration pending; any future Production migration requires a new authorised window with the existing identity, backup, rehearsal, exact-range and post-apply gates |',
+              text,
+              count=1,
+              flags=re.M,
+          )
+          if count != 1:
+              raise SystemExit(f'current-status Production target row expected once, found {count}')
+
+          replacements = {
+              'Production Supabase is hosted at **96** after guarded Batch B retry run `31211668118`; further promotion remains unauthorised.':
+                  'Production Supabase is hosted at **131** after guarded continuation run `31216257649`; no migration promotion is pending.',
+              'while production Supabase is hosted at 96': 'while production Supabase is hosted at 131',
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+          path.write_text(text)
+
+          stale_checks = {
+              'AGENTS.md': ['production Supabase is hosted at contract 96', 'Production Supabase is hosted at 96 and further promotion remains unauthorised.'],
+              'docs/ops/ops-pending-migrations.md': ['**Production is hosted at contract 96 after guarded Batch B retry run `31211668118`'],
+              'docs/quality/current-status.md': ['Production Supabase is hosted at **96** and further promotion remains unauthorised.', '**Contract 96 applied and independently verified 7 August 2026**'],
+              'config/production-hosted-contract.json': ['"requiredMigrationCount": 96'],
+              'config/development-hosted-contract.json': ['"productionContract": 96'],
+          }
+          for filename, fragments in stale_checks.items():
+              content = Path(filename).read_text()
+              for fragment in fragments:
+                  if fragment in content:
+                      raise SystemExit(f'{filename}: stale live Production-96 fragment survived: {fragment}')
+          PY
+
+      - name: Regenerate NOW and validate documentation authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/generate-now.mjs
+          node scripts/check-documentation-authorities.mjs
+          git diff --check
+          grep -F '| Repository | **131** |' NOW.md
+          grep -F '| Development hosted | **131** |' NOW.md
+          grep -F '| Production | **131** |' NOW.md
+
+      - name: Commit reconciled Production-131 record
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/session-reconcile-production-131.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md NOW.md config/development-hosted-contract.json config/production-hosted-contract.json docs/ops/ops-pending-migrations.md docs/quality/current-status.md .github/workflows/session-reconcile-production-131.yml
+          git diff --cached --check
+          git commit -m 'Record Production at contract 131'
+          git push origin HEAD:ops/reconcile-production-131-20260807
+
+      - name: Delete failed superseded rollout branches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin --delete \
+            ops/production-96-131-rollout-20260807 \
+            ops/production-96-131-live-20260807
