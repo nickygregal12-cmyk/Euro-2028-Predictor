@@ -82,21 +82,69 @@ export function isCompetitionModePath(pathname: string): boolean {
 
 export type LogicalParent = {
   href: string
-  label: 'Back to Hub' | 'Back to Games' | 'Back to Leagues' | 'Back to Matches'
+  label:
+    | 'Back to Hub'
+    | 'Back to Competition'
+    | 'Back to Games'
+    | 'Back to Match Predictor'
+    | 'Back to Leagues'
+    | 'Back to Matches'
+    | 'Back to More'
 }
 
 /**
  * Deterministic weekly parent for routes whose parent can be derived from their
  * address alone. Browser history is deliberately irrelevant here.
+ *
+ * The deeper canonical route families are included before they ship so a direct
+ * not-found URL still has the same useful fallback the eventual page will own.
  */
 export function logicalWeeklyParent(pathname: string): LogicalParent | null {
   const ref = competitionRefFromPath(pathname)
   if (ref) {
+    const competition = competitionRoute(ref)
+    const matches = competitionSectionRoute(ref, 'matches')
     const games = competitionSectionRoute(ref, 'games')
-    if (pathname.startsWith(`${games}/`)) return { href: games, label: 'Back to Games' }
+    const leagues = competitionSectionRoute(ref, 'leagues')
+    const matchPredictor = competitionGameRoute(ref, 'match-predictor')
+
+    if (
+      pathname === competitionGameStandingsRoute(ref) ||
+      pathname.startsWith(`${competitionGameStandingsRoute(ref)}/`)
+    ) {
+      return { href: matchPredictor, label: 'Back to Match Predictor' }
+    }
+    if (pathname.startsWith(`${games}/`)) {
+      return { href: games, label: 'Back to Games' }
+    }
+    if (pathname.startsWith(`${matches}/`)) {
+      return { href: matches, label: 'Back to Matches' }
+    }
+    if (pathname.startsWith(`${leagues}/`)) {
+      return { href: leagues, label: 'Back to Leagues' }
+    }
+    if (pathname.startsWith(`${competition}/players/`)) {
+      return { href: competition, label: 'Back to Competition' }
+    }
     return { href: weeklyRoutes.hub, label: 'Back to Hub' }
   }
 
+  if (
+    pathname === weeklyRoutes.play ||
+    pathname === weeklyRoutes.matches ||
+    pathname === weeklyRoutes.leagues ||
+    pathname === weeklyRoutes.more
+  ) {
+    return { href: weeklyRoutes.hub, label: 'Back to Hub' }
+  }
+
+  if (pathname === '/account' || pathname === '/profile' || pathname === '/more/scoring') {
+    return { href: weeklyRoutes.more, label: 'Back to More' }
+  }
+
+  if (/^\/profile\/[^/]+$/.test(pathname) || /^\/h2h\/[^/]+$/.test(pathname)) {
+    return { href: weeklyRoutes.leagues, label: 'Back to Leagues' }
+  }
   if (/^\/league\/[^/]+$/.test(pathname)) {
     return { href: weeklyRoutes.leagues, label: 'Back to Leagues' }
   }
