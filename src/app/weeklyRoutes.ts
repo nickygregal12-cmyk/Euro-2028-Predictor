@@ -76,17 +76,6 @@ export function competitionRefFromPath(pathname: string): CompetitionRouteRef | 
   return { competitionSlug: match[1], seasonSlug: match[2] }
 }
 
-/** Preserve the current competition-local suffix while replacing its season. */
-export function switchCompetitionPath(
-  pathname: string,
-  target: CompetitionRouteRef,
-): string {
-  if (!competitionRefFromPath(pathname)) {
-    throw new Error(`Cannot switch competition outside competition mode: ${pathname}`)
-  }
-  return pathname.replace(/^\/competitions\/[^/]+\/[^/]+/, competitionRoute(target))
-}
-
 export function isCompetitionModePath(pathname: string): boolean {
   return competitionRefFromPath(pathname) !== null
 }
