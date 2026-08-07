@@ -86,16 +86,16 @@
   overflow: hidden;
 }
 
-/* Home | score-or-kickoff | away. The centre column is fixed so every
-   scoreline in the list aligns on the same axis however long the club names
-   are; the two name columns share what is left. */
+/* Home | score-or-kickoff | away. Each club column now carries the same fixed
+   shirt footprint used by dense league-table rows, while the centre remains
+   fixed so every scoreline aligns however long the club names are. */
 .match {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
   align-items: center;
   gap: var(--sp-2);
   min-height: var(--tap-min);
-  padding: 0 var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
   border-bottom: 1px solid var(--line);
   font-family: var(--font-body);
   font-size: var(--fs-2);
@@ -108,18 +108,34 @@
 
 .home,
 .away {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .home {
+  justify-content: flex-end;
   text-align: right;
 }
 
 .away {
+  justify-content: flex-start;
   text-align: left;
+}
+
+.clubVisual {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.clubName {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* A confirmed result carries the weight; a kickoff time does not. The two

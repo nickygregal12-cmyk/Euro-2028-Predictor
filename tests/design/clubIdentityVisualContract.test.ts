@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest'
 const css = readFileSync('src/design-system/ClubIdentity.module.css', 'utf8')
 const matchCard = readFileSync('src/design-system/ClubMatchCard.tsx', 'utf8')
 const leagueTable = readFileSync('src/design-system/LeagueTable.tsx', 'utf8')
+const seasonLms = readFileSync('src/features/season/SeasonLmsPage.tsx', 'utf8')
+const seasonMatches = readFileSync('src/features/season/SeasonMatchesPage.tsx', 'utf8')
 const gallery = readFileSync('src/dev/ComponentsPreview.tsx', 'utf8')
 
 describe('DFA-003 club identity visual contract', () => {
@@ -25,9 +27,13 @@ describe('DFA-003 club identity visual contract', () => {
     }
   })
 
-  it('stays adopted on the first high-value domestic football surfaces', () => {
+  it('stays adopted across the high-value repeated domestic football surfaces', () => {
     expect((matchCard.match(/<ClubIdentity/g) ?? []).length).toBeGreaterThanOrEqual(2)
     expect(leagueTable).toContain('<ClubIdentity')
+    expect(seasonLms).toContain('<ClubIdentity')
+    expect(seasonMatches).toContain('<ClubIdentity')
+    expect(seasonLms).toContain('resolveClubIdentity')
+    expect(seasonMatches).toContain('resolveClubIdentity')
   })
 
   it('remains visible in the design-system gallery with Premier and Scottish examples', () => {
