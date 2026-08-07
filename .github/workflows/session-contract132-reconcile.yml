@@ -1,0 +1,160 @@
+name: Session contract 132 reconciliation
+
+on:
+  push:
+    branches:
+      - feature/provider-initial-fixture-approval-contract-132
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Reconcile contract 132 repository authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = 'feature/provider-initial-fixture-approval-contract-132'
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          # The normalized evidence shape changed in contract 132.
+          index = Path('supabase/functions/provider-poll/index.ts')
+          text = index.read_text()
+          old = "const DECODER_VERSION = 'contract-73-v1'"
+          new = "const DECODER_VERSION = 'contract-132-v1'"
+          assert text.count(old) == 1, 'unexpected provider decoder version source'
+          index.write_text(text.replace(old, new))
+
+          # A decided proposal must fail on the evidence immutability trigger.
+          test = Path('supabase/tests/184_provider_initial_fixture_approval.sql')
+          text = test.read_text()
+          old = """select throws_ok(
+            format(
+              'update predictor_internal.provider_fixture_proposals set decision_reason = %L where tournament_id = %L::uuid limit 1',
+              'rewritten',
+              current_setting('test.c132_season')
+            ),
+            '42601',
+            null,
+            'Postgres itself rejects UPDATE LIMIT syntax before it could disguise evidence mutation');"""
+          new = """select throws_ok(
+            format(
+              'update predictor_internal.provider_fixture_proposals set decision_reason = %L where id = (select id from predictor_internal.provider_fixture_proposals where tournament_id = %L::uuid limit 1)',
+              'rewritten',
+              current_setting('test.c132_season')
+            ),
+            '42501',
+            'A decided provider fixture proposal is immutable',
+            'decided provider proposal evidence cannot be rewritten');"""
+          assert text.count(old) == 1, 'contract 132 immutability assertion shape drifted'
+          test.write_text(text.replace(old, new))
+
+          # Contract 171 is a positive allow-list. Contract 132 adds one explicit
+          # admin publication writer; automatic polling/staging still cannot
+          # publish competition truth or any result/scoring truth.
+          guard = Path('supabase/tests/171_ingestion_write_boundary.sql')
+          text = guard.read_text()
+          needle = """insert into ingestion_functions (name, permitted_writes) values
+            ('import_provider_fixture_revisions',"""
+          replacement = """insert into ingestion_functions (name, permitted_writes) values
+            ('admin_approve_initial_provider_fixtures',
+             'explicit competition-admin publication of a complete initial scheduled season: teams, matchweeks, provider mappings and season_fixtures only; provider scores remain proposal evidence.'),
+            ('admin_reject_initial_provider_fixtures',
+             'decision evidence only -- pending provider proposals become rejected and no competition relation is written.'),
+            ('stage_provider_fixture_proposals',
+             'pending internal proposal evidence only; no canonical competition relation is written.'),
+            ('block_provider_fixture_proposal_rewrite',
+             'refuses rewrite or deletion of provider proposal evidence; writes nothing.'),
+            ('import_provider_fixture_revisions',"""
+          assert text.count(needle) == 1, 'contract 171 provider allow-list insertion point drifted'
+          text = text.replace(needle, replacement)
+          old_expected = "'[\"dispatch_due_provider_polls\", \"import_provider_fixture_revisions\"]'::jsonb"
+          new_expected = "'[\"admin_approve_initial_provider_fixtures\", \"dispatch_due_provider_polls\", \"import_provider_fixture_revisions\"]'::jsonb"
+          assert text.count(old_expected) == 1, 'contract 171 public-writer expectation drifted'
+          text = text.replace(old_expected, new_expected)
+          text = text.replace(
+              '-- Two ingestion functions write a `public` relation and no others do.',
+              '-- Three reviewed provider-path functions write a `public` relation and no others do.'
+          )
+          text = text.replace(
+              '-- 5. The one permitted public write, named rather than merely allowed.',
+              '-- 5. The reviewed public writes, named rather than merely allowed.'
+          )
+          old_description = """  'exactly two ingestion functions write a public relation: the contract 117 '
+            'kickoff importer, and the poll dispatcher recording when a target was last '
+            'polled');"""
+          new_description = """  'exactly three reviewed provider-path functions write a public relation: '
+            'contract 132 explicit admin publication, contract 117 kickoff import, and '
+            'the poll dispatcher metadata stamp');"""
+          assert text.count(old_description) == 1, 'contract 171 assertion description drifted'
+          text = text.replace(old_description, new_description)
+          text = text.replace(
+              '-- ingestion is "unable to write official fixtures, results, locks, scores,\n-- totals, ranks or standings".',
+              '-- automatic ingestion is "unable to write official results, locks, scores, totals,\n-- ranks or standings". Contract 132 adds a separately gated competition-admin\n-- publication path for a complete initial set of scheduled fixtures.'
+          )
+          text = text.replace('Then the fourteen functions were recreated', 'Then the reviewed functions were recreated')
+          guard.write_text(text)
+
+          contract = Path('config/deployment-contract.json')
+          data = json.loads(contract.read_text())
+          assert data.get('contractVersion') == 131
+          assert data.get('requiredMigrationCount') == 131
+          data['contractVersion'] = 132
+          data['requiredMigrationCount'] = 132
+          for signature in [
+              'public.admin_approve_initial_provider_fixtures(uuid,text,text)',
+              'public.admin_reject_initial_provider_fixtures(uuid,text,text)',
+          ]:
+              if signature not in data['requiredRpcSignatures']:
+                  data['requiredRpcSignatures'].append(signature)
+          addition = (
+              ' Contract 132 replaces the one-off initial domestic fixture adoption gap with an '
+              'auditable proposal boundary: contract-132 normalized provider evidence can be staged '
+              'without publishing anything, and a competition administrator may approve only a complete '
+              'initial Scottish Premiership (198/33/12) or Premier League (380/38/20) calendar. Approval '
+              'creates scheduled fixtures, clubs, matchweeks and provider mappings while retaining provider '
+              'status/scores as evidence only; official results still require the protected result authority.'
+          )
+          if 'Contract 132 replaces the one-off initial domestic fixture adoption gap' not in data.get('notes', ''):
+              data['notes'] = data.get('notes', '').rstrip() + addition
+          contract.write_text(json.dumps(data, indent=2) + '\n')
+
+          ops = Path('docs/ops/ops-real-league-data-adoption.md')
+          if ops.exists():
+              text = ops.read_text()
+              heading = '## Contract 132: repeatable initial provider adoption'
+              if heading not in text:
+                  text = text.rstrip() + f"""
+
+          {heading}
+
+          Fresh provider fixture data now has a repeatable initial-season path. A successful `contract-132-v1` normalized response is staged into `predictor_internal.provider_fixture_proposals`; staging writes no canonical clubs, rounds, fixtures or results. Publication requires `public.admin_approve_initial_provider_fixtures(...)` and the caller must hold the existing `competitions` admin capability.
+
+          The initial approval is deliberately complete-season and competition-specific: Scottish Premiership requires 12 clubs, 33 published pre-split matchweeks and 198 fixtures; Premier League requires 20 clubs, 38 matchweeks and 380 fixtures. Multiple bounded raw responses may be staged before one approval. Conflicting duplicate provider evidence fails closed.
+
+          SportMonks adoption requests must include `round` alongside participants and scores (for example `include=participants;scores;round`). Contract 132 normalizes `round.name` as the provider matchweek identity and retains participant names so team mappings can be reviewed and created. An opaque SportMonks `round_id` is only a decoder fallback when round detail was not requested and is not suitable for initial approval.
+
+          Provider match status and scores are retained on the proposal evidence row only. Approved canonical `season_fixtures` are created as `scheduled` with null scores. Already-played matches still require explicit confirmation through the protected season-result authority before standings or scoring treat them as official.
+          """
+                  ops.write_text(text.lstrip())
+          PY
+
+          git rm .github/workflows/session-contract132-reconcile.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/functions/provider-poll/index.ts \
+                  supabase/tests/171_ingestion_write_boundary.sql \
+                  supabase/tests/184_provider_initial_fixture_approval.sql \
+                  config/deployment-contract.json \
+                  docs/ops/ops-real-league-data-adoption.md
+          git commit -m 'Reconcile contract 132 provider adoption authorities'
+          git push origin HEAD:"$GITHUB_REF_NAME"
