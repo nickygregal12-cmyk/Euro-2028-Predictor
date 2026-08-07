@@ -1,12 +1,12 @@
 {
   "projectRef": "vkfnsqdyhvtwyqkisxhk",
-  "requiredMigrationCount": 63,
-  "latestMigrationVersion": "20260729154931",
-  "latestMigrationName": "prediction_consensus_minimum_cohort",
-  "verifiedAt": "2026-08-06T17:25:00.000Z",
+  "requiredMigrationCount": 96,
+  "latestMigrationVersion": "20260804243000",
+  "latestMigrationName": "cup_tie_settlement_refusal_order",
+  "verifiedAt": "2026-08-07T19:33:04.000Z",
   "evidence": {
-    "source": "Read directly from hosted Production through the Supabase management connection on 6 August 2026. The supabase_migrations.schema_migrations table contained exactly 63 rows ending at 20260729154931_prediction_consensus_minimum_cohort. The same read-only pass confirmed PostgreSQL 17, pg_cron 1.6.4, supabase_vault 0.3.1, no pg_net extension, and one active cron job for process_due_entry_submissions(). No production write, migration, backup, secret change or deployment occurred.",
-    "repositoryHead": "7ffa24138fd2f3e7f8466dd287b8f11ebc50e289"
+    "source": "Production Batch B retry run 31211668118 on repository head 99eacdd7c171aac0a9569abe3d7dba012d44868d completed successfully on 7 August 2026. It proved live Production at contract 67, captured and encrypted a fresh contract-67 backup, forward-rehearsed exactly migrations 68-96 on a Production-shaped disposable restore, re-proved the live source, proved the hosted dry run contained exactly migrations 68-96, applied that batch, and verified the exact contract-96 post-state. An independent Supabase management read then confirmed exactly 96 migrations ending at 20260804243000_cup_tie_settlement_refusal_order, pg_net absent, the four expected active cron jobs, unchanged critical row counts, and the expected Batch B tables present.",
+    "repositoryHead": "99eacdd7c171aac0a9569abe3d7dba012d44868d"
   },
   "promotionAuthorised": false
 }
