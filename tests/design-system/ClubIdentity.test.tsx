@@ -4,40 +4,26 @@ import { ClubIdentity, type ClubIdentityTokens } from '../../src/design-system/C
 
 const SOLID: ClubIdentityTokens = { monogram: 'ars', primary: '#EF0107' }
 
-function shirt(container: HTMLElement): HTMLElement {
-  const node = container.querySelector<HTMLElement>('[data-club-shirt="true"]')
-  if (!node) throw new Error('ClubIdentity did not render its shirt mark')
-  return node
-}
-
 describe('ClubIdentity', () => {
-  it('renders the accepted shirt-style mark inside a stable accessible identity box', () => {
-    const { container } = render(<ClubIdentity name="Arsenal" tokens={SOLID} />)
-
-    const mark = screen.getByRole('img', { name: 'Arsenal' })
-    expect(mark.getAttribute('data-club-shape')).toBe('shirt')
-    expect(shirt(container)).toBeTruthy()
-  })
-
   it('falls back to solid when a pattern has no secondary colour', () => {
-    const { container } = render(
+    render(
       <ClubIdentity name="Pattern without secondary" tokens={{ ...SOLID, pattern: 'stripes' }} />,
     )
 
-    const className = shirt(container).getAttribute('class') ?? ''
+    const className = screen.getByRole('img').getAttribute('class') ?? ''
     expect(className).toContain('solid')
     expect(className).not.toContain('stripes')
   })
 
   it('keeps the pattern when a secondary colour is present', () => {
-    const { container } = render(
+    render(
       <ClubIdentity
         name="Newcastle United"
         tokens={{ ...SOLID, pattern: 'stripes', secondary: '#FFFFFF' }}
       />,
     )
 
-    expect(shirt(container).getAttribute('class') ?? '').toContain('stripes')
+    expect(screen.getByRole('img').getAttribute('class') ?? '').toContain('stripes')
   })
 
   it('always exposes the full club name, never the monogram, as the accessible name', () => {
@@ -60,10 +46,10 @@ describe('ClubIdentity', () => {
     expect(screen.getByRole('img', { name: 'Arsenal' })).toBeTruthy()
   })
 
-  it('keeps the visual shirt decorative so the full club name is announced once', () => {
+  it('marks the monogram decorative so the full club name is announced once', () => {
     const { container } = render(<ClubIdentity name="Arsenal" tokens={SOLID} />)
 
-    expect(shirt(container).getAttribute('aria-hidden')).toBe('true')
+    expect(container.querySelector('[aria-hidden="true"]')?.textContent).toBe('ARS')
     expect(screen.getByRole('img', { name: 'Arsenal' })).toBeTruthy()
   })
 })
