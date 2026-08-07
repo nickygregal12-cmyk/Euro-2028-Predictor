@@ -31,15 +31,13 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await expect(main).toBeFocused()
   await expect(page.locator(liveRegion)).toHaveText('Play page loaded')
 
-  const groupsButton = page.getByRole('button', { name: /Groups A–F/ })
-  await groupsButton.focus()
-  await expect(groupsButton).toBeFocused()
+  const competitionLink = page.getByRole('link', { name: /Euro 2028 2028/ })
+  await competitionLink.focus()
+  await expect(competitionLink).toBeFocused()
   await page.keyboard.press('Enter')
 
-  await expect(page).toHaveURL((url) => url.pathname === '/predict/groups/A')
-  await expect(page).toHaveTitle('Group A predictions | Football Prediction Hub')
+  await expect(page).toHaveURL((url) => url.pathname === '/competitions/euro/2028/play')
+  await expect(page).toHaveTitle('Competition play | Football Prediction Hub')
   await expect(main).toBeFocused()
-  await expect(page.locator(liveRegion)).toHaveText(
-    'Group A predictions page loaded',
-  )
+  await expect(page.locator(liveRegion)).toHaveText('Competition play page loaded')
 })
