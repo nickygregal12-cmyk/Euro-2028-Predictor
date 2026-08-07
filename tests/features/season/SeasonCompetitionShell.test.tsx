@@ -1,16 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, useLocation } from 'react-router'
+import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { SeasonCompetitionShell } from '../../../src/features/season/SeasonCompetitionShell'
 import { seasonShellDestinations } from '../../../src/features/season/seasonDestinations'
 
 const BASE = '/competitions/premier-league/2026-27'
 const SCOTTISH = '/competitions/scottish-premiership/2026-27'
-
-function LocationProbe() {
-  const location = useLocation()
-  return <output aria-label="Current route">{`${location.pathname}${location.search}${location.hash}`}</output>
-}
 
 function renderShell(path: string, active: 'overview' | 'play' | 'matches' | 'games' | 'leagues') {
   render(
@@ -24,7 +19,6 @@ function renderShell(path: string, active: 'overview' | 'play' | 'matches' | 'ga
       >
         <p>Route content</p>
       </SeasonCompetitionShell>
-      <LocationProbe />
     </MemoryRouter>,
   )
 }
@@ -56,24 +50,19 @@ describe('SeasonCompetitionShell', () => {
     expect(screen.getByRole('link', { name: 'Leagues' }).getAttribute('href')).toBe(`${BASE}/leagues`)
   })
 
-  it('offers the two domestic competition seasons in the quick switcher', () => {
+  it('offers a one-tap switch to the other domestic competition', () => {
     renderShell(BASE, 'overview')
 
-    const switcher = screen.getByRole('combobox', { name: 'Switch competition' })
-    expect(switcher).toBeTruthy()
-    expect(screen.getByRole('option', { name: 'Premier League 2026/27' })).toBeTruthy()
-    expect(screen.getByRole('option', { name: 'Scottish Premiership 2026/27' })).toBeTruthy()
+    expect(
+      screen.getByRole('link', { name: 'Switch to Scottish Premiership' }).getAttribute('href'),
+    ).toBe(SCOTTISH)
   })
 
   it('switches competition without dropping a deep route, query or hash', () => {
     renderShell(`${BASE}/games/match-predictor/standings?view=month#you`, 'games')
 
-    fireEvent.change(screen.getByRole('combobox', { name: 'Switch competition' }), {
-      target: { value: 'scottish-premiership/2026-27' },
-    })
-
-    expect(screen.getByLabelText('Current route').textContent).toBe(
-      `${SCOTTISH}/games/match-predictor/standings?view=month#you`,
-    )
+    expect(
+      screen.getByRole('link', { name: 'Switch to Scottish Premiership' }).getAttribute('href'),
+    ).toBe(`${SCOTTISH}/games/match-predictor/standings?view=month#you`)
   })
 })
