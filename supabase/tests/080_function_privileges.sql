@@ -85,6 +85,11 @@ insert into expected_authenticated_functions (signature) values
   ('admin_confirm_season_fixture_result(uuid,smallint,smallint,text)'),
   ('admin_correct_season_fixture_result(uuid,smallint,smallint,text)'),
   ('admin_clear_season_fixture_result(uuid,text)'),
+  -- Contract 127. Opening a season competition for play. Same grant shape and
+  -- a DIFFERENT gate: require_competition_admin() rather than
+  -- require_result_admin(), because fixing a season's draw is not correcting a
+  -- scoreline.
+  ('admin_open_season_competition(uuid)'),
   ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
 -- Contract 50: the Bonus Games hub read plus voluntary entry and withdrawal.
@@ -148,7 +153,22 @@ insert into expected_authenticated_functions (signature) values
   -- Contract 122: the monthly and form tables. Same entry boundary as contract
   -- 95's cumulative read, and the same reason it is authenticated-only: a
   -- season is not the one competition everybody is in.
-  ('get_season_period_standings(uuid,text,integer)');
+  -- Contract 131 replaces this read's reachable signature with a four-argument
+  -- one carrying the required display-name flag. The three-argument form is
+  -- left in the catalogue — dropping it would make the migration destructive —
+  -- and REVOKED, so it appears in no allow-list here.
+  ('get_season_period_standings(uuid,text,integer,boolean)'),
+  -- Contract 129: the caller and one opponent over one locked matchweek.
+  -- Contract 130: what everybody predicted for that matchweek, once its cohort
+  -- is large enough. Both carry the same auth.uid() boundary as every season
+  -- read above, so both stay out of expected_service_functions.
+  ('get_season_head_to_head(uuid,uuid,integer)'),
+  ('get_season_prediction_consensus(uuid,integer)'),
+  -- Contract 128: a season league's own table. The boundary is league
+  -- membership read from auth.uid(), so it stays out of
+  -- expected_service_functions for contract 95's reason — service_role has no
+  -- auth.uid() and the call refuses every time.
+  ('get_season_league_standings(uuid,integer,text)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

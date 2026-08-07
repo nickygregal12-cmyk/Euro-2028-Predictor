@@ -21,21 +21,23 @@ select plan(17);
 -- ---------------------------------------------------------------------------
 
 select is(
-  has_function_privilege('authenticated', 'public.get_season_period_standings(uuid,text,integer)', 'execute'),
+  has_function_privilege('authenticated', 'public.get_season_period_standings(uuid,text,integer,boolean)', 'execute'),
   true, 'authenticated may read a season''s period standings');
 
 select is(
-  has_function_privilege('anon', 'public.get_season_period_standings(uuid,text,integer)', 'execute'),
+  has_function_privilege('anon', 'public.get_season_period_standings(uuid,text,integer,boolean)', 'execute'),
   false, 'anon may not — these are a season''s own players'' totals');
 
 select is(
   (select prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'get_season_period_standings'),
+    where p.oid = to_regprocedure(
+      'public.get_season_period_standings(uuid,text,integer,boolean)')),
   true, 'the read is security definer, because every table under it is revoked');
 
 select is(
   (select proconfig from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'get_season_period_standings'),
+    where p.oid = to_regprocedure(
+      'public.get_season_period_standings(uuid,text,integer,boolean)')),
   array['search_path=""'], 'search_path is pinned to the empty string');
 
 select is(

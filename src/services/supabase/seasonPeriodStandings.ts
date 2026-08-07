@@ -31,11 +31,19 @@ export async function fetchSeasonPeriodStandings(
   tournamentId: string,
   period: SeasonPeriod,
   window?: number,
+  /**
+   * Contract 131. Off by default, which is contract 122's decision preserved:
+   * a surface that already holds the names does not ask for them again. Ask
+   * when there is no leaderboard beside the table, because `entry_id` is not a
+   * person and every row would otherwise render as "Entrant".
+   */
+  includeNames = false,
 ): Promise<SeasonPeriodStandings> {
   const { data, error } = await supabase.rpc('get_season_period_standings', {
     p_tournament_id: tournamentId,
     p_period: period,
     p_window: window ?? 5,
+    p_include_names: includeNames,
   })
   if (error) throw error
   return mapSeasonPeriodStandings(data)

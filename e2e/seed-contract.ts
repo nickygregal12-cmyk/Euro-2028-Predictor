@@ -621,7 +621,88 @@
  * `177_season_fixture_result_entry.sql`, which drives the refusal with a real
  * non-admin session rather than inspecting the grant.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 125
+/**
+ * Contract 126 redefines one browser-reachable function,
+ * `public.join_competition_game`, and adds one `predictor_internal` helper
+ * revoked from every role. It creates no relation, trigger or policy and
+ * changes no grant.
+ *
+ * The redefinition RELAXES a refusal and adds none: a game whose definition
+ * forbids rejoining is now refused only once the competition is running. A
+ * seeded user's reads are untouched, and the only seeded write it could reach —
+ * joining a game — either behaved identically before (every game except Last
+ * Man Standing has allow_rejoin true) or was refused when it should not have
+ * been.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `178_rejoin_before_start.sql`, which drives the join, leave and rejoin
+ * against a real competition in both states.
+ */
+/**
+ * Contract 127 adds one `public` administrator entry point granted to
+ * `authenticated` (`admin_open_season_competition`) and three
+ * `predictor_internal` functions revoked from every role. It creates no
+ * relation, trigger or policy, and changes no existing grant.
+ *
+ * The entry point is the only thing here a seeded session can REACH, and it is
+ * gated differently from every other admin RPC in this repository: the seeded
+ * admin identity below carries `results` and `tournament` capabilities and no
+ * `admin_role`, so it is refused with 42501 alongside the two ordinary players.
+ * That is the intended shape rather than a gap — opening a competition fixes a
+ * draw and a calendar that can never be redrawn, and the `competitions`
+ * capability exists to be granted deliberately. If a seeded session ever needs
+ * to open one, the seed grants that capability rather than this contract
+ * widening its gate.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `179_season_competition_bootstrap.sql`, which drives the refusal with an
+ * ordinary player AND with a `results` administrator, so a contract that
+ * reused the result gate would fail there.
+ */
+/**
+ * Contract 128 adds one browser-reachable read (`get_season_league_standings`,
+ * granted to `authenticated`) and redefines `get_league_members`. It creates no
+ * relation, trigger or policy, and changes no existing grant.
+ *
+ * The redefinition is the only thing here that changes what a seeded session
+ * already does, and it was checked rather than waved through: the seeded
+ * leagues are all on the Euro tournament, whose `tournaments.kind` is
+ * `tournament`, so the inserted guard does not fire and the read returns
+ * exactly what it did before. A seeded session that creates a league on a
+ * competition season would now be refused by that read and served by the new
+ * one — which is the correction, since the old answer was every member on zero.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of both the migration and
+ * `180_season_league_standings.sql`, which drives the refusal and the new table
+ * against one league holding real banked matchweek totals.
+ */
+/**
+ * Contracts 129 to 131 add two browser-reachable season reads
+ * (`get_season_head_to_head`, `get_season_prediction_consensus`), two
+ * `predictor_internal` helpers revoked from every role, and REPLACE the
+ * signature of `get_season_period_standings` with a four-argument form.
+ *
+ * The replacement is the only thing that could break a seeded session, and it
+ * cannot: the old three-argument signature is dropped and the new one defaults
+ * its fourth parameter, so an existing three-argument call resolves to it and
+ * returns the same object. The two new reads refuse a caller with no season
+ * entry, which every seeded Euro identity is, so they are unreachable in
+ * practice rather than merely unused. No relation, trigger, policy or existing
+ * grant changes.
+ *
+ * Reasoned rather than executed, on the same standard as the entries above:
+ * this environment has a `docker` binary and no usable daemon, so Database
+ * parity in CI is the first execution of the three migrations and of
+ * `181_season_head_to_head.sql`, `182_season_prediction_consensus.sql` and
+ * `183_period_standings_display_names.sql`.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 131
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
