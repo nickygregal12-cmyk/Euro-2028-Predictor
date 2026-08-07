@@ -45,20 +45,48 @@ describe('weekly route authority', () => {
     ).toThrow(/Unsupported weekly route value/)
   })
 
-  it('derives deterministic parents without browser history', () => {
-    expect(logicalWeeklyParent('/competitions/premier-league/2026-27')).toEqual({
-      href: '/',
-      label: 'Back to Hub',
-    })
-    expect(
-      logicalWeeklyParent('/competitions/premier-league/2026-27/games/lms'),
-    ).toEqual({
-      href: '/competitions/premier-league/2026-27/games',
-      label: 'Back to Games',
-    })
-    expect(logicalWeeklyParent('/league/abc123')).toEqual({
-      href: '/leagues',
-      label: 'Back to Leagues',
-    })
+  it('derives the canonical parent for every current weekly route class', () => {
+    const base = competitionRoute(premier)
+    const games = competitionSectionRoute(premier, 'games')
+    const matches = competitionSectionRoute(premier, 'matches')
+    const leagues = competitionSectionRoute(premier, 'leagues')
+    const matchPredictor = competitionGameRoute(premier, 'match-predictor')
+
+    const cases = [
+      [weeklyRoutes.play, { href: '/', label: 'Back to Hub' }],
+      [weeklyRoutes.matches, { href: '/', label: 'Back to Hub' }],
+      [weeklyRoutes.leagues, { href: '/', label: 'Back to Hub' }],
+      [weeklyRoutes.more, { href: '/', label: 'Back to Hub' }],
+      ['/account', { href: '/more', label: 'Back to More' }],
+      ['/profile', { href: '/more', label: 'Back to More' }],
+      ['/more/scoring', { href: '/more', label: 'Back to More' }],
+      ['/profile/player-1', { href: '/leagues', label: 'Back to Leagues' }],
+      ['/h2h/player-1', { href: '/leagues', label: 'Back to Leagues' }],
+      ['/league/private-1', { href: '/leagues', label: 'Back to Leagues' }],
+      ['/match/fixture-1', { href: '/matches', label: 'Back to Matches' }],
+      [base, { href: '/', label: 'Back to Hub' }],
+      [`${base}/play`, { href: '/', label: 'Back to Hub' }],
+      [`${base}/matches`, { href: '/', label: 'Back to Hub' }],
+      [`${base}/games`, { href: '/', label: 'Back to Hub' }],
+      [`${base}/leagues`, { href: '/', label: 'Back to Hub' }],
+      [matchPredictor, { href: games, label: 'Back to Games' }],
+      [`${games}/lms`, { href: games, label: 'Back to Games' }],
+      [`${games}/championship`, { href: games, label: 'Back to Games' }],
+      [competitionGameStandingsRoute(premier), { href: matchPredictor, label: 'Back to Match Predictor' }],
+      [`${matches}/fixture-1`, { href: matches, label: 'Back to Matches' }],
+      [`${leagues}/container-1`, { href: leagues, label: 'Back to Leagues' }],
+      [`${base}/players/player-1`, { href: base, label: 'Back to Competition' }],
+    ] as const
+
+    for (const [pathname, expected] of cases) {
+      expect(logicalWeeklyParent(pathname), pathname).toEqual(expected)
+    }
+  })
+
+  it('does not invent parents for sessionless or unknown top-level routes', () => {
+    expect(logicalWeeklyParent('/')).toBeNull()
+    expect(logicalWeeklyParent('/auth/login')).toBeNull()
+    expect(logicalWeeklyParent('/admin/results')).toBeNull()
+    expect(logicalWeeklyParent('/somewhere-unknown')).toBeNull()
   })
 })
