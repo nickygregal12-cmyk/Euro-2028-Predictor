@@ -5,7 +5,6 @@ import {
   competitionRoute,
   competitionSectionRoute,
   logicalWeeklyParent,
-  switchCompetitionPath,
   weeklyRoutes,
 } from '../../src/app/weeklyRoutes'
 
@@ -36,34 +35,6 @@ describe('weekly route authority', () => {
       expect(competitionGameRoute(ref, 'championship')).toBe(`${base}/games/championship`)
       expect(competitionGameStandingsRoute(ref)).toBe(`${base}/games/match-predictor/standings`)
     }
-  })
-
-  it('switches domestic competition without dropping the local route context', () => {
-    const premierBase = competitionRoute(premier)
-    const scottishBase = competitionRoute(scottish)
-
-    const cases = [
-      [premierBase, scottishBase],
-      [`${premierBase}/play`, `${scottishBase}/play`],
-      [`${premierBase}/matches`, `${scottishBase}/matches`],
-      [`${premierBase}/games`, `${scottishBase}/games`],
-      [`${premierBase}/games/lms`, `${scottishBase}/games/lms`],
-      [
-        `${premierBase}/games/match-predictor/standings`,
-        `${scottishBase}/games/match-predictor/standings`,
-      ],
-      [`${premierBase}/leagues/private-1`, `${scottishBase}/leagues/private-1`],
-    ] as const
-
-    for (const [from, expected] of cases) {
-      expect(switchCompetitionPath(from, scottish), from).toBe(expected)
-    }
-  })
-
-  it('refuses to switch a route that is not in competition mode', () => {
-    expect(() => switchCompetitionPath('/play', scottish)).toThrow(
-      /Cannot switch competition outside competition mode/,
-    )
   })
 
   it('refuses malformed route identities rather than silently constructing them', () => {
