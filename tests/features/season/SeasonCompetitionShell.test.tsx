@@ -5,6 +5,7 @@ import { SeasonCompetitionShell } from '../../../src/features/season/SeasonCompe
 import { seasonShellDestinations } from '../../../src/features/season/seasonDestinations'
 
 const BASE = '/competitions/premier-league/2026-27'
+const SCOTTISH = '/competitions/scottish-premiership/2026-27'
 
 function renderShell(path: string, active: 'overview' | 'play' | 'matches' | 'games' | 'leagues') {
   render(
@@ -47,5 +48,21 @@ describe('SeasonCompetitionShell', () => {
     expect(screen.getByRole('link', { name: 'Matches' }).getAttribute('href')).toBe(`${BASE}/matches`)
     expect(screen.getByRole('link', { name: 'Games' }).getAttribute('href')).toBe(`${BASE}/games`)
     expect(screen.getByRole('link', { name: 'Leagues' }).getAttribute('href')).toBe(`${BASE}/leagues`)
+  })
+
+  it('offers a one-tap switch to the other domestic competition', () => {
+    renderShell(BASE, 'overview')
+
+    expect(
+      screen.getByRole('link', { name: 'Switch to Scottish Premiership' }).getAttribute('href'),
+    ).toBe(SCOTTISH)
+  })
+
+  it('switches competition without dropping a deep route, query or hash', () => {
+    renderShell(`${BASE}/games/match-predictor/standings?view=month#you`, 'games')
+
+    expect(
+      screen.getByRole('link', { name: 'Switch to Scottish Premiership' }).getAttribute('href'),
+    ).toBe(`${SCOTTISH}/games/match-predictor/standings?view=month#you`)
   })
 })

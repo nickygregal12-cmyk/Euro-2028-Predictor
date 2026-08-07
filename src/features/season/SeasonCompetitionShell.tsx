@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
 import {
   competitionRefFromPath,
+  competitionRoute,
   competitionSectionRoute,
   logicalWeeklyParent,
   weeklyRoutes,
@@ -9,10 +10,10 @@ import {
 import styles from './SeasonCompetitionShell.module.css'
 
 /**
- * The competition shell owns competition identity, parent exits and the one
- * competition-level navigation system. The global bottom navigation is hidden
- * by AppShell while this route family is active, so Hub and competition modes
- * no longer compete for the same screen.
+ * The competition shell owns competition identity, parent exits, quick
+ * competition switching and the one competition-level navigation system. The
+ * global bottom navigation is hidden by AppShell while this route family is
+ * active, so Hub and competition modes no longer compete for the same screen.
  */
 export type SeasonShellSection = 'overview' | 'play' | 'matches' | 'games' | 'leagues'
 
@@ -41,7 +42,7 @@ export function SeasonCompetitionShell({
   destinations,
   children,
 }: SeasonCompetitionShellProps) {
-  const { pathname } = useLocation()
+  const { pathname, search, hash } = useLocation()
   const ref = competitionRefFromPath(pathname)
   const gamesPath = ref ? competitionSectionRoute(ref, 'games') : null
   const effectiveActive: SeasonShellSection =
@@ -49,6 +50,17 @@ export function SeasonCompetitionShell({
       ? 'games'
       : active
   const parent = logicalWeeklyParent(pathname)
+  const switchRef = ref
+    ? {
+        competitionSlug:
+          ref.competitionSlug === 'premier-league' ? 'scottish-premiership' : 'premier-league',
+        seasonSlug: '2026-27',
+      }
+    : null
+  const switchLabel = ref?.competitionSlug === 'premier-league' ? 'Scottish Premiership' : 'Premier League'
+  const switchHref = ref && switchRef
+    ? `${pathname.replace(competitionRoute(ref), competitionRoute(switchRef))}${search}${hash}`
+    : null
 
   return (
     <div className={styles.shell}>
@@ -65,7 +77,14 @@ export function SeasonCompetitionShell({
 
       <header className={styles.masthead}>
         <p className={styles.eyebrow}>{seasonLabel}</p>
-        <h1 className={styles.name}>{competitionName}</h1>
+        <div className={styles.mastheadRow}>
+          <h1 className={styles.name}>{competitionName}</h1>
+          {switchHref ? (
+            <Link className={styles.switcherLink} to={switchHref}>
+              Switch to {switchLabel}
+            </Link>
+          ) : null}
+        </div>
         {statusStrip.length > 0 ? (
           <dl className={styles.status}>
             {statusStrip.map((entry) => (
