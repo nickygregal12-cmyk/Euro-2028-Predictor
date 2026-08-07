@@ -45,6 +45,11 @@ export const CRITICAL_COUNT_KEYS = [
   'score_events',
   'entry_totals',
 ]
+export const EXPECTED_CRITICAL_COUNT_DELTAS = Object.freeze({
+  // Contract 66 deliberately seeds the two 2026/27 domestic league seasons.
+  // Every other critical Production row count must remain unchanged.
+  tournaments: 2,
+})
 
 function fail(message) {
   throw new Error(message)
@@ -170,6 +175,29 @@ function lockScopeBoundary(dbUrl) {
   )
 }
 
+function domesticSeasonBoundary(dbUrl) {
+  return queryJson(
+    dbUrl,
+    `select coalesce(
+      json_agg(
+        json_build_object(
+          'slug', c.slug,
+          'name', t.name,
+          'season_key', t.season_key,
+          'kind', t.kind,
+          'display_timezone', t.display_timezone,
+          'status', t.status
+        ) order by c.slug
+      ),
+      '[]'::json
+    )::text
+    from public.tournaments t
+    join public.competitions c on c.id = t.competition_id
+    where c.slug in ('premier-league', 'scottish-premiership')
+      and t.season_key = '2026-27';`,
+  )
+}
+
 function sha256(path) {
   return createHash('sha256').update(readFileSync(path)).digest('hex')
 }
@@ -191,6 +219,43 @@ export function assertCriticalCountsUnchanged(sourceCounts, postCounts) {
     if (postCounts[key] !== sourceCounts[key]) {
       fail(`Critical count changed during Batch A rehearsal: ${key} ${sourceCounts[key]} -> ${postCounts[key]}`)
     }
+  }
+}
+
+export function assertCriticalCountsAfterBatchA(sourceCounts, postCounts) {
+  for (const key of CRITICAL_COUNT_KEYS) {
+    const expectedDelta = EXPECTED_CRITICAL_COUNT_DELTAS[key] ?? 0
+    const expected = sourceCounts[key] + expectedDelta
+    if (postCounts[key] !== expected) {
+      fail(
+        `Unexpected critical count after Batch A: ${key} expected ${expected} ` +
+          `(${sourceCounts[key]} ${expectedDelta >= 0 ? '+' : '-'} ${Math.abs(expectedDelta)}), got ${postCounts[key]}`,
+      )
+    }
+  }
+}
+
+export function assertDomesticSeasonBoundary(seasons) {
+  const expected = [
+    {
+      slug: 'premier-league',
+      name: 'Premier League 2026/27',
+      season_key: '2026-27',
+      kind: 'league_season',
+      display_timezone: 'Europe/London',
+      status: 'draft',
+    },
+    {
+      slug: 'scottish-premiership',
+      name: 'Scottish Premiership 2026/27',
+      season_key: '2026-27',
+      kind: 'league_season',
+      display_timezone: 'Europe/London',
+      status: 'draft',
+    },
+  ]
+  if (JSON.stringify(seasons) !== JSON.stringify(expected)) {
+    fail(`Unexpected domestic season seed boundary after Batch A: ${JSON.stringify(seasons)}`)
   }
 }
 
@@ -305,7 +370,9 @@ async function main() {
     const afterHistory = migrationHistory(arguments_.db_url)
     assertHistory(afterHistory, TARGET_CONTRACT, TARGET_VERSION, TARGET_NAME, 'Batch A target')
     const afterCounts = criticalCounts(arguments_.db_url)
-    assertCriticalCountsUnchanged(sourceInventory.counts, afterCounts)
+    assertCriticalCountsAfterBatchA(sourceInventory.counts, afterCounts)
+    const domesticSeasons = domesticSeasonBoundary(arguments_.db_url)
+    assertDomesticSeasonBoundary(domesticSeasons)
     const boundary = extensionAndCronBoundary(arguments_.db_url)
     const lockScopes = lockScopeBoundary(arguments_.db_url)
     assertBatchABoundaries(boundary, lockScopes)
@@ -326,6 +393,8 @@ async function main() {
       critical_counts: Object.fromEntries(
         CRITICAL_COUNT_KEYS.map((key) => [key, afterCounts[key]]),
       ),
+      critical_count_deltas: EXPECTED_CRITICAL_COUNT_DELTAS,
+      domestic_seasons: domesticSeasons,
       pg_net_installed: boundary.pg_net_installed,
       active_cron_jobs: boundary.active_cron_jobs,
       lock_scopes: lockScopes,
