@@ -18,6 +18,11 @@ const CompetitionDashboardPage = lazy(() =>
     default: m.CompetitionDashboardPage,
   })),
 )
+const CompetitionGamesPage = lazy(() =>
+  import('./features/hub/CompetitionDashboardPage').then((m) => ({
+    default: m.CompetitionGamesPage,
+  })),
+)
 const SeasonMatchPredictorRoute = lazy(() =>
   import('./features/season/SeasonMatchPredictorRoute').then((m) => ({
     default: m.SeasonMatchPredictorRoute,
@@ -27,9 +32,7 @@ const SeasonPlayRoute = lazy(() =>
   import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonPlayRoute })),
 )
 const SeasonStandingsRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({
-    default: m.SeasonStandingsRoute,
-  })),
+  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonStandingsRoute })),
 )
 const SeasonLmsRoute = lazy(() =>
   import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonLmsRoute })),
@@ -54,30 +57,13 @@ const SeasonMatchesRoute = lazy(() =>
     default: m.SeasonMatchesRoute,
   })),
 )
-const HomePage = lazy(() => import('./features/home/HomePage').then((m) => ({ default: m.HomePage })))
-const PredictEntryPage = lazy(() => import('./features/predict/PredictEntryPage').then((m) => ({ default: m.PredictEntryPage })))
-const PredictionTrendsPage = lazy(() => import('./features/trends/PredictionTrendsPage').then((m) => ({ default: m.PredictionTrendsPage })))
-const GroupPredictorPage = lazy(() => import('./features/predict/GroupPredictorPage').then((m) => ({ default: m.GroupPredictorPage })))
-const ThirdPlacePage = lazy(() => import('./features/predict/ThirdPlacePage').then((m) => ({ default: m.ThirdPlacePage })))
-const BracketRound = lazy(() => import('./features/bracket').then((m) => ({ default: m.BracketRound })))
-const JokersPage = lazy(() => import('./features/predict/JokersPage').then((m) => ({ default: m.JokersPage })))
-const ReviewWorkspacePage = lazy(() => import('./features/predict/ReviewWorkspacePage').then((m) => ({ default: m.ReviewWorkspacePage })))
-const LeaguePage = lazy(() => import('./features/league/LeaguePage').then((m) => ({ default: m.LeaguePage })))
-const OverallStandingsPage = lazy(() => import('./features/league/OverallStandingsPage').then((m) => ({ default: m.OverallStandingsPage })))
 const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
 const AccountPage = lazy(() =>
   import('./features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
 )
-const GamesPage = lazy(() => import('./features/games/GamesPage').then((m) => ({ default: m.GamesPage })))
-const KnockoutPredictionsPage = lazy(() => import('./features/games/KnockoutPredictionsPage').then((m) => ({ default: m.KnockoutPredictionsPage })))
-const KoPredictorStandingsPage = lazy(() => import('./features/games/KoPredictorStandingsPage').then((m) => ({ default: m.KoPredictorStandingsPage })))
-const LmsPage = lazy(() => import('./features/games/LmsPage').then((m) => ({ default: m.LmsPage })))
-const CupPage = lazy(() => import('./features/games/CupPage').then((m) => ({ default: m.CupPage })))
 const ScoringRulesPage = lazy(() => import('./features/more/ScoringRulesPage').then((m) => ({ default: m.ScoringRulesPage })))
-const MatchesPage = lazy(() => import('./features/matches/MatchesPage').then((m) => ({ default: m.MatchesPage })))
-const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').then((m) => ({ default: m.MatchCentrePage })))
 const WelcomePage = lazy(() => import('./features/welcome/WelcomePage').then((m) => ({ default: m.WelcomePage })))
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const OtherPlayerProfilePage = lazy(() => import('./features/profile/OtherPlayerProfilePage').then((m) => ({ default: m.OtherPlayerProfilePage })))
@@ -131,17 +117,6 @@ const SeasonCupPreview = import.meta.env.DEV
     )
   : null
 
-/**
- * Route titles and announcements for the routes that render without a session.
- *
- * `RouteAccessibility` moved inside `AuthLayout` so it can tell apart the two
- * pages that share `/` — signed out it is the public landing page, signed in it
- * is the Hub — and that reading needs the session. These routes sit outside
- * `AuthLayout` on purpose: a component gallery must not mount a session, and
- * the not-found page needs none. They keep the same titling through their own
- * layout route, which is why the hook it uses tolerates having no provider
- * above it rather than throwing.
- */
 function SessionlessChrome() {
   return (
     <>
@@ -202,51 +177,56 @@ export default function App() {
                 <Route element={<RequireWelcome />}>
                   <Route element={<AppShell />}>
                     <Route path="/" element={<HubPage />} />
+                    <Route path="/play" element={<CompetitionChooserPage section="play" title="Play" />} />
+                    <Route path="/matches" element={<CompetitionChooserPage section="matches" title="Matches" />} />
+                    <Route path="/leagues" element={<CompetitionChooserPage section="leagues" title="Leagues" />} />
+                    <Route path="/more" element={<MorePage />} />
+
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug"
                       element={<CompetitionDashboardPage />}
                     />
-                    {/* Declared above the parameterised dashboard would make no
-                        difference — React Router ranks by specificity, not by
-                        source order — but it is kept next to it because the two
-                        are the same competition seen at two depths. */}
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/main-predictor"
+                      path="/competitions/:competitionSlug/:seasonSlug/play"
+                      element={<SeasonPlayRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/matches"
+                      element={<SeasonMatchesRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games"
+                      element={<CompetitionGamesPage />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/match-predictor"
                       element={<SeasonMatchPredictorRoute />}
                     />
-                    <Route path="/competitions/euro/2028/original" element={<HomePage />} />
-                    <Route path="/competitions/:competitionSlug/:seasonSlug/play" element={<SeasonPlayRoute />} />
-                    <Route path="/competitions/:competitionSlug/:seasonSlug/standings" element={<SeasonStandingsRoute />} />
-                    <Route path="/competitions/:competitionSlug/:seasonSlug/last-man-standing" element={<SeasonLmsRoute />} />
-                    <Route path="/competitions/:competitionSlug/:seasonSlug/championship" element={<SeasonChampionshipRoute />} />
-                    <Route path="/competitions/:competitionSlug/:seasonSlug/leagues" element={<SeasonLeaguesRoute />} />
-                    <Route path="/competitions/:competitionSlug/:seasonSlug/matches" element={<SeasonMatchesRoute />} />
-                    {/* The global tabs ask which competition; the Euro
-                        tournament's own journeys keep their addresses and are
-                        reached from its competition dashboard. */}
-                    <Route path="/play" element={<CompetitionChooserPage section="play" title="Play" />} />
-                    <Route path="/fixtures" element={<CompetitionChooserPage section="matches" title="Fixtures" />} />
-                    <Route path="/leagues" element={<CompetitionChooserPage section="leagues" title="Leagues" />} />
-                    <Route path="/predict" element={<PredictEntryPage />} />
-                    <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
-                    <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
-                    <Route path="/predict/third-place" element={<ThirdPlacePage />} />
-                    <Route path="/predict/bracket" element={<BracketRound />} />
-                    <Route path="/predict/jokers" element={<JokersPage />} />
-                    <Route path="/predict/review" element={<ReviewWorkspacePage />} />
-                    <Route path="/league" element={<LeaguePage />} />
-                    <Route path="/league/overall" element={<OverallStandingsPage />} />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings"
+                      element={<SeasonStandingsRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/lms"
+                      element={<SeasonLmsRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship"
+                      element={<SeasonChampionshipRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/leagues"
+                      element={<SeasonLeaguesRoute />}
+                    />
+
+                    {/* Compatibility only: the old global chooser name remains a
+                        redirect, never a second weekly information architecture. */}
+                    <Route path="/fixtures" element={<Navigate to="/matches" replace />} />
+                    <Route path="/league" element={<Navigate to="/leagues" replace />} />
                     <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
+
                     <Route path="/h2h/:rivalId" element={<H2HPage />} />
-                    <Route path="/matches" element={<MatchesPage />} />
-                    <Route path="/match/:matchRef" element={<MatchCentrePage />} />
-                    <Route path="/more" element={<MorePage />} />
                     <Route path="/account" element={<AccountPage />} />
-                    <Route path="/games" element={<GamesPage />} />
-                    <Route path="/games/knockout" element={<KnockoutPredictionsPage />} />
-                    <Route path="/games/ko-predictor" element={<KoPredictorStandingsPage />} />
-                    <Route path="/games/lms" element={<LmsPage />} />
-                    <Route path="/games/cup" element={<CupPage />} />
                     <Route path="/profile" element={<ProfilePage />} />
                     <Route path="/profile/:playerId" element={<OtherPlayerProfilePage />} />
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />

@@ -1,10 +1,10 @@
 import { Link } from 'react-router'
 import styles from './BottomNav.module.css'
 import { HomeIcon, BallIcon, CalendarIcon, TrophyIcon, MoreIcon, type IconProps } from './icons'
+import { weeklyRoutes } from '../app/weeklyRoutes'
 
-// The app sections (design-system §6). Fixed set — tabs are config, so new
-// sections slot in without a nav rebuild. The Matches tab (the time-shaped
-// fixture browser) is the 5th slot.
+// Internal keys are retained for design-system compatibility; the public weekly
+// navigation is Home · Play · Matches · Leagues · More.
 export type NavKey = 'home' | 'predict' | 'matches' | 'league' | 'more'
 
 const ITEMS: {
@@ -13,11 +13,11 @@ const ITEMS: {
   to: string
   Icon: (p: IconProps) => React.ReactElement
 }[] = [
-  { key: 'home', label: 'Home', to: '/', Icon: HomeIcon },
-  { key: 'predict', label: 'Predict', to: '/play', Icon: BallIcon },
-  { key: 'matches', label: 'Matches', to: '/fixtures', Icon: CalendarIcon },
-  { key: 'league', label: 'League', to: '/leagues', Icon: TrophyIcon },
-  { key: 'more', label: 'More', to: '/more', Icon: MoreIcon },
+  { key: 'home', label: 'Home', to: weeklyRoutes.hub, Icon: HomeIcon },
+  { key: 'predict', label: 'Play', to: weeklyRoutes.play, Icon: BallIcon },
+  { key: 'matches', label: 'Matches', to: weeklyRoutes.matches, Icon: CalendarIcon },
+  { key: 'league', label: 'Leagues', to: weeklyRoutes.leagues, Icon: TrophyIcon },
+  { key: 'more', label: 'More', to: weeklyRoutes.more, Icon: MoreIcon },
 ]
 
 export type BottomNavProps = {
@@ -27,7 +27,7 @@ export type BottomNavProps = {
 }
 
 /**
- * Fixed five-tab bottom navigation. Every destination is a real link, so
+ * Fixed five-tab global navigation. Every destination is a real link, so
  * browser and assistive-technology link behaviours remain available. Active
  * state is conveyed by aria-current as well as the icon/label colour change.
  */

@@ -1,3 +1,4 @@
+import { competitionRoute } from '../../app/weeklyRoutes'
 import type { CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
 
 export type HubGameKind =
@@ -9,7 +10,6 @@ export type HubGameKind =
 
 export type HubGame = {
   kind: HubGameKind
-  /** The database `game_definitions.game_key` this card describes. */
   gameKey: CompetitionGameKey
   name: string
   description: string
@@ -20,12 +20,6 @@ export type HubGame = {
 export type HubCompetition = {
   competitionSlug: string
   seasonSlug: string
-  /**
-   * The exact `tournaments.name` of this season's database row, as the C1
-   * baseline and C1b catalogue migrations created it. Membership resolution
-   * matches on this value alone — `competitions.slug` is not browser-readable
-   * and deriving it client-side would silently drift from the server's rule.
-   */
   seasonRowName: string
   name: string
   seasonLabel: string
@@ -35,12 +29,11 @@ export type HubCompetition = {
 }
 
 /**
- * Presentation truth only: names, copy and routes. Membership and game
- * availability are the server's to state — `applyHubMembership` overlays them
- * from the C1b catalogue read, so no entry below may claim `joined` or the
- * `joined` status. `tests/features/hub/competitionCatalogue.test.ts` enforces
- * that. The `parked` status is a product label (Euro returns in January 2028),
- * not a lifecycle read, so it survives the overlay.
+ * Weekly frontend presentation catalogue. Only currently published domestic
+ * seasons belong here. Euro 2028 is intentionally absent from the weekly
+ * client while its server-owned publication state and route guard remain a
+ * separate requirement; removing it here reduces exposure but does not claim
+ * EURO-001–EURO-004 complete.
  */
 export const HUB_COMPETITIONS: HubCompetition[] = [
   {
@@ -55,7 +48,7 @@ export const HUB_COMPETITIONS: HubCompetition[] = [
       {
         kind: 'league-predictor',
         gameKey: 'main_predictor',
-        name: 'Main Predictor',
+        name: 'Match Predictor',
         description: 'Predict every score before the matchweek locks at its first kickoff.',
         joined: false,
         status: 'coming-soon',
@@ -90,7 +83,7 @@ export const HUB_COMPETITIONS: HubCompetition[] = [
       {
         kind: 'league-predictor',
         gameKey: 'main_predictor',
-        name: 'Main Predictor',
+        name: 'Match Predictor',
         description: 'Weekly score predictions with late entry starting from zero.',
         joined: false,
         status: 'coming-soon',
@@ -114,70 +107,16 @@ export const HUB_COMPETITIONS: HubCompetition[] = [
       },
     ],
   },
-  {
-    competitionSlug: 'euro',
-    seasonSlug: '2028',
-    seasonRowName: 'UEFA Euro 2028',
-    name: 'Euro 2028',
-    seasonLabel: '2028',
-    status: 'parked',
-    summary: 'The preserved tournament experience returns as a focused competition in January 2028.',
-    games: [
-      {
-        kind: 'original-predictor',
-        gameKey: 'original_predictor',
-        name: 'Original Predictor',
-        description: 'Predict the full tournament before its single opening lock.',
-        joined: false,
-        status: 'available',
-      },
-      {
-        kind: 'ko-predictor',
-        gameKey: 'ko_predictor',
-        name: 'KO Predictor',
-        description: 'Predict knockout matches as the tournament progresses.',
-        joined: false,
-        status: 'coming-soon',
-      },
-      {
-        kind: 'last-man-standing',
-        gameKey: 'last_man_standing',
-        name: 'Last Man Standing',
-        description: 'Tournament survival game with its own entry and result state.',
-        joined: false,
-        status: 'coming-soon',
-      },
-      {
-        kind: 'predictor-championship',
-        gameKey: 'predictor_cup',
-        name: 'Predictor Championship',
-        description: 'Tournament head-to-head competition using the same football points model.',
-        joined: false,
-        status: 'coming-soon',
-      },
-    ],
-  },
 ]
 
 export function competitionPath(competition: HubCompetition): string {
-  return `/competitions/${competition.competitionSlug}/${competition.seasonSlug}`
+  return competitionRoute(competition)
 }
 
-/**
- * A competition counts as joined while the user holds at least one active game
- * entry in it. Competition membership and game membership are separate records
- * under ADR 0020; the C1b read reports both, and its `competition_member` flag
- * is defined as "any active game membership in the season", so deriving the
- * competition half from the game half here agrees with the server by
- * construction.
- */
 export function isJoinedCompetition(competition: HubCompetition): boolean {
   return competition.games.some((game) => game.joined)
 }
 
-/**
- * Leaving a competition returns it to Discover rather than hiding it.
- */
 export function partitionHubCompetitions(competitions: HubCompetition[]): {
   mine: HubCompetition[]
   discover: HubCompetition[]

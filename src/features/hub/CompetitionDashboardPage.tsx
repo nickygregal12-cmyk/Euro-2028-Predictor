@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Alert, Button, EmptyIllustration, Masthead } from '../../design-system'
+import { Alert, Button, EmptyIllustration } from '../../design-system'
+import {
+  competitionGameRoute,
+  competitionSectionRoute,
+  type DomesticGameRoute,
+} from '../../app/weeklyRoutes'
 import {
   fetchHubMembership,
   type HubSeasonMembership,
@@ -20,69 +25,25 @@ import {
 } from './competitionCatalogue'
 import { applyHubMembership } from './hubMembership'
 import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAction'
+import { SeasonCompetitionShell } from '../season/SeasonCompetitionShell'
+import { seasonShellDestinations } from '../season/seasonDestinations'
 
-/**
- * One competition season: its games, and what the player may do about each.
- *
- * IT READS MEMBERSHIP FROM THE SERVER, like the Hub one level up. It used to
- * render the static catalogue's `joined` flag, which meant this page could say
- * "Joined" while the Hub — reading the same season from the database — said the
- * opposite one tap away. The catalogue still supplies presentation copy and the
- * slugs; the database supplies membership, exactly the split the Hub uses.
- *
- * THE MEMBERSHIP BUTTON DOES SOMETHING NOW. It was rendered enabled with no
- * handler at all, so pressing "Join game" did nothing and said nothing — a
- * player could not tell a broken control from a refused action. Every fact
- * needed to wire it was already in `get_competition_games`; the decode layer
- * was discarding the game id that a join is addressed by.
- *
- * A FAILED READ IS NEVER DRESSED AS "NOT JOINED". Loading, failed and ready are
- * three distinct states, because the catalogue's own default said the Premier
- * League games were joined and a silent fallback to it would assert membership
- * the server never confirmed.
- */
-
-/**
- * The route each game card opens.
- *
- * The season games resolve their own season from these slugs, so one entry per
- * game kind covers every competition season the catalogue holds rather than
- * naming them one at a time. Only the Euro Original Predictor keeps a fixed
- * path, because it predates the competition-scoped routes and owns its own.
- *
- * `league-predictor` is the one that still returns null: the Main Predictor
- * card needs the matchweek to open at, and resolving "the next playable
- * matchweek" is the play-context read that arrives with its own contract.
- */
-function gamePath(
-  competitionSlug: string,
-  seasonSlug: string,
-  game: HubGame,
-): string | null {
-  if (competitionSlug === 'euro' && seasonSlug === '2028' && game.kind === 'original-predictor') {
-    return '/competitions/euro/2028/original'
-  }
-
-  // The season Match Predictor. Reached from here rather than named in the
-  // catalogue because the catalogue describes the games a competition offers,
-  // and where a game lives is a routing fact — the Euro entry above is the same
-  // decision, made once already.
-  if (game.kind === 'league-predictor' && isNextUi('seasonMatchPredictor')) {
-    return `/competitions/${competitionSlug}/${seasonSlug}/main-predictor`
-  }
-
-  // The other two season games carry no flag of their own: they are read-only
-  // surfaces plus an entry control, with no lock or scoring interaction to roll
-  // back, so the route is the whole change.
-  const base = `/competitions/${competitionSlug}/${seasonSlug}`
+function domesticGameRoute(game: HubGame): DomesticGameRoute | null {
   switch (game.kind) {
+    case 'league-predictor':
+      return isNextUi('seasonMatchPredictor') ? 'match-predictor' : null
     case 'last-man-standing':
-      return `${base}/last-man-standing`
+      return 'lms'
     case 'predictor-championship':
-      return `${base}/championship`
+      return 'championship'
     default:
       return null
   }
+}
+
+function gamePath(competition: HubCompetition, game: HubGame): string | null {
+  const route = domesticGameRoute(game)
+  return route ? competitionGameRoute(competition, route) : null
 }
 
 type DashboardState =
@@ -115,14 +76,14 @@ function useCompetitionDashboard(competition: HubCompetition | null) {
     return () => {
       active = false
     }
-    // The catalogue entry is a module constant resolved from the route, so the
-    // season name is the whole identity of this read.
   }, [seasonRowName, nonce, competition])
 
   return { state, reload: useCallback(() => setNonce((value) => value + 1), []) }
 }
 
-export function CompetitionDashboardPage() {
+type CompetitionPageMode = 'overview' | 'games'
+
+function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
   const navigate = useNavigate()
   const { competitionSlug, seasonSlug } = useParams<{
     competitionSlug: string
@@ -130,7 +91,6 @@ export function CompetitionDashboardPage() {
   }>()
   const catalogue = findHubCompetition(competitionSlug, seasonSlug)
   const { state, reload } = useCompetitionDashboard(catalogue)
-
   const [acting, setActing] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -139,15 +99,10 @@ export function CompetitionDashboardPage() {
     setActing(served.id)
     setActionError(null)
     try {
-      if (leaving) {
-        await withdrawBonusCompetition(served.id)
-      } else {
-        await registerBonusCompetition(served.id)
-      }
+      if (leaving) await withdrawBonusCompetition(served.id)
+      else await registerBonusCompetition(served.id)
       reload()
     } catch (error) {
-      // Reload regardless: the reloaded facts are what explain an ambiguous
-      // refusal, which the code alone cannot.
       setActionError(gameMembershipRefusal(error))
       reload()
     } finally {
@@ -158,57 +113,38 @@ export function CompetitionDashboardPage() {
   if (!catalogue) {
     return (
       <div className={s.page}>
-        <Masthead>
-          <div className={s.header}>
-            <span className={s.eyebrow}>Football Prediction Hub</span>
-            <h1 className={s.title}>Competition unavailable</h1>
-          </div>
-        </Masthead>
         <div className={h.empty}>
           <EmptyIllustration variant="list" />
         </div>
         <Alert variant="warning" title="This competition could not be found">
-          Return to the hub and choose an available competition season.
+          Return to the Hub and choose an available competition season.
         </Alert>
         <Button variant="primary" fullWidth onClick={() => navigate('/')}>
-          Back to hub
+          Back to Hub
         </Button>
       </div>
     )
   }
 
-  // Presentation comes from the catalogue until the server has answered, but
-  // membership does not: an unconfirmed `joined` is shown as unknown rather
-  // than asserted from a constant.
   const competition = state.status === 'ready' ? state.competition : catalogue
   const membershipKnown = state.status === 'ready'
   const servedGames = state.status === 'ready' ? (state.season?.seasonGames.games ?? []) : []
   const serverNow = state.status === 'ready' ? (state.season?.seasonGames.serverNow ?? null) : null
+  const base = competitionSectionRoute(competition, 'overview')
+  const destinations = seasonShellDestinations(base)
 
   return (
-    <div className={s.page}>
-      <Masthead>
-        <div className={s.header}>
-          <span className={s.eyebrow}>Football Prediction Hub</span>
-          <h1 className={s.title}>{competition.name}</h1>
-          <div className={h.seasonRow}>
-            <span className={h.season}>{competition.seasonLabel}</span>
-            <span className={h.status}>{competition.status}</span>
-          </div>
-        </div>
-      </Masthead>
-
-      {/* This paragraph used to promise what the dashboard *would* one day
-          prioritise — incomplete predictions, the next lock, live results,
-          ranks. A roadmap rendered as body text tells a player nothing about
-          their own competition, so it is replaced by the games below, which
-          are real. What belongs here instead is next action and next lock, and
-          those arrive with the reads that can answer them. */}
-
+    <SeasonCompetitionShell
+      competitionName={competition.name}
+      seasonLabel={competition.seasonLabel}
+      statusStrip={[competition.status]}
+      active={mode}
+      destinations={destinations}
+    >
       {state.status === 'failed' ? (
         <Alert variant="warning" title="Couldn’t check your entries">
-          Which games you have joined couldn’t be loaded right now, so no entry is claimed
-          either way. Your entries are unaffected.
+          Which games you have joined couldn’t be loaded right now, so no entry is claimed either
+          way. Your entries are unaffected.
           <div style={{ marginTop: 10 }}>
             <Button variant="secondary" onClick={reload}>
               Retry
@@ -217,87 +153,109 @@ export function CompetitionDashboardPage() {
         </Alert>
       ) : null}
 
-      {actionError ? (
-        <Alert variant="error" title="That change was not saved">
-          {actionError}
-        </Alert>
-      ) : null}
+      {mode === 'overview' ? (
+        <section className={h.section} aria-labelledby="competition-overview">
+          <div className={h.sectionHead}>
+            <h2 className={h.sectionTitle} id="competition-overview">
+              Overview
+            </h2>
+          </div>
+          <p className={s.sub}>{competition.summary}</p>
+          <Button
+            variant="primary"
+            fullWidth
+            onClick={() => navigate(competitionSectionRoute(competition, 'games'))}
+          >
+            View games
+          </Button>
+        </section>
+      ) : (
+        <>
+          {actionError ? (
+            <Alert variant="error" title="That change was not saved">
+              {actionError}
+            </Alert>
+          ) : null}
 
-      <section className={h.section} aria-labelledby="dashboard-games">
-        <div className={h.sectionHead}>
-          <h2 className={h.sectionTitle} id="dashboard-games">
-            Games
-          </h2>
-          <span className={h.sectionCount}>{competition.games.length}</span>
-        </div>
+          <section className={h.section} aria-labelledby="competition-games">
+            <div className={h.sectionHead}>
+              <h2 className={h.sectionTitle} id="competition-games">
+                Games
+              </h2>
+              <span className={h.sectionCount}>{competition.games.length}</span>
+            </div>
 
-        <div className={h.gameStack}>
-          {competition.games.map((game) => {
-            const path = gamePath(competition.competitionSlug, competition.seasonSlug, game)
-            const headingId = `game-${game.kind}`
-            const served = servedGames.find((entry) => entry.gameKey === game.gameKey)
-            const decision = served ? decideGameMembership(served, serverNow) : null
-            const busy = served !== undefined && acting === served.id
+            <div className={h.gameStack}>
+              {competition.games.map((game) => {
+                const path = gamePath(competition, game)
+                const headingId = `game-${game.kind}`
+                const served = servedGames.find((entry) => entry.gameKey === game.gameKey)
+                const decision = served ? decideGameMembership(served, serverNow) : null
+                const busy = served !== undefined && acting === served.id
 
-            return (
-              <section
-                className={`${h.gameCard} ${game.joined ? '' : h.gameCardAvailable}`}
-                key={game.kind}
-                aria-labelledby={headingId}
-              >
-                <div className={h.gameHeader}>
-                  <h3 className={h.gameCardHeading} id={headingId}>
-                    {game.name}
-                  </h3>
-                  {!membershipKnown ? null : game.joined ? (
-                    <span className={h.joined}>Joined</span>
-                  ) : (
-                    <span className={h.gameMeta}>
-                      {game.status === 'coming-soon' ? 'Coming soon' : 'Available'}
-                    </span>
-                  )}
-                </div>
-                <span className={h.gameDescription}>{game.description}</span>
-                <div className={h.actions}>
-                  <Button
-                    variant={path ? 'primary' : 'secondary'}
-                    fullWidth
-                    disabled={!path}
-                    onClick={() => path && navigate(path)}
+                return (
+                  <section
+                    className={`${h.gameCard} ${game.joined ? '' : h.gameCardAvailable}`}
+                    key={game.kind}
+                    aria-labelledby={headingId}
                   >
-                    {path ? 'Open game' : 'Build pending'}
-                  </Button>
+                    <div className={h.gameHeader}>
+                      <h3 className={h.gameCardHeading} id={headingId}>
+                        {game.name}
+                      </h3>
+                      {!membershipKnown ? null : game.joined ? (
+                        <span className={h.joined}>Joined</span>
+                      ) : (
+                        <span className={h.gameMeta}>
+                          {game.status === 'coming-soon' ? 'Coming soon' : 'Available'}
+                        </span>
+                      )}
+                    </div>
+                    <span className={h.gameDescription}>{game.description}</span>
+                    <div className={h.actions}>
+                      <Button
+                        variant={path ? 'primary' : 'secondary'}
+                        fullWidth
+                        disabled={!path}
+                        onClick={() => path && navigate(path)}
+                      >
+                        {path ? 'Open game' : 'Build pending'}
+                      </Button>
 
-                  {/* No dead controls: an action the server would refuse is
-                      stated as a sentence rather than rendered as a button. */}
-                  {decision?.action ? (
-                    <Button
-                      variant="secondary"
-                      fullWidth
-                      disabled={busy || acting !== null}
-                      onClick={() =>
-                        served && changeMembership(served, decision.action === 'leave')
-                      }
-                    >
-                      {busy ? 'Saving…' : decision.label}
-                    </Button>
-                  ) : decision?.refusal ? (
-                    <p className={h.gameMeta}>{decision.refusal}</p>
-                  ) : (
-                    <Button variant="secondary" fullWidth disabled>
-                      {state.status === 'loading' ? 'Checking…' : 'Entry unavailable'}
-                    </Button>
-                  )}
-                </div>
-              </section>
-            )
-          })}
-        </div>
-      </section>
-
-      <Button variant="secondary" fullWidth onClick={() => navigate('/')}>
-        Back to all competitions
-      </Button>
-    </div>
+                      {decision?.action ? (
+                        <Button
+                          variant="secondary"
+                          fullWidth
+                          disabled={busy || acting !== null}
+                          onClick={() =>
+                            served && changeMembership(served, decision.action === 'leave')
+                          }
+                        >
+                          {busy ? 'Saving…' : decision.label}
+                        </Button>
+                      ) : decision?.refusal ? (
+                        <p className={h.gameMeta}>{decision.refusal}</p>
+                      ) : (
+                        <Button variant="secondary" fullWidth disabled>
+                          {state.status === 'loading' ? 'Checking…' : 'Entry unavailable'}
+                        </Button>
+                      )}
+                    </div>
+                  </section>
+                )
+              })}
+            </div>
+          </section>
+        </>
+      )}
+    </SeasonCompetitionShell>
   )
+}
+
+export function CompetitionDashboardPage() {
+  return <CompetitionPage mode="overview" />
+}
+
+export function CompetitionGamesPage() {
+  return <CompetitionPage mode="games" />
 }

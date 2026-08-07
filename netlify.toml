@@ -5,48 +5,12 @@
 [build.environment]
   NODE_VERSION = "22.22.2"
 
-# Deploy previews only — never production, never a branch deploy.
-#
-# The public landing page (modernisation plan Appendix E) is behind a
-# fail-closed route flag, so a preview built without it renders the behaviour
-# the flag replaces: `/` redirects to `/auth/login` and the page under review
-# cannot be reached at all. A reviewer clicking the preview link would be
-# looking at the old front door and reasonably conclude nothing had changed.
-#
-# `context.deploy-preview` scopes this to pull-request builds. Production keeps
-# the flag unset and therefore keeps the redirect, which is the whole point of
-# the flag: exposure is a separate, deliberate decision from merging.
 [context.deploy-preview.environment]
   VITE_UI_PUBLIC_LANDING = "true"
-  # The season Match Predictor, on for review and nowhere else. Its route
-  # renders 404 with the flag unset, which is the honest rollback — there was
-  # never a legacy season card to restore — so a reviewer following a preview
-  # link would otherwise find the address does not exist and reasonably
-  # conclude the journey was not built. Production keeps it unset, and turning
-  # it on there is a separate, deliberate exposure decision that this file
-  # cannot make.
   VITE_UI_SEASON_MATCH_PREDICTOR = "true"
 
-# SPA routing.
-#
-# Every rule below rewrites to the same SPA entry point; only the HTTP status
-# differs. Known application routes answer 200; anything else falls through to
-# the final catch-all and answers 404, so a nonexistent URL is no longer
-# indexable as a real page (SEO-001, soft 404s).
-#
-# Real files are never shadowed by these rules. Netlify serves an existing file
-# — /assets/*, /release.json, /robots.txt, /sitemap.xml, the favicons — before
-# applying a redirect, unless the rule sets `force = true`. Do not add `force`
-# to any rule here; it would break asset delivery and the release identity that
-# production smoke reads.
-#
-# This list is kept honest by tests/app/spaRoutingStatus.test.ts, which reads
-# the routes out of src/App.tsx and fails if one is missing, unknown or ordered
-# so that a parameterised rule shadows a static sibling. Add a route to
-# src/App.tsx and this file, in the same change.
-#
-# Static routes first, then parameterised ones: Netlify applies the first
-# matching rule, so `/league/:id` must not intercept `/league/overall`.
+# Known application routes answer 200. Anything else reaches the final 404
+# rewrite and renders the SPA NotFoundPage without becoming a soft 200.
 
 [[redirects]]
   from = "/"
@@ -79,92 +43,7 @@
   status = 200
 
 [[redirects]]
-  from = "/competitions/euro/2028/original"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/play"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/standings"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/last-man-standing"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/championship"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/leagues"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/matches"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
   from = "/play"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/fixtures"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/leagues"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/predict"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/predict/third-place"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/predict/bracket"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/predict/jokers"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/predict/review"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/prediction-trends"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/league"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/league/overall"
   to = "/index.html"
   status = 200
 
@@ -174,7 +53,32 @@
   status = 200
 
 [[redirects]]
+  from = "/leagues"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/more"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/fixtures"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/league"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/account"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/profile"
   to = "/index.html"
   status = 200
 
@@ -185,41 +89,6 @@
 
 [[redirects]]
   from = "/more/scoring"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/account"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/games"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/games/knockout"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/games/ko-predictor"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/games/lms"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/games/cup"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/profile"
   to = "/index.html"
   status = 200
 
@@ -238,13 +107,54 @@
   to = "/index.html"
   status = 200
 
+# Static competition children precede the parameterised competition root.
 [[redirects]]
-  from = "/join/:code"
+  from = "/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings"
   to = "/index.html"
   status = 200
 
 [[redirects]]
-  from = "/predict/groups/:letter"
+  from = "/competitions/:competitionSlug/:seasonSlug/games/match-predictor"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/games/championship"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/games/lms"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/games"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/play"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/matches"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/leagues"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/join/:code"
   to = "/index.html"
   status = 200
 
@@ -259,55 +169,17 @@
   status = 200
 
 [[redirects]]
-  from = "/match/:matchRef"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
   from = "/profile/:playerId"
   to = "/index.html"
   status = 200
 
-# The season competition surfaces. Both are parameterised, so they sit with the
-# other parameterised rules and above the catch-all.
-#
-# The dashboard rule is a correction rather than a new route: the route has been
-# declared in `App.tsx` since the hub landed, but it is written across several
-# lines and the guard that relates routes to these rules matched only
-# single-line declarations. Netlify therefore answered it from the `/*` rule
-# with a 404 while the SPA rendered the dashboard — the soft-status inversion
-# these rules exist to prevent, inverted the other way.
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug"
-  to = "/index.html"
-  status = 200
-
-[[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/main-predictor"
-  to = "/index.html"
-  status = 200
-
-# Unknown path: still render the SPA (which shows NotFoundPage), but answer 404
-# so crawlers and monitoring see a real not-found rather than a soft 200.
+# Old Euro/tournament and old domestic game routes are intentionally absent.
+# They fall through to the ordinary weekly 404 rather than receiving a 200.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 404
 
-# Security headers, applied to every response.
-#
-# The CSP allow-list is deliberately tight but MUST permit everything the app
-# actually loads, or real functionality breaks:
-#   - Supabase (REST + Auth + Realtime): https + wss to *.supabase.co (connect-src)
-#   - Sentry error envelopes only: approved cloud ingest hosts (connect-src);
-#     no replay, tracing, user identity or automatic breadcrumbs are enabled.
-#   - Cloudflare Turnstile: the loader script + the widget iframe
-#     (challenges.cloudflare.com in script-src and frame-src)
-#   - Fonts are self-hosted (bundled woff2, same-origin) — no external font
-#     origins needed; font-src 'self'.
-#   - Flag SVGs are bundled assets (img-src 'self'); React inline styles need
-#     'unsafe-inline' in style-src.
-# If you add an external resource, update this list or it will be blocked.
 [[headers]]
   for = "/*"
   [headers.values]

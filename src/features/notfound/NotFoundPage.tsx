@@ -1,27 +1,30 @@
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
+import { logicalWeeklyParent, weeklyRoutes } from '../../app/weeklyRoutes'
 import { Button } from '../../design-system'
 import styles from './NotFound.module.css'
 
-/**
- * Recovery view for unknown routes (replaces the old silent redirect-to-home).
- * Standalone — renders whether or not a session exists — with the app voice and
- * a clear way back. "Back to home" routes to `/`; the route gates take a
- * signed-out visitor on to log in from there, so it's never a dead end.
- */
 export function NotFoundPage() {
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const parent = logicalWeeklyParent(pathname)
+
   return (
     <div className={styles.screen}>
       <div className={styles.inner}>
         <p className={styles.eyebrow}>404</p>
         <h1 className={styles.title}>This page has gone walkabout</h1>
         <p className={styles.body}>
-          That link doesn&rsquo;t lead anywhere in the predictor — it may be old, mistyped, or
-          something we&rsquo;ve moved. No harm done; your predictions are safe.
+          That link doesn&rsquo;t lead anywhere in the weekly predictor. It may be old, mistyped,
+          or something we&rsquo;ve moved. Your predictions are unaffected.
         </p>
         <div className={styles.action}>
-          <Button variant="primary" fullWidth onClick={() => navigate('/')}>
-            Back to home
+          {parent && parent.href !== weeklyRoutes.hub ? (
+            <Button variant="secondary" fullWidth onClick={() => navigate(parent.href)}>
+              {parent.label}
+            </Button>
+          ) : null}
+          <Button variant="primary" fullWidth onClick={() => navigate(weeklyRoutes.hub)}>
+            Back to Hub
           </Button>
         </div>
       </div>
