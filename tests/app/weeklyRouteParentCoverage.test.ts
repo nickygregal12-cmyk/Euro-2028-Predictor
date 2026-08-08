@@ -21,7 +21,7 @@ const SHIPPED_WEEKLY_ROUTES = [
   '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
   '/competitions/:competitionSlug/:seasonSlug/games/lms',
-  '/competitions/:competitionSlug/:seasonSlug/games/championship',
+  '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   '/competitions/:competitionSlug/:seasonSlug/leagues',
   '/league/:id',
   '/h2h/:rivalId',
@@ -38,6 +38,7 @@ function materialise(template: string): string {
     .replace(':id', 'private-1')
     .replace(':rivalId', 'player-2')
     .replace(':playerId', 'player-2')
+    .replace('*', 'private-1')
 }
 
 describe('weekly route parent coverage', () => {
