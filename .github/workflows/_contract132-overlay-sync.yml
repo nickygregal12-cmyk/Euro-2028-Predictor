@@ -24,48 +24,54 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-
           test_path = Path('tests/scripts/stageC1SchemaOverlayCoverage.test.ts')
           test = test_path.read_text()
-          old = """    // contracts 129 and 130: `get_season_head_to_head` and
-    // `get_season_prediction_consensus`, the two season comparison reads. The
-    // pin is a positive control on the inventory, so it moves only when a
-    // function is genuinely added to the manifest.
-    expect(reviewedFunctions).toHaveLength(62)
-"""
-          new = """    // contracts 129 and 130: `get_season_head_to_head` and
-    // `get_season_prediction_consensus`, the two season comparison reads.
-    // 62 -> 64 at contract 132: `admin_approve_initial_provider_fixtures` and
-    // `admin_reject_initial_provider_fixtures`, the explicit initial-calendar
-    // decision authorities. The pin is a positive control on the inventory, so
-    // it moves only when a function is genuinely added to the manifest.
-    expect(reviewedFunctions).toHaveLength(64)
-"""
+          old_lines = [
+              '    // contracts 129 and 130: `get_season_head_to_head` and',
+              '    // `get_season_prediction_consensus`, the two season comparison reads. The',
+              '    // pin is a positive control on the inventory, so it moves only when a',
+              '    // function is genuinely added to the manifest.',
+              '    expect(reviewedFunctions).toHaveLength(62)',
+          ]
+          new_lines = [
+              '    // contracts 129 and 130: `get_season_head_to_head` and',
+              '    // `get_season_prediction_consensus`, the two season comparison reads.',
+              '    // 62 -> 64 at contract 132: `admin_approve_initial_provider_fixtures` and',
+              '    // `admin_reject_initial_provider_fixtures`, the explicit initial-calendar',
+              '    // decision authorities. The pin is a positive control on the inventory, so',
+              '    // it moves only when a function is genuinely added to the manifest.',
+              '    expect(reviewedFunctions).toHaveLength(64)',
+          ]
+          old = '\n'.join(old_lines) + '\n'
+          new = '\n'.join(new_lines) + '\n'
           if old not in test:
               raise SystemExit('expected Stage C1 coverage count block not found')
           test_path.write_text(test.replace(old, new, 1))
-
           overlay_path = Path('docs/architecture/stage-c1-schema-overlay.md')
           overlay = overlay_path.read_text()
-          anchor = """- `get_season_head_to_head`
-- `get_season_prediction_consensus`
-
-Bonus Game C1 scope review covers:
-"""
-          replacement = """- `get_season_head_to_head`
-- `get_season_prediction_consensus`
-
-Contract 132 adds two explicit initial-calendar decision authorities. Both take
-`p_tournament_id`, operate only on that season's staged provider proposals, and
-preserve the existing competition-admin capability boundary. Approval is
-empty-season-only and rejection creates no canonical football rows, so neither
-RPC changes C1 identity or auth ownership semantics:
-
-- `admin_approve_initial_provider_fixtures`
-- `admin_reject_initial_provider_fixtures`
-
-Bonus Game C1 scope review covers:
-"""
+          anchor_lines = [
+              '- `get_season_head_to_head`',
+              '- `get_season_prediction_consensus`',
+              '',
+              'Bonus Game C1 scope review covers:',
+          ]
+          replacement_lines = [
+              '- `get_season_head_to_head`',
+              '- `get_season_prediction_consensus`',
+              '',
+              'Contract 132 adds two explicit initial-calendar decision authorities. Both take',
+              "`p_tournament_id`, operate only on that season's staged provider proposals, and",
+              'preserve the existing competition-admin capability boundary. Approval is',
+              'empty-season-only and rejection creates no canonical football rows, so neither',
+              'RPC changes C1 identity or auth ownership semantics:',
+              '',
+              '- `admin_approve_initial_provider_fixtures`',
+              '- `admin_reject_initial_provider_fixtures`',
+              '',
+              'Bonus Game C1 scope review covers:',
+          ]
+          anchor = '\n'.join(anchor_lines) + '\n'
+          replacement = '\n'.join(replacement_lines) + '\n'
           if anchor not in overlay:
               raise SystemExit('expected Stage C1 function anchor not found')
           overlay_path.write_text(overlay.replace(anchor, replacement, 1))
