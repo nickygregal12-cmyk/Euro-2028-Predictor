@@ -1,0 +1,32 @@
+name: Temporary docs cleanup runner
+
+on:
+  push:
+    branches:
+      - docs/live-authority-reconciliation-20260808
+    paths:
+      - '.github/workflows/tmp-doc-cleanup-run.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: docs/live-authority-reconciliation-20260808
+          fetch-depth: 0
+      - name: Apply cleanup
+        run: python scripts/tmp_doc_cleanup.py
+      - name: Verify and commit
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/ops/ops-pending-migrations.md tests/scripts/documentationContractFreshness.test.ts
+          git commit -m 'Docs: remove superseded Netlify instructions'
+          git push origin HEAD:docs/live-authority-reconciliation-20260808
