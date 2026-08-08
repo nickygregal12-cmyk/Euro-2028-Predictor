@@ -24,26 +24,41 @@ const CompetitionGamesPage = lazy(() =>
   })),
 )
 const SeasonMatchPredictorRoute = lazy(() =>
-  import('./features/season/SeasonMatchPredictorRoute').then((m) => ({
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonMatchPredictorRoute,
   })),
 )
 const SeasonPlayRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonPlayRoute })),
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonPlayRoute })),
 )
 const SeasonStandingsRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonStandingsRoute })),
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonStandingsRoute })),
 )
 const SeasonLmsRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({ default: m.SeasonLmsRoute })),
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonLmsRoute })),
 )
 const SeasonChampionshipRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonChampionshipRoute,
   })),
 )
+const SeasonChampionshipFixtureRoute = lazy(() =>
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
+    default: m.SeasonChampionshipFixtureRoute,
+  })),
+)
+const SeasonChampionshipTableRoute = lazy(() =>
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
+    default: m.SeasonChampionshipTableRoute,
+  })),
+)
+const SeasonChampionshipFixturesRoute = lazy(() =>
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
+    default: m.SeasonChampionshipFixturesRoute,
+  })),
+)
 const SeasonLeaguesRoute = lazy(() =>
-  import('./features/season/SeasonGameRoutes').then((m) => ({
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonLeaguesRoute,
   })),
 )
@@ -213,6 +228,18 @@ export default function App() {
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug/games/championship"
                       element={<SeasonChampionshipRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId"
+                      element={<SeasonChampionshipFixtureRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId/table"
+                      element={<SeasonChampionshipTableRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId/fixtures"
+                      element={<SeasonChampionshipFixturesRoute />}
                     />
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug/leagues"
