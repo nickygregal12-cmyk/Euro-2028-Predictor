@@ -1,0 +1,60 @@
+name: Session Contract 133 Gate Repair 2
+
+on:
+  push:
+    branches:
+      - feature/contract-133-private-championship-restack
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/contract-133-private-championship-restack
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Repair remaining Contract 133 gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          test = Path('supabase/tests/185_private_season_cup_player_reads.sql')
+          sql = test.read_text()
+          old = """select is(\n  jsonb_object_length(\n    public.get_season_cup_player_view(md5('c133-private')::uuid)\n  ),\n  2,\n  'the denied private-id response exposes no visibility, membership, group or fixture metadata');"""
+          new = """select is(\n  (\n    select count(*)::integer\n    from jsonb_object_keys(\n      public.get_season_cup_player_view(md5('c133-private')::uuid)\n    )\n  ),\n  2,\n  'the denied private-id response exposes no visibility, membership, group or fixture metadata');"""
+          if old not in sql:
+              raise SystemExit('jsonb_object_length assertion not found')
+          test.write_text(sql.replace(old, new, 1))
+
+          status = Path('docs/quality/current-status.md')
+          text = status.read_text()
+          old_top = 'The repository candidate is **132**. Development Supabase and Production Supabase are both still hosted at **131** before the authorised Contract 132 rollout; Development is promoted and verified first, then Production.'
+          new_top = 'The repository candidate is **133**. Development Supabase and Production Supabase are both hosted at **132** after the verified Contract 132 rollouts; Contract 133 remains repository-only until its guarded Development rollout is applied and verified.'
+          if old_top not in text:
+              raise SystemExit('current-status top Contract 132 sentence not found')
+          text = text.replace(old_top, new_top, 1)
+          old_row = '| Repository contract | **132** — 132 canonical migrations through `20260807210812_provider_initial_fixture_approval.sql`. Contract 132'
+          new_row = '| Repository contract | **133** — 133 canonical migrations through `20260808003000_private_season_cup_player_reads.sql`. Contract 133 adds authenticated-only private season Predictor Championship discovery and selected-instance player reads while preserving server-owned ranking, scoring, settlement and progression. Contract 132'
+          if old_row not in text:
+              raise SystemExit('current-status repository Contract 132 row not found')
+          status.write_text(text.replace(old_row, new_row, 1))
+          PY
+          rm .github/workflows/session-contract-133-gate-repair-2.yml
+      - name: Commit repaired branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/tests/185_private_season_cup_player_reads.sql docs/quality/current-status.md .github/workflows/session-contract-133-gate-repair-2.yml
+          git diff --cached --exit-code && exit 0
+          git commit -m 'Contract 133: close remaining CI and pgTAP gaps'
+          git push origin HEAD:feature/contract-133-private-championship-restack
