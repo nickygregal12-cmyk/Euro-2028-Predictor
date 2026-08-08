@@ -1,3 +1,7 @@
+import { weeklyRoutes } from './shellRoutes'
+
+export { isCompetitionModePath, weeklyRoutes } from './shellRoutes'
+
 export type CompetitionRouteRef = {
   competitionSlug: string
   seasonSlug: string
@@ -5,14 +9,6 @@ export type CompetitionRouteRef = {
 
 export type CompetitionSection = 'overview' | 'play' | 'matches' | 'games' | 'leagues'
 export type DomesticGameRoute = 'match-predictor' | 'lms' | 'championship'
-
-export const weeklyRoutes = {
-  hub: '/',
-  play: '/play',
-  matches: '/matches',
-  leagues: '/leagues',
-  more: '/more',
-} as const
 
 function cleanSegment(value: string, name: string): string {
   const trimmed = value.trim()
@@ -98,10 +94,6 @@ export function competitionRefFromPath(pathname: string): CompetitionRouteRef | 
   const match = pathname.match(/^\/competitions\/([^/]+)\/([^/]+)(?:\/|$)/)
   if (!match?.[1] || !match[2]) return null
   return { competitionSlug: match[1], seasonSlug: match[2] }
-}
-
-export function isCompetitionModePath(pathname: string): boolean {
-  return competitionRefFromPath(pathname) !== null
 }
 
 export type LogicalParent = {
