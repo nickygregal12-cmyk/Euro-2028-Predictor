@@ -1,13 +1,14 @@
 # Architecture planning documents
 
-This directory separates **programme planning** from **engineering planning**.
+This directory separates **programme planning** from **engineering planning** and focused product/data workstreams.
 
 | Document | Role |
 | --- | --- |
 | [`phase-0-world-cup-evidence.md`](phase-0-world-cup-evidence.md) | **The only user evidence the programme holds.** Owner observation of a live World Cup predictor, ~60 users, through a full tournament. Where it contradicts a planning assumption the evidence wins and the assumption is corrected |
 | [`programme-plan.md`](programme-plan.md) | Parent product programme: phases, parallel workstreams, discovery, design, instrumentation, go-to-market and failable product gates |
 | [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) | Child engineering workstream: Stage A–L implementation sequence and engineering exit evidence |
-| [`stage-c1-c2-governance.md`](stage-c1-c2-governance.md) | **Current Stage C implementation boundary:** C1 competition-season foundation may proceed through review; C2 profile ownership/account erasure remains blocked by issue #272 |
+| [`provider-enrichment-plan.md`](provider-enrichment-plan.md) | **P1 post-provider-foundation data/product workstream:** what football reference, team/player, kit, lineup, event and statistics data to measure, store/cache or derive; preserves the separate protected result/scoring authority |
+| [`stage-c1-c2-governance.md`](stage-c1-c2-governance.md) | Retained Stage C split authority: C1 competition-season foundation has landed; C2 profile ownership/account erasure remains blocked by issue #272 |
 | [`stage-c1-contract-classification.md`](stage-c1-contract-classification.md) | Executable classification of all 49 Stage C/C2-before-state assertions: 40 C1, zero authorised C2 after-state and nine shared-before-state |
 | [`stage-c1-schema-overlay.md`](stage-c1-schema-overlay.md) | **C1 implementation authority:** relation, function, RLS, migration-order and evidence dispositions that separate the combined design from blocked C2 work |
 | [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md) | Approved combined Stage C design record, retained as reasoning and overlaid for implementation by the C1/C2 governance and C1 schema overlay |
@@ -23,7 +24,8 @@ A cold reader should use the documents in this order:
 0. [`phase-0-world-cup-evidence.md`](phase-0-world-cup-evidence.md) first, because it is observation rather than reasoning. Several planning statements downstream of it are corrections *made because of it*, and they read as arbitrary without it;
 1. programme plan for why, when and how the wider product work is gated;
 2. engineering workstream for implementation sequence;
-3. ADRs for binding decisions;
-4. the Stage C governance amendment, assertion classification and C1 schema overlay;
-5. the original combined Stage C design/coverage and their detailed inventories;
-6. current status for what is actually true now.
+3. [`provider-enrichment-plan.md`](provider-enrichment-plan.md) when working on football-data enrichment, Match Centre data or provider-backed team/player information;
+4. ADRs for binding decisions;
+5. the Stage C governance amendment, assertion classification and C1 schema overlay when touching that retained boundary;
+6. the original combined Stage C design/coverage and their detailed inventories for historical/schema reasoning;
+7. current status for what is actually true now.
