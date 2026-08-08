@@ -4,7 +4,7 @@
 
 begin;
 
-select plan(22);
+select plan(25);
 
 -- ---------------------------------------------------------------------------
 -- Surface and grants.
@@ -111,6 +111,18 @@ set local session_replication_role = origin;
 insert into public.profiles (id, display_name, welcomed_at)
 select md5('c133-user-' || n)::uuid, format('C133 Player %s', n), now()
 from generate_series(1, 5) n;
+
+-- A league-season entry is structurally the Main Predictor entry. Give the
+-- synthetic season that canonical availability before inserting entries so the
+-- ordinary C1b membership trigger is exercised rather than bypassed.
+insert into public.bonus_competitions (
+  tournament_id, game_key, published, availability_status,
+  registration_opens_at, registration_closes_at, draw_required, visibility_kind
+)
+select
+  probe.season_id, 'main_predictor', false, 'active',
+  now() - interval '2 hours', now() + interval '1 day', false, 'public'
+from c133_probe probe;
 
 insert into public.entries (id, user_id, tournament_id, submitted_at)
 select md5('c133-entry-' || n)::uuid, md5('c133-user-' || n)::uuid,
