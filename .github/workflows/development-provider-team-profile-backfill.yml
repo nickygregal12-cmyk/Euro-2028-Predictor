@@ -211,8 +211,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          psql "${SUPABASE_DEV_DB_URL}" -X -At -v ON_ERROR_STOP=1 <<SQL \
-            > /tmp/provider-team-profile-backfill/postflight.json
+          psql "${SUPABASE_DEV_DB_URL}" -X -At -v ON_ERROR_STOP=1 \
+            > /tmp/provider-team-profile-backfill/postflight.json <<SQL
           select jsonb_build_object(
             'projectRef', '${EXPECTED_PROJECT_REF}',
             'tournamentId', '${SCOTTISH_TOURNAMENT_ID}',
