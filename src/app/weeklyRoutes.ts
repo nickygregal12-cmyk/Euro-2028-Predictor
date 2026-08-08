@@ -1,6 +1,6 @@
-import { weeklyRoutes } from './shellRoutes'
+import { weeklyRoutePatterns, weeklyRoutes } from './shellRoutes'
 
-export { isCompetitionModePath, weeklyRoutes } from './shellRoutes'
+export { isCompetitionModePath, weeklyRoutePatterns, weeklyRoutes } from './shellRoutes'
 
 export type CompetitionRouteRef = {
   competitionSlug: string
@@ -18,28 +18,36 @@ function cleanSegment(value: string, name: string): string {
   return trimmed
 }
 
-export function competitionRoute(ref: CompetitionRouteRef): string {
+function renderCompetitionPattern(
+  pattern: string,
+  ref: CompetitionRouteRef,
+): string {
   const competition = cleanSegment(ref.competitionSlug, 'competition')
   const season = cleanSegment(ref.seasonSlug, 'season')
-  return `/competitions/${competition}/${season}`
+  return pattern
+    .replace(':competitionSlug', competition)
+    .replace(':seasonSlug', season)
+}
+
+export function competitionRoute(ref: CompetitionRouteRef): string {
+  return renderCompetitionPattern(weeklyRoutePatterns.competition, ref)
 }
 
 export function competitionSectionRoute(
   ref: CompetitionRouteRef,
   section: CompetitionSection,
 ): string {
-  const base = competitionRoute(ref)
   switch (section) {
     case 'overview':
-      return base
+      return competitionRoute(ref)
     case 'play':
-      return `${base}/play`
+      return renderCompetitionPattern(weeklyRoutePatterns.play, ref)
     case 'matches':
-      return `${base}/matches`
+      return renderCompetitionPattern(weeklyRoutePatterns.matches, ref)
     case 'games':
-      return `${base}/games`
+      return renderCompetitionPattern(weeklyRoutePatterns.games, ref)
     case 'leagues':
-      return `${base}/leagues`
+      return renderCompetitionPattern(weeklyRoutePatterns.leagues, ref)
     default:
       return assertNever(section)
   }
@@ -49,21 +57,20 @@ export function competitionGameRoute(
   ref: CompetitionRouteRef,
   game: DomesticGameRoute,
 ): string {
-  const games = competitionSectionRoute(ref, 'games')
   switch (game) {
     case 'match-predictor':
-      return `${games}/match-predictor`
+      return renderCompetitionPattern(weeklyRoutePatterns.matchPredictor, ref)
     case 'lms':
-      return `${games}/lms`
+      return renderCompetitionPattern(weeklyRoutePatterns.lms, ref)
     case 'championship':
-      return `${games}/championship`
+      return renderCompetitionPattern(weeklyRoutePatterns.championship, ref)
     default:
       return assertNever(game)
   }
 }
 
 export function competitionGameStandingsRoute(ref: CompetitionRouteRef): string {
-  return `${competitionGameRoute(ref, 'match-predictor')}/standings`
+  return renderCompetitionPattern(weeklyRoutePatterns.matchPredictorStandings, ref)
 }
 
 export function competitionChampionshipInstanceRoute(
