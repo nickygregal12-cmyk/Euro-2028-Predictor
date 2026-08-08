@@ -5,7 +5,7 @@
   "latestMigrationName": "private_season_cup_player_reads",
   "verifiedAt": "2026-08-08T20:23:48.000Z",
   "evidence": {
-    "source": "Development Fast Lane run 31276698062 (run #46) completed successfully on 8 August 2026 from exact main 1138d0967bcff4168680980dc3352517f1e9c772. The guarded run proved the pending Development migration set additive, applied the sole pending migration 20260808003000_private_season_cup_player_reads.sql, and confirmed the hosted Development contract matched repository Contract 133 after apply. Independent read-only postflight then confirmed the Development migration ledger ended at 20260808003000_private_season_cup_player_reads.",
+    "source": "Development Fast Lane run 31276698062 (run #46) completed successfully on 8 August 2026 from exact main 1138d0967bcff4168680980dc3352517f1e9c772. The guarded run proved the pending Development migration set additive, applied the sole pending migration 20260808003000_private_season_cup_player_reads.sql, and confirmed the hosted Development contract matched repository Contract 133 after apply. A separate independent read-only verification then confirmed the Development migration ledger ended at 20260808003000_private_season_cup_player_reads.",
     "repositoryHead": "1138d0967bcff4168680980dc3352517f1e9c772",
     "workflowRunId": 31276698062,
     "workflowRunNumber": 46
