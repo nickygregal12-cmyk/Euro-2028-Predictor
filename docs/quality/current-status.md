@@ -385,3 +385,8 @@ The stable identifier, dependency and acceptance evidence for every accepted-but
 Contract 132 adds a tested initial provider-calendar approval boundary. New provider fixtures can be staged without becoming public, complete Scottish Premiership or Premier League calendars require explicit competition-admin approval, and provider scores cannot become official results through this path. Hosted rollout remains Development first, then Production after parity gates pass.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 defines authenticated-only private season Predictor Championship discovery and selected-instance player reads. Development and Production were directly reverified at Contract 132 during the 03:00 session; Contract 133 remains repository-only until its guarded Development rollout completes.
+
+## Contract 134 branch candidate — 8 August 2026
+
+`feature/provider-enrichment-foundation-contract-134` advances the **repository candidate** to Contract 134 with server-only provider team profile storage and retained-response provenance. This does not change hosted state: Development remains Contract 132 and Production remains Contract 132 until their normal guarded rollout gates are satisfied. Contract 133 must reach Development first so the private Championship journey can be verified before the dependent UI PR is merged. No provider image right is assumed and no enrichment field becomes official result/scoring authority.
+

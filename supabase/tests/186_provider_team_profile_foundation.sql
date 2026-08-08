@@ -7,7 +7,7 @@
 
 begin;
 
-select plan(18);
+select plan(20);
 
 select set_config('test.ptp_tournament',
   (select t.id::text from public.tournaments t where t.name = 'Scottish Premiership 2026/27'), true);

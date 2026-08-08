@@ -193,3 +193,8 @@ Never weaken an environment or deployment-contract guard merely to make a build 
 Contract 132 adds the reviewed first-publication path for real season calendars: successfully decoded provider fixtures are staged as immutable pending evidence and only a competition administrator may approve a complete initial Scottish Premiership (198 fixtures / 33 rounds / 12 teams) or Premier League (380 / 38 / 20) calendar. Provider scores remain evidence only; official result truth continues through the protected season-result authority.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 adds authenticated-only season Predictor Championship instance discovery and an explicit selected-instance player read. It grants no direct private Cup-table access, changes no game rule, and follows the directly verified Contract-132 hosted baseline.
+
+### Contract 134 candidate — provider team enrichment foundation
+
+The current branch may carry Contract 134 as a **repository candidate only**. It adds server-only provider team profile storage keyed by the existing provider identity map. It grants no browser/service-role table access, makes provider image URLs reference-only, and must not become fixture/result/scoring authority. Development and Production remain independently gated; do not apply or backfill Contract 134 merely to equalise contract numbers.
+

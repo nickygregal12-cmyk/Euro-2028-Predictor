@@ -249,3 +249,8 @@ Do not silently:
 The domestic-season baseline now includes staged initial provider fixture proposals and explicit administrator approval/rejection. Initial Scottish publication is constrained to 12 teams, 33 pre-split rounds and 198 fixtures; Premier League publication is constrained to 20 teams, 38 rounds and 380 fixtures. Created fixtures remain scheduled with null official scores until the separate protected result-confirmation authority is used.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 closes the server-read prerequisite for the private season Predictor Championship UI: an entrant can discover their own private instance and read the server-owned current group, opponent, table and fixture schedule without direct private-table grants.
+
+### Contract 134 candidate — non-browser enrichment storage
+
+Contract 134 adds no user-facing feature baseline by itself. `predictor_internal.provider_team_profiles` is server/operator-only current provider metadata, subordinate to the existing provider mapping and raw-response custody. There is no browser grant/RPC, no crest rendering and no change to fixture/result/scoring behaviour in this contract.
+
