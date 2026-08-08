@@ -26,30 +26,13 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
-
           seed = Path('e2e/seed-contract.ts')
           text = seed.read_text()
           old = 'export const SEED_REVIEWED_AT_CONTRACT = 133'
           new = 'export const SEED_REVIEWED_AT_CONTRACT = 134'
           if old not in text:
               raise SystemExit('expected Contract 133 seed review marker not found')
-          text = text.replace(old, new, 1)
-
-          anchor = '/** The users the deterministic browser environment provisions. */'
-          note = '''/**
- * Contract 134 seed review: Browser E2E rebuilt a disposable database from all
- * 134 committed migrations plus the deterministic seed and passed the
- * authenticated application journeys. Contract 134 adds only an internal,
- * browser-unreachable provider profile relation/function, so no seed
- * requirement changed; this marker records the executed verification rather
- * than inferring safety from the migration shape alone.
- */
-'''
-          if 'Contract 134 seed review:' not in text:
-              if anchor not in text:
-                  raise SystemExit('seed review insertion anchor not found')
-              text = text.replace(anchor, note + '\n' + anchor, 1)
-          seed.write_text(text)
+          seed.write_text(text.replace(old, new, 1))
           PY
 
       - name: Commit and push seed verification
