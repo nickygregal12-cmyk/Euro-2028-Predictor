@@ -1,0 +1,59 @@
+name: Contract 132 seed review sync
+
+on:
+  push:
+    branches:
+      - feature/provider-initial-fixture-approval-contract-132
+    paths:
+      - .github/workflows/_contract132-seed-review.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/provider-initial-fixture-approval-contract-132
+      - name: Record Contract 132 seed verification
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('e2e/seed-contract.ts')
+          text = path.read_text()
+          marker = 'export const SEED_REVIEWED_AT_CONTRACT = 131'
+          if marker not in text:
+              raise SystemExit('expected Contract 131 seed marker not found')
+          note = '''/**
+ * Contract 132 adds `predictor_internal.provider_fixture_proposals`, its
+ * append/decision immutability trigger, one internal staging function and two
+ * public administrator decision RPCs. It alters no existing browser-reachable
+ * relation, policy, trigger, read function or grant. The proposal table is RLS
+ * enabled and revoked from browser/service roles; the two new public RPCs are
+ * executable by `authenticated` only so they can establish `auth.uid()`, then
+ * immediately require the competition-admin capability before writing.
+ *
+ * Re-verified rather than assumed: Database Parity applied Contract 132 and
+ * passed its pgTAP/security suite, and the authenticated Browser E2E suite
+ * completed successfully on this candidate. The deterministic seeded Euro
+ * identities therefore still satisfy every existing authenticated read/write
+ * gate after Contract 132, while ordinary seeded players cannot publish an
+ * initial provider calendar.
+ */
+'''
+          text = text.replace(marker, note + 'export const SEED_REVIEWED_AT_CONTRACT = 132', 1)
+          path.write_text(text)
+          PY
+          git diff --check
+          git diff -- e2e/seed-contract.ts
+      - name: Commit seed review
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/seed-contract.ts
+          git commit -m "test: reverify seed contract at 132"
+          git push origin HEAD:feature/provider-initial-fixture-approval-contract-132
