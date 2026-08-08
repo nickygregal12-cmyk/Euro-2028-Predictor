@@ -63,8 +63,8 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
     'parameterised domestic game route — concrete season coverage remains harness work',
   ],
   [
-    '/competitions/:competitionSlug/:seasonSlug/games/championship',
-    'parameterised domestic game route — concrete season coverage remains harness work',
+    '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
+    'parameterised Championship route family — concrete private-instance season coverage remains harness work',
   ],
   [
     '/competitions/:competitionSlug/:seasonSlug/leagues',
