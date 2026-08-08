@@ -1,0 +1,50 @@
+name: Session Contract 133 Clean Documentation Sweep
+
+on:
+  push:
+    branches:
+      - feature/contract-133-private-championship-restack
+
+permissions:
+  contents: write
+
+jobs:
+  sweep:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/contract-133-private-championship-restack
+      - name: Record Contract 133 boundary in live authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs')
+          const notes = new Map([
+            ['AGENTS.md', 'Contract 133 adds authenticated-only season Predictor Championship instance discovery and an explicit selected-instance player read. It grants no direct private Cup-table access, changes no game rule, and follows the directly verified Contract-132 hosted baseline.'],
+            ['CLAUDE.md', 'Contract 133 adds authenticated-only season Predictor Championship instance discovery and an explicit selected-instance player read. The reads reuse the existing phase/table and neutral Cup scoring authorities; private Cup tables remain browser-revoked.'],
+            ['MASTER-TODO.md', 'Contract 133 supplies the bounded private Predictor Championship reads needed by DFA-007: caller-owned instance discovery plus selected My Fixture / Table / Fixtures data. The signed-in browser journey remains to be verified after hosted Development receives Contract 133.'],
+            ['docs/roadmap.md', 'Contract 133 is a bounded DFA-007 enabler after Contract 132: it exposes caller-owned private Predictor Championship instances and selected player fixture/table/schedule state. It does not reorder the Domestic Frontend Alpha or change Championship scoring/settlement.'],
+            ['docs/quality/current-status.md', 'Contract 133 defines authenticated-only private season Predictor Championship discovery and selected-instance player reads. Development and Production were directly reverified at Contract 132 during the 03:00 session; Contract 133 remains repository-only until its guarded Development rollout completes.'],
+            ['docs/ops/ops-pending-migrations.md', 'Contract 133 follows the directly verified hosted Contract-132 baseline and adds only bounded player reads for season Predictor Championship instances. Development must receive Contract 133 through the guarded fast lane before any separate Production promotion is considered.'],
+            ['docs/quality/feature-baseline.md', 'Contract 133 closes the server-read prerequisite for the private season Predictor Championship UI: an entrant can discover their own private instance and read the server-owned current group, opponent, table and fixture schedule without direct private-table grants.'],
+            ['docs/adr/README.md', 'Contract 133 implements an existing DFA-007/DFA-008 data boundary and introduces no new architectural decision: private Championship discovery is caller-scoped, while ranking/scoring/settlement remain with their existing authorities.'],
+            ['docs/design/README.md', 'Contract 133 supplies server-owned opponent/table/fixture data for the accepted Predictor Championship My Fixture / Table / Fixtures surfaces. It changes no visual authority and does not make History available.'],
+            ['docs/competition-structure.md', 'Contract 133 makes multiple season Predictor Championship instances observable to entitled players without changing the competition format: the current public instance remains discoverable, while a private instance is returned only to its existing entrants.'],
+            ['docs/architecture/programme-plan.md', 'Contract 133 is an implementation detail within the accepted Domestic Frontend Alpha: it provides bounded private Championship player reads after Contract 132 and does not change programme phase order or product gates.'],
+            ['docs/architecture/multi-competition-hub-build-plan.md', 'Contract 133 supplies the bounded read required for the DFA-007 private Predictor Championship journey: caller-owned instance discovery plus selected-instance My Fixture / Table / Fixtures state, with server-owned ranking and scoring retained.'],
+          ])
+          for (const [path, note] of notes) {
+            let text = fs.readFileSync(path, 'utf8')
+            if (text.includes('Contract 133')) continue
+            text = `${text.trimEnd()}\n\n> **Contract 133 boundary (8 August 2026):** ${note}\n`
+            fs.writeFileSync(path, text)
+          }
+          NODE
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md CLAUDE.md MASTER-TODO.md docs/roadmap.md docs/quality/current-status.md docs/ops/ops-pending-migrations.md docs/quality/feature-baseline.md docs/adr/README.md docs/design/README.md docs/competition-structure.md docs/architecture/programme-plan.md docs/architecture/multi-competition-hub-build-plan.md
+          git commit -m 'Contract 133: reconcile documentation authorities'
+          git push origin HEAD:feature/contract-133-private-championship-restack
