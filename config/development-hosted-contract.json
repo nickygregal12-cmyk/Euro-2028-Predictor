@@ -1,14 +1,14 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 131,
-  "latestMigrationVersion": "20260806220000",
-  "latestMigrationName": "period_standings_display_names",
-  "verifiedAt": "2026-08-07T14:16:55.000Z",
+  "requiredMigrationCount": 132,
+  "latestMigrationVersion": "20260807210812",
+  "latestMigrationName": "provider_initial_fixture_approval",
+  "verifiedAt": "2026-08-08T01:10:10.000Z",
   "evidence": {
-    "source": "Development fast-lane 126-131 evidence run 31186564948. The guarded session bridge was pinned to exact main 50b01154e5a6cfc2ebc1b2312eaceb42e8a39b57 and proved its only branch delta was the bridge workflow before doing any hosted work. It hard-refused Production, proved SUPABASE_DEV_DB_URL resolved to Development project iouzoutneyjpugbbtdem, required the pending set to be exactly contracts 126-131, and passed the repository additive-migration checker over all six canonical migration files. It then took the ADR 0024 lightweight pre-apply data/schema snapshot, applied the canonical migrations with supabase db push, and confirmed no migration remained pending with repository contract/count 131. Every step succeeded. Independent post-run verification through the Supabase management API returned the six exact canonical rows 20260806170000_rejoin_before_start through 20260806220000_period_standings_display_names. A read-only catalogue check also confirmed the new internal helpers remain non-executable to anon/authenticated while intended public RPCs are reachable to authenticated. The evidence artifact development-fast-lane-126-131-evidence is retained for seven days under artifact 8997049916. Production was not contacted or changed by that Development run. The productionContract field is separately synchronized to the independently verified Production contract-131 continuation completed by guarded run 31216257649 on 7 August 2026.",
-    "workflowRunId": 31186564948,
-    "repositoryHead": "50b01154e5a6cfc2ebc1b2312eaceb42e8a39b57"
+    "source": "Development Contract 132 fast-lane run 31231055849 completed successfully on 8 August 2026 from session branch commit 15489a9e71ce849c0a219101ddda8c23ad9c624c, whose parent was exact merged main 305b4e12b43a28f349f5fd27c954bd8247742a52. The workflow proved the branch differed from merged main only by the session bridge, proved SUPABASE_DEV_DB_URL targeted Development and never Production, required exactly Contract 132 and proved it additive, took the lightweight pre-apply snapshot, applied canonical migration 20260807210812_provider_initial_fixture_approval, verified the exact hosted Contract 132 ledger and uploaded rollout evidence. Independent Supabase migration-ledger verification during the 03:00 session also returned 20260807210812_provider_initial_fixture_approval as the Development tip. Direct read-only privilege verification confirmed predictor_internal.provider_fixture_proposals exists with SELECT denied to anon, authenticated and service_role; the Contract 132 admin approval/rejection RPCs are executable only by authenticated and enforce their administrator check internally. Production Contract 132 is separately synchronized to guarded live promotion run 31231978837.",
+    "workflowRunId": 31231055849,
+    "repositoryHead": "305b4e12b43a28f349f5fd27c954bd8247742a52"
   },
-  "productionContract": 131,
+  "productionContract": 132,
   "productionPromotionAuthorised": false
 }
