@@ -1,0 +1,53 @@
+name: Contract 134 current-status correction
+
+on:
+  push:
+    branches:
+      - feature/provider-enrichment-foundation-contract-134
+    paths:
+      - '.github/workflows/contract134-current-status-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/provider-enrichment-foundation-contract-134
+          fetch-depth: 0
+
+      - name: Correct the live current-status repository contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('docs/quality/current-status.md')
+          text = path.read_text()
+          old_summary = 'The repository candidate is **133**. Development Supabase and Production Supabase are both hosted at **132** after the verified Contract 132 rollouts; Contract 133 remains repository-only until its guarded Development rollout is applied and verified.'
+          new_summary = 'The repository candidate is **134**. Development Supabase and Production Supabase are both hosted at **132** after the verified Contract 132 rollouts; Contracts 133 and 134 remain unapplied, with Contract 133 required to reach and pass Development verification before Contract 134 may be considered.'
+          if old_summary not in text:
+              raise SystemExit('expected current-status summary not found')
+          text = text.replace(old_summary, new_summary, 1)
+
+          old_contract = '| Repository contract | **133** — 133 canonical migrations through `20260808003000_private_season_cup_player_reads.sql`. Contract 133 adds authenticated-only private season Predictor Championship discovery and selected-instance player reads while preserving server-owned ranking, scoring, settlement and progression.'
+          new_contract = '| Repository contract | **134** — 134 canonical migrations through `20260808164832_provider_team_profile_foundation.sql`. Contract 134 adds server-only provider team profile storage keyed by the existing provider mapping, with retained-response provenance, stale-evidence refusal, no browser/service-role grant and no result/scoring authority. Contract 133 adds authenticated-only private season Predictor Championship discovery and selected-instance player reads while preserving server-owned ranking, scoring, settlement and progression.'
+          if old_contract not in text:
+              raise SystemExit('expected repository-contract row prefix not found')
+          text = text.replace(old_contract, new_contract, 1)
+          path.write_text(text)
+          PY
+
+      - name: Commit and push correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/quality/current-status.md
+          git commit -m 'Contract 134: correct live status contract row'
+          git push origin HEAD:feature/provider-enrichment-foundation-contract-134
