@@ -55,7 +55,7 @@ describe('what it finds in the real App.tsx', () => {
     )
     expect(declaredRoutes).toContain('/competitions/:competitionSlug/:seasonSlug/games/lms')
     expect(declaredRoutes).toContain(
-      '/competitions/:competitionSlug/:seasonSlug/games/championship',
+      '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
     )
   })
 
