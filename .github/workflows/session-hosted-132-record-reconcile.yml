@@ -1,0 +1,92 @@
+name: Session hosted Contract 132 record reconcile
+
+on:
+  push:
+    branches:
+      - feature/contract-133-private-championship-restack
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/contract-133-private-championship-restack
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Reconcile hosted records and documentation close-out rule
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          dev_path = Path('config/development-hosted-contract.json')
+          dev = json.loads(dev_path.read_text())
+          dev.update({
+              'requiredMigrationCount': 132,
+              'latestMigrationVersion': '20260807210812',
+              'latestMigrationName': 'provider_initial_fixture_approval',
+              'verifiedAt': '2026-08-08T04:18:00.000Z',
+              'productionContract': 132,
+              'productionPromotionAuthorised': False,
+          })
+          dev['evidence'] = {
+              'source': 'Independent read-only Supabase migration-ledger verification on 8 August 2026 confirmed Development at exactly Contract 132, ending 20260807210812_provider_initial_fixture_approval. This reconciles the machine record that was left at 131 after the guarded Contract 132 rollout; no hosted write was performed by this record update.',
+              'repositoryHead': '305b4e12b43a28f349f5fd27c954bd8247742a52',
+          }
+          dev_path.write_text(json.dumps(dev, indent=2) + '\n')
+
+          prod_path = Path('config/production-hosted-contract.json')
+          prod = json.loads(prod_path.read_text())
+          prod.update({
+              'requiredMigrationCount': 132,
+              'latestMigrationVersion': '20260807210812',
+              'latestMigrationName': 'provider_initial_fixture_approval',
+              'verifiedAt': '2026-08-08T04:18:00.000Z',
+              'promotionAuthorised': False,
+          })
+          prod['evidence'] = {
+              'source': 'Independent read-only Supabase migration-ledger verification on 8 August 2026 confirmed Production at exactly Contract 132, ending 20260807210812_provider_initial_fixture_approval. This reconciles the machine record that was left at 131 after the guarded Contract 132 rollout; application promotion remains separately controlled.',
+              'repositoryHead': '305b4e12b43a28f349f5fd27c954bd8247742a52',
+          }
+          prod_path.write_text(json.dumps(prod, indent=2) + '\n')
+
+          agents = Path('AGENTS.md')
+          text = agents.read_text()
+          stale = 'Production Supabase is hosted at 131, level with the repository and Development; no migration promotion is pending, and any future Production migration requires a new authorisation.'
+          text = text.replace(stale, 'Production Supabase is hosted at 132; Contract 133 remains repository-only until its guarded rollout is applied and verified.', 1)
+          marker = '- Dated audits and reconciliations are immutable historical evidence.\n'
+          closeout = ('- **Every implementation task and PR must end with a documentation-impact check before it is considered complete.** '
+                      'Check `docs/quality/current-status.md`, `docs/roadmap.md`, `MASTER-TODO.md`, '
+                      '`docs/quality/accepted-requirements.md` and any subject-specific runbook/authority touched by the change. '
+                      'If a governed fact, sequence, requirement status or operating instruction changed, update the owning live document in the same PR '
+                      'or a directly linked close-out PR; otherwise record explicitly that there is no documentation impact.\n')
+          if closeout not in text:
+              if marker not in text:
+                  raise SystemExit('AGENTS documentation-maintenance marker not found')
+              text = text.replace(marker, marker + closeout, 1)
+          agents.write_text(text)
+          PY
+          npm ci
+          npm run generate:now
+          rm .github/workflows/session-hosted-132-record-reconcile.yml
+      - name: Commit reconciled records
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/development-hosted-contract.json config/production-hosted-contract.json AGENTS.md NOW.md .github/workflows/session-hosted-132-record-reconcile.yml
+          git diff --cached --exit-code && exit 0
+          git commit -m 'Reconcile verified hosted Contract 132 records'
+          git push origin HEAD:feature/contract-133-private-championship-restack
