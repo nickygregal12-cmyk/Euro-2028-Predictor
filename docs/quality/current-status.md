@@ -16,7 +16,7 @@
 | Related work | Issues [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272), [#303](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/303), [#27](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/27), [#28](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/28) |
 | Implementation truth | `config/deployment-contract.json`, `config/development-hosted-contract.json` and `config/production-hosted-contract.json` are the machine-readable records; this file reads them rather than competing with them |
 
-The repository candidate is **132**. Development Supabase and Production Supabase are both still hosted at **131** before the authorised Contract 132 rollout; Development is promoted and verified first, then Production.
+The repository is **132**. Development Supabase and Production Supabase are both hosted at **131**. Development is eligible for the guarded Contract 132 rollout; Production is not authorised for Contract 132 because `config/production-hosted-contract.json` records `promotionAuthorised: false`.
 
 ## Product position
 

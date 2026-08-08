@@ -112,7 +112,7 @@ An earlier documentation-only PR #589 was opened while Contract 132's final CI w
 ## Risks / blockers
 
 1. **Development is one contract behind the repository.** Contract 132 must be applied through the guarded Development fast lane; the connected GitHub surface in this run cannot dispatch that workflow.
-2. **Production is also one contract behind, intentionally.** There is no reason to promote it merely to match the repository. A future production rollout needs separate repository-controlled authorisation and all production hard gates.
+2. **Production is also one contract behind, intentionally.** There is no reason to promote it merely to match the repository. A future production rollout needs separate repository-controlled authorisation and all production hard gates. The live authority audit also found stale prose in `AGENTS.md` and `docs/quality/current-status.md` claiming Contract 132 Production promotion was authorised; this PR reconciles both to the machine record `promotionAuthorised: false`.
 3. **PR #587 needs a clean restack.** The logical Contract-133 work is soundly isolated, but the branch still carries pre-squash Contract-132 ancestry. Do not merge or force a risky history rewrite without re-verifying the exact delta.
 4. **PR #585 remains backend-dependent.** The instance-aware UI must not bypass the deployment-contract guard or query revoked private tables directly.
 5. **Provider initial-calendar approval is repository-only until Development 132 is hosted.** Do not configure production provider credentials or adopt a real initial calendar as part of merely closing the contract-number gap.
