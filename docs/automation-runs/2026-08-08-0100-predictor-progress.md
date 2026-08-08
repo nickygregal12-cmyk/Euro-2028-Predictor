@@ -41,13 +41,13 @@ For `339fd903a89bc7ffc45e754f87c3330276561842`:
 - Hosted migration inventory: passed (`31230437348`).
 - CodeQL: passed (`31230437338`).
 - Database parity: passed (`31230437337`), including rebuild/pgTAP/parity lanes.
+- Browser E2E: passed (`31230437344`), including the exact-head active-site deploy-preview smoke.
 - Netlify deploy preview on the active `euro28predictor` project: ready (`6a767960017d0800085c6faa`).
-- Deploy-preview smoke: passed on the exact-head Browser E2E run; protected release identity was not public.
+- Deploy-preview smoke verified protected release identity was not public.
 - Main CI: still in progress at the final check, with migration timestamps, documentation authority, generated NOW, build, compressed bundle budgets, lint and coverage threshold steps already passed; the full test step was still running.
-- Browser E2E: still in progress at the final check; authenticated application journeys were running.
 - No unresolved review threads were present.
 
-The PR was therefore deliberately not merged. Required exact-head gates were not bypassed.
+The PR was therefore deliberately not merged. The one remaining exact-head gate, main CI, was not bypassed.
 
 ### Netlify observation
 
@@ -70,12 +70,13 @@ The connected GitHub action surface available in this run exposes workflow/read/
 ## Mutations performed
 
 - Created branch `automation/2026-08-08-0100-handover` from exact `main` `b76cd64a2f7290724f70f7c717180ec313fed2b5`.
-- Added this dated handover file.
+- Added and refreshed this dated handover file.
+- Opened PR #589, `Docs: record 2026-08-08 01:00 progress handover`.
 - No product code, migration, Supabase, Edge Function, Netlify configuration or production mutation was made.
 
 ## Risks / blockers
 
-1. Contract 132 cannot merge until exact-head main CI and authenticated Browser E2E complete successfully.
+1. Contract 132 cannot merge until exact-head main CI completes successfully; every other inspected exact-head gate is green.
 2. The Contract-132 feature branch is substantially ahead of and behind `main`; GitHub currently reports it mergeable, but exact-head checks and expected-head protection remain mandatory because concurrent `main` work has landed.
 3. Contract 133 and its UI must be restacked after 132; the current validation stack is stale and must not be merged.
 4. Development rollout of 132 must use the guarded fast lane. No workflow-dispatch operation was exposed by the connected GitHub tool in this run.
@@ -84,8 +85,8 @@ The connected GitHub action surface available in this run exposes workflow/read/
 ## Exact next action for 03:00
 
 1. Re-read PR #583 and confirm its head is still `339fd903a89bc7ffc45e754f87c3330276561842` (or restart verification on any newer head).
-2. Require Hosted migration inventory, CodeQL, Database parity, main CI, Browser E2E and the exact active-site Netlify preview/smoke to be green with no unresolved review threads.
-3. If all are green, squash-merge PR #583 with expected-head protection.
+2. Confirm the remaining main CI run has passed; Hosted migration inventory, CodeQL, Database parity, Browser E2E and the exact active-site Netlify preview/smoke are already green at this handover.
+3. If main CI is green and no review thread appeared, squash-merge PR #583 with expected-head protection.
 4. Run the repository-controlled additive Development fast lane for Contract 132 from exact post-merge `main`; verify the Development ledger reaches 132 and directly verify the new proposal/RPC privilege boundaries. Do not substitute a direct Supabase migration if workflow dispatch remains unavailable.
 5. Merge the generated hosted-authority follow-up only after its own checks pass.
 6. Restack PR #587 onto exact Contract-132 `main`, keep it as Contract 133, run full database/application gates, then apply Development 133 through the same controlled path.
