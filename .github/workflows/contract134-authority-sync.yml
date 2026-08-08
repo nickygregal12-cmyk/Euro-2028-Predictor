@@ -25,7 +25,7 @@ jobs:
           node-version: 22.22.2
           cache: npm
 
-      - name: Reconcile Contract 134 live authorities
+      - name: Reconcile Contract 134 authorities and test inventories
         shell: bash
         run: |
           set -euo pipefail
@@ -57,14 +57,30 @@ jobs:
             'docs/quality/feature-baseline.md': '''\n\n### Contract 134 candidate — non-browser enrichment storage\n\nContract 134 adds no user-facing feature baseline by itself. `predictor_internal.provider_team_profiles` is server/operator-only current provider metadata, subordinate to the existing provider mapping and raw-response custody. There is no browser grant/RPC, no crest rendering and no change to fixture/result/scoring behaviour in this contract.\n''',
             'docs/adr/README.md': '''\n\n### Contract 134 candidate\n\nNo new ADR is introduced by Contract 134. The schema implements the already-recorded provider-enrichment boundary: provider metadata may improve presentation but remains separate from protected fixture/result confirmation and scoring. A later decision to render/re-host provider media or promote a new provider to result authority would require its own rights/architecture decision rather than being inferred from this storage contract.\n''',
             'docs/design/README.md': '''\n\n### Contract 134 candidate — no visual adoption yet\n\nContract 134 has no user-visible design change. Provider image URLs are stored, if present, as non-rendering provenance references only; no crest/logo is introduced to the UI until public-display rights are separately established. Existing owner-controlled/generic club identity remains the visual fallback.\n''',
+            'docs/competition-structure.md': '''\n\n### Contract 134 note\n\nContract 134 does not alter competition structure, draw shape, scheduling or progression. It adds only server-side provider team profile metadata beneath the existing season/team identities; the competition model remains as defined through Contract 133.\n''',
+            'docs/architecture/programme-plan.md': '''\n\n### Contract 134 note\n\nContract 134 advances the provider-enrichment workstream with server-only team profile storage and provenance. It does not change the programme dependency order: Development Contract 133 and the private Championship verification remain ahead of any Contract 134 hosted rollout.\n''',
+            'docs/architecture/multi-competition-hub-build-plan.md': '''\n\n### Contract 134 note\n\nContract 134 is an internal data-foundation increment only. Multi-competition navigation/game behaviour remains unchanged; provider profile facts may support later presentation work but cannot become fixture/result/scoring authority.\n''',
           }
 
-          marker = 'Contract 134 candidate'
           for filename, addition in notes.items():
               path = Path(filename)
               text = path.read_text()
-              if marker.lower() not in text.lower():
+              if 'contract 134' not in text.lower():
                   path.write_text(text.rstrip() + addition + '\n')
+
+          test_path = Path('supabase/tests/186_provider_team_profile_foundation.sql')
+          test_text = test_path.read_text()
+          if 'select plan(18);' in test_text:
+              test_path.write_text(test_text.replace('select plan(18);', 'select plan(20);', 1))
+
+          boundary_path = Path('supabase/tests/171_ingestion_write_boundary.sql')
+          boundary = boundary_path.read_text()
+          needle = "  ('record_provider_response_processing',\n   'append-only processing evidence.'),"
+          replacement = needle + "\n  ('upsert_provider_team_profile',\n   'predictor_internal.provider_team_profiles only -- current provider metadata and retained-response provenance; no public competition truth.'),"
+          if "('upsert_provider_team_profile'," not in boundary:
+              if needle not in boundary:
+                  raise SystemExit('ingestion boundary insertion point not found')
+              boundary_path.write_text(boundary.replace(needle, replacement, 1))
           PY
 
       - name: Install dependencies
@@ -73,14 +89,7 @@ jobs:
       - name: Regenerate NOW
         run: npm run generate:now
 
-      - name: Verify authority and NOW gates locally
-        shell: bash
-        run: |
-          set -euo pipefail
-          npm run check:documentation-authorities -- origin/main HEAD
-          npm run check:now
-
-      - name: Commit reconciled authorities
+      - name: Commit locally for contract-aware verification
         shell: bash
         run: |
           set -euo pipefail
@@ -88,7 +97,21 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add config/deployment-contract.json NOW.md AGENTS.md CLAUDE.md MASTER-TODO.md \
             docs/roadmap.md docs/quality/current-status.md docs/ops/ops-pending-migrations.md \
-            docs/quality/feature-baseline.md docs/adr/README.md docs/design/README.md
+            docs/quality/feature-baseline.md docs/adr/README.md docs/design/README.md \
+            docs/competition-structure.md docs/architecture/programme-plan.md \
+            docs/architecture/multi-competition-hub-build-plan.md \
+            supabase/tests/171_ingestion_write_boundary.sql \
+            supabase/tests/186_provider_team_profile_foundation.sql
           git diff --cached --quiet && exit 0
-          git commit -m 'Contract 134: reconcile repository authorities'
-          git push origin HEAD:feature/provider-enrichment-foundation-contract-134
+          git commit -m 'Contract 134: reconcile authorities and provider boundary'
+
+      - name: Verify authority and NOW gates locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check:documentation-authorities -- origin/main HEAD
+          npm run check:now
+
+      - name: Push reconciled commit
+        shell: bash
+        run: git push origin HEAD:feature/provider-enrichment-foundation-contract-134
