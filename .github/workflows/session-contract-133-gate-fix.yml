@@ -1,0 +1,68 @@
+name: Session Contract 133 Gate Repair
+
+on:
+  push:
+    branches:
+      - feature/contract-133-private-championship-restack
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/contract-133-private-championship-restack
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Repair Contract 133 gate fixtures and live authority wording
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          agents = Path('AGENTS.md')
+          text = agents.read_text()
+          text = text.replace(
+              '- Development Supabase and Production Supabase are hosted at contract 131, one migration behind the contract-132 repository candidate, while the last published application remains at the Euro baseline contract;',
+              '- Development Supabase and Production Supabase are hosted at contract 132, one migration behind the contract-133 repository candidate, while the last published application remains at the Euro baseline contract;'
+          )
+          old = 'The repository is at **contract 132** through `20260807210812_provider_initial_fixture_approval.sql`. Development Supabase is hosted at **131** — one migration behind this repository candidate until the authorised Contract 132 rollout is applied and verified.'
+          new = 'The repository is at **contract 133** through `20260808003000_private_season_cup_player_reads.sql`. Development Supabase is hosted at **132** — one migration behind this repository candidate until the authorised Contract 133 rollout is applied and verified.'
+          if old not in text:
+              raise SystemExit('AGENTS.md Contract 132 baseline sentence not found')
+          text = text.replace(old, new, 1)
+          text = text.replace(
+              'Production Supabase is hosted at 131, one migration behind this repository candidate; Contract 132 promotion is explicitly authorised for this rollout and must follow Development verification.',
+              'Production Supabase is hosted at 132, one migration behind this repository candidate; Contract 133 promotion remains separately gated and must follow Development verification and explicit Production authorisation.'
+          )
+          agents.write_text(text)
+
+          test = Path('supabase/tests/185_private_season_cup_player_reads.sql')
+          sql = test.read_text()
+          if 'select plan(22);' not in sql:
+              raise SystemExit('Contract 133 pgTAP plan marker not found')
+          sql = sql.replace('select plan(22);', 'select plan(25);', 1)
+          marker = "insert into public.entries (id, user_id, tournament_id, submitted_at)\n"
+          if marker not in sql:
+              raise SystemExit('Contract 133 entries fixture marker not found')
+          setup = """-- A league-season entry is structurally the Main Predictor entry. Give the\n-- synthetic season that canonical availability before inserting entries so the\n-- ordinary C1b membership trigger is exercised rather than bypassed.\ninsert into public.bonus_competitions (\n  tournament_id, game_key, published, availability_status,\n  registration_opens_at, registration_closes_at, draw_required, visibility_kind\n)\nselect\n  probe.season_id, 'main_predictor', false, 'active',\n  now() - interval '2 hours', now() + interval '1 day', false, 'public'\nfrom c133_probe probe;\n\n"""
+          sql = sql.replace(marker, setup + marker, 1)
+          test.write_text(sql)
+          PY
+          rm .github/workflows/session-contract-133-gate-fix.yml
+      - name: Commit repaired branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md supabase/tests/185_private_season_cup_player_reads.sql .github/workflows/session-contract-133-gate-fix.yml
+          git diff --cached --exit-code && exit 0
+          git commit -m 'Contract 133: repair gate fixtures and authority wording'
+          git push origin HEAD:feature/contract-133-private-championship-restack
