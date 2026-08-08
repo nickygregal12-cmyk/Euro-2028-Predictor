@@ -1,0 +1,93 @@
+name: Contract 134 authority sync
+
+on:
+  push:
+    branches:
+      - feature/provider-enrichment-foundation-contract-134
+    paths:
+      - '.github/workflows/contract134-authority-sync.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/provider-enrichment-foundation-contract-134
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Reconcile Contract 134 live authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          config_path = Path('config/deployment-contract.json')
+          config = json.loads(config_path.read_text())
+          config['contractVersion'] = 134
+          config['requiredMigrationCount'] = 134
+          sentence = (
+              ' Contract 134 adds a server-only provider team profile foundation keyed by the existing '
+              'provider_entity_map, with retained-response provenance, stale-observation refusal, no browser '
+              'read/write grant and no result/scoring authority; hosted rollout and profile population remain '
+              'separately gated.'
+          )
+          if 'Contract 134 adds a server-only provider team profile foundation' not in config.get('notes', ''):
+              config['notes'] = config.get('notes', '').rstrip() + sentence
+          config_path.write_text(json.dumps(config, indent=2) + '\n')
+
+          notes = {
+            'AGENTS.md': '''\n\n### Contract 134 candidate — provider team enrichment foundation\n\nThe current branch may carry Contract 134 as a **repository candidate only**. It adds server-only provider team profile storage keyed by the existing provider identity map. It grants no browser/service-role table access, makes provider image URLs reference-only, and must not become fixture/result/scoring authority. Development and Production remain independently gated; do not apply or backfill Contract 134 merely to equalise contract numbers.\n''',
+            'CLAUDE.md': '''\n\n### Contract 134 candidate boundary\n\nContract 134 is the first provider-enrichment storage slice: current team profile facts plus retained-response provenance, subordinate to `provider_entity_map`. It creates no public read, no provider-poll write side effect and no result/scoring path. Provider crest/image references remain non-rendering until rights are separately established. Hosted rollout follows the normal guarded migration process after Contract 133 Development verification.\n''',
+            'MASTER-TODO.md': '''\n\n### Contract 134 — provider team profile foundation (active candidate)\n\n- [x] Measure the 12 Scottish Premiership SportMonks participant records from retained Development custody without a new provider request.\n- [x] Prove provider short code is descriptive, not identity (`DUD` is returned for both Dundee and Dundee United).\n- [x] Add an offline fail-closed extractor and immutable evidence snapshot.\n- [x] Add server-only, provenance-backed team profile schema and pgTAP coverage.\n- [ ] Apply Contract 133 to Development through the guarded fast lane and verify the signed-in private Championship journey before merging the dependent UI.\n- [ ] After that dependency is clear, apply Contract 134 to Development and backfill 12/12 profiles from retained custody evidence; prove canonical fixture/results/scoring state is unchanged.\n- [ ] Add a bounded UI read only when a product surface needs these facts. Do not render/re-host provider crest URLs without a separate rights decision.\n''',
+            'docs/roadmap.md': '''\n\n## Contract 134 candidate — first provider enrichment storage slice\n\nAfter the Contract 133 Development rollout and private Championship verification, the next data slice is Contract 134: provider team profile facts keyed by the existing provider identity map, sourced from retained custody evidence. Development backfill is a separate guarded operation; no Production population, public image use, result authority or scoring dependency is implied by the schema.\n''',
+            'docs/quality/current-status.md': '''\n\n## Contract 134 branch candidate — 8 August 2026\n\n`feature/provider-enrichment-foundation-contract-134` advances the **repository candidate** to Contract 134 with server-only provider team profile storage and retained-response provenance. This does not change hosted state: Development remains Contract 132 and Production remains Contract 132 until their normal guarded rollout gates are satisfied. Contract 133 must reach Development first so the private Championship journey can be verified before the dependent UI PR is merged. No provider image right is assumed and no enrichment field becomes official result/scoring authority.\n''',
+            'docs/ops/ops-pending-migrations.md': '''\n\n## Contract 134 candidate dependency note — 8 August 2026\n\nThe repository branch contains Contract 134, but hosted environments must not leapfrog the active dependency chain. Development is still Contract 132: promote 133 first through the guarded Development fast lane, perform the signed-in private Championship verification, then consider 134. Production remains Contract 132 and receives neither 133 nor 134 without its own backup/preflight/exact-range/postflight authorisation. Contract 134 schema deployment and the 12-club Development enrichment backfill are separate operations.\n''',
+            'docs/quality/feature-baseline.md': '''\n\n### Contract 134 candidate — non-browser enrichment storage\n\nContract 134 adds no user-facing feature baseline by itself. `predictor_internal.provider_team_profiles` is server/operator-only current provider metadata, subordinate to the existing provider mapping and raw-response custody. There is no browser grant/RPC, no crest rendering and no change to fixture/result/scoring behaviour in this contract.\n''',
+            'docs/adr/README.md': '''\n\n### Contract 134 candidate\n\nNo new ADR is introduced by Contract 134. The schema implements the already-recorded provider-enrichment boundary: provider metadata may improve presentation but remains separate from protected fixture/result confirmation and scoring. A later decision to render/re-host provider media or promote a new provider to result authority would require its own rights/architecture decision rather than being inferred from this storage contract.\n''',
+            'docs/design/README.md': '''\n\n### Contract 134 candidate — no visual adoption yet\n\nContract 134 has no user-visible design change. Provider image URLs are stored, if present, as non-rendering provenance references only; no crest/logo is introduced to the UI until public-display rights are separately established. Existing owner-controlled/generic club identity remains the visual fallback.\n''',
+          }
+
+          marker = 'Contract 134 candidate'
+          for filename, addition in notes.items():
+              path = Path(filename)
+              text = path.read_text()
+              if marker.lower() not in text.lower():
+                  path.write_text(text.rstrip() + addition + '\n')
+          PY
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Regenerate NOW
+        run: npm run generate:now
+
+      - name: Verify authority and NOW gates locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check:documentation-authorities -- origin/main HEAD
+          npm run check:now
+
+      - name: Commit reconciled authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/deployment-contract.json NOW.md AGENTS.md CLAUDE.md MASTER-TODO.md \
+            docs/roadmap.md docs/quality/current-status.md docs/ops/ops-pending-migrations.md \
+            docs/quality/feature-baseline.md docs/adr/README.md docs/design/README.md
+          git diff --cached --quiet && exit 0
+          git commit -m 'Contract 134: reconcile repository authorities'
+          git push origin HEAD:feature/provider-enrichment-foundation-contract-134
