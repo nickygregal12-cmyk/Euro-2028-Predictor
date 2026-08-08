@@ -1,0 +1,260 @@
+name: Session Production Contract 132 rehearsal
+
+# One-run, read-only-against-Production rehearsal. Captures a fresh encrypted
+# rollback backup through the verified IPv4 Session Pooler, restores that backup
+# into disposable local Supabase, then proves exact Contract 131 -> 132 there.
+# No Production DDL occurs in this workflow.
+
+on:
+  push:
+    branches:
+      - ops/prod-contract132-rehearsal-20260808
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  BASE_MAIN_SHA: 305b4e12b43a28f349f5fd27c954bd8247742a52
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  EXPECTED_REGION: eu-west-2
+  EXPECTED_SOURCE_COUNT: '131'
+  EXPECTED_SOURCE_VERSION: '20260806220000'
+  EXPECTED_SOURCE_NAME: period_standings_display_names
+  EXPECTED_TARGET_COUNT: '132'
+  EXPECTED_TARGET_VERSION: '20260807210812'
+  EXPECTED_TARGET_NAME: provider_initial_fixture_approval
+  WORK_DIR: /tmp/production-contract132-rehearsal
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  backup-and-rehearse:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ops/prod-contract132-rehearsal-20260808
+
+      - name: Refuse stale main or branch drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          [ "$(git rev-parse origin/main)" = "${BASE_MAIN_SHA}" ] || { echo 'ERROR: main advanced after rehearsal authorisation.'; exit 1; }
+          [ "$(git rev-parse HEAD^)" = "${BASE_MAIN_SHA}" ] || { echo 'ERROR: rehearsal branch is not exact merged main plus one workflow.'; exit 1; }
+          [ "$(git diff --name-only "${BASE_MAIN_SHA}"..HEAD)" = '.github/workflows/session-production-contract132-rehearsal.yml' ] || { echo 'ERROR: rehearsal branch contains unexpected work.'; exit 1; }
+          [ "$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")" = "${EXPECTED_TARGET_COUNT}" ] || exit 1
+          [ "$(node -p "require('./config/production-hosted-contract.json').requiredMigrationCount")" = "${EXPECTED_SOURCE_COUNT}" ] || exit 1
+          [ "$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')" = "${EXPECTED_TARGET_COUNT}" ] || exit 1
+          migration="$(git ls-files "supabase/migrations/${EXPECTED_TARGET_VERSION}_*.sql")"
+          [ "${migration}" = 'supabase/migrations/20260807210812_provider_initial_fixture_approval.sql' ] || exit 1
+          node scripts/check-migration-additive.mjs "${migration}"
+
+      - name: Preflight Production and backup secrets
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || { echo 'ERROR: SUPABASE_PROD_DB_URL missing.'; exit 1; }
+          [ -n "${BACKUP_AGE_PUBLIC_KEY}" ] || { echo 'ERROR: BACKUP_AGE_PUBLIC_KEY missing.'; exit 1; }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret resolves to Development.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production secret does not resolve to expected Production.'; exit 1 ;;
+          esac
+          case "${BACKUP_AGE_PUBLIC_KEY}" in age1*) ;; *) echo 'ERROR: backup recipient is not an age public key.'; exit 1 ;; esac
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - name: Derive hosted Production expectations
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/production-hosted-contract-expectations.mjs >> "$GITHUB_ENV"
+          node scripts/production-hosted-contract-expectations.mjs --json
+
+      - name: Derive masked verified IPv4 Session Pooler URL
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pooler="$(node --input-type=module <<'NODE'
+          const direct = new URL(process.env.SUPABASE_PROD_DB_URL)
+          const target = new URL(`postgresql://aws-1-${process.env.EXPECTED_REGION}.pooler.supabase.com:5432/postgres`)
+          target.username = `postgres.${process.env.EXPECTED_PROJECT_REF}`
+          target.password = direct.password
+          target.searchParams.set('sslmode', 'require')
+          process.stdout.write(target.toString())
+          NODE
+          )"
+          echo "::add-mask::${pooler}"
+          printf 'SUPABASE_PROD_POOLER_URL=%s\n' "${pooler}" >> "$GITHUB_ENV"
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install age and PostgreSQL 17 client tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y age postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Re-prove live Production source and capture read-only backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "${WORK_DIR}/bundle/verification" "${WORK_DIR}/evidence"
+          [ "$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c 'select 1;')" = '1' ] || exit 1
+          live="$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
+          expected="${EXPECTED_SOURCE_COUNT}|${EXPECTED_SOURCE_VERSION}|${EXPECTED_SOURCE_NAME}"
+          [ "${live}" = "${expected}" ] || { echo "ERROR: Production source moved to ${live}."; exit 1; }
+          counts="$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select (select count(*) from public.teams)||'|'||(select count(*) from public.competition_rounds)||'|'||(select count(*) from public.season_fixtures);")"
+          [ "${counts}" = '24|7|0' ] || { echo "ERROR: Production football baseline changed to ${counts}."; exit 1; }
+          printf '%s\n' "${live}" > "${WORK_DIR}/evidence/source-history.txt"
+          printf '%s\n' "${counts}" > "${WORK_DIR}/evidence/source-football-counts.txt"
+          date -u +'%Y%m%dT%H%M%SZ' > "${WORK_DIR}/capture-timestamp.txt"
+          printf '%s\n' "${BASE_MAIN_SHA}" > "${WORK_DIR}/bundle/repository-commit.txt"
+          printf '%s\n' "${EXPECTED_PROJECT_REF}" > "${WORK_DIR}/bundle/project-ref.txt"
+          git ls-files 'supabase/migrations/*.sql' | sort > "${WORK_DIR}/bundle/migration-files.txt"
+          supabase --version > "${WORK_DIR}/bundle/supabase-cli-version.txt"
+          /usr/lib/postgresql/17/bin/pg_dump --version > "${WORK_DIR}/bundle/pg-dump-version.txt"
+          psql "${SUPABASE_PROD_POOLER_URL}" -X -v ON_ERROR_STOP=1 -A -t -f scripts/database-rollout/production-backup-inventory.sql > "${WORK_DIR}/bundle/database-state.json"
+          supabase db dump --db-url "${SUPABASE_PROD_POOLER_URL}" --file "${WORK_DIR}/bundle/roles.sql" --role-only
+          supabase db dump --db-url "${SUPABASE_PROD_POOLER_URL}" --file "${WORK_DIR}/bundle/schema.sql"
+          supabase db dump --db-url "${SUPABASE_PROD_POOLER_URL}" --file "${WORK_DIR}/bundle/data.sql" --use-copy --data-only -x storage.buckets_vectors -x storage.vector_indexes
+          /usr/lib/postgresql/17/bin/pg_dump --dbname "${SUPABASE_PROD_POOLER_URL}" --schema supabase_migrations --no-owner --no-privileges --file "${WORK_DIR}/bundle/migration-history.sql"
+          for required in roles.sql schema.sql data.sql migration-history.sql; do [ -s "${WORK_DIR}/bundle/${required}" ] || { echo "ERROR: empty backup component ${required}."; exit 1; }; done
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?auth"?\."?users"?' "${WORK_DIR}/bundle/data.sql" || { echo 'ERROR: auth.users absent from backup.'; exit 1; }
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?public"?\."?profiles"?' "${WORK_DIR}/bundle/data.sql" || { echo 'ERROR: public.profiles absent from backup.'; exit 1; }
+          cp scripts/database-rollout/managed-schema-customizations.sql "${WORK_DIR}/bundle/"
+          cp scripts/database-rollout/prepare-disposable-restore-target.sql "${WORK_DIR}/bundle/"
+          cp scripts/database-rollout/restore-rehearsal-verification.sql "${WORK_DIR}/bundle/verification/"
+          (cd "${WORK_DIR}/bundle" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+
+      - name: Start disposable local Supabase
+        shell: bash
+        run: supabase start
+
+      - name: Prepare empty disposable restore target
+        shell: bash
+        run: |
+          psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          drop schema if exists predictor_internal cascade;
+          drop schema if exists public cascade;
+          create schema public;
+          grant usage on schema public to anon, authenticated, service_role;
+          alter default privileges for role postgres in schema public revoke all on tables from anon, authenticated;
+          drop schema if exists supabase_migrations cascade;
+          truncate table auth.users cascade;
+          truncate table storage.objects, storage.buckets cascade;
+          commit;
+          SQL
+
+      - name: Restore Production backup into disposable target
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "${WORK_DIR}/bundle"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file roles.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file schema.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' --file data.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file managed-schema-customizations.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file migration-history.sql
+
+      - name: Verify restored Contract 131 copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -v expected_migration_count="${EXPECTED_SOURCE_COUNT}" -v expected_latest_version="${EXPECTED_SOURCE_VERSION}" -v expected_latest_name="${EXPECTED_SOURCE_NAME}" -f scripts/database-rollout/restore-rehearsal-verification.sql > "${WORK_DIR}/evidence/restored-contract131.json"
+          local_counts="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select (select count(*) from public.teams)||'|'||(select count(*) from public.competition_rounds)||'|'||(select count(*) from public.season_fixtures);")"
+          [ "${local_counts}" = "$(cat "${WORK_DIR}/evidence/source-football-counts.txt")" ] || { echo "ERROR: restored football counts differ: ${local_counts}."; exit 1; }
+
+      - name: Dry-run exact Contract 132 on restored copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${LOCAL_DB_URL}" --dry-run > "${WORK_DIR}/evidence/rehearsal-dry-run.txt" 2>&1
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/evidence/rehearsal-dry-run.txt" | awk '!seen[$0]++' > "${WORK_DIR}/evidence/rehearsal-dry-run-migrations.txt" || true
+          [ "$(cat "${WORK_DIR}/evidence/rehearsal-dry-run-migrations.txt")" = '20260807210812_provider_initial_fixture_approval.sql' ] || { echo 'ERROR: restored-copy dry-run is not exactly Contract 132.'; cat "${WORK_DIR}/evidence/rehearsal-dry-run-migrations.txt"; exit 1; }
+
+      - name: Apply and verify Contract 132 on restored copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${LOCAL_DB_URL}" > "${WORK_DIR}/evidence/rehearsal-apply.txt" 2>&1
+          history="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
+          [ "${history}" = '132|20260807210812|provider_initial_fixture_approval' ] || { echo "ERROR: restored rehearsal ended at ${history}."; exit 1; }
+          counts="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select (select count(*) from public.teams)||'|'||(select count(*) from public.competition_rounds)||'|'||(select count(*) from public.season_fixtures);")"
+          [ "${counts}" = '24|7|0' ] || { echo "ERROR: rehearsal changed football counts to ${counts}."; exit 1; }
+          security="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select (to_regclass('predictor_internal.provider_fixture_proposals') is not null)::int||'|'||(select relrowsecurity::int from pg_class where oid='predictor_internal.provider_fixture_proposals'::regclass)||'|'||has_function_privilege('authenticated','public.admin_approve_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('anon','public.admin_approve_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('service_role','public.admin_approve_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('authenticated','public.admin_reject_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('anon','public.admin_reject_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('service_role','public.admin_reject_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int;")"
+          [ "${security}" = '1|1|1|0|0|1|0|0' ] || { echo "ERROR: Contract 132 rehearsal security boundary differs: ${security}."; exit 1; }
+          printf '%s\n' "${history}" > "${WORK_DIR}/evidence/rehearsal-target-history.txt"
+          printf '%s\n' "${counts}" > "${WORK_DIR}/evidence/rehearsal-target-football-counts.txt"
+          printf '%s\n' "${security}" > "${WORK_DIR}/evidence/rehearsal-security-boundary.txt"
+
+      - name: Stop and delete disposable local data
+        if: always()
+        shell: bash
+        run: supabase stop --no-backup
+
+      - name: Encrypt fresh rollback backup and shred plaintext
+        if: success()
+        env:
+          BACKUP_AGE_PUBLIC_KEY: ${{ secrets.BACKUP_AGE_PUBLIC_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          cd "${WORK_DIR}"
+          mkdir -p artifact
+          captured_at="$(cat capture-timestamp.txt)"
+          bundle_tar="euro28-prod-contract131-pre132-${captured_at}.backup.tar.gz"
+          tar -C bundle -czf "${bundle_tar}" .
+          stat -c '%s' "${bundle_tar}" > evidence/plaintext-size-bytes.txt
+          age -r "${BACKUP_AGE_PUBLIC_KEY}" -o "artifact/${bundle_tar}.age" "${bundle_tar}"
+          stat -c '%s' "artifact/${bundle_tar}.age" > evidence/encrypted-size-bytes.txt
+          find bundle -type f -exec shred -u {} +
+          rm -rf bundle
+          shred -u "${bundle_tar}"
+          [ ! -e bundle ] || { echo 'ERROR: plaintext bundle remains.'; exit 1; }
+          [ "$(find artifact -type f -name '*.backup.tar.gz.age' | wc -l)" = '1' ] || exit 1
+          [ -z "$(find artifact -type f ! -name '*.backup.tar.gz.age')" ] || exit 1
+          printf '%s\n' "${GITHUB_RUN_ID}" > evidence/rehearsal-run-id.txt
+          printf '%s\n' "${BASE_MAIN_SHA}" > evidence/repository-main-sha.txt
+
+      - name: Upload encrypted rollback backup
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-contract131-pre132-encrypted
+          path: /tmp/production-contract132-rehearsal/artifact/*.backup.tar.gz.age
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload safe rehearsal evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-contract132-rehearsal-evidence
+          path: /tmp/production-contract132-rehearsal/evidence
+          retention-days: 7
+          if-no-files-found: warn
