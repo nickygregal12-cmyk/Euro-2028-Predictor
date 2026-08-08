@@ -306,26 +306,19 @@ describe('the two documents that state the development contract agree', () => {
 })
 
 /**
- * The Netlify contract declaration, which is the one hosted number with **no
- * repository-side read path**.
+ * Netlify's contract declaration is external team-console configuration. CI has
+ * no authenticated read path to that console value, so a green deploy-preview
+ * status cannot by itself prove which hosted database the build declares.
  *
- * `EURO28_DEPLOYED_DB_CONTRACT` is a Netlify team-console environment variable.
- * CI never sees it, and the protected-preview gate reads only the commit
- * *status*, so a green `netlify/euro28predictor/deploy-preview` cannot tell 86
- * from 97 — `validate-deployment-contract.mjs` deliberately waves a *trailing*
- * non-production context through, because a schema-advancing pull request
- * cannot make its preview go green before merge (ADR 0024).
+ * The repository can still make its intended value non-ambiguous: the three
+ * non-production documentation rows must match the Development hosted machine
+ * record, and the production documentation row must match the Production hosted
+ * machine record. A fresh Netlify platform/session read is then the evidence
+ * that external configuration actually matches those records.
  *
- * So the declaration is owner-reported, and the only thing this repository can
- * enforce is that its two written records of it do not disagree. They are
- * `ops-pending-migrations.md` (a row per environment) and
- * `netlify-deploy-access.md` (a row per deploy context), and on 4 August 2026
- * both had to be edited by hand to move 86 → 97. Updating one and not the other
- * leaves a reader two answers with no way to date them — the same failure the
- * development-contract check above exists for.
- *
- * What this cannot check, stated so the coverage is not overread: whether
- * Netlify actually carries either number. Nothing in this repository can.
+ * `validate-deployment-contract.mjs` deliberately permits a TRAILING
+ * non-production declaration during a schema-advancing PR (ADR 0024), but no
+ * context may lead the repository and no document may invent a hosted value.
  */
 describe('the two documents that state the Netlify declaration agree', () => {
   const inventory = read('docs/ops/ops-pending-migrations.md')

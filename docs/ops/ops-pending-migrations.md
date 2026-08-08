@@ -87,12 +87,14 @@ What does distinguish them is the **Netlify build log**, which the owner can rea
 | equal to the repository contract | the ordinary verified line, with no "unavailable" clause |
 | above the repository contract | the build **fails**: a database ahead of the application is a real mismatch in every context |
 
-Two operational consequences, and the first is already live — contracts 98–110 landed after the declaration moved to 97, so previews are printing the "unavailable" line right now. Development is rolled out to 110, so moving the declaration to 110 — the verified development level, never ahead of it — is the correct next owner action:
+The **5 August interpretation** was that contracts 98–110 had made the non-production declaration trail 97 and that the next update would move it to the then-verified Development level 110 while Production remained 63. Those numbers and that action are retained only to explain the evidence of that day; they were superseded by later hosted rollouts and the fresh 8 August Netlify read above.
 
-1. Every new contract puts the non-production declaration behind again until development is rolled out and Netlify is updated after it. That is the normal cycle, not a fault, and it is why nothing here treats a trailing preview as a failure.
-2. The declaration must never be raised *ahead* of the repository contract in any context, and never raised at all for `production`, which stays at 63 with a fatal gate.
+The durable rules that survive the old numbers are:
 
-`tests/scripts/documentationContractFreshness.test.ts` holds the part that is mechanical: this table and [`netlify-deploy-access.md`](netlify-deploy-access.md) must state the same values, production must stay at 63 in both, and no context may be declared ahead of the repository contract. Nothing running **in CI** can confirm what Netlify actually carries, which is why these guards check the documents against each other rather than against the platform.
+1. A new repository contract may leave a non-production declaration trailing until the matching hosted Development rollout is verified. A trailing preview is an intentional pre-rollout state, not permission to guess a higher hosted value.
+2. No Netlify declaration may be raised ahead of the **matching hosted database**. Production is separately controlled and a matching database/declaration still does not mean the application artifact has been rebuilt or published.
+
+`tests/scripts/documentationContractFreshness.test.ts` now holds the mechanical part without a magic baseline number: the non-production documentation values must match the Development hosted machine record, the production documentation value must match the Production hosted machine record, the two documentation tables must agree, and no context may be declared ahead of the repository contract. CI still cannot query the Netlify team-console value itself, so a fresh session/platform read remains required to prove the external configuration actually matches those records.
 
 ## Contracts 64–111
 
