@@ -27,8 +27,8 @@ jobs:
               raise SystemExit('expected stale EURO-001 status text not found')
           p.write_text(s.replace(old, new, 1))
           PY
-      - name: Validate documentation freshness
-        run: npm test -- --run tests/repository/documentationContractFreshness.test.ts
+      - name: Validate documentation authorities
+        run: npm run check:documentation-authorities
       - name: Regenerate NOW and verify current
         run: |
           npm run generate:now
