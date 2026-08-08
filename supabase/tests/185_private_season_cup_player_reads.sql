@@ -327,8 +327,11 @@ select is(
   'a guessed private UUID has the same response shape as a nonexistent UUID');
 
 select is(
-  jsonb_object_length(
-    public.get_season_cup_player_view(md5('c133-private')::uuid)
+  (
+    select count(*)::integer
+    from jsonb_object_keys(
+      public.get_season_cup_player_view(md5('c133-private')::uuid)
+    )
   ),
   2,
   'the denied private-id response exposes no visibility, membership, group or fixture metadata');
