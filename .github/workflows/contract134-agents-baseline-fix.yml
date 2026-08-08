@@ -1,0 +1,57 @@
+name: Contract 134 AGENTS baseline correction
+
+on:
+  push:
+    branches:
+      - feature/provider-enrichment-foundation-contract-134
+    paths:
+      - '.github/workflows/contract134-agents-baseline-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: feature/provider-enrichment-foundation-contract-134
+          fetch-depth: 0
+
+      - name: Correct the live repository-contract sentence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('AGENTS.md')
+          text = path.read_text()
+          old_start = 'The repository is at **contract 133** through `20260808003000_private_season_cup_player_reads.sql`.'
+          new_start = 'The repository is at **contract 134** through `20260808164832_provider_team_profile_foundation.sql` on this branch candidate.'
+          if old_start not in text:
+              raise SystemExit('expected contract-133 baseline sentence not found')
+          text = text.replace(old_start, new_start, 1)
+          text = text.replace(
+              'Development Supabase is hosted at **132** — one migration behind this repository candidate until the authorised Contract 133 rollout is applied and verified.',
+              'Development Supabase is hosted at **132** — Contracts 133 and 134 are unapplied here; Contract 133 must be promoted and verified first, and Contract 134 must not leapfrog it.',
+              1,
+          )
+          text = text.replace(
+              'Production Supabase is hosted at 132, one migration behind this repository candidate; Contract 133 promotion remains separately gated and must follow Development verification and explicit Production authorisation.',
+              'Production Supabase is hosted at 132, two migrations behind this branch candidate; Contract 133 and Contract 134 promotion remain separately gated and must follow Development verification and explicit Production authorisation.',
+              1,
+          )
+          path.write_text(text)
+          PY
+
+      - name: Commit and push correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add AGENTS.md
+          git commit -m 'Contract 134: correct live repository baseline'
+          git push origin HEAD:feature/provider-enrichment-foundation-contract-134
