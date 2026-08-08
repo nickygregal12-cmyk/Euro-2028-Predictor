@@ -28,10 +28,10 @@ jobs:
           from pathlib import Path
           seed = Path('e2e/seed-contract.ts')
           text = seed.read_text()
-          old = 'Exact-head Database parity and Browser E2E both passed on the Contract-133 PR before this marker was raised.'
-          new = 'Exact-head Database parity and Browser E2E both passed on the Contract-134 branch candidate before this marker was raised.'
+          old = 'Exact-head Database parity and Browser E2E both\n * passed on the Contract-133 PR before this marker was raised.'
+          new = 'Exact-head Database parity and Browser E2E both\n * passed on the Contract-134 branch candidate before this marker was raised.'
           if old not in text:
-              raise SystemExit('expected Contract 133 seed evidence sentence not found')
+              raise SystemExit('expected wrapped Contract 133 seed evidence sentence not found')
           seed.write_text(text.replace(old, new, 1))
           PY
 
