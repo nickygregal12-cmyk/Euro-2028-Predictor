@@ -1,0 +1,43 @@
+name: Session Championship Integration Overlay
+
+on:
+  push:
+    branches:
+      - validation/championship-private-ui-contract-133
+
+permissions:
+  contents: write
+
+jobs:
+  overlay:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: validation/championship-private-ui-contract-133
+          fetch-depth: 0
+      - name: Overlay the validated UI slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin agent/championship-private-ui
+          git checkout origin/agent/championship-private-ui -- \
+            docs/quality/investigations/2026-08-08-dfa-007-private-championship-ui.md \
+            src/App.tsx \
+            src/app/weeklyRoutes.ts \
+            src/features/season/SeasonChampionshipPages.module.css \
+            src/features/season/SeasonChampionshipPages.tsx \
+            src/features/season/SeasonGameRouteBundle.ts \
+            src/features/season/SeasonGameRoutes.tsx \
+            src/features/season/SeasonGameSubNav.tsx \
+            src/services/supabase/seasonCupPlayer.ts \
+            tests/app/weeklyRoutes.test.ts \
+            tests/features/season/SeasonChampionshipPages.test.tsx \
+            tests/features/season/SeasonGameRoutes.test.tsx \
+            tests/features/season/SeasonGameSubNav.test.tsx
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/quality/investigations/2026-08-08-dfa-007-private-championship-ui.md src/App.tsx src/app/weeklyRoutes.ts src/features/season/SeasonChampionshipPages.module.css src/features/season/SeasonChampionshipPages.tsx src/features/season/SeasonGameRouteBundle.ts src/features/season/SeasonGameRoutes.tsx src/features/season/SeasonGameSubNav.tsx src/services/supabase/seasonCupPlayer.ts tests/app/weeklyRoutes.test.ts tests/features/season/SeasonChampionshipPages.test.tsx tests/features/season/SeasonGameRoutes.test.tsx tests/features/season/SeasonGameSubNav.test.tsx
+          git commit -m 'Validate private Championship UI against Contract 133'
+          git push origin HEAD:validation/championship-private-ui-contract-133
