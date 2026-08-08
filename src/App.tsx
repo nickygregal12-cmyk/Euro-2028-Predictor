@@ -42,6 +42,21 @@ const SeasonChampionshipRoute = lazy(() =>
     default: m.SeasonChampionshipRoute,
   })),
 )
+const SeasonChampionshipFixtureRoute = lazy(() =>
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
+    default: m.SeasonChampionshipFixtureRoute,
+  })),
+)
+const SeasonChampionshipTableRoute = lazy(() =>
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
+    default: m.SeasonChampionshipTableRoute,
+  })),
+)
+const SeasonChampionshipFixturesRoute = lazy(() =>
+  import('./features/season/SeasonGameRouteBundle').then((m) => ({
+    default: m.SeasonChampionshipFixturesRoute,
+  })),
+)
 const SeasonLeaguesRoute = lazy(() =>
   import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonLeaguesRoute,
@@ -213,6 +228,18 @@ export default function App() {
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug/games/championship"
                       element={<SeasonChampionshipRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId"
+                      element={<SeasonChampionshipFixtureRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId/table"
+                      element={<SeasonChampionshipTableRoute />}
+                    />
+                    <Route
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId/fixtures"
+                      element={<SeasonChampionshipFixturesRoute />}
                     />
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug/leagues"
