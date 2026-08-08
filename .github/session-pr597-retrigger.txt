@@ -1,0 +1,1 @@
+Temporary owner-authored trigger for PR #597 exact-head checks. This file is removed in the immediately following commit and is not part of the PR content.
