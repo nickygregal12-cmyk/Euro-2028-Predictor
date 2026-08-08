@@ -226,6 +226,15 @@ in the season they name:
 - `get_season_head_to_head`
 - `get_season_prediction_consensus`
 
+Contract 132 adds two explicit initial-calendar decision authorities. Both take
+`p_tournament_id`, operate only on that season's staged provider proposals, and
+preserve the existing competition-admin capability boundary. Approval is
+empty-season-only and rejection creates no canonical football rows, so neither
+RPC changes C1 identity or auth ownership semantics:
+
+- `admin_approve_initial_provider_fixtures`
+- `admin_reject_initial_provider_fixtures`
+
 Bonus Game C1 scope review covers:
 
 - `admin_draw_predictor_cup`
