@@ -41,6 +41,12 @@ jobs:
               'The repository candidate is **133**. Development Supabase and Production Supabase are both hosted at **132** after the verified Contract 132 rollouts; Contract 133 remains repository-only until its guarded Development rollout is applied and verified.',
               'The repository candidate is **133**. Development Supabase is hosted at **133** after Development Fast Lane run 31276698062 / #46 applied and postflight-verified `20260808003000_private_season_cup_player_reads.sql` from exact repository head `1138d0967bcff4168680980dc3352517f1e9c772`. Production Supabase remains independently hosted at **132** and was untouched by that Development rollout.'
           )
+          p = Path('docs/quality/current-status.md')
+          text = p.read_text()
+          text, n = re.subn(r'Development Supabase is hosted at \*\*131\*\*', 'Development Supabase was hosted at **131**', text)
+          if n != 1:
+              raise SystemExit(f'expected one stale Development-131 present-tense statement, found {n}')
+          p.write_text(text)
 
           p = Path('docs/ops/ops-pending-migrations.md')
           text = p.read_text()
