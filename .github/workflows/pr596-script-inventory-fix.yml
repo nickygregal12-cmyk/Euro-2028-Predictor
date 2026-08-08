@@ -1,0 +1,46 @@
+name: PR596 script inventory fix
+
+on:
+  push:
+    branches:
+      - agent/provider-team-profile-development-backfill
+    paths:
+      - '.github/workflows/pr596-script-inventory-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/provider-team-profile-development-backfill
+          fetch-depth: 0
+      - name: Register the new operational script in the reviewed deferred inventory
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tests/scripts/typescriptProjectCoverage.test.ts')
+          text = path.read_text()
+          anchor = "    ['scripts/ops/create-verified-supabase-backup.mjs', 31],\n"
+          addition = "    ['scripts/ops/build-provider-team-profile-backfill.mjs', null],\n"
+          if addition in text:
+              raise SystemExit('inventory entry already present')
+          if anchor not in text:
+              raise SystemExit('expected operational-script inventory anchor not found')
+          path.write_text(text.replace(anchor, addition + anchor, 1))
+          PY
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/scripts/typescriptProjectCoverage.test.ts
+          git commit -m 'Test: register provider profile backfill script'
+          git push origin HEAD:agent/provider-team-profile-development-backfill
