@@ -1,0 +1,164 @@
+{
+  "evidenceVersion": 1,
+  "capturedAt": "2026-08-08T16:35:03.166961Z",
+  "provider": "sportmonks",
+  "competition": {
+    "platformTournamentId": "6a64a59b-b721-443e-a864-0fd52db1edbd",
+    "providerLeagueId": "501",
+    "label": "Scottish Premiership 2026/27"
+  },
+  "source": {
+    "rawResponseId": "bb0d60a9-5150-4f72-8b95-a213606ec6e2",
+    "rawBodySha256": "e0c68aa70598e2a611f9e08ff480dc05d82e3357e22515992774d4c700115802",
+    "fixtureCount": 6,
+    "participantCount": 12,
+    "requestClass": "retained SportMonks Scottish Premiership fixture response"
+  },
+  "policy": {
+    "newProviderRequestIssued": false,
+    "providerImageReferenceOnly": true,
+    "providerImageMayBeRenderedPublicly": false,
+    "officialResultAuthority": false,
+    "scoringAuthority": false
+  },
+  "observations": [
+    "All 12 provider team ids already resolve to the intended platform team through provider_entity_map.",
+    "SportMonks short_code is not unique in this competition: Dundee and Dundee United both report DUD.",
+    "provider venue and country ids are references only; this evidence does not assert platform venue/country mappings.",
+    "imageRef values are retained provider references only and must not be rendered or re-hosted without a separate rights decision."
+  ],
+  "teams": [
+    {
+      "providerTeamId": "273",
+      "providerName": "Aberdeen",
+      "shortCode": "ABE",
+      "founded": 1903,
+      "providerCountryId": "1161",
+      "providerVenueId": "8928",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/17/273.png",
+      "platformTeamId": "ca72677a-f69d-4fb2-995a-3402c18e4af6",
+      "platformTeamName": "Aberdeen"
+    },
+    {
+      "providerTeamId": "53",
+      "providerName": "Celtic",
+      "shortCode": "CEL",
+      "founded": 1888,
+      "providerCountryId": "1161",
+      "providerVenueId": "8909",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/21/53.png",
+      "platformTeamId": "b8918c4c-05d2-480e-80aa-59ff9694046c",
+      "platformTeamName": "Celtic"
+    },
+    {
+      "providerTeamId": "284",
+      "providerName": "Dundee",
+      "shortCode": "DUD",
+      "founded": 1893,
+      "providerCountryId": "1161",
+      "providerVenueId": "284597",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/28/284.png",
+      "platformTeamId": "cbcf94ec-5364-4cba-ad90-9d2828bc79a3",
+      "platformTeamName": "Dundee"
+    },
+    {
+      "providerTeamId": "282",
+      "providerName": "Dundee United",
+      "shortCode": "DUD",
+      "founded": 1909,
+      "providerCountryId": "1161",
+      "providerVenueId": "8947",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/26/282.png",
+      "platformTeamId": "538b5016-793d-412b-8dec-b9aa3876f88c",
+      "platformTeamName": "Dundee United"
+    },
+    {
+      "providerTeamId": "770",
+      "providerName": "Falkirk",
+      "shortCode": "FAL",
+      "founded": 1876,
+      "providerCountryId": "1161",
+      "providerVenueId": "245",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/2/770.png",
+      "platformTeamId": "2ccb66a6-86e7-4839-b299-6e2a67b55e6a",
+      "platformTeamName": "Falkirk"
+    },
+    {
+      "providerTeamId": "314",
+      "providerName": "Hearts",
+      "shortCode": "HEA",
+      "founded": 1874,
+      "providerCountryId": "1161",
+      "providerVenueId": "336296",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/26/314.png",
+      "platformTeamId": "220004ab-8f8e-44c4-b8cc-a51a6426c67d",
+      "platformTeamName": "Hearts"
+    },
+    {
+      "providerTeamId": "66",
+      "providerName": "Hibernian",
+      "shortCode": "HIB",
+      "founded": 1875,
+      "providerCountryId": "1161",
+      "providerVenueId": "8946",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/2/66.png",
+      "platformTeamId": "2727e83f-89f0-4f08-8ac7-6e3708f2a44e",
+      "platformTeamName": "Hibernian"
+    },
+    {
+      "providerTeamId": "180",
+      "providerName": "Kilmarnock",
+      "shortCode": "KIL",
+      "founded": 1869,
+      "providerCountryId": "1161",
+      "providerVenueId": "8906",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/20/180.png",
+      "platformTeamId": "2c7aae95-7f31-4242-9c9b-aee92e4aac8f",
+      "platformTeamName": "Kilmarnock"
+    },
+    {
+      "providerTeamId": "309",
+      "providerName": "Motherwell",
+      "shortCode": "MOT",
+      "founded": 1886,
+      "providerCountryId": "1161",
+      "providerVenueId": "8922",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/21/309.png",
+      "platformTeamId": "ae8a771d-7e29-4e31-8059-851ae0c560a5",
+      "platformTeamName": "Motherwell"
+    },
+    {
+      "providerTeamId": "62",
+      "providerName": "Rangers",
+      "shortCode": "RAN",
+      "founded": 1873,
+      "providerCountryId": "1161",
+      "providerVenueId": "8914",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/30/62.png",
+      "platformTeamId": "a96fc34c-b99f-41bf-9506-3b70007b2f02",
+      "platformTeamName": "Rangers"
+    },
+    {
+      "providerTeamId": "734",
+      "providerName": "St. Johnstone",
+      "shortCode": "STJ",
+      "founded": 1885,
+      "providerCountryId": "1161",
+      "providerVenueId": "219",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/30/734.png",
+      "platformTeamId": "d258c5cc-939a-45ef-bb1e-42cf640da9f2",
+      "platformTeamName": "St. Johnstone"
+    },
+    {
+      "providerTeamId": "496",
+      "providerName": "St. Mirren",
+      "shortCode": "STM",
+      "founded": 1877,
+      "providerCountryId": "1161",
+      "providerVenueId": "8879",
+      "imageRef": "https://cdn.sportmonks.com/images/soccer/teams/16/496.png",
+      "platformTeamId": "a7c27e60-697b-4c85-91db-ef501850ede9",
+      "platformTeamName": "St. Mirren"
+    }
+  ]
+}
