@@ -22,7 +22,7 @@ Netlify's `EURO28_DEPLOYED_DB_CONTRACT` value describes the hosted database reac
 
 A direct Netlify project/environment read on 8 August 2026 confirmed all four values above. The three non-production contexts point to the Development Supabase project; production points to the Production Supabase project. A fifth `dev-server` context still carries an empty declaration and therefore fails closed under `scripts/validate-deployment-contract.mjs`.
 
-The repository test does not hard-code these numbers. It requires the three non-production documentation values to match `config/development-hosted-contract.json` and the production documentation value to match `config/production-hosted-contract.json`. A hosted database rollout therefore has one machine-backed value to reconcile into Netlify configuration rather than another permanent magic number.
+The repository test does not hard-code these numbers. It requires the documentation records to agree about each declared Netlify value, and it proves that a declaration never leads the hosted database targeted by that context. Equality is valid and an intentional trailing declaration is valid; a leading declaration is refused. Hosted database movement therefore does not manufacture a Netlify configuration change merely to keep numbers equal.
 
 The declaration must never be raised ahead of the hosted database or used to manufacture a green build. After a separately authorised hosted rollout, update the matching Netlify context only from fresh target-specific evidence. An environment-variable update is configuration, not a deployment.
 

@@ -34,7 +34,7 @@ The accepted sequence in the UI execution authority still governs, but its first
 
 - `DFA-003` reusable club identity and `DFA-005` deterministic parent navigation are implemented.
 - `DFA-004` route convergence and `DFA-006` meaningful action/Play aggregation are partial and remain active.
-- `DFA-007` is partial: real Scottish Matchweek 1 result truth and reload-persistent Matchweek 2 LMS are proven. The private Championship read contract is merged to the repository, while hosted Development still trails that repository change; exact contract numbers belong only in the live status authority. PR #593 remains the signed-in Championship UI proof/merge candidate after the guarded rollout.
+- `DFA-007` is partial: real Scottish Matchweek 1 result truth and reload-persistent Matchweek 2 LMS are proven. The private Championship read contract is now applied and persistently verified in Development; PR #593 remains parked only on the real Team-SSO-protected signed-in desktop/phone browser acceptance. The ordinary MW1 scoring/rederivation proof and later MW2 Match Predictor points feed remain separate rehearsal gaps.
 - The four-provider capability/terms audit is merged as PR #594. The first provenance-backed team-profile schema candidate is PR #595, with the Development-only retained-response population lane stacked as PR #596. Both remain deliberately behind the `DFA-007` hosted/signed-in dependency and add no provider-to-official-result authority.
 - Production release posture is not inferred from any of these candidates; read the live status and operations inventory for the database, Netlify declaration and actually published artifact separately.
 
