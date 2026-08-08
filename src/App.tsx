@@ -37,24 +37,9 @@ const SeasonStandingsRoute = lazy(() =>
 const SeasonLmsRoute = lazy(() =>
   import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonLmsRoute })),
 )
-const SeasonChampionshipRoute = lazy(() =>
-  import('./features/season/SeasonGameRouteBundle').then((m) => ({
-    default: m.SeasonChampionshipRoute,
-  })),
-)
-const SeasonChampionshipFixtureRoute = lazy(() =>
-  import('./features/season/SeasonGameRouteBundle').then((m) => ({
-    default: m.SeasonChampionshipFixtureRoute,
-  })),
-)
-const SeasonChampionshipTableRoute = lazy(() =>
-  import('./features/season/SeasonGameRouteBundle').then((m) => ({
-    default: m.SeasonChampionshipTableRoute,
-  })),
-)
-const SeasonChampionshipFixturesRoute = lazy(() =>
-  import('./features/season/SeasonGameRouteBundle').then((m) => ({
-    default: m.SeasonChampionshipFixturesRoute,
+const SeasonChampionshipRouter = lazy(() =>
+  import('./features/season/SeasonChampionshipRouter').then((m) => ({
+    default: m.SeasonChampionshipRouter,
   })),
 )
 const SeasonLeaguesRoute = lazy(() =>
@@ -226,20 +211,8 @@ export default function App() {
                       element={<SeasonLmsRoute />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/championship"
-                      element={<SeasonChampionshipRoute />}
-                    />
-                    <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId"
-                      element={<SeasonChampionshipFixtureRoute />}
-                    />
-                    <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId/table"
-                      element={<SeasonChampionshipTableRoute />}
-                    />
-                    <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/:competitionId/fixtures"
-                      element={<SeasonChampionshipFixturesRoute />}
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/*"
+                      element={<SeasonChampionshipRouter />}
                     />
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug/leagues"
