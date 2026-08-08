@@ -1,0 +1,39 @@
+name: Temporary Development fast-lane dispatcher
+
+on:
+  push:
+    branches:
+      - docs/live-authority-reconciliation-20260808
+    paths:
+      - '.github/workflows/tmp-dispatch-development-fast-lane.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch the existing guarded main workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload='{"ref":"main","inputs":{"project_ref":"iouzoutneyjpugbbtdem","confirmation":"APPLY-DEVELOPMENT-FAST-LANE"}}'
+          code="$(curl --silent --show-error --output /tmp/dispatch-response.txt --write-out '%{http_code}' \
+            --request POST \
+            --header 'Accept: application/vnd.github+json' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${REPOSITORY}/actions/workflows/development-fast-lane-rollout.yml/dispatches" \
+            --data "${payload}")"
+          if [ "${code}" != '204' ]; then
+            echo "ERROR: workflow dispatch returned HTTP ${code}."
+            cat /tmp/dispatch-response.txt
+            exit 1
+          fi
+          echo 'Existing Development fast-lane workflow accepted the dispatch for ref main.'
