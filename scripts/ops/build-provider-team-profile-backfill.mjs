@@ -119,6 +119,35 @@ begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
+-- The protected season truth is locked only for this short transaction. If a
+-- result/scoring writer is active, lock_timeout refuses the backfill rather than
+-- racing it. The backfill never needs either table for its own write.
+lock table public.season_fixtures in share mode;
+lock table public.season_matchweek_scores in share mode;
+
+create temporary table provider_team_profile_backfill_protected_state (
+  relation_name text primary key,
+  payload jsonb not null
+) on commit drop;
+
+insert into provider_team_profile_backfill_protected_state (relation_name, payload)
+values
+  (
+    'season_fixtures',
+    (select coalesce(jsonb_agg(to_jsonb(fixture) order by fixture.id), '[]'::jsonb)
+       from public.season_fixtures fixture
+      where fixture.tournament_id = ${tournamentId})
+  ),
+  (
+    'season_matchweek_scores',
+    (select coalesce(
+              jsonb_agg(to_jsonb(score) order by score.entry_id, score.competition_round_id),
+              '[]'::jsonb
+            )
+       from public.season_matchweek_scores score
+      where score.tournament_id = ${tournamentId})
+  );
+
 -- Generated only from retained custody evidence. This script performs no HTTP
 -- request and writes only predictor_internal.provider_team_profiles through the
 -- Contract-134 writer.
@@ -221,6 +250,10 @@ do $verify$
 declare
   v_profile_count integer;
   v_matching_profile_count integer;
+  v_fixtures_before jsonb;
+  v_fixtures_after jsonb;
+  v_scores_before jsonb;
+  v_scores_after jsonb;
 begin
   select count(*)
     into v_profile_count
@@ -256,6 +289,32 @@ begin
 
   if v_matching_profile_count <> ${EXPECTED_TEAM_COUNT} then
     raise exception 'Provider team profile postflight does not match committed evidence' using errcode = '22023';
+  end if;
+
+  select payload into v_fixtures_before
+    from provider_team_profile_backfill_protected_state
+   where relation_name = 'season_fixtures';
+  select coalesce(jsonb_agg(to_jsonb(fixture) order by fixture.id), '[]'::jsonb)
+    into v_fixtures_after
+    from public.season_fixtures fixture
+   where fixture.tournament_id = ${tournamentId};
+
+  select payload into v_scores_before
+    from provider_team_profile_backfill_protected_state
+   where relation_name = 'season_matchweek_scores';
+  select coalesce(
+           jsonb_agg(to_jsonb(score) order by score.entry_id, score.competition_round_id),
+           '[]'::jsonb
+         )
+    into v_scores_after
+    from public.season_matchweek_scores score
+   where score.tournament_id = ${tournamentId};
+
+  if v_fixtures_after is distinct from v_fixtures_before then
+    raise exception 'Provider profile backfill changed protected season fixture/result state' using errcode = 'P0001';
+  end if;
+  if v_scores_after is distinct from v_scores_before then
+    raise exception 'Provider profile backfill changed protected season scoring state' using errcode = 'P0001';
   end if;
 end;
 $verify$;
