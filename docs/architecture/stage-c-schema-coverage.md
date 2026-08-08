@@ -204,6 +204,7 @@ These names may remain but their semantics must support both kinds safely:
 - `get_my_knockout_predictions`
 - `get_my_leagues`
 - `get_my_lms`
+- `get_my_season_cup_instances`
 - `get_player_profile`
 - `get_prediction_consensus`
 - `get_rival_entry`

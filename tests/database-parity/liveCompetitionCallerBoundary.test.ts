@@ -117,8 +117,10 @@ describe('contract 104 competition-instance caller boundary', () => {
     expect(agents).toContain(
       `Development Supabase is hosted at **${developmentContract.requiredMigrationCount}**`,
     )
-    expect(currentStatus).toContain(
-      `Development Supabase is hosted at **${developmentContract.requiredMigrationCount}**`,
+    expect(currentStatus).toMatch(
+      new RegExp(
+        `Development Supabase(?: is| and Production Supabase are both) hosted at \\*\\*${developmentContract.requiredMigrationCount}\\*\\*`,
+      ),
     )
   })
 })
