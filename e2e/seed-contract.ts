@@ -718,7 +718,7 @@
  * gated by the new functions. Exact-head Database parity and Browser E2E both
  * passed on the Contract-133 PR before this marker was raised.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 133
+export const SEED_REVIEWED_AT_CONTRACT = 134
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
