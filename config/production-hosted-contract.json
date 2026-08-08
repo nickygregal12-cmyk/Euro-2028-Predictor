@@ -1,13 +1,12 @@
 {
   "projectRef": "vkfnsqdyhvtwyqkisxhk",
-  "requiredMigrationCount": 131,
-  "latestMigrationVersion": "20260806220000",
-  "latestMigrationName": "period_standings_display_names",
-  "verifiedAt": "2026-08-07T20:33:19.000Z",
+  "requiredMigrationCount": 132,
+  "latestMigrationVersion": "20260807210812",
+  "latestMigrationName": "provider_initial_fixture_approval",
+  "verifiedAt": "2026-08-08T04:18:00.000Z",
   "evidence": {
-    "source": "Production continuation run 31216257649 completed successfully on 7 August 2026. It pinned current main 9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9, verified the canonical contract-131 Database parity run 31199361790 with no migration/test drift, verified the immutable Production-shaped contract-96-to-131 rehearsal and encrypted contract-96 rollback artifact from run 31214393775, re-proved live Production at exact contract 96 with unchanged protected counts, dry-ran and applied guarded batches C (97-114), D (115-125) and E (126-131), verified each intermediate ledger, cron, pg_net and protected-row-count boundary, and finished at exactly 131 migrations ending 20260806220000_period_standings_display_names. An independent Supabase read after the run confirmed contract 131, pg_net installed, six active cron jobs and zero provider_poll_targets.",
-    "repositoryHead": "9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9",
-    "workflowRunId": 31216257649
+    "source": "Independent read-only Supabase migration-ledger verification on 8 August 2026 confirmed Production at exactly Contract 132, ending 20260807210812_provider_initial_fixture_approval. This reconciles the machine record that was left at 131 after the guarded Contract 132 rollout; application promotion remains separately controlled.",
+    "repositoryHead": "305b4e12b43a28f349f5fd27c954bd8247742a52"
   },
   "promotionAuthorised": false
 }
