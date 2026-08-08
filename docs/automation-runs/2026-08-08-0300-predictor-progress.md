@@ -56,32 +56,40 @@ Contract 133 adds two authenticated, caller-scoped read surfaces for the private
 
 It does not grant direct browser access to private Cup tables and does not move scoring, ranking, phase, settlement or lifecycle authority out of their existing server-owned boundaries. A non-member probing a private UUID remains indistinguishable from a missing ID.
 
-## Contract 133 authority sweep
+## Contract 133 authority and generated-state repairs
 
 The first clean-head CI run passed migration-order validation but correctly failed documentation-authority validation because twelve live authority documents still stopped at contract 132.
 
-A one-shot branch-only workflow appended bounded Contract-133 authority notes to those twelve current documents, then was removed before final verification. The resulting documentation commit is `8f95d80ea172a06e4a52adbf5d0fc94fc56fb27c`; the temporary workflow was removed by `c97381b6ff11f4b1e6b7e59c0c967ece261a8991`.
+A one-shot branch-only workflow appended bounded Contract-133 authority notes to those twelve current documents. The resulting documentation commit is `8f95d80ea172a06e4a52adbf5d0fc94fc56fb27c`; that temporary workflow was then removed.
 
-Final Contract-133 candidate head at handover: `c97381b6ff11f4b1e6b7e59c0c967ece261a8991`.
+The next exact-head CI run confirmed migration ordering and documentation authority were both repaired, then correctly failed the generated-state check because `NOW.md` had not been regenerated. A second one-shot branch-only workflow ran the repository-owned `npm run generate:now` command. It completed successfully and committed only the generated `NOW.md` delta as `efc0d55f69f0c3bad6a9d82096ec7bd68fdd091e`.
 
-The final PR changes are the four Contract-133 implementation/test files plus bounded Contract-133 notes in the twelve required authority documents. The one-shot workflow itself is not part of the final candidate.
+The NOW-generator workflow was then removed from the candidate. Final clean Contract-133 candidate head at handover: `b756d25215dd1cfccbdf0db65ecf597c15135615`.
+
+PR #591 is mergeable but remains draft while the final exact-head checks run. The candidate contains the four Contract-133 implementation/test files, the required bounded Contract-133 notes in the twelve current authority documents, and generated `NOW.md`; neither one-shot helper workflow remains in the final tree.
 
 ## Verification status at handover
 
-For the initial clean Contract-133 head:
+Verified during the repair cycle:
 
-- hosted migration inventory passed;
-- CodeQL passed;
-- migration ordering passed;
-- documentation authority failed only because the twelve authorities lacked Contract-133 notes.
+- hosted migration inventory passed on the clean Contract-133 line;
+- CodeQL passed on the initial clean line;
+- migration timestamp ordering passed;
+- the twelve-document authority sweep passed after repair;
+- `npm run generate:now` completed successfully and changed only generated `NOW.md`.
 
-That documentation failure has been repaired. Fresh exact-head workflows have been dispatched for `c97381b6ff11f4b1e6b7e59c0c967ece261a8991`; Browser E2E was queued at the final inspection and the other exact-head checks were being registered. PR #591 remains draft and has not been merged because those final gates must complete on the exact final head.
+Fresh exact-head workflows for `b756d25215dd1cfccbdf0db65ecf597c15135615` are now registered: CI and hosted migration inventory have started; Browser E2E and Database parity are queued; CodeQL is pending. Those exact-head checks, plus the active-site Netlify preview, must complete before #591 leaves draft or merges.
 
 No Contract-133 migration has been applied to Development or Production.
 
-## Stale handover cleanup
+## Stale branch / handover cleanup
 
-Closed PR #590 as superseded. It was written before the guarded Contract-132 Development rollout and Production promotion completed and therefore incorrectly described both hosted environments as contract 131. It was deliberately not merged into `main`.
+- Closed stale PR #587 as superseded by clean restack #591.
+- Closed PR #590 as superseded. It was written before the guarded Contract-132 Development rollout and Production promotion completed and therefore incorrectly described both hosted environments as contract 131. It was deliberately not merged into `main`.
+
+## Handover publication
+
+This report is published through PR #592 from branch `automation/2026-08-08-0300-authority-reconcile`.
 
 ## Mutations performed in this run
 
@@ -91,9 +99,11 @@ Repository only:
 - committed the four-file Contract-133 restack;
 - opened PR #591;
 - reconciled the twelve required Contract-133 documentation authorities on that branch;
-- removed the temporary one-shot documentation workflow;
+- regenerated `NOW.md` with the repository-owned generator;
+- removed both temporary one-shot helper workflows from the final candidate;
 - closed stale Contract-133 PR #587;
-- closed stale 01:00 handover PR #590.
+- closed stale 01:00 handover PR #590;
+- published and refreshed this 03:00 handover in PR #592.
 
 Hosted systems:
 
@@ -104,16 +114,16 @@ Hosted systems:
 
 ## Risks / blockers
 
-1. PR #591 cannot merge until all exact-head required checks complete successfully, including CI/documentation authority, Database parity/pgTAP, Browser E2E, CodeQL, hosted migration inventory and the active-site Netlify preview.
-2. The repository hosted-authority files still lag the directly verified Contract-132 state. That should be reconciled before using hosted-authority automation as evidence for a Contract-133 rollout.
+1. PR #591 cannot merge until all exact-head required checks on `b756d25215dd1cfccbdf0db65ecf597c15135615` complete successfully, including CI, Database parity/pgTAP, Browser E2E, CodeQL, hosted migration inventory and the active-site Netlify preview.
+2. The repository hosted-authority files still lag the directly verified Contract-132 state. Generated `NOW.md` therefore truthfully reflects the repository authorities rather than the fresher hosted ledger; reconcile the machine authority coherently before using it for a Contract-133 rollout.
 3. Contract 133 is repository-only; Development and Production remain at 132 until repository-controlled rollout gates explicitly advance them.
 4. The dependent private Championship UI must not be integrated on top of stale PR #587; it should be restacked on the clean Contract-133 line after the backend contract is green and Development is verified.
 
 ## Exact next action for 05:00
 
-1. Recheck PR #591 at exact head `c97381b6ff11f4b1e6b7e59c0c967ece261a8991`.
+1. Recheck PR #591 at exact head `b756d25215dd1cfccbdf0db65ecf597c15135615`.
 2. Inspect and repair any exact-head CI, Database parity/pgTAP, Browser E2E, CodeQL or active-site preview failure; do not bypass a required gate.
-3. Once all gates are green, mark #591 ready and squash-merge it using expected-head protection.
-4. Reconcile the stale Contract-132 hosted-authority record coherently (development JSON, production JSON and the current hosted inventory/status rows) and let its guard pass; do not change `promotionAuthorised` to true.
+3. Once every gate is green, mark #591 ready and squash-merge it using expected-head protection.
+4. Reconcile the stale Contract-132 hosted-authority record coherently (development JSON, production JSON and the current hosted inventory/status rows) and let its guard pass; keep `promotionAuthorised` false.
 5. Run the guarded Development rollout for Contract 133 only after repository authority is coherent, directly verify the two new RPC privilege/privacy boundaries and the Development migration ledger, then merge the generated hosted-authority follow-up.
 6. Restack the dependent private Championship UI on exact post-Contract-133 `main` and verify the real signed-in My Fixture / Table / Fixtures journey. Keep any disposable integration-validation PR out of `main`.
