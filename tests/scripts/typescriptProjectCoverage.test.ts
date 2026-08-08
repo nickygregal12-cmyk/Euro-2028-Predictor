@@ -209,6 +209,7 @@ describe('JavaScript under scripts/', () => {
     ['scripts/database-rollout/rehearse-production-batch-a.mjs', null],
     ['scripts/database-rollout/rehearse-production-batch-b.mjs', null],
     ['scripts/og/renderAssets.js', 61],
+    ['scripts/ops/build-provider-team-profile-backfill.mjs', null],
     ['scripts/ops/create-verified-supabase-backup.mjs', 31],
     ['scripts/ops/run-stage-c1-hosted-postflight.mjs', 5],
     ['scripts/ops/run-stage-c1-hosted-preflight.mjs', 3],
