@@ -243,3 +243,8 @@ Do not silently:
 - treat an unrestored backup as recovery proof.
 
 **Contract 118** gives the games hub neutral window fixture facts, so a season competition's card advances instead of sticking on its first locked round.
+
+## Contract 132 baseline
+
+The domestic-season baseline now includes staged initial provider fixture proposals and explicit administrator approval/rejection. Initial Scottish publication is constrained to 12 teams, 33 pre-split rounds and 198 fixtures; Premier League publication is constrained to 20 teams, 38 rounds and 380 fixtures. Created fixtures remain scheduled with null official scores until the separate protected result-confirmation authority is used.
+

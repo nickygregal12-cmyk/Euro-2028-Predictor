@@ -1,8 +1,9 @@
 -- What provider ingestion is allowed to write.
 --
 -- WHY THIS GUARD EXISTS. `MASTER-TODO.md` Stage D carries the claim that
--- ingestion is "unable to write official fixtures, results, locks, scores,
--- totals, ranks or standings". Until this file, nothing enforced it. It was
+-- automatic ingestion is "unable to write official results, locks, scores, totals,
+-- ranks or standings". Contract 132 adds a separately gated competition-admin
+-- publication path for a complete initial set of scheduled fixtures. Until this file, nothing enforced it. It was
 -- true because each contract was written carefully -- contract 117's importer
 -- touches exactly two relations, and its own suite proves it never writes
 -- `competition_round_id` -- but "true because everyone has been careful so far"
@@ -47,7 +48,7 @@
 -- assertions run -- the failure that costs a CI round trip is a file that
 -- aborts partway and silently stops checking the rest.
 --
--- Then the fourteen functions were recreated with the shapes the real ones
+-- Then the reviewed functions were recreated with the shapes the real ones
 -- have and all seven passed, and three mutants were killed: an importer that
 -- also writes `public.season_matchweek_scores` (assertions 2 and 7), an
 -- unreviewed `provider_*` function appearing (assertion 3), and a third
@@ -102,6 +103,14 @@ insert into official_truth (relation, why) values
 create temporary table ingestion_functions (name text primary key, permitted_writes text) on commit drop;
 
 insert into ingestion_functions (name, permitted_writes) values
+  ('admin_approve_initial_provider_fixtures',
+   'explicit competition-admin publication of a complete initial scheduled season: teams, matchweeks, provider mappings and season_fixtures only; provider scores remain proposal evidence.'),
+  ('admin_reject_initial_provider_fixtures',
+   'decision evidence only -- pending provider proposals become rejected and no competition relation is written.'),
+  ('stage_provider_fixture_proposals',
+   'pending internal proposal evidence only; no canonical competition relation is written.'),
+  ('block_provider_fixture_proposal_rewrite',
+   'refuses rewrite or deletion of provider proposal evidence; writes nothing.'),
   ('import_provider_fixture_revisions',
    'season_fixtures.kickoff_at and the append-only revision record. The only '
    'function here that writes a public relation at all, and contract 117 fails '
@@ -209,10 +218,10 @@ select is(
   'rather than leaving the list to rot');
 
 -- ---------------------------------------------------------------------------
--- 5. The one permitted public write, named rather than merely allowed.
+-- 5. The reviewed public writes, named rather than merely allowed.
 -- ---------------------------------------------------------------------------
 --
--- Two ingestion functions write a `public` relation and no others do. Asserting
+-- Three reviewed provider-path functions write a `public` relation and no others do. Asserting
 -- the set positively means a third appearing is visible here, not merely absent
 -- from the forbidden list above -- and the forbidden list can only refuse
 -- relations somebody thought to name.
@@ -236,10 +245,10 @@ select is(
           and p.prokind = 'f'
           and pg_get_functiondef(p.oid) ~* '(insert\s+into|update|delete\s+from)\s+public\.'
      ) writer),
-  '["dispatch_due_provider_polls", "import_provider_fixture_revisions"]'::jsonb,
-  'exactly two ingestion functions write a public relation: the contract 117 '
-  'kickoff importer, and the poll dispatcher recording when a target was last '
-  'polled');
+  '["admin_approve_initial_provider_fixtures", "dispatch_due_provider_polls", "import_provider_fixture_revisions"]'::jsonb,
+  'exactly three reviewed provider-path functions write a public relation: '
+  'contract 132 explicit admin publication, contract 117 kickoff import, and '
+  'the poll dispatcher metadata stamp');
 
 -- ---------------------------------------------------------------------------
 -- 6. And what it writes there is the fixture, not the round.

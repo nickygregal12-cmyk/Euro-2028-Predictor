@@ -1,8 +1,9 @@
 # Real league data replaces the invented seed — development, 5 August 2026
 
+> Historical operation record. It preserves what was measured/done on 5 August 2026; it is **not** a live contract/hosted-status authority. Read [`../quality/current-status.md`](../quality/current-status.md) and [`ops-pending-migrations.md`](ops-pending-migrations.md) for moving repository/Development/Production state.
+
 Owner-authorised: *"replace the seeded clubs with the real 20, also need to do
-the same with scottish premiership."* Development only. Production is untouched
-and remains contract 63.
+the same with scottish premiership."* The replacement operation was Development-only and made no Production write. The earlier version of this record also said Production "remains contract 63"; that moving claim is deliberately removed because it became stale and belongs only in the live status authority.
 
 ## Safety check taken before anything was deleted
 
@@ -93,10 +94,24 @@ the fixture guard because the two protect against different things. Reached
 second, it would be skipped in exactly the case it exists for. The ordering is
 pinned by test, as is the continued absence of any delete.
 
-## What this is still not
+## What this operation was still not before Contract 132
 
-No import authority exists. This replacement was a one-off operation over
-archived payloads, not a repeatable path — nothing in the repository can take
-tomorrow's payload and apply it. That remains the automatic fixture import ADR
-0020 §Ingestion decides, and it is now unblocked for the first time: the map has
-rows, so a decoded fixture finally resolves to real rows.
+At the time of the 5 August replacement, no repeatable initial import authority existed. The replacement was a one-off operation over archived payloads: nothing in the repository could take the next fresh-season payload and safely create the canonical clubs/rounds/fixtures from it.
+
+That historical gap is superseded by the Contract 132 candidate below. Automatic ongoing fixture revision remains a separate boundary from initial calendar adoption, and provider evidence still does not become official result truth merely because it can create/revise scheduled fixtures.
+
+## Contract 132: repeatable initial provider adoption
+
+Fresh provider fixture data now has a repeatable initial-season path in the Contract 132 repository candidate. A successful `contract-132-v1` normalized response is staged into `predictor_internal.provider_fixture_proposals`; staging writes no canonical clubs, rounds, fixtures or results. Publication requires `public.admin_approve_initial_provider_fixtures(...)` and the caller must hold the existing `competitions` admin capability.
+
+The initial approval is deliberately complete-season and competition-specific: Scottish Premiership requires 12 clubs, 33 published pre-split matchweeks and 198 fixtures; Premier League requires 20 clubs, 38 matchweeks and 380 fixtures. Multiple bounded raw responses may be staged before one approval. Conflicting duplicate provider evidence fails closed.
+
+SportMonks adoption requests must include `round` alongside participants and scores (for example `include=participants;scores;round`). Contract 132 normalizes `round.name` as the provider matchweek identity and retains participant names so team mappings can be reviewed and created. An opaque SportMonks `round_id` is only a decoder fallback when round detail was not requested and is not suitable for initial approval.
+
+Provider match status and scores are retained on the proposal evidence row only. Approved canonical `season_fixtures` are created as `scheduled` with null scores. Already-played matches still require explicit confirmation through the protected season-result authority before standings or scoring treat them as official.
+
+## Next provider-data workstream: enrichment, not wider result authority
+
+The next high-value provider work is documented separately in [`../architecture/provider-enrichment-plan.md`](../architecture/provider-enrichment-plan.md). It is a **P1 post-provider-foundation priority** covering team/player reference data, match-specific kit colours, confirmed lineups, events, statistics, injuries/suspensions and historical Match Centre detail.
+
+That work must remain a separate enrichment lane. A missing crest, stale injury, lineup failure or advanced-statistics outage may degrade presentation; it must never block result confirmation, scoring, progression or settlement.

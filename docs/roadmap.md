@@ -183,3 +183,8 @@ The complete inventory remains in [`../MASTER-TODO.md`](../MASTER-TODO.md) for J
 When documents disagree, keep the conflict visible until deliberately reconciled. ADRs decide architecture and rules; current code/tests and verified hosted evidence decide implementation truth.
 
 **Contract 118 stops the games hub being blind to a season's fixtures.** `get_bonus_games` built its per-window fixtures from `bonus_window_fixtures` joined to `public.matches` with no branch on competition kind, so a season window returned an empty array — and because a window can only settle when `total > 0 and confirmed >= total`, a season competition's first locked round stayed in flight permanently and the hub card stuck on it. Three internal functions supply the facts instead: a tournament limb, a season limb mapping season status onto the tournament vocabulary on contract 77's established equivalence, and a neutral combiner that unions rather than branches. Fourth instance of one defect — contracts 86, 98, 116 and this — and `168_tournament_only_browser_reads.sql` now catches the fifth.
+
+## Contract 132 checkpoint — real season data adoption
+
+Contract 132 establishes the controlled first-publication authority for real domestic season calendars. It stages provider evidence first, requires an explicit administrator decision, rejects partial initial schedules, and leaves result confirmation outside provider automation. Development remains the first hosted validation target before Production promotion.
+

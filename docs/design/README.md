@@ -172,3 +172,8 @@ checklist.
 | 118 | the games hub stops showing a season a stale round — its windows can settle because its fixtures are finally visible to the read |
 
 Contract 118 is a correction rather than a presentation change: no surface moved, but a season competition's hub card had been stuck on its first locked round because the read returned it no fixtures.
+
+## Contract 132 design boundary
+
+Real domestic fixture adoption now has a backend publication gate: provider evidence is staged first and a complete initial season is approved explicitly. UI surfaces may rely on canonical scheduled fixtures after approval, but must not treat provider score evidence as an official result until the protected result-confirmation path has run.
+

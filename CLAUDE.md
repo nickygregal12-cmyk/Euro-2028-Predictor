@@ -67,3 +67,8 @@ Season Match Predictor, Last Man Standing and Predictor Championship rules come 
 - No hosted claim without fresh target-specific evidence.
 - No combined cross-competition entry, score, survival, progression or standings authority.
 - No rewriting dated evidence to make the current position look cleaner; correct the live authority and preserve history.
+
+## Contract 132 — provider initial publication boundary
+
+The repository is at contract 132. Fresh provider calendars must follow archive/normalize → stage pending proposals → explicit competition-admin approval. Contract 132 does not authorize automatic provider result confirmation, and it must not be used to copy Development football rows into Production.
+

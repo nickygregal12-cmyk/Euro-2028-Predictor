@@ -90,6 +90,11 @@ insert into expected_authenticated_functions (signature) values
   -- require_result_admin(), because fixing a season's draw is not correcting a
   -- scoreline.
   ('admin_open_season_competition(uuid)'),
+  -- Contract 132. Initial provider calendars are browser-reachable only for
+  -- authenticated competition administrators; each function enforces
+  -- require_competition_admin() internally and service_role is revoked.
+  ('admin_approve_initial_provider_fixtures(uuid,text,text)'),
+  ('admin_reject_initial_provider_fixtures(uuid,text,text)'),
   ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
 -- Contract 50: the Bonus Games hub read plus voluntary entry and withdrawal.

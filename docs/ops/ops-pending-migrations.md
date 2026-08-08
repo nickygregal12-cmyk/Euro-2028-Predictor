@@ -166,3 +166,8 @@ The first provider rehearsal is one bounded non-production request whose exact r
 - [`../../config/deployment-contract.json`](../../config/deployment-contract.json)
 - [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json)
 - [`../adr/0024-development-environment-operating-model.md`](../adr/0024-development-environment-operating-model.md)
+
+## Contract 132 — provider initial fixture approval
+
+`20260807210812_provider_initial_fixture_approval.sql` is the contract 132 migration. Promote it Development first and verify the proposal table, staging helper, authenticated admin approval/rejection RPCs, grants, and empty-season guard before applying the identical migration to Production. Production provider secrets remain an environment-level prerequisite for live ingestion and are not stored in repository migrations.
+

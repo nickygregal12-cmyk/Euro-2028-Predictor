@@ -702,7 +702,14 @@
  * `181_season_head_to_head.sql`, `182_season_prediction_consensus.sql` and
  * `183_period_standings_display_names.sql`.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 131
+/**
+ * Contract 132 adds the initial provider-fixture approval boundary. Its new
+ * public RPC is administrator-only, the projection helpers live behind the
+ * internal schema boundary, and no existing authenticated read is tightened or
+ * replaced. Exact-head Database parity passed, and the authenticated Browser
+ * E2E suite passed with the deterministic seed before this marker was raised.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 132
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

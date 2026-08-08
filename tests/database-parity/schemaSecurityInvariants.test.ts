@@ -100,6 +100,10 @@ describe('row-level security', () => {
       // the queues above it: the fixture carries the result in force, and this
       // carries what that value replaced, which no player surface reads.
       { schema: 'predictor_internal', name: 'season_fixture_result_revisions' },
+      // Contract 132. Fresh provider fixture discovery remains private evidence
+      // until a competition administrator explicitly approves or rejects the
+      // complete initial calendar. No player-facing API needs direct access.
+      { schema: 'predictor_internal', name: 'provider_fixture_proposals' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

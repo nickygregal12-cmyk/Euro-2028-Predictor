@@ -13,16 +13,16 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **131** | latest `20260806220000_period_standings_display_names.sql` |
+| Repository | **132** | latest `20260807210812_provider_initial_fixture_approval.sql` |
 | Development hosted | **131** | at `20260806220000_period_standings_display_names.sql`, verified `2026-08-07T14:16:55.000Z`, fast-lane run `31186564948` |
 | Production | **131** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 1 — `20260807210812_provider_initial_fixture_approval.sql`
 
-**Next free contract number:** 132. Check open pull requests
+**Next free contract number:** 133. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

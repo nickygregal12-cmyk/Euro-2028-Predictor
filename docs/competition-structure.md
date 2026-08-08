@@ -124,3 +124,8 @@ Physical compatibility objects such as `entries`, `bonus_competitions`, `bonus_c
 9. The roadmap is the only live execution sequence; this file owns structure, not delivery status.
 
 Contract 118 makes the games hub listing competition-neutral: a season window's fixtures reach `get_bonus_games` through `predictor_internal.bonus_window_fixture_facts`, so a season competition's rounds advance in the hub as a tournament's always did.
+
+## Contract 132 provider-calendar note
+
+For supported domestic season competitions, contract 132 may create the initial canonical teams, rounds and scheduled fixtures only from a complete approved provider proposal set. It does not change competition scoring rules and does not confirm results automatically.
+

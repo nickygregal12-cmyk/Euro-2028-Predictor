@@ -16,6 +16,14 @@ Read [`docs/quality/current-status.md`](docs/quality/current-status.md) before s
 
 Do not copy contract numbers or hosted claims from this README into operational work. Normal development uses the development environment; production promotion is an explicit milestone with its own guarded process.
 
+## Provider enrichment priority
+
+A **P1 post-provider-foundation workstream** is now recorded at [`docs/architecture/provider-enrichment-plan.md`](docs/architecture/provider-enrichment-plan.md).
+
+It covers the next high-value use of the project's football APIs: durable team/player/provider mappings, team profiles, match-specific shirt colours, confirmed lineups, events, useful match statistics, injuries/suspensions and historical match enrichment. It deliberately keeps all of that separate from the protected fixture/result/scoring/settlement authority.
+
+The first step is a Development-only capability and terms audit against the actual subscriptions; the plan does **not** authorise schema/application changes by itself.
+
 ## Setup
 
 ```bash
@@ -124,6 +132,7 @@ Browser-critical journeys use authenticated desktop/phone Playwright coverage. E
 | Migration inventory and hosted applied state | `docs/ops/ops-pending-migrations.md` |
 | Platform/product decisions | `docs/adr/README.md` |
 | Accepted requirements that are not yet implemented | `docs/quality/accepted-requirements.md` |
+| Provider enrichment/storage priority and data boundary | `docs/architecture/provider-enrichment-plan.md` |
 | Hub routes, navigation, onboarding and page ownership | `docs/architecture/hub-information-architecture.md` |
 | Competition context, locks and match/game states | `docs/architecture-and-tournament-states.md` |
 | Interface and visual design system | `docs/design-system.md` |
