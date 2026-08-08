@@ -1,0 +1,40 @@
+name: Contract 134 migration generator
+
+on:
+  push:
+    branches:
+      - feature/provider-enrichment-foundation-contract-134
+    paths:
+      - '.github/workflows/contract134-migration-generator.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Generate the Contract 134 migration with Supabase CLI
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration new provider_team_profile_foundation
+          generated="$(find supabase/migrations -maxdepth 1 -type f -name '*_provider_team_profile_foundation.sql' -print -quit)"
+          test -n "$generated"
+          printf 'Generated %s\n' "$generated"
+
+      - name: Upload generated migration
+        uses: actions/upload-artifact@v7
+        with:
+          name: contract-134-generated-migration
+          path: supabase/migrations/*_provider_team_profile_foundation.sql
+          if-no-files-found: error
+          retention-days: 1
