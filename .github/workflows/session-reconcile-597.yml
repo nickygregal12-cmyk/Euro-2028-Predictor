@@ -96,10 +96,11 @@ jobs:
         run: npm run generate:now
       - name: Validate documentation reconciliation
         run: npx vitest run tests/scripts/documentationContractFreshness.test.ts
-      - name: Validate generated NOW is stable
+      - name: Validate generated NOW is idempotent
         run: |
+          cp NOW.md /tmp/NOW.first.md
           npm run generate:now
-          git diff --exit-code -- NOW.md
+          cmp -s NOW.md /tmp/NOW.first.md
       - name: Commit reconciled branch and remove one-shot workflow
         shell: bash
         run: |
