@@ -1,0 +1,197 @@
+name: Session Production Contract 132 live promotion
+
+# One-run guarded Production promotion. Requires the successful final Contract
+# 132 Database Parity run and the fresh restored-data rehearsal/rollback backup
+# from run 31231738498. Applies only 20260807210812, then proves the hosted
+# ledger, football counts and Contract 132 security boundary.
+
+on:
+  push:
+    branches:
+      - ops/prod-contract132-live-20260808
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  BASE_MAIN_SHA: 305b4e12b43a28f349f5fd27c954bd8247742a52
+  PARITY_RUN_ID: '31230437337'
+  PARITY_SHA: 339fd903a89bc7ffc45e754f87c3330276561842
+  REHEARSAL_RUN_ID: '31231738498'
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  EXPECTED_REGION: eu-west-2
+  EXPECTED_SOURCE_HISTORY: 131|20260806220000|period_standings_display_names
+  EXPECTED_TARGET_HISTORY: 132|20260807210812|provider_initial_fixture_approval
+  EXPECTED_COUNTS: 24|7|0
+  EXPECTED_MIGRATION: 20260807210812_provider_initial_fixture_approval.sql
+  WORK_DIR: /tmp/production-contract132-live
+
+jobs:
+  promote:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          ref: ops/prod-contract132-live-20260808
+
+      - name: Refuse stale main, branch drift or migration drift
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main
+          [ "$(git rev-parse origin/main)" = "${BASE_MAIN_SHA}" ] || { echo 'ERROR: main advanced after live promotion authorisation.'; exit 1; }
+          [ "$(git rev-parse HEAD^)" = "${BASE_MAIN_SHA}" ] || { echo 'ERROR: live branch is not exact merged main plus one workflow.'; exit 1; }
+          [ "$(git diff --name-only "${BASE_MAIN_SHA}"..HEAD)" = '.github/workflows/session-production-contract132-live.yml' ] || { echo 'ERROR: live branch contains unexpected work.'; exit 1; }
+          [ "$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")" = '132' ] || exit 1
+          [ "$(node -p "require('./config/production-hosted-contract.json').requiredMigrationCount")" = '131' ] || exit 1
+          [ "$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')" = '132' ] || exit 1
+          migration="$(git ls-files 'supabase/migrations/20260807210812_*.sql' | xargs -n1 basename)"
+          [ "${migration}" = "${EXPECTED_MIGRATION}" ] || exit 1
+          node scripts/check-migration-additive.mjs "supabase/migrations/${EXPECTED_MIGRATION}"
+
+      - name: Verify canonical Contract 132 Database Parity evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${PARITY_RUN_ID}" > /tmp/parity.json
+          jq -e --arg sha "${PARITY_SHA}" '.conclusion == "success" and .head_sha == $sha and .name == "Database parity"' /tmp/parity.json >/dev/null || {
+            echo 'ERROR: canonical Database Parity evidence is not the expected successful run.'
+            exit 1
+          }
+
+      - name: Download restored Production rehearsal evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: production-contract132-rehearsal-evidence
+          path: /tmp/production-contract132-live/rehearsal
+          github-token: ${{ github.token }}
+          run-id: 31231738498
+
+      - name: Download encrypted Contract 131 rollback backup
+        uses: actions/download-artifact@v4
+        with:
+          name: production-contract131-pre132-encrypted
+          path: /tmp/production-contract132-live/rollback
+          github-token: ${{ github.token }}
+          run-id: 31231738498
+
+      - name: Verify rehearsal and rollback authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          r="${WORK_DIR}/rehearsal"
+          [ "$(cat "${r}/repository-main-sha.txt")" = "${BASE_MAIN_SHA}" ] || { echo 'ERROR: rehearsal main SHA differs.'; exit 1; }
+          [ "$(cat "${r}/rehearsal-run-id.txt")" = "${REHEARSAL_RUN_ID}" ] || exit 1
+          [ "$(cat "${r}/source-history.txt")" = "${EXPECTED_SOURCE_HISTORY}" ] || exit 1
+          [ "$(cat "${r}/source-football-counts.txt")" = "${EXPECTED_COUNTS}" ] || exit 1
+          [ "$(cat "${r}/rehearsal-target-history.txt")" = "${EXPECTED_TARGET_HISTORY}" ] || exit 1
+          [ "$(cat "${r}/rehearsal-target-football-counts.txt")" = "${EXPECTED_COUNTS}" ] || exit 1
+          [ "$(cat "${r}/rehearsal-security-boundary.txt")" = '1|1|1|0|0|1|0|0' ] || exit 1
+          [ "$(cat "${r}/rehearsal-dry-run-migrations.txt")" = "${EXPECTED_MIGRATION}" ] || exit 1
+          find "${WORK_DIR}/rollback" -type f -name '*.backup.tar.gz.age' -size +0c | grep -q . || { echo 'ERROR: encrypted rollback backup missing.'; exit 1; }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Derive masked verified Production Session Pooler URL
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || { echo 'ERROR: Production DB secret missing.'; exit 1; }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret resolves to Development.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production secret does not resolve to expected Production.'; exit 1 ;;
+          esac
+          pooler="$(node --input-type=module <<'NODE'
+          const direct = new URL(process.env.SUPABASE_PROD_DB_URL)
+          const target = new URL(`postgresql://aws-1-${process.env.EXPECTED_REGION}.pooler.supabase.com:5432/postgres`)
+          target.username = `postgres.${process.env.EXPECTED_PROJECT_REF}`
+          target.password = direct.password
+          target.searchParams.set('sslmode', 'require')
+          process.stdout.write(target.toString())
+          NODE
+          )"
+          echo "::add-mask::${pooler}"
+          printf 'SUPABASE_PROD_POOLER_URL=%s\n' "${pooler}" >> "$GITHUB_ENV"
+
+      - name: Re-prove live Production is still exact Contract 131
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${WORK_DIR}/evidence"
+          live="$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
+          [ "${live}" = "${EXPECTED_SOURCE_HISTORY}" ] || { echo "ERROR: Production source moved to ${live}."; exit 1; }
+          counts="$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select (select count(*) from public.teams)||'|'||(select count(*) from public.competition_rounds)||'|'||(select count(*) from public.season_fixtures);")"
+          [ "${counts}" = "${EXPECTED_COUNTS}" ] || { echo "ERROR: Production counts moved to ${counts}."; exit 1; }
+          printf '%s\n' "${live}" > "${WORK_DIR}/evidence/live-pre-history.txt"
+          printf '%s\n' "${counts}" > "${WORK_DIR}/evidence/live-pre-football-counts.txt"
+
+      - name: Dry-run exact single Production migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_PROD_POOLER_URL}" --dry-run > "${WORK_DIR}/evidence/live-dry-run.txt" 2>&1
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/evidence/live-dry-run.txt" | awk '!seen[$0]++' > "${WORK_DIR}/evidence/live-dry-run-migrations.txt" || true
+          [ "$(cat "${WORK_DIR}/evidence/live-dry-run-migrations.txt")" = "${EXPECTED_MIGRATION}" ] || {
+            echo 'ERROR: Production dry-run is not exactly Contract 132.'
+            cat "${WORK_DIR}/evidence/live-dry-run-migrations.txt"
+            exit 1
+          }
+
+      - name: Apply canonical Contract 132 to Production
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_PROD_POOLER_URL}" 2>&1 | tee "${WORK_DIR}/evidence/live-apply.txt"
+
+      - name: Verify Production Contract 132 ledger, counts and security
+        shell: bash
+        run: |
+          set -euo pipefail
+          history="$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select count(*)||'|'||(select version from supabase_migrations.schema_migrations order by version desc limit 1)||'|'||(select name from supabase_migrations.schema_migrations order by version desc limit 1) from supabase_migrations.schema_migrations;")"
+          [ "${history}" = "${EXPECTED_TARGET_HISTORY}" ] || { echo "ERROR: Production target is ${history}."; exit 1; }
+          counts="$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select (select count(*) from public.teams)||'|'||(select count(*) from public.competition_rounds)||'|'||(select count(*) from public.season_fixtures);")"
+          [ "${counts}" = "${EXPECTED_COUNTS}" ] || { echo "ERROR: Production football counts changed to ${counts}."; exit 1; }
+          security="$(psql "${SUPABASE_PROD_POOLER_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "select (to_regclass('predictor_internal.provider_fixture_proposals') is not null)::int||'|'||(select relrowsecurity::int from pg_class where oid='predictor_internal.provider_fixture_proposals'::regclass)||'|'||has_function_privilege('authenticated','public.admin_approve_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('anon','public.admin_approve_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('service_role','public.admin_approve_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('authenticated','public.admin_reject_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('anon','public.admin_reject_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int||'|'||has_function_privilege('service_role','public.admin_reject_initial_provider_fixtures(uuid,text,text)','EXECUTE')::int;")"
+          [ "${security}" = '1|1|1|0|0|1|0|0' ] || { echo "ERROR: Production Contract 132 security boundary differs: ${security}."; exit 1; }
+          supabase migration list --db-url "${SUPABASE_PROD_POOLER_URL}" > "${WORK_DIR}/evidence/live-migration-list.txt"
+          if awk -F'|' '$3 ~ /[0-9]/ && $2 !~ /[0-9]/ { found=1 } END { exit !found }' "${WORK_DIR}/evidence/live-migration-list.txt"; then
+            echo 'ERROR: Production still has unapplied migrations.'
+            exit 1
+          fi
+          printf '%s\n' "${history}" > "${WORK_DIR}/evidence/live-target-history.txt"
+          printf '%s\n' "${counts}" > "${WORK_DIR}/evidence/live-target-football-counts.txt"
+          printf '%s\n' "${security}" > "${WORK_DIR}/evidence/live-security-boundary.txt"
+          printf '%s\n' "${BASE_MAIN_SHA}" > "${WORK_DIR}/evidence/repository-main-sha.txt"
+          printf '%s\n' "${REHEARSAL_RUN_ID}" > "${WORK_DIR}/evidence/rehearsal-run-id.txt"
+          echo 'Production is at canonical Contract 132.'
+
+      - name: Upload safe live rollout evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: production-contract132-live-evidence
+          path: /tmp/production-contract132-live/evidence
+          retention-days: 7
+          if-no-files-found: warn
