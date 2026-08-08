@@ -44,7 +44,7 @@ const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: s
     'Match Predictor standings',
   ],
   ['/competitions/:competitionSlug/:seasonSlug/games/match-predictor', 'Match Predictor'],
-  ['/competitions/:competitionSlug/:seasonSlug/games/championship', 'Predictor Championship'],
+  ['/competitions/:competitionSlug/:seasonSlug/games/championship/*', 'Predictor Championship'],
   ['/competitions/:competitionSlug/:seasonSlug/games/lms', 'Last Man Standing'],
   ['/competitions/:competitionSlug/:seasonSlug/games', 'Games'],
   ['/competitions/:competitionSlug/:seasonSlug/matches', 'Matches'],
