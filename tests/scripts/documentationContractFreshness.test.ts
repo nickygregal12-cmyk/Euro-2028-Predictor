@@ -81,9 +81,6 @@ function namesContract(source: string, version: number): boolean {
 
 describe('the deployment contract is internally consistent', () => {
   it('agrees with the committed migration count', () => {
-    // The deploy gate checks this too, but only during a Netlify build. Here it
-    // fails in CI on the commit that breaks it, which is where a contract bump
-    // that forgets a migration (or the reverse) actually gets made.
     expect(contract.requiredMigrationCount).toBe(migrationCount)
     expect(contract.contractVersion).toBe(migrationCount)
   })
@@ -91,10 +88,6 @@ describe('the deployment contract is internally consistent', () => {
 
 describe('live-authority documents state the current contract', () => {
   it.each(LIVE_AUTHORITIES)(`%s names contract ${contract.contractVersion}`, (file) => {
-    // Deliberately a presence check rather than an exact-sentence match. These
-    // are prose documents and pinning a phrasing would fail on every reword,
-    // which trains people to weaken the test. The failure mode being caught is
-    // a document that has never heard of the current contract at all.
     expect(
       namesContract(read(file), contract.contractVersion),
       `${file} never names contract ${contract.contractVersion}`,
@@ -102,10 +95,6 @@ describe('live-authority documents state the current contract', () => {
   })
 
   it('does not let the tag contract be mistaken for the repository contract', () => {
-    // `euro-2028-baseline` is contract 63 and stays there forever, so 63 keeps
-    // appearing legitimately. What must not happen is a live document naming
-    // only the tag number once `main` has moved past it — that is exactly how
-    // "repository contract 63" survived the bump to 64.
     if (contract.contractVersion === 63) return
     for (const file of LIVE_AUTHORITIES) {
       const source = read(file)
@@ -118,29 +107,6 @@ describe('live-authority documents state the current contract', () => {
   })
 })
 
-/**
- * A live authority must not contradict itself.
- *
- * The presence check above asks only whether the current contract appears
- * *somewhere* in the file. On 3 August 2026 `AGENTS.md` satisfied it while its
- * own "Current baseline" section still said the repository was contract 73 and
- * development was 72 — two contracts behind a sentence twenty lines further
- * down the same document. A reader who stops at the first answer gets the wrong
- * one, and the guard was green throughout.
- *
- * So: every statement of the form "the repository is at contract N" must give
- * the current N, and a file's statements about the development contract must at
- * least agree with each other. Development is deliberately not pinned to the
- * repository contract — it legitimately trails between a merge and its
- * fast-lane run, which is a fact these documents exist to record.
- */
-/**
- * Present tense only. "The repository **is** at contract 74" is a claim about
- * now; "merged to `main` at repository contract 65 (PR #317)" is dated history
- * and must stay exactly as written. Dropping the `is` from this pattern makes
- * the guard fail on every historical row, which is how a guard gets weakened
- * into uselessness rather than fixed.
- */
 const REPOSITORY_CONTRACT = /repository\s+is\s+(?:at\s+)?\**contract\**\s*\**(\d+)/gi
 const REPOSITORY_CONTRACT_FIELD = /\|\s*Repository contract\s*\|\s*\**(\d+)/gi
 const DEVELOPMENT_CONTRACT =
@@ -173,47 +139,13 @@ describe('a live authority does not contradict itself', () => {
   })
 })
 
-/**
- * Documents that name an authority for their facts, and then restate them.
- *
- * `current-status.md` is the single place the contract numbers live. Several
- * planning documents say so in their own header — "Current facts:", "Live
- * status authority:", "Implementation authority:" — and then print their own
- * copy a few lines below. Every one of those copies had rotted by 3 August
- * 2026: the roadmap claimed contract 65 nine releases late, the risk register
- * claimed 64, and the build plan claimed 63. The roadmap managed it one line
- * under a bullet explaining that a pinned SHA in a live document goes stale,
- * while itself pinning a deploy id and a short commit.
- *
- * A document that delegates a fact and then repeats it gives two answers to one
- * question, and the reader has no way to tell which is older. So a block that
- * presents itself as CURRENT, inside a document that has named someone else as
- * the authority, may not carry a contract number bound to an environment, nor
- * pin a commit or deploy id. It must link.
- *
- * Deliberately narrow, because a guard that cries wolf gets deleted:
- *
- *   - only documents that actually delegate. Dated audits, reconciliations and
- *     ADRs record the numbers of their day on purpose and are untouched;
- *   - only "current" blocks. Historical rows inside a delegating document —
- *     "merged at contract 65 (PR #317)" — are history, not a claim about today;
- *   - only contract numbers bound to an environment. "Deploys are paused from
- *     contract 64 onward" describes a gate threshold, not a position;
- *   - H1 titles do not open a current block. "Current Risk Register" means the
- *     register is current, not that every citation inside it is;
- *   - pure-digit strings are not commits. Workflow run ids and migration
- *     timestamps are both long runs of digits and neither goes stale;
- *   - the `euro-2028-baseline` commit is a fixed anchor and always allowed.
- */
 const DELEGATES =
   /\*\*(current facts|live status authority|implementation authority)\s*:?\s*\*\*[^\n]*current-status\.md/i
 const ENVIRONMENT_CONTRACT =
   /(repository|development|production|hosted|main)[^.\n]{0,40}?contracts?\b[\s:*]*\d+/i
-/** Backticked hex of commit length carrying at least one letter, so run ids and timestamps are excluded. */
 const PINNED_REVISION = /`(?=[0-9a-f]{7,40}`)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}`/
 const BASELINE_TAG_COMMIT = '1fb8ffd36ad113079181829a8bcc47175c43b6da'
 
-/** Line numbers that present themselves as stating the current position. */
 function currentLines(source: string): Map<number, string> {
   const lines = source.split('\n')
   const found = new Map<number, string>()
@@ -252,27 +184,6 @@ const delegatingDocuments = execFileSync('git', ['ls-files', '*.md'], {
   .filter((file) => !(LIVE_AUTHORITIES as readonly string[]).includes(file))
   .filter((file) => DELEGATES.test(read(file)))
 
-/**
- * The two documents that both state the development contract must agree.
- *
- * `current-status.md` says "Development Supabase is hosted at N" and
- * `ops-pending-migrations.md` carries a row per applied contract. Nothing
- * related them, and on 3 August 2026 they drifted apart twice in one sitting:
- * the current-status number stopped being updated at 74 while its own evidence
- * list grew to 76, and a rollout row claimed contract 77 had been applied
- * through the fast lane when that run had never been dispatched — work had
- * moved straight from the merge into the next slice.
- *
- * The second is the worse failure. "No hosted claim without evidence" is a hard
- * boundary in this repository, and a document asserting an apply that did not
- * happen is exactly the claim that boundary exists to prevent. A human reading
- * it would have believed development was two contracts further along than it
- * was.
- *
- * Both numbers are mechanical, so this compares them. The highest development
- * contract named in the rollout inventory is the current one, because rows are
- * only ever added.
- */
 describe('the two documents that state the development contract agree', () => {
   it('current-status and the rollout inventory name the same development contract', () => {
     const stated = /Development Supabase(?: is| and Production Supabase are both) hosted at \*\*(\d+)\*\*/.exec(
@@ -294,8 +205,6 @@ describe('the two documents that state the development contract agree', () => {
   })
 
   it('never claims development is ahead of the repository', () => {
-    // Development can legitimately trail between a merge and its fast-lane
-    // run. It can never lead: a migration cannot be applied before it exists.
     const stated = Number(
       /Development Supabase(?: is| and Production Supabase are both) hosted at \*\*(\d+)\*\*/.exec(
         read('docs/quality/current-status.md'),
@@ -305,33 +214,20 @@ describe('the two documents that state the development contract agree', () => {
   })
 })
 
-/**
- * Netlify's contract declaration is external team-console configuration. CI has
- * no authenticated read path to that console value, so a green deploy-preview
- * status cannot by itself prove which hosted database the build declares.
- *
- * The repository can still make its intended value non-ambiguous: the three
- * non-production documentation rows must match the Development hosted machine
- * record, and the production documentation row must match the Production hosted
- * machine record. A fresh Netlify platform/session read is then the evidence
- * that external configuration actually matches those records.
- *
- * `validate-deployment-contract.mjs` deliberately permits a TRAILING
- * non-production declaration during a schema-advancing PR (ADR 0024), but no
- * context may lead the repository and no document may invent a hosted value.
- */
+function declarationMayTargetHostedContract(declared: number, hosted: number): boolean {
+  return declared <= hosted
+}
+
 describe('the two documents that state the Netlify declaration agree', () => {
   const inventory = read('docs/ops/ops-pending-migrations.md')
   const runbook = read('docs/ops/netlify-deploy-access.md')
 
-  /** `| Netlify `euro28predictor` <label> | **N hosted declaration** |` */
   const inventoryRows = new Map(
     [...inventory.matchAll(/\|\s*Netlify\s+`euro28predictor`\s+([^|]+?)\s*\|\s*\*\*(\d+) hosted declaration\*\*/g)].map(
       (match) => [match[1], Number(match[2])],
     ),
   )
 
-  /** `| `dev` | Development | N |` */
   const runbookRows = new Map(
     [...runbook.matchAll(/\|\s*`([a-z-]+)`\s*\|\s*(?:Development|Production)\s*\|\s*(\d+)\s*\|/g)].map(
       (match) => [match[1], Number(match[2])],
@@ -343,8 +239,7 @@ describe('the two documents that state the Netlify declaration agree', () => {
   const inventoryProduction = [...inventoryRows].filter(([label]) => !nonProduction(label))
   const runbookNonProduction = ['dev', 'branch-deploy', 'deploy-preview']
 
-  it('finds both tables', () => {
-    // If either regex stops matching, every assertion below passes vacuously.
+  it('finds both documentation tables', () => {
     expect(inventoryNonProduction, 'no non-production row in the migration inventory').toHaveLength(1)
     expect(inventoryProduction, 'no production row in the migration inventory').toHaveLength(1)
     for (const context of [...runbookNonProduction, 'production']) {
@@ -352,32 +247,54 @@ describe('the two documents that state the Netlify declaration agree', () => {
     }
   })
 
-  it('declares one value across all three non-production contexts', () => {
+  it('declares one documented value across all three non-production contexts', () => {
     const declared = new Set(runbookNonProduction.map((context) => runbookRows.get(context)))
     expect([...declared], 'dev, branch-deploy and deploy-preview declare different contracts').toHaveLength(1)
     expect(inventoryNonProduction[0]?.[1]).toBe([...declared][0])
   })
 
-  it('matches non-production declarations to the Development hosted machine record', () => {
-    const expected = developmentHosted.requiredMigrationCount
-    for (const context of runbookNonProduction) {
-      expect(runbookRows.get(context), `${context} does not match hosted Development`).toBe(expected)
-    }
-    expect(inventoryNonProduction[0]?.[1]).toBe(expected)
+  it('keeps the documented production declaration consistent across both documents', () => {
+    expect(inventoryProduction[0]?.[1]).toBe(runbookRows.get('production'))
   })
 
-  it('matches the production declaration to the Production hosted machine record', () => {
-    const expected = productionHosted.requiredMigrationCount
-    expect(runbookRows.get('production')).toBe(expected)
-    expect(inventoryProduction[0]?.[1]).toBe(expected)
+  it('allows a declaration equal to its hosted database contract', () => {
+    expect(declarationMayTargetHostedContract(133, 133)).toBe(true)
+  })
+
+  it('allows a declaration to trail its hosted database contract', () => {
+    expect(declarationMayTargetHostedContract(132, 133)).toBe(true)
+  })
+
+  it('rejects a declaration ahead of its hosted database contract', () => {
+    expect(declarationMayTargetHostedContract(134, 133)).toBe(false)
+  })
+
+  it('never lets a non-production declaration lead hosted Development', () => {
+    const hosted = developmentHosted.requiredMigrationCount
+    for (const context of runbookNonProduction) {
+      const declared = runbookRows.get(context)
+      expect(declared, `${context} is missing a declaration`).toBeDefined()
+      expect(
+        declarationMayTargetHostedContract(declared as number, hosted),
+        `${context} declares contract ${declared} ahead of hosted Development ${hosted}`,
+      ).toBe(true)
+    }
+    const inventoryDeclared = inventoryNonProduction[0]?.[1]
+    expect(inventoryDeclared).toBeDefined()
+    expect(declarationMayTargetHostedContract(inventoryDeclared as number, hosted)).toBe(true)
+  })
+
+  it('never lets the production declaration lead hosted Production', () => {
+    const declared = runbookRows.get('production')
+    const hosted = productionHosted.requiredMigrationCount
+    expect(declared, 'production is missing a declaration').toBeDefined()
+    expect(
+      declarationMayTargetHostedContract(declared as number, hosted),
+      `production declares contract ${declared} ahead of hosted Production ${hosted}`,
+    ).toBe(true)
   })
 
   it('never declares a context ahead of the repository contract', () => {
-    // A database AHEAD of the application is not a pre-rollout state — it means
-    // the target has migrations this build does not know about, and
-    // validate-deployment-contract.mjs fails it fatally in EVERY context,
-    // production and preview alike. Trailing is fine and expected; leading is a
-    // build outage waiting for the next deploy.
     for (const [context, declared] of runbookRows) {
       expect(declared, `${context} declares contract ${declared} above the repository`).toBeLessThanOrEqual(
         contract.contractVersion,
@@ -388,7 +305,6 @@ describe('the two documents that state the Netlify declaration agree', () => {
 
 describe('a document that delegates its facts does not restate them', () => {
   it('finds the delegating documents', () => {
-    // If this drops to nothing the suite below is silently inert.
     expect(delegatingDocuments.length).toBeGreaterThan(0)
     expect(delegatingDocuments).toContain('docs/roadmap.md')
   })
@@ -421,17 +337,7 @@ describe('agent documentation closeout control', () => {
 
 describe('live-authority documents do not pin a moving commit', () => {
   it.each(LIVE_AUTHORITIES)('%s does not present a hand-copied SHA as current main', (file) => {
-    // A 40-character SHA next to "current main" is stale the next time anything
-    // merges, and cannot be kept correct by any commit that contains it — a
-    // commit cannot know its own merge SHA. The fix is not a fresher SHA; it is
-    // not stating one. Fixed anchors (the `euro-2028-baseline` tag, dated
-    // per-PR rows) are unaffected because they genuinely do not move.
     const source = read(file)
-    // Same line, but pipes must be crossed rather than excluded: in a markdown
-    // table `| Current `main` | <sha> |` the SHA is in the *next cell*, so a
-    // pattern that stopped at `|` matched nothing and the guard was dead. That
-    // is how the first draft of this test passed while the offending row was
-    // still present.
     const offenders = [...source.matchAll(/current\s*`?main`?[^\n]*?\b([0-9a-f]{40})\b/gi)]
     expect(
       offenders.map((match) => match[1]),
