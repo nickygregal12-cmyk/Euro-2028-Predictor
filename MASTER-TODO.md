@@ -360,3 +360,4 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
 - [x] Keep provider scores/status as evidence only; official results remain behind the protected confirmation authority.
 - [ ] Complete environment-specific Production provider credentials before live polling/import.
 
+> **Contract 133 boundary (8 August 2026):** Contract 133 supplies the bounded private Predictor Championship reads needed by DFA-007: caller-owned instance discovery plus selected My Fixture / Table / Fixtures data. The signed-in browser journey remains to be verified after hosted Development receives Contract 132 then 133 in order.

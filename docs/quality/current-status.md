@@ -384,3 +384,4 @@ The stable identifier, dependency and acceptance evidence for every accepted-but
 
 Contract 132 adds a tested initial provider-calendar approval boundary. New provider fixtures can be staged without becoming public, complete Scottish Premiership or Premier League calendars require explicit competition-admin approval, and provider scores cannot become official results through this path. Hosted rollout remains Development first, then Production after parity gates pass.
 
+> **Contract 133 boundary (8 August 2026):** Contract 133 defines authenticated-only private season Predictor Championship discovery and selected-instance player reads. Hosted Development must still receive Contract 132 before Contract 133; no claim is made here that the new reads are already hosted.
