@@ -13,7 +13,7 @@ const CANONICAL = [
   '/competitions/:competitionSlug/:seasonSlug/games',
   '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   '/competitions/:competitionSlug/:seasonSlug/games/lms',
-  '/competitions/:competitionSlug/:seasonSlug/games/championship',
+  '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   '/competitions/:competitionSlug/:seasonSlug/leagues',
 ] as const
 
