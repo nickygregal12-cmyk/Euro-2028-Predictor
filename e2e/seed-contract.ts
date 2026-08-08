@@ -716,7 +716,7 @@
  * `league_season`-scoped, while the deterministic Euro seed resolves the
  * tournament-kind UEFA Euro 2028 path, so its existing seeded journey is not
  * gated by the new functions. Exact-head Database parity and Browser E2E both
- * passed on the Contract-133 PR before this marker was raised.
+ * passed on the Contract-134 branch candidate before this marker was raised.
  */
 export const SEED_REVIEWED_AT_CONTRACT = 134
 
