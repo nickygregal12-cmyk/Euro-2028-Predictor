@@ -15,6 +15,10 @@ const generatorSource = readFileSync(
   resolve(process.cwd(), 'scripts/ops/build-provider-team-profile-backfill.mjs'),
   'utf8',
 )
+const workflowSource = readFileSync(
+  resolve(process.cwd(), '.github/workflows/development-provider-team-profile-backfill.yml'),
+  'utf8',
+)
 
 function cloneEvidence() {
   return structuredClone(evidence)
@@ -69,6 +73,18 @@ describe('provider team profile backfill SQL', () => {
     expect(sql).toContain('Provider team profile postflight does not match committed evidence')
   })
 
+  it('locks and compares the protected fixture/result and scoring authorities before commit', () => {
+    const sql = buildProviderTeamProfileBackfillSql(cloneEvidence())
+    expect(sql).toContain('lock table public.season_fixtures in share mode')
+    expect(sql).toContain('lock table public.season_matchweek_scores in share mode')
+    expect(sql).toContain('provider_team_profile_backfill_protected_state')
+    expect(sql).toContain('Provider profile backfill changed protected season fixture/result state')
+    expect(sql).toContain('Provider profile backfill changed protected season scoring state')
+    expect(sql.indexOf('Provider profile backfill changed protected season scoring state')).toBeLessThan(
+      sql.lastIndexOf('commit;'),
+    )
+  })
+
   it('does not embed a provider-mapping row UUID or add an HTTP/provider polling path', () => {
     const sql = buildProviderTeamProfileBackfillSql(cloneEvidence())
     expect(sql).not.toContain('provider_entity_map_id uuid')
@@ -83,5 +99,39 @@ describe('provider team profile backfill SQL', () => {
     const sql = buildProviderTeamProfileBackfillSql(changed)
     expect(sql).toContain("Aberdeen O''Example")
     expect(sql).not.toContain("Aberdeen O'Example")
+  })
+})
+
+describe('Development provider team profile backfill workflow', () => {
+  it('is manually dispatched, exact-main and Development-only', () => {
+    expect(workflowSource).toContain('workflow_dispatch:')
+    expect(workflowSource).toContain("[ \"${GITHUB_REF}\" = 'refs/heads/main' ]")
+    expect(workflowSource).toContain('iouzoutneyjpugbbtdem')
+    expect(workflowSource).toContain('vkfnsqdyhvtwyqkisxhk')
+    expect(workflowSource).toContain('BACKFILL-SCOTTISH-TEAM-PROFILES')
+    expect(workflowSource).toContain('production provider-profile backfill is not authorised')
+  })
+
+  it('requires hosted migration parity and Contract 134 before it can write', () => {
+    const parity = workflowSource.indexOf('Prove Development already matches the repository and includes Contract 134')
+    const apply = workflowSource.indexOf('Apply the 12-club profile backfill')
+    expect(parity).toBeGreaterThan(0)
+    expect(apply).toBeGreaterThan(parity)
+    expect(workflowSource).toContain('supabase migration list --db-url')
+    expect(workflowSource).toContain('Development is behind the repository; apply migrations first')
+    expect(workflowSource).toContain('20260808164832')
+    expect(workflowSource).toContain('Contract 134 is not present in the Development migration ledger')
+  })
+
+  it('uses only the committed retained evidence and records bounded postflight evidence', () => {
+    expect(workflowSource).toContain(
+      'docs/quality/evidence/2026-08-08-sportmonks-scottish-team-enrichment.json',
+    )
+    expect(workflowSource).toContain('build-provider-team-profile-backfill.mjs')
+    expect(workflowSource).toContain('profileCount')
+    expect(workflowSource).toContain('sourceResponseCount')
+    expect(workflowSource).toContain('shortCodeDudCount')
+    expect(workflowSource).toContain('protectedResultScoringStateChanged')
+    expect(workflowSource).not.toContain('curl ')
   })
 })
