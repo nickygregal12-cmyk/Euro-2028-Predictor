@@ -101,7 +101,7 @@ function evidenceValues(teams) {
   return teams
     .map(
       (team) =>
-        `    (${sqlText(team.providerTeamId)}, ${sqlUuid(team.platformTeamId)}, ${sqlText(team.providerName)}, ${sqlText(team.shortCode)}, ${sqlInteger(team.founded)}, ${sqlText(team.providerCountryId)}, ${sqlText(team.providerVenueId)}, ${sqlText(team.imageRef)})`,
+        `  (${sqlText(team.providerTeamId)}, ${sqlUuid(team.platformTeamId)}, ${sqlText(team.providerName)}, ${sqlText(team.shortCode)}, ${sqlInteger(team.founded)}, ${sqlText(team.providerCountryId)}, ${sqlText(team.providerVenueId)}, ${sqlText(team.imageRef)})`,
     )
     .join(',\n')
 }
@@ -114,18 +114,41 @@ export function buildProviderTeamProfileBackfillSql(input) {
   const provider = sqlText(evidence.provider)
   const rawBodySha256 = sqlText(evidence.rawBodySha256)
 
-  const evidenceCte = `evidence(provider_id, platform_team_id, provider_name, short_code, founded_year, provider_country_id, provider_venue_id, provider_image_ref) as (\n  values\n${values}\n)`
-
   return `\\set ON_ERROR_STOP on
 begin;
 set local lock_timeout = '5s';
 set local statement_timeout = '60s';
 
--- This script is generated entirely from retained custody evidence. It issues
--- no provider request and writes only predictor_internal.provider_team_profiles.
+-- Generated only from retained custody evidence. This script performs no HTTP
+-- request and writes only predictor_internal.provider_team_profiles through the
+-- Contract-134 writer.
+create temporary table provider_team_profile_backfill_evidence (
+  provider_id text primary key,
+  platform_team_id uuid unique not null,
+  provider_name text not null,
+  short_code text,
+  founded_year integer,
+  provider_country_id text,
+  provider_venue_id text,
+  provider_image_ref text
+) on commit drop;
+
+insert into provider_team_profile_backfill_evidence (
+  provider_id,
+  platform_team_id,
+  provider_name,
+  short_code,
+  founded_year,
+  provider_country_id,
+  provider_venue_id,
+  provider_image_ref
+) values
+${values};
+
 do $guard$
 declare
-  v_mapping_count integer;
+  v_all_mapping_count integer;
+  v_matching_mapping_count integer;
   v_source_provider text;
   v_source_status integer;
   v_source_sha text;
@@ -149,91 +172,93 @@ begin
   end if;
 
   select count(*)
-    into v_mapping_count
+    into v_all_mapping_count
     from public.provider_entity_map mapping
    where mapping.provider = ${provider}
      and mapping.entity_kind = 'team'
      and mapping.tournament_id = ${tournamentId};
 
-  if v_mapping_count <> ${EXPECTED_TEAM_COUNT} then
-    raise exception 'Expected ${EXPECTED_TEAM_COUNT} mapped provider teams, found %', v_mapping_count using errcode = '22023';
+  if v_all_mapping_count <> ${EXPECTED_TEAM_COUNT} then
+    raise exception 'Expected ${EXPECTED_TEAM_COUNT} mapped provider teams, found %', v_all_mapping_count using errcode = '22023';
+  end if;
+
+  select count(*)
+    into v_matching_mapping_count
+    from provider_team_profile_backfill_evidence evidence
+    join public.provider_entity_map mapping
+      on mapping.provider = ${provider}
+     and mapping.entity_kind = 'team'
+     and mapping.provider_id = evidence.provider_id
+     and mapping.tournament_id = ${tournamentId}
+     and mapping.team_id = evidence.platform_team_id;
+
+  if v_matching_mapping_count <> ${EXPECTED_TEAM_COUNT} then
+    raise exception 'Committed evidence does not match all ${EXPECTED_TEAM_COUNT} provider team mappings' using errcode = '22023';
   end if;
 end;
 $guard$;
 
-with ${evidenceCte}
-select case
-         when count(*) = ${EXPECTED_TEAM_COUNT} then true
-         else predictor_internal.raise_provider_team_profile_backfill_mapping_error(count(*))
-       end
-  from evidence e
+select predictor_internal.upsert_provider_team_profile(
+         mapping.id,
+         ${rawResponseId},
+         evidence.provider_name,
+         evidence.short_code,
+         evidence.founded_year,
+         evidence.provider_country_id,
+         evidence.provider_venue_id,
+         evidence.provider_image_ref
+       )
+  from provider_team_profile_backfill_evidence evidence
   join public.provider_entity_map mapping
     on mapping.provider = ${provider}
    and mapping.entity_kind = 'team'
-   and mapping.provider_id = e.provider_id
+   and mapping.provider_id = evidence.provider_id
    and mapping.tournament_id = ${tournamentId}
-   and mapping.team_id = e.platform_team_id;
+   and mapping.team_id = evidence.platform_team_id
+ order by evidence.provider_id;
 
-with ${evidenceCte},
-mapped as (
-  select mapping.id as provider_entity_map_id, e.*
-    from evidence e
-    join public.provider_entity_map mapping
-      on mapping.provider = ${provider}
-     and mapping.entity_kind = 'team'
-     and mapping.provider_id = e.provider_id
-     and mapping.tournament_id = ${tournamentId}
-     and mapping.team_id = e.platform_team_id
-)
-select predictor_internal.upsert_provider_team_profile(
-         mapped.provider_entity_map_id,
-         ${rawResponseId},
-         mapped.provider_name,
-         mapped.short_code,
-         mapped.founded_year,
-         mapped.provider_country_id,
-         mapped.provider_venue_id,
-         mapped.provider_image_ref
-       )
-  from mapped
- order by mapped.provider_id;
-
-with ${evidenceCte},
-actual as (
-  select mapping.provider_id,
-         mapping.team_id as platform_team_id,
-         profile.provider_name,
-         profile.short_code,
-         profile.founded_year,
-         profile.provider_country_id,
-         profile.provider_venue_id,
-         profile.provider_image_ref,
-         profile.source_raw_response_id
+do $verify$
+declare
+  v_profile_count integer;
+  v_matching_profile_count integer;
+begin
+  select count(*)
+    into v_profile_count
     from predictor_internal.provider_team_profiles profile
     join public.provider_entity_map mapping
       on mapping.id = profile.provider_entity_map_id
    where mapping.provider = ${provider}
      and mapping.entity_kind = 'team'
+     and mapping.tournament_id = ${tournamentId};
+
+  if v_profile_count <> ${EXPECTED_TEAM_COUNT} then
+    raise exception 'Expected ${EXPECTED_TEAM_COUNT} provider team profiles after backfill, found %', v_profile_count using errcode = '22023';
+  end if;
+
+  select count(*)
+    into v_matching_profile_count
+    from provider_team_profile_backfill_evidence evidence
+    join public.provider_entity_map mapping
+      on mapping.provider = ${provider}
+     and mapping.entity_kind = 'team'
+     and mapping.provider_id = evidence.provider_id
      and mapping.tournament_id = ${tournamentId}
-)
-select case
-         when count(*) filter (
-           where actual.provider_id is not null
-             and actual.platform_team_id = evidence.platform_team_id
-             and actual.provider_name = evidence.provider_name
-             and actual.short_code is not distinct from evidence.short_code
-             and actual.founded_year is not distinct from evidence.founded_year
-             and actual.provider_country_id is not distinct from evidence.provider_country_id
-             and actual.provider_venue_id is not distinct from evidence.provider_venue_id
-             and actual.provider_image_ref is not distinct from evidence.provider_image_ref
-             and actual.source_raw_response_id = ${rawResponseId}
-         ) = ${EXPECTED_TEAM_COUNT}
-         and count(*) = ${EXPECTED_TEAM_COUNT}
-         then true
-         else predictor_internal.raise_provider_team_profile_backfill_verification_error(count(*))
-       end
-  from evidence
-  left join actual using (provider_id);
+     and mapping.team_id = evidence.platform_team_id
+    join predictor_internal.provider_team_profiles profile
+      on profile.provider_entity_map_id = mapping.id
+     and profile.provider_name = evidence.provider_name
+     and profile.short_code is not distinct from evidence.short_code
+     and profile.founded_year is not distinct from evidence.founded_year
+     and profile.provider_country_id is not distinct from evidence.provider_country_id
+     and profile.provider_venue_id is not distinct from evidence.provider_venue_id
+     and profile.provider_image_ref is not distinct from evidence.provider_image_ref
+     and profile.source_raw_response_id = ${rawResponseId};
+
+  if v_matching_profile_count <> ${EXPECTED_TEAM_COUNT} then
+    raise exception 'Provider team profile postflight does not match committed evidence' using errcode = '22023';
+  end if;
+end;
+$verify$;
 
 commit;
 `
