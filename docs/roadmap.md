@@ -188,3 +188,4 @@ When documents disagree, keep the conflict visible until deliberately reconciled
 
 Contract 132 establishes the controlled first-publication authority for real domestic season calendars. It stages provider evidence first, requires an explicit administrator decision, rejects partial initial schedules, and leaves result confirmation outside provider automation. Development remains the first hosted validation target before Production promotion.
 
+> **Contract 133 boundary (8 August 2026):** Contract 133 is a bounded DFA-007 enabler after Contract 132: it exposes caller-owned private Predictor Championship instances and selected player fixture/table/schedule state. It does not reorder the Domestic Frontend Alpha or change Championship scoring/settlement.

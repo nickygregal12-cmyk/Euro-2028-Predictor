@@ -267,7 +267,7 @@ const delegatingDocuments = execFileSync('git', ['ls-files', '*.md'], {
  */
 describe('the two documents that state the development contract agree', () => {
   it('current-status and the rollout inventory name the same development contract', () => {
-    const stated = /Development Supabase is hosted at \*\*(\d+)\*\*/.exec(
+    const stated = /Development Supabase(?: is| and Production Supabase are both) hosted at \*\*(\d+)\*\*/.exec(
       read('docs/quality/current-status.md'),
     )?.[1]
     expect(stated, 'current-status.md no longer states a development contract').toBeDefined()
@@ -289,7 +289,7 @@ describe('the two documents that state the development contract agree', () => {
     // Development can legitimately trail between a merge and its fast-lane
     // run. It can never lead: a migration cannot be applied before it exists.
     const stated = Number(
-      /Development Supabase is hosted at \*\*(\d+)\*\*/.exec(
+      /Development Supabase(?: is| and Production Supabase are both) hosted at \*\*(\d+)\*\*/.exec(
         read('docs/quality/current-status.md'),
       )?.[1],
     )

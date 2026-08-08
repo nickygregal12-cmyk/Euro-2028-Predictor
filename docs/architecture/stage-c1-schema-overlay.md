@@ -235,6 +235,14 @@ RPC changes C1 identity or auth ownership semantics:
 - `admin_approve_initial_provider_fixtures`
 - `admin_reject_initial_provider_fixtures`
 
+Contract 133 adds caller-owned private Predictor Championship discovery. The
+RPC takes `p_tournament_id`, remains bounded to the authenticated caller's own
+season-cup memberships, and introduces no profile-owned identity or C2 account
+erasure semantics. It is therefore another consumer of the existing C1 season
+boundary rather than a change to that boundary:
+
+- `get_my_season_cup_instances`
+
 Bonus Game C1 scope review covers:
 
 - `admin_draw_predictor_cup`

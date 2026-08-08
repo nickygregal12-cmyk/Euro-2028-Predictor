@@ -150,6 +150,11 @@ insert into expected_authenticated_functions (signature) values
   -- reason as the LMS round read above: it is scoped to the caller's own
   -- membership, and a non-entrant is told so rather than shown anything.
   ('get_season_cup_phase(uuid)'),
+  -- Contract 133: caller-owned Championship discovery and explicit selected-instance
+  -- player view. Both resolve auth.uid() and therefore remain authenticated-only,
+  -- matching the Contract 120 phase read rather than gaining a service-role grant.
+  ('get_my_season_cup_instances(uuid)'),
+  ('get_season_cup_player_view(uuid)'),
   -- Contract 121: which matchweek a season's card opens at. It carries the
   -- same auth.uid() boundary as every season read above, so it stays out of
   -- expected_service_functions for contract 95's reason — service_role has no

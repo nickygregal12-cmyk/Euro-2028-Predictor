@@ -50,3 +50,4 @@ Contract 120 applies the same generalisation to the Championship split: ADR 0014
 
 Contract 132 preserves the ingestion/result boundary: provider payloads may establish a complete initial season calendar only after immutable staging and an explicit competition-admin approval; provider-reported scores are retained as evidence and never become official result truth through initial publication.
 
+> **Contract 133 boundary (8 August 2026):** Contract 133 implements an existing DFA-007/DFA-008 data boundary and introduces no new architectural decision: private Championship discovery is caller-scoped, while ranking/scoring/settlement remain with their existing authorities.
