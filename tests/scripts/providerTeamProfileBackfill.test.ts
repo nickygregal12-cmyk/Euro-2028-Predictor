@@ -6,6 +6,8 @@ import {
   validateProviderTeamProfileEvidence,
 } from '../../scripts/ops/build-provider-team-profile-backfill.mjs'
 
+type ValidatedTeam = { shortCode: string | null; providerName: string }
+
 const evidencePath = resolve(
   process.cwd(),
   'docs/quality/evidence/2026-08-08-sportmonks-scottish-team-enrichment.json',
@@ -28,10 +30,11 @@ describe('provider team profile backfill evidence', () => {
   it('accepts the retained 12-club Scottish evidence including the real DUD collision', () => {
     const validated = validateProviderTeamProfileEvidence(cloneEvidence())
     expect(validated.teams).toHaveLength(12)
-    expect(validated.teams.filter((team) => team.shortCode === 'DUD').map((team) => team.providerName)).toEqual([
-      'Dundee',
-      'Dundee United',
-    ])
+    expect(
+      validated.teams
+        .filter((team: ValidatedTeam) => team.shortCode === 'DUD')
+        .map((team: ValidatedTeam) => team.providerName),
+    ).toEqual(['Dundee', 'Dundee United'])
   })
 
   it('refuses evidence that claims result or scoring authority', () => {
@@ -113,7 +116,9 @@ describe('Development provider team profile backfill workflow', () => {
   })
 
   it('requires hosted migration parity and Contract 134 before it can write', () => {
-    const parity = workflowSource.indexOf('Prove Development already matches the repository and includes Contract 134')
+    const parity = workflowSource.indexOf(
+      'Prove Development already matches the repository and includes Contract 134',
+    )
     const apply = workflowSource.indexOf('Apply the 12-club profile backfill')
     expect(parity).toBeGreaterThan(0)
     expect(apply).toBeGreaterThan(parity)
