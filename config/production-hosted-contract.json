@@ -1,13 +1,13 @@
 {
   "projectRef": "vkfnsqdyhvtwyqkisxhk",
-  "requiredMigrationCount": 131,
-  "latestMigrationVersion": "20260806220000",
-  "latestMigrationName": "period_standings_display_names",
-  "verifiedAt": "2026-08-07T20:33:19.000Z",
+  "requiredMigrationCount": 132,
+  "latestMigrationVersion": "20260807210812",
+  "latestMigrationName": "provider_initial_fixture_approval",
+  "verifiedAt": "2026-08-08T01:10:10.000Z",
   "evidence": {
-    "source": "Production continuation run 31216257649 completed successfully on 7 August 2026. It pinned current main 9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9, verified the canonical contract-131 Database parity run 31199361790 with no migration/test drift, verified the immutable Production-shaped contract-96-to-131 rehearsal and encrypted contract-96 rollback artifact from run 31214393775, re-proved live Production at exact contract 96 with unchanged protected counts, dry-ran and applied guarded batches C (97-114), D (115-125) and E (126-131), verified each intermediate ledger, cron, pg_net and protected-row-count boundary, and finished at exactly 131 migrations ending 20260806220000_period_standings_display_names. An independent Supabase read after the run confirmed contract 131, pg_net installed, six active cron jobs and zero provider_poll_targets.",
-    "repositoryHead": "9ad27c0ba8c1be4e581cb9f631bdf40bf1a3c2a9",
-    "workflowRunId": 31216257649
+    "source": "Production Contract 132 live promotion run 31231978837 completed successfully on 8 August 2026. It refused stale main, branch drift and migration drift; verified canonical Contract 132 Database Parity evidence; downloaded and verified the restored Production rehearsal evidence and encrypted Contract 131 rollback backup; re-proved live Production was exactly Contract 131; dry-ran the exact single pending migration; applied canonical migration 20260807210812_provider_initial_fixture_approval; then verified the Production Contract 132 ledger, protected counts and security before uploading safe live rollout evidence. Independent Supabase migration-ledger verification during the 03:00 session also returned 20260807210812_provider_initial_fixture_approval as the Production tip. This records completed hosted state only and does not authorise any future Production promotion.",
+    "repositoryHead": "305b4e12b43a28f349f5fd27c954bd8247742a52",
+    "workflowRunId": 31231978837
   },
   "promotionAuthorised": false
 }
