@@ -708,8 +708,17 @@
  * internal schema boundary, and no existing authenticated read is tightened or
  * replaced. Exact-head Database parity passed, and the authenticated Browser
  * E2E suite passed with the deterministic seed before this marker was raised.
+ *
+ * Contract 133 adds two new authenticated season Championship reads only:
+ * `get_my_season_cup_instances` and `get_season_cup_player_view`. It creates no
+ * relation, trigger, policy or existing-grant change and does not replace or
+ * tighten any existing authenticated read. Both new reads are explicitly
+ * `league_season`-scoped, while the deterministic Euro seed resolves the
+ * tournament-kind UEFA Euro 2028 path, so its existing seeded journey is not
+ * gated by the new functions. Exact-head Database parity and Browser E2E both
+ * passed on the Contract-133 PR before this marker was raised.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 132
+export const SEED_REVIEWED_AT_CONTRACT = 133
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
