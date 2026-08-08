@@ -18,6 +18,8 @@
 
 The repository candidate is **133**. Development Supabase and Production Supabase are both hosted at **132** after the verified Contract 132 rollouts; Contract 133 remains repository-only until its guarded Development rollout is applied and verified.
 
+Netlify is a separate release layer. A fresh project read on 8 August 2026 shows `EURO28_DEPLOYED_DB_CONTRACT=132` in `dev`, `branch-deploy`, `deploy-preview` and `production`, and Team SSO is required for **all** deploy contexts. Those declarations describe the hosted database each future build targets; they do **not** mean the application was rebuilt. The currently published production artifact is still the 30 July 2026 build from `8244b7222b9d108e59380fd16351c02b578497ee`, a Contract-63-era application bundle.
+
 ## Product position
 
 The product is the **Football Prediction Hub** (ADR 0020): a multi-competition football prediction platform. Euro 2028 is the first recoverable competition baseline, not the endpoint of the programme. The first supported domestic competition seasons are Premier League 2026/27 and Scottish Premiership 2026/27, alongside Euro 2028.

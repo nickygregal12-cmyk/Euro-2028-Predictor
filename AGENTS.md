@@ -27,6 +27,16 @@ Use evidence in this order:
 
 A planning document never overrides an ADR. Process, prepared tooling or a chat statement is not implementation evidence.
 
+## Documentation-impact closeout
+
+Every PR that changes implementation, schema, routes, hosted configuration or operating state must close its documentation impact before merge. A PR is not complete while the code/platform state and the live authorities disagree.
+
+- Check `docs/quality/current-status.md`, `docs/roadmap.md`, `MASTER-TODO.md`, `docs/quality/accepted-requirements.md`, the relevant design/operations runbook, and the machine contract records for impact. Update the affected current authority in the same PR, or state **No documentation impact** in the PR body with the reason.
+- Never rewrite dated audits, investigations or rollout evidence to make them look current. Add or update the current pointer/authority and leave historical evidence immutable.
+- Any hosted claim requires fresh target-specific evidence. A Netlify environment declaration, a Supabase hosted contract and an actually published application artifact are separate facts and must never be collapsed into one status.
+- After any machine contract or accepted-requirement change, run `npm run generate:now` and commit the generated `NOW.md` if it changes.
+- The documentation freshness/authority tests are minimum controls, not permission to leave known prose drift because CI cannot detect it.
+
 **The design authority is deliberately below the ADRs.** [`docs/design/hub-architecture-and-modernisation-plan.md`](docs/design/hub-architecture-and-modernisation-plan.md) (revision 1.5) says what the product should look like when finished, and its own Document Control section limits it to presentation and delivery: it may not change scoring, locks, memberships, settlement or visibility. Where it restates a rule it is recording the repository's rule, so if the restatement and the tests disagree, the tests win and the document has a defect. Its baseline is contract 93 — check Appendix D.2 against the live status document before treating any of it as outstanding.
 
 ## Current baseline

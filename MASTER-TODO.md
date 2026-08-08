@@ -1,6 +1,6 @@
 # Multi-competition platform — master TODO
 
-**Status date:** 6 August 2026  
+**Status date:** 8 August 2026
 **Current facts:** [`docs/quality/current-status.md`](docs/quality/current-status.md)  
 **Execution sequence:** [`docs/roadmap.md`](docs/roadmap.md)  
 **Programme map:** [`docs/architecture/multi-competition-hub-build-plan.md`](docs/architecture/multi-competition-hub-build-plan.md)  
@@ -145,7 +145,7 @@ All seven pre-migration contract suites are landed through PR #292. The owner-ap
 - [x] Extend applied-state, RLS/grant and adversarial cross-season tests in the same change.
 - [x] Prove zero-to-current rebuild, database lint, pgTAP, generated types and full Database parity on disposable infrastructure.
 - [x] Complete the guarded hosted development rollout (workflow from PR #351). *(Applied and postflight-verified 2–3 August 2026; later additive development movement is recorded only in `docs/quality/current-status.md` and the development machine record, not duplicated here.)*
-- [ ] Keep production at contract 63 and paused until an intentional release milestone. *(Standing constraint, not a task to complete; production remains at 63.)*
+- [x] Preserve Production as a separately controlled release lane; never promote merely to equalise contract numbers. Production database movement is recorded only in the live status/machine records and never implies an application release.
 
 ### Stage C1b — persistent game catalogue and memberships — DELIVERED at contract 66 (PR #371)
 
@@ -168,11 +168,12 @@ No C2 schema, function, policy, ownership or deletion change may enter C1 for co
 
 ## Stage D — ingestion and headless rehearsal
 
-**Custody foundation delivered; live rehearsal remains.** The repository now has strict provider decoders, a server-only request boundary, raw-response archive-before-processing custody and append-only processing evidence. Provider data remains provisional and cannot write official competition truth.
+**Custody foundation delivered; Development Scottish live rehearsal is active.** The repository has strict provider decoders, a server-only request boundary, raw-response archive-before-processing custody and append-only processing evidence. SportMonks now polls Scottish Premiership evidence on Development at the configured five-minute cadence and retained responses are decoding successfully. Provider scores remain provisional evidence and cannot write official competition truth.
 
-**The Edge Function is deployed to development** (`provider-poll` version 1, `ACTIVE`, 5 August 2026, owner-authorised; [`docs/ops/ops-provider-poll-deployment.md`](docs/ops/ops-provider-poll-deployment.md)). That is a smaller step than it sounds: no provider has been contacted, no credential has been spent, nothing has been archived, and the named caller key has not been observed to resolve. All three providers are supported simultaneously — `provider` is a per-request field, not a deployment-time choice — so the outstanding question is which provider's terms and coverage are confirmed, not which one is wired.
+The current provider capability/terms authority is [`docs/architecture/provider-enrichment-capability-audit.md`](docs/architecture/provider-enrichment-capability-audit.md), backed by the immutable 8 August investigation. It measures the actual configured subscriptions rather than assuming endpoint documentation equals account entitlement. Production polling remains a separate operational lane and is not implied by Development success.
 
-- [ ] Confirm provider terms, coverage, timezone and exceptional-state mappings with dated evidence. *(**Retention half confirmed by the owner on 5 August 2026: all three providers permit storing responses.** That was the blocking half — this architecture archives exact raw response text and keeps it, so a licence permitting the call but not the retention would have made the custody control itself a breach. Coverage, timezone and exceptional-state mappings remain open and are what `scripts/ops/provider-bakeoff.ts` measures.)*
+- [x] Measure current provider terms, subscription coverage and enrichment suitability with dated evidence. The 8 August capability audit proves SportMonks Scottish 2026/27 access, football-data.org Premier League access / Scottish restriction, API-Football current-season plan restriction, and the SportDB integration gap.
+- [ ] Measure endpoint-specific timezone/exceptional-state and deeper enrichment payloads before expanding schema/runtime reliance (SportMonks lineups/events/statistics first; API-Football current-season kit colours only after entitlement; SportDB only through a reviewed enrichment-only adapter).
 - [x] Implement the strict provider-response custody boundary behind one internal model.
 - [x] Relate a provider's season, round and team identifiers to this platform's rows (contract 112, `public.provider_entity_map`). Every ingestion step was blocked on it, and the composite foreign keys make mapping a club onto the wrong competition season a database refusal rather than a silent wrong league table. It resolves and reports gaps; it imports nothing.
 - [x] Build the round-window authority `fixtureReassignment.ts` needs (contract 113, `competition_rounds.window_opens_at` / `window_closes_at`). Derived from the fixtures a round is played over, held disjoint per competition season by a trigger with inclusive bounds — so windows that merely touch are refused and an ambiguous destination cannot arise from stored data. Stored rather than computed at resolve time, because the derivation reads fixtures and reassignment moves one.

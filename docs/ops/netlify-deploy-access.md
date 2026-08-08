@@ -7,29 +7,39 @@ This runbook defines the live Netlify project boundary for the Football Predicti
 - Live Netlify project: `euro28predictor`.
 - Production domain: `https://euro28predictor.com`.
 - Historic project `euro28-predictor-dev` is retired and must not be configured, deployed or treated as current evidence.
-- Production remains a public site.
-- Deploy Previews and branch deploys require Netlify team login.
+- Netlify Team SSO currently protects **all deploy contexts**, including production.
 
 ## Contract declarations
 
-Netlify's `EURO28_DEPLOYED_DB_CONTRACT` value describes the hosted database reached by each deploy context. It is not the repository contract.
+Netlify's `EURO28_DEPLOYED_DB_CONTRACT` value describes the hosted database reached by a build in that deploy context. It is compatibility metadata for the build gate; it is **not** proof that an application bundle has been rebuilt or published.
 
 | Context | Supabase target | Declared hosted contract |
 | --- | --- | ---: |
-| `dev` | Development | 97 |
-| `branch-deploy` | Development | 97 |
-| `deploy-preview` | Development | 97 |
-| `production` | Production | 63 |
+| `dev` | Development | 132 |
+| `branch-deploy` | Development | 132 |
+| `deploy-preview` | Development | 132 |
+| `production` | Production | 132 |
 
-The non-production values moved 86 → 97 on 4 August 2026, after the development rollout to contract 97 was verified. It was owner-reported at the time and **has since been read directly**: on 5 August 2026 an agent session with a Netlify connector read the project environment and found `dev`, `branch-deploy` and `deploy-preview` each declaring 97 and `production` declaring 63, matching the report exactly. That read also confirmed the non-production contexts point at the Development Supabase project and production at the Production one.
+A direct Netlify project/environment read on 8 August 2026 confirmed all four values above. The three non-production contexts point to the Development Supabase project; production points to the Production Supabase project. A fifth `dev-server` context still carries an empty declaration and therefore fails closed under `scripts/validate-deployment-contract.mjs`.
 
-Two limits on treating that as a standing capability. **CI still has no read path** — the connector belongs to an agent session, not to this repository — so the mechanical guards keep comparing documents against each other rather than against the platform. And the connector has been intermittent, so a future session may not have it; [`ops-pending-migrations.md`](ops-pending-migrations.md) records which Netlify build-log line corroborates which declared value, and that log remains the owner's to read when no direct read is available.
+The repository test does not hard-code these numbers. It requires the three non-production documentation values to match `config/development-hosted-contract.json` and the production documentation value to match `config/production-hosted-contract.json`. A hosted database rollout therefore has one machine-backed value to reconcile into Netlify configuration rather than another permanent magic number.
 
-A fifth context, `dev-server`, carries an **empty** declaration. `scripts/validate-deployment-contract.mjs` rejects a missing or non-numeric value outright, so a build in that context fails closed rather than proceeding unchecked.
+The declaration must never be raised ahead of the hosted database or used to manufacture a green build. After a separately authorised hosted rollout, update the matching Netlify context only from fresh target-specific evidence. An environment-variable update is configuration, not a deployment.
 
-The development declaration must be updated after a verified development rollout. The production declaration must remain at 63 until a separately approved production database promotion. Never raise the production declaration merely to make an application build pass.
+The blank `dev-server` override is a Netlify configuration debt. Remove it or set it deliberately before relying on Netlify Dev as hosted-contract evidence.
 
-The blank `dev-server` override is a Netlify configuration debt. Remove it or set it deliberately through Netlify UI/CLI before relying on Netlify Dev as hosted-contract evidence.
+## Published production artifact
+
+The currently published production deploy is still the 30 July 2026 build from commit `8244b7222b9d108e59380fd16351c02b578497ee` (deploy `6a6bac566b6e440008d44e5b`). It is a Contract-63-era application artifact even though the current production environment declaration now says 132 and the Production database is hosted at 132.
+
+That distinction is intentional and mandatory in status reporting:
+
+1. **repository application contract** — what current source requires;
+2. **hosted database contract** — what Supabase has applied;
+3. **Netlify environment declaration** — what a new build says it targets;
+4. **published artifact** — the source/build users would actually receive.
+
+Never call Production application-aligned or deployed merely because (2) and (3) match. A source-backed deploy of the exact tested application is still required.
 
 ## Build authority
 
@@ -56,7 +66,7 @@ The job fails if Netlify reports failure/error, never certifies the exact head, 
 
 A pull-request base change or reopen is not deploy evidence by itself. After rebasing or retargeting, push a genuine head commit so Netlify receives a normal synchronize event and publishes a status for that exact SHA.
 
-This is not a substitute for application browser testing. The same workflow runs the authenticated application journeys against a disposable local Supabase rebuilt from every committed migration. Public CDN HTTP and browser smoke remain a manual, release-specific production gate.
+This is not a substitute for application browser testing. The same workflow runs the authenticated application journeys against a disposable local Supabase rebuilt from every committed migration. Public CDN HTTP and browser smoke remain release-specific gates; while Team SSO protects production, the private signed-in verification is the relevant outer-access posture.
 
 Do not add a shared password, hard-coded credential, commit-derived password or secret-bearing `Basic-Auth` rule merely to make CI enter a protected preview.
 
@@ -65,7 +75,8 @@ Do not add a shared password, hard-coded credential, commit-derived password or 
 A Netlify access/configuration PR must:
 
 - start from the latest relevant `main` or active dependency branch;
-- avoid changing migrations, hosted database state or production contract declarations;
+- avoid changing hosted database state;
+- change a contract declaration only from fresh hosted evidence for that exact target;
 - preserve the exact-head Netlify status gate;
 - include tests that read the workflow and `netlify.toml`;
 - be compared with current `main` immediately before merge;
@@ -73,16 +84,17 @@ A Netlify access/configuration PR must:
 
 ## Manual account actions
 
-The following settings are account/team controls and are not repository changes:
+The following settings remain account/team controls rather than repository changes:
 
 - enable MFA on the Netlify owner account;
 - enforce team MFA when the plan supports it;
 - replace the personal public support address with a dedicated working alias;
-- narrow public `VITE_*` environment-variable scopes to build scope after preserving every context value;
 - remove the blank `dev-server` contract override.
 
 No Netlify Function or Edge Function is required for the current static Vite SPA. Add one only for a distinct server-side responsibility that cannot remain in Supabase or the static build.
 
 ## Production protection
 
-Production remains pinned to contract 63 and must not be redeployed from current `main` until a deliberate milestone promotion aligns the application, production Supabase and production Netlify declaration. Every production release must record the exact commit, deploy ID, contract, Supabase project reference, smoke evidence and rollback deploy ID.
+Team SSO is the current private-testing perimeter across all contexts. Production database promotion, Netlify declaration alignment and application deployment are still separate operations. Before publishing a new application artifact, require the ordinary Production backup/preflight/exact-range/postflight controls, exact source/contract alignment, the intended feature flags, release smoke and a recorded rollback deploy.
+
+Every production release must record the exact source commit, deploy ID, application contract, Supabase project/contract, Netlify declaration, access-control posture, smoke evidence and rollback deploy ID.

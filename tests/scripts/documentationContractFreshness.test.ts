@@ -36,6 +36,14 @@ const contract = JSON.parse(
   readFileSync(resolve(repositoryRoot, 'config/deployment-contract.json'), 'utf8'),
 ) as { contractVersion: number; requiredMigrationCount: number }
 
+const developmentHosted = JSON.parse(
+  readFileSync(resolve(repositoryRoot, 'config/development-hosted-contract.json'), 'utf8'),
+) as { requiredMigrationCount: number }
+
+const productionHosted = JSON.parse(
+  readFileSync(resolve(repositoryRoot, 'config/production-hosted-contract.json'), 'utf8'),
+) as { requiredMigrationCount: number }
+
 const migrationCount = readdirSync(resolve(repositoryRoot, 'supabase/migrations')).filter((file) =>
   file.endsWith('.sql'),
 ).length
@@ -357,11 +365,18 @@ describe('the two documents that state the Netlify declaration agree', () => {
     expect(inventoryNonProduction[0]?.[1]).toBe([...declared][0])
   })
 
-  it('keeps production at the Euro baseline contract in both documents', () => {
-    // Production is pinned at 63 with a fatal gate until an explicitly approved
-    // promotion. Raising it in a document is how the real one gets raised next.
-    expect(runbookRows.get('production')).toBe(63)
-    expect(inventoryProduction[0]?.[1]).toBe(63)
+  it('matches non-production declarations to the Development hosted machine record', () => {
+    const expected = developmentHosted.requiredMigrationCount
+    for (const context of runbookNonProduction) {
+      expect(runbookRows.get(context), `${context} does not match hosted Development`).toBe(expected)
+    }
+    expect(inventoryNonProduction[0]?.[1]).toBe(expected)
+  })
+
+  it('matches the production declaration to the Production hosted machine record', () => {
+    const expected = productionHosted.requiredMigrationCount
+    expect(runbookRows.get('production')).toBe(expected)
+    expect(inventoryProduction[0]?.[1]).toBe(expected)
   })
 
   it('never declares a context ahead of the repository contract', () => {
@@ -398,6 +413,16 @@ describe('a document that delegates its facts does not restate them', () => {
       offenders,
       `${file} names an authority for its facts and then restates them; link instead`,
     ).toEqual([])
+  })
+})
+
+describe('agent documentation closeout control', () => {
+  it('requires every implementation or hosted-state change to close its documentation impact', () => {
+    const agents = read('AGENTS.md')
+    expect(agents).toContain('## Documentation-impact closeout')
+    expect(agents).toContain('No documentation impact')
+    expect(agents).toContain('npm run generate:now')
+    expect(agents).toContain('dated audits, investigations or rollout evidence')
   })
 })
 
