@@ -172,3 +172,8 @@ The first provider rehearsal is one bounded non-production request whose exact r
 `20260807210812_provider_initial_fixture_approval.sql` is the contract 132 migration. Promote it Development first and verify the proposal table, staging helper, authenticated admin approval/rejection RPCs, grants, and empty-season guard before applying the identical migration to Production. Production provider secrets remain an environment-level prerequisite for live ingestion and are not stored in repository migrations.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 follows the directly verified hosted Contract-132 baseline and adds only bounded player reads for season Predictor Championship instances. Development must receive Contract 133 through the guarded fast lane before any separate Production promotion is considered.
+
+## Contract 134 candidate dependency note — 8 August 2026
+
+The repository branch contains Contract 134, but hosted environments must not leapfrog the active dependency chain. Development is still Contract 132: promote 133 first through the guarded Development fast lane, perform the signed-in private Championship verification, then consider 134. Production remains Contract 132 and receives neither 133 nor 134 without its own backup/preflight/exact-range/postflight authorisation. Contract 134 schema deployment and the 12-club Development enrichment backfill are separate operations.
+

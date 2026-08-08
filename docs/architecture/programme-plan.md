@@ -207,3 +207,8 @@ Contract 118 closes the fourth instance of the tournament-only read defect (afte
 The provider ingestion programme now has a controlled initial-publication stage between normalized evidence and canonical season fixtures. Complete-season approval is an explicit competition-admin action; later fixture revisions remain under the existing revision authority and official results remain separately protected.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 is an implementation detail within the accepted Domestic Frontend Alpha: it provides bounded private Championship player reads after Contract 132 and does not change programme phase order or product gates.
+
+### Contract 134 note
+
+Contract 134 advances the provider-enrichment workstream with server-only team profile storage and provenance. It does not change the programme dependency order: Development Contract 133 and the private Championship verification remain ahead of any Contract 134 hosted rollout.
+

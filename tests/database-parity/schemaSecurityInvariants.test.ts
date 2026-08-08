@@ -104,6 +104,10 @@ describe('row-level security', () => {
       // until a competition administrator explicitly approves or rejects the
       // complete initial calendar. No player-facing API needs direct access.
       { schema: 'predictor_internal', name: 'provider_fixture_proposals' },
+      // Contract 134. Current provider team profile facts remain internal and
+      // subordinate to the existing provider identity map. No browser surface
+      // receives table access, and image references are provenance only.
+      { schema: 'predictor_internal', name: 'provider_team_profiles' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

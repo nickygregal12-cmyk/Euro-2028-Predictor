@@ -130,3 +130,8 @@ Contract 118 makes the games hub listing competition-neutral: a season window's 
 For supported domestic season competitions, contract 132 may create the initial canonical teams, rounds and scheduled fixtures only from a complete approved provider proposal set. It does not change competition scoring rules and does not confirm results automatically.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 makes multiple season Predictor Championship instances observable to entitled players without changing the competition format: the current public instance remains discoverable, while a private instance is returned only to its existing entrants.
+
+### Contract 134 note
+
+Contract 134 does not alter competition structure, draw shape, scheduling or progression. It adds only server-side provider team profile metadata beneath the existing season/team identities; the competition model remains as defined through Contract 133.
+

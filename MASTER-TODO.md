@@ -361,3 +361,14 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
 - [ ] Complete environment-specific Production provider credentials before live polling/import.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies the bounded private Predictor Championship reads needed by DFA-007: caller-owned instance discovery plus selected My Fixture / Table / Fixtures data. The signed-in browser journey remains to be verified after hosted Development receives Contract 133.
+
+### Contract 134 — provider team profile foundation (active candidate)
+
+- [x] Measure the 12 Scottish Premiership SportMonks participant records from retained Development custody without a new provider request.
+- [x] Prove provider short code is descriptive, not identity (`DUD` is returned for both Dundee and Dundee United).
+- [x] Add an offline fail-closed extractor and immutable evidence snapshot.
+- [x] Add server-only, provenance-backed team profile schema and pgTAP coverage.
+- [ ] Apply Contract 133 to Development through the guarded fast lane and verify the signed-in private Championship journey before merging the dependent UI.
+- [ ] After that dependency is clear, apply Contract 134 to Development and backfill 12/12 profiles from retained custody evidence; prove canonical fixture/results/scoring state is unchanged.
+- [ ] Add a bounded UI read only when a product surface needs these facts. Do not render/re-host provider crest URLs without a separate rights decision.
+

@@ -178,3 +178,8 @@ Contract 118 is a correction rather than a presentation change: no surface moved
 Real domestic fixture adoption now has a backend publication gate: provider evidence is staged first and a complete initial season is approved explicitly. UI surfaces may rely on canonical scheduled fixtures after approval, but must not treat provider score evidence as an official result until the protected result-confirmation path has run.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies server-owned opponent/table/fixture data for the accepted Predictor Championship My Fixture / Table / Fixtures surfaces. It changes no visual authority and does not make History available.
+
+### Contract 134 candidate — no visual adoption yet
+
+Contract 134 has no user-visible design change. Provider image URLs are stored, if present, as non-rendering provenance references only; no crest/logo is introduced to the UI until public-display rights are separately established. Existing owner-controlled/generic club identity remains the visual fallback.
+
