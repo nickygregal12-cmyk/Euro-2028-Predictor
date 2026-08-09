@@ -769,7 +769,7 @@
  * contract 138/139 pull request before this marker is relied on — the reasoning
  * above is what makes raising it defensible, not what verifies it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 139
+export const SEED_REVIEWED_AT_CONTRACT = 141
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

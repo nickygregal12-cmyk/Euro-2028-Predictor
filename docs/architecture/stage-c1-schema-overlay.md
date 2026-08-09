@@ -244,6 +244,9 @@ boundary rather than a change to that boundary:
 - `get_my_season_cup_instances`
 - `get_provider_review_queues`
 - `get_season_fixtures`
+- `get_game_leave_eligibility`
+- `get_season_club_form`
+- `get_season_club_head_to_head`
 
 Bonus Game C1 scope review covers:
 

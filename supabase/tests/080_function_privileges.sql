@@ -116,6 +116,13 @@ insert into expected_authenticated_functions (signature) values
   ('acknowledge_provider_review_items(text,uuid[],text)'),
   ('get_season_fixtures(uuid,timestamp with time zone,timestamp with time zone)');
 
+-- Contract 140: the caller's own leave eligibility. Contract 141: club form and
+-- club head-to-head, which are football about clubs and disclose no player.
+insert into expected_authenticated_functions (signature) values
+  ('get_game_leave_eligibility(uuid)'),
+  ('get_season_club_form(uuid,integer)'),
+  ('get_season_club_head_to_head(uuid,uuid,uuid)');
+
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
 -- Contract 66: generic game catalogue/membership and game-scoped leagues.
 insert into expected_authenticated_functions (signature) values
