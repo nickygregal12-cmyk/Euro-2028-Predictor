@@ -1,8 +1,9 @@
-import { readFileSync, statSync } from 'node:fs'
-import { dirname, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { weeklyRoutePatterns, weeklyRoutes } from '../../src/app/shellRoutes'
 import { appSource } from './declaredRoutes'
+import { reachableFrom, resolveSpecifier } from './importGraph'
 
 /**
  * Which routes mount the Euro tournament's data, checked against which routes
@@ -131,54 +132,11 @@ function routesByBoundary(source: string): { element: string; path: string; insi
   return routes
 }
 
-function resolveSpecifier(fromFile: string, specifier: string): string | null {
-  if (!specifier.startsWith('.')) return null
-  const base = resolve(dirname(fromFile), specifier)
-  for (const candidate of [
-    base,
-    `${base}.ts`,
-    `${base}.tsx`,
-    `${base}/index.ts`,
-    `${base}/index.tsx`,
-  ]) {
-    try {
-      if (statSync(candidate).isFile()) return candidate
-    } catch {
-      /* not there, or a directory: try the next shape */
-    }
-  }
-  return null
-}
-
-function importsOf(file: string): string[] {
-  const source = readFileSync(file, 'utf8')
-  return [
-    ...[...source.matchAll(/(?:^|\n)\s*(?:import|export)[^'"\n]*?from\s*'([^']+)'/g)].map(
-      (m) => m[1] as string,
-    ),
-    ...[...source.matchAll(/\bimport\('([^']+)'\)/g)].map((m) => m[1] as string),
-  ]
-}
-
 /** Whether a module reaches either provider through its own import graph. */
 function reachesTournamentData(entry: string): boolean {
   const targets = PROVIDER_MODULES.map((path) => resolve(repositoryRoot, path))
-  const seen = new Set<string>()
-  const queue = [entry]
-
-  while (queue.length > 0) {
-    const file = queue.pop() as string
-    if (seen.has(file)) continue
-    seen.add(file)
-    if (targets.includes(file)) return true
-
-    for (const specifier of importsOf(file)) {
-      const resolved = resolveSpecifier(file, specifier)
-      if (resolved && !seen.has(resolved)) queue.push(resolved)
-    }
-  }
-
-  return false
+  const graph = reachableFrom(entry)
+  return targets.some((target) => graph.has(target))
 }
 
 const modules = lazyRouteModules(appSource)

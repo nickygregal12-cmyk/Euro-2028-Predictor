@@ -6,7 +6,12 @@ import { ChevronLeftIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
-import { buildBracketPipeline } from '../bracket'
+// From the module, not the barrel. `../bracket/index.ts` re-exports the round,
+// tie, switcher and champion components as well as the pipeline, so importing
+// the pipeline through it pulled four retired bracket SCREENS into the
+// production bundle behind one function. `AccountPage` and `useShareModel`
+// already reach for the module directly; this was the odd one out.
+import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { scoreOneMatch } from '../predict/matchScoring'
 import { profileStats, type OutcomeKind } from '../../domain/tournament/profileStats'
 import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'

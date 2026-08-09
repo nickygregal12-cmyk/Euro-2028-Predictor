@@ -20,7 +20,7 @@ import {
 import { fetchMyScoreEventPoints } from '../../services/supabase/scoring'
 import { fetchLastSeenRead, updateLastSeen } from '../../services/supabase/profile'
 import { computeHubStatus } from '../predict/hubStatus'
-import { buildBracketPipeline } from '../bracket'
+import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { todayISO } from '../../app/time'
 import { resolveHomeCompetitionContext } from './homeCompetitionContext'
 
