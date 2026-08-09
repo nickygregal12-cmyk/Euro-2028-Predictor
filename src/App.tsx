@@ -234,6 +234,12 @@ export default function App() {
                     <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                     <Route path="/more/scoring" element={<ScoringRulesPage />} />
+                    {/* Outside the tournament boundary below, because the
+                        account is the platform's rather than a competition's.
+                        It stopped printing one competition's points and rank
+                        under a player's name, and with that gone it reads
+                        nothing from the tournament at all. */}
+                    <Route path="/account" element={<AccountPage />} />
 
                     {/* Everything below answers for the Euro tournament and only
                         for it, so the tournament data and predictions providers
@@ -243,7 +249,6 @@ export default function App() {
                     <Route element={<TournamentJourney />}>
                       <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
                       <Route path="/h2h/:rivalId" element={<H2HPage />} />
-                      <Route path="/account" element={<AccountPage />} />
                       <Route path="/profile" element={<ProfilePage />} />
                       <Route path="/profile/:playerId" element={<OtherPlayerProfilePage />} />
                     </Route>

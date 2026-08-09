@@ -1,16 +1,15 @@
+import { resolve } from 'node:path'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fromRoot, reachableFrom } from '../../app/importGraph'
 import { AccountPage } from '../../../src/features/account/AccountPage'
 
 const mocks = vi.hoisted(() => ({
   signOut: vi.fn<() => Promise<void>>(),
   refreshProfile: vi.fn(),
-  clearMyPredictions: vi.fn<() => Promise<void>>(),
-  retryInitialLoad: vi.fn(),
   updateMyDisplayName: vi.fn<() => Promise<void>>(),
   updateReminderEmails: vi.fn<() => Promise<void>>(),
-  fetchLeaderboardPage: vi.fn<() => Promise<unknown>>(),
 }))
 
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
@@ -22,38 +21,9 @@ vi.mock('../../../src/features/auth/AuthProvider', () => ({
   }),
 }))
 
-vi.mock('../../../src/app/providers/TournamentDataProvider', () => ({
-  useTournamentData: () => ({
-    status: 'ready',
-    data: {
-      tournament: {
-        id: 'tournament-1',
-        name: 'Test Euros',
-        year: 2028,
-        startsOn: null,
-        endsOn: null,
-        lockAt: null,
-      },
-      groups: [],
-      teams: [],
-      matches: [],
-    },
-  }),
-}))
-
-vi.mock('../../../src/app/providers/PredictionsProvider', () => ({
-  usePredictions: () => ({
-    ready: true,
-    getPrediction: () => ({ homeScore: null, awayScore: null, joker: false }),
-    tieResolutions: [],
-    bracketProgression: {},
-    retryInitialLoad: mocks.retryInitialLoad,
-  }),
-}))
-
-vi.mock('../../../src/features/shared/useTournamentEntryLocked', () => ({
-  useTournamentEntryLocked: () => false,
-}))
+// No TournamentDataProvider, PredictionsProvider or entry-lock mock any more,
+// and that absence is the point of this file's last test: /account reads
+// nothing from a competition, so it can be rendered on its own.
 
 vi.mock('../../../src/services/supabase/auth', () => ({
   getSessionEmailState: () =>
@@ -69,25 +39,7 @@ vi.mock('../../../src/services/supabase/profile', () => ({
   updateReminderEmails: mocks.updateReminderEmails,
 }))
 
-vi.mock('../../../src/services/supabase/predictions', () => ({
-  clearMyPredictions: mocks.clearMyPredictions,
-}))
-
-vi.mock('../../../src/services/supabase/leaderboard', () => ({
-  fetchLeaderboardPage: mocks.fetchLeaderboardPage,
-}))
-
-const EMPTY_LEADERBOARD_PAGE = {
-  rows: [],
-  totalCount: 0,
-  pageSize: 1,
-  hasMore: false,
-  nextCursor: null,
-  you: null,
-}
-
 beforeEach(() => {
-  mocks.fetchLeaderboardPage.mockResolvedValue(EMPTY_LEADERBOARD_PAGE)
   mocks.updateReminderEmails.mockResolvedValue(undefined)
 })
 
@@ -103,7 +55,6 @@ describe('AccountPage sign out', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.signOut.mockResolvedValue(undefined)
-    mocks.clearMyPredictions.mockResolvedValue(undefined)
   })
 
   it('does not sign out when confirmation is cancelled', () => {
@@ -161,23 +112,16 @@ describe('AccountPage sign out', () => {
 describe('AccountPage danger zone', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.clearMyPredictions.mockResolvedValue(undefined)
   })
 
-  it('clears predictions only after the tier-1 confirm, then reloads the entry', async () => {
-    renderPage()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Clear…' }))
-    const dialog = screen.getByRole('dialog', { name: 'Clear all your predictions?' })
-    expect(mocks.clearMyPredictions).not.toHaveBeenCalled()
-
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Clear everything' }))
-
-    await waitFor(() => {
-      expect(mocks.clearMyPredictions).toHaveBeenCalledWith('tournament-1')
-      expect(mocks.retryInitialLoad).toHaveBeenCalled()
-    })
-  })
+  // "Clear all your predictions?" USED TO LIVE HERE and its test with it. It
+  // cleared one tournament's predictions from a page that belongs to the
+  // account, so a player in a competition season was offered a destructive
+  // control over a tournament they had never entered — and, once the entry was
+  // no longer created on sight, over an entry that did not exist. Clearing an
+  // entry is a per-competition action and belongs on the surface that owns
+  // that entry. It is recorded rather than silently dropped because the
+  // capability was real and is not being replaced here.
 
   it('routes a rename through the moderation-gated service and refreshes the profile', async () => {
     mocks.updateMyDisplayName.mockResolvedValue(undefined)
@@ -249,24 +193,46 @@ describe('AccountPage reminder preference', () => {
   })
 })
 
-describe('AccountPage standings headline', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+describe('the account page belongs to the account, not to a competition', () => {
+  // WHAT THIS REPLACED. Two tests asserted the standings headline — the
+  // pre-results copy for an empty leaderboard, and the distinct copy for a
+  // failed read. Both were correct about a page that no longer exists: the
+  // headline printed a Euro 2028 points total and rank under every player's
+  // name, including the ones whose only competition is a league season. The
+  // distinction they protected was a good one and it still holds on /profile,
+  // which ranks a player inside one competition and is where it belongs.
+  //
+  // What replaces them is the fact that made removing them possible, asserted
+  // rather than described: /account can be rendered with no tournament around
+  // it. Every test above already proves it dynamically by rendering the page
+  // bare; this proves it statically, so an import added tomorrow fails here
+  // instead of quietly putting /account back inside the boundary.
+  //
+  // NOT A DUPLICATE OF `tournamentDataBoundary.test.ts`. That file compares
+  // each registered route against the two PROVIDERS, and would indeed catch
+  // either of those coming back. It knows nothing about the two Euro service
+  // reads — a leaderboard page or a prediction write added straight to this
+  // page needs no provider, so it would pass there and fail here.
 
-  it('keeps the pre-results copy for a genuinely empty leaderboard', async () => {
-    renderPage()
-
-    expect(await screen.findByText('Standings update once results land')).toBeTruthy()
-  })
-
-  it('says the standings failed to load rather than claiming results are pending', async () => {
-    mocks.fetchLeaderboardPage.mockRejectedValueOnce(new Error('leaderboard down'))
-    renderPage()
-
+  it('reaches no tournament provider, entry lock or competition read', () => {
+    const graph = reachableFrom(
+      resolve(process.cwd(), 'src/features/account/AccountPage.tsx'),
+    )
+    const forbidden = [
+      'src/app/providers/TournamentDataProvider',
+      'src/app/providers/PredictionsProvider',
+      'src/features/shared/useTournamentEntryLocked',
+      'src/services/supabase/leaderboard',
+      'src/services/supabase/predictions',
+    ]
+    const reached = forbidden.filter((module) =>
+      [...graph].some((file) => fromRoot(file).startsWith(module)),
+    )
     expect(
-      await screen.findByText('Your standings couldn’t be loaded right now.'),
-    ).toBeTruthy()
-    expect(screen.queryByText('Standings update once results land')).toBeNull()
+      reached,
+      'AccountPage imports a competition-scoped module — /account is registered ' +
+        'outside TournamentJourney in src/App.tsx and there is no provider above ' +
+        'it, so this would be a crash rather than a stale number',
+    ).toEqual([])
   })
 })

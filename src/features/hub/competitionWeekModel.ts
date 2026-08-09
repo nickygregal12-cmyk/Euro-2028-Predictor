@@ -43,6 +43,16 @@ export type CompetitionWeek = {
   primary: WeekAction | null
   /** At most two more, per ADR 0023's shape for this surface. */
   secondary: readonly WeekAction[]
+  /**
+   * Every action, in the same order, uncapped.
+   *
+   * The summary above is capped at three because ADR 0023 fixes that shape for
+   * Overview. A game CARD is a different surface with a different rule — each
+   * card speaks for its own game — and it must not go looking for its state in
+   * a list that dropped it for being fourth. Same computation, two readings, so
+   * a card and the panel can never disagree about a deadline.
+   */
+  actions: readonly WeekAction[]
   /** Every joined game reported as settled, with nothing outstanding. */
   allClear: boolean
   /** True when no joined game supplied a read at all. */
@@ -174,7 +184,7 @@ export function presentCompetitionWeek(input: CompetitionWeekInput): Competition
   }
 
   if (actions.length === 0) {
-    return { primary: null, secondary: [], allClear: false, empty: true }
+    return { primary: null, secondary: [], actions: [], allClear: false, empty: true }
   }
 
   const ordered = [...actions].sort((left, right) => {
@@ -194,7 +204,56 @@ export function presentCompetitionWeek(input: CompetitionWeekInput): Competition
     // empty page: the states still render, they are simply all reports.
     primary: outstanding[0] ?? null,
     secondary: ordered.filter((action) => action !== outstanding[0]).slice(0, 2),
+    actions: ordered,
     allClear: outstanding.length === 0,
     empty: false,
   }
+}
+
+/**
+ * The game key each action speaks for.
+ *
+ * A card knows its `CompetitionGameKey`; the week model works in its own terms
+ * because it is about what a player DOES rather than about the catalogue. This
+ * is the one place the two vocabularies meet, so a card cannot quietly match
+ * the wrong game.
+ */
+const GAME_KEY: Record<WeekActionKind, string> = {
+  match_predictor: 'main_predictor',
+  last_man_standing: 'last_man_standing',
+  championship: 'predictor_cup',
+}
+
+/** The week's action for one game, or null when that game has nothing to say. */
+export function weekActionForGame(
+  week: CompetitionWeek | null,
+  gameKey: string,
+): WeekAction | null {
+  if (!week) return null
+  return week.actions.find((action) => GAME_KEY[action.kind] === gameKey) ?? null
+}
+
+/**
+ * The deadline line a surface prints for an action.
+ *
+ * Shared between Overview's summary and the game cards deliberately: two
+ * formatters over one instant is two chances to disagree about when a lock is,
+ * and the one nearer the player is the one that would be wrong.
+ *
+ * The competition's zone, never the viewer's — a Saturday 15:00 lock is
+ * Saturday to everyone who follows that league.
+ */
+export function formatWeekDeadline(action: WeekAction, timeZone: string): string | null {
+  if (!action.locksAt) return null
+  const at = new Date(action.locksAt)
+  if (Number.isNaN(at.getTime())) return null
+  const when = at.toLocaleString(undefined, {
+    timeZone,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: 'numeric',
+    minute: '2-digit',
+  })
+  return action.outstanding ? `Locks ${when}` : `Locked ${when}`
 }

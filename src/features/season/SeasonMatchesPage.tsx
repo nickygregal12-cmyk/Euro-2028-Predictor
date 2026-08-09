@@ -1,6 +1,9 @@
+import { useState, type ReactNode } from 'react'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import type { FixtureListRow } from './fixtureListModel'
+import { SeasonMatchCentre, type SeasonFootballContext } from './SeasonMatchCentre'
+import type { SeasonMatchCentreCardReader } from './useSeasonMatchCentre'
 import {
   useSeasonFixtureWindow,
   type SeasonFixtureWindowGateway,
@@ -43,6 +46,19 @@ export type SeasonMatchesPageProps = {
   gateway: SeasonFixtureWindowGateway
   /** The competition's own timezone; every date and time is resolved in it. */
   timeZone: string
+  /**
+   * Reads the caller's own matchweek card, for the Match Centre a fixture
+   * opens into. Omitted where there is no entry to read — the DEV harness, and
+   * any future context with fixtures but no player — and the rows are then
+   * plain rows rather than controls that open nothing.
+   */
+  readMatchweekCard?: SeasonMatchCentreCardReader
+  /**
+   * Contract 141's club form and season head-to-head, for an opened fixture.
+   * Optional and independent of the card: the football is the same for
+   * everybody and is shown even where an entry could not be read.
+   */
+  football?: SeasonFootballContext
 }
 
 const SKELETON_ROWS = 6
@@ -58,9 +74,30 @@ function windowLabel(window: { from: string; to: string } | null, timeZone: stri
   return `${format(window.from)} – ${format(window.to)}`
 }
 
-function Match({ row }: { row: FixtureListRow }) {
+function Match({
+  row,
+  expanded,
+  onToggle,
+  children,
+}: {
+  row: FixtureListRow
+  /** Null where no Match Centre is available — the row is then not a control. */
+  expanded: boolean | null
+  onToggle: () => void
+  children?: ReactNode
+}) {
+  // A row with nothing behind it stays a row. Making every fixture a button
+  // when opening one shows nothing is a control that lies about being one.
+  const Row = expanded === null ? 'div' : 'button'
+
   return (
-    <li className={styles.match}>
+    <li className={styles.matchItem}>
+      <Row
+        className={styles.match}
+        {...(expanded === null
+          ? {}
+          : { type: 'button' as const, onClick: onToggle, 'aria-expanded': expanded })}
+      >
       <span className={styles.srOnly}>{row.accessibleSummary}</span>
       <span className={styles.home} aria-hidden="true">
         <span className={styles.clubName}>{row.home.name}</span>
@@ -88,13 +125,23 @@ function Match({ row }: { row: FixtureListRow }) {
           {row.provisional ? <span className={styles.provisional}>Provisional</span> : null}
         </span>
       ) : null}
+      </Row>
+      {children}
     </li>
   )
 }
 
-export function SeasonMatchesPage({ gateway, timeZone }: SeasonMatchesPageProps) {
+export function SeasonMatchesPage({
+  gateway,
+  timeZone,
+  readMatchweekCard,
+  football,
+}: SeasonMatchesPageProps) {
   const { status, view, window, stepping, error, previous, next, reload } =
     useSeasonFixtureWindow(gateway, timeZone)
+  // One at a time. Several open panels would be several card reads on screen
+  // saying the same thing about the same matchweek.
+  const [openFixture, setOpenFixture] = useState<string | null>(null)
 
   if (status === 'loading') {
     return (
@@ -172,7 +219,22 @@ export function SeasonMatchesPage({ gateway, timeZone }: SeasonMatchesPageProps)
               <h3 className={styles.dayHeading}>{day.label}</h3>
               <ul className={styles.list}>
                 {day.rows.map((row) => (
-                  <Match key={row.id} row={row} />
+                  <Match
+                    key={row.id}
+                    row={row}
+                    expanded={readMatchweekCard ? openFixture === row.id : null}
+                    onToggle={() =>
+                      setOpenFixture((open) => (open === row.id ? null : row.id))
+                    }
+                  >
+                    {readMatchweekCard && openFixture === row.id ? (
+                      <SeasonMatchCentre
+                        fixture={row}
+                        read={readMatchweekCard}
+                        football={football}
+                      />
+                    ) : null}
+                  </Match>
                 ))}
               </ul>
             </section>

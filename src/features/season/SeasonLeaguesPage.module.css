@@ -41,7 +41,7 @@
   gap: var(--sp-2);
   padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--card);
   min-width: 0;
 }
@@ -79,7 +79,7 @@
   gap: var(--sp-3);
   padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--card);
   min-width: 0;
 }

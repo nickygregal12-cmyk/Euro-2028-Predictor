@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { presentFixtureList } from '../../../src/features/season/fixtureListModel'
+import {
+  presentFixtureList,
+  previewFixtures,
+} from '../../../src/features/season/fixtureListModel'
 import { mapSeasonFixtureList } from '../../../src/services/supabase/seasonFixtureListModel'
 
 const ZONE = 'Europe/London'
@@ -188,5 +191,99 @@ describe('days are the competition’s, not the viewer’s', () => {
     // league, so the zone is the competition's.
     const view = present([fixture({ kickoff_at: '2026-08-08T22:30:00Z' })])
     expect(view.days[0]?.key).toBe('2026-08-08')
+  })
+})
+
+describe('the Overview preview', () => {
+  function preview(fixtures: Record<string, unknown>[], limit = 3) {
+    return previewFixtures(present(fixtures), limit)
+  }
+
+  const played = (id: string, at: string) =>
+    fixture({ id, kickoff_at: at, status: 'played', result: { home: 1, away: 0 } })
+  const upcoming = (id: string, at: string) => fixture({ id, kickoff_at: at })
+
+  it('starts at the next fixture the server has not marked played', () => {
+    const view = preview([
+      played('done-1', '2026-08-01T14:00:00Z'),
+      played('done-2', '2026-08-02T14:00:00Z'),
+      upcoming('next', '2026-08-08T14:00:00Z'),
+      upcoming('after', '2026-08-09T14:00:00Z'),
+    ])
+
+    expect(view.kind).toBe('upcoming')
+    expect(view.rows.map((row) => row.id)).toEqual(['next', 'after'])
+  })
+
+  it('uses the server status rather than the clock, so a delayed match is not finished', () => {
+    // Its kickoff is the earliest in the window and long past the read's
+    // `server_now`. A clock comparison would call it played and skip it; the
+    // server has not, so it is still what is next.
+    const view = preview([
+      upcoming('delayed', '2026-08-01T14:00:00Z'),
+      upcoming('later', '2026-08-09T14:00:00Z'),
+    ])
+
+    expect(view.rows.map((row) => row.id)).toEqual(['delayed', 'later'])
+  })
+
+  it('shows the most recent results when the window holds nothing to come', () => {
+    // The last few, not the first few: a finished window's useful end is the
+    // recent one.
+    const view = preview(
+      [
+        played('a', '2026-08-01T14:00:00Z'),
+        played('b', '2026-08-02T14:00:00Z'),
+        played('c', '2026-08-03T14:00:00Z'),
+      ],
+      2,
+    )
+
+    expect(view.kind).toBe('results')
+    expect(view.rows.map((row) => row.id)).toEqual(['b', 'c'])
+  })
+
+  it('says how many of the window it is not showing', () => {
+    const view = preview([
+      upcoming('one', '2026-08-08T12:00:00Z'),
+      upcoming('two', '2026-08-08T14:00:00Z'),
+      upcoming('three', '2026-08-08T17:00:00Z'),
+      upcoming('four', '2026-08-09T14:00:00Z'),
+    ], 2)
+
+    expect(view.rows).toHaveLength(2)
+    expect(view.hidden).toBe(2)
+  })
+
+  it('carries the day on the row, because a preview has no day headings', () => {
+    // Compared against the list's own heading rather than a literal: the day
+    // is formatted in the VIEWER's locale by design, so a literal would assert
+    // the test runner's locale rather than the model's behaviour.
+    const list = present([upcoming('one', '2026-08-08T14:00:00Z')])
+    expect(previewFixtures(list, 3).rows[0]?.dayLabel).toBe(list.days[0]?.label)
+  })
+
+  it('is empty for an empty window rather than pretending to a fixture', () => {
+    const view = preview([])
+    expect(view.empty).toBe(true)
+    expect(view.rows).toEqual([])
+    expect(view.hidden).toBe(0)
+  })
+
+  it('never promotes a provisional score to a result', () => {
+    // The same rule as the full list, and it holds here because it is the same
+    // model — not because it was written twice.
+    const view = preview([
+      fixture({
+        id: 'live-now',
+        kickoff_at: '2026-08-08T14:00:00Z',
+        status: 'live',
+        live: { kind: 'in_play', home: 2, away: 1, observed_at: '2026-08-08T15:00:00Z' },
+      }),
+    ])
+
+    expect(view.rows[0]?.score).toBeNull()
+    expect(view.rows[0]?.provisional).toBe('2 - 1')
+    expect(view.rows[0]?.played).toBe(false)
   })
 })

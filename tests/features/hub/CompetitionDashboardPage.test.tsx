@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
   registerBonusCompetition: vi.fn<() => Promise<void>>(),
   withdrawBonusCompetition: vi.fn<() => Promise<void>>(),
+  fetchSeasonLeaveEligibility: vi.fn<() => Promise<unknown>>(() => new Promise(() => {})),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -41,6 +42,20 @@ vi.mock('../../../src/services/supabase/seasonLms', () => ({
 
 vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
   createSeasonCupPlayerViewRpcGateway: () => ({ load: () => new Promise(() => {}) }),
+}))
+
+// Overview's fixtures card. Its own behaviour is proven against
+// `previewFixtures` and `SeasonFixturePreview` directly; here it only needs to
+// not tear the page down while it loads.
+vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({
+  fetchSeasonFixtureList: () => new Promise(() => {}),
+}))
+
+// Contract 140's leave eligibility. Left unresolved by default, which is the
+// state the page must already be correct in: every assertion below about the
+// Leave control holds while this read has not answered.
+vi.mock('../../../src/services/supabase/gameLeaveEligibility', () => ({
+  fetchSeasonLeaveEligibility: () => mocks.fetchSeasonLeaveEligibility(),
 }))
 
 const MAIN_PREDICTOR_ID = '60000000-0000-0000-0000-000000000101'
@@ -138,6 +153,63 @@ describe('competition Overview and Games', () => {
     await waitFor(() =>
       expect(mocks.withdrawBonusCompetition).toHaveBeenCalledWith(MAIN_PREDICTOR_ID),
     )
+  })
+
+  it('withdraws Leave once the server says it would refuse it', async () => {
+    // Contract 140. Before it, this page rendered "Leave game" for an entrant
+    // whose scoring had started and let them press it, because the fact was
+    // invisible until the write raised 55000.
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([
+        served({
+          membership: {
+            status: 'active',
+            joinedAt: '2026-08-02T09:00:00Z',
+            leftAt: null,
+            disqualifiedAt: null,
+          },
+        }),
+      ]),
+    )
+    mocks.fetchSeasonLeaveEligibility.mockResolvedValue({
+      serverNow: SERVER_NOW,
+      games: [
+        {
+          id: MAIN_PREDICTOR_ID,
+          gameKey: 'main_predictor',
+          allowed: false,
+          reason: 'scoring_started',
+        },
+      ],
+    })
+    renderGames()
+
+    await waitFor(() => expect(screen.getByText(/already scored/)).toBeTruthy())
+    expect(screen.queryByRole('button', { name: 'Leave game' })).toBeNull()
+    expect(mocks.withdrawBonusCompetition).not.toHaveBeenCalled()
+  })
+
+  it('keeps the page and the Leave control when the eligibility read fails', async () => {
+    // A dashboard that cannot show a player their games because it could not
+    // check whether they may leave one is worse than the page that existed
+    // before the read. The control goes back to being attempted.
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([
+        served({
+          membership: {
+            status: 'active',
+            joinedAt: '2026-08-02T09:00:00Z',
+            leftAt: null,
+            disqualifiedAt: null,
+          },
+        }),
+      ]),
+    )
+    mocks.fetchSeasonLeaveEligibility.mockRejectedValue(new Error('offline'))
+    renderGames()
+
+    expect(await screen.findByRole('button', { name: 'Leave game' })).toBeTruthy()
+    expect(screen.getByText('Joined')).toBeTruthy()
   })
 
   it('shows the server’s membership rather than the catalogue’s constant', async () => {

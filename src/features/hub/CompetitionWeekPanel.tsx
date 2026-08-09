@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { Skeleton } from '../../design-system'
-import type { CompetitionWeek, WeekAction } from './competitionWeekModel'
+import { formatWeekDeadline, type CompetitionWeek, type WeekAction } from './competitionWeekModel'
 import styles from './CompetitionWeekPanel.module.css'
 
 /**
@@ -27,21 +27,6 @@ export type CompetitionWeekPanelProps = {
   timeZone: string
 }
 
-function deadline(action: WeekAction, timeZone: string): string | null {
-  if (!action.locksAt) return null
-  const at = new Date(action.locksAt)
-  if (Number.isNaN(at.getTime())) return null
-  const when = at.toLocaleString(undefined, {
-    timeZone,
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-  return action.outstanding ? `Locks ${when}` : `Locked ${when}`
-}
-
 function ActionRow({
   action,
   timeZone,
@@ -51,7 +36,7 @@ function ActionRow({
   timeZone: string
   primary: boolean
 }) {
-  const when = deadline(action, timeZone)
+  const when = formatWeekDeadline(action, timeZone)
   const body = (
     <>
       <span className={styles.title}>{action.title}</span>

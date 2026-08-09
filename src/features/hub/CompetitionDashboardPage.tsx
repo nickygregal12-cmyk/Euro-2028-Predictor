@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Alert, Button, EmptyIllustration } from '../../design-system'
 import {
@@ -26,9 +26,14 @@ import {
 import { applyHubMembership } from './hubMembership'
 import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAction'
 import { CompetitionWeekPanel } from './CompetitionWeekPanel'
+import { formatWeekDeadline, weekActionForGame } from './competitionWeekModel'
 import { useCompetitionWeek } from './useCompetitionWeek'
 import { SeasonCompetitionShell } from '../season/SeasonCompetitionShell'
+import { SeasonFixturePreview } from '../season/SeasonFixturePreview'
 import { seasonShellDestinations } from '../season/seasonDestinations'
+import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
+import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEligibility'
+import type { GameLeaveEligibility } from '../../services/supabase/gameLeaveEligibilityModel'
 
 function domesticGameRoute(game: HubGame): DomesticGameRoute | null {
   switch (game.kind) {
@@ -48,10 +53,72 @@ function gamePath(competition: HubCompetition, game: HubGame): string | null {
   return route ? competitionGameRoute(competition, route) : null
 }
 
+/**
+ * Overview's fixtures, in their own component for one reason: the gateway must
+ * keep its identity between renders or the window hook's effect re-runs for
+ * ever, and the memo that gives it one cannot be a hook inside `CompetitionPage`
+ * — that component already returns early when the slugs name no competition.
+ * A child renders only when there is a season, so its hooks are unconditional.
+ */
+function OverviewFixtures({
+  tournamentId,
+  timeZone,
+  onSeeAll,
+}: {
+  tournamentId: string
+  timeZone: string
+  onSeeAll: () => void
+}) {
+  const gateway = useMemo(
+    () => ({
+      load: (window: { from?: string; to?: string }) =>
+        fetchSeasonFixtureList(tournamentId, window),
+    }),
+    [tournamentId],
+  )
+  return <SeasonFixturePreview gateway={gateway} timeZone={timeZone} onSeeAll={onSeeAll} />
+}
+
 type DashboardState =
   | { status: 'loading' }
   | { status: 'failed' }
   | { status: 'ready'; competition: HubCompetition; season: HubSeasonMembership | null }
+
+/**
+ * Contract 140's leave eligibility, in its own state beside the membership read.
+ *
+ * SEPARATE, AND ALLOWED TO FAIL ALONE. It is a second round trip for a fact
+ * that makes one control better informed. Folding it into `DashboardState`
+ * would make its failure the page's failure — a dashboard that cannot show a
+ * player their games because it could not check whether they may leave one is
+ * a worse page than the one that existed before the read. So it stays null
+ * until it answers, and `decideGameMembership` treats null as "not yet known"
+ * rather than as permission.
+ */
+function useLeaveEligibility(tournamentId: string | null, nonce: number) {
+  const [games, setGames] = useState<readonly GameLeaveEligibility[] | null>(null)
+
+  useEffect(() => {
+    if (!tournamentId) return
+    let active = true
+    setGames(null)
+    fetchSeasonLeaveEligibility(tournamentId)
+      .then((answer) => {
+        if (active) setGames(answer.games)
+      })
+      .catch(() => {
+        // Silent on purpose: nothing on this page is wrong without it. The
+        // Leave control simply goes back to being attempted rather than
+        // predicted, which is what it did before contract 140 existed.
+        if (active) setGames(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [tournamentId, nonce])
+
+  return games
+}
 
 function useCompetitionDashboard(competition: HubCompetition | null) {
   const [state, setState] = useState<DashboardState>({ status: 'loading' })
@@ -146,6 +213,10 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
     championship: competitionGameRoute(competition, 'championship'),
   }
   const week = useCompetitionWeek(competitionSlug, seasonSlug, servedGames, weekHrefs, nonce)
+  const leaveEligibility = useLeaveEligibility(
+    state.status === 'ready' ? (state.season?.tournamentId ?? null) : null,
+    nonce,
+  )
 
   return (
     <SeasonCompetitionShell
@@ -184,6 +255,18 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             failed={week.failed}
             timeZone={week.timeZone}
           />
+          {/* And what the COMPETITION is playing, which the panel above does
+              not say: it reports what each GAME is asking of this player, so a
+              player who has joined nothing here saw an Overview with no
+              football on it at all. Fixtures belong to the competition and are
+              the same for everyone following it, joined or not. */}
+          {state.status === 'ready' && state.season ? (
+            <OverviewFixtures
+              tournamentId={state.season.tournamentId}
+              timeZone={week.timeZone}
+              onSeeAll={() => navigate(competitionSectionRoute(competition, 'matches'))}
+            />
+          ) : null}
           <Button
             variant="primary"
             fullWidth
@@ -213,7 +296,13 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                 const path = gamePath(competition, game)
                 const headingId = `game-${game.kind}`
                 const served = servedGames.find((entry) => entry.gameKey === game.gameKey)
-                const decision = served ? decideGameMembership(served, serverNow) : null
+                const decision = served
+                  ? decideGameMembership(
+                      served,
+                      serverNow,
+                      leaveEligibility?.find((entry) => entry.id === served.id) ?? null,
+                    )
+                  : null
                 const busy = served !== undefined && acting === served.id
 
                 return (
@@ -235,6 +324,28 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                       )}
                     </div>
                     <span className={h.gameDescription}>{game.description}</span>
+
+                    {/* What this game is asking of the player right now, from
+                        the game's OWN read — the same computation Overview's
+                        summary uses, so a card and the panel cannot disagree
+                        about a deadline. A game the player has not joined says
+                        nothing here: it is asking them for nothing. */}
+                    {(() => {
+                      const action = weekActionForGame(week.week, game.gameKey)
+                      if (!action) return null
+                      const when = formatWeekDeadline(action, week.timeZone)
+                      return (
+                        <p
+                          className={
+                            action.outstanding ? h.gameStateOutstanding : h.gameState
+                          }
+                        >
+                          {action.title}
+                          {when ? <span className={h.gameWhen}>{when}</span> : null}
+                        </p>
+                      )
+                    })()}
+
                     <div className={h.actions}>
                       <Button
                         variant={path ? 'primary' : 'secondary'}
