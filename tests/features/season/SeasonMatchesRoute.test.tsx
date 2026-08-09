@@ -15,15 +15,15 @@ import type { SeasonPlayContext } from '../../../src/features/season/seasonPlayC
  */
 
 const mocks = vi.hoisted(() => ({
-  fetchSeasonMatchweekFixtures: vi.fn(),
+  fetchSeasonFixtureList: vi.fn(),
 }))
 
 vi.mock('../../../src/services/supabase/client', () => ({
   supabase: { rpc: vi.fn() },
 }))
 
-vi.mock('../../../src/services/supabase/seasonFixtures', () => ({
-  fetchSeasonMatchweekFixtures: mocks.fetchSeasonMatchweekFixtures,
+vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({
+  fetchSeasonFixtureList: mocks.fetchSeasonFixtureList,
 }))
 
 import { SeasonMatchesRoute } from '../../../src/features/season/SeasonMatchesRoute'
@@ -60,18 +60,25 @@ function renderRoute(load: () => Promise<SeasonPlayContext>) {
 describe('the season matches route', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.fetchSeasonMatchweekFixtures.mockResolvedValue({
-      matchweek: 2,
-      matchweekCount: 38,
+    mocks.fetchSeasonFixtureList.mockResolvedValue({
+      competition: {
+        id: TOURNAMENT_ID,
+        name: 'Scottish Premiership',
+        seasonKey: '2026-27',
+        timeZone: 'Europe/London',
+      },
+      window: { from: '2026-08-01T00:00:00Z', to: '2026-08-22T00:00:00Z' },
+      serverNow: '2026-08-08T09:00:00Z',
       fixtures: [
         {
           id: 'a',
           kickoffAt: '2026-08-08T14:00:00+00:00',
           status: 'scheduled',
-          homeName: 'Dundee',
-          awayName: 'Aberdeen',
-          homeScore: null,
-          awayScore: null,
+          round: { id: 'r2', ordinal: 2, label: 'Matchweek 2' },
+          home: { name: 'Dundee', tokens: { monogram: 'DUN', primary: '#123456' } },
+          away: { name: 'Aberdeen', tokens: { monogram: 'ABE', primary: '#654321' } },
+          result: null,
+          live: null,
         },
       ],
     })
@@ -80,8 +87,10 @@ describe('the season matches route', () => {
   it('resolves the season from the URL and reads its fixtures', async () => {
     renderRoute(async () => context())
 
+    // No matchweek argument: the window is the server's own default, which is
+    // what stops a postponed fixture being filed under the wrong heading.
     await waitFor(() =>
-      expect(mocks.fetchSeasonMatchweekFixtures).toHaveBeenCalledWith(TOURNAMENT_ID, 2),
+      expect(mocks.fetchSeasonFixtureList).toHaveBeenCalledWith(TOURNAMENT_ID, {}),
     )
     expect(await screen.findByText('Dundee')).toBeTruthy()
   })
@@ -102,17 +111,18 @@ describe('the season matches route', () => {
     await screen.findByText('Dundee')
     // If membership were consulted the route would need a second gateway; the
     // only one it takes is the context.
-    expect(mocks.fetchSeasonMatchweekFixtures).toHaveBeenCalledTimes(1)
+    expect(mocks.fetchSeasonFixtureList).toHaveBeenCalledTimes(1)
   })
 
-  it('opens a finished season at its last matchweek rather than refusing', async () => {
+  it('opens a finished season rather than refusing, and asks for no matchweek', async () => {
     // The Match Predictor route stops at `season_over`, correctly — there is
     // nothing left to enter. A season with every matchweek played is a season
-    // with every result to read, so this one opens instead of refusing.
+    // with every result to read. It used to open at the LAST matchweek; the
+    // window read makes that question go away entirely.
     renderRoute(async () => context({ matchweek: null }))
 
     await waitFor(() =>
-      expect(mocks.fetchSeasonMatchweekFixtures).toHaveBeenCalledWith(TOURNAMENT_ID, 38),
+      expect(mocks.fetchSeasonFixtureList).toHaveBeenCalledWith(TOURNAMENT_ID, {}),
     )
   })
 
@@ -122,7 +132,7 @@ describe('the season matches route', () => {
     })
 
     expect(await screen.findByText('This competition season could not be found')).toBeTruthy()
-    expect(mocks.fetchSeasonMatchweekFixtures).not.toHaveBeenCalled()
+    expect(mocks.fetchSeasonFixtureList).not.toHaveBeenCalled()
   })
 
   it('shows a failed resolve as a failure, never as an empty page', async () => {
