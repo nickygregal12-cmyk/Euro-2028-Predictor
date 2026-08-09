@@ -30,7 +30,10 @@ insert into public.teams (tournament_id, name) values
 
 insert into public.competition_rounds (tournament_id, round_key, ordinal, kind, label)
 values (current_setting('test.frm_season')::uuid, 'frm-mw1', 1, 'league_matchweek', 'Matchweek 1'),
-       (current_setting('test.frm_season')::uuid, 'frm-mw2', 2, 'league_matchweek', 'Matchweek 2');
+       (current_setting('test.frm_season')::uuid, 'frm-mw2', 2, 'league_matchweek', 'Matchweek 2'),
+       -- A third matchweek, because `assert_season_fixture_shape` refuses a club
+       -- playing twice in one round -- and Chelsea already plays in matchweek 2.
+       (current_setting('test.frm_season')::uuid, 'frm-mw3', 3, 'league_matchweek', 'Matchweek 3');
 
 select set_config('test.frm_chelsea',
   (select id::text from public.teams where tournament_id = current_setting('test.frm_season')::uuid
@@ -53,7 +56,7 @@ values
    now() - interval '2 days', 'played', 2, 0),
   -- A postponed fixture with no score must contribute nothing at all.
   (current_setting('test.frm_season')::uuid,
-   (select id from public.competition_rounds where tournament_id = current_setting('test.frm_season')::uuid and round_key = 'frm-mw2'),
+   (select id from public.competition_rounds where tournament_id = current_setting('test.frm_season')::uuid and round_key = 'frm-mw3'),
    current_setting('test.frm_chelsea')::uuid,
    (select id from public.teams where tournament_id = current_setting('test.frm_season')::uuid and name = 'Nowhere Rovers'),
    now() - interval '1 days', 'postponed', null, null);
