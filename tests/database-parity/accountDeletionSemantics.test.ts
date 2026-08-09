@@ -99,6 +99,11 @@ describe('account deletion — declared foreign-key semantics', () => {
       // null on erasure for the same reason as every other actor column: the
       // audit trail is evidence and survives the account that made it.
       '20260806160000_season_fixture_result_entry.sql season_fixture_result_revisions.actor_id → set null',
+      // Contract 134. Publication state/history are operational evidence. The
+      // event survives account erasure while attribution becomes explicitly
+      // unknown, matching the repository's other administrator audit trails.
+      '20260809001500_euro_publication_state.sql euro_publication_state.changed_by → set null',
+      '20260809001500_euro_publication_state.sql euro_publication_transitions.actor_id → set null',
     ])
   })
 
@@ -154,6 +159,8 @@ describe('account deletion — consequences', () => {
       'actual_third_place_resolution_revisions.actor_id',
       'actual_third_place_resolutions.updated_by',
       'bonus_competition_audit.actor_id',
+      'euro_publication_state.changed_by',
+      'euro_publication_transitions.actor_id',
       'game_membership_events.actor_id',
       'match_result_revisions.actor_id',
       'season_fixture_result_revisions.actor_id',
@@ -178,17 +185,26 @@ describe('account deletion — consequences', () => {
         }
       })
     }
-    expect(dependants.size).toBeGreaterThanOrEqual(7)
+
+    expect([...dependants].sort()).toEqual([
+      'bonus_competition_entrants',
+      'bonus_knockout_predictions',
+      'entry_submissions',
+      'game_memberships',
+      'group_position_picks',
+      'match_predictions',
+      'predicted_group_positions',
+      'rank_history',
+    ])
   })
 
   it('leaves profiles with no dependants of its own', () => {
-    const referencesProfiles = readdirSync(migrationsDirectory)
-      .filter((migration) => migration.endsWith('.sql'))
-      .filter((migration) =>
-        /references\s+(?:public\.)?profiles\s*\(/i.test(
-          readFileSync(resolve(migrationsDirectory, migration), 'utf8'),
-        ),
-      )
-    expect(referencesProfiles).toEqual([])
+    const profileReferences: string[] = []
+    for (const migration of readdirSync(migrationsDirectory).sort()) {
+      if (!migration.endsWith('.sql')) continue
+      const source = readFileSync(resolve(migrationsDirectory, migration), 'utf8')
+      if (/references\s+(?:public\.)?profiles\s*\(/i.test(source)) profileReferences.push(migration)
+    }
+    expect(profileReferences).toEqual([])
   })
 })
