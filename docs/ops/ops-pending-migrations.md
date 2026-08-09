@@ -6,7 +6,38 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 9 August 2026 (sixth entry)
+## Current state — 9 August 2026 (seventh entry)
+
+Repository, Development and the machine records all stand at **contract 144**. Development was applied by guarded fast-lane run 31327666892 from exact `main` `72af085` and independently confirmed by a read-only ledger query returning 144 rows ending `20260809140000_provider_team_profile_foundation`, with contract 142 resolving token `22` to `in_play`, contract 143 arriving `hidden` with empty history, and contract 144's writer holding no grant.
+
+**Production remains at contract 132, and its promotion to 144 is blocked on infrastructure rather than on approval.** The owner authorised the Production migration on 9 August 2026. The first gate — `production-backup.yml`, run **31327860208** — failed in 34 seconds, before reading a single row:
+
+```
+psql: error: connection to server at "db.vkfnsqdyhvtwyqkisxhk.supabase.co"
+(2a05:d01c:1b7:9302:6bc5:501b:c449:4da0), port 5432 failed: Network is unreachable
+```
+
+That is an IPv6 address. GitHub-hosted runners are IPv4-only, and `SUPABASE_PROD_DB_URL` names the **direct** database host, which Supabase serves over IPv6 unless the IPv4 add-on is held. This is not general unreachability: the Development fast lane connected successfully from the same runner fleet minutes earlier, so the difference is the form of this one secret.
+
+**What clears it — an owner action, because it is a repository secret.** Repoint `SUPABASE_PROD_DB_URL` at the IPv4-reachable session pooler for `eu-west-2`:
+
+```
+postgresql://postgres.vkfnsqdyhvtwyqkisxhk:<password>@aws-0-eu-west-2.pooler.supabase.com:5432/postgres
+```
+
+Session mode on port **5432**, not transaction mode on 6543 — transaction pooling does not carry the prepared statements `supabase db push` relies on. The existing secret guard still holds after the change, because the pooler username embeds the project ref, so `production-backup.yml`, the rehearsal and the rollout all continue to refuse a secret that resolves to Development. The alternative is enabling the project's IPv4 add-on and leaving the secret alone.
+
+**Nothing was written to Production.** No backup exists for the 132 → 144 boundary, no rehearsal has run, and `promotionAuthorised` stays `false` in `config/production-hosted-contract.json` until the promotion actually happens.
+
+The two workflows the promotion needs are now authored and committed: `production-132-to-144-rehearsal.yml` (read-only against Production; restores a fresh dump to a disposable local target and rehearses the forward apply there) and `production-132-to-144-rollout.yml` (pinned to exactly the twelve migrations, and refusing to write until it has itself confirmed a successful backup run id and a successful rehearsal run id through the API). All twelve migrations were checked with `scripts/check-migration-additive.mjs` and every one reported additive.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **144** | 144 canonical migrations through `20260809140000_provider_team_profile_foundation.sql`, merged to `main` in #623. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **144** | Guarded fast-lane run `31327666892` from exact `main` `72af085`, plus an independent read-only query returning 144 rows ending `20260809110000`→`20260809140000`; contract 142 resolves token `22`, contract 143 is `hidden` with empty history, contract 144's writer holds no grant. | LEVEL WITH REPOSITORY |
+| Production Supabase | **132** | Independent read-only ledger verification returning 132 rows ending `20260807210812_provider_initial_fixture_approval`. Promotion to 144 is authorised but BLOCKED: `SUPABASE_PROD_DB_URL` names the IPv6-only direct host and GitHub runners are IPv4-only. | TWELVE BEHIND, BLOCKED ON THE SECRET |
+
+## Superseded — 9 August 2026 (sixth entry)
 
 Hosted Development stands at **contract 141**, `20260809110000_season_club_form`, confirmed twice: by guarded fast-lane run **31315796640** from exact `main` `d03fcaf`, and by an independent read-only query of `supabase_migrations.schema_migrations` on project `iouzoutneyjpugbbtdem`, which returned exactly 141 rows ending at that version. `config/development-hosted-contract.json` now says so; it had been stranded at 133 for a reason worth recording.
 
