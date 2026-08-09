@@ -31,6 +31,12 @@ Session mode on port **5432**, not transaction mode on 6543 — transaction pool
 
 The two workflows the promotion needs are now authored and committed: `production-132-to-144-rehearsal.yml` (read-only against Production; restores a fresh dump to a disposable local target and rehearses the forward apply there) and `production-132-to-144-rollout.yml` (pinned to exactly the twelve migrations, and refusing to write until it has itself confirmed a successful backup run id and a successful rehearsal run id through the API). All twelve migrations were checked with `scripts/check-migration-additive.mjs` and every one reported additive.
 
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **144** | 144 canonical migrations through `20260809140000_provider_team_profile_foundation.sql`, merged to `main` in #623. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **144** | Guarded fast-lane run `31327666892` from exact `main` `72af085`, plus an independent read-only query returning 144 rows ending `20260809110000`→`20260809140000`; contract 142 resolves token `22`, contract 143 is `hidden` with empty history, contract 144's writer holds no grant. | LEVEL WITH REPOSITORY |
+| Production Supabase | **132** | Independent read-only ledger verification returning 132 rows ending `20260807210812_provider_initial_fixture_approval`. Promotion to 144 is authorised but BLOCKED: `SUPABASE_PROD_DB_URL` names the IPv6-only direct host and GitHub runners are IPv4-only. | TWELVE BEHIND, BLOCKED ON THE SECRET |
+
 ## Superseded — 9 August 2026 (sixth entry)
 
 Hosted Development stands at **contract 141**, `20260809110000_season_club_form`, confirmed twice: by guarded fast-lane run **31315796640** from exact `main` `d03fcaf`, and by an independent read-only query of `supabase_migrations.schema_migrations` on project `iouzoutneyjpugbbtdem`, which returned exactly 141 rows ending at that version. `config/development-hosted-contract.json` now says so; it had been stranded at 133 for a reason worth recording.
