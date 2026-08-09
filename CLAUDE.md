@@ -73,3 +73,5 @@ Season Match Predictor, Last Man Standing and Predictor Championship rules come 
 The repository is at contract 132. Fresh provider calendars must follow archive/normalize → stage pending proposals → explicit competition-admin approval. Contract 132 does not authorize automatic provider result confirmation, and it must not be used to copy Development football rows into Production.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 adds authenticated-only season Predictor Championship instance discovery and an explicit selected-instance player read. The reads reuse the existing phase/table and neutral Cup scoring authorities; private Cup tables remain browser-revoked.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 closes risk-register `DB-005`, a privileges-only change: `public.rate_limit_events` and its identity sequence are revoked from `anon` and `authenticated`. Row-level security, the thresholds, `enforce_rate_limit`, both triggers and `service_role` are untouched, and no rule, relation or read moves.

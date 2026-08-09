@@ -717,8 +717,26 @@
  * tournament-kind UEFA Euro 2028 path, so its existing seeded journey is not
  * gated by the new functions. Exact-head Database parity and Browser E2E both
  * passed on the Contract-133 PR before this marker was raised.
+ *
+ * Contract 134 is the one entry in this list that changes privileges on an
+ * EXISTING table rather than adding a revoked new one, so it gets more than the
+ * usual sentence. It revokes `public.rate_limit_events` and its identity
+ * sequence from `anon` and `authenticated`, closing `DB-005`. A seeded user
+ * never reads that table — nothing in `src/` references it — but every seeded
+ * prediction save WRITES to it, through the `before insert or update` trigger on
+ * `match_predictions` that calls `enforce_rate_limit`. That function is
+ * `security definer`, so it reaches the table as its owner and not as the
+ * caller, which is why the revoke cannot reach the seeded write path.
+ * `187_rate_limit_events_client_revoke.sql` drives that rather than asserting
+ * it: after the revoke it logs two events, refuses the third at the ceiling and
+ * prunes a stale one. No relation, policy, trigger, threshold or function
+ * definition moves, and `service_role` is untouched. Exact-head Database parity
+ * and Browser E2E must both pass on the Contract-134 PR before this marker is
+ * relied on; they are what re-verifies the seeded prediction-save journey, since
+ * a definer boundary is exactly the kind of reasoning that deserves a driven
+ * check.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 133
+export const SEED_REVIEWED_AT_CONTRACT = 134
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
