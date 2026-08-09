@@ -193,6 +193,9 @@ These names may remain but their semantics must support both kinds safely:
 - `admin_reject_initial_provider_fixtures`
 - `get_provider_review_queues`
 - `get_season_fixtures`
+- `get_game_leave_eligibility`
+- `get_season_club_form`
+- `get_season_club_head_to_head`
 - `admin_resolve_actual_third_place_tie`
 - `capture_rank_history`
 - `clear_my_predictions`

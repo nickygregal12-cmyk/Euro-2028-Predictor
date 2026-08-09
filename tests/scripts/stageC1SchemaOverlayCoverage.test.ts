@@ -66,8 +66,10 @@ describe('Stage C1 schema overlay coverage', () => {
     // provider review queues, and `get_season_fixtures`, the season fixture
     // list ordered by kickoff and labelled by round. The pin is a positive
     // control on the inventory, so it moves only when a function is genuinely
-    // added to the manifest.
-    expect(reviewedFunctions).toHaveLength(67)
+    // added to the manifest. 67 -> 70 at contracts 140 and 141:
+    // `get_game_leave_eligibility`, and the two club-football derivations
+    // `get_season_club_form` and `get_season_club_head_to_head`.
+    expect(reviewedFunctions).toHaveLength(70)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {
