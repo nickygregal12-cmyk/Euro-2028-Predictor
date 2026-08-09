@@ -361,3 +361,5 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
 - [ ] Complete environment-specific Production provider credentials before live polling/import.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies the bounded private Predictor Championship reads needed by DFA-007: caller-owned instance discovery plus selected My Fixture / Table / Fixtures data. The signed-in browser journey remains to be verified after hosted Development receives Contract 133.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 closes risk-register `DB-005` and adds no product surface: the limiter log `public.rate_limit_events` is revoked from both browser roles, and `dataApiExposure.test.ts` now pins every public table browser roles can still reach so the next unrevoked table fails a test.
