@@ -1,5 +1,6 @@
 import type { MatchPredictorPage } from '../season/matchPredictorModel'
 import type { LmsRoundPage } from '../season/lmsRoundModel'
+import type { ChampionshipPlayerView } from '../../services/supabase/seasonCupPlayer'
 
 /**
  * "What do I need to do this week?" for one competition season (`DFA-006`).
@@ -24,7 +25,7 @@ import type { LmsRoundPage } from '../season/lmsRoundModel'
  * time-dependent in this repository is.
  */
 
-export type WeekActionKind = 'match_predictor' | 'last_man_standing'
+export type WeekActionKind = 'match_predictor' | 'last_man_standing' | 'championship'
 
 export type WeekAction = {
   kind: WeekActionKind
@@ -51,6 +52,7 @@ export type CompetitionWeek = {
 export type CompetitionWeekInput = {
   matchPredictor?: { page: MatchPredictorPage; href: string | null } | null
   lms?: { page: LmsRoundPage; href: string | null } | null
+  championship?: { view: ChampionshipPlayerView; href: string | null } | null
   now: Date
 }
 
@@ -111,6 +113,44 @@ function lmsAction(page: LmsRoundPage, href: string | null): WeekAction | null {
 }
 
 /**
+ * The Championship's fixture this round.
+ *
+ * IT IS NEVER OUTSTANDING, and that is the whole decision. A Championship
+ * fixture is won by the Match Predictor points the player is already being told
+ * to go and earn — there is no second card, no second pick, nothing else to do.
+ * Marking it outstanding would count one task twice and could push the actual
+ * task into second place behind its own consequence.
+ *
+ * So it reports: who they are playing and when it locks. That is worth saying —
+ * a player wants to know there is a tie riding on this matchweek — and it is
+ * not a thing to do.
+ *
+ * Contract 120's phase read could not have supplied this: it answers a phase
+ * and a table. Contract 133's player view carries the caller's own current
+ * fixture with its lock instant and its opponent, which is what makes the
+ * Championship expressible here at all.
+ */
+function championshipAction(
+  view: ChampionshipPlayerView,
+  href: string | null,
+): WeekAction | null {
+  if (!view.entered) return null
+
+  const mine = view.fixtures.find((fixture) => fixture.isMyFixture && fixture.status === 'pending')
+  if (!mine) return null
+
+  const opponent = mine.isHome ? mine.away : mine.home
+
+  return {
+    kind: 'championship',
+    title: `Championship: ${mine.windowLabel} against ${opponent.displayName}`,
+    locksAt: mine.locksAt,
+    outstanding: false,
+    href,
+  }
+}
+
+/**
  * Order the week.
  *
  * URGENCY IS THE DEADLINE, NOT THE GAME. Whatever is outstanding and locks
@@ -126,6 +166,10 @@ export function presentCompetitionWeek(input: CompetitionWeekInput): Competition
   }
   if (input.lms) {
     const action = lmsAction(input.lms.page, input.lms.href)
+    if (action) actions.push(action)
+  }
+  if (input.championship) {
+    const action = championshipAction(input.championship.view, input.championship.href)
     if (action) actions.push(action)
   }
 

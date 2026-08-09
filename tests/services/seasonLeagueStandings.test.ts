@@ -13,6 +13,7 @@ const LEAGUE_ID = '50000000-0000-0000-0000-000000000901'
 function row(overrides: Record<string, unknown> = {}) {
   return {
     userId: '50000000-0000-0000-0000-000000000a01',
+    userId: 'user-sam',
     displayName: 'Sam',
     points: 84,
     rank: 1,
@@ -83,7 +84,8 @@ describe('fetchSeasonLeagueStandingsPage', () => {
 
     expect(page.rows).toEqual([
       {
-        displayName: 'Sam',
+        userId: 'user-sam',
+    displayName: 'Sam',
         points: 84,
         rank: 1,
         matchweeksPlayed: 22,

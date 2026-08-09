@@ -29,6 +29,9 @@ import {
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
 import { joinLeague } from '../../services/supabase/leagues'
 import { fetchSeasonLeagueStandingsPage } from '../../services/supabase/seasonLeagueStandings'
+import { fetchSeasonHeadToHead } from '../../services/supabase/seasonHeadToHead'
+import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
+import { useSeasonPlayContext } from './useSeasonPlayContext'
 import { isNextUi } from '../../app/routeFlags'
 import { presentPlayInbox } from './playInboxModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
@@ -408,6 +411,7 @@ export function SeasonLeaguesRoute() {
         return (
           <SeasonLeaguesRouteBody
             gameCompetitionId={game.id}
+            tournamentId={resolved.tournamentId}
             joinedGame={game.membership?.status === 'active'}
           />
         )
@@ -418,11 +422,42 @@ export function SeasonLeaguesRoute() {
 
 function SeasonLeaguesRouteBody({
   gameCompetitionId,
+  tournamentId,
   joinedGame,
 }: {
   gameCompetitionId: string
+  tournamentId: string
   joinedGame: boolean
 }) {
+  const { competitionSlug, seasonSlug } = useParams<{
+    competitionSlug: string
+    seasonSlug: string
+  }>()
+  // Which matchweek a head-to-head compares. `useSeasonRoute` resolves the
+  // season and its games but not its calendar, and contract 121's play context
+  // is the read that answers "which matchweek" — the same one the Matches and
+  // Match Predictor routes use, so all three agree about where the season is.
+  const playContext = useSeasonPlayContext(
+    useMemo(() => createSeasonPlayContextGateway(), []),
+    competitionSlug,
+    seasonSlug,
+  )
+  const matchweek =
+    playContext.kind === 'ready' || playContext.kind === 'season_over'
+      ? (playContext.context.matchweek ?? playContext.context.matchweekCount)
+      : null
+
+  const headToHead = useMemo(
+    () =>
+      matchweek === null
+        ? undefined
+        : {
+            matchweek,
+            load: (opponentId: string) =>
+              fetchSeasonHeadToHead(tournamentId, opponentId, matchweek),
+          },
+    [tournamentId, matchweek],
+  )
   const gateway = useMemo(
     () => ({
       load: () => fetchMyGameLeagues(gameCompetitionId),
@@ -449,6 +484,7 @@ function SeasonLeaguesRouteBody({
       standings={standings}
       gameName="Match Predictor"
       joinedGame={joinedGame}
+      headToHead={headToHead}
     />
   )
 }

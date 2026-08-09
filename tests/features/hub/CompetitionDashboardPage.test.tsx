@@ -39,6 +39,10 @@ vi.mock('../../../src/services/supabase/seasonLms', () => ({
   createSeasonLmsRpcGateway: () => ({ load: () => new Promise(() => {}) }),
 }))
 
+vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
+  createSeasonCupPlayerViewRpcGateway: () => ({ load: () => new Promise(() => {}) }),
+}))
+
 const MAIN_PREDICTOR_ID = '60000000-0000-0000-0000-000000000101'
 const SERVER_NOW = '2026-08-06T12:00:00Z'
 

@@ -46,6 +46,19 @@ vi.mock('../../../src/services/supabase/gameLeagues', () => ({
 vi.mock('../../../src/services/supabase/leagues', () => ({
   joinLeague: mocks.joinLeague,
 }))
+// The Leagues route resolves which matchweek a head-to-head compares through
+// contract 121's play context, and reads the comparison itself through contract
+// 129. Neither is exercised here — this suite is about route resolution — so
+// both stand in, and the head-to-head's own behaviour is proven directly
+// against its decoder and panel.
+vi.mock('../../../src/services/supabase/seasonPlayContext', () => ({
+  createSeasonPlayContextGateway: () => ({ load: () => new Promise(() => {}) }),
+}))
+
+vi.mock('../../../src/services/supabase/seasonHeadToHead', () => ({
+  fetchSeasonHeadToHead: vi.fn(),
+}))
+
 vi.mock('../../../src/services/supabase/seasonLeagueStandings', () => ({
   fetchSeasonLeagueStandingsPage: mocks.fetchSeasonLeagueStandingsPage,
 }))

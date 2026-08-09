@@ -143,6 +143,7 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
       ? competitionGameRoute(competition, 'match-predictor')
       : null,
     lms: competitionGameRoute(competition, 'lms'),
+    championship: competitionGameRoute(competition, 'championship'),
   }
   const week = useCompetitionWeek(competitionSlug, seasonSlug, servedGames, weekHrefs, nonce)
 

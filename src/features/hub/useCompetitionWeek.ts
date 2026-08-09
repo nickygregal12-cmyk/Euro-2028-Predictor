@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
+import { createSeasonCupPlayerViewRpcGateway } from '../../services/supabase/seasonCupPlayer'
 import type { CompetitionGame } from '../../services/supabase/competitionGamesModel'
 import { presentCompetitionWeek, type CompetitionWeek } from './competitionWeekModel'
 
@@ -39,7 +40,7 @@ export function useCompetitionWeek(
   seasonSlug: string | undefined,
   games: readonly CompetitionGame[],
   /** Where each game's surface lives, when it has one. */
-  hrefs: { matchPredictor: string | null; lms: string | null },
+  hrefs: { matchPredictor: string | null; lms: string | null; championship: string | null },
   nonce: number,
 ): CompetitionWeekState {
   const [state, setState] = useState<CompetitionWeekState>(IDLE)
@@ -50,12 +51,18 @@ export function useCompetitionWeek(
   const joinedLms = games.some(
     (game) => game.gameKey === 'last_man_standing' && game.membership !== null,
   )
+  // The Championship the player is IN, by exact competition id. A season can
+  // run several — contract 133's discovery exists because of it — so "the
+  // Championship" is not a thing to search for by game key.
+  const championshipId =
+    games.find((game) => game.gameKey === 'predictor_cup' && game.membership !== null)?.id ?? null
   const matchPredictorHref = hrefs.matchPredictor
   const lmsHref = hrefs.lms
+  const championshipHref = hrefs.championship
 
   useEffect(() => {
     if (!competitionSlug || !seasonSlug) return
-    if (!joinedMainPredictor && !joinedLms) {
+    if (!joinedMainPredictor && !joinedLms && !championshipId) {
       setState(IDLE)
       return
     }
@@ -82,11 +89,18 @@ export function useCompetitionWeek(
           ? await createSeasonLmsRpcGateway({ tournamentId: context.tournamentId }).load()
           : null
 
+        const championship = championshipId
+          ? await createSeasonCupPlayerViewRpcGateway({ competitionId: championshipId }).load()
+          : null
+
         if (!active) return
         setState({
           week: presentCompetitionWeek({
             matchPredictor: card ? { page: card, href: matchPredictorHref } : null,
             lms: round ? { page: round, href: lmsHref } : null,
+            championship: championship
+              ? { view: championship, href: championshipHref }
+              : null,
             now: new Date(),
           }),
           loading: false,
@@ -106,8 +120,10 @@ export function useCompetitionWeek(
     seasonSlug,
     joinedMainPredictor,
     joinedLms,
+    championshipId,
     matchPredictorHref,
     lmsHref,
+    championshipHref,
     nonce,
   ])
 

@@ -1,0 +1,123 @@
+/* One matchweek, you against one league rival. Tokens only. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--chip);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  color: var(--tx);
+  min-width: 0;
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin: 0;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.figure dt {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.figure dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Three columns: the fixture, both predictions, the result. The predictions
+   column is fixed so the two scorelines line up down the list rather than
+   drifting with the length of a club name. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 3.5rem;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.teams {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.picks {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+  white-space: nowrap;
+}
+
+.divider {
+  color: var(--tx3);
+}
+
+.result {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  text-align: right;
+  white-space: nowrap;
+}

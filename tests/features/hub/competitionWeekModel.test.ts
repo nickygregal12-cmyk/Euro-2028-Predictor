@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { presentCompetitionWeek } from '../../../src/features/hub/competitionWeekModel'
 import type { MatchPredictorPage } from '../../../src/features/season/matchPredictorModel'
 import type { LmsRoundPage } from '../../../src/features/season/lmsRoundModel'
+import type { ChampionshipPlayerView } from '../../../src/services/supabase/seasonCupPlayer'
 
 const NOW = new Date('2026-08-07T10:00:00Z')
 
@@ -55,6 +56,82 @@ function round(overrides: Partial<LmsRoundPage> = {}): LmsRoundPage {
     ...overrides,
   } as unknown as LmsRoundPage
 }
+
+function championship(overrides: Partial<ChampionshipPlayerView> = {}): ChampionshipPlayerView {
+  return {
+    competitionId: 'cup-1',
+    entered: true,
+    phaseReady: true,
+    visibility: 'private',
+    availabilityStatus: 'active',
+    phaseKind: 'initial',
+    group: { id: 'g1', ordinal: 1, size: 8, phaseKind: 'initial', parentGroupId: null },
+    members: [],
+    table: [],
+    fixtures: [
+      {
+        fixtureId: 'cf1',
+        windowSequence: 2,
+        windowLabel: 'Round 2',
+        opensAt: null,
+        locksAt: '2026-08-08T13:30:00Z',
+        matchday: 2,
+        home: { userId: 'you', displayName: 'You' },
+        away: { userId: 'rival', displayName: 'Sam' },
+        isMyFixture: true,
+        isHome: true,
+        status: 'pending',
+        homePoints: null,
+        awayPoints: null,
+        result: null,
+      },
+    ],
+    ...overrides,
+  } as ChampionshipPlayerView
+}
+
+describe('the Championship in the week', () => {
+  it('reports the tie and never marks it outstanding', () => {
+    // A Championship fixture is won by the Match Predictor points the player is
+    // already being told to earn. Marking it outstanding would count one task
+    // twice and could push the actual task behind its own consequence.
+    const week = presentCompetitionWeek({
+      matchPredictor: { page: card({ entered: 0, total: 3 }), href: '/mp' },
+      championship: { view: championship(), href: '/cup' },
+      now: NOW,
+    })
+
+    expect(week.primary?.kind).toBe('match_predictor')
+    const cup = week.secondary.find((action) => action.kind === 'championship')
+    expect(cup?.outstanding).toBe(false)
+    expect(cup?.title).toContain('against Sam')
+  })
+
+  it('says nothing when the player is not entered', () => {
+    const week = presentCompetitionWeek({
+      championship: { view: championship({ entered: false }), href: '/cup' },
+      now: NOW,
+    })
+    expect(week.empty).toBe(true)
+  })
+
+  it('says nothing once their fixture has settled', () => {
+    // A settled tie is a result, and results belong on the Championship's own
+    // surface rather than in a summary of the week ahead.
+    const settled = championship()
+    const week = presentCompetitionWeek({
+      championship: {
+        view: {
+          ...settled,
+          fixtures: settled.fixtures.map((fixture) => ({ ...fixture, status: 'settled' as const })),
+        },
+        href: '/cup',
+      },
+      now: NOW,
+    })
+    expect(week.empty).toBe(true)
+  })
+})
 
 describe('the competition week', () => {
   it('is nothing at all when the player has joined no game here', () => {

@@ -32,7 +32,11 @@
 .columns,
 .row {
   display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem 3rem;
+  /* Rank, player, matchweeks, points, and the compare control. The last column
+     is `auto` so a table rendered without a head-to-head reader — a finished
+     season has no matchweek to compare — collapses it to nothing rather than
+     leaving a gutter beside every row. */
+  grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem 3rem auto;
   align-items: center;
   gap: var(--sp-2);
   padding: 0 var(--sp-2);
@@ -163,4 +167,27 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* The compare control. A quiet square at the end of a row: the table is the
+   subject and this is a detail of one line in it, so it must not compete with
+   the points column for attention. Full tap target regardless. */
+.compare {
+  display: grid;
+  place-items: center;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  cursor: pointer;
+}
+
+.compare:hover {
+  background: var(--chip);
+  color: var(--tx);
 }
