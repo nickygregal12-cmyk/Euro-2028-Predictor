@@ -1,12 +1,14 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 132,
-  "latestMigrationVersion": "20260807210812",
-  "latestMigrationName": "provider_initial_fixture_approval",
-  "verifiedAt": "2026-08-08T04:18:00.000Z",
+  "requiredMigrationCount": 133,
+  "latestMigrationVersion": "20260808003000",
+  "latestMigrationName": "private_season_cup_player_reads",
+  "verifiedAt": "2026-08-08T20:23:48.000Z",
   "evidence": {
-    "source": "Independent read-only Supabase migration-ledger verification on 8 August 2026 confirmed Development at exactly Contract 132, ending 20260807210812_provider_initial_fixture_approval. This reconciles the machine record that was left at 131 after the guarded Contract 132 rollout; no hosted write was performed by this record update.",
-    "repositoryHead": "305b4e12b43a28f349f5fd27c954bd8247742a52"
+    "source": "Development Fast Lane run 31276698062 (run #46) completed successfully on 8 August 2026 from exact main 1138d0967bcff4168680980dc3352517f1e9c772. The guarded run proved the pending Development migration set additive, applied the sole pending migration 20260808003000_private_season_cup_player_reads.sql, and confirmed the hosted Development contract matched repository Contract 133 after apply. A separate independent read-only verification then confirmed the Development migration ledger ended at 20260808003000_private_season_cup_player_reads.",
+    "repositoryHead": "1138d0967bcff4168680980dc3352517f1e9c772",
+    "workflowRunId": 31276698062,
+    "workflowRunNumber": 46
   },
   "productionContract": 132,
   "productionPromotionAuthorised": false
