@@ -148,8 +148,6 @@ function LandingSection({ id }: { id: LandingSectionId }): ReactElement {
       return <LeaguesSection />
     case 'games':
       return <GamesSection />
-    case 'euro':
-      return <EuroSection />
     case 'final':
       return <FinalSection />
   }
@@ -510,25 +508,6 @@ function GamesSection(): ReactElement {
             </li>
           ))}
         </ul>
-      </div>
-    </section>
-  )
-}
-
-function EuroSection(): ReactElement {
-  return (
-    <section className={s.sectionTight} id="euro" aria-labelledby="euro-heading">
-      <div className={s.shell}>
-        <div className={s.euroBand}>
-          <div>
-            <p className={s.eyebrow}>Standalone tournament experience</p>
-            <h2 id="euro-heading">Euro 2028 is its own competition.</h2>
-            <p>
-              The tournament predictor stays a focused, separately joined experience. It is not the
-              everyday weekly product, and playing one never enters you into the other.
-            </p>
-          </div>
-        </div>
       </div>
     </section>
   )

@@ -15,7 +15,17 @@
  * them as a specification.
  */
 
-/** The eight surfaces Appendix E.3 orders, top of page to bottom. */
+/**
+ * The surfaces Appendix E.3 orders, top of page to bottom.
+ *
+ * SEVEN, NOT THE EIGHT THE APPENDIX WROTE. Revision 1.5 placed a Euro 2028
+ * acquisition band after the domestic competitions; ADR 0026 superseded that
+ * positioning and `EURO-003` requires Euro absent from the weekly platform
+ * entirely — landing content included — until an owner-approved publication
+ * state exists. The band is gone from here, from the prototype, from its
+ * contract test and from the page, which is the atomic change the plan's own
+ * reconciliation note asked for rather than four files disagreeing.
+ */
 export type LandingSectionId =
   | 'hero'
   | 'proof'
@@ -23,7 +33,6 @@ export type LandingSectionId =
   | 'experience'
   | 'leagues'
   | 'games'
-  | 'euro'
   | 'final'
 
 /**
@@ -40,17 +49,16 @@ export const LANDING_SECTION_ORDER: readonly LandingSectionId[] = [
   'experience',
   'leagues',
   'games',
-  'euro',
   'final',
 ] as const
 
 /**
  * The in-page anchors the public navigation offers.
  *
- * Four of the eight sections are linkable. The hero is the top of the page, the
- * proof band is a strip rather than a destination, and the Euro and final-CTA
- * bands are the end of the scroll — a nav link to any of them would be an
- * anchor to somewhere the visitor is already heading.
+ * Four of the seven sections are linkable. The hero is the top of the page, the
+ * proof band is a strip rather than a destination, and the final-CTA band is the
+ * end of the scroll — a nav link to it would be an anchor to somewhere the
+ * visitor is already heading.
  */
 export const LANDING_NAV: readonly { id: LandingSectionId; label: string }[] = [
   { id: 'how', label: 'How it works' },
@@ -62,10 +70,11 @@ export const LANDING_NAV: readonly { id: LandingSectionId; label: string }[] = [
 /**
  * The two domestic competitions, in the order Appendix E.3 names them.
  *
- * E.7 requires both to be visible before Euro 2028 and neither to be presented
- * as automatically joined — so these carry no membership language at all, and
- * the section they render in says what it is: the football the weekly product
- * is built around.
+ * E.7 required both to be visible before the Euro band and neither to be
+ * presented as automatically joined. The band is gone under `EURO-003`, so only
+ * the second half of that rule still has anything to bite on — these carry no
+ * membership language at all, and the section they render in says what it is:
+ * the football the weekly product is built around.
  */
 export const DOMESTIC_COMPETITIONS: readonly { code: string; name: string }[] = [
   { code: 'SP', name: 'Scottish Premiership' },

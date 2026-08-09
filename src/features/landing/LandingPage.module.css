@@ -976,30 +976,6 @@
   color: var(--tx3);
 }
 
-/* ── Euro 2028 band ─────────────────────────────────────────────────────── */
-
-.euroBand {
-  padding: var(--sp-6);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--card);
-}
-
-.euroBand h2 {
-  margin: var(--sp-3) 0 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-4);
-  font-weight: 500;
-  line-height: 1.2;
-}
-
-.euroBand p {
-  margin: var(--sp-3) 0 0;
-  max-width: 60ch;
-  font-size: var(--fs-2);
-  color: var(--tx2);
-}
-
 /* ── Final call to action ───────────────────────────────────────────────── */
 
 .finalCta {
@@ -1190,10 +1166,6 @@
 
   .leagueForm {
     display: block;
-  }
-
-  .euroBand {
-    padding: calc(var(--sp-1) * 8);
   }
 
   .ctaPanel {
