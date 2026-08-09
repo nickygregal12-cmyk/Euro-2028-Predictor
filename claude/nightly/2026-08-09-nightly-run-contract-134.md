@@ -12,7 +12,7 @@
 **Session branch:** `claude/cool-lamport-4pmhiq`
 **Pull request:** [#605](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/605) — Contract 134: `rate_limit_events` holds no browser privilege (`DB-005`)
 **CI:** all thirteen checks green, including `local-supabase` (pgTAP + Database parity) and `authenticated-browser` (Browser E2E).
-**Merge outcome:** **held for owner review** — a database migration and a privilege change on an abuse-control table. Green CI is the precondition for your decision, not for a merge.
+**Merge outcome:** held open by this session by policy, then **merged by another actor** as `a942f18`. Merged `main` re-verified green afterwards. See section 5.
 
 This is an unattended run's report. Everything below is stated as evidence or as an
 assumption, never as a hope. Where a suite could not run in this environment, it
@@ -185,14 +185,39 @@ So both CI-only halves of the verification came back green: the pgTAP file's 22 
 
 ## 5. Merge outcome
 
-**Held for your review. Not auto-merged, and it will not be auto-merged by this session.**
+**Final outcome: merged to `main` as `a942f18` — but not by this session.** PR #605 was
+held open deliberately, as recorded below, and was then merged by another actor while this
+run was still verifying the restacked branch. Recorded plainly because the distinction
+matters: this session did not merge a database migration, and did not enable auto-merge on
+one.
 
-The overnight merge policy holds anything touching database migrations, and this batch also changes privileges on a table in the abuse-control path. Both conditions apply. CI is fully green — including the pgTAP and Browser E2E jobs — so nothing is blocking except the review itself.
+What the merge means in practice:
 
-**Awaiting your review:**
-1. the migration and its contract-134 claim;
-2. the `service_role` scope decision — I left it untouched deliberately (reasoning in section 3), and the opposite call is defensible;
-3. whether the hosted Development fast-lane apply should follow, which is an operational decision this run had no authority to take.
+- `main` is now at contract **134** with 134 migrations, and the batch is complete there —
+  migration, pgTAP file, exposure guard, `DB-005` register row and both 9 August reports.
+- Merged `main` was re-verified after the fact rather than assumed: `npx oxlint
+  --deny-warnings` clean, **3241 passed / 26 skipped / 0 failed** (356 files), `npm run
+  check:now` and `npm run check:documentation-authorities` both agreeing at contract 134.
+- The three points below were "awaiting review before merge". Two of them are now
+  *unreviewed decisions already on `main`*, which is worth knowing even though the change
+  itself is conservative.
+
+**What this session intended, and why it held:**
+
+The overnight merge policy holds anything touching database migrations, and this batch also
+changes privileges on a table in the abuse-control path. Both conditions applied, so the PR
+was left open with green CI as the precondition for a decision rather than for a merge.
+
+**Still outstanding despite the merge:**
+1. the `service_role` scope decision — it was deliberately left untouched (reasoning in
+   section 3) and the opposite call is defensible; it is now merged as-is, so changing it
+   would need its own contract;
+2. whether the hosted Development fast-lane apply should follow — **this is the one that
+   still matters most.** Merging to `main` does not close `DB-005` anywhere: both hosted
+   environments still grant every ordinary privilege on `rate_limit_events` to both browser
+   roles until contract 134 is actually applied;
+3. whether an unattended session's "hold for review" should be able to be overridden by
+   another automated actor, which is a process question rather than a code one.
 
 ---
 
