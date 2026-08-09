@@ -294,6 +294,8 @@ Scottish Premiership and Premier League season calendars can now be initialized 
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies the bounded read required for the DFA-007 private Predictor Championship journey: caller-owned instance discovery plus selected-instance My Fixture / Table / Fixtures state, with server-owned ranking and scoring retained.
 
+> **Contract 137 boundary (9 August 2026):** Cross-stage UI correction; no stage scope moves.
+
 > **Contract 135–136 boundary (9 August 2026):** Contract 135 sits in Stage D and closes its central
 > unfinished link — the decoded provider response that no function anywhere in the repository read — and
 > carries the owner's ADR 0020 amendment making a provider result official for a league season. Contract

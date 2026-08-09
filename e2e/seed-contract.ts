@@ -755,11 +755,15 @@
  * how EVERY club rendered before this contract. So the seed cannot fail closed
  * on data it lacks.
  *
+ * Raised again to 137: that contract redefines one immutable helper and inserts
+ * reference rows. It adds no relation, no grant and no gate, and it makes MORE
+ * clubs resolve than before, so no seeded read can be narrowed by it.
+ *
  * Exact-head Database parity and Browser E2E must still both pass on the
- * contract 135/136 pull request before this marker is relied on — the reasoning
+ * contract 135/136/137 pull request before this marker is relied on — the reasoning
  * above is what makes raising it defensible, not what verifies it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 136
+export const SEED_REVIEWED_AT_CONTRACT = 137
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

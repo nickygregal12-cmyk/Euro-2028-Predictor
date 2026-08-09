@@ -179,6 +179,9 @@ Real domestic fixture adoption now has a backend publication gate: provider evid
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies server-owned opponent/table/fixture data for the accepted Predictor Championship My Fixture / Table / Fixtures surfaces. It changes no visual authority and does not make History available.
 
+> **Contract 137 boundary (9 August 2026):** Changes no visual authority. It makes two Premier League
+> clubs actually render in their own colours, which contract 136 intended and did not achieve for them.
+
 > **Contract 135–136 boundary (9 August 2026):** Contract 135 changes no visual authority; it is the
 > provider result rule and its driver. Contract 136 does change what a surface can draw with:
 > `ClubIdentity` has always taken a three-letter code and a colour string and has never been given
