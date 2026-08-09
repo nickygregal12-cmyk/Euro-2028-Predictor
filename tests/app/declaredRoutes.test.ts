@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { declaredRoutes, redirectRoutes, routePaths } from './declaredRoutes'
+import { appSource, declaredRoutes, redirectRoutes, routePaths } from './declaredRoutes'
 
 /**
  * The parser three coverage guards depend on, against the way it used to fail.
@@ -8,8 +8,8 @@ import { declaredRoutes, redirectRoutes, routePaths } from './declaredRoutes'
  * the wrong thing, or it can silently match less than it should. The second is
  * far more dangerous here, because every one of the guards built on this parser
  * reports "no gaps" when it sees no routes at all. The assertions below are
- * about that: a wrapped declaration must be found, and the parser must not be
- * quietly returning nothing.
+ * about that: wrapped declarations and typed weekly registrations must be found,
+ * and the parser must not be quietly returning nothing.
  */
 
 const WRAPPED = `
@@ -22,11 +22,20 @@ const WRAPPED = `
     path="/wrapped-redirect"
     element={<Navigate to="/single-line" replace />}
   />
+  <Route
+    path={weeklyRoutePatterns.matchPredictor}
+    element={<C />}
+  />
 `
 
 describe('the route parser', () => {
-  it('finds a declaration whether or not Prettier wrapped it', () => {
-    expect(routePaths(WRAPPED)).toEqual(['/single-line', '/wrapped', '/wrapped-redirect'])
+  it('finds literal and typed declarations whether or not Prettier wrapped them', () => {
+    expect(routePaths(WRAPPED)).toEqual([
+      '/single-line',
+      '/wrapped',
+      '/wrapped-redirect',
+      '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
+    ])
   })
 
   it('does not attribute a following route’s path to the current one', () => {
@@ -57,6 +66,13 @@ describe('what it finds in the real App.tsx', () => {
     expect(declaredRoutes).toContain(
       '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
     )
+  })
+
+  it('registers canonical competition routes through the shared authority, not string copies', () => {
+    expect(appSource).not.toMatch(/\bpath="\/competitions\//)
+    expect(appSource).toContain('path={weeklyRoutePatterns.matchPredictor}')
+    expect(appSource).toContain('path={weeklyRoutePatterns.lms}')
+    expect(appSource).toContain('path={weeklyRoutePatterns.championshipWildcard}')
   })
 
   it('does not restore the retired domestic route aliases', () => {

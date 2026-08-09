@@ -5,6 +5,7 @@ import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
+import { weeklyRoutePatterns, weeklyRoutes } from './app/shellRoutes'
 import { RequireAdmin } from './features/admin/RequireAdmin'
 import { AdminLayout } from './features/admin/AdminLayout'
 
@@ -176,53 +177,53 @@ export default function App() {
 
                 <Route element={<RequireWelcome />}>
                   <Route element={<AppShell />}>
-                    <Route path="/" element={<HubPage />} />
-                    <Route path="/play" element={<CompetitionChooserPage section="play" title="Play" />} />
-                    <Route path="/matches" element={<CompetitionChooserPage section="matches" title="Matches" />} />
-                    <Route path="/leagues" element={<CompetitionChooserPage section="leagues" title="Leagues" />} />
-                    <Route path="/more" element={<MorePage />} />
+                    <Route path={weeklyRoutes.hub} element={<HubPage />} />
+                    <Route path={weeklyRoutes.play} element={<CompetitionChooserPage section="play" title="Play" />} />
+                    <Route path={weeklyRoutes.matches} element={<CompetitionChooserPage section="matches" title="Matches" />} />
+                    <Route path={weeklyRoutes.leagues} element={<CompetitionChooserPage section="leagues" title="Leagues" />} />
+                    <Route path={weeklyRoutes.more} element={<MorePage />} />
 
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug"
+                      path={weeklyRoutePatterns.competition}
                       element={<CompetitionDashboardPage />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/play"
+                      path={weeklyRoutePatterns.play}
                       element={<SeasonPlayRoute />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/matches"
+                      path={weeklyRoutePatterns.matches}
                       element={<SeasonMatchesRoute />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games"
+                      path={weeklyRoutePatterns.games}
                       element={<CompetitionGamesPage />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/match-predictor"
+                      path={weeklyRoutePatterns.matchPredictor}
                       element={<SeasonMatchPredictorRoute />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings"
+                      path={weeklyRoutePatterns.matchPredictorStandings}
                       element={<SeasonStandingsRoute />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/lms"
+                      path={weeklyRoutePatterns.lms}
                       element={<SeasonLmsRoute />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/*"
+                      path={weeklyRoutePatterns.championshipWildcard}
                       element={<SeasonChampionshipRouter />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/leagues"
+                      path={weeklyRoutePatterns.leagues}
                       element={<SeasonLeaguesRoute />}
                     />
 
                     {/* Compatibility only: the old global chooser name remains a
                         redirect, never a second weekly information architecture. */}
-                    <Route path="/fixtures" element={<Navigate to="/matches" replace />} />
-                    <Route path="/league" element={<Navigate to="/leagues" replace />} />
+                    <Route path="/fixtures" element={<Navigate to={weeklyRoutes.matches} replace />} />
+                    <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
                     <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
 
                     <Route path="/h2h/:rivalId" element={<H2HPage />} />
