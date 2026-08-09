@@ -10,6 +10,11 @@ import {
   recordSeasonFixtureResult,
   type SeasonResultAction,
 } from '../../services/supabase/seasonAdmin'
+import {
+  acknowledgeReviewItems,
+  fetchProviderReviewQueues,
+} from '../../services/supabase/providerReviewQueues'
+import { ProviderReviewPanel } from './ProviderReviewPanel'
 import { HUB_COMPETITIONS, type HubCompetition } from '../hub/competitionCatalogue'
 import {
   openOutcomeMessage,
@@ -45,16 +50,19 @@ import styles from './SeasonAdminPage.module.css'
  * WHAT IT DELIBERATELY DOES NOT OFFER, both because the browser cannot see what
  * it would be acting on:
  *
- *   • provider fixture approval (contract 132). `admin_approve_initial_provider_
- *     fixtures` is granted, but nothing exposes the STAGED PROPOSALS, so the
- *     control would be a button to approve a list nobody can read. It needs a
- *     read before it needs a button;
  *   • disqualifying an entrant. `admin_disqualify_competition_game_entry` is
  *     granted and no browser read enumerates a competition's entrants, so the
  *     surface could not name who it was about to remove.
  *
- * Both are named in the interface rather than silently absent, because an
- * operator who cannot see a capability assumes it does not exist.
+ * It is named in the interface rather than silently absent, because an operator
+ * who cannot see a capability assumes it does not exist.
+ *
+ * PROVIDER REVIEW USED TO BE ON THAT LIST and no longer is. Contract 138 gave
+ * the five ingestion queues a read and an acknowledgement, so the panel below
+ * shows what ingestion recorded and deliberately did not act on. Contract 132's
+ * staged calendar still has no browser read of its own — the panel reports how
+ * many fixtures are waiting and does not offer approve or reject, because that
+ * would be a button over a list nobody can inspect.
  */
 
 type FixturesState =
@@ -433,16 +441,29 @@ export function SeasonAdminPage() {
         ) : null}
       </section>
 
+      {tournamentId ? (
+        <ProviderReviewPanel
+          key={tournamentId}
+          load={() => fetchProviderReviewQueues(tournamentId)}
+          acknowledge={(kind, ids) => acknowledgeReviewItems(kind, ids)}
+        />
+      ) : null}
+
       <section className={styles.panel} aria-labelledby="season-admin-gaps-heading">
         <h2 className={styles.heading} id="season-admin-gaps-heading">
           Not offered here, and why
         </h2>
         <p className={styles.caption}>
-          Approving a provider’s initial calendar and disqualifying an entrant are
-          both permitted by the server and are absent from this page on purpose:
-          no browser read exposes the staged fixture proposals, or a
-          competition’s entrants, so either control would be acting on a list
-          nobody can see. Each needs a read before it needs a button.
+          Disqualifying an entrant is permitted by the server and is absent from
+          this page on purpose: no browser read enumerates a competition’s
+          entrants, so the control could not name who it was about to remove. It
+          needs a read before it needs a button.
+        </p>
+        <p className={styles.caption}>
+          Approving or rejecting a staged provider calendar is the same shape and
+          is also absent. The review panel above reports how many fixtures are
+          waiting on that decision, which is a count rather than the list an
+          approval would act on.
         </p>
       </section>
     </div>

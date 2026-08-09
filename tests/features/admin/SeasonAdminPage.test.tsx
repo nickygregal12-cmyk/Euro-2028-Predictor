@@ -23,6 +23,13 @@ vi.mock('../../../src/services/supabase/seasonFixtures', () => ({
   fetchSeasonMatchweekFixtures: mocks.fetchSeasonMatchweekFixtures,
 }))
 
+// Contract 138's queues have their own suite; here they only need to not tear
+// the page down while they load.
+vi.mock('../../../src/services/supabase/providerReviewQueues', () => ({
+  fetchProviderReviewQueues: () => new Promise(() => {}),
+  acknowledgeReviewItems: vi.fn(),
+}))
+
 vi.mock('../../../src/services/supabase/seasonAdmin', () => ({
   openSeasonCompetition: mocks.openSeasonCompetition,
   recordSeasonFixtureResult: mocks.recordSeasonFixtureResult,
@@ -154,13 +161,19 @@ describe('the competition administration surface', () => {
     await waitFor(() => expect(screen.getByText(/Nothing was changed/)).toBeTruthy())
   })
 
-  it('states the two capabilities it deliberately does not offer', async () => {
+  it('states what it deliberately does not offer, and why', async () => {
     // An operator who cannot see a capability assumes it does not exist. Both
-    // are granted server-side and absent here because no browser read exposes
-    // what they would act on.
+    // remaining absences are granted server-side and missing here because no
+    // browser read exposes what they would act on.
+    //
+    // Provider REVIEW used to be on this list and is not any more: contract 138
+    // gave the five ingestion queues a read, so the panel above shows them. What
+    // is still absent is the approve/reject decision over a staged calendar,
+    // whose list nobody can inspect.
     render(<SeasonAdminPage />)
     await waitFor(() => expect(screen.getByText(/Not offered here/)).toBeTruthy())
-    expect(screen.getByText(/staged fixture proposals/)).toBeTruthy()
+    expect(screen.getByText(/enumerates a competition’s entrants/)).toBeTruthy()
+    expect(screen.getByText(/staged provider calendar/)).toBeTruthy()
   })
 
   it('says there is no season rather than spinning for ever', async () => {
