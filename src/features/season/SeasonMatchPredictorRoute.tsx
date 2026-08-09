@@ -5,6 +5,7 @@ import { isNextUi } from '../../app/routeFlags'
 import { logicalWeeklyParent, weeklyRoutes } from '../../app/weeklyRoutes'
 import { NotFoundPage } from '../notfound/NotFoundPage'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
+import { fetchSeasonConsensus } from '../../services/supabase/seasonConsensus'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
 import { createSeasonGameRegistrationRpcGateway } from '../../services/supabase/seasonGameRegistration'
 import { findHubCompetition } from '../hub/competitionCatalogue'
@@ -76,6 +77,15 @@ export function SeasonMatchPredictorRoute({
     })
   }, [context, now])
 
+  // The consensus read, bound to this season. Built here rather than inside the
+  // panel so the panel imports no Supabase client — components render read-model
+  // output and never call the database themselves.
+  const consensusReader = useMemo(() => {
+    if (context === null) return undefined
+    const tournamentId = context.tournamentId
+    return (matchweek: number) => fetchSeasonConsensus(tournamentId, matchweek)
+  }, [context])
+
   const seasonRowName = findHubCompetition(competitionSlug, seasonSlug)?.seasonRowName ?? null
   const registration = useMemo(() => {
     if (seasonRowName === null) return undefined
@@ -138,6 +148,7 @@ export function SeasonMatchPredictorRoute({
       seasonLabel={state.context.seasonLabel}
       destinations={destinations}
       registration={registration}
+      consensus={consensusReader}
     />
   )
 }
