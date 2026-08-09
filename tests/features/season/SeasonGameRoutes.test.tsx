@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HubSeasonMembership } from '../../../src/services/supabase/competitionGames'
@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   fetchMyGameLeagues: vi.fn(),
   createGameLeague: vi.fn(),
   joinLeague: vi.fn(),
+  fetchSeasonLeagueStandingsPage: vi.fn(),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -44,6 +45,9 @@ vi.mock('../../../src/services/supabase/gameLeagues', () => ({
 }))
 vi.mock('../../../src/services/supabase/leagues', () => ({
   joinLeague: mocks.joinLeague,
+}))
+vi.mock('../../../src/services/supabase/seasonLeagueStandings', () => ({
+  fetchSeasonLeagueStandingsPage: mocks.fetchSeasonLeagueStandingsPage,
 }))
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
   useAuth: () => ({ userId: 'user-1' }),
@@ -327,6 +331,44 @@ describe('the season game routes', () => {
     renderRoute(<SeasonLeaguesRoute />, `${DASHBOARD}/leagues`, `${PREMIER}/leagues`)
 
     await waitFor(() => expect(mocks.fetchMyGameLeagues).toHaveBeenCalledWith(MAIN_ID))
+  })
+
+  it('reaches contract 128’s season league read from the browser at all', async () => {
+    // The defect this closes is a server authority nobody could call — the
+    // shape contracts 86, 98, 116, 118, 120 and 128 each had to fix. A league
+    // table that no route wires up is indistinguishable from one that does not
+    // exist, so the wiring is asserted here rather than assumed.
+    const LEAGUE_ID = '60000000-0000-0000-0000-0000000009a1'
+    mocks.fetchHubMembership.mockResolvedValue(season([game({ gameKey: 'main_predictor' })]))
+    mocks.fetchMyGameLeagues.mockResolvedValue([
+      {
+        id: LEAGUE_ID,
+        name: 'The Office',
+        inviteCode: 'ABC123',
+        memberCount: 4,
+        isOwner: true,
+        ownerName: 'Sam',
+        lastActivityAt: null,
+      },
+    ])
+    mocks.fetchSeasonLeagueStandingsPage.mockResolvedValue({
+      rows: [],
+      totalCount: 0,
+      pageSize: 50,
+      hasMore: false,
+      nextCursor: null,
+      you: null,
+    })
+
+    renderRoute(<SeasonLeaguesRoute />, `${DASHBOARD}/leagues`, `${PREMIER}/leagues`)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'View The Office table' }))
+
+    await waitFor(() =>
+      expect(mocks.fetchSeasonLeagueStandingsPage).toHaveBeenCalledWith(LEAGUE_ID, {
+        after: null,
+      }),
+    )
   })
 
   it('says so when the season runs no game a league could rank', async () => {

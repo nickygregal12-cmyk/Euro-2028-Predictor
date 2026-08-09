@@ -26,19 +26,6 @@
   color: var(--tx2);
 }
 
-/* Why no league opens into a table. Boxed rather than set as body copy, so it
-   reads as a statement about the surface rather than as league detail. */
-.note {
-  margin: 0;
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--chip);
-  font-family: var(--font-body);
-  font-size: var(--fs-1);
-  color: var(--tx2);
-}
-
 .list {
   display: flex;
   flex-direction: column;

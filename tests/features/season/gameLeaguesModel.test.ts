@@ -33,17 +33,20 @@ describe('presentGameLeagues', () => {
     expect(view.scopeLine).toContain('Main Predictor')
   })
 
-  it('says why no league opens into a table', () => {
-    // `get_league_members` ranks by the tournament scoring tables, which a
-    // season's points never reach — so it would return every member on zero.
-    // The absence is stated rather than left to be discovered.
+  it('no longer explains away a table it can now show', () => {
+    // This view once carried a `standingsNote` saying no league opened into a
+    // table, because `get_league_members` ranks by the tournament scoring
+    // tables a season's points never reach. Contract 128 supplied
+    // `get_season_league_standings`, so the sentence became false rather than
+    // merely stale. Asserted as an absence because a note explaining why there
+    // is no table, printed above a table, is worse than either alone.
     const view = presentGameLeagues({
       gameName: 'Main Predictor',
       joinedGame: true,
       leagues: [league()],
     })
 
-    expect(view.standingsNote).toMatch(/not open yet/)
+    expect('standingsNote' in view).toBe(false)
   })
 
   it('refuses creation in words when the caller has not joined the game', () => {
