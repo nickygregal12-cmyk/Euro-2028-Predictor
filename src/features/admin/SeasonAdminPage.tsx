@@ -121,20 +121,7 @@ export function SeasonAdminPage() {
   const seasonResolved = membership !== null || membershipError !== null
 
   useEffect(() => {
-    if (!tournamentId) {
-      // A season that resolved to nothing must not leave the matchweek panel
-      // spinning for ever. A permanent skeleton reads as a slow environment
-      // rather than as an absent season, and the two need different actions.
-      setFixtures(
-        seasonResolved
-          ? {
-              status: 'failed',
-              message: 'There is no season here to read a matchweek from.',
-            }
-          : { status: 'loading' },
-      )
-      return
-    }
+    if (!tournamentId) return
     let active = true
     setFixtures({ status: 'loading' })
     fetchSeasonMatchweekFixtures(tournamentId, matchweek)
@@ -147,7 +134,7 @@ export function SeasonAdminPage() {
     return () => {
       active = false
     }
-  }, [tournamentId, matchweek, reload, seasonResolved])
+  }, [tournamentId, matchweek, reload])
 
   const draftFor = useCallback(
     (fixtureId: string): Draft => drafts[fixtureId] ?? EMPTY_DRAFT,
@@ -207,7 +194,22 @@ export function SeasonAdminPage() {
     }
   }
 
-  const readiness = fixtures.status === 'ready' ? fixtures.readiness : null
+  // A season that resolved to nothing must not leave the matchweek panel
+  // spinning for ever: a permanent skeleton reads as a slow environment rather
+  // than an absent season, and the two need different actions from an operator.
+  //
+  // DERIVED DURING RENDER RATHER THAN SET FROM AN EFFECT, which is how the
+  // first version did it and why a test caught it intermittently: two effects
+  // settling in two passes meant one paint of skeleton after the membership
+  // read had already answered. There is nothing asynchronous about "there is no
+  // season" once the membership read has returned.
+  const fixturesView: FixturesState = tournamentId
+    ? fixtures
+    : seasonResolved
+      ? { status: 'failed', message: 'There is no season here to read a matchweek from.' }
+      : { status: 'loading' }
+
+  const readiness = fixturesView.status === 'ready' ? fixturesView.readiness : null
   const games = membership ? openableGames(membership.seasonGames.games) : []
 
   return (
@@ -309,16 +311,16 @@ export function SeasonAdminPage() {
           </Button>
         </div>
 
-        {fixtures.status === 'loading' ? (
+        {fixturesView.status === 'loading' ? (
           <div aria-busy="true" aria-live="polite">
             <span className={styles.srOnly}>Loading this matchweek</span>
             <Skeleton height={180} radius="card" />
           </div>
         ) : null}
 
-        {fixtures.status === 'failed' ? (
+        {fixturesView.status === 'failed' ? (
           <Alert variant="warning" title="This matchweek could not be loaded">
-            {fixtures.message}
+            {fixturesView.message}
           </Alert>
         ) : null}
 
