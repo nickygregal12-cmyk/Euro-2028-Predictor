@@ -1,14 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 133,
-  "latestMigrationVersion": "20260808003000",
-  "latestMigrationName": "private_season_cup_player_reads",
-  "verifiedAt": "2026-08-08T20:23:48.000Z",
+  "requiredMigrationCount": 141,
+  "latestMigrationVersion": "20260809110000",
+  "latestMigrationName": "season_club_form",
+  "verifiedAt": "2026-08-09T14:15:09.000Z",
   "evidence": {
-    "source": "Development Fast Lane run 31276698062 (run #46) completed successfully on 8 August 2026 from exact main 1138d0967bcff4168680980dc3352517f1e9c772. The guarded run proved the pending Development migration set additive, applied the sole pending migration 20260808003000_private_season_cup_player_reads.sql, and confirmed the hosted Development contract matched repository Contract 133 after apply. A separate independent read-only verification then confirmed the Development migration ledger ended at 20260808003000_private_season_cup_player_reads.",
-    "repositoryHead": "1138d0967bcff4168680980dc3352517f1e9c772",
-    "workflowRunId": 31276698062,
-    "workflowRunNumber": 46
+    "source": "Guarded Development Fast Lane run 31315796640 applied contracts 140 and 141 from exact main d03fcaf1b50b2f66ddb0ea0366a413afa9fe84bb. An independent read-only query of supabase_migrations.schema_migrations on project iouzoutneyjpugbbtdem on 9 August 2026 then confirmed the hosted Development ledger holds exactly 141 rows ending 20260809110000_season_club_form. Recorded here by hand because the follow-up automation could not land its own record: every one of its four open pull requests (#613, #615, #617, #619) also rewrote productionContract from 132 to a hard-coded 63, which is an unapproved contract-declaration change. That literal is fixed in this same change.",
+    "repositoryHead": "d03fcaf1b50b2f66ddb0ea0366a413afa9fe84bb",
+    "workflowRunId": 31315796640
   },
   "productionContract": 132,
   "productionPromotionAuthorised": false

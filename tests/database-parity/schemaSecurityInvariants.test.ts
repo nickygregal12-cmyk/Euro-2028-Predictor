@@ -139,6 +139,20 @@ describe('row-level security', () => {
       // without either of their tables being altered. Internal because it is
       // an operations record rather than anything a player reads.
       { schema: 'predictor_internal', name: 'provider_review_acknowledgements' },
+      // Contract 143. The Euro publication state itself, and its append-only
+      // transition history. Internal because ADR 0026 makes publication an
+      // owner operational act rather than anything a player reads: what a
+      // browser may see is the bounded `euro_publication_state()` read — the
+      // state and the instant it last changed, nothing more — while the actor
+      // who moved it, their reason and the whole history stay here with no
+      // browser grant at all. The mutation reaches these tables only through
+      // the definer RPC, which gates on super_admin internally.
+      { schema: 'predictor_internal', name: 'euro_publication_state' },
+      { schema: 'predictor_internal', name: 'euro_publication_transitions' },
+      // Contract 144. Current provider team profile facts remain internal and
+      // subordinate to the existing provider identity map. No browser surface
+      // receives table access, and image references are provenance only.
+      { schema: 'predictor_internal', name: 'provider_team_profiles' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)
