@@ -64,10 +64,22 @@ const PARKED_EURO_MODULES = [
  * parked would make this suite fail for the wrong reason and invite the wrong
  * fix: moving live logic rather than removing a dead import.
  *
- * That they live under `features/predict` at all is a placement question, not a
- * boundary one. CLAUDE.md puts tournament rules in `src/domain/tournament/`, so
- * there is a move to make here one day; it is recorded rather than done, since
- * it touches six call sites and this change is about the boundary.
+ * THE MOVE THIS NOTE USED TO PROPOSE DOES NOT WORK, and saying so is more useful
+ * than leaving the suggestion standing. CLAUDE.md puts tournament rules in
+ * `src/domain/tournament/` and also requires domain code to be pure. Measured
+ * against the imports rather than assumed:
+ *
+ *   * `matchScoring` imports `MatchCardScore` from the design system, because
+ *     what it returns is a points pill;
+ *   * `bracketPipeline` imports `TournamentData` from the service layer,
+ *     `Prediction` from a React provider and `formatShortDate` from `app/time`.
+ *
+ * Relocating either as it stands would make `src/domain/` depend on the design
+ * system, the services and the app — which is the rule the move was supposed to
+ * honour. Only `venues` is pure enough to move today, and moving one of three
+ * buys churn rather than tidiness. What would make the move real is separating
+ * each module's rule from its presentation shape, which is a refactor with its
+ * own justification and not a side effect of a boundary guard.
  */
 const SHARED_TOURNAMENT_LOGIC = [
   'src/features/bracket/bracketPipeline.ts',
