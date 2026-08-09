@@ -180,6 +180,48 @@ describe('opening a fixture from the Matches list', () => {
     expect(screen.queryByText('None')).toBeNull()
   })
 
+  it('explains a card read that failed BECAUSE there is no game here', async () => {
+    // The second thing the browser taught. `get_season_matchweek_card` emits
+    // `joker: null` for a caller with no entry and the gateway's shape check
+    // rejects that, so the read throws — and showing "Your entry could not be
+    // read" over a competition that does not run the game reports a fault
+    // where there is none. The explaining fact wins.
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={() =>
+          Promise.reject(new Error('The season card response was not in the expected shape.'))
+        }
+        football={{ entryStanding: 'not_offered' }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() =>
+      expect(screen.getByText(/does not run a Match Predictor/)).toBeTruthy(),
+    )
+    expect(screen.queryByText('Your entry could not be read')).toBeNull()
+  })
+
+  it('still reports a failure when nothing explains it', async () => {
+    // The Alert is not retired: a read that fails for an entrant, or before the
+    // standing is known, is a genuine fault and still says so.
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={() => Promise.reject(new Error('offline'))}
+        football={{ entryStanding: 'entered' }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('Your entry could not be read')).toBeTruthy())
+  })
+
   it('says the competition runs no Match Predictor where it does not', async () => {
     // A different fact from "you have not joined", and only one of them is
     // something the player can act on.

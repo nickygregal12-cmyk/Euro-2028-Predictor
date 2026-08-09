@@ -203,6 +203,18 @@ export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentre
           has no entry of yours behind it. The fixture and its result are the same for
           everyone following the season.
         </p>
+      ) : noEntry ? (
+        // Not an error, and not an empty prediction either. Saying "None" to
+        // somebody who never joined reads as though they had missed a deadline.
+        //
+        // AHEAD OF THE FAILURE BRANCH ON PURPOSE, which a browser had to teach
+        // twice. The card read emits `'joker', null` for a caller with no
+        // entry, and the gateway's `requireShape` rejects a payload whose
+        // `joker.matchweek_count` is not a number — so for a non-entrant the
+        // read THROWS, and checking `failed` first showed "Your entry could not
+        // be read" over a competition that simply does not run the game. A fact
+        // that explains the failure outranks a generic report of it.
+        <p className={styles.note}>{noEntry}</p>
       ) : state.status === 'failed' ? (
         <Alert variant="warning" title="Your entry could not be read">
           {state.error}
@@ -212,10 +224,6 @@ export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentre
             </Button>
           </div>
         </Alert>
-      ) : noEntry ? (
-        // Not an error, and not an empty prediction either. Saying "None" to
-        // somebody who never joined reads as though they had missed a deadline.
-        <p className={styles.note}>{noEntry}</p>
       ) : (
         <>
           <dl className={styles.grid}>
