@@ -4,7 +4,7 @@
 | --- | --- |
 | Authority | Primary |
 | Status | Active |
-| Last verified | 2026-08-07 |
+| Last verified | 2026-08-09 |
 | Governs | The stable identifier, owning decision, dependency and acceptance evidence for every requirement that has been **accepted and is not implemented** |
 | Does not govern | Current implementation or hosted state ([`current-status.md`](current-status.md) and the machine contract records); execution order ([`../roadmap.md`](../roadmap.md)); the detailed active/parked inventory ([`../../MASTER-TODO.md`](../../MASTER-TODO.md)); defects ([`risk-register.md`](risk-register.md)); deliberate postponements ([`deferred-decisions.md`](deferred-decisions.md)) |
 | Supersedes | None |
@@ -68,7 +68,7 @@ Authority: [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-eur
 | `ACCOUNT-004` | Signing up joins no competition, game or private container | — | Test asserting a new account holds zero memberships on either origin | Accepted — law holds today, unproven per-origin |
 | `ACCOUNT-005` | Acquisition source is analytics metadata only, never authorization data | Recording acquisition source at all | Test asserting no policy, grant or visibility check reads the field | Accepted — vacuous until the field exists |
 | `EURO-001` | Euro 2028 is completely hidden from the weekly platform until an owner-approved publication state | `EURO-002` | Weekly platform surfaces contain no Euro reference while the state is hidden | Accepted — **currently violated**: the weekly Hub lists Euro 2028 from its static catalogue |
-| `EURO-002` | Server-owned publication states: hidden, prelaunch, registration-open, live, completed, archived | — | Persisted state with one authority, and a transition record | Accepted — unimplemented |
+| `EURO-002` | Server-owned publication states: hidden, prelaunch, registration-open, live, completed, archived | — | Persisted state with one authority, and a transition record | **Implemented in repository Contract 134 candidate** — default hidden, bounded read, owner-only adjacent transitions and append-only transition history; hosted rollout not claimed |
 | `EURO-003` | While hidden, Euro absent from landing content, Hub discovery, competition cards, navigation, metadata, sitemap, Open Graph and guessable public routes | `EURO-002`, `EURO-004` | Each surface checked, including a direct request to a guessable Euro route. **On the landing surface this is one atomic change across four files** — Appendix E of [`../design/hub-architecture-and-modernisation-plan.md`](../design/hub-architecture-and-modernisation-plan.md), [`../design/hub-landing-prototype.html`](../design/hub-landing-prototype.html), `tests/design/landingPrototypeContract.test.ts` (which pins the Euro band's presence and order) and `src/features/landing/`. Changing fewer leaves the prototype contradicting its own authority | Accepted — unimplemented |
 | `EURO-004` | Visibility enforced by the server-owned state plus route guards, not client filtering | `EURO-002` | Route guard refusing the route, proven by test rather than by absence from a catalogue constant | Accepted — unimplemented |
 | `AGE-001` | The initial external cohort is restricted to users aged 18 or over | — | Server-side signup rule, eligibility wording and matching test fixtures | Accepted — unimplemented |
