@@ -21,6 +21,13 @@ name: Visual contracts
 #   3. add `pull_request` to the triggers below. From then on the suite compares
 #      every change against images produced by the same kind of machine.
 #
+# ALL THREE STEPS ARE DONE. `e2e/visual-baselines/` holds 52 images — thirteen
+# gallery sections at two widths in both themes — rendered by run 31303704179 on
+# an `ubuntu-latest` runner, which is what every later comparison runs on.
+# Re-render them with the two inputs below whenever a deliberate design change
+# makes the current images wrong; the new ones arrive as a commit on the branch
+# and are reviewed in the pull request beside the change that caused them.
+#
 # STEP 2 IS NOW A WORKFLOW INPUT RATHER THAN A MANUAL DOWNLOAD. `commit_baselines`
 # pushes the rendered images straight to the dispatched branch, so the bootstrap
 # is one action instead of a download, an unzip and a hand-made commit — three
@@ -32,6 +39,18 @@ name: Visual contracts
 # to `main` is a workflow that will eventually push to `main` by accident.
 
 on:
+  # Scoped to what can actually move a pixel. A documentation-only pull request
+  # does not need four minutes of Chromium to prove the gallery is unchanged —
+  # and a filter that skipped something real would show up as a baseline that
+  # never fails, which is the failure mode this suite is built to avoid.
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'e2e/visual-gallery.spec.ts'
+      - 'e2e/visual-baselines/**'
+      - 'playwright.visual.config.ts'
+      - 'package-lock.json'
+      - '.github/workflows/visual-contracts.yml'
   workflow_dispatch:
     inputs:
       update_baselines:
