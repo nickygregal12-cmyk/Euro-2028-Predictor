@@ -26,6 +26,96 @@ function membership(status: string) {
   return { status, joinedAt: null, leftAt: null, disqualifiedAt: null }
 }
 
+const eligibility = (
+  allowed: boolean,
+  reason: string | null,
+): { id: string; gameKey: string; allowed: boolean; reason: string | null } => ({
+  id: 'game-1',
+  gameKey: 'main_predictor',
+  allowed,
+  reason,
+})
+
+describe('the leave control, once contract 140 can predict it', () => {
+  const entrant = () => game({ membership: membership('active') })
+
+  it('still offers Leave while the eligibility read has not answered', () => {
+    // Absent is "not yet known", never "refused". Losing a second round trip
+    // must not make an entrant unable to try — this is exactly what the page
+    // did before the read existed.
+    expect(decideGameMembership(entrant(), SERVER_NOW).action).toBe('leave')
+    expect(decideGameMembership(entrant(), SERVER_NOW, null).action).toBe('leave')
+  })
+
+  it('offers Leave when the server says it would allow it', () => {
+    const decision = decideGameMembership(entrant(), SERVER_NOW, eligibility(true, null))
+    expect(decision.action).toBe('leave')
+    expect(decision.refusal).toBeNull()
+  })
+
+  it('withdraws the control and names the rule when scoring has started', () => {
+    // The whole point: this refusal was invisible until the write ran, so the
+    // page offered a button the server would reject.
+    const decision = decideGameMembership(
+      entrant(),
+      SERVER_NOW,
+      eligibility(false, 'scoring_started'),
+    )
+
+    expect(decision.action).toBeNull()
+    expect(decision.refusal).toMatch(/already scored/)
+    expect(decision.joined).toBe(true)
+  })
+
+  it('names the draw rather than scoring for a Championship past its draw', () => {
+    const decision = decideGameMembership(
+      entrant(),
+      SERVER_NOW,
+      eligibility(false, 'draw_completed'),
+    )
+
+    expect(decision.refusal).toMatch(/somebody else/)
+  })
+
+  it('refuses without a sentence it does not have, rather than offering the control', () => {
+    // A reason this build has not met is still a refusal. Falling through to
+    // "Leave game" would be the exact defect contract 140 was written for.
+    const decision = decideGameMembership(
+      entrant(),
+      SERVER_NOW,
+      eligibility(false, 'some_future_rule'),
+    )
+
+    expect(decision.action).toBeNull()
+    expect(decision.refusal).toBe('You cannot leave this game right now.')
+  })
+
+  it('ignores a not_entered answer that contradicts the membership row', () => {
+    // Two reads disagreeing about one player. Printing "you are not in this
+    // game" over an active membership would be the browser adjudicating
+    // between them; the write is the authority, so the attempt stands.
+    const decision = decideGameMembership(
+      entrant(),
+      SERVER_NOW,
+      eligibility(false, 'not_entered'),
+    )
+
+    expect(decision.action).toBe('leave')
+  })
+
+  it('says nothing about leaving to somebody who has not joined', () => {
+    // The eligibility answer is for a game they are not in; the join decision
+    // owns this branch and must be untouched by it.
+    const decision = decideGameMembership(
+      game(),
+      SERVER_NOW,
+      eligibility(false, 'not_entered'),
+    )
+
+    expect(decision.action).toBe('join')
+  })
+})
+
 describe('decideGameMembership', () => {
   it('offers a join inside an open window', () => {
     const decision = decideGameMembership(game(), SERVER_NOW)
