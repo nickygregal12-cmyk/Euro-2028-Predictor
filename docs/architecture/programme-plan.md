@@ -208,4 +208,10 @@ The provider ingestion programme now has a controlled initial-publication stage 
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 is an implementation detail within the accepted Domestic Frontend Alpha: it provides bounded private Championship player reads after Contract 132 and does not change programme phase order or product gates.
 
+> **Contract 135–136 boundary (9 August 2026):** Contract 135 is a rule change inside the accepted
+> Domestic Frontend Alpha rather than a phase change, and it is the owner's, recorded as an amendment to
+> ADR 0020: the provider becomes final truth for awarding points in a league season, auditable and
+> correctable. It also closes the measured Stage D gap where the five-minute poll archived and decoded a
+> response that nothing read. Contract 136 serves `DFA-003` with club codes and colours.
+
 > **Contract 134 boundary (9 August 2026):** Contract 134 is a security hardening detail inside the accepted Domestic Frontend Alpha, not a phase change: it revokes browser privileges left on the rate-limit log by Supabase's default grants, closing risk-register `DB-005`.

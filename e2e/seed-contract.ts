@@ -735,8 +735,31 @@
  * relied on; they are what re-verifies the seeded prediction-save journey, since
  * a definer boundary is exactly the kind of reasoning that deserves a driven
  * check.
+ *
+ * Raised to 136 on 9 August 2026. Neither contract adds or moves a gate on an
+ * authenticated read, which is the property this marker exists to track:
+ *
+ * - contract 135 grants nothing to `anon` or `authenticated` at all. Its six
+ *   relations are `predictor_internal`, revoked from both browser roles and
+ *   from `service_role`, and its functions are revoked from everything and
+ *   reached only by `pg_cron`. A seeded browser user cannot call any of it, so
+ *   there is no seeded journey for it to break;
+ * - contract 136 changes what `get_season_matchweek_card` RETURNS — four club
+ *   identity fields and a provisional live block — without touching its
+ *   signature, its grant or `season_card_context`, which is where its access
+ *   decision has always lived. A seeded entrant reads exactly the rows they
+ *   read before, with more on each.
+ *
+ * The added fields are nullable by construction: a club the identity reference
+ * does not name comes back null and renders as the neutral fallback, which is
+ * how EVERY club rendered before this contract. So the seed cannot fail closed
+ * on data it lacks.
+ *
+ * Exact-head Database parity and Browser E2E must still both pass on the
+ * contract 135/136 pull request before this marker is relied on — the reasoning
+ * above is what makes raising it defensible, not what verifies it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 134
+export const SEED_REVIEWED_AT_CONTRACT = 136
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -2,7 +2,13 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 8 August 2026
+## Current state — 9 August 2026
+
+The repository candidate is **contract 136**. Hosted Development remains verified at **contract 133** and hosted Production at **contract 132**, so three migrations are pending for Development: contract 134 (`20260809030000_rate_limit_events_client_revoke.sql`, privileges only), contract 135 (`20260809050000_provider_result_authority.sql`) and contract 136 (`20260809060000_club_identity_reference.sql`). All three are additive — `check-migration-additive.mjs` accepts each — so the guarded development fast lane is the correct lane. Production is further behind and follows only through the separately controlled Production process; no Production promotion is authorised by this entry.
+
+Contracts 135 and 136 are the first migrations in this set that change what a player sees: 135 lets a provider result award points without a human typing it, and 136 changes what the matchweek card returns for a club. The rollout should confirm both against a real Development matchweek rather than only confirming that the migrations applied.
+
+## Superseded — 8 August 2026
 
 The repository candidate is **contract 134**. Hosted Development is verified at **contract 133**, ending at `20260808003000_private_season_cup_player_reads.sql`; hosted Production remains independently verified at **contract 132**, ending at `20260807210812_provider_initial_fixture_approval`. Contract 134 (`20260809030000_rate_limit_events_client_revoke.sql`) is therefore the only migration pending for Development, and it is additive and privileges-only. Production is two behind and needs Contract 133 as well; it follows only through the separately controlled Production process.
 

@@ -131,4 +131,11 @@ For supported domestic season competitions, contract 132 may create the initial 
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 makes multiple season Predictor Championship instances observable to entitled players without changing the competition format: the current public instance remains discoverable, while a private instance is returned only to its existing entrants.
 
+> **Contract 135–136 boundary (9 August 2026):** Neither changes a competition, game, format or
+> membership. Contract 135 changes who may write the RESULT of a league-season fixture: a measured
+> provider final status now does so with no human action, under the owner's ADR 0020 amendment, while
+> the tournament path keeps the protected confirmation gate in full. What a competition consists of is
+> untouched — a fixture this platform does not hold is still not created by ingestion. Contract 136 is
+> presentation reference data: a club code and colours.
+
 > **Contract 134 boundary (9 August 2026):** Contract 134 changes no competition, game, format or membership. It revokes browser privileges on `public.rate_limit_events`, an application-wide abuse control that belongs to no competition, closing risk-register `DB-005`.

@@ -191,6 +191,21 @@ The current provider capability/terms authority is [`docs/architecture/provider-
 - [x] Configure the approved development credential and execute one bounded non-production request. **Done 5 August 2026**: one football-data poll, HTTP 200, owner-authorised before the spend. The caller key needed a fix first — `CALLER_KEY_NAME` reused the function slug, and Supabase rejects a hyphen in a secret key name, so the lookup could never resolve.
 - [x] Verify the exact raw response is archived before decode and every processing attempt is append-only. Verified against a real response rather than a fixture: one `provider_raw_responses` row at status 200 and 365,300 bytes, one `provider_response_processing` row recording the successful decode of 380 fixtures.
 - [ ] Keep ingestion provisional, replay-safe and unable to write official fixtures, results, locks, scores, totals, ranks or standings. **The write half is now enforced rather than merely true** — `171_ingestion_write_boundary.sql` names all fourteen provider/poll functions with their permitted writes and asserts none reaches a result, score, total, lock, progression, standing or player prediction, from `pg_get_functiondef` against the built database rather than by grepping the tree. A new provider or poll function fails the suite until somebody records what it may touch, which is the property that makes it a guard rather than a snapshot. Writing the list corrected two beliefs: `dispatch_due_provider_polls` writes `public.provider_poll_targets`, so "ingestion writes nothing in `public`" was already false — the right question is whether it writes anything a player's result depends on, and it does not. The suite states its own limit: a text scan cannot follow dynamic SQL, and a future contract using `execute format(...)` would pass it while proving less. **Replay-safety is still unproven and stays open**, as do the anomaly fixtures and the stale-data-fails-closed item below.
+- [x] **Give contracts 117 and 132 a caller at all** (contract 135). Measured rather than assumed: neither
+  `import_provider_fixture_revisions` nor `stage_provider_fixture_proposals` had a caller anywhere in
+  `supabase/`, `src/` or the Edge Function, and nothing else read `normalized_payload`. So the poll archived
+  and decoded a response every five minutes and the pipeline stopped there. `consume_provider_responses`
+  walks the decoded responses that have not been consumed, resolves the season from the payload's own
+  identifier or a unique enabled poll target, and routes: an empty season to contract 132's proposal
+  staging, a season already holding fixtures to contract 117's kickoff import and contract 135's result
+  applier. Idempotent through its own consumption record, bounded per run, and one awkward response is
+  recorded as failed rather than stopping the batch.
+- [x] **Make a provider result official for a league season** (contract 135, owner amendment to ADR 0020 on
+  9 August 2026). A measured final status with both scores writes the result through contract 125's audited
+  writer; the revision is numbered, carries what it replaced, names the provider and the archived response,
+  and cannot be rewritten. An administrator's correction ends provider authority over that fixture and the
+  refusal is recorded. Fails closed three ways: an unmeasured status is not a result, a final status with no
+  score is not a nil-nil draw, and one unmapped identifier fails the whole payload.
 - [ ] Audit kickoff, round and result changes.
 - [ ] Build deterministic anomaly fixtures for events not observed live.
 - [ ] Prove stale/unavailable data fails closed.
@@ -360,6 +375,12 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
 - [x] Require explicit competition-admin approval for complete initial Scottish Premiership and Premier League calendars.
 - [x] Keep provider scores/status as evidence only; official results remain behind the protected confirmation authority.
 - [ ] Complete environment-specific Production provider credentials before live polling/import.
+
+> **Contract 135–136 boundary (9 August 2026):** Contract 135 carries the owner's ADR 0020 amendment —
+> a measured provider final status writes the official result of a league-season fixture with no human
+> action, auditable through contract 125's writer and stopped by any administrator correction — and gives
+> contracts 117 and 132 the caller neither had. Contract 136 gives a club a code and colours so
+> `ClubIdentity` renders it as itself. Neither creates a fixture, and neither touches the tournament path.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies the bounded private Predictor Championship reads needed by DFA-007: caller-owned instance discovery plus selected My Fixture / Table / Fixtures data. The signed-in browser journey remains to be verified after hosted Development receives Contract 133.
 
