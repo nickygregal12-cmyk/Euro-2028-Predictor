@@ -20,14 +20,14 @@ The owner has now named the next weekly-product milestone **Domestic Frontend Al
 After currently active PRs settle, the delivery order is:
 
 1. **Stabilise/apply the current Development contract batch** under the existing Development operating model. This is an operational prerequisite, not Production promotion.
-2. **Canonical weekly route/navigation replacement** (`DFA-004`): converge on Hub → competition → game and one route-construction authority.
+2. **Canonical weekly route/navigation replacement** (`DFA-004`) — **partial; continue convergence**: converge on Hub → competition → game and one route-construction authority.
 3. **Euro/tournament-route absence on the weekly site** (`EURO-001`–`EURO-004`): publication state/route guards first, then cards, discovery, landing content, metadata and other weekly surfaces.
-4. **Deterministic parent/back navigation** (`DFA-005`): every shipped deep route has an explicit logical parent and executable orphan-route coverage.
+4. **Deterministic parent/back navigation** (`DFA-005`) — **implemented**: every shipped deep route has an explicit logical parent and executable orphan-route coverage.
 5. **First-sign-in onboarding and personalisation** (`DFA-001`, `DFA-002`): followed domestic competitions, optional favourite team, independent game choice, private-play choice, interrupted-resume and pending-invite recovery.
-6. **Reusable shirt-style club identity** (`DFA-003`): one canonical-team component, accessible label/fallback and bounded pattern vocabulary, adopted first on repeated football rows/selections.
-7. **Truthful Scottish Matchweek 1 settled Development state** (`DFA-007`): real football results; lock-consistent synthetic test-user predictions only where needed; ordinary protected scoring/rederivation.
-8. **Scottish Last Man Standing begins at Matchweek 2** (`DFA-007`): join, real clubs, select/change before lock and reload persistence; no invented Matchweek 1 LMS history.
-9. **Scottish Predictor Championship begins at Matchweek 2** (`DFA-007`): seeded deterministic field, opponent/fixtures/phase/table reachable, Match Predictor points feeding it through the existing authority.
+6. **Reusable shirt-style club identity** (`DFA-003`) — **implemented**: one canonical-team component, accessible label/fallback and bounded pattern vocabulary, adopted on the first high-value domestic football surfaces.
+7. **Truthful Scottish Matchweek 1 settled Development state** (`DFA-007`) — **partial**: real football result truth is proven; lock-consistent Match Predictor points evidence remains to close.
+8. **Scottish Last Man Standing begins at Matchweek 2** (`DFA-007`) — **rehearsal proven**: join, real clubs, select/change before lock and reload persistence; no invented Matchweek 1 LMS history.
+9. **Scottish Predictor Championship begins at Matchweek 2** (`DFA-007`) — **partial; hosted server boundary proven**: Contract 133 is applied in Development and persistently proves private instance discovery, opponent, fixtures, phase, server-ranked table and non-member privacy. PR #593 remains parked only on the exact Team-SSO-protected signed-in desktop/phone browser acceptance; ordinary Match Predictor points feed remains a separate rehearsal gap.
 10. **All three games usable for both domestic competitions**: joined first, available second; every game card has honest state, direct action, deadline/round where relevant, route and rules/help.
 11. **Private create/invite/join for all three game types** (`DFA-008`): Match Predictor league, LMS competition and Predictor Championship, preserving server-owned limits/rules.
 12. **Competition Play weekly-action aggregation** (`DFA-006`): one answer to “What do I need to do this week?” derived from each game's own authoritative state.
@@ -51,7 +51,7 @@ The simulated phone is presentation-only: fixed/local demonstration data; no acc
 
 ### Shirt-style identity target contract
 
-The reusable shirt-style club identity remains a **target component contract** until implementation evidence exists; `docs/design-system.md` should not pretend it is already built. The component keys from canonical club identity, supports a bounded solid/hoops/stripes/halves-or-panels vocabulary and primary/secondary colour combinations, always accompanies an accessible team name/label, has a neutral fallback, works in both themes, never becomes the sole identifier and remains row-height/layout stable. Initial adoption order is favourite-team onboarding → Match Predictor rows → Matches/results → Match Centre → LMS selection → relevant Championship contexts → other team selectors.
+The reusable shirt-style club identity is **implemented** under `DFA-003`; `docs/design-system.md` and the executable visual/accessibility contracts are implementation evidence. Remaining work is adoption breadth on later surfaces, not inventing a second identity component. The component keys from canonical club identity, supports a bounded solid/hoops/stripes/halves-or-panels vocabulary and primary/secondary colour combinations, always accompanies an accessible team name/label, has a neutral fallback, works in both themes, never becomes the sole identifier and remains row-height/layout stable. Initial adoption order is favourite-team onboarding → Match Predictor rows → Matches/results → Match Centre → LMS selection → relevant Championship contexts → other team selectors.
 
 ## The 5 August reconciled order — retained implementation history
 

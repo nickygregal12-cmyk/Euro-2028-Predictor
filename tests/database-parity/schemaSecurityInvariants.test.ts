@@ -104,6 +104,16 @@ describe('row-level security', () => {
       // until a competition administrator explicitly approves or rejects the
       // complete initial calendar. No player-facing API needs direct access.
       { schema: 'predictor_internal', name: 'provider_fixture_proposals' },
+      // Contract 134. The Euro publication state itself, and its append-only
+      // transition history. Internal because ADR 0026 makes publication an
+      // owner operational act rather than anything a player reads: what a
+      // browser may see is the bounded `euro_publication_state()` read — the
+      // state and the instant it last changed, nothing more — while the actor
+      // who moved it, their reason and the whole history stay here with no
+      // browser grant at all. The mutation reaches these tables only through
+      // the definer RPC, which gates on super_admin internally.
+      { schema: 'predictor_internal', name: 'euro_publication_state' },
+      { schema: 'predictor_internal', name: 'euro_publication_transitions' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

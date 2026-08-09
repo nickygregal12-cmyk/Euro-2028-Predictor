@@ -1,10 +1,9 @@
-import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { logicalWeeklyParent } from '../../src/app/weeklyRoutes'
+import { appSource, routePaths } from './declaredRoutes'
 
-const APP_SOURCE = readFileSync('src/App.tsx', 'utf8')
-const SHELL_START = APP_SOURCE.indexOf('<Route element={<AppShell />}>')
-const ADMIN_START = APP_SOURCE.indexOf('<Route element={<RequireAdmin />}>', SHELL_START)
+const SHELL_START = appSource.indexOf('<Route element={<AppShell />}>')
+const ADMIN_START = appSource.indexOf('<Route element={<RequireAdmin />}>', SHELL_START)
 
 const REDIRECT_ONLY = new Set(['/fixtures', '/league', '/more/points'])
 
@@ -21,7 +20,7 @@ const SHIPPED_WEEKLY_ROUTES = [
   '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
   '/competitions/:competitionSlug/:seasonSlug/games/lms',
-  '/competitions/:competitionSlug/:seasonSlug/games/championship',
+  '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   '/competitions/:competitionSlug/:seasonSlug/leagues',
   '/league/:id',
   '/h2h/:rivalId',
@@ -38,6 +37,7 @@ function materialise(template: string): string {
     .replace(':id', 'private-1')
     .replace(':rivalId', 'player-2')
     .replace(':playerId', 'player-2')
+    .replace('*', 'private-1')
 }
 
 describe('weekly route parent coverage', () => {
@@ -45,8 +45,8 @@ describe('weekly route parent coverage', () => {
     expect(SHELL_START).toBeGreaterThanOrEqual(0)
     expect(ADMIN_START).toBeGreaterThan(SHELL_START)
 
-    const shellSource = APP_SOURCE.slice(SHELL_START, ADMIN_START)
-    const declared = Array.from(shellSource.matchAll(/<Route\s+path="([^"]+)"/g), (match) => match[1])
+    const shellSource = appSource.slice(SHELL_START, ADMIN_START)
+    const declared = routePaths(shellSource)
       .filter((path) => !REDIRECT_ONLY.has(path))
       .sort()
 

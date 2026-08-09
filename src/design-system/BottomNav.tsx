@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import styles from './BottomNav.module.css'
 import { HomeIcon, BallIcon, CalendarIcon, TrophyIcon, MoreIcon, type IconProps } from './icons'
-import { weeklyRoutes } from '../app/weeklyRoutes'
+import { weeklyRoutes } from '../app/shellRoutes'
 
 // Internal keys are retained for design-system compatibility; the public weekly
 // navigation is Home · Play · Matches · Leagues · More.

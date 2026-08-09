@@ -1,20 +1,15 @@
 import { describe, expect, it } from 'vitest'
+import { weeklyRoutePatterns, weeklyRoutes } from '../../src/app/shellRoutes'
 import { declaredRoutes, redirectRoutes } from './declaredRoutes'
 
+const {
+  championship: _championshipBuilderBase,
+  ...registeredCompetitionPatterns
+} = weeklyRoutePatterns
+
 const CANONICAL = [
-  '/',
-  '/play',
-  '/matches',
-  '/leagues',
-  '/more',
-  '/competitions/:competitionSlug/:seasonSlug',
-  '/competitions/:competitionSlug/:seasonSlug/play',
-  '/competitions/:competitionSlug/:seasonSlug/matches',
-  '/competitions/:competitionSlug/:seasonSlug/games',
-  '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
-  '/competitions/:competitionSlug/:seasonSlug/games/lms',
-  '/competitions/:competitionSlug/:seasonSlug/games/championship',
-  '/competitions/:competitionSlug/:seasonSlug/leagues',
+  ...Object.values(weeklyRoutes),
+  ...Object.values(registeredCompetitionPatterns),
 ] as const
 
 const RETIRED_TOURNAMENT = [
@@ -41,7 +36,7 @@ const RETIRED_DOMESTIC = [
 ] as const
 
 describe('weekly route declarations', () => {
-  it('registers the complete canonical weekly hierarchy', () => {
+  it('registers every canonical weekly route owned by the route authority', () => {
     for (const route of CANONICAL) expect(declaredRoutes).toContain(route)
   })
 

@@ -1,6 +1,6 @@
 # Architecture decision records
 
-> **Contract 134 repository candidate — EURO-002 publication state (9 August 2026):** `20260809001500_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
+> **Contract 135 repository candidate — EURO-002 publication state (9 August 2026):** `20260809040000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
 
 
 > Decisions live here. **What the finished product should look like** lives in [`../design/README.md`](../design/README.md) — the target design authority. It is subordinate to these ADRs: it may organise presentation and delivery, and may not change a rule any ADR sets.
@@ -54,3 +54,5 @@ Contract 120 applies the same generalisation to the Championship split: ADR 0014
 Contract 132 preserves the ingestion/result boundary: provider payloads may establish a complete initial season calendar only after immutable staging and an explicit competition-admin approval; provider-reported scores are retained as evidence and never become official result truth through initial publication.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 implements an existing DFA-007/DFA-008 data boundary and introduces no new architectural decision: private Championship discovery is caller-scoped, while ranking/scoring/settlement remain with their existing authorities.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 introduces no architectural decision. It enforces an existing one — server-only tables hold no browser privilege — on the single table whose creating migration declared it and never revoked, closing risk-register `DB-005`.

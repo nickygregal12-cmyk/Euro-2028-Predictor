@@ -1,6 +1,6 @@
 # Competition and game structure
 
-> **Contract 134 repository candidate — EURO-002 publication state (9 August 2026):** `20260809001500_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
+> **Contract 135 repository candidate — EURO-002 publication state (9 August 2026):** `20260809040000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
 
 
 **Status:** platform target authority; exact merged/hosted implementation remains in [`quality/current-status.md`](quality/current-status.md).  
@@ -133,3 +133,5 @@ Contract 118 makes the games hub listing competition-neutral: a season window's 
 For supported domestic season competitions, contract 132 may create the initial canonical teams, rounds and scheduled fixtures only from a complete approved provider proposal set. It does not change competition scoring rules and does not confirm results automatically.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 makes multiple season Predictor Championship instances observable to entitled players without changing the competition format: the current public instance remains discoverable, while a private instance is returned only to its existing entrants.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 changes no competition, game, format or membership. It revokes browser privileges on `public.rate_limit_events`, an application-wide abuse control that belongs to no competition, closing risk-register `DB-005`.

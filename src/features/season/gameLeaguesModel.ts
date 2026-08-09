@@ -13,17 +13,19 @@ import { userFacingError } from '../../shared/errors/userFacingError'
  * list headed "Leagues" would be asserting a combined authority none of them
  * has. So the surface names the game its leagues belong to, every time.
  *
- * THERE IS NO STANDINGS TABLE HERE, AND THAT IS DELIBERATE RATHER THAN
- * UNFINISHED. `get_league_members` ranks by `predictor_internal.standing_metrics`,
- * which reads `score_events`, `matches` and `match_predictions` — the tournament
- * scoring tables. A season's points live in `season_matchweek_scores` and never
- * reach any of them, so that read would return every member of a season league
- * on zero points with no error: a plausible table that is entirely wrong. This
- * is the same shape as the defect contracts 86, 98, 116, 118 and 120 each
- * fixed — a read written for one competition shape and never widened — so the
- * surface renders what the game-scoped read genuinely answers (which leagues
- * exist, who owns them, how many are in them, how to invite) and states that
- * the table needs a read of its own rather than showing a wrong one.
+ * A LEAGUE NOW OPENS INTO A TABLE, AND UNTIL CONTRACT 128 IT DELIBERATELY DID
+ * NOT. `get_league_members` ranks by `predictor_internal.standing_metrics`,
+ * which reads `score_events`, `matches` and `match_predictions` — the
+ * tournament scoring tables. A season's points live in
+ * `season_matchweek_scores` and never reach any of them, so that read returned
+ * every member of a season league on zero points with no error: a plausible
+ * table that was entirely wrong, the same shape as the defect contracts 86,
+ * 98, 116, 118 and 120 each fixed. This surface therefore stated the absence
+ * rather than rendering the wrong table. Contract 128 added
+ * `get_season_league_standings` — season totals, rank recomputed within the
+ * league — and made the tournament read refuse a season league by naming it,
+ * so the note is now false rather than merely stale and the table it stood in
+ * for is rendered by `SeasonLeagueStandings`.
  *
  * THE INVITE CODE IS THE PRODUCT. A private league with no way to share it is
  * an empty room, so the code is on the card rather than behind a tap.
@@ -51,8 +53,6 @@ export type GameLeaguesView = {
   createRefusal: string | null
   /** What a league in this section ranks, said once above the list. */
   scopeLine: string
-  /** Why no table is shown inside a league. Stated, never implied by absence. */
-  standingsNote: string
 }
 
 export type GameLeaguesFacts = {
@@ -82,8 +82,6 @@ export function presentGameLeagues(facts: GameLeaguesFacts): GameLeaguesView {
       ? null
       : `Join the ${facts.gameName} before creating a league here. A private league ranks that game, so it cannot exist without an entry in it.`,
     scopeLine: `These leagues rank the ${facts.gameName}. Each game in this competition keeps its own.`,
-    standingsNote:
-      'League tables are not open yet. The ranking a private league needs is the one this competition already keeps, and reading it per league is still to be built — so no table is shown rather than one that would read zero for everybody.',
   }
 }
 

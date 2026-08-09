@@ -19,6 +19,12 @@ function migrationSources(): { migration: string; sql: string }[] {
 const sources = migrationSources()
 const allSql = sources.map((source) => source.sql).join('\n')
 
+/** Migration text with `--` comments removed, so prose cannot satisfy a check. */
+const allStatements = allSql
+  .split('\n')
+  .map((line) => line.replace(/--.*$/, ''))
+  .join('\n')
+
 function createdViews(): string[] {
   const views = new Set<string>()
   for (const { sql } of sources) {
@@ -94,5 +100,106 @@ describe('direct table access granted to browser roles', () => {
     })
 
     expect(anonGrants).toEqual([])
+  })
+})
+
+/**
+ * Tables in `public` that browser roles can still reach, and the ones they cannot.
+ *
+ * The two suites above read `grant` statements, which is only half the picture:
+ * Supabase's default privileges in `public` hand every ordinary privilege on a
+ * newly created table to `anon` and `authenticated` without any migration
+ * writing a `grant`. So a table is reachable unless a migration takes it away,
+ * and the guards that pinned explicit grants could not see that.
+ *
+ * `DB-005` is what that blind spot cost. `20260720210000_rate_limits.sql`
+ * created `rate_limit_events` under the comment "No client access at all", and
+ * both browser roles held `select`, `insert`, `update`, `delete`, `truncate`,
+ * `references` and `trigger` on it for three weeks, denied only by a policy-less
+ * row-level security — one control where the design intended two. Contract 134
+ * revoked it, which is why it is not in the list below.
+ *
+ * The list is therefore the point of this suite. Every table on it is reachable
+ * by a signed-in browser role and protected by row-level security alone: the
+ * original Euro tournament schema, which the application reads directly. A new
+ * table joins it only by a deliberate edit here, in the same change that decides
+ * a browser may read it — not by nobody remembering to revoke.
+ *
+ * What it cannot check, stated so the coverage is not overread: whether the RLS
+ * policies on those tables are *correct*. `schemaSecurityInvariants.test.ts`
+ * proves every one of them has RLS enabled; the policy bodies are the subject of
+ * the pgTAP suite, not of a text scan.
+ */
+const RLS_ONLY_TABLES = [
+  'bonus_predictions',
+  'entries',
+  'group_teams',
+  'groups',
+  'league_members',
+  'leagues',
+  'match_predictions',
+  'matches',
+  'players',
+  'predicted_group_positions',
+  'predicted_progression',
+  'predicted_tie_resolutions',
+  'profiles',
+  'score_events',
+  'teams',
+  'tournaments',
+] as const
+
+function createdPublicTables(): string[] {
+  const tables = new Set<string>()
+  const pattern = /create table\s+(?:if not exists\s+)?(?:([a-z_0-9]+)\.)?([a-z_0-9]+)/gi
+  for (const match of allStatements.matchAll(pattern)) {
+    if ((match[1] ?? 'public') !== 'public') continue
+    tables.add(match[2])
+  }
+  return [...tables].sort()
+}
+
+/** Tables a migration revokes from BOTH browser roles. One of the two is not enough. */
+function tablesRevokedFromBrowserRoles(): Set<string> {
+  const revoked = new Set<string>()
+  const pattern =
+    /revoke\s+all[a-z ]*\s+on\s+(?:table\s+)?(?:public\.)?([a-z_0-9]+)\s+from\s+([^;]+);/gi
+  for (const match of allStatements.matchAll(pattern)) {
+    const roles = match[2]
+    if (!/\banon\b/.test(roles) || !/\bauthenticated\b/.test(roles)) continue
+    revoked.add(match[1])
+  }
+  return revoked
+}
+
+describe('every public table is either revoked from browser roles or pinned as RLS-only', () => {
+  it('finds the public tables at all', () => {
+    // Without this, a changed `create table` shape would empty the comparison
+    // and make the assertion below pass while proving nothing.
+    expect(createdPublicTables().length).toBeGreaterThan(40)
+  })
+
+  it('leaves exactly the pinned RLS-only tables reachable', () => {
+    const revoked = tablesRevokedFromBrowserRoles()
+    const reachable = createdPublicTables().filter((table) => !revoked.has(table))
+
+    expect(reachable).toEqual([...RLS_ONLY_TABLES])
+  })
+
+  it('does not pin a table that is in fact revoked', () => {
+    // The reverse drift: a table revoked later but left on the list, which would
+    // quietly widen the allowance the list is supposed to bound.
+    const revoked = tablesRevokedFromBrowserRoles()
+
+    expect(RLS_ONLY_TABLES.filter((table) => revoked.has(table))).toEqual([])
+  })
+
+  it('keeps the rate-limit log revoked from both browser roles', () => {
+    // The `DB-005` regression itself, named rather than left implicit in the list
+    // above: this table's own migration says browser roles have no access, and
+    // for three weeks they had all of it.
+    const revoked = tablesRevokedFromBrowserRoles()
+
+    expect(revoked.has('rate_limit_events')).toBe(true)
   })
 })

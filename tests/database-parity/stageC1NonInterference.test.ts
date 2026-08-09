@@ -107,6 +107,13 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'match_result_revisions.actor_id -> set null',
   // Contract 125, the season counterpart of the row above it.
   'season_fixture_result_revisions.actor_id -> set null',
+  // Contract 134. Who published Euro 2028, on the state row and on every
+  // transition in its history. `set null` for the same reason as the audit and
+  // revision actors above: erasing an account under C2 must not be able to
+  // delete the record that publication happened, so the act survives and only
+  // the attribution is dropped.
+  'euro_publication_state.changed_by -> set null',
+  'euro_publication_transitions.actor_id -> set null',
   'profiles.id -> cascade',
   'rank_history.user_id -> cascade',
   'rate_limit_events.user_id -> cascade',
