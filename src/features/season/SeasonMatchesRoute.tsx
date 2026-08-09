@@ -11,6 +11,9 @@ import {
 import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
 import type { SeasonFootballContext } from './SeasonMatchCentre'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
+import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEligibility'
+import type { GameLeaveEligibility } from '../../services/supabase/gameLeaveEligibilityModel'
+import { seasonEntryStanding } from './seasonEntryStanding'
 import type { LmsRoundPage } from './lmsRoundModel'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
@@ -152,10 +155,41 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
     }
   }, [tournamentId])
 
+  /**
+   * Contract 140's read, reused for a question it happens to answer: whether
+   * this competition runs a Match Predictor and whether the caller is in it.
+   * The card read returns an empty card for a non-entrant rather than refusing,
+   * so this is the only thing that can tell the panel which it is looking at.
+   *
+   * Silent on failure, like the other two: the standing then reads `unknown`
+   * and the panel says nothing about entry rather than guessing wrong.
+   */
+  const [eligibility, setEligibility] = useState<readonly GameLeaveEligibility[] | null>(null)
+  useEffect(() => {
+    if (tournamentId === null) return
+    let active = true
+    setEligibility(null)
+    fetchSeasonLeaveEligibility(tournamentId)
+      .then((answer) => {
+        if (active) setEligibility(answer.games)
+      })
+      .catch(() => {
+        if (active) setEligibility(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [tournamentId])
+
   const football = useMemo<SeasonFootballContext | undefined>(() => {
     // Built once either read has answered, rather than waiting for both: they
     // are independent facts and the panel renders whichever it has.
-    if (tournamentId === null || (clubForm === null && lmsRound === null)) return undefined
+    if (
+      tournamentId === null ||
+      (clubForm === null && lmsRound === null && eligibility === null)
+    ) {
+      return undefined
+    }
     // Joined by name because contract 139's fixture read carries no team id.
     // Both names come from `public.teams.name`, so this is an equality on one
     // source of truth rather than a fuzzy match.
@@ -167,8 +201,9 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
       headToHead: (teamId: string, opponentId: string) =>
         fetchSeasonClubHeadToHead(tournamentId, teamId, opponentId),
       lmsRound,
+      entryStanding: seasonEntryStanding(eligibility),
     }
-  }, [tournamentId, clubForm, lmsRound])
+  }, [tournamentId, clubForm, lmsRound, eligibility])
 
   if (state.kind === 'loading') {
     return (

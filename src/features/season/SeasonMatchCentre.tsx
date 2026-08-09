@@ -13,6 +13,7 @@ import type {
   SeasonClubForm,
 } from '../../services/supabase/seasonClubFormModel'
 import { presentLmsStake } from './lmsStakeModel'
+import { entryStandingLine, type SeasonEntryStanding } from './seasonEntryStanding'
 import type { LmsRoundPage } from './lmsRoundModel'
 import {
   useSeasonMatchCentre,
@@ -80,6 +81,13 @@ export type SeasonFootballContext = {
    * about fixtures in the round that is open now — see `lmsStakeModel`.
    */
   lmsRound?: LmsRoundPage | null
+  /**
+   * Whether this competition runs a Match Predictor and whether the caller is
+   * in it. The card read cannot say — it returns an empty card for a
+   * non-entrant rather than refusing — so without this the panel showed "Your
+   * prediction: None" to somebody who had never joined.
+   */
+  entryStanding?: SeasonEntryStanding
 }
 
 export type SeasonMatchCentreProps = {
@@ -157,6 +165,10 @@ export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentre
   const awayForm = summariseClubForm(football?.formFor?.(fixture.away.name) ?? null)
   const headToHead = useHeadToHead(football, fixture.home.name, fixture.away.name)
   const lmsStake = presentLmsStake(fixture, football?.lmsRound ?? null)
+  // Preferred over anything the card says about a prediction: an empty card and
+  // no entry look identical in the payload and mean completely different things
+  // to the person reading them.
+  const noEntry = entryStandingLine(football?.entryStanding ?? 'unknown')
 
   return (
     <div className={styles.panel}>
@@ -200,6 +212,10 @@ export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentre
             </Button>
           </div>
         </Alert>
+      ) : noEntry ? (
+        // Not an error, and not an empty prediction either. Saying "None" to
+        // somebody who never joined reads as though they had missed a deadline.
+        <p className={styles.note}>{noEntry}</p>
       ) : (
         <>
           <dl className={styles.grid}>

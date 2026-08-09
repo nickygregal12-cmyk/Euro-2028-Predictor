@@ -18,10 +18,19 @@ import { expectNoSeriousAxeViolations } from './axe-scan'
  * proving the populated one twice.
  *
  * THE PLAYER HAS JOINED NOTHING, and that is an assertion rather than a gap.
- * The fixture writes football and no entry, so the Match Centre answers "you are
- * not playing the Match Predictor in this competition" — the honest state for a
- * browser user who has joined nothing, and the branch that would otherwise only
- * ever be exercised against a mocked refusal code.
+ * The fixture writes football and no game availability at all, so contract
+ * 140's eligibility read returns no Match Predictor row and the panel says the
+ * competition does not run one.
+ *
+ * THE FIRST RUN OF THIS SPEC FOUND A REAL DEFECT, which is worth recording
+ * because the assertion below is what remains of it. The panel used to key "you
+ * are not playing" on a 42501 from the card read — but that read does NOT
+ * refuse a non-entrant: its own comment says it "tolerates a missing entry (a
+ * player browsing before joining sees an empty card)". So in a browser it
+ * rendered an ordinary card reading "Your prediction: None" to somebody who had
+ * never joined, which is the exact conflation the panel claims to avoid. The
+ * fix reads the fact from contract 140 instead. No component test could have
+ * caught it: every one of them supplied the refusal the read never sends.
  */
 
 const SEASON = '/competitions/scottish-premiership/2026-27'
@@ -66,11 +75,15 @@ test('opening a fixture reaches the Match Centre and tells a non-entrant where t
   await expect(fixtureRow).toBeVisible({ timeout: 20_000 })
   await fixtureRow.click()
 
-  // The player's own side of the fixture: they have joined nothing, so the
-  // panel says so rather than showing an error or an empty prediction.
-  await expect(page.getByText(/not playing the Match Predictor/)).toBeVisible({
+  // The player's own side of the fixture. The seeded season runs no games, so
+  // the honest answer is that there is no Match Predictor here — not that a
+  // prediction is missing, and not an error.
+  await expect(page.getByText(/does not run a Match Predictor/)).toBeVisible({
     timeout: 20_000,
   })
+  // The defect this spec found, asserted directly: an empty prediction must
+  // never be shown to somebody with no entry behind the fixture.
+  await expect(page.getByText('Your prediction')).toHaveCount(0)
 
   // And contract 141's football, which does not depend on an entry at all.
   await expect(page.getByRole('heading', { name: 'Recent form' })).toBeVisible({

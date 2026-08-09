@@ -138,9 +138,11 @@ describe('opening a fixture from the Matches list', () => {
     await waitFor(() => expect(screen.queryByText('Your prediction')).toBeNull())
   })
 
-  it('tells a non-entrant they are not playing rather than showing an error', async () => {
-    // `get_season_matchweek_card` refuses a non-entrant with 42501. Most people
-    // reading a fixture list have not joined every game behind it.
+  it('tells a refused caller they are not playing rather than showing an error', async () => {
+    // A 42501 from the card read. NOTE this is not how an ordinary non-entrant
+    // arrives — that read tolerates a missing entry and returns an empty card,
+    // which is why the entry standing below exists — but the refusal is still
+    // reachable and must not be dressed as a broken page.
     const refusal = Object.assign(new Error('refused'), { code: '42501' })
     render(
       <SeasonMatchesPage
@@ -156,6 +158,61 @@ describe('opening a fixture from the Matches list', () => {
       expect(screen.getByText(/not playing the Match Predictor/)).toBeTruthy(),
     )
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('never shows an empty prediction to somebody with no entry', async () => {
+    // The defect a browser found. `get_season_matchweek_card` returns an EMPTY
+    // CARD for a non-entrant rather than refusing, so the panel rendered
+    // "Your prediction — None" to a player who had never joined the game.
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card(null)}
+        football={{ entryStanding: 'not_entered' }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText(/have not joined/)).toBeTruthy())
+    expect(screen.queryByText('Your prediction')).toBeNull()
+    expect(screen.queryByText('None')).toBeNull()
+  })
+
+  it('says the competition runs no Match Predictor where it does not', async () => {
+    // A different fact from "you have not joined", and only one of them is
+    // something the player can act on.
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card(null)}
+        football={{ entryStanding: 'not_offered' }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() =>
+      expect(screen.getByText(/does not run a Match Predictor/)).toBeTruthy(),
+    )
+  })
+
+  it('shows the card normally once the caller is known to be entered', async () => {
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={{ entryStanding: 'entered' }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('Your prediction')).toBeTruthy())
+    expect(screen.getByText('2 - 1')).toBeTruthy()
   })
 
   it('reports a genuine read failure as a failure', async () => {
