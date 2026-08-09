@@ -1,5 +1,7 @@
 # Architecture decision records
 
+> **Contract 144 repository candidate — provider team profile foundation (9 August 2026):** `20260809140000_provider_team_profile_foundation.sql` adds `predictor_internal.provider_team_profiles` and a definer writer granted to no role at all. `provider_entity_map` stays the identity authority; nothing here writes a fixture, score, status, lock, settlement or progression. A Development backfill is a separate `workflow_dispatch` operator action that refuses unless Development already holds contract 144, and refuses the Production project by name.
+
 > **Contract 143 repository candidate — EURO-002 publication state (9 August 2026):** `20260809130000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle ADR 0026 requires. It defaults to `hidden`, exposes only a bounded state/change-time read, restricts adjacent transitions to a signed-in `super_admin` and records actor/reason history append-only. This is a repository contract only: it claims **no** Development or Production rollout, and it does **not** publish Euro 2028 or address `EURO-001`.
 
 > Decisions live here. **What the finished product should look like** lives in [`../design/README.md`](../design/README.md) — the target design authority. It is subordinate to these ADRs: it may organise presentation and delivery, and may not change a rule any ADR sets.

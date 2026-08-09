@@ -150,6 +150,8 @@ insert into ingestion_functions (name, permitted_writes) values
    'raw custody only -- the exact response text, archived before decode.'),
   ('record_provider_response_processing',
    'append-only processing evidence.'),
+  ('upsert_provider_team_profile',
+   'predictor_internal.provider_team_profiles only -- current provider metadata and retained-response provenance; no public competition truth.'),
   ('dispatch_due_provider_polls',
    'the append-only dispatch record, and public.provider_poll_targets to stamp '
    'when a target was last polled. Ingestion configuration, not competition '

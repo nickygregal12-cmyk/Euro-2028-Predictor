@@ -149,6 +149,10 @@ describe('row-level security', () => {
       // the definer RPC, which gates on super_admin internally.
       { schema: 'predictor_internal', name: 'euro_publication_state' },
       { schema: 'predictor_internal', name: 'euro_publication_transitions' },
+      // Contract 144. Current provider team profile facts remain internal and
+      // subordinate to the existing provider identity map. No browser surface
+      // receives table access, and image references are provenance only.
+      { schema: 'predictor_internal', name: 'provider_team_profiles' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)
