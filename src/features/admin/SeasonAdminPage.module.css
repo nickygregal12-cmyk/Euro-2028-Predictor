@@ -1,0 +1,209 @@
+/* Development competition administration. Tokens only; every size is a scale
+   step, like every other stylesheet here. Desktop-leaning rather than
+   phone-first, deliberately: this is an operator surface run from a desk, and
+   the player-facing rule that everything reads well under a thumb is not what
+   it is for. It still wraps rather than overflowing. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.chooser {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.seasonButton,
+.seasonButtonActive {
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  color: var(--tx);
+  font: inherit;
+  cursor: pointer;
+  min-height: var(--tap-min);
+}
+
+.seasonButtonActive {
+  border-color: var(--gold-strong);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.readiness {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-4);
+  margin: 0;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.figure dt {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.figure dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  min-width: 0;
+}
+
+.rowHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.fixture {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--tx);
+  min-width: 0;
+}
+
+.status {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+  white-space: nowrap;
+}
+
+.score {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+/* A fieldset, so the reset matters: the browser default draws a border and
+   padding this row does not want, and the legend is visually hidden. */
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.scores {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--tx2);
+}
+
+.reason {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.gameRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.gameName {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.matchweek {
+  flex: 1 1 auto;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+  min-width: 0;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

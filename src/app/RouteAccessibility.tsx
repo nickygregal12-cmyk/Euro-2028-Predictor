@@ -28,16 +28,31 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/profile', title: 'Profile' },
   { path: '/admin/results', title: 'Results Centre' },
   { path: '/admin/users', title: 'Users' },
+  { path: '/admin/season', title: 'Competition administration' },
   { path: '/admin', title: 'Admin' },
-  { path: '/dev/components', title: 'Component gallery' },
-  { path: '/dev/match-centre/:scenario', title: 'Match Centre preview' },
-  { path: '/dev/season', title: 'Season preview' },
-  { path: '/dev/season-leaderboard', title: 'Season leaderboard preview' },
-  { path: '/dev/season-predictor', title: 'Season Match Predictor preview' },
-  { path: '/dev/season-standings', title: 'Season standings preview' },
-  { path: '/dev/season-lms', title: 'Season LMS preview' },
-  { path: '/dev/season-cup', title: 'Season Championship preview' },
 ]
+
+/**
+ * Titles for the `/dev/*` preview harnesses, which only exist in a development
+ * build — `src/App.tsx` registers those routes behind the same condition.
+ * Shipping their titles to production was shipping nine strings naming routes
+ * that answer 404 there. `import.meta.env.DEV` is replaced at build time, so
+ * the array below is dead code in a production bundle and is dropped.
+ */
+const DEV_ROUTE_TITLES: { path: string; title: string }[] = import.meta.env.DEV
+  ? [
+      { path: '/dev/components', title: 'Component gallery' },
+      { path: '/dev/match-centre/:scenario', title: 'Match Centre preview' },
+      { path: '/dev/season', title: 'Season preview' },
+      { path: '/dev/season-leaderboard', title: 'Season leaderboard preview' },
+      { path: '/dev/season-predictor', title: 'Season Match Predictor preview' },
+      { path: '/dev/season-standings', title: 'Season standings preview' },
+      { path: '/dev/season-lms', title: 'Season LMS preview' },
+      { path: '/dev/season-cup', title: 'Season Championship preview' },
+    ]
+  : []
+
+const ROUTE_TITLES = [...STATIC_ROUTE_TITLES, ...DEV_ROUTE_TITLES]
 
 const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: string])[] = [
   [weeklyRoutePatterns.matchPredictorStandings, 'Match Predictor standings'],
@@ -77,7 +92,7 @@ export function getRouteTitle(
     }
   }
 
-  const match = STATIC_ROUTE_TITLES.find(({ path }) => matchPath({ path, end: true }, pathname))
+  const match = ROUTE_TITLES.find(({ path }) => matchPath({ path, end: true }, pathname))
   return match?.title ?? 'Page not found'
 }
 

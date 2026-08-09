@@ -78,6 +78,7 @@ const OtherPlayerProfilePage = lazy(() => import('./features/profile/OtherPlayer
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
 const AdminResultsWorkspacePage = lazy(() => import('./features/admin/AdminResultsWorkspacePage').then((m) => ({ default: m.AdminResultsWorkspacePage })))
 const AdminUsersPage = lazy(() => import('./features/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })))
+const SeasonAdminPage = lazy(() => import('./features/admin/SeasonAdminPage').then((m) => ({ default: m.SeasonAdminPage })))
 const NotFoundPage = lazy(() => import('./features/notfound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 const ComponentsPreview = import.meta.env.DEV
@@ -258,6 +259,10 @@ export default function App() {
                           <Route path="/admin/results" element={<AdminResultsWorkspacePage />} />
                         </Route>
                         <Route path="/admin/users" element={<AdminUsersPage />} />
+                        {/* Season administration reads and writes only season
+                            authorities, so it sits outside the tournament
+                            boundary above rather than inside it. */}
+                        <Route path="/admin/season" element={<SeasonAdminPage />} />
                       </Route>
                     </Route>
                   </Route>

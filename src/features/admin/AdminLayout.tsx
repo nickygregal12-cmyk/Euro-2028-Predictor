@@ -14,6 +14,14 @@ export function AdminLayout() {
           Results
         </NavLink>
         <NavLink
+          to="/admin/season"
+          className={({ isActive }) =>
+            isActive ? a.adminNavActive : a.adminNavLink
+          }
+        >
+          Competitions
+        </NavLink>
+        <NavLink
           to="/admin/users"
           className={({ isActive }) =>
             isActive ? a.adminNavActive : a.adminNavLink
