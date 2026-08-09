@@ -20,7 +20,7 @@ The contract provides:
 - adjacent forward transitions only, optimistic expected-state checking and a mandatory reason;
 - default state `hidden`, so absence of an owner publication action fails closed.
 
-Direct table access remains revoked from `anon`, `authenticated` and `service_role`. The public read exposes only publication state and change time. Mutation is not granted to `anon` or `service_role`.
+Direct table access remains revoked from `anon`, `authenticated` and `service_role`. The public read exposes only publication state and change time. Mutation is not granted to `anon` or `service_role`. The service role is explicitly allowed to execute the bounded read because future server-side site/route guards need the same publication truth without receiving any mutation authority.
 
 ## Deliberate non-scope
 
@@ -30,6 +30,6 @@ It also does not create the future Euro-specific Netlify site, change Auth redir
 
 ## Acceptance evidence
 
-`supabase/tests/186_euro_publication_state.sql` covers default-hidden behaviour, RLS/grants, owner authorisation, invalid/skipped/stale transitions, the complete forward lifecycle and immutable history. `supabase/tests/080_function_privileges.sql` keeps both RPC signatures inside the explicit role allowlists.
+`supabase/tests/186_euro_publication_state.sql` covers default-hidden behaviour, RLS/grants, owner authorisation, invalid/skipped/stale transitions, the complete forward lifecycle and immutable history. `supabase/tests/080_function_privileges.sql` keeps both RPC signatures inside the explicit role allowlists, including the bounded service-role read while excluding the owner-only transition RPC.
 
 Hosted rollout remains separately gated and is not claimed by this document.
