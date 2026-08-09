@@ -26,7 +26,11 @@ import {
 import { applyHubMembership } from './hubMembership'
 import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAction'
 import { CompetitionWeekPanel } from './CompetitionWeekPanel'
-import { formatWeekDeadline, weekActionForGame } from './competitionWeekModel'
+import {
+  formatWeekDeadline,
+  weekActionCallToAction,
+  weekActionForGame,
+} from './competitionWeekModel'
 import { useCompetitionWeek } from './useCompetitionWeek'
 import { SeasonCompetitionShell } from '../season/SeasonCompetitionShell'
 import { SeasonFixturePreview } from '../season/SeasonFixturePreview'
@@ -304,6 +308,11 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                     )
                   : null
                 const busy = served !== undefined && acting === served.id
+                const action = weekActionForGame(week.week, game.gameKey)
+                const when = action ? formatWeekDeadline(action, week.timeZone) : null
+                const callToAction = weekActionCallToAction(action)
+                // The action's destination when it has one, else the card's.
+                const destination = (callToAction ? action?.href : null) ?? path
 
                 return (
                   <section
@@ -330,30 +339,31 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                         summary uses, so a card and the panel cannot disagree
                         about a deadline. A game the player has not joined says
                         nothing here: it is asking them for nothing. */}
-                    {(() => {
-                      const action = weekActionForGame(week.week, game.gameKey)
-                      if (!action) return null
-                      const when = formatWeekDeadline(action, week.timeZone)
-                      return (
-                        <p
-                          className={
-                            action.outstanding ? h.gameStateOutstanding : h.gameState
-                          }
-                        >
-                          {action.title}
-                          {when ? <span className={h.gameWhen}>{when}</span> : null}
-                        </p>
-                      )
-                    })()}
+                    {action ? (
+                      <p
+                        className={action.outstanding ? h.gameStateOutstanding : h.gameState}
+                      >
+                        {action.title}
+                        {when ? <span className={h.gameWhen}>{when}</span> : null}
+                      </p>
+                    ) : null}
 
                     <div className={h.actions}>
+                      {/* `DFA-006`'s direct action. Where the game is asking
+                          for something, the primary control IS that thing and
+                          goes where it is done; otherwise it opens the game,
+                          which is a destination and is labelled as one. The
+                          action's own href is preferred over the card's route
+                          because the action knows which surface answers it —
+                          they are the same route today, built by the same
+                          authority, and this does not assume that. */}
                       <Button
-                        variant={path ? 'primary' : 'secondary'}
+                        variant={destination ? 'primary' : 'secondary'}
                         fullWidth
-                        disabled={!path}
-                        onClick={() => path && navigate(path)}
+                        disabled={!destination}
+                        onClick={() => destination && navigate(destination)}
                       >
-                        {path ? 'Open game' : 'Build pending'}
+                        {destination ? (callToAction ?? 'Open game') : 'Build pending'}
                       </Button>
 
                       {decision?.action ? (

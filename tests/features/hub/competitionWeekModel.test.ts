@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatWeekDeadline,
   presentCompetitionWeek,
+  weekActionCallToAction,
   weekActionForGame,
 } from '../../../src/features/hub/competitionWeekModel'
 import type { MatchPredictorPage } from '../../../src/features/season/matchPredictorModel'
@@ -306,5 +307,37 @@ describe('the deadline line', () => {
       now: NOW,
     })
     expect(formatWeekDeadline(week.primary!, 'Europe/London')).toBeNull()
+  })
+})
+
+describe('the label a game card’s primary control carries', () => {
+  const action = (
+    kind: 'match_predictor' | 'last_man_standing' | 'championship',
+    outstanding: boolean,
+  ) => ({ kind, title: 't', locksAt: null, outstanding, href: '/somewhere' })
+
+  it('names the thing to do, per game, rather than a destination', () => {
+    // "Open game" under "2 of 10 still to predict" makes the player work out
+    // that those are the same thing. A shared "Continue" would be the same
+    // problem in fewer words — the two actions genuinely differ.
+    expect(weekActionCallToAction(action('match_predictor', true))).toBe(
+      'Predict this matchweek',
+    )
+    expect(weekActionCallToAction(action('last_man_standing', true))).toBe('Pick your club')
+  })
+
+  it('offers no verb where there is nothing to do', () => {
+    // A complete, locked or settled game is a place to look. Dressing it as a
+    // task is how a surface teaches a player to ignore its buttons.
+    expect(weekActionCallToAction(action('match_predictor', false))).toBeNull()
+    expect(weekActionCallToAction(action('last_man_standing', false))).toBeNull()
+    expect(weekActionCallToAction(null)).toBeNull()
+  })
+
+  it('never gives the Championship one, because it is never outstanding', () => {
+    // Its fixture is won by the Match Predictor points the player is already
+    // being told to earn; a verb here would be a second task for one action.
+    expect(weekActionCallToAction(action('championship', false))).toBeNull()
+    expect(weekActionCallToAction(action('championship', true))).toBeNull()
   })
 })

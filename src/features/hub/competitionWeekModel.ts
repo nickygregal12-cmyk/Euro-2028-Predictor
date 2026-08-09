@@ -257,3 +257,38 @@ export function formatWeekDeadline(action: WeekAction, timeZone: string): string
   })
   return action.outstanding ? `Locks ${when}` : `Locked ${when}`
 }
+
+/**
+ * The label a game card's PRIMARY control carries.
+ *
+ * `DFA-006` asks each game card for "honest state and DIRECT action". State
+ * arrived first — the card prints the game's own outstanding action and its
+ * deadline — but the button under it still said "Open game", which is a
+ * destination rather than an action. A player told "2 of 10 still to predict"
+ * and offered "Open game" has to work out that those are the same thing.
+ *
+ * THE VERB IS PER GAME, because the actions genuinely differ: one is a card of
+ * scorelines and one is a single club. A shared "Continue" would be the
+ * destination problem again in fewer words.
+ *
+ * NULL WHERE THERE IS NOTHING TO DO, and the caller keeps its own wording for
+ * that case. A game that is complete, locked or settled is a place to look
+ * rather than a thing to do, and dressing it as a task is how a surface teaches
+ * a player to ignore its buttons.
+ *
+ * The Championship is never outstanding by the decision recorded above — its
+ * fixture is won by Match Predictor points — so it never reaches this at all.
+ */
+export function weekActionCallToAction(action: WeekAction | null): string | null {
+  if (!action || !action.outstanding) return null
+  switch (action.kind) {
+    case 'match_predictor':
+      return 'Predict this matchweek'
+    case 'last_man_standing':
+      return 'Pick your club'
+    case 'championship':
+      return null
+    default:
+      return null
+  }
+}
