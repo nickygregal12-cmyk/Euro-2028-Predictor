@@ -68,8 +68,18 @@ jobs:
             workflowRunId: Number(process.env.SOURCE_RUN_ID),
             repositoryHead: process.env.SOURCE_HEAD_SHA
           }
-          current.productionContract = 63
-          current.productionPromotionAuthorised = false
+          // Production contract is READ from the production hosted record, never
+          // restated here. This line used to be `= 63`, a literal that was true
+          // when it was written and silently false from the next production
+          // rollout onwards: every run of this job rewrote the development
+          // record's view of production back to 63 while production sat at 132.
+          // Four such pull requests were open at once, each one an unapproved
+          // contract-declaration change that could not be merged as written.
+          const production = JSON.parse(
+            fs.readFileSync('config/production-hosted-contract.json', 'utf8')
+          )
+          current.productionContract = production.requiredMigrationCount
+          current.productionPromotionAuthorised = production.promotionAuthorised === true
           fs.writeFileSync(path, `${JSON.stringify(current, null, 2)}\n`)
           NODE
 
@@ -86,7 +96,8 @@ jobs:
           git commit -m "Record development hosted contract ${expected}"
           git push origin "${branch}"
           title="Docs: record development hosted contract ${expected}"
-          body="Generated after successful Development fast-lane rollout run ${SOURCE_RUN_ID}. Updates the machine-readable hosted contract only; production remains contract 63 and unauthorised for promotion."
+          production_contract="$(node -p "require('./config/production-hosted-contract.json').requiredMigrationCount")"
+          body="Generated after successful Development fast-lane rollout run ${SOURCE_RUN_ID}. Updates the machine-readable hosted contract only; production remains contract ${production_contract} and unauthorised for promotion."
 
           # `|| pr_failed=1` rather than an unguarded call: the branch is
           # already pushed by this point, so a refusal here must not discard

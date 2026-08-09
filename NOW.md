@@ -13,16 +13,16 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **142** | latest `20260809120000_sportmonks_second_half_status.sql` |
-| Development hosted | **133** | at `20260808003000_private_season_cup_player_reads.sql`, verified `2026-08-08T20:23:48.000Z`, fast-lane run `31276698062` |
+| Repository | **143** | latest `20260809130000_euro_publication_state.sql` |
+| Development hosted | **141** | at `20260809110000_season_club_form.sql`, verified `2026-08-09T14:15:09.000Z`, fast-lane run `31315796640` |
 | Production | **132** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** 9 — `20260809030000_rate_limit_events_client_revoke.sql`, `20260809050000_provider_result_authority.sql`, `20260809060000_club_identity_reference.sql`, `20260809070000_club_name_normaliser_fix.sql`, `20260809080000_provider_review_queues.sql`, `20260809090000_season_fixtures_read.sql`, `20260809100000_leave_eligibility_read.sql`, `20260809110000_season_club_form.sql`, `20260809120000_sportmonks_second_half_status.sql`
+**Pending development migrations:** 2 — `20260809120000_sportmonks_second_half_status.sql`, `20260809130000_euro_publication_state.sql`
 
-**Next free contract number:** 143. Check open pull requests
+**Next free contract number:** 144. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -36,7 +36,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**31** accepted requirements are outstanding, of which **6** are blocked — ACCOUNT 5, AGE 1, CAP 5, EURO 4, INGEST 4, PRIV 5, SITE 7. A further 4 are marked implemented and retained in the register.
+**30** accepted requirements are outstanding, of which **6** are blocked — ACCOUNT 5, AGE 1, CAP 5, EURO 3, INGEST 4, PRIV 5, SITE 7. A further 5 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

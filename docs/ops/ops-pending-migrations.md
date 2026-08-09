@@ -1,8 +1,24 @@
 # Hosted migration inventory and rollout status
 
+> **Contract 143 repository candidate — EURO-002 publication state (9 August 2026):** `20260809130000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle ADR 0026 requires. It defaults to `hidden`, exposes only a bounded state/change-time read, restricts adjacent transitions to a signed-in `super_admin` and records actor/reason history append-only. This is a repository contract only: it claims **no** Development or Production rollout, and it does **not** publish Euro 2028 or address `EURO-001`.
+
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 9 August 2026 (fifth entry)
+## Current state — 9 August 2026 (sixth entry)
+
+Hosted Development stands at **contract 141**, `20260809110000_season_club_form`, confirmed twice: by guarded fast-lane run **31315796640** from exact `main` `d03fcaf`, and by an independent read-only query of `supabase_migrations.schema_migrations` on project `iouzoutneyjpugbbtdem`, which returned exactly 141 rows ending at that version. `config/development-hosted-contract.json` now says so; it had been stranded at 133 for a reason worth recording.
+
+**Why the machine record was eight contracts stale.** The follow-up automation did write a record after each rollout and did push it — four branches, four open pull requests (#613, #615, #617, #619). None could be merged, because each one also rewrote `productionContract` from **132** down to a hard-coded **63**: a literal in `.github/workflows/development-hosted-status-followup.yml` that was true when it was written and false from the next production rollout onwards. Every run therefore proposed an unapproved contract-declaration change alongside a correct development one, and the correct half sat unmerged behind the wrong half. The workflow now reads both `productionContract` and `productionPromotionAuthorised` from `config/production-hosted-contract.json`, which is their authority, so the record it writes is true in both halves. The four open pull requests are superseded and can be closed unmerged.
+
+**Pending for Development: two, both additive.** Contract 142 (`20260809120000_sportmonks_second_half_status.sql`) inserts one status-vocabulary row. Contract 143 (`20260809130000_euro_publication_state.sql`) creates the EURO-002 publication state, its history and two RPCs; it is new relations and grants only. Production remains at contract 132, untouched and unauthorised for promotion.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **143** | 143 canonical migrations through `20260809130000_euro_publication_state.sql`. | TWO AHEAD OF DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **141** | Guarded fast-lane run `31315796640` from exact `main` `d03fcaf1b50b2f66ddb0ea0366a413afa9fe84bb`, plus an independent read-only query of `supabase_migrations.schema_migrations` returning exactly 141 rows ending `20260809110000_season_club_form`. | CONTRACTS 142 AND 143 PENDING |
+| Production Supabase | **132** | Independent read-only ledger verification on 8 August 2026 ends at `20260807210812_provider_initial_fixture_approval`; unchanged since. Promotion remains unauthorised. | UNTOUCHED |
+
+## Superseded — 9 August 2026 (fifth entry)
 
 Contracts 140 and 141 were applied to hosted Development by guarded fast-lane run **31315796640** from exact `main` `d03fcaf` and verified: 141 rows, newest `20260809110000`, and all twelve Scottish clubs returning real derived form from results the provider wrote automatically. Contract 142 (`20260809120000_sportmonks_second_half_status.sql`) is the only migration now pending; it is additive and inserts one vocabulary row. Production remains at contract 132 and is untouched.
 

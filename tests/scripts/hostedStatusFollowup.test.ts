@@ -59,9 +59,25 @@ describe('the hosted-status follow-up cannot strand a record silently', () => {
     expect(workflow).toMatch(/git ls-files 'supabase\/migrations\/\*\.sql'/)
   })
 
-  it('runs only after a successful rollout, and records production as unpromoted', () => {
+  it('runs only after a successful rollout, and reads production rather than restating it', () => {
     expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'")
-    expect(workflow).toContain('productionPromotionAuthorised = false')
-    expect(workflow).toContain('productionContract = 63')
+
+    // These two lines used to be asserted as the literals `productionContract =
+    // 63` and `productionPromotionAuthorised = false`. Pinning the literal is
+    // what let it rot: 63 was production's contract when it was written, and
+    // from the next production rollout onwards every run of this job proposed
+    // rewriting a correct 132 back down to it. Four such pull requests were
+    // open simultaneously, each one an unapproved contract-declaration change,
+    // and the correct development half of each record could not be merged
+    // without the wrong production half. The guard now asserts the shape that
+    // cannot rot — that both values are READ from the production hosted
+    // record, which is their authority — for the same reason the development
+    // count above is read from `deployment-contract.json` rather than typed.
+    expect(workflow).toContain("fs.readFileSync('config/production-hosted-contract.json', 'utf8')")
+    expect(workflow).toContain('current.productionContract = production.requiredMigrationCount')
+    expect(workflow).toContain(
+      'current.productionPromotionAuthorised = production.promotionAuthorised === true',
+    )
+    expect(workflow).not.toMatch(/productionContract = \d+/)
   })
 })

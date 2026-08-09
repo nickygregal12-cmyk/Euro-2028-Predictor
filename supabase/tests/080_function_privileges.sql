@@ -7,7 +7,10 @@ create temporary table expected_anon_functions (
 ) on commit drop;
 
 insert into expected_anon_functions (signature) values
-  ('get_public_capacity()');
+  ('get_public_capacity()'),
+  -- Contract 143: publication visibility is intentionally readable before auth
+  -- so the public-site/route guard can fail closed from server truth.
+  ('euro_publication_state()');
 
 create temporary table expected_authenticated_functions (
   signature text primary key
@@ -43,9 +46,17 @@ create temporary table expected_service_functions (
 insert into expected_service_functions (signature)
 select signature
 from expected_authenticated_functions
-where signature <> 'get_entry_submission_status(uuid)';
+where signature not in (
+  'get_entry_submission_status(uuid)',
+  -- Contract 143 mutation remains browser-owner only; service_role needs only
+  -- the bounded state read for server-side publication guards.
+  'admin_transition_euro_publication_state(text,text,text)'
+);
 
 insert into expected_service_functions (signature) values
+  -- Contract 143: service-side route/site guards may consume the same bounded
+  -- publication-state read as the browser; mutation remains authenticated owner-only.
+  ('euro_publication_state()'),
   ('capture_rank_history(uuid)'),
   ('clear_match_result(uuid,text)'),
   ('confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
@@ -95,6 +106,11 @@ insert into expected_authenticated_functions (signature) values
   -- require_competition_admin() internally and service_role is revoked.
   ('admin_approve_initial_provider_fixtures(uuid,text,text)'),
   ('admin_reject_initial_provider_fixtures(uuid,text,text)'),
+  -- Contract 143: the bounded read is public/authenticated; the mutation grant
+  -- only makes the owner RPC reachable. Its internal super_admin guard decides
+  -- whether a signed-in caller may actually advance publication.
+  ('euro_publication_state()'),
+  ('admin_transition_euro_publication_state(text,text,text)'),
   ('admin_resolve_actual_third_place_tie(uuid,uuid[],text)');
 
 -- Contract 50: the Bonus Games hub read plus voluntary entry and withdrawal.

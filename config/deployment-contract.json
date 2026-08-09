@@ -1,6 +1,6 @@
 {
-  "contractVersion": 142,
-  "requiredMigrationCount": 142,
+  "contractVersion": 143,
+  "requiredMigrationCount": 143,
   "requiredRpcSignatures": [
     "public.acknowledge_provider_review_items(text,uuid[],text)",
     "public.admin_actual_third_place_tie_revisions(uuid)",
@@ -21,6 +21,7 @@
     "public.admin_reject_initial_provider_fixtures(uuid,text,text)",
     "public.admin_resolve_actual_third_place_tie(uuid,uuid[],text)",
     "public.admin_settle_predictor_cup_round(uuid,uuid)",
+    "public.admin_transition_euro_publication_state(text,text,text)",
     "public.archive_provider_response(text,text,text,integer,jsonb,text,uuid)",
     "public.clear_my_predictions(uuid)",
     "public.confirm_season_matchweek_card(uuid,integer)",
@@ -29,6 +30,7 @@
     "public.delete_knockout_prediction(uuid,integer)",
     "public.delete_league(uuid)",
     "public.delete_match_prediction(uuid,uuid,integer)",
+    "public.euro_publication_state()",
     "public.get_bonus_games(uuid)",
     "public.get_competition_games(uuid)",
     "public.get_entry_submission_status(uuid)",

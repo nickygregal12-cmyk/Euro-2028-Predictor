@@ -103,6 +103,11 @@ describe('account deletion — declared foreign-key semantics', () => {
       // deletion for the same reason as every other audit actor here: the
       // record that a human looked stays true after that human leaves.
       '20260809080000_provider_review_queues.sql provider_review_acknowledgements.actor_id → set null',
+      // Contract 143. Publication state/history are operational evidence. The
+      // event survives account erasure while attribution becomes explicitly
+      // unknown, matching the repository's other administrator audit trails.
+      '20260809130000_euro_publication_state.sql euro_publication_state.changed_by → set null',
+      '20260809130000_euro_publication_state.sql euro_publication_transitions.actor_id → set null',
     ])
   })
 
@@ -158,6 +163,8 @@ describe('account deletion — consequences', () => {
       'actual_third_place_resolution_revisions.actor_id',
       'actual_third_place_resolutions.updated_by',
       'bonus_competition_audit.actor_id',
+      'euro_publication_state.changed_by',
+      'euro_publication_transitions.actor_id',
       'game_membership_events.actor_id',
       'match_result_revisions.actor_id',
       'provider_review_acknowledgements.actor_id',
