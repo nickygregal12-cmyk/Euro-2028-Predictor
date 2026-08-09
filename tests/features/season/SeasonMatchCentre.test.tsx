@@ -4,6 +4,8 @@ import { SeasonMatchesPage } from '../../../src/features/season/SeasonMatchesPag
 import { mapSeasonFixtureList } from '../../../src/services/supabase/seasonFixtureListModel'
 import { resolveClubIdentity } from '../../../src/domain/clubIdentity/clubIdentityTokens'
 import type { MatchPredictorPage } from '../../../src/features/season/matchPredictorModel'
+import { mapSeasonClubForm } from '../../../src/services/supabase/seasonClubFormModel'
+import type { SeasonFootballContext } from '../../../src/features/season/SeasonMatchCentre'
 import type { SeasonFixtureWindowGateway } from '../../../src/features/season/useSeasonFixtureWindow'
 
 /**
@@ -177,5 +179,151 @@ describe('opening a fixture from the Matches list', () => {
     await waitFor(() => expect(screen.getAllByText('Dundee')[0]).toBeTruthy())
     expect(screen.queryByRole('button', { expanded: false })).toBeNull()
     expect(screen.queryByRole('button', { expanded: true })).toBeNull()
+  })
+})
+
+describe('contract 141’s football beside the player’s own side of it', () => {
+  const FORM = mapSeasonClubForm({
+    server_now: '2026-08-08T09:00:00Z',
+    matches: 6,
+    clubs: [
+      {
+        team_id: 't-dundee',
+        name: 'Dundee',
+        played: 4,
+        won: 3,
+        drawn: 0,
+        lost: 1,
+        goals_for: 8,
+        goals_against: 4,
+        form: ['W', 'W', 'L', 'W'],
+      },
+      {
+        team_id: 't-aberdeen',
+        name: 'Aberdeen',
+        played: 0,
+        won: 0,
+        drawn: 0,
+        lost: 0,
+        goals_for: 0,
+        goals_against: 0,
+        form: [],
+      },
+    ],
+  })
+
+  function football(overrides: Partial<SeasonFootballContext> = {}): SeasonFootballContext {
+    const byName = new Map(FORM.clubs.map((entry) => [entry.name, entry]))
+    return { formFor: (name) => byName.get(name) ?? null, ...overrides }
+  }
+
+  it('shows both clubs’ form, and says which club has not played yet', async () => {
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={football()}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() =>
+      expect(screen.getByText('Won 3, drawn 0, lost 1 of the last 4 · +4 goals')).toBeTruthy(),
+    )
+    expect(screen.getByText('No settled matches yet')).toBeTruthy()
+  })
+
+  it('shows the football even when the player’s own entry could not be read', async () => {
+    // The two are independent by design: form is the same for everybody and
+    // costs no provider request, so a refused card must not take it down.
+    const refusal = Object.assign(new Error('refused'), { code: '42501' })
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={() => Promise.reject(refusal)}
+        football={football()}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() =>
+      expect(screen.getByText(/not playing the Match Predictor/)).toBeTruthy(),
+    )
+    expect(screen.getByText('Recent form')).toBeTruthy()
+  })
+
+  it('reports this season’s meetings from the home club’s point of view', async () => {
+    const headToHead = vi.fn(async () => ({
+      team: { teamId: 't-dundee', name: 'Dundee' },
+      opponent: { teamId: 't-aberdeen', name: 'Aberdeen' },
+      summary: { played: 1, won: 0, drawn: 0, lost: 1, goalsFor: 0, goalsAgainst: 2 },
+      meetings: [
+        {
+          seasonFixtureId: 'earlier',
+          kickoffAt: '2026-08-01T14:00:00Z',
+          atHome: false,
+          goalsFor: 0,
+          goalsAgainst: 2,
+          outcome: 'L' as const,
+          round: 'Matchweek 1',
+        },
+      ],
+    }))
+
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={football({ headToHead })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    // Keyed on the team ids the FORM read supplied, because the fixture read
+    // carries none.
+    await waitFor(() => expect(headToHead).toHaveBeenCalledWith('t-dundee', 't-aberdeen'))
+    await waitFor(() =>
+      expect(screen.getByText('Dundee · Matchweek 1 · lost 0 - 2 · away')).toBeTruthy(),
+    )
+  })
+
+  it('asks for no head-to-head when the form read does not name both clubs', async () => {
+    // Without both team ids the call cannot be made, and guessing one would ask
+    // about the wrong pair of clubs.
+    const headToHead = vi.fn()
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture({ away: { name: 'Unknown FC' } })])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={football({ headToHead })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('Recent form')).toBeTruthy())
+    expect(headToHead).not.toHaveBeenCalled()
+  })
+
+  it('shows no form section at all where the read is unavailable', async () => {
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('Your prediction')).toBeTruthy())
+    expect(screen.queryByText('Recent form')).toBeNull()
   })
 })

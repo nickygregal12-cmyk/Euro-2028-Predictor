@@ -1,6 +1,17 @@
+import { useEffect, useState } from 'react'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import type { FixtureListRow } from './fixtureListModel'
+import {
+  summariseClubForm,
+  summariseHeadToHead,
+  type ClubFormSummary,
+  type HeadToHeadSummary,
+} from './clubFormModel'
+import type {
+  ClubHeadToHead,
+  SeasonClubForm,
+} from '../../services/supabase/seasonClubFormModel'
 import {
   useSeasonMatchCentre,
   type SeasonMatchCentreCardReader,
@@ -26,6 +37,19 @@ import styles from './SeasonMatchCentre.module.css'
  * IT ASKS FOR NOTHING IT DOES NOT SHOW. One card read, for one matchweek, when
  * a fixture is opened.
  *
+ * THE FOOTBALL CONTEXT IS OPTIONAL AND SEPARATE FROM THE PLAYER'S SIDE.
+ * Contract 141's club form and season head-to-head are the same for everybody
+ * and cost no provider request; the matchweek card is the caller's own entry.
+ * They arrive independently and fail independently, so a form read that is
+ * absent or slow never delays or breaks the prediction and points this panel
+ * exists for.
+ *
+ * THE FORM READ IS JOINED TO THE FIXTURE BY CLUB NAME, because contract 139's
+ * fixture read carries no team id and contract 141's form read does. Both names
+ * come from `public.teams.name` — the same column of the same rows — so it is
+ * an equality on one source of truth rather than a fuzzy match, and the team
+ * ids it yields are what make the head-to-head callable at all.
+ *
  * THERE IS NO "OPEN THIS MATCHWEEK" LINK, and the reason is a route fact rather
  * than a design preference. The Match Predictor route carries no matchweek: it
  * opens at whichever one the play context says is current. A link from a
@@ -34,13 +58,91 @@ import styles from './SeasonMatchCentre.module.css'
  * possible when that route takes a matchweek, and not before.
  */
 
+/**
+ * Contract 141's two reads, supplied by the route. Both optional: this panel is
+ * complete without either.
+ */
+export type SeasonFootballContext = {
+  /** The club's form, already fetched for the whole season. Null if unknown. */
+  formFor: (clubName: string) => SeasonClubForm | null
+  /** This season's meetings between two clubs, fetched when a fixture opens. */
+  headToHead?: (teamId: string, opponentId: string) => Promise<ClubHeadToHead>
+}
+
 export type SeasonMatchCentreProps = {
   fixture: FixtureListRow
   read: SeasonMatchCentreCardReader
+  football?: SeasonFootballContext
 }
 
-export function SeasonMatchCentre({ fixture, read }: SeasonMatchCentreProps) {
+function FormRow({ name, summary }: { name: string; summary: ClubFormSummary }) {
+  return (
+    <div className={styles.formRow}>
+      <span className={styles.formClub}>{name}</span>
+      {summary.record === null ? (
+        // Not "0 form" and not an empty row of pills: a club that has not
+        // played yet reads as a bad run, and at Matchweek 1 that is everybody.
+        <span className={styles.formNone}>No settled matches yet</span>
+      ) : (
+        <>
+          <span className={styles.formLetters} aria-hidden="true">
+            {summary.letters.map((letter, index) => (
+              <span key={index} className={styles.formLetter} data-outcome={letter}>
+                {letter}
+              </span>
+            ))}
+          </span>
+          {/* The spoken version is the sentence, not the letters: "W W D L"
+              read aloud one character at a time is noise. */}
+          <span className={styles.formRecord}>
+            {summary.record}
+            {summary.goalDifference ? ` · ${summary.goalDifference} goals` : ''}
+          </span>
+        </>
+      )}
+    </div>
+  )
+}
+
+function useHeadToHead(
+  football: SeasonFootballContext | undefined,
+  homeName: string,
+  awayName: string,
+): HeadToHeadSummary | null {
+  const [summary, setSummary] = useState<HeadToHeadSummary | null>(null)
+  const home = football?.formFor(homeName)?.teamId ?? null
+  const away = football?.formFor(awayName)?.teamId ?? null
+  const load = football?.headToHead
+
+  useEffect(() => {
+    if (!load || !home || !away) {
+      setSummary(null)
+      return
+    }
+    let active = true
+    setSummary(null)
+    load(home, away)
+      .then((head) => {
+        if (active) setSummary(summariseHeadToHead(head))
+      })
+      // Silent, and the panel simply has no meetings section. This is context
+      // beside the answer, never the answer.
+      .catch(() => {
+        if (active) setSummary(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [load, home, away])
+
+  return summary
+}
+
+export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentreProps) {
   const state = useSeasonMatchCentre(read, fixture)
+  const homeForm = summariseClubForm(football?.formFor(fixture.home.name) ?? null)
+  const awayForm = summariseClubForm(football?.formFor(fixture.away.name) ?? null)
+  const headToHead = useHeadToHead(football, fixture.home.name, fixture.away.name)
 
   return (
     <div className={styles.panel}>
@@ -126,6 +228,35 @@ export function SeasonMatchCentre({ fixture, read }: SeasonMatchCentreProps) {
           {state.view.jokerNote ? <p className={styles.note}>{state.view.jokerNote}</p> : null}
         </>
       )}
+
+      {/* The football, below the player's own side of it and outside the
+          card's loading and failure branches: it is the same for everybody and
+          is unaffected by whether an entry could be read. */}
+      {football ? (
+        <div className={styles.football}>
+          <h4 className={styles.footballHeading}>Recent form</h4>
+          <FormRow name={fixture.home.name} summary={homeForm} />
+          <FormRow name={fixture.away.name} summary={awayForm} />
+
+          {headToHead ? (
+            <>
+              <p className={styles.note}>{headToHead.headline}</p>
+              {headToHead.meetings.length > 0 ? (
+                <ul className={styles.meetings}>
+                  {headToHead.meetings.map((meeting, index) => (
+                    <li key={index} className={styles.meeting} data-outcome={meeting.outcome}>
+                      {/* Whole, from the model. The club whose result this is
+                          comes from the head-to-head read rather than from the
+                          fixture row, so one name describes one result. */}
+                      {meeting.text}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   )
 }

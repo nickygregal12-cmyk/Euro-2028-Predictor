@@ -32,6 +32,8 @@ import { SeasonCompetitionShell } from '../season/SeasonCompetitionShell'
 import { SeasonFixturePreview } from '../season/SeasonFixturePreview'
 import { seasonShellDestinations } from '../season/seasonDestinations'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
+import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEligibility'
+import type { GameLeaveEligibility } from '../../services/supabase/gameLeaveEligibilityModel'
 
 function domesticGameRoute(game: HubGame): DomesticGameRoute | null {
   switch (game.kind) {
@@ -81,6 +83,42 @@ type DashboardState =
   | { status: 'loading' }
   | { status: 'failed' }
   | { status: 'ready'; competition: HubCompetition; season: HubSeasonMembership | null }
+
+/**
+ * Contract 140's leave eligibility, in its own state beside the membership read.
+ *
+ * SEPARATE, AND ALLOWED TO FAIL ALONE. It is a second round trip for a fact
+ * that makes one control better informed. Folding it into `DashboardState`
+ * would make its failure the page's failure — a dashboard that cannot show a
+ * player their games because it could not check whether they may leave one is
+ * a worse page than the one that existed before the read. So it stays null
+ * until it answers, and `decideGameMembership` treats null as "not yet known"
+ * rather than as permission.
+ */
+function useLeaveEligibility(tournamentId: string | null, nonce: number) {
+  const [games, setGames] = useState<readonly GameLeaveEligibility[] | null>(null)
+
+  useEffect(() => {
+    if (!tournamentId) return
+    let active = true
+    setGames(null)
+    fetchSeasonLeaveEligibility(tournamentId)
+      .then((answer) => {
+        if (active) setGames(answer.games)
+      })
+      .catch(() => {
+        // Silent on purpose: nothing on this page is wrong without it. The
+        // Leave control simply goes back to being attempted rather than
+        // predicted, which is what it did before contract 140 existed.
+        if (active) setGames(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [tournamentId, nonce])
+
+  return games
+}
 
 function useCompetitionDashboard(competition: HubCompetition | null) {
   const [state, setState] = useState<DashboardState>({ status: 'loading' })
@@ -175,6 +213,10 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
     championship: competitionGameRoute(competition, 'championship'),
   }
   const week = useCompetitionWeek(competitionSlug, seasonSlug, servedGames, weekHrefs, nonce)
+  const leaveEligibility = useLeaveEligibility(
+    state.status === 'ready' ? (state.season?.tournamentId ?? null) : null,
+    nonce,
+  )
 
   return (
     <SeasonCompetitionShell
@@ -254,7 +296,13 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                 const path = gamePath(competition, game)
                 const headingId = `game-${game.kind}`
                 const served = servedGames.find((entry) => entry.gameKey === game.gameKey)
-                const decision = served ? decideGameMembership(served, serverNow) : null
+                const decision = served
+                  ? decideGameMembership(
+                      served,
+                      serverNow,
+                      leaveEligibility?.find((entry) => entry.id === served.id) ?? null,
+                    )
+                  : null
                 const busy = served !== undefined && acting === served.id
 
                 return (

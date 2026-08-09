@@ -1,5 +1,9 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
 import type { CompetitionGame } from '../../services/supabase/competitionGamesModel'
+import {
+  leaveRefusalSentence,
+  type GameLeaveEligibility,
+} from '../../services/supabase/gameLeaveEligibilityModel'
 
 /**
  * What a player may do about one game's membership, and what to say when they
@@ -18,11 +22,19 @@ import type { CompetitionGame } from '../../services/supabase/competitionGamesMo
  * this exists so the interface stops offering actions that cannot succeed, not
  * to replace the enforcement.
  *
- * WHAT IT CANNOT KNOW, IT DOES NOT CLAIM. `leave_competition_game` also refuses
- * once a `bonus_score_events` row exists for the caller, and no browser read
- * exposes that. So leaving is offered on the facts available and its refusal is
- * reported honestly rather than predicted — which is the same boundary the
- * season Last Man Standing surface records, from the other side.
+ * LEAVING IS NOW PREDICTED RATHER THAN ATTEMPTED. This file used to say that
+ * `leave_competition_game` also refuses once a `bonus_score_events` row exists
+ * for the caller and that no browser read exposed it, so leaving was offered on
+ * the facts available and its refusal reported afterwards. Contract 140 supplies
+ * that fact — `get_game_leave_eligibility`, one row per live game, carrying the
+ * write's own refusal code — and it arrives here as an optional argument.
+ *
+ * OPTIONAL, AND THE OPTIONALITY IS THE POINT. It is a second round trip, so it
+ * can be absent, in flight or failed while the first has answered. When it is
+ * absent this behaves exactly as before: Leave is offered and a refusal is
+ * reported after the attempt. That is the honest degradation — the eligibility
+ * read makes the control better informed, and losing it must not make an
+ * entrant unable to try.
  */
 
 /** Reachable through `GameMembershipDecision`; not exported separately, so it
@@ -59,6 +71,11 @@ function windowState(
 export function decideGameMembership(
   game: CompetitionGame,
   serverNow: string | null,
+  /**
+   * Contract 140's answer for THIS game, when it has arrived. Absent means not
+   * yet known, never "allowed" — see the note above.
+   */
+  leave?: GameLeaveEligibility | null,
 ): GameMembershipDecision {
   const joined = game.membership?.status === 'active'
   const now = serverNow ? new Date(serverNow).getTime() : Number.NaN
@@ -71,6 +88,19 @@ export function decideGameMembership(
         action: null,
         label: null,
         refusal: 'This game has finished. You stay in its final standings.',
+        joined,
+      }
+    }
+    // The server's own answer where there is one. `not_entered` is skipped
+    // rather than printed: it contradicts the membership row this branch is
+    // already inside, so it is a disagreement between two reads rather than
+    // something to tell the player, and the write stays the authority either
+    // way.
+    if (leave && !leave.allowed && leave.reason !== 'not_entered') {
+      return {
+        action: null,
+        label: null,
+        refusal: leaveRefusalSentence(leave.reason) ?? 'You cannot leave this game right now.',
         joined,
       }
     }
@@ -157,6 +187,11 @@ export function decideGameMembership(
  * code cannot tell those apart and the server's own message is never passed
  * through, so naming one would be a guess printed as fact. The dashboard
  * reloads after every attempt, and the reloaded facts are what explain it.
+ *
+ * CONTRACT 140 DOES NOT CHANGE THAT. It predicts the leave refusal BEFORE the
+ * attempt, which is a different job from naming one after it: a write that
+ * refused anyway did so because the eligibility read was stale or because the
+ * two disagree, and in both cases the reloaded facts are still the explanation.
  */
 const BY_CODE: Record<string, string> = {
   '23505': 'You are already in this game.',
