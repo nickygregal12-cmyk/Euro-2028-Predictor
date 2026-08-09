@@ -19,7 +19,7 @@
 | Related work | Issues [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272), [#303](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/303), [#27](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/27), [#28](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/28) |
 | Implementation truth | `config/deployment-contract.json`, `config/development-hosted-contract.json` and `config/production-hosted-contract.json` are the machine-readable records; this file reads them rather than competing with them |
 
-The repository candidate is **134**. Development Supabase and Production Supabase are recorded here at **132** pending the separately queued hosted-authority reconciliation; Contract 134 remains repository-only and has not been applied to either hosted environment.
+The repository candidate is **134**. Development Supabase and Production Supabase are both hosted at **132** in the current machine authority pending the separately queued hosted-authority reconciliation; fresh read-only verification outside this candidate has observed Development at 133. Contract 134 remains repository-only and has not been applied to either hosted environment.
 
 ## Product position
 
