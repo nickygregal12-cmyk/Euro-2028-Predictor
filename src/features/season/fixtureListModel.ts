@@ -48,10 +48,19 @@ export type FixtureListRow = {
   kickoff: string | null
   /** "Matchweek 5", printed only when the day carries more than one. */
   roundLabel: string | null
+  /**
+   * The round itself, always. `roundLabel` answers "should this row print its
+   * matchweek"; this answers "which matchweek is it", which a surface reading
+   * the player's card for this fixture needs whether or not the day mixes them.
+   */
+  round: { ordinal: number; name: string }
   /** "2 - 1" once the platform has settled it. */
   score: string | null
   /** A provider's current score, when there is no official one. Never a result. */
   provisional: string | null
+  /** When the provider last reported that provisional score, in the
+   *  competition's zone. Null when there is none to report. */
+  provisionalAt: string | null
   played: boolean
   accessibleSummary: string
 }
@@ -197,6 +206,10 @@ export function presentFixtureList(
     return fixtures.map((fixture) => {
       const when = fixture.kickoffAt ? parts(fixture.kickoffAt, timeZone) : null
       const kickoff = when?.time ?? null
+      const provisional =
+        !fixture.result && fixture.live && fixture.live.home !== null && fixture.live.away !== null
+          ? `${fixture.live.home} - ${fixture.live.away}`
+          : null
 
       return {
         id: fixture.id,
@@ -204,12 +217,17 @@ export function presentFixtureList(
         away: fixture.away,
         kickoff,
         roundLabel: mixed ? fixture.round.label : null,
+        round: { ordinal: fixture.round.ordinal, name: fixture.round.label },
         score: fixture.result ? `${fixture.result.home} - ${fixture.result.away}` : null,
         // Only where there is no official score, and only when the provider
         // sent both numbers. A one-sided provisional score is not a scoreline.
-        provisional:
-          !fixture.result && fixture.live && fixture.live.home !== null && fixture.live.away !== null
-            ? `${fixture.live.home} - ${fixture.live.away}`
+        provisional,
+        // Said with the score wherever the score is shown at length: "what a
+        // provider reported at 16:42" is checkable, and "2 - 1" on its own
+        // invites being read as the result.
+        provisionalAt:
+          provisional && fixture.live
+            ? (parts(fixture.live.observedAt, timeZone)?.time ?? null)
             : null,
         // The status the server settled, never the clock. A fixture is played
         // because the server said so, which is right every time a match is

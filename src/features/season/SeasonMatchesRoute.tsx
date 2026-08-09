@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
+import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchesPage } from './SeasonMatchesPage'
@@ -65,6 +66,26 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
     [tournamentId],
   )
 
+  /**
+   * The Match Centre's read of the caller's own card, built here because this
+   * is where the season id is. It is the SAME gateway the Match Predictor
+   * mounts, deliberately: a second decoder over `get_season_matchweek_card`
+   * would be a second opinion about the player's own entry, and the two would
+   * drift on the first schema change. Only `load` is used — the Match Centre
+   * shows what happened and never writes.
+   */
+  const readCard = useMemo(() => {
+    if (!context || tournamentId === null) return undefined
+    const gateway = createSeasonMatchPredictorRpcGateway({
+      tournamentId,
+      competitionName: context.competitionName,
+      seasonLabel: context.seasonLabel,
+      timeZone: context.timeZone,
+      now: () => new Date(),
+    })
+    return (matchweek: number) => gateway.load(matchweek)
+  }, [context, tournamentId])
+
   if (state.kind === 'loading') {
     return (
       <div className={styles.page} aria-busy="true" aria-live="polite">
@@ -107,7 +128,11 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
           the next fortnight — because "what is on around now" is the question
           this section answers, and anchoring it to a matchweek is what filed a
           postponed November fixture under a September heading. */}
-      <SeasonMatchesPage gateway={fixtures} timeZone={context.timeZone} />
+      <SeasonMatchesPage
+        gateway={fixtures}
+        timeZone={context.timeZone}
+        readMatchweekCard={readCard}
+      />
     </SeasonCompetitionShell>
   )
 }
