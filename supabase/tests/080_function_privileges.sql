@@ -54,6 +54,9 @@ where signature not in (
 );
 
 insert into expected_service_functions (signature) values
+  -- Contract 134: service-side route/site guards may consume the same bounded
+  -- publication-state read as the browser; mutation remains authenticated owner-only.
+  ('euro_publication_state()'),
   ('capture_rank_history(uuid)'),
   ('clear_match_result(uuid,text)'),
   ('confirm_match_result(uuid,text,smallint,smallint,smallint,smallint,smallint,smallint,text)'),
