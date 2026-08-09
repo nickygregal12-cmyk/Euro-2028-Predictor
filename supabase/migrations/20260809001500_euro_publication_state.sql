@@ -21,7 +21,7 @@ create table predictor_internal.euro_publication_state (
   singleton boolean primary key default true check (singleton),
   state predictor_internal.euro_publication_status not null default 'hidden',
   changed_at timestamptz not null default now(),
-  changed_by uuid references auth.users(id),
+  changed_by uuid references auth.users(id) on delete set null,
   constraint euro_publication_state_singleton check (singleton = true)
 );
 
@@ -39,7 +39,10 @@ create table predictor_internal.euro_publication_transitions (
   from_state predictor_internal.euro_publication_status not null,
   to_state predictor_internal.euro_publication_status not null,
   reason text not null check (char_length(btrim(reason)) between 1 and 1000),
-  actor_id uuid not null references auth.users(id),
+  -- Preserve the operational record if the actor's Auth identity is later
+  -- deleted. Historical attribution then becomes explicitly unknown rather
+  -- than blocking deletion or removing the publication event itself.
+  actor_id uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(),
   constraint euro_publication_transition_changes_state check (from_state <> to_state)
 );
