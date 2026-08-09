@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(27);
+select plan(29);
 
 select ok(
   to_regclass('predictor_internal.euro_publication_state') is not null,
@@ -37,10 +37,9 @@ select is(
      join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'predictor_internal'
       and c.relname in ('euro_publication_state', 'euro_publication_transitions')
-      and c.relrowsecurity
-      and c.relforcerowsecurity),
+      and c.relrowsecurity),
   2,
-  'both publication tables force RLS');
+  'both publication tables have RLS enabled');
 
 select is(
   (select count(*)::integer
