@@ -327,3 +327,81 @@ describe('contract 141’s football beside the player’s own side of it', () =>
     expect(screen.queryByText('Recent form')).toBeNull()
   })
 })
+
+describe('what a fixture means for the player’s Last Man Standing entry', () => {
+  const round = (pick: string | null) => ({
+    available: true,
+    entered: true,
+    entryOutcome: 'active' as const,
+    round: {
+      windowId: 'w3',
+      sequence: 3,
+      label: 'Round 3',
+      opensAt: '2026-08-05T09:00:00Z',
+      locksAt: '2026-08-08T13:30:00Z',
+    },
+    fixtures: [
+      {
+        fixtureId: 'f1',
+        kickoffAt: '2026-08-08T14:00:00Z',
+        status: 'scheduled',
+        home: { teamId: 't-dundee', name: 'Dundee', used: false },
+        away: { teamId: 't-aberdeen', name: 'Aberdeen', used: false },
+        score: null,
+      },
+    ],
+    pick: pick ? { teamId: pick } : null,
+    pickOutcome: null,
+  })
+
+  it('says the entry is riding on the match when the pick is in it', async () => {
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={{ lmsRound: round('t-aberdeen') }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText(/riding on this match/)).toBeTruthy())
+    expect(screen.getByText(/Round 3 pick is Aberdeen/)).toBeTruthy()
+  })
+
+  it('renders no form block while only the round has answered', async () => {
+    // Absent form is not "both clubs have played nothing". The block stays away
+    // entirely rather than reporting an unloaded read as a fact.
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={{ lmsRound: round('t-aberdeen') }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText(/riding on this match/)).toBeTruthy())
+    expect(screen.queryByText('Recent form')).toBeNull()
+    expect(screen.queryByText('No settled matches yet')).toBeNull()
+  })
+
+  it('says nothing to an eliminated player', async () => {
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={{ lmsRound: { ...round('t-aberdeen'), entryOutcome: 'eliminated' } }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('Your prediction')).toBeTruthy())
+    expect(screen.queryByText(/Last Man Standing/)).toBeNull()
+  })
+})
