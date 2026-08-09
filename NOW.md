@@ -14,13 +14,13 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **144** | latest `20260809140000_provider_team_profile_foundation.sql` |
-| Development hosted | **141** | at `20260809110000_season_club_form.sql`, verified `2026-08-09T14:15:09.000Z`, fast-lane run `31315796640` |
+| Development hosted | **144** | at `20260809140000_provider_team_profile_foundation.sql`, verified `2026-08-09T17:57:15.108Z`, fast-lane run `31327666892` |
 | Production | **132** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** 3 — `20260809120000_sportmonks_second_half_status.sql`, `20260809130000_euro_publication_state.sql`, `20260809140000_provider_team_profile_foundation.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 145. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.

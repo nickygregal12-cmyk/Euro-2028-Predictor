@@ -1,0 +1,341 @@
+name: Production 132 to 144 rehearsal
+
+# Manual, and READ-ONLY against hosted Production. The only migration write in
+# this workflow targets the disposable local restore on 127.0.0.1:54322.
+#
+# This rehearses the twelve-migration Production boundary 132 -> 144 against a
+# database restored from a fresh encrypted Production dump, so the forward
+# apply is exercised on Production-shaped data before it is exercised on
+# Production. It does NOT promote Production and contains no statement that
+# writes to it.
+#
+# Why a rehearsal for a set that is "only additive": additive is a property of
+# the migration text, and this batch is twelve migrations wide and includes
+# contract 135, which installs the path by which a provider status writes an
+# official result. Proving the text additive is not the same as proving the
+# chain replays onto THIS database. The rehearsal is what tells them apart.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type REHEARSE-PRODUCTION-132-TO-144 to proceed
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-132-to-144-rehearsal
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: REHEARSE-PRODUCTION-132-TO-144
+  SOURCE_CONTRACT: '132'
+  SOURCE_VERSION: '20260807210812'
+  SOURCE_NAME: provider_initial_fixture_approval
+  TARGET_CONTRACT: '144'
+  TARGET_VERSION: '20260809140000'
+  TARGET_NAME: provider_team_profile_foundation
+  WORK_DIR: /tmp/production-132-to-144-rehearsal
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  rehearse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || {
+            echo "ERROR: confirmation phrase does not match ${CONFIRMATION_PHRASE}."
+            exit 1
+          }
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || {
+            echo 'ERROR: project ref confirmation does not name the Production project.'
+            exit 1
+          }
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || {
+            echo 'ERROR: this workflow runs only from refs/heads/main.'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || {
+            echo 'ERROR: checked-out HEAD is not exact origin/main.'
+            exit 1
+          }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || {
+            echo 'ERROR: checkout is not clean.'
+            exit 1
+          }
+
+      - name: Prove the repository still holds exactly the approved 132-to-144 batch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${WORK_DIR}"
+          expected_batch=$(cat <<'EOF'
+          20260808003000_private_season_cup_player_reads.sql
+          20260809030000_rate_limit_events_client_revoke.sql
+          20260809050000_provider_result_authority.sql
+          20260809060000_club_identity_reference.sql
+          20260809070000_club_name_normaliser_fix.sql
+          20260809080000_provider_review_queues.sql
+          20260809090000_season_fixtures_read.sql
+          20260809100000_leave_eligibility_read.sql
+          20260809110000_season_club_form.sql
+          20260809120000_sportmonks_second_half_status.sql
+          20260809130000_euro_publication_state.sql
+          20260809140000_provider_team_profile_foundation.sql
+          EOF
+          )
+          actual_batch="$(git ls-files 'supabase/migrations/*.sql' | sort | sed -n '133,144p' | xargs -n1 basename)"
+          [ "${actual_batch}" = "${expected_batch}" ] || {
+            echo 'ERROR: repository contracts 133-144 no longer match the approved allowlist.'
+            printf 'Expected:\n%s\nActual:\n%s\n' "${expected_batch}" "${actual_batch}"
+            exit 1
+          }
+
+          source_row="$(git ls-files 'supabase/migrations/*.sql' | sort | sed -n '132p' | xargs -n1 basename)"
+          [ "${source_row}" = "${SOURCE_VERSION}_${SOURCE_NAME}.sql" ] || {
+            echo "ERROR: repository row 132 is ${source_row}, not the rehearsed source boundary."
+            exit 1
+          }
+
+          # Development must already hold the target. Production is never the
+          # first hosted environment to see a migration.
+          development_count="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${development_count}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: Development is only contract ${development_count}; target is ${TARGET_CONTRACT}."
+            exit 1
+          }
+
+      - name: Prove the batch is additive before rehearsing it
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The checker takes files, not a range. It excludes routine bodies
+          # while still judging DO blocks and statement level, so a `delete
+          # from` inside the body of an RPC does not read as a destructive
+          # migration — the distinction contract 66 needed.
+          files="$(git ls-files 'supabase/migrations/*.sql' | sort | sed -n '133,144p' | tr '\n' ' ')"
+          node scripts/check-migration-additive.mjs ${files} 2>&1 | tee "${WORK_DIR}/additive.txt"
+          # Additive is necessary and not sufficient. Production still gets the
+          # backup, the restore and the rehearsal below; this only establishes
+          # that nothing in the batch drops or rewrites what Production holds.
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install PostgreSQL 17 client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Preflight the Production secret without printing it
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*)
+              echo 'ERROR: Production secret resolves to Development.'
+              exit 1
+              ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *)
+              echo 'ERROR: Production secret does not name the expected Production project.'
+              exit 1
+              ;;
+          esac
+
+      - name: Prove the live source is exactly contract 132 (read-only)
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1)
+            )
+          " > "${WORK_DIR}/source-state.json"
+          cat "${WORK_DIR}/source-state.json"
+
+          SOURCE_STATE_FILE="${WORK_DIR}/source-state.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const state = JSON.parse(fs.readFileSync(process.env.SOURCE_STATE_FILE, 'utf8'))
+          const expected = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+          }
+          for (const [key, want] of Object.entries(expected)) {
+            if (String(state[key]) !== String(want)) {
+              console.error(`ERROR: live Production ${key} is ${state[key]}, expected ${want}.`)
+              process.exit(1)
+            }
+          }
+          console.log('Live Production is exactly the rehearsed contract-132 source boundary.')
+          NODE
+
+      - name: Take a fresh Production dump and restore it to a disposable local target
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase init --force --workdir "${WORK_DIR}" >/dev/null 2>&1 || true
+          supabase start --workdir "${WORK_DIR}"
+
+          # Read-only against Production: pg_dump only.
+          pg_dump "${SUPABASE_PROD_DB_URL}" \
+            --format=custom \
+            --no-owner \
+            --no-privileges \
+            --file "${WORK_DIR}/production.dump"
+
+          pg_restore \
+            --dbname "${LOCAL_DB_URL}" \
+            --no-owner \
+            --no-privileges \
+            --clean \
+            --if-exists \
+            "${WORK_DIR}/production.dump" 2>&1 | tail -40 || true
+
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select count(*) from supabase_migrations.schema_migrations
+          " > "${WORK_DIR}/restored-count.txt"
+          restored="$(cat "${WORK_DIR}/restored-count.txt")"
+          [ "${restored}" = "${SOURCE_CONTRACT}" ] || {
+            echo "ERROR: restored target holds ${restored} migrations, expected ${SOURCE_CONTRACT}."
+            exit 1
+          }
+          echo "Disposable target restored at contract ${restored} from Production-shaped data."
+
+      - name: Rehearse the forward apply on the disposable target
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${LOCAL_DB_URL}" --dry-run \
+            > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" \
+            | awk '!seen[$0]++' > "${WORK_DIR}/dry-run-migrations.txt"
+          expected=$(cat <<'EOF'
+          20260808003000_private_season_cup_player_reads.sql
+          20260809030000_rate_limit_events_client_revoke.sql
+          20260809050000_provider_result_authority.sql
+          20260809060000_club_identity_reference.sql
+          20260809070000_club_name_normaliser_fix.sql
+          20260809080000_provider_review_queues.sql
+          20260809090000_season_fixtures_read.sql
+          20260809100000_leave_eligibility_read.sql
+          20260809110000_season_club_form.sql
+          20260809120000_sportmonks_second_half_status.sql
+          20260809130000_euro_publication_state.sql
+          20260809140000_provider_team_profile_foundation.sql
+          EOF
+          )
+          actual="$(cat "${WORK_DIR}/dry-run-migrations.txt")"
+          [ "${actual}" = "${expected}" ] || {
+            echo 'ERROR: rehearsal dry run is not exactly the approved 132-to-144 batch.'
+            printf 'Expected:\n%s\nActual:\n%s\n' "${expected}" "${actual}"
+            exit 1
+          }
+
+          supabase db push --db-url "${LOCAL_DB_URL}" 2>&1 | tee "${WORK_DIR}/apply.txt"
+
+      - name: Verify the rehearsed result reaches exactly contract 144
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+              'auth_users', (select count(*) from auth.users),
+              'profiles', (select count(*) from public.profiles),
+              'entries', (select count(*) from public.entries),
+              'match_predictions', (select count(*) from public.match_predictions),
+              'score_events', (select count(*) from public.score_events),
+              'entry_totals', (select count(*) from public.entry_totals),
+              'euro_publication_state', (select state::text from predictor_internal.euro_publication_state),
+              'euro_publication_history', (select count(*) from predictor_internal.euro_publication_transitions),
+              'sportmonks_final_statuses', (
+                select count(*) from predictor_internal.provider_status_kinds
+                where provider = 'sportmonks' and kind = 'final'
+              ),
+              'provider_team_profiles', (select count(*) from predictor_internal.provider_team_profiles)
+            )
+          " > "${WORK_DIR}/target-state.json"
+          cat "${WORK_DIR}/target-state.json"
+
+          TARGET_STATE_FILE="${WORK_DIR}/target-state.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const state = JSON.parse(fs.readFileSync(process.env.TARGET_STATE_FILE, 'utf8'))
+
+          const expected = {
+            migration_count: Number(process.env.TARGET_CONTRACT),
+            latest_version: process.env.TARGET_VERSION,
+            latest_name: process.env.TARGET_NAME,
+            // Contract 143 must fail closed on arrival: hidden, with no
+            // publication event invented by the migration itself.
+            euro_publication_state: 'hidden',
+            euro_publication_history: 0,
+            // Contract 142 must not have widened what counts as a final
+            // provider status. Exactly one remains.
+            sportmonks_final_statuses: 1,
+            // Contract 144 creates storage and backfills nothing.
+            provider_team_profiles: 0,
+          }
+          for (const [key, want] of Object.entries(expected)) {
+            if (String(state[key]) !== String(want)) {
+              console.error(`ERROR: rehearsed ${key} is ${state[key]}, expected ${want}.`)
+              process.exit(1)
+            }
+          }
+          console.log('Rehearsal reached exactly contract 144 with every boundary intact.')
+          NODE
+
+      - name: Shred the dump and stop the disposable target
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${WORK_DIR}/production.dump" ]; then
+            shred -u "${WORK_DIR}/production.dump" || rm -f "${WORK_DIR}/production.dump"
+          fi
+          supabase stop --no-backup --workdir "${WORK_DIR}" || true
