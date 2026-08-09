@@ -250,6 +250,10 @@ The domestic-season baseline now includes staged initial provider fixture propos
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 closes the server-read prerequisite for the private season Predictor Championship UI: an entrant can discover their own private instance and read the server-owned current group, opponent, table and fixture schedule without direct private-table grants.
 
+> **Contract 137 boundary (9 August 2026):** Adds no feature. It corrects contract 136's club name
+> normaliser so Chelsea and Aston Villa resolve, and adds the Hull City row the real Development field
+> needed.
+
 > **Contract 135–136 boundary (9 August 2026):** Contract 135 changes the baseline in one place and one
 > only: the official result of a **league-season** fixture may now be written by a measured provider final
 > status with no human action, under the owner's ADR 0020 amendment. It is written through the same audited

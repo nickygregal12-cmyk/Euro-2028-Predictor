@@ -208,6 +208,9 @@ The provider ingestion programme now has a controlled initial-publication stage 
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 is an implementation detail within the accepted Domestic Frontend Alpha: it provides bounded private Championship player reads after Contract 132 and does not change programme phase order or product gates.
 
+> **Contract 137 boundary (9 August 2026):** A correction within the accepted Domestic Frontend Alpha, not
+> a phase change.
+
 > **Contract 135–136 boundary (9 August 2026):** Contract 135 is a rule change inside the accepted
 > Domestic Frontend Alpha rather than a phase change, and it is the owner's, recorded as an amendment to
 > ADR 0020: the provider becomes final truth for awarding points in a league season, auditable and

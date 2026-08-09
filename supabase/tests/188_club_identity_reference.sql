@@ -17,7 +17,7 @@
 
 begin;
 
-select plan(9);
+select plan(13);
 
 -- ---------------------------------------------------------------------------
 -- Reference data, not competition truth, and not reachable.
@@ -60,6 +60,40 @@ select is(
   predictor_internal.normalised_club_name('Celtic'),
   'celtic',
   'and a name a provider gives bare is already normal');
+
+-- ---------------------------------------------------------------------------
+-- Contract 137's regression. These are the cases that shipped broken.
+-- ---------------------------------------------------------------------------
+--
+-- Contract 136 stripped the alternation `(afc|fc)` from the END of a name whose
+-- spaces had already been removed. 'Chelsea FC' becomes 'chelseafc', which ends
+-- in the literal characters `afc`, so the club came back as 'chelse' and
+-- rendered grey. Two of twenty Premier League clubs were affected and none of
+-- the three forms that migration checked could have shown it.
+--
+-- Named individually rather than folded into a loop, because a failure here
+-- should say which club stopped resolving.
+
+select is(
+  predictor_internal.normalised_club_name('Chelsea FC'),
+  'chelsea',
+  'a club whose name ends in A keeps it -- Chelsea is not chelse');
+
+select is(
+  predictor_internal.normalised_club_name('Aston Villa FC'),
+  'astonvilla',
+  'and Aston Villa is not astonvill');
+
+select is(
+  predictor_internal.normalised_club_name('Hull City AFC'),
+  'hullcity',
+  'AFC is removed wherever it stands as a word, trailing as well as leading');
+
+select is(
+  predictor_internal.normalised_club_name('Sunderland AFC'),
+  'sunderland',
+  'including where the old form happened to get the right answer for the '
+  'wrong reason');
 
 -- ---------------------------------------------------------------------------
 -- The join, driven against clubs stored the way a provider stores them.

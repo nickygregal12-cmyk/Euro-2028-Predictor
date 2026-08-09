@@ -376,6 +376,8 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
 - [x] Keep provider scores/status as evidence only; official results remain behind the protected confirmation authority.
 - [ ] Complete environment-specific Production provider credentials before live polling/import.
 
+> **Contract 137 boundary (9 August 2026):** Contract 137 corrects a defect contract 136 shipped: the club name normaliser stripped `(afc|fc)` from the end of a name whose spaces had already been removed, so 'Chelsea FC' normalised to 'chelse' and 'Aston Villa FC' to 'astonvill' and both rendered in the neutral fallback. The tokens are now removed as whole words before the spaces go. It was found by verifying the hosted Development rollout against real football rather than against the migration ledger — 29 of 32 clubs resolved, and the three that did not were the only evidence anything was wrong.
+
 > **Contract 135–136 boundary (9 August 2026):** Contract 135 carries the owner's ADR 0020 amendment —
 > a measured provider final status writes the official result of a league-season fixture with no human
 > action, auditable through contract 125's writer and stopped by any administrator correction — and gives

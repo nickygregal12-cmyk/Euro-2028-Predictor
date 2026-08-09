@@ -200,6 +200,8 @@ Contract 132 establishes the controlled first-publication authority for real dom
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 is a bounded DFA-007 enabler after Contract 132: it exposes caller-owned private Predictor Championship instances and selected player fixture/table/schedule state. It does not reorder the Domestic Frontend Alpha or change Championship scoring/settlement.
 
+> **Contract 137 boundary (9 August 2026):** A correction inside contract 136, reordering nothing. Contract 137 corrects a defect contract 136 shipped: the club name normaliser stripped `(afc|fc)` from the end of a name whose spaces had already been removed, so 'Chelsea FC' normalised to 'chelse' and 'Aston Villa FC' to 'astonvill' and both rendered in the neutral fallback. The tokens are now removed as whole words before the spaces go. It was found by verifying the hosted Development rollout against real football rather than against the migration ledger — 29 of 32 clubs resolved, and the three that did not were the only evidence anything was wrong.
+
 > **Contract 135–136 boundary (9 August 2026):** Contract 135 is the owner's ADR 0020 amendment made
 > executable, and it reorders nothing in the Domestic Frontend Alpha: it closes the Stage D gap where a
 > decoded provider response was archived every five minutes and read by nothing. Contract 136 serves
