@@ -10,6 +10,8 @@ import {
 } from '../../services/supabase/seasonClubForm'
 import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
 import type { SeasonFootballContext } from './SeasonMatchCentre'
+import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
+import type { LmsRoundPage } from './lmsRoundModel'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchesPage } from './SeasonMatchesPage'
@@ -118,18 +120,55 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
     }
   }, [tournamentId])
 
+  /**
+   * The caller's current Last Man Standing round, so an opened fixture can say
+   * whether their survival is riding on it.
+   *
+   * ONE READ PER SEASON VISIT, not per fixture: the round read takes no round
+   * argument and answers the one that is open now, so there is exactly one
+   * answer to fetch. A non-entrant gets `entered: false` and the panel says
+   * nothing — the read is cheap enough not to be worth gating on membership
+   * this surface has not asked about.
+   *
+   * It fails silently and alone, like club form: a Matches section that refused
+   * to render because it could not read an entry in a different game would be
+   * worse than one that simply says less.
+   */
+  const [lmsRound, setLmsRound] = useState<LmsRoundPage | null>(null)
+  useEffect(() => {
+    if (tournamentId === null) return
+    let active = true
+    setLmsRound(null)
+    createSeasonLmsRpcGateway({ tournamentId })
+      .load()
+      .then((round) => {
+        if (active) setLmsRound(round)
+      })
+      .catch(() => {
+        if (active) setLmsRound(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [tournamentId])
+
   const football = useMemo<SeasonFootballContext | undefined>(() => {
-    if (tournamentId === null || clubForm === null) return undefined
+    // Built once either read has answered, rather than waiting for both: they
+    // are independent facts and the panel renders whichever it has.
+    if (tournamentId === null || (clubForm === null && lmsRound === null)) return undefined
     // Joined by name because contract 139's fixture read carries no team id.
     // Both names come from `public.teams.name`, so this is an equality on one
     // source of truth rather than a fuzzy match.
-    const byName = new Map(clubForm.map((club) => [club.name, club]))
+    const byName = new Map((clubForm ?? []).map((club) => [club.name, club]))
     return {
-      formFor: (name: string) => byName.get(name) ?? null,
+      // Only once the form read has answered. Supplying a lookup that returns
+      // null for everything would render both clubs as having played nothing.
+      formFor: clubForm === null ? undefined : (name: string) => byName.get(name) ?? null,
       headToHead: (teamId: string, opponentId: string) =>
         fetchSeasonClubHeadToHead(tournamentId, teamId, opponentId),
+      lmsRound,
     }
-  }, [tournamentId, clubForm])
+  }, [tournamentId, clubForm, lmsRound])
 
   if (state.kind === 'loading') {
     return (

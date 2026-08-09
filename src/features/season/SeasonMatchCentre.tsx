@@ -12,6 +12,8 @@ import type {
   ClubHeadToHead,
   SeasonClubForm,
 } from '../../services/supabase/seasonClubFormModel'
+import { presentLmsStake } from './lmsStakeModel'
+import type { LmsRoundPage } from './lmsRoundModel'
 import {
   useSeasonMatchCentre,
   type SeasonMatchCentreCardReader,
@@ -63,10 +65,21 @@ import styles from './SeasonMatchCentre.module.css'
  * complete without either.
  */
 export type SeasonFootballContext = {
-  /** The club's form, already fetched for the whole season. Null if unknown. */
-  formFor: (clubName: string) => SeasonClubForm | null
+  /**
+   * The club's form, already fetched for the whole season. ABSENT means the
+   * form read has not answered — which is not the same as a club with no
+   * settled matches, and the panel must not render the form block at all
+   * rather than show two clubs as having played nothing.
+   */
+  formFor?: (clubName: string) => SeasonClubForm | null
   /** This season's meetings between two clubs, fetched when a fixture opens. */
   headToHead?: (teamId: string, opponentId: string) => Promise<ClubHeadToHead>
+  /**
+   * The caller's CURRENT Last Man Standing round, if they are in one.
+   * `get_season_lms_round` takes no round argument, so this can only speak
+   * about fixtures in the round that is open now — see `lmsStakeModel`.
+   */
+  lmsRound?: LmsRoundPage | null
 }
 
 export type SeasonMatchCentreProps = {
@@ -110,8 +123,8 @@ function useHeadToHead(
   awayName: string,
 ): HeadToHeadSummary | null {
   const [summary, setSummary] = useState<HeadToHeadSummary | null>(null)
-  const home = football?.formFor(homeName)?.teamId ?? null
-  const away = football?.formFor(awayName)?.teamId ?? null
+  const home = football?.formFor?.(homeName)?.teamId ?? null
+  const away = football?.formFor?.(awayName)?.teamId ?? null
   const load = football?.headToHead
 
   useEffect(() => {
@@ -140,9 +153,10 @@ function useHeadToHead(
 
 export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentreProps) {
   const state = useSeasonMatchCentre(read, fixture)
-  const homeForm = summariseClubForm(football?.formFor(fixture.home.name) ?? null)
-  const awayForm = summariseClubForm(football?.formFor(fixture.away.name) ?? null)
+  const homeForm = summariseClubForm(football?.formFor?.(fixture.home.name) ?? null)
+  const awayForm = summariseClubForm(football?.formFor?.(fixture.away.name) ?? null)
   const headToHead = useHeadToHead(football, fixture.home.name, fixture.away.name)
+  const lmsStake = presentLmsStake(fixture, football?.lmsRound ?? null)
 
   return (
     <div className={styles.panel}>
@@ -232,7 +246,21 @@ export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentre
       {/* The football, below the player's own side of it and outside the
           card's loading and failure branches: it is the same for everybody and
           is unaffected by whether an entry could be read. */}
-      {football ? (
+      {lmsStake ? (
+        // Above the form, because it is the strongest thing this panel can say
+        // about the fixture: form is context, and a survival stake is a reason
+        // to care. Marked rather than merely coloured (§11.8).
+        <p
+          className={
+            lmsStake.stake.kind === 'my_pick' ? styles.stakeRiding : styles.stake
+          }
+        >
+          <span className={styles.stakeTag}>Last Man Standing</span>
+          {lmsStake.line}
+        </p>
+      ) : null}
+
+      {football?.formFor ? (
         <div className={styles.football}>
           <h4 className={styles.footballHeading}>Recent form</h4>
           <FormRow name={fixture.home.name} summary={homeForm} />

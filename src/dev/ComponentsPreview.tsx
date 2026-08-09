@@ -459,7 +459,46 @@ const SEASON_FORM_BY_ID = new Map(
   SEASON_CLUB_FORM.clubs.map((club) => [club.teamId, club] as const),
 )
 
+/**
+ * The caller's current Last Man Standing round, so both panels can show a
+ * different stake: one fixture holds their pick, the other is in the same round
+ * and does not. Those are the two sentences worth a picture.
+ */
+const SEASON_LMS_ROUND = {
+  available: true,
+  entered: true,
+  entryOutcome: 'active' as const,
+  round: {
+    windowId: 'w5',
+    sequence: 5,
+    label: 'Round 5',
+    opensAt: '2026-08-05T09:00:00Z',
+    locksAt: '2026-08-08T11:00:00Z',
+  },
+  fixtures: [
+    {
+      fixtureId: 'sf-settled',
+      kickoffAt: '2026-08-08T11:30:00Z',
+      status: 'played',
+      home: { teamId: 't-celtic', name: 'Celtic', used: false },
+      away: { teamId: 't-hibs', name: 'Hibernian', used: false },
+      score: { home: 3, away: 1 },
+    },
+    {
+      fixtureId: 'sf-live',
+      kickoffAt: '2026-08-08T14:00:00Z',
+      status: 'live',
+      home: { teamId: 't-rangers', name: 'Rangers', used: false },
+      away: { teamId: 't-aberdeen', name: 'Aberdeen', used: false },
+      score: null,
+    },
+  ],
+  pick: { teamId: 't-rangers' },
+  pickOutcome: null,
+}
+
 const seasonFootball = {
+  lmsRound: SEASON_LMS_ROUND,
   formFor: (name: string) => SEASON_FORM_BY_NAME.get(name) ?? null,
   /**
    * Answers for the PAIR it was asked about, rather than returning one fixed

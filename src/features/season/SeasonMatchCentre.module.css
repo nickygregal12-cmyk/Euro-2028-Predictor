@@ -227,3 +227,36 @@
   font-variant-numeric: var(--numeric);
   color: var(--tx2);
 }
+
+/* The Last Man Standing stake. Above the form because it is the strongest thing
+   this panel can say: form is context, survival is a reason to care. */
+.stake,
+.stakeRiding {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--card);
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  line-height: 1.5;
+  color: var(--tx2);
+}
+
+/* The player's own club is in this match. A left rule and full-strength text,
+   not a colour swap: the difference has to survive being seen in greyscale. */
+.stakeRiding {
+  border-left: 3px solid var(--acc);
+  color: var(--tx);
+}
+
+.stakeTag {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}

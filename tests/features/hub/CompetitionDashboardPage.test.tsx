@@ -13,6 +13,13 @@ const mocks = vi.hoisted(() => ({
   registerBonusCompetition: vi.fn<() => Promise<void>>(),
   withdrawBonusCompetition: vi.fn<() => Promise<void>>(),
   fetchSeasonLeaveEligibility: vi.fn<() => Promise<unknown>>(() => new Promise(() => {})),
+  // Never resolves by default, so every assertion above holds while the week
+  // is still being assembled. One test below gives it a real card.
+  loadMatchweekCard: vi.fn<() => Promise<unknown>>(() => new Promise(() => {})),
+  loadLmsRound: vi.fn<() => Promise<unknown>>(() => new Promise(() => {})),
+  // The week loader asks the play context first and every game read hangs off
+  // it, so a hanging context is how the other tests keep the week unassembled.
+  loadPlayContext: vi.fn<() => Promise<unknown>>(() => new Promise(() => {})),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -29,15 +36,15 @@ vi.mock('../../../src/services/supabase/bonusGames', () => ({
 // behaviour is proven against `competitionWeekModel` directly, so what matters
 // here is only that the dashboard still renders while they answer.
 vi.mock('../../../src/services/supabase/seasonPlayContext', () => ({
-  createSeasonPlayContextGateway: () => ({ load: () => new Promise(() => {}) }),
+  createSeasonPlayContextGateway: () => ({ load: () => mocks.loadPlayContext() }),
 }))
 
 vi.mock('../../../src/services/supabase/seasonMatchPredictor', () => ({
-  createSeasonMatchPredictorRpcGateway: () => ({ load: () => new Promise(() => {}) }),
+  createSeasonMatchPredictorRpcGateway: () => ({ load: () => mocks.loadMatchweekCard() }),
 }))
 
 vi.mock('../../../src/services/supabase/seasonLms', () => ({
-  createSeasonLmsRpcGateway: () => ({ load: () => new Promise(() => {}) }),
+  createSeasonLmsRpcGateway: () => ({ load: () => mocks.loadLmsRound() }),
 }))
 
 vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
@@ -74,6 +81,23 @@ function served(overrides: Partial<CompetitionGame> = {}): CompetitionGame {
     membership: null,
     ...overrides,
   }
+}
+
+const LMS_ID = '60000000-0000-0000-0000-000000000202'
+
+/** An active Last Man Standing entrant, whose route is not behind a flag. */
+function lmsEntrant(): CompetitionGame {
+  return served({
+    id: LMS_ID,
+    gameKey: 'last_man_standing',
+    displayName: 'Last Man Standing',
+    membership: {
+      status: 'active',
+      joinedAt: '2026-08-02T09:00:00Z',
+      leftAt: null,
+      disqualifiedAt: null,
+    },
+  })
 }
 
 function season(games: CompetitionGame[]): HubSeasonMembership[] {
@@ -153,6 +177,78 @@ describe('competition Overview and Games', () => {
     await waitFor(() =>
       expect(mocks.withdrawBonusCompetition).toHaveBeenCalledWith(MAIN_PREDICTOR_ID),
     )
+  })
+
+  it('makes the primary control the action itself, not a destination', async () => {
+    // `DFA-006`'s direct action. The card already printed "pick a club for
+    // Round 3" and then offered "Open game", leaving the player to work out
+    // that those were the same thing.
+    //
+    // Asserted on Last Man Standing rather than the Match Predictor because
+    // the Match Predictor route is behind `VITE_UI_SEASON_MATCH_PREDICTOR`,
+    // which is off here, so that card has no destination at all and correctly
+    // says "Build pending". Same code path, no environment stubbing.
+    mocks.fetchHubMembership.mockResolvedValue(season([lmsEntrant()]))
+    mocks.loadPlayContext.mockResolvedValue({
+      tournamentId: '60000000-0000-0000-0000-000000000001',
+      competitionName: 'Premier League',
+      seasonLabel: '2026/27',
+      timeZone: 'Europe/London',
+      matchweek: 3,
+      matchweekCount: 38,
+    })
+    mocks.loadLmsRound.mockResolvedValue({
+      available: true,
+      entered: true,
+      entryOutcome: 'active',
+      round: {
+        windowId: 'w3',
+        sequence: 3,
+        label: 'Round 3',
+        opensAt: '2026-08-05T09:00:00Z',
+        locksAt: '2026-08-08T13:30:00Z',
+      },
+      fixtures: [],
+      pick: null,
+      pickOutcome: null,
+    })
+    renderGames()
+
+    expect(await screen.findByRole('button', { name: 'Pick your club' })).toBeTruthy()
+  })
+
+  it('keeps "Open game" where the game is asking for nothing', async () => {
+    // A place to look rather than a thing to do. Dressing that as a task is how
+    // a surface teaches a player to ignore its buttons.
+    mocks.fetchHubMembership.mockResolvedValue(season([lmsEntrant()]))
+    mocks.loadPlayContext.mockResolvedValue({
+      tournamentId: '60000000-0000-0000-0000-000000000001',
+      competitionName: 'Premier League',
+      seasonLabel: '2026/27',
+      timeZone: 'Europe/London',
+      matchweek: 3,
+      matchweekCount: 38,
+    })
+    mocks.loadLmsRound.mockResolvedValue({
+      available: true,
+      entered: true,
+      entryOutcome: 'active',
+      round: {
+        windowId: 'w3',
+        sequence: 3,
+        label: 'Round 3',
+        opensAt: '2026-08-05T09:00:00Z',
+        locksAt: '2026-08-08T13:30:00Z',
+      },
+      fixtures: [],
+      pick: { teamId: 't-1' },
+      pickOutcome: null,
+    })
+    renderGames()
+
+    await waitFor(() => expect(screen.getByText(/pick is in/)).toBeTruthy())
+    expect(screen.queryByRole('button', { name: 'Pick your club' })).toBeNull()
+    expect(screen.getAllByRole('button', { name: 'Open game' }).length).toBeGreaterThan(0)
   })
 
   it('withdraws Leave once the server says it would refuse it', async () => {
