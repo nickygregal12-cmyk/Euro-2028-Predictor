@@ -66,6 +66,14 @@ export const JOURNEY_MAP = [
     prefix: 'src/features/leagues/',
     specs: ['private-league-pagination.spec.ts'],
   },
+  {
+    // Mapped now that a season journey exists to map to. Until the browser
+    // environment held a playable league season there was nothing for a
+    // season-only change to run, and an unmapped prefix correctly fell through
+    // to the full suite rather than to nothing.
+    prefix: 'src/features/season/',
+    specs: ['season-competition-journey.spec.ts'],
+  },
   { prefix: 'src/features/profile/', specs: ['profile-h2h-surfaces.spec.ts'] },
   { prefix: 'src/features/h2h/', specs: ['profile-h2h-surfaces.spec.ts'] },
   { prefix: 'src/features/account/', specs: ['weekly-navigation.spec.ts'] },
