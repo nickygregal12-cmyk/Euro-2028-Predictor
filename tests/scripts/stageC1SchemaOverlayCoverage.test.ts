@@ -61,9 +61,13 @@ describe('Stage C1 schema overlay coverage', () => {
     // `admin_reject_initial_provider_fixtures`, the explicit initial-calendar
     // decision authorities. 64 -> 65 at contract 133:
     // `get_my_season_cup_instances`, the caller-owned private Championship
-    // discovery read. The pin is a positive control on the inventory, so it
-    // moves only when a function is genuinely added to the manifest.
-    expect(reviewedFunctions).toHaveLength(65)
+    // discovery read. 65 -> 67 at contracts 138 and 139:
+    // `get_provider_review_queues`, the administrator's view of the seven
+    // provider review queues, and `get_season_fixtures`, the season fixture
+    // list ordered by kickoff and labelled by round. The pin is a positive
+    // control on the inventory, so it moves only when a function is genuinely
+    // added to the manifest.
+    expect(reviewedFunctions).toHaveLength(67)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

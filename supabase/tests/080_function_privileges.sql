@@ -105,6 +105,17 @@ insert into expected_authenticated_functions (signature) values
 -- Contract 56: the Cup Penalty Number submission (the qualification gate
 -- and round settle stay service-only).
 -- Contract 57: the pre-lock own-entry clear.
+-- Contract 138: the administrator's provider review queues and their
+-- acknowledgement. Both are granted to `authenticated` exactly as every other
+-- admin RPC here is, and both refuse inside on require_competition_admin() --
+-- the grant reaches the function, the gate decides whether it acts.
+-- Contract 139: the season fixtures read, which any signed-in caller may make
+-- because a fixture list is the same for everybody and discloses no entry.
+insert into expected_authenticated_functions (signature) values
+  ('get_provider_review_queues(uuid,integer)'),
+  ('acknowledge_provider_review_items(text,uuid[],text)'),
+  ('get_season_fixtures(uuid,timestampwithtimezone,timestampwithtimezone)');
+
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
 -- Contract 66: generic game catalogue/membership and game-scoped leagues.
 insert into expected_authenticated_functions (signature) values

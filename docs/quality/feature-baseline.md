@@ -250,6 +250,8 @@ The domestic-season baseline now includes staged initial provider fixture propos
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 closes the server-read prerequisite for the private season Predictor Championship UI: an entrant can discover their own private instance and read the server-owned current group, opponent, table and fixture schedule without direct private-table grants.
 
+> **Contract 138–139 boundary (9 August 2026):** Contract 138 gives an administrator the provider review queues nothing could see — measured, seven append-only queues existed and the only browser-reachable functions naming any of them were contract 132's two decision writers, so an administrator could approve a calendar they could not see and could not see the other six at all. It reads all of them bounded per section and lets an administrator acknowledge an item, which contracts 117 and 123 had always anticipated with a `reviewed_at` nothing ever set; acknowledging is never a decision about the item. Contract 139 gives a season a fixtures read at all, ordered by kickoff and labelled by round, closing the ADR 0020 amendment item that had no implementation because a season had no fixture list: a match postponed out of matchweek 5 into November now sorts into November while still saying Matchweek 5. Both are reads; 138 also writes a review marker that decides nothing.
+
 > **Contract 137 boundary (9 August 2026):** Adds no feature. It corrects contract 136's club name
 > normaliser so Chelsea and Aston Villa resolve, and adds the Hull City row the real Development field
 > needed.

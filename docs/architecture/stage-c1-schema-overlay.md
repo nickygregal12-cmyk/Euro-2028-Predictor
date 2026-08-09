@@ -242,6 +242,8 @@ erasure semantics. It is therefore another consumer of the existing C1 season
 boundary rather than a change to that boundary:
 
 - `get_my_season_cup_instances`
+- `get_provider_review_queues`
+- `get_season_fixtures`
 
 Bonus Game C1 scope review covers:
 

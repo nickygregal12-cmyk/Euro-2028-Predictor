@@ -191,6 +191,8 @@ These names may remain but their semantics must support both kinds safely:
 - `admin_approve_initial_provider_fixtures`
 - `admin_clear_actual_third_place_tie`
 - `admin_reject_initial_provider_fixtures`
+- `get_provider_review_queues`
+- `get_season_fixtures`
 - `admin_resolve_actual_third_place_tie`
 - `capture_rank_history`
 - `clear_my_predictions`

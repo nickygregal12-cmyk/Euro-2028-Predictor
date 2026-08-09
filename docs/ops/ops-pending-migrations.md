@@ -2,7 +2,11 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 9 August 2026 (second entry)
+## Current state — 9 August 2026 (third entry)
+
+Contract 137 was applied to hosted Development by guarded fast-lane run **31307808667** from exact `main` `3a8fb21`, and independently verified: 137 rows, newest `20260809070000`, and **all 32 real clubs now resolve to a club identity** where 29 did before. Contract 138 (`20260809080000_provider_review_queues.sql`) and contract 139 (`20260809090000_season_fixtures_read.sql`) are the two now pending for Development; both are additive. Production remains at contract 132 and is untouched.
+
+## Superseded — 9 August 2026 (second entry)
 
 Contracts 134, 135 and 136 were applied to hosted Development by guarded fast-lane run **31306831576** from exact `main` `67322a6`, and independently verified by reading the Development migration ledger: 136 rows, newest `20260809060000`, with contract 135's six relations holding no browser grant, its consumption job scheduled, and contract 136's reference populated. **That verification also found a defect**, which is the reason this entry exists: 29 of 32 real Development clubs resolved to a club identity and three did not. Contract 137 (`20260809070000_club_name_normaliser_fix.sql`) corrects it and is now the only migration pending for Development. Production remains at contract 132 and is untouched.
 
