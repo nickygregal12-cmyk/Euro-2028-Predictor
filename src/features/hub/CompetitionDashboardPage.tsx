@@ -26,6 +26,7 @@ import {
 import { applyHubMembership } from './hubMembership'
 import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAction'
 import { CompetitionWeekPanel } from './CompetitionWeekPanel'
+import { formatWeekDeadline, weekActionForGame } from './competitionWeekModel'
 import { useCompetitionWeek } from './useCompetitionWeek'
 import { SeasonCompetitionShell } from '../season/SeasonCompetitionShell'
 import { seasonShellDestinations } from '../season/seasonDestinations'
@@ -235,6 +236,28 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                       )}
                     </div>
                     <span className={h.gameDescription}>{game.description}</span>
+
+                    {/* What this game is asking of the player right now, from
+                        the game's OWN read — the same computation Overview's
+                        summary uses, so a card and the panel cannot disagree
+                        about a deadline. A game the player has not joined says
+                        nothing here: it is asking them for nothing. */}
+                    {(() => {
+                      const action = weekActionForGame(week.week, game.gameKey)
+                      if (!action) return null
+                      const when = formatWeekDeadline(action, week.timeZone)
+                      return (
+                        <p
+                          className={
+                            action.outstanding ? h.gameStateOutstanding : h.gameState
+                          }
+                        >
+                          {action.title}
+                          {when ? <span className={h.gameWhen}>{when}</span> : null}
+                        </p>
+                      )
+                    })()}
+
                     <div className={h.actions}>
                       <Button
                         variant={path ? 'primary' : 'secondary'}
