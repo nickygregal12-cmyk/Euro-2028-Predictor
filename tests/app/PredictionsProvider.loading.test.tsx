@@ -6,7 +6,7 @@ import {
 } from '../../src/app/providers/PredictionsProvider'
 
 const mocks = vi.hoisted(() => ({
-  getOrCreateEntry: vi.fn(),
+  fetchMyEntry: vi.fn(),
   fetchMatchPredictions: vi.fn(),
   upsertMatchPrediction: vi.fn(),
   deleteMatchPrediction: vi.fn(),
@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/services/supabase/predictions', () => ({
-  getOrCreateEntry: mocks.getOrCreateEntry,
+  fetchMyEntry: mocks.fetchMyEntry,
   fetchMatchPredictions: mocks.fetchMatchPredictions,
   upsertMatchPrediction: mocks.upsertMatchPrediction,
   deleteMatchPrediction: mocks.deleteMatchPrediction,
@@ -100,7 +100,7 @@ describe('PredictionsProvider late-read protection', () => {
   beforeEach(() => {
     currentApi = null
     vi.clearAllMocks()
-    mocks.getOrCreateEntry.mockResolvedValue({ id: 'entry-1', submittedAt: null })
+    mocks.fetchMyEntry.mockResolvedValue({ id: 'entry-1', submittedAt: null })
     mocks.fetchMatchPredictions.mockResolvedValue([])
     mocks.fetchGoldenBoot.mockResolvedValue({ playerId: null, version: 0 })
     mocks.fetchTieResolutions.mockResolvedValue([])

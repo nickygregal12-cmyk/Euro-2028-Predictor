@@ -6,7 +6,7 @@ import {
 } from '../../src/app/providers/PredictionsProvider'
 
 const mocks = vi.hoisted(() => ({
-  getOrCreateEntry: vi.fn(),
+  fetchMyEntry: vi.fn(),
   fetchMatchPredictions: vi.fn(),
   upsertMatchPrediction: vi.fn(),
   deleteMatchPrediction: vi.fn(),
@@ -21,7 +21,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/services/supabase/predictions', () => ({
-  getOrCreateEntry: mocks.getOrCreateEntry,
+  fetchMyEntry: mocks.fetchMyEntry,
   fetchMatchPredictions: mocks.fetchMatchPredictions,
   upsertMatchPrediction: mocks.upsertMatchPrediction,
   deleteMatchPrediction: mocks.deleteMatchPrediction,
@@ -123,7 +123,7 @@ describe('PredictionsProvider foreground refresh', () => {
     current = null
     vi.clearAllMocks()
     setVisibility('visible')
-    mocks.getOrCreateEntry.mockResolvedValue({ id: 'entry-1', submittedAt: null })
+    mocks.fetchMyEntry.mockResolvedValue({ id: 'entry-1', submittedAt: null })
     mocks.fetchMatchPredictions.mockResolvedValue([row(0, 0, 1)])
     mocks.fetchTieResolutions.mockResolvedValue([])
     mocks.fetchProgression.mockResolvedValue([])
@@ -159,7 +159,7 @@ describe('PredictionsProvider foreground refresh', () => {
         awayScore: 1,
       })
     })
-    expect(mocks.getOrCreateEntry).toHaveBeenCalledTimes(2)
+    expect(mocks.fetchMyEntry).toHaveBeenCalledTimes(2)
   })
 
   it('waits for a pending local save before reading persisted state', async () => {

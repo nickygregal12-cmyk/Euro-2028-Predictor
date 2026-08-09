@@ -192,6 +192,25 @@ export function ProfilePage() {
     )
   }
 
+  // A PROFILE OF ZEROS IS NOT A PROFILE. Every figure below is derived from the
+  // caller's predictions, and a visitor with no entry has none — so before this
+  // said so, they were shown an accuracy breakdown of nothing, zero points and
+  // no rank, all of it perfectly plausible and about nobody. It became the
+  // ordinary case the moment the provider stopped creating an entry just
+  // because somebody opened this page.
+  if (!preds.hasEntry) {
+    return (
+      <div className={s.page}>
+        {header}
+        <Alert variant="info" title="Nothing to show here yet">
+          Your profile is built from the predictions you have made, and you have
+          not entered a competition that reports here. Join a game from your
+          competition and this fills in.
+        </Alert>
+      </div>
+    )
+  }
+
   const leaderboardAvailable = !state.unavailable.includes('leaderboard')
   const leaguesAvailable = !state.unavailable.includes('leagues')
   const eventsAvailable = !state.unavailable.includes('events')

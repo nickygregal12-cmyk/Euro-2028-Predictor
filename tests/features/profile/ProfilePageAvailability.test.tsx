@@ -41,6 +41,11 @@ const context = vi.hoisted(() => ({
   },
   predictions: {
     ready: true,
+    // The page's figures are all derived from the caller's own predictions, so
+    // it now refuses to render them for a visitor holding no entry. This suite
+    // is about which SOURCES are unavailable, which only has meaning for
+    // somebody who has one.
+    hasEntry: true,
     getPrediction: vi.fn(() => ({ homeScore: 2, awayScore: 1, joker: false })),
     tieResolutions: [],
     bracketProgression: {},
@@ -59,7 +64,11 @@ vi.mock('../../../src/app/providers/PredictionsProvider', () => ({
   usePredictions: () => context.predictions,
 }))
 
-vi.mock('../../../src/features/bracket', () => ({
+// The MODULE, not the barrel. ProfilePage stopped importing through
+// `features/bracket/index.ts` because that barrel re-exports four retired
+// bracket screens alongside the pipeline and was putting them in the production
+// bundle. A mock left on the barrel silently stops intercepting.
+vi.mock('../../../src/features/bracket/bracketPipeline', () => ({
   buildBracketPipeline: () => ({ champion: null }),
 }))
 
