@@ -5,6 +5,13 @@ import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
+// Deliberately static, and measured rather than assumed. Making the boundary
+// lazy so a domestic player never downloads the providers looked like the
+// obvious win; it split a shared graph the entry chunk already needed and moved
+// the entry chunk from 75.0 KB gz to 76.9 — over its budget — for 1.1 KB more
+// JavaScript overall. The saving this change makes is the request and the work
+// at runtime, not the download.
+import { TournamentJourney } from './app/TournamentJourney'
 import { weeklyRoutePatterns, weeklyRoutes } from './app/shellRoutes'
 import { RequireAdmin } from './features/admin/RequireAdmin'
 import { AdminLayout } from './features/admin/AdminLayout'
@@ -224,19 +231,32 @@ export default function App() {
                         redirect, never a second weekly information architecture. */}
                     <Route path="/fixtures" element={<Navigate to={weeklyRoutes.matches} replace />} />
                     <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
-                    <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
-
-                    <Route path="/h2h/:rivalId" element={<H2HPage />} />
-                    <Route path="/account" element={<AccountPage />} />
-                    <Route path="/profile" element={<ProfilePage />} />
-                    <Route path="/profile/:playerId" element={<OtherPlayerProfilePage />} />
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                     <Route path="/more/scoring" element={<ScoringRulesPage />} />
+
+                    {/* Everything below answers for the Euro tournament and only
+                        for it, so the tournament data and predictions providers
+                        mount here rather than above the whole shell. A domestic
+                        player never pays for a dataset they cannot reach.
+                        See src/app/TournamentJourney.tsx. */}
+                    <Route element={<TournamentJourney />}>
+                      <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
+                      <Route path="/h2h/:rivalId" element={<H2HPage />} />
+                      <Route path="/account" element={<AccountPage />} />
+                      <Route path="/profile" element={<ProfilePage />} />
+                      <Route path="/profile/:playerId" element={<OtherPlayerProfilePage />} />
+                    </Route>
 
                     <Route element={<RequireAdmin />}>
                       <Route path="/admin" element={<Navigate to="/admin/results" replace />} />
                       <Route element={<AdminLayout />}>
-                        <Route path="/admin/results" element={<AdminResultsWorkspacePage />} />
+                        {/* The Results Centre confirms Euro match results and
+                            reads the tournament to do it. Users administration
+                            does not, and wrapping the whole admin tree would
+                            have made every visit to it load the tournament. */}
+                        <Route element={<TournamentJourney />}>
+                          <Route path="/admin/results" element={<AdminResultsWorkspacePage />} />
+                        </Route>
                         <Route path="/admin/users" element={<AdminUsersPage />} />
                       </Route>
                     </Route>
