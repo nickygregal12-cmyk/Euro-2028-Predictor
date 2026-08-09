@@ -114,7 +114,7 @@ insert into expected_authenticated_functions (signature) values
 insert into expected_authenticated_functions (signature) values
   ('get_provider_review_queues(uuid,integer)'),
   ('acknowledge_provider_review_items(text,uuid[],text)'),
-  ('get_season_fixtures(uuid,timestampwithtimezone,timestampwithtimezone)');
+  ('get_season_fixtures(uuid,timestamp with time zone,timestamp with time zone)');
 
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
 -- Contract 66: generic game catalogue/membership and game-scoped leagues.
