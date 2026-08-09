@@ -1,0 +1,91 @@
+/* Overview's weekly action summary. Tokens only. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The primary action is the one thing to do first, so it is the one raised
+   surface here. Two competing emphases would be no emphasis. */
+.primary,
+.primaryInert {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  border: 1px solid var(--gold-strong);
+  border-radius: var(--radius-input);
+  background: var(--gold-tint);
+  color: var(--tx);
+  text-decoration: none;
+  min-height: var(--tap-min);
+  min-width: 0;
+}
+
+.secondary,
+.secondaryInert {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  color: var(--tx);
+  text-decoration: none;
+  min-height: var(--tap-min);
+  min-width: 0;
+}
+
+.title {
+  font-family: var(--font-body);
+  font-weight: 600;
+  min-width: 0;
+}
+
+.when {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  font-variant-numeric: var(--numeric);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
