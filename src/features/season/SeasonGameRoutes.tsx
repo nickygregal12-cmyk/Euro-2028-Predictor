@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import {
+  competitionChampionshipInstanceRoute,
   competitionRoute,
   logicalWeeklyParent,
   weeklyRoutes,
@@ -21,9 +22,13 @@ import {
 } from '../../services/supabase/seasonPeriodStandings'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
 import { createSeasonLmsRegistrationRpcGateway } from '../../services/supabase/seasonLmsRegistration'
-import { createSeasonCupRpcGateway } from '../../services/supabase/seasonCup'
+import {
+  createSeasonCupDiscoveryRpcGateway,
+  createSeasonCupPlayerViewRpcGateway,
+} from '../../services/supabase/seasonCupPlayer'
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
 import { joinLeague } from '../../services/supabase/leagues'
+import { fetchSeasonLeagueStandingsPage } from '../../services/supabase/seasonLeagueStandings'
 import { isNextUi } from '../../app/routeFlags'
 import { presentPlayInbox } from './playInboxModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
@@ -33,7 +38,11 @@ import { SeasonLeaguesPage } from './SeasonLeaguesPage'
 import { SeasonPlayPage } from './SeasonPlayPage'
 import { SeasonStandingsPage } from './SeasonStandingsPage'
 import { SeasonLmsPage } from './SeasonLmsPage'
-import { SeasonCupPhasePage } from './SeasonCupPhasePage'
+import {
+  SeasonChampionshipIndexPage,
+  SeasonChampionshipPlayerPage,
+  type ChampionshipPageMode,
+} from './SeasonChampionshipPages'
 import s from '../shared.module.css'
 
 type Resolved = {
@@ -275,9 +284,14 @@ function SeasonLmsRouteBody({
   return <SeasonLmsPage gateway={gateway} now={now} registration={registration} />
 }
 
+/**
+ * Championship is now an instance index rather than an alias for the current
+ * public competition. A season can run one public Championship alongside
+ * organiser-created private competitions, and the browser must not silently
+ * collapse those distinct games into the public id.
+ */
 export function SeasonChampionshipRoute() {
   const state = useSeasonRoute()
-  const { userId } = useAuth()
 
   return (
     <RouteFrame
@@ -287,13 +301,67 @@ export function SeasonChampionshipRoute() {
       game="championship"
     >
       {(resolved) => {
-        const competitionId = resolved.gameIds.predictor_cup
-        if (!competitionId) return <MissingGame name="The Predictor Championship" />
+        if (!resolved.gameIds.predictor_cup) {
+          return <MissingGame name="The Predictor Championship" />
+        }
+        return <SeasonChampionshipIndexRouteBody resolved={resolved} />
+      }}
+    </RouteFrame>
+  )
+}
+
+function SeasonChampionshipIndexRouteBody({ resolved }: { resolved: Resolved }) {
+  const gateway = useMemo(
+    () => createSeasonCupDiscoveryRpcGateway({ tournamentId: resolved.tournamentId }),
+    [resolved.tournamentId],
+  )
+  const hrefFor = (competitionId: string) =>
+    competitionChampionshipInstanceRoute(resolved.competition, competitionId)
+
+  return <SeasonChampionshipIndexPage gateway={gateway} hrefFor={hrefFor} />
+}
+
+export function SeasonChampionshipFixtureRoute() {
+  return <SeasonChampionshipPlayerRoute mode="fixture" />
+}
+
+export function SeasonChampionshipTableRoute() {
+  return <SeasonChampionshipPlayerRoute mode="table" />
+}
+
+export function SeasonChampionshipFixturesRoute() {
+  return <SeasonChampionshipPlayerRoute mode="fixtures" />
+}
+
+function SeasonChampionshipPlayerRoute({ mode }: { mode: ChampionshipPageMode }) {
+  const state = useSeasonRoute()
+  const { userId } = useAuth()
+  const { competitionId } = useParams<{ competitionId: string }>()
+
+  return (
+    <RouteFrame
+      title="Predictor Championship"
+      section="games"
+      state={state}
+      game="championship"
+    >
+      {(resolved) => {
+        const publicCompetitionId = resolved.gameIds.predictor_cup
+        if (!publicCompetitionId) return <MissingGame name="The Predictor Championship" />
+        if (!competitionId) {
+          return (
+            <Alert variant="error" title="Championship not found">
+              This Championship address is incomplete.
+            </Alert>
+          )
+        }
         return (
-          <SeasonChampionshipRouteBody
+          <SeasonChampionshipPlayerRouteBody
             tournamentId={resolved.tournamentId}
             competitionId={competitionId}
+            publicCompetitionId={publicCompetitionId}
             userId={userId}
+            mode={mode}
           />
         )
       }}
@@ -301,28 +369,32 @@ export function SeasonChampionshipRoute() {
   )
 }
 
-function SeasonChampionshipRouteBody({
+function SeasonChampionshipPlayerRouteBody({
   tournamentId,
   competitionId,
+  publicCompetitionId,
   userId,
+  mode,
 }: {
   tournamentId: string
   competitionId: string
+  publicCompetitionId: string
   userId: string | null
+  mode: ChampionshipPageMode
 }) {
   const gateway = useMemo(
-    () => createSeasonCupRpcGateway({ competitionId }),
+    () => createSeasonCupPlayerViewRpcGateway({ competitionId }),
     [competitionId],
   )
   const registration = useMemo(
     () =>
-      userId
+      userId && competitionId === publicCompetitionId
         ? createSeasonLmsRegistrationRpcGateway({ tournamentId, competitionId, userId })
         : undefined,
-    [tournamentId, competitionId, userId],
+    [tournamentId, competitionId, publicCompetitionId, userId],
   )
 
-  return <SeasonCupPhasePage gateway={gateway} registration={registration} />
+  return <SeasonChampionshipPlayerPage gateway={gateway} mode={mode} registration={registration} />
 }
 
 export function SeasonLeaguesRoute() {
@@ -360,9 +432,21 @@ function SeasonLeaguesRouteBody({
     [gameCompetitionId],
   )
 
+  // Keyed on nothing: the league id is an argument rather than a closure, so
+  // one gateway serves every card and opening a second table does not remake
+  // the first one's hook.
+  const standings = useMemo(
+    () => ({
+      load: (leagueId: string, cursor: string | null) =>
+        fetchSeasonLeagueStandingsPage(leagueId, { after: cursor }),
+    }),
+    [],
+  )
+
   return (
     <SeasonLeaguesPage
       gateway={gateway}
+      standings={standings}
       gameName="Match Predictor"
       joinedGame={joinedGame}
     />

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { SeasonGameSubNav } from '../../../src/features/season/SeasonGameSubNav'
 
 const BASE = '/competitions/premier-league/2026-27'
+const CUP_ID = '60000000-0000-0000-0000-000000000103'
 
 function renderNav(game: 'match-predictor' | 'lms' | 'championship', path: string) {
   render(
@@ -46,12 +47,25 @@ describe('SeasonGameSubNav', () => {
     }
   })
 
-  it('names the delivered Championship surface Table and keeps future views disabled', () => {
+  it('makes the Championship game root an instance chooser', () => {
     renderNav('championship', `${BASE}/games/championship`)
 
+    expect(screen.getByText('Championships').getAttribute('aria-current')).toBe('page')
+    expect(screen.queryByText('My Fixture')).toBeNull()
+  })
+
+  it('makes My Fixture, Table and Fixtures live inside a selected Championship', () => {
+    const instance = `${BASE}/games/championship/${CUP_ID}`
+    renderNav('championship', `${instance}/table`)
+
     expect(screen.getByText('Table').getAttribute('aria-current')).toBe('page')
-    for (const label of ['My Fixture', 'Fixtures', 'History']) {
-      expect(screen.getByText(label).getAttribute('aria-disabled')).toBe('true')
-    }
+    expect(screen.getByRole('link', { name: 'My Fixture' }).getAttribute('href')).toBe(instance)
+    expect(screen.getByRole('link', { name: 'Fixtures' }).getAttribute('href')).toBe(
+      `${instance}/fixtures`,
+    )
+    expect(screen.getByText('History').getAttribute('aria-disabled')).toBe('true')
+    expect(
+      screen.getByRole('link', { name: 'Back to Championships' }).getAttribute('href'),
+    ).toBe(`${BASE}/games/championship`)
   })
 })

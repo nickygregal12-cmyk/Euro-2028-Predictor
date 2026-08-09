@@ -1,3 +1,7 @@
+import { weeklyRoutePatterns, weeklyRoutes } from './shellRoutes'
+
+export { isCompetitionModePath, weeklyRoutePatterns, weeklyRoutes } from './shellRoutes'
+
 export type CompetitionRouteRef = {
   competitionSlug: string
   seasonSlug: string
@@ -5,14 +9,6 @@ export type CompetitionRouteRef = {
 
 export type CompetitionSection = 'overview' | 'play' | 'matches' | 'games' | 'leagues'
 export type DomesticGameRoute = 'match-predictor' | 'lms' | 'championship'
-
-export const weeklyRoutes = {
-  hub: '/',
-  play: '/play',
-  matches: '/matches',
-  leagues: '/leagues',
-  more: '/more',
-} as const
 
 function cleanSegment(value: string, name: string): string {
   const trimmed = value.trim()
@@ -22,28 +18,36 @@ function cleanSegment(value: string, name: string): string {
   return trimmed
 }
 
-export function competitionRoute(ref: CompetitionRouteRef): string {
+function renderCompetitionPattern(
+  pattern: string,
+  ref: CompetitionRouteRef,
+): string {
   const competition = cleanSegment(ref.competitionSlug, 'competition')
   const season = cleanSegment(ref.seasonSlug, 'season')
-  return `/competitions/${competition}/${season}`
+  return pattern
+    .replace(':competitionSlug', competition)
+    .replace(':seasonSlug', season)
+}
+
+export function competitionRoute(ref: CompetitionRouteRef): string {
+  return renderCompetitionPattern(weeklyRoutePatterns.competition, ref)
 }
 
 export function competitionSectionRoute(
   ref: CompetitionRouteRef,
   section: CompetitionSection,
 ): string {
-  const base = competitionRoute(ref)
   switch (section) {
     case 'overview':
-      return base
+      return competitionRoute(ref)
     case 'play':
-      return `${base}/play`
+      return renderCompetitionPattern(weeklyRoutePatterns.play, ref)
     case 'matches':
-      return `${base}/matches`
+      return renderCompetitionPattern(weeklyRoutePatterns.matches, ref)
     case 'games':
-      return `${base}/games`
+      return renderCompetitionPattern(weeklyRoutePatterns.games, ref)
     case 'leagues':
-      return `${base}/leagues`
+      return renderCompetitionPattern(weeklyRoutePatterns.leagues, ref)
     default:
       return assertNever(section)
   }
@@ -53,31 +57,50 @@ export function competitionGameRoute(
   ref: CompetitionRouteRef,
   game: DomesticGameRoute,
 ): string {
-  const games = competitionSectionRoute(ref, 'games')
   switch (game) {
     case 'match-predictor':
-      return `${games}/match-predictor`
+      return renderCompetitionPattern(weeklyRoutePatterns.matchPredictor, ref)
     case 'lms':
-      return `${games}/lms`
+      return renderCompetitionPattern(weeklyRoutePatterns.lms, ref)
     case 'championship':
-      return `${games}/championship`
+      return renderCompetitionPattern(weeklyRoutePatterns.championship, ref)
     default:
       return assertNever(game)
   }
 }
 
 export function competitionGameStandingsRoute(ref: CompetitionRouteRef): string {
-  return `${competitionGameRoute(ref, 'match-predictor')}/standings`
+  return renderCompetitionPattern(weeklyRoutePatterns.matchPredictorStandings, ref)
+}
+
+export function competitionChampionshipInstanceRoute(
+  ref: CompetitionRouteRef,
+  competitionId: string,
+): string {
+  return `${competitionGameRoute(ref, 'championship')}/${cleanSegment(
+    competitionId,
+    'Championship competition',
+  )}`
+}
+
+export function competitionChampionshipTableRoute(
+  ref: CompetitionRouteRef,
+  competitionId: string,
+): string {
+  return `${competitionChampionshipInstanceRoute(ref, competitionId)}/table`
+}
+
+export function competitionChampionshipFixturesRoute(
+  ref: CompetitionRouteRef,
+  competitionId: string,
+): string {
+  return `${competitionChampionshipInstanceRoute(ref, competitionId)}/fixtures`
 }
 
 export function competitionRefFromPath(pathname: string): CompetitionRouteRef | null {
   const match = pathname.match(/^\/competitions\/([^/]+)\/([^/]+)(?:\/|$)/)
   if (!match?.[1] || !match[2]) return null
   return { competitionSlug: match[1], seasonSlug: match[2] }
-}
-
-export function isCompetitionModePath(pathname: string): boolean {
-  return competitionRefFromPath(pathname) !== null
 }
 
 export type LogicalParent = {
@@ -87,6 +110,8 @@ export type LogicalParent = {
     | 'Back to Competition'
     | 'Back to Games'
     | 'Back to Match Predictor'
+    | 'Back to Championships'
+    | 'Back to Championship'
     | 'Back to Leagues'
     | 'Back to Matches'
     | 'Back to More'
@@ -96,8 +121,10 @@ export type LogicalParent = {
  * Deterministic weekly parent for routes whose parent can be derived from their
  * address alone. Browser history is deliberately irrelevant here.
  *
- * The deeper canonical route families are included before they ship so a direct
- * not-found URL still has the same useful fallback the eventual page will own.
+ * Championship instances are one level below the game index. The instance is
+ * the parent of My Fixture/Table/Fixtures, while the Championship index is the
+ * parent of the instance itself. That keeps a direct/reloaded URL useful and
+ * avoids treating a private competition as if it were the only Championship.
  */
 export function logicalWeeklyParent(pathname: string): LogicalParent | null {
   const ref = competitionRefFromPath(pathname)
@@ -107,6 +134,7 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
     const games = competitionSectionRoute(ref, 'games')
     const leagues = competitionSectionRoute(ref, 'leagues')
     const matchPredictor = competitionGameRoute(ref, 'match-predictor')
+    const championship = competitionGameRoute(ref, 'championship')
 
     if (
       pathname === competitionGameStandingsRoute(ref) ||
@@ -114,6 +142,21 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
     ) {
       return { href: matchPredictor, label: 'Back to Match Predictor' }
     }
+
+    if (pathname.startsWith(`${championship}/`)) {
+      const suffix = pathname.slice(championship.length + 1)
+      const [competitionId, child, ...rest] = suffix.split('/').filter(Boolean)
+      if (competitionId && (child || rest.length > 0)) {
+        return {
+          href: competitionChampionshipInstanceRoute(ref, competitionId),
+          label: 'Back to Championship',
+        }
+      }
+      if (competitionId) {
+        return { href: championship, label: 'Back to Championships' }
+      }
+    }
+
     if (pathname.startsWith(`${games}/`)) {
       return { href: games, label: 'Back to Games' }
     }

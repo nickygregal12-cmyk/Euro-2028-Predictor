@@ -86,6 +86,13 @@ describe('route categories', () => {
     ['/auth/login', 'auth'],
     ['/join/ABC', 'invite'],
     ['/predict/groups/A', 'predictor'],
+    ['/competitions/premier-league/2026-27/games/match-predictor', 'season-predictor'],
+    [
+      '/competitions/premier-league/2026-27/games/match-predictor/standings',
+      'season-standings',
+    ],
+    ['/competitions/scottish-premiership/2026-27/games/lms', 'season-lms'],
+    ['/competitions/premier-league/2026-27/main-predictor', 'unknown'],
     ['/league/example', 'league'],
     ['/h2h/example', 'head-to-head'],
     ['/match/M1', 'matches'],
