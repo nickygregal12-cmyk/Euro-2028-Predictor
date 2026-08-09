@@ -1,0 +1,124 @@
+name: Contract 134 authority sync
+
+on:
+  push:
+    branches:
+      - agent/euro-002-publication-state-contract-134
+    paths:
+      - .github/workflows/contract134-authority-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/euro-002-publication-state-contract-134
+          fetch-depth: 0
+      - name: Align Contract 134 authorities
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          marker = "Contract 134 repository candidate — EURO-002 publication state"
+          note = (
+              f"> **{marker} (9 August 2026):** `20260809001500_euro_publication_state.sql` "
+              "adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. "
+              "It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent "
+              "state transitions to signed-in `super_admin`, and records actor/reason history append-only. "
+              "This is repository Contract 134 only: it does **not** claim a Development or Production "
+              "rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.\n"
+          )
+
+          authority_files = [
+              "AGENTS.md",
+              "CLAUDE.md",
+              "MASTER-TODO.md",
+              "docs/roadmap.md",
+              "docs/quality/current-status.md",
+              "docs/ops/ops-pending-migrations.md",
+              "docs/quality/feature-baseline.md",
+              "docs/adr/README.md",
+              "docs/design/README.md",
+              "docs/competition-structure.md",
+              "docs/architecture/programme-plan.md",
+              "docs/architecture/multi-competition-hub-build-plan.md",
+          ]
+
+          for name in authority_files:
+              path = Path(name)
+              text = path.read_text()
+              if marker in text:
+                  continue
+              lines = text.splitlines(keepends=True)
+              insert_at = 1 if lines and lines[0].startswith("#") else 0
+              lines[insert_at:insert_at] = ["\n", note, "\n"]
+              path.write_text("".join(lines))
+
+          adr = Path("docs/adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md")
+          text = adr.read_text()
+          text = text.replace(
+              "- **Status:** Accepted direction — unimplemented",
+              "- **Status:** Accepted direction — EURO-002 implemented in repository Contract 134 candidate",
+              1,
+          )
+          text = text.replace(
+              "| Status | Accepted direction — unimplemented |",
+              "| Status | Accepted direction — EURO-002 implemented in repository Contract 134 candidate |",
+              1,
+          )
+          text = text.replace("| Last verified | 2026-08-06 |", "| Last verified | 2026-08-09 |", 1)
+          text = text.replace(
+              "| Related work | Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) (Stage C2 data protection, open); no open pull request implements any part of this record |",
+              "| Related work | Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) (Stage C2 data protection, open); draft PR #602 implements EURO-002 as repository Contract 134 only |",
+              1,
+          )
+          text = text.replace(
+              "| Implementation truth | None. No second Netlify site, no publication-state column, no redirect-allow-list entry and no age gate exists in merged code. The requirement register in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) tracks each clause |",
+              "| Implementation truth | EURO-002 has a repository Contract 134 candidate: one default-hidden server state, bounded read, owner-only adjacent transition RPC and append-only transition history. It is not applied to hosted Development or Production. SITE-002–SITE-007, EURO-003, EURO-004 and AGE-001 remain unimplemented; the requirement register in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) tracks each clause |",
+              1,
+          )
+          text = text.replace(
+              "Nothing in this record is implemented.\n\nThree things it *depends on* already exist and are not claimed as implementing it:",
+              "EURO-002 is implemented in the repository Contract 134 candidate only. `predictor_internal.euro_publication_state` owns one default-`hidden` value, `public.euro_publication_state()` exposes only state and change time, and `public.admin_transition_euro_publication_state(...)` permits a signed-in `super_admin` to advance one adjacent lifecycle state with expected-state checking and a mandatory reason. Every successful change is written to append-only transition history. No hosted rollout is claimed.\n\nThe rest of this ADR remains unimplemented. Three things it *depends on* already exist and are not claimed as implementing the remaining clauses:",
+              1,
+          )
+          text = text.replace(
+              "Every clause above is unimplemented and carries a stable identifier.",
+              "Every clause above except EURO-002 remains unimplemented and carries a stable identifier.",
+              1,
+          )
+          text = text.replace(
+              "- there is no publication-state column, enum, RPC or route guard; the weekly Hub still lists Euro 2028 from a static catalogue;",
+              "- the Contract 134 repository candidate supplies the publication-state enum/current-state/history and bounded RPCs, but there is no hosted apply and no EURO-004 route guard yet; the weekly Hub still lists Euro 2028 from a static catalogue;",
+              1,
+          )
+          text = text.replace(
+              "At the time of writing no open pull request implements any clause of this record.",
+              "Draft PR #602 implements EURO-002 as the repository-only Contract 134 candidate; it deliberately does not change the catalogue, landing page, metadata or route guards.",
+              1,
+          )
+          adr.write_text(text)
+
+          req = Path("docs/quality/accepted-requirements.md")
+          text = req.read_text()
+          text = text.replace("| Last verified | 2026-08-07 |", "| Last verified | 2026-08-09 |", 1)
+          old = "| `EURO-002` | Server-owned publication states: hidden, prelaunch, registration-open, live, completed, archived | — | Persisted state with one authority, and a transition record | Accepted — unimplemented |"
+          new = "| `EURO-002` | Server-owned publication states: hidden, prelaunch, registration-open, live, completed, archived | — | Persisted state with one authority, and a transition record | **Implemented in repository Contract 134 candidate** — default hidden, bounded read, owner-only adjacent transitions and append-only transition history; hosted rollout not claimed |"
+          if old not in text:
+              raise SystemExit("EURO-002 requirement row did not match expected authority text")
+          req.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit authority alignment
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add AGENTS.md CLAUDE.md MASTER-TODO.md docs
+          git commit -m "Contract 134: align publication-state authorities"
+          git push origin HEAD:agent/euro-002-publication-state-contract-134
