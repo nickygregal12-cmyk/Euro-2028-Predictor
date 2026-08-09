@@ -1,0 +1,172 @@
+/* Overview's fixtures card. Denser than the Matches list on purpose: this is a
+   glance, not the section. Tokens only; every size is a scale step. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-2);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-open);
+  color: var(--tx2);
+}
+
+/* What is NOT on this card. Said plainly so four rows never read as the whole
+   fortnight. */
+.more {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx3);
+  white-space: nowrap;
+}
+
+.none {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.retry {
+  margin-top: var(--sp-2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Day above, fixture below. Two lines rather than four columns: the card is
+   narrower than the Matches list and a date column would take the room the
+   club names need. */
+.match {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--tap-min);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.match:last-child {
+  border-bottom: 0;
+}
+
+.when {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.fixture {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+  min-width: 0;
+}
+
+.home,
+.away {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.home {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.away {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.clubName {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A confirmed result carries the weight a kickoff time does not — weight and
+   colour, not colour alone (§11.8). */
+.score {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+  white-space: nowrap;
+}
+
+.kickoff {
+  text-align: center;
+  font-family: var(--font-body);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  white-space: nowrap;
+}
+
+.rowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.tag,
+.provisional {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+/* Marked, not coloured: a provisional score that differed only by hue would
+   read as a result to anyone who cannot see the difference. */
+.provisional::before {
+  content: '· ';
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

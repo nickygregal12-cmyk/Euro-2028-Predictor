@@ -40,7 +40,7 @@
   margin: 0;
   padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--chip);
   font-family: var(--font-body);
   font-size: var(--fs-1);
@@ -81,7 +81,7 @@
   padding: 0;
   list-style: none;
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--card);
   overflow: hidden;
 }

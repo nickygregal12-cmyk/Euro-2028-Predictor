@@ -43,6 +43,13 @@ vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
   createSeasonCupPlayerViewRpcGateway: () => ({ load: () => new Promise(() => {}) }),
 }))
 
+// Overview's fixtures card. Its own behaviour is proven against
+// `previewFixtures` and `SeasonFixturePreview` directly; here it only needs to
+// not tear the page down while it loads.
+vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({
+  fetchSeasonFixtureList: () => new Promise(() => {}),
+}))
+
 const MAIN_PREDICTOR_ID = '60000000-0000-0000-0000-000000000101'
 const SERVER_NOW = '2026-08-06T12:00:00Z'
 

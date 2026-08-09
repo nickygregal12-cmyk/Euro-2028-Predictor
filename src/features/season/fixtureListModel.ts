@@ -73,6 +73,61 @@ export type FixtureListView = {
   hasRescheduled: boolean
 }
 
+/**
+ * A handful of rows from the same window, for a surface that is not the fixture
+ * list — Overview's "what is on".
+ *
+ * IT IS A SLICE OF THE LIST, NOT A SECOND READ OF IT. Deriving the preview from
+ * the view the Matches section already builds is what stops the two disagreeing:
+ * one order, one set of labels, one rule about provisional scores. A separate
+ * model over the same fixtures would be a second answer to the same question,
+ * which is the shape the by-round view was retired for.
+ */
+export type FixturePreviewRow = FixtureListRow & {
+  /** The day this row sits under, carried on the row because a preview has no
+   *  day headings to sit under. */
+  dayLabel: string
+}
+
+export type FixturePreview = {
+  /**
+   * `upcoming` when the window still holds a fixture that has not been played
+   * and the list runs forward from it; `results` when every fixture in the
+   * window is played and the list is the most recent of them. The distinction
+   * is the heading's, and it must come from the data rather than from a clock.
+   */
+  kind: 'upcoming' | 'results'
+  rows: readonly FixturePreviewRow[]
+  /** Fixtures in the same window that this preview is not showing. */
+  hidden: number
+  empty: boolean
+}
+
+export function previewFixtures(view: FixtureListView, limit: number): FixturePreview {
+  const all: FixturePreviewRow[] = view.days.flatMap((day) =>
+    day.rows.map((row) => ({ ...row, dayLabel: day.label })),
+  )
+
+  // The first fixture the server has not marked played — never a comparison
+  // against now, which would call an abandoned match finished and a delayed one
+  // over. The days are already in kickoff order, so the rows after it are the
+  // ones still to come.
+  const next = all.findIndex((row) => !row.played)
+  const rows =
+    next === -1
+      ? // Every fixture in the window is played, so the useful few are the last
+        // ones rather than the first: a season's most recent results.
+        all.slice(Math.max(0, all.length - limit))
+      : all.slice(next, next + limit)
+
+  return {
+    kind: next === -1 ? 'results' : 'upcoming',
+    rows,
+    hidden: all.length - rows.length,
+    empty: all.length === 0,
+  }
+}
+
 function parts(
   instant: string,
   timeZone: string,
