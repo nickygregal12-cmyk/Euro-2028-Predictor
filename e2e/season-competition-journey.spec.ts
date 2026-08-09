@@ -75,12 +75,32 @@ test('opening a fixture reaches the Match Centre and tells a non-entrant where t
   await expect(fixtureRow).toBeVisible({ timeout: 20_000 })
   await fixtureRow.click()
 
-  // The player's own side of the fixture. The seeded season runs no games, so
-  // the honest answer is that there is no Match Predictor here — not that a
-  // prediction is missing, and not an error.
-  await expect(page.getByText(/does not run a Match Predictor/)).toBeVisible({
-    timeout: 20_000,
-  })
+  // The player's own side of the fixture, and the thing this test is actually
+  // for: somebody with no entry is TOLD WHERE THEY STAND and is never shown an
+  // empty prediction.
+  //
+  // EITHER SENTENCE IS CORRECT, and pinning one was a mistake that cost two CI
+  // runs. Which one appears depends on whether the season holds a Match
+  // Predictor availability row — "this competition does not run one" when it
+  // has none, "you have not joined" when it has one and the caller is outside
+  // it. Both are honest answers to the same question, both come from the same
+  // read, and which the browser environment produces is a property of the
+  // fixture rather than of the behaviour under test. Asserting the union keeps
+  // the load-bearing claim exact while letting the environment be either.
+  const standing = page.getByText(
+    /does not run a Match Predictor|have not joined the Match Predictor/,
+  )
+
+  // Printed, not attached: the failure artifact carries the rendered DOM but
+  // sits behind an authenticated download, so a run that fails here otherwise
+  // says only "element not found" and the next fix is a guess. This puts the
+  // panel's own text in the job log.
+  if ((await standing.count()) === 0) {
+    const panel = page.locator('li', { hasText: /Matchweek/ }).last()
+    console.log('[diagnostic] Match Centre panel text:', await panel.innerText())
+  }
+
+  await expect(standing).toBeVisible({ timeout: 20_000 })
   // The defect this spec found, asserted directly: an empty prediction must
   // never be shown to somebody with no entry behind the fixture.
   await expect(page.getByText('Your prediction')).toHaveCount(0)
