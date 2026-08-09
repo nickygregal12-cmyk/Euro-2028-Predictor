@@ -134,6 +134,11 @@ describe('row-level security', () => {
       // a bounded read rather than a competition relation, and because it is
       // not provider data and must not be mistaken for it.
       { schema: 'predictor_internal', name: 'club_identity_reference' },
+      // Contract 138. Who acknowledged which review item, and why. One
+      // relation for every queue kind, so contracts 117 and 123 gain an actor
+      // without either of their tables being altered. Internal because it is
+      // an operations record rather than anything a player reads.
+      { schema: 'predictor_internal', name: 'provider_review_acknowledgements' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

@@ -107,6 +107,7 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'match_result_revisions.actor_id -> set null',
   // Contract 125, the season counterpart of the row above it.
   'season_fixture_result_revisions.actor_id -> set null',
+  'provider_review_acknowledgements.actor_id -> set null',
   'profiles.id -> cascade',
   'rank_history.user_id -> cascade',
   'rate_limit_events.user_id -> cascade',

@@ -99,6 +99,10 @@ describe('account deletion — declared foreign-key semantics', () => {
       // null on erasure for the same reason as every other actor column: the
       // audit trail is evidence and survives the account that made it.
       '20260806160000_season_fixture_result_entry.sql season_fixture_result_revisions.actor_id → set null',
+      // Contract 138. Who acknowledged a provider review item. Set null on
+      // deletion for the same reason as every other audit actor here: the
+      // record that a human looked stays true after that human leaves.
+      '20260809080000_provider_review_queues.sql provider_review_acknowledgements.actor_id → set null',
     ])
   })
 
@@ -156,6 +160,7 @@ describe('account deletion — consequences', () => {
       'bonus_competition_audit.actor_id',
       'game_membership_events.actor_id',
       'match_result_revisions.actor_id',
+      'provider_review_acknowledgements.actor_id',
       'season_fixture_result_revisions.actor_id',
     ])
   })

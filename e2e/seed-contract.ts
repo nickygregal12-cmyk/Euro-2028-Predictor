@@ -759,11 +759,17 @@
  * reference rows. It adds no relation, no grant and no gate, and it makes MORE
  * clubs resolve than before, so no seeded read can be narrowed by it.
  *
+ * Raised again to 139. Contract 138 adds two admin-gated RPCs a seeded player
+ * cannot execute — the gate refuses inside, which its own suite drives with a
+ * real non-admin session — and one internal relation with no browser grant.
+ * Contract 139 adds a read that any signed-in caller may make and that
+ * discloses no entry, so it cannot narrow an existing seeded journey either.
+ *
  * Exact-head Database parity and Browser E2E must still both pass on the
- * contract 135/136/137 pull request before this marker is relied on — the reasoning
+ * contract 138/139 pull request before this marker is relied on — the reasoning
  * above is what makes raising it defensible, not what verifies it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 137
+export const SEED_REVIEWED_AT_CONTRACT = 139
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

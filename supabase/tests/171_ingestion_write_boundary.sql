@@ -169,6 +169,14 @@ insert into ingestion_functions (name, permitted_writes) values
   ('consume_provider_responses',
    'contract 135. The consumption record that makes the driver idempotent. It '
    'routes to contracts 117, 132 and the applier and writes nothing else.'),
+  ('get_provider_review_queues',
+   'contract 138. Reads the seven review queues bounded per section and writes '
+   'nothing at all -- it is declared stable.'),
+  ('acknowledge_provider_review_items',
+   'contract 138. Marks reviewed_at on the five acknowledgeable queues and '
+   'appends the acknowledgement record naming the actor. Every one of those is '
+   'internal: it writes no public relation, decides nothing about the item it '
+   'marks, and cannot apply a result the provider was refused.'),
   ('provider_status_kind',             'reads the status vocabulary; writes nothing.'),
   ('resolve_provider_response_season', 'resolves which season a response is about; writes nothing.'),
   ('provider_mapping_gaps',            'reports unmapped identifiers; writes nothing.'),
