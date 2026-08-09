@@ -13,16 +13,16 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **133** | latest `20260808003000_private_season_cup_player_reads.sql` |
+| Repository | **134** | latest `20260809001500_euro_publication_state.sql` |
 | Development hosted | **132** | at `20260807210812_provider_initial_fixture_approval.sql`, verified `2026-08-08T04:18:00.000Z` |
 | Production | **132** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** 1 — `20260808003000_private_season_cup_player_reads.sql`
+**Pending development migrations:** 2 — `20260808003000_private_season_cup_player_reads.sql`, `20260809001500_euro_publication_state.sql`
 
-**Next free contract number:** 134. Check open pull requests
+**Next free contract number:** 135. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -36,7 +36,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**30** accepted requirements are outstanding, of which **6** are blocked — ACCOUNT 5, AGE 1, CAP 5, EURO 4, INGEST 3, PRIV 5, SITE 7. A further 5 are marked implemented and retained in the register.
+**29** accepted requirements are outstanding, of which **6** are blocked — ACCOUNT 5, AGE 1, CAP 5, EURO 3, INGEST 3, PRIV 5, SITE 7. A further 6 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).
