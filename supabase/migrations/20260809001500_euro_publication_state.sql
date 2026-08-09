@@ -25,8 +25,11 @@ create table predictor_internal.euro_publication_state (
   constraint euro_publication_state_singleton check (singleton = true)
 );
 
+-- RLS plus no browser/service table grants keeps the storage private while the
+-- SECURITY DEFINER RPC owner can perform the deliberately bounded read/write.
+-- FORCE RLS is intentionally not used: with no table policies it would also
+-- deny the definer owner and turn the RPCs into non-functional controls.
 alter table predictor_internal.euro_publication_state enable row level security;
-alter table predictor_internal.euro_publication_state force row level security;
 
 insert into predictor_internal.euro_publication_state (singleton, state)
 values (true, 'hidden');
@@ -42,7 +45,6 @@ create table predictor_internal.euro_publication_transitions (
 );
 
 alter table predictor_internal.euro_publication_transitions enable row level security;
-alter table predictor_internal.euro_publication_transitions force row level security;
 
 create or replace function predictor_internal.refuse_euro_publication_history_mutation()
 returns trigger
