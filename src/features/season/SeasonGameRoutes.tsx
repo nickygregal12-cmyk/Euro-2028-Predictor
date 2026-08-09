@@ -24,6 +24,7 @@ import { createSeasonLmsRegistrationRpcGateway } from '../../services/supabase/s
 import { createSeasonCupRpcGateway } from '../../services/supabase/seasonCup'
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
 import { joinLeague } from '../../services/supabase/leagues'
+import { fetchSeasonLeagueStandingsPage } from '../../services/supabase/seasonLeagueStandings'
 import { isNextUi } from '../../app/routeFlags'
 import { presentPlayInbox } from './playInboxModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
@@ -360,9 +361,21 @@ function SeasonLeaguesRouteBody({
     [gameCompetitionId],
   )
 
+  // Keyed on nothing: the league id is an argument rather than a closure, so
+  // one gateway serves every card and opening a second table does not remake
+  // the first one's hook.
+  const standings = useMemo(
+    () => ({
+      load: (leagueId: string, cursor: string | null) =>
+        fetchSeasonLeagueStandingsPage(leagueId, { after: cursor }),
+    }),
+    [],
+  )
+
   return (
     <SeasonLeaguesPage
       gateway={gateway}
+      standings={standings}
       gameName="Match Predictor"
       joinedGame={joinedGame}
     />

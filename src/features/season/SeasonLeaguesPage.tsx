@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Alert, Button, EmptyState, Skeleton, TextInput } from '../../design-system'
 import { InvitePanel } from '../leagues/InvitePanel'
 import { presentGameLeagues, type SeasonLeaguesGateway } from './gameLeaguesModel'
+import type { SeasonLeagueStandingsGateway } from './leagueStandingsModel'
+import { SeasonLeagueStandings } from './SeasonLeagueStandings'
 import { useSeasonLeagues } from './useSeasonLeagues'
 import styles from './SeasonLeaguesPage.module.css'
 
@@ -13,11 +15,15 @@ import styles from './SeasonLeaguesPage.module.css'
  * has three separate things a private league could mean. A heading reading
  * "Leagues" alone would assert a competition-wide ranking that does not exist.
  *
- * NO LEAGUE OPENS INTO A TABLE, and the page says so rather than leaving the
- * absence to be discovered. The read that would rank a league's members is
- * written against the tournament scoring tables and would return zero for
- * every member of a season league — see `gameLeaguesModel` for the detail. A
- * card that navigates nowhere is honest; a table of zeroes is not.
+ * A LEAGUE OPENS INTO ITS TABLE, IN PLACE, AND ONE AT A TIME. This page used
+ * to state that no table could be shown, because the only read available
+ * ranked by the tournament scoring tables and would have returned zero for
+ * every member of a season league; contract 128 supplied the read that
+ * genuinely answers, so the note is gone and the table is here. It expands
+ * within the card rather than navigating, because a member belongs to several
+ * leagues in the same game and comparing two of them should not cost two
+ * journeys. Only one is open at a time: two tables of the same players on the
+ * same screen invite exactly the cross-league comparison neither of them means.
  *
  * A REFUSAL IS A SENTENCE, NEVER A DEAD CONTROL. When the caller has not
  * joined the game, the create form is replaced by the reason — not disabled
@@ -30,6 +36,12 @@ import styles from './SeasonLeaguesPage.module.css'
 
 export type SeasonLeaguesPageProps = {
   gateway: SeasonLeaguesGateway
+  /**
+   * The per-league table read. Required rather than optional: the surface spent
+   * its whole life so far explaining why there was no table, and an optional
+   * gateway is how it would quietly go back to having none.
+   */
+  standings: SeasonLeagueStandingsGateway
   /** The game these leagues belong to, as the interface names it. */
   gameName: string
   /** Whether the caller holds an active membership in that game. */
@@ -40,6 +52,7 @@ const SKELETON_CARDS = 2
 
 export function SeasonLeaguesPage({
   gateway,
+  standings,
   gameName,
   joinedGame,
 }: SeasonLeaguesPageProps) {
@@ -58,6 +71,8 @@ export function SeasonLeaguesPage({
 
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  // One open table at a time; tapping the open one closes it.
+  const [openLeagueId, setOpenLeagueId] = useState<string | null>(null)
 
   const view = presentGameLeagues({ gameName, joinedGame, leagues })
 
@@ -114,21 +129,47 @@ export function SeasonLeaguesPage({
         />
       ) : (
         <ul className={styles.list}>
-          {view.leagues.map((league) => (
-            <li key={league.id} className={styles.card}>
-              <h3 className={styles.cardName}>{league.name}</h3>
-              <p className={styles.cardMeta}>
-                {league.memberLine} · {league.ownerLine}
-              </p>
-              <InvitePanel leagueName={league.name} code={league.inviteCode} mode="chip" />
-            </li>
-          ))}
+          {view.leagues.map((league) => {
+            const open = openLeagueId === league.id
+            const tableId = `league-table-${league.id}`
+            return (
+              <li key={league.id} className={styles.card}>
+                <h3 className={styles.cardName}>{league.name}</h3>
+                <p className={styles.cardMeta}>
+                  {league.memberLine} · {league.ownerLine}
+                </p>
+                <InvitePanel leagueName={league.name} code={league.inviteCode} mode="chip" />
+
+                {/* The control names the league it opens, so a screen-reader
+                    user moving between cards is never left with a list of
+                    identical "View table" buttons. */}
+                {/* `aria-controls` only while the table exists: pointing at an
+                    id that is not in the document is what axe reports as an
+                    invalid attribute value, and the repository counts axe's
+                    incomplete results rather than discarding them. */}
+                <Button
+                  variant="secondary"
+                  aria-expanded={open}
+                  aria-controls={open ? tableId : undefined}
+                  onClick={() => setOpenLeagueId(open ? null : league.id)}
+                >
+                  {open ? `Hide ${league.name} table` : `View ${league.name} table`}
+                </Button>
+
+                {open ? (
+                  <div id={tableId}>
+                    <SeasonLeagueStandings
+                      gateway={standings}
+                      leagueId={league.id}
+                      leagueName={league.name}
+                    />
+                  </div>
+                ) : null}
+              </li>
+            )
+          })}
         </ul>
       )}
-
-      {/* Stated once, beneath the list, so a player who taps a card and finds
-          nothing has already been told why there is nothing to tap. */}
-      <p className={styles.note}>{view.standingsNote}</p>
 
       <div className={styles.forms}>
         <form className={styles.form} onSubmit={onCreate}>
