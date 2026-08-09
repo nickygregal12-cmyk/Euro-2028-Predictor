@@ -191,20 +191,28 @@ static import made it construct the real client, which throws without
 the browser reaches contract 128's read at all — the precise thing that was
 missing.
 
-**CI status when this report was finalised.** Nine of the ten checks had
-completed and **every one passed**: `authenticated-browser` (the full Browser
-E2E suite, including the axe accessibility sweep over the leagues route — the
-one gate this sandbox could not run), `deploy-preview-smoke`, both CodeQL
-analyses, and the Netlify header/redirect/pages checks. Inside the `ci` job,
-build, **compressed bundle budgets**, lint, domain-coverage thresholds,
-migration-timestamp validation, the documentation-authority check and the
-generated-current-state check had all passed; only its Vitest step was still
-running. This report does not claim a result it does not have. I am subscribed
-to the pull request and will act on a failure if one arrives.
+**CI: green in full.** Observed complete against commit `1148bf7`, and matching
+the earlier run against the code commit `a88657b` up to the point that run was
+superseded. Every check passed, with nothing skipped that should have run:
+
+| Check | Result |
+| --- | --- |
+| `ci` — migration timestamps, documentation authorities, generated current-state, git-less hygiene, build, **compressed bundle budgets**, lint, domain-coverage thresholds, full Vitest, production dependency audit | **success** |
+| `authenticated-browser` — full Browser E2E, including the axe accessibility sweep over the leagues route | **success** |
+| `deploy-preview-smoke` | **success** |
+| CodeQL — `javascript-typescript` and `actions` | **success** |
+| Netlify header rules, redirect rules | **success** |
+| Supabase Preview | skipped (no migration) |
+
+The Browser E2E and bundle-budget results are the two this sandbox could not
+produce, and both are the ones that most needed CI: the first exercises the new
+expandable control against axe, and the second proves the season bundle's growth
+stays inside budget.
 
 ## 5. Merge outcome
 
-**Held for your review. Not merged, and auto-merge not enabled.**
+**Held for your review. Not merged, and auto-merge not enabled. CI is green —
+the hold is a policy decision, not a red build.**
 
 The stated policy holds a batch that touches "scoring or points,
 ranking/leaderboards … or anything that could affect official tournament data".
