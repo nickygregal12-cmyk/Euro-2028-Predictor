@@ -2,7 +2,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SeasonLeaguesPage } from '../../../src/features/season/SeasonLeaguesPage'
 import type { SeasonLeaguesGateway } from '../../../src/features/season/gameLeaguesModel'
+import type { SeasonLeagueStandingsGateway } from '../../../src/features/season/leagueStandingsModel'
 import type { GameLeague } from '../../../src/services/supabase/gameLeagues'
+import type {
+  SeasonLeagueStandingsPage,
+  SeasonLeagueStandingsRow,
+} from '../../../src/services/supabase/seasonLeagueStandings'
 
 function league(overrides: Partial<GameLeague> = {}): GameLeague {
   return {
@@ -29,9 +34,55 @@ function gatewayFor(
   }
 }
 
-function renderPage(gateway: SeasonLeaguesGateway, joinedGame = true) {
+function standingsRow(
+  overrides: Partial<SeasonLeagueStandingsRow> = {},
+): SeasonLeagueStandingsRow {
+  return {
+    displayName: 'Sam',
+    points: 84,
+    rank: 1,
+    matchweeksPlayed: 22,
+    tied: false,
+    position: 1,
+    isYou: false,
+    isOwner: false,
+    hasEntry: true,
+    ...overrides,
+  }
+}
+
+function standingsPage(
+  overrides: Partial<SeasonLeagueStandingsPage> = {},
+): SeasonLeagueStandingsPage {
+  return {
+    rows: [standingsRow()],
+    totalCount: 1,
+    pageSize: 50,
+    hasMore: false,
+    nextCursor: null,
+    you: null,
+    ...overrides,
+  }
+}
+
+function standingsGatewayFor(
+  page: SeasonLeagueStandingsPage = standingsPage(),
+): SeasonLeagueStandingsGateway {
+  return { load: vi.fn(async () => page) }
+}
+
+function renderPage(
+  gateway: SeasonLeaguesGateway,
+  joinedGame = true,
+  standings: SeasonLeagueStandingsGateway = standingsGatewayFor(),
+) {
   render(
-    <SeasonLeaguesPage gateway={gateway} gameName="Main Predictor" joinedGame={joinedGame} />,
+    <SeasonLeaguesPage
+      gateway={gateway}
+      standings={standings}
+      gameName="Main Predictor"
+      joinedGame={joinedGame}
+    />,
   )
 }
 
@@ -50,14 +101,84 @@ describe('the competition leagues surface', () => {
     expect(screen.getByText(/4 members/)).toBeTruthy()
   })
 
-  it('says why a league does not open into a table', async () => {
-    // `get_league_members` ranks by the tournament scoring tables, which a
-    // season's points never reach. A card that navigates nowhere is honest; a
-    // table reading zero for everybody is not.
+  it('no longer explains away the table it can now open', async () => {
+    // The sentence this replaces was true until contract 128 and is false now.
     renderPage(gatewayFor([league()]))
 
-    expect(await screen.findByText(/League tables are not open yet/)).toBeTruthy()
-    expect(screen.queryByRole('link', { name: /The Office/ })).toBeNull()
+    await screen.findByText('The Office')
+    expect(screen.queryByText(/League tables are not open yet/)).toBeNull()
+  })
+
+  it('opens a league into its own table, and reads it only when asked', async () => {
+    // Reading every league's table on load would be one round trip per card
+    // for a member who wanted one of them.
+    const standings = standingsGatewayFor()
+    renderPage(gatewayFor([league()]), true, standings)
+
+    await screen.findByText('The Office')
+    expect(standings.load).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
+
+    await waitFor(() => expect(standings.load).toHaveBeenCalledWith('league-1', null))
+    expect(await screen.findByText('Sam')).toBeTruthy()
+  })
+
+  it('names the league in the control, so identical buttons cannot pile up', async () => {
+    renderPage(gatewayFor([league(), league({ id: 'league-2', name: 'Five-a-side' })]))
+
+    await screen.findByText('The Office')
+    expect(screen.getByRole('button', { name: 'View The Office table' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'View Five-a-side table' })).toBeTruthy()
+  })
+
+  it('keeps one table open at a time', async () => {
+    // Two tables of the same players on one screen invite exactly the
+    // cross-league comparison neither of them means.
+    renderPage(gatewayFor([league(), league({ id: 'league-2', name: 'Five-a-side' })]))
+
+    await screen.findByText('The Office')
+    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
+    await screen.findByRole('button', { name: 'Hide The Office table' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'View Five-a-side table' }))
+
+    await screen.findByRole('button', { name: 'Hide Five-a-side table' })
+    expect(screen.getByRole('button', { name: 'View The Office table' })).toBeTruthy()
+  })
+
+  it('closes the open table when its own control is pressed again', async () => {
+    renderPage(gatewayFor([league()]))
+
+    await screen.findByText('The Office')
+    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
+    const hide = await screen.findByRole('button', { name: 'Hide The Office table' })
+    expect(hide.getAttribute('aria-expanded')).toBe('true')
+
+    fireEvent.click(hide)
+
+    expect(
+      (await screen.findByRole('button', { name: 'View The Office table' })).getAttribute(
+        'aria-expanded',
+      ),
+    ).toBe('false')
+  })
+
+  it('reports a refused table beside the league rather than blanking the page', async () => {
+    // Losing league membership while the card is open is an ordinary outcome.
+    // The other leagues must stay readable.
+    const standings: SeasonLeagueStandingsGateway = {
+      load: vi.fn(async () => {
+        throw { code: 'insufficient_privilege' }
+      }),
+    }
+    renderPage(gatewayFor([league()]), true, standings)
+
+    await screen.findByText('The Office')
+    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
+
+    expect(await screen.findByText('You are no longer a member of this league.')).toBeTruthy()
+    expect(screen.getByText('The Office')).toBeTruthy()
   })
 
   it('creates a league and reloads rather than appending one locally', async () => {

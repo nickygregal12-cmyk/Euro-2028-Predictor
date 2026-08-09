@@ -1,9 +1,8 @@
+> **Contract 135 repository candidate — EURO-002 publication state (9 August 2026):** `20260809040000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
+
 # Multi-competition platform — roadmap
 
-> **Contract 134 repository candidate — EURO-002 publication state (9 August 2026):** `20260809001500_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
-
-
-**Status date:** 7 August 2026  
+**Status date:** 8 August 2026
 **Purpose:** current delivery position and next executable slice.  
 **Current facts:** [`quality/current-status.md`](quality/current-status.md)  
 **Parent programme:** [`architecture/programme-plan.md`](architecture/programme-plan.md)  
@@ -30,6 +29,16 @@ What is durable enough to state here:
 - Stage B: complete through PR #226, with the retained checklist closed by PR #239;
 - Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. The Stage C1 migration is merged (PRs #317, #349) with hosted rollout tooling and a guarded GitHub workflow (PRs #350, #351); the hosted development apply **completed and was postflight-verified 2–3 August 2026** (PRs #359–#368 hardened the tooling en route). No production write is authorised;
 - lock policy is **game-owned** (ADR 0020, PR #353): the competition supplies identity, calendar and structure; each game supplies its own explicit lock policy, failing closed when missing or incompatible.
+
+## Domestic Frontend Alpha checkpoint — 8 August 2026
+
+The accepted sequence in the UI execution authority still governs, but its first items are no longer all open:
+
+- `DFA-003` reusable club identity and `DFA-005` deterministic parent navigation are implemented.
+- `DFA-004` route convergence and `DFA-006` meaningful action/Play aggregation are partial and remain active.
+- `DFA-007` is partial: real Scottish Matchweek 1 result truth and reload-persistent Matchweek 2 LMS are proven. The private Championship read contract is now applied and persistently verified in Development; PR #593 remains parked only on the real Team-SSO-protected signed-in desktop/phone browser acceptance. The ordinary MW1 scoring/rederivation proof and later MW2 Match Predictor points feed remain separate rehearsal gaps.
+- The four-provider capability/terms audit is merged as PR #594. The first provenance-backed team-profile schema candidate is PR #595, with the Development-only retained-response population lane stacked as PR #596. Both remain deliberately behind the `DFA-007` hosted/signed-in dependency and add no provider-to-official-result authority.
+- Production release posture is not inferred from any of these candidates; read the live status and operations inventory for the database, Netlify declaration and actually published artifact separately.
 
 ## Development operating model
 
@@ -192,3 +201,5 @@ When documents disagree, keep the conflict visible until deliberately reconciled
 Contract 132 establishes the controlled first-publication authority for real domestic season calendars. It stages provider evidence first, requires an explicit administrator decision, rejects partial initial schedules, and leaves result confirmation outside provider automation. Development remains the first hosted validation target before Production promotion.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 is a bounded DFA-007 enabler after Contract 132: it exposes caller-owned private Predictor Championship instances and selected player fixture/table/schedule state. It does not reorder the Domestic Frontend Alpha or change Championship scoring/settlement.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 is off the Domestic Frontend Alpha sequence and reorders nothing. It is the `DB-005` least-privilege fix: the rate-limit log is revoked from both browser roles, and the public-table exposure guard is now exhaustive rather than grant-only.

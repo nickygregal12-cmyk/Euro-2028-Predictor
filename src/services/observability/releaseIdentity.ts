@@ -1,3 +1,5 @@
+import { weeklyRoutePatterns } from '../../app/shellRoutes'
+
 export type ReleaseEnvironment =
   | 'production'
   | 'deploy-preview'
@@ -41,38 +43,32 @@ function normaliseEnvironment(value: string): ReleaseEnvironment {
   }
 }
 
-/**
- * `/competitions/<competition>/<season>/main-predictor`.
- *
- * A pattern rather than a `startsWith`, because the two slugs are arbitrary and
- * the prefix they share — `/competitions/` — is also the competition dashboard,
- * which is a different surface with different failure modes.
- */
-const SEASON_MAIN_PREDICTOR = /^\/competitions\/[^/]+\/[^/]+\/main-predictor(\/|$)/
+function matchesCompetitionPattern(pattern: string, pathname: string): boolean {
+  const source = pattern
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    .replace(':competitionSlug', '[^/]+')
+    .replace(':seasonSlug', '[^/]+')
+  return new RegExp(`^${source}$`).test(pathname)
+}
 
 export function routeCategory(pathname: string): string {
   if (pathname.startsWith('/auth/')) return 'auth'
   if (pathname.startsWith('/join/')) return 'invite'
-  // Season surfaces are categorised BEFORE `/predict`, and separately from it,
-  // because they are a different competition served by a different journey. The
-  // modernisation plan's §13.4 requires errors to be observable by old versus
-  // new implementation; sharing `predictor` with the tournament flow would make
-  // a regression in one look like a regression in the other, which is the
-  // opposite of what the gate asks for.
-  if (pathname.startsWith('/dev/season-predictor')) return 'season-predictor'
-  // The production address for the same surface. Categorised identically and
-  // deliberately so: §13.4 wants errors observable per implementation, and the
-  // DEV harness and the real route render the same page over different data —
-  // splitting them would report the surface's health in two halves, one of
-  // which nobody plays.
-  if (SEASON_MAIN_PREDICTOR.test(pathname)) return 'season-predictor'
-  // Its own category rather than folded into `season-predictor`: the standings
-  // are a read of settled scores while the card is a write path under a lock,
-  // and a failure in one says nothing about the other.
+
+  // The DEV harnesses and their canonical production routes report under the
+  // same surface categories. Production matching comes from the route authority
+  // so observability cannot silently keep following a retired route alias.
   if (pathname.startsWith('/dev/season-standings')) return 'season-standings'
-  // Its own category again: a pick that consumes a club for a cycle fails
-  // differently from a card write and from a standings read.
+  if (matchesCompetitionPattern(weeklyRoutePatterns.matchPredictorStandings, pathname)) {
+    return 'season-standings'
+  }
+  if (pathname.startsWith('/dev/season-predictor')) return 'season-predictor'
+  if (matchesCompetitionPattern(weeklyRoutePatterns.matchPredictor, pathname)) {
+    return 'season-predictor'
+  }
   if (pathname.startsWith('/dev/season-lms')) return 'season-lms'
+  if (matchesCompetitionPattern(weeklyRoutePatterns.lms, pathname)) return 'season-lms'
+
   if (pathname.startsWith('/predict')) return 'predictor'
   if (pathname.startsWith('/league')) return 'league'
   if (pathname.startsWith('/h2h/')) return 'head-to-head'

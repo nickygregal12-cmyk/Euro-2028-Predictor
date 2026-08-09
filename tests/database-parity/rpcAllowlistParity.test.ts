@@ -131,12 +131,24 @@ describe('deployment contract and database privilege allow-list parity', () => {
     ])
   })
 
-  it('agrees on the anonymous surface being the capacity read alone', () => {
-    // The one function anonymous visitors may execute. Anything else appearing
-    // here is a pre-auth data exposure.
+  it('agrees on the anonymous pre-auth surface exactly', () => {
+    // The functions anonymous visitors may execute. Anything appearing here that
+    // is not listed below is a pre-auth data exposure. Both entries are reviewed
+    // decisions, and the list is deliberately exhaustive rather than a floor:
+    // adding a third is a decision someone has to come here and make.
     expect([...pgTapExpectations('expected_anon_functions')]).toEqual([
       'get_public_capacity()',
+      // Contract 134. Whether Euro 2028 is published has to be answerable
+      // before a visitor signs in, because ADR 0026 requires the public site
+      // and its route guard to fail closed from server truth rather than from
+      // a client-side catalogue filter. The read is bounded to the state and
+      // the instant it last changed: no actor, no reason and no history, all
+      // of which stay in predictor_internal with no browser grant at all. The
+      // mutation is not here — admin_transition_euro_publication_state is
+      // granted to `authenticated` only and gates on super_admin internally.
+      'euro_publication_state()',
     ])
     expect(contract.has('get_public_capacity()')).toBe(true)
+    expect(contract.has('euro_publication_state()')).toBe(true)
   })
 })

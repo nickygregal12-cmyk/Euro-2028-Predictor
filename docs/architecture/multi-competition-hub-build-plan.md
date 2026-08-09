@@ -1,6 +1,6 @@
 # Multi-competition hub — engineering workstream
 
-> **Contract 134 repository candidate — EURO-002 publication state (9 August 2026):** `20260809001500_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
+> **Contract 135 repository candidate — EURO-002 publication state (9 August 2026):** `20260809040000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
 
 
 **Status:** Child engineering plan within the product programme. Proposal, not implementation authority.  
@@ -296,3 +296,5 @@ Contract 118 is a hub correction rather than a new surface: `get_bonus_games` re
 Scottish Premiership and Premier League season calendars can now be initialized from provider evidence through a common staged approval contract. Competition-specific completeness constraints are enforced before publication, while provider result evidence remains outside official score truth.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies the bounded read required for the DFA-007 private Predictor Championship journey: caller-owned instance discovery plus selected-instance My Fixture / Table / Fixtures state, with server-owned ranking and scoring retained.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 is a least-privilege correction outside every stage's feature scope: `public.rate_limit_events` is revoked from `anon` and `authenticated`, closing risk-register `DB-005`. It adds no relation, function, read or write and changes no stage boundary.

@@ -1,28 +1,29 @@
 import { useEffect, useRef } from 'react'
 import { matchPath, useLocation } from 'react-router'
+import { weeklyRoutePatterns, weeklyRoutes } from './shellRoutes'
 
 const APP_NAME = 'Football Prediction Hub'
 const SIGNED_OUT_ROOT_TITLE = 'Home'
 
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
-  { path: '/', title: 'Competitions' },
+  { path: weeklyRoutes.hub, title: 'Competitions' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },
   { path: '/auth/reset', title: 'Reset password' },
   { path: '/auth/update-password', title: 'Set new password' },
   { path: '/welcome', title: 'Welcome' },
   { path: '/join/:code', title: 'Join league' },
-  { path: '/play', title: 'Play' },
-  { path: '/matches', title: 'Matches' },
+  { path: weeklyRoutes.play, title: 'Play' },
+  { path: weeklyRoutes.matches, title: 'Matches' },
   { path: '/fixtures', title: 'Matches' },
-  { path: '/leagues', title: 'Leagues' },
+  { path: weeklyRoutes.leagues, title: 'Leagues' },
   { path: '/league', title: 'Leagues' },
   { path: '/league/:id', title: 'League details' },
   { path: '/h2h/:rivalId', title: 'Head-to-head' },
   { path: '/more/scoring', title: 'Scoring rules' },
   { path: '/more/points', title: 'Profile' },
   { path: '/account', title: 'Account' },
-  { path: '/more', title: 'More' },
+  { path: weeklyRoutes.more, title: 'More' },
   { path: '/profile/:playerId', title: 'Player profile' },
   { path: '/profile', title: 'Profile' },
   { path: '/admin/results', title: 'Results Centre' },
@@ -39,18 +40,15 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
 ]
 
 const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: string])[] = [
-  [
-    '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
-    'Match Predictor standings',
-  ],
-  ['/competitions/:competitionSlug/:seasonSlug/games/match-predictor', 'Match Predictor'],
-  ['/competitions/:competitionSlug/:seasonSlug/games/championship', 'Predictor Championship'],
-  ['/competitions/:competitionSlug/:seasonSlug/games/lms', 'Last Man Standing'],
-  ['/competitions/:competitionSlug/:seasonSlug/games', 'Games'],
-  ['/competitions/:competitionSlug/:seasonSlug/matches', 'Matches'],
-  ['/competitions/:competitionSlug/:seasonSlug/leagues', 'Leagues'],
-  ['/competitions/:competitionSlug/:seasonSlug/play', 'Play'],
-  ['/competitions/:competitionSlug/:seasonSlug', ''],
+  [weeklyRoutePatterns.matchPredictorStandings, 'Match Predictor standings'],
+  [weeklyRoutePatterns.matchPredictor, 'Match Predictor'],
+  [weeklyRoutePatterns.championshipWildcard, 'Predictor Championship'],
+  [weeklyRoutePatterns.lms, 'Last Man Standing'],
+  [weeklyRoutePatterns.games, 'Games'],
+  [weeklyRoutePatterns.matches, 'Matches'],
+  [weeklyRoutePatterns.leagues, 'Leagues'],
+  [weeklyRoutePatterns.play, 'Play'],
+  [weeklyRoutePatterns.competition, ''],
 ]
 
 function competitionTitle(competitionSlug: string, seasonSlug: string, suffix: string): string {
@@ -66,7 +64,7 @@ export function getRouteTitle(
   pathname: string,
   options?: { readonly signedOut?: boolean },
 ): string {
-  if (pathname === '/' && options?.signedOut) return SIGNED_OUT_ROOT_TITLE
+  if (pathname === weeklyRoutes.hub && options?.signedOut) return SIGNED_OUT_ROOT_TITLE
 
   for (const [pattern, suffix] of COMPETITION_TITLE_PATTERNS) {
     const competitionMatch = matchPath({ path: pattern, end: true }, pathname)

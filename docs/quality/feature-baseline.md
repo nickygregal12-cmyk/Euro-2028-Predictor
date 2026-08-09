@@ -1,6 +1,6 @@
 # Current feature and safeguard baseline
 
-> **Contract 134 repository candidate — EURO-002 publication state (9 August 2026):** `20260809001500_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
+> **Contract 135 repository candidate — EURO-002 publication state (9 August 2026):** `20260809040000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
 
 
 **Baseline reconciliation date:** 5 August 2026  
@@ -252,3 +252,5 @@ Do not silently:
 The domestic-season baseline now includes staged initial provider fixture proposals and explicit administrator approval/rejection. Initial Scottish publication is constrained to 12 teams, 33 pre-split rounds and 198 fixtures; Premier League publication is constrained to 20 teams, 38 rounds and 380 fixtures. Created fixtures remain scheduled with null official scores until the separate protected result-confirmation authority is used.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 closes the server-read prerequisite for the private season Predictor Championship UI: an entrant can discover their own private instance and read the server-owned current group, opponent, table and fixture schedule without direct private-table grants.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 adds no feature. It closes risk-register `DB-005` by revoking `public.rate_limit_events` and its identity sequence from both browser roles, and proves in pgTAP that the limiter still logs, still refuses at its ceiling and still prunes.

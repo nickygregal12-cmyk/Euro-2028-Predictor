@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HubSeasonMembership } from '../../../src/services/supabase/competitionGames'
@@ -11,10 +11,12 @@ const mocks = vi.hoisted(() => ({
   fetchMyEntryId: vi.fn(),
   createSeasonLmsRpcGateway: vi.fn(),
   createSeasonLmsRegistrationRpcGateway: vi.fn(),
-  createSeasonCupRpcGateway: vi.fn(),
+  createSeasonCupDiscoveryRpcGateway: vi.fn(),
+  createSeasonCupPlayerViewRpcGateway: vi.fn(),
   fetchMyGameLeagues: vi.fn(),
   createGameLeague: vi.fn(),
   joinLeague: vi.fn(),
+  fetchSeasonLeagueStandingsPage: vi.fn(),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -29,8 +31,9 @@ vi.mock('../../../src/services/supabase/seasonLms', () => ({
 vi.mock('../../../src/services/supabase/seasonLmsRegistration', () => ({
   createSeasonLmsRegistrationRpcGateway: mocks.createSeasonLmsRegistrationRpcGateway,
 }))
-vi.mock('../../../src/services/supabase/seasonCup', () => ({
-  createSeasonCupRpcGateway: mocks.createSeasonCupRpcGateway,
+vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
+  createSeasonCupDiscoveryRpcGateway: mocks.createSeasonCupDiscoveryRpcGateway,
+  createSeasonCupPlayerViewRpcGateway: mocks.createSeasonCupPlayerViewRpcGateway,
 }))
 vi.mock('../../../src/services/supabase/seasonPeriodStandings', () => ({
   fetchSeasonPeriodStandings: mocks.fetchSeasonPeriodStandings,
@@ -43,12 +46,17 @@ vi.mock('../../../src/services/supabase/gameLeagues', () => ({
 vi.mock('../../../src/services/supabase/leagues', () => ({
   joinLeague: mocks.joinLeague,
 }))
+vi.mock('../../../src/services/supabase/seasonLeagueStandings', () => ({
+  fetchSeasonLeagueStandingsPage: mocks.fetchSeasonLeagueStandingsPage,
+}))
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
   useAuth: () => ({ userId: 'user-1' }),
 }))
 
 import {
+  SeasonChampionshipFixtureRoute,
   SeasonChampionshipRoute,
+  SeasonChampionshipTableRoute,
   SeasonLeaguesRoute,
   SeasonLmsRoute,
   SeasonPlayRoute,
@@ -58,6 +66,7 @@ import {
 const TOURNAMENT_ID = '60000000-0000-0000-0000-000000000001'
 const LMS_ID = '60000000-0000-0000-0000-000000000102'
 const CUP_ID = '60000000-0000-0000-0000-000000000103'
+const PRIVATE_CUP_ID = 'd3fa0007-2026-4808-8000-000000000001'
 const ACTIVE = { status: 'active', joinedAt: null, leftAt: null, disqualifiedAt: null }
 
 function game(overrides: Partial<CompetitionGame>): CompetitionGame {
@@ -105,12 +114,19 @@ const PREMIER = '/competitions/premier-league/2026-27'
 const STANDINGS = `${DASHBOARD}/games/match-predictor/standings`
 const LMS = `${DASHBOARD}/games/lms`
 const CHAMPIONSHIP = `${DASHBOARD}/games/championship`
+const CHAMPIONSHIP_INSTANCE = `${CHAMPIONSHIP}/:competitionId`
+const CHAMPIONSHIP_TABLE = `${CHAMPIONSHIP_INSTANCE}/table`
 
 describe('the season game routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.createSeasonLmsRpcGateway.mockReturnValue({ load: vi.fn(), pick: vi.fn() })
-    mocks.createSeasonCupRpcGateway.mockReturnValue({ load: vi.fn(() => new Promise(() => {})) })
+    mocks.createSeasonCupDiscoveryRpcGateway.mockReturnValue({
+      load: vi.fn(() => new Promise(() => {})),
+    })
+    mocks.createSeasonCupPlayerViewRpcGateway.mockReturnValue({
+      load: vi.fn(() => new Promise(() => {})),
+    })
     mocks.createSeasonLmsRegistrationRpcGateway.mockReturnValue({
       load: vi.fn(() => new Promise(() => {})),
       join: vi.fn(),
@@ -126,7 +142,6 @@ describe('the season game routes', () => {
 
     renderRoute(<SeasonStandingsRoute />, STANDINGS, `${PREMIER}/games/match-predictor/standings`)
 
-    // The catalogue's exact season row name, never a slug turned into an id.
     await waitFor(() =>
       expect(mocks.fetchHubMembership).toHaveBeenCalledWith(['Premier League 2026/27']),
     )
@@ -149,7 +164,6 @@ describe('the season game routes', () => {
         tournamentId: TOURNAMENT_ID,
       }),
     )
-    // Registration needs the competition, which only the server read supplies.
     await waitFor(() =>
       expect(mocks.createSeasonLmsRegistrationRpcGateway).toHaveBeenCalledWith({
         tournamentId: TOURNAMENT_ID,
@@ -159,7 +173,7 @@ describe('the season game routes', () => {
     )
   })
 
-  it('gives the Championship the competition id the read named', async () => {
+  it('discovers Championship instances from the season instead of treating the public id as the game', async () => {
     mocks.fetchHubMembership.mockResolvedValue(
       season([game({ id: CUP_ID, gameKey: 'predictor_cup' })]),
     )
@@ -167,8 +181,54 @@ describe('the season game routes', () => {
     renderRoute(<SeasonChampionshipRoute />, CHAMPIONSHIP, `${PREMIER}/games/championship`)
 
     await waitFor(() =>
-      expect(mocks.createSeasonCupRpcGateway).toHaveBeenCalledWith({
+      expect(mocks.createSeasonCupDiscoveryRpcGateway).toHaveBeenCalledWith({
+        tournamentId: TOURNAMENT_ID,
+      }),
+    )
+    expect(mocks.createSeasonCupPlayerViewRpcGateway).not.toHaveBeenCalled()
+  })
+
+  it('opens a private Championship from the competition id in the URL', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([game({ id: CUP_ID, gameKey: 'predictor_cup' })]),
+    )
+
+    renderRoute(
+      <SeasonChampionshipFixtureRoute />,
+      CHAMPIONSHIP_INSTANCE,
+      `${PREMIER}/games/championship/${PRIVATE_CUP_ID}`,
+    )
+
+    await waitFor(() =>
+      expect(mocks.createSeasonCupPlayerViewRpcGateway).toHaveBeenCalledWith({
+        competitionId: PRIVATE_CUP_ID,
+      }),
+    )
+    // A guessed private id must never acquire the public self-registration path.
+    expect(mocks.createSeasonLmsRegistrationRpcGateway).not.toHaveBeenCalled()
+  })
+
+  it('keeps public Championship self-registration only on the known public instance', async () => {
+    mocks.fetchHubMembership.mockResolvedValue(
+      season([game({ id: CUP_ID, gameKey: 'predictor_cup' })]),
+    )
+
+    renderRoute(
+      <SeasonChampionshipTableRoute />,
+      CHAMPIONSHIP_TABLE,
+      `${PREMIER}/games/championship/${CUP_ID}/table`,
+    )
+
+    await waitFor(() =>
+      expect(mocks.createSeasonCupPlayerViewRpcGateway).toHaveBeenCalledWith({
         competitionId: CUP_ID,
+      }),
+    )
+    await waitFor(() =>
+      expect(mocks.createSeasonLmsRegistrationRpcGateway).toHaveBeenCalledWith({
+        tournamentId: TOURNAMENT_ID,
+        competitionId: CUP_ID,
+        userId: 'user-1',
       }),
     )
   })
@@ -195,8 +255,6 @@ describe('the season game routes', () => {
     expect(screen.getByRole('link', { name: 'Matches' }).getAttribute('href')).toBe(
       `${PREMIER}/matches`,
     )
-    // Games remains the active competition section on a game child, while the
-    // deterministic parent follows the immediate Match Predictor hierarchy.
     expect(screen.getByText('Games').getAttribute('aria-current')).toBe('page')
     expect(
       screen.getByRole('link', { name: 'Back to Match Predictor' }).getAttribute('href'),
@@ -209,22 +267,6 @@ describe('the season game routes', () => {
     renderRoute(<SeasonStandingsRoute />, STANDINGS, `${PREMIER}/games/match-predictor/standings`)
 
     expect(screen.queryByRole('navigation', { name: /sections/ })).toBeNull()
-  })
-
-  it('gives the Championship a registration gateway, so "not entered" is not a dead end', async () => {
-    mocks.fetchHubMembership.mockResolvedValue(
-      season([game({ id: CUP_ID, gameKey: 'predictor_cup' })]),
-    )
-
-    renderRoute(<SeasonChampionshipRoute />, CHAMPIONSHIP, `${PREMIER}/games/championship`)
-
-    await waitFor(() =>
-      expect(mocks.createSeasonLmsRegistrationRpcGateway).toHaveBeenCalledWith({
-        tournamentId: TOURNAMENT_ID,
-        competitionId: CUP_ID,
-        userId: 'user-1',
-      }),
-    )
   })
 
   it('lists only the joined games on Play, and links each to its canonical surface', async () => {
@@ -264,7 +306,7 @@ describe('the season game routes', () => {
         screen.getByText('The Predictor Championship is not part of this season'),
       ).toBeTruthy(),
     )
-    expect(mocks.createSeasonCupRpcGateway).not.toHaveBeenCalled()
+    expect(mocks.createSeasonCupDiscoveryRpcGateway).not.toHaveBeenCalled()
   })
 
   it('reports an unknown competition slug instead of resolving nothing', async () => {
@@ -281,9 +323,6 @@ describe('the season game routes', () => {
   })
 
   it('scopes the leagues surface to the season’s Match Predictor competition', async () => {
-    // A private league belongs to a game, not to a competition: ADR 0011 keeps
-    // each game's standings its own and `leagues.game_competition_id` says the
-    // same in storage. The season row id would be the wrong key.
     const MAIN_ID = '60000000-0000-0000-0000-000000000101'
     mocks.fetchHubMembership.mockResolvedValue(
       season([game({ id: MAIN_ID, gameKey: 'main_predictor' })]),
@@ -292,6 +331,44 @@ describe('the season game routes', () => {
     renderRoute(<SeasonLeaguesRoute />, `${DASHBOARD}/leagues`, `${PREMIER}/leagues`)
 
     await waitFor(() => expect(mocks.fetchMyGameLeagues).toHaveBeenCalledWith(MAIN_ID))
+  })
+
+  it('reaches contract 128’s season league read from the browser at all', async () => {
+    // The defect this closes is a server authority nobody could call — the
+    // shape contracts 86, 98, 116, 118, 120 and 128 each had to fix. A league
+    // table that no route wires up is indistinguishable from one that does not
+    // exist, so the wiring is asserted here rather than assumed.
+    const LEAGUE_ID = '60000000-0000-0000-0000-0000000009a1'
+    mocks.fetchHubMembership.mockResolvedValue(season([game({ gameKey: 'main_predictor' })]))
+    mocks.fetchMyGameLeagues.mockResolvedValue([
+      {
+        id: LEAGUE_ID,
+        name: 'The Office',
+        inviteCode: 'ABC123',
+        memberCount: 4,
+        isOwner: true,
+        ownerName: 'Sam',
+        lastActivityAt: null,
+      },
+    ])
+    mocks.fetchSeasonLeagueStandingsPage.mockResolvedValue({
+      rows: [],
+      totalCount: 0,
+      pageSize: 50,
+      hasMore: false,
+      nextCursor: null,
+      you: null,
+    })
+
+    renderRoute(<SeasonLeaguesRoute />, `${DASHBOARD}/leagues`, `${PREMIER}/leagues`)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'View The Office table' }))
+
+    await waitFor(() =>
+      expect(mocks.fetchSeasonLeagueStandingsPage).toHaveBeenCalledWith(LEAGUE_ID, {
+        after: null,
+      }),
+    )
   })
 
   it('says so when the season runs no game a league could rank', async () => {

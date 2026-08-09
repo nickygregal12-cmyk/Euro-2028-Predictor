@@ -1,6 +1,6 @@
 # Programme plan — how a product organisation would build this
 
-> **Contract 134 repository candidate — EURO-002 publication state (9 August 2026):** `20260809001500_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
+> **Contract 135 repository candidate — EURO-002 publication state (9 August 2026):** `20260809040000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
 
 
 **Status:** Parent planning document. Proposal, not implementation authority.  
@@ -210,3 +210,5 @@ Contract 118 closes the fourth instance of the tournament-only read defect (afte
 The provider ingestion programme now has a controlled initial-publication stage between normalized evidence and canonical season fixtures. Complete-season approval is an explicit competition-admin action; later fixture revisions remain under the existing revision authority and official results remain separately protected.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 is an implementation detail within the accepted Domestic Frontend Alpha: it provides bounded private Championship player reads after Contract 132 and does not change programme phase order or product gates.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 is a security hardening detail inside the accepted Domestic Frontend Alpha, not a phase change: it revokes browser privileges left on the rate-limit log by Supabase's default grants, closing risk-register `DB-005`.

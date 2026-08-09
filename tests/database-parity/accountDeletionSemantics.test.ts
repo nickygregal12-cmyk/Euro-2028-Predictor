@@ -102,8 +102,8 @@ describe('account deletion — declared foreign-key semantics', () => {
       // Contract 134. Publication state/history are operational evidence. The
       // event survives account erasure while attribution becomes explicitly
       // unknown, matching the repository's other administrator audit trails.
-      '20260809001500_euro_publication_state.sql euro_publication_state.changed_by → set null',
-      '20260809001500_euro_publication_state.sql euro_publication_transitions.actor_id → set null',
+      '20260809040000_euro_publication_state.sql euro_publication_state.changed_by → set null',
+      '20260809040000_euro_publication_state.sql euro_publication_transitions.actor_id → set null',
     ])
   })
 

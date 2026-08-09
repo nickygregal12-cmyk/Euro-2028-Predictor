@@ -1,0 +1,166 @@
+/* One league's table, opened inside its card. Tokens only; every size is a
+   scale step. The grid deliberately matches SeasonStandingsPage's, so a player
+   who has read the season table reads this one without relearning it. */
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  /* A flex child defaults to min-width:auto, which would let a long player
+     name push the card wider than the viewport instead of ellipsising in it. */
+  min-width: 0;
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+/* The caller's own position, stated rather than left to be found in the table. */
+.yourStanding {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-variant-numeric: var(--numeric);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+/* Column head and row share one grid so the cells line up without a <table>. */
+.columns,
+.row {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem 3rem;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2);
+}
+
+.columns {
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  /* --tx2 rather than --tx3: this sits on a tinted card surface, where --tx3
+     has measured below AA before (see InvitePanel's codeLabel). */
+  color: var(--tx2);
+  min-height: 30px;
+}
+
+.columns abbr {
+  text-decoration: none;
+  border: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  min-height: var(--tap-min);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.list .row:last-child {
+  border-bottom: 0;
+}
+
+/* The caller's own row. Tinted AND marked with text, never colour alone
+   (§11.8: status is not conveyed by colour alone). */
+.rowYou {
+  background: var(--chip);
+}
+
+/* Pinned copy of the caller's row when it sits outside the loaded pages. */
+.pinnedList {
+  border-top: 1px solid var(--line);
+}
+
+.rowPinned {
+  border-bottom: 0;
+}
+
+.rank {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  text-align: center;
+}
+
+.name {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tag,
+.ownerTag {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tag {
+  background: color-mix(in srgb, var(--acc) 16%, transparent);
+  color: var(--acc);
+}
+
+.ownerTag {
+  background: var(--chip);
+  color: var(--tx2);
+}
+
+.played,
+.points {
+  font-variant-numeric: var(--numeric);
+  text-align: right;
+}
+
+.played {
+  color: var(--tx2);
+}
+
+.points {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+/* A member who has not entered the game takes both numeric columns, because
+   "Not entered" is one statement rather than two blank cells. */
+.notEntered {
+  grid-column: 3 / span 2;
+  text-align: right;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

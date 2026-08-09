@@ -94,6 +94,14 @@ describe('route titles', () => {
     )
   })
 
+  it('keeps the Championship title across selected-instance child routes', () => {
+    const title = 'Scottish Premiership 2026/27 Predictor Championship'
+    const base = '/competitions/scottish-premiership/2026-27/games/championship/private-1'
+    expect(getRouteTitle(base)).toBe(title)
+    expect(getRouteTitle(`${base}/table`)).toBe(title)
+    expect(getRouteTitle(`${base}/fixtures`)).toBe(title)
+  })
+
   it('does not title retired Euro/tournament routes as shipped pages', () => {
     expect(getRouteTitle('/competitions/euro/2028/original')).toBe(NOT_FOUND)
     expect(getRouteTitle('/predict')).toBe(NOT_FOUND)

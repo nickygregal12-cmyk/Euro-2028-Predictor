@@ -1,11 +1,11 @@
 # Euro 2028 publication lifecycle
 
-**Status:** Contract 134 candidate — repository only, not hosted  
+**Status:** Contract 135 candidate — repository only, not hosted  
 **Authority:** ADR 0026 `EURO-001`–`EURO-004`
 
-## Contract 134 boundary
+## Contract 135 boundary
 
-Contract 134 establishes the server-owned state required by ADR 0026 before Euro 2028 visibility may be decided by weekly-platform surfaces.
+Contract 135 establishes the server-owned state required by ADR 0026 before Euro 2028 visibility may be decided by weekly-platform surfaces.
 
 The persisted lifecycle is ordered:
 
@@ -24,12 +24,12 @@ Direct table access remains revoked from `anon`, `authenticated` and `service_ro
 
 ## Deliberate non-scope
 
-Contract 134 does **not** change Hub catalogue entries, navigation, routes, metadata, sitemap or Open Graph output. Those are EURO-003/EURO-004 enforcement consumers and must follow this state rather than create another visibility authority.
+Contract 135 does **not** change Hub catalogue entries, navigation, routes, metadata, sitemap or Open Graph output. Those are EURO-003/EURO-004 enforcement consumers and must follow this state rather than create another visibility authority.
 
 It also does not create the future Euro-specific Netlify site, change Auth redirects, implement the 18+ gate, alter tournament scoring, enrol users, call providers or perform a hosted Supabase migration.
 
 ## Acceptance evidence
 
-`supabase/tests/186_euro_publication_state.sql` covers default-hidden behaviour, RLS/grants, owner authorisation, invalid/skipped/stale transitions, the complete forward lifecycle and immutable history. `supabase/tests/080_function_privileges.sql` keeps both RPC signatures inside the explicit role allowlists, including the bounded service-role read while excluding the owner-only transition RPC.
+`supabase/tests/188_euro_publication_state.sql` covers default-hidden behaviour, RLS/grants, owner authorisation, invalid/skipped/stale transitions, the complete forward lifecycle and immutable history. `supabase/tests/080_function_privileges.sql` keeps both RPC signatures inside the explicit role allowlists, including the bounded service-role read while excluding the owner-only transition RPC.
 
 Hosted rollout remains separately gated and is not claimed by this document.

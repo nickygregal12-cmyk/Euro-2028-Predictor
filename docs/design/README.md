@@ -1,6 +1,6 @@
 # Design authority — start here
 
-> **Contract 134 repository candidate — EURO-002 publication state (9 August 2026):** `20260809001500_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
+> **Contract 135 repository candidate — EURO-002 publication state (9 August 2026):** `20260809040000_euro_publication_state.sql` adds the single server-owned Euro 2028 publication lifecycle required by ADR 0026. It defaults to `hidden`, exposes only a bounded state/time read, restricts adjacent state transitions to signed-in `super_admin`, and records actor/reason history append-only. This is repository Contract 134 only: it does **not** claim a Development or Production rollout, and it does not yet implement EURO-003 content removal or EURO-004 route guards.
 
 
 **The latest design document is
@@ -181,3 +181,5 @@ Contract 118 is a correction rather than a presentation change: no surface moved
 Real domestic fixture adoption now has a backend publication gate: provider evidence is staged first and a complete initial season is approved explicitly. UI surfaces may rely on canonical scheduled fixtures after approval, but must not treat provider score evidence as an official result until the protected result-confirmation path has run.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies server-owned opponent/table/fixture data for the accepted Predictor Championship My Fixture / Table / Fixtures surfaces. It changes no visual authority and does not make History available.
+
+> **Contract 134 boundary (9 August 2026):** Contract 134 changes no visual or presentation authority. It is a privileges-only database correction on the rate-limit log, closing risk-register `DB-005`, with no user-visible surface.

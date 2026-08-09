@@ -1,6 +1,6 @@
 # ADR 0026 — Public-site separation, shared accounts and Euro 2028 acquisition
 
-- **Status:** Accepted direction — EURO-002 implemented in repository Contract 134 candidate
+- **Status:** Accepted direction — unimplemented
 - **Date:** 6 August 2026
 - **Amends:** [ADR 0011](0011-multi-competition-platform.md) (the shared backend may serve more than one branded frontend), [ADR 0016](0016-client-and-distribution.md) (one codebase may emit two domain-specific deployments), [ADR 0019](0019-brand-decision-deferred.md) (the purchased Euro domain is a retained tournament property, not the universal account brand), [ADR 0020](0020-football-prediction-hub-product-model.md) (`euro28predictor.com` no longer hosts the whole hub) and [ADR 0023](0023-hub-information-architecture.md) (the Hub information architecture is the weekly platform's, and Euro is not in it while hidden).
 - **Supersedes:** No prior record. This is the first decision on frontend-site separation.
@@ -8,14 +8,14 @@
 | Field | Value |
 | --- | --- |
 | Authority | Primary |
-| Status | Accepted direction — EURO-002 implemented in repository Contract 134 candidate |
+| Status | Accepted direction — unimplemented; EURO-002 has a repository Contract 135 candidate |
 | Last verified | 2026-08-09 |
 | Governs | How many public frontend sites exist, which domain each uses, what one account means across them, and the states through which Euro 2028 becomes visible |
 | Does not govern | Scoring, locks, settlement, progression or reveal (the game ADRs); Hub route tree and page ownership ([`../architecture/hub-information-architecture.md`](../architecture/hub-information-architecture.md)); per-owner private-container limits ([ADR 0023](0023-hub-information-architecture.md) § Private containers); which brand name is chosen ([ADR 0019](0019-brand-decision-deferred.md)) |
 | Supersedes | None |
 | Superseded by | None |
-| Related work | Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) (Stage C2 data protection, open); draft PR #602 implements EURO-002 as repository Contract 134 only |
-| Implementation truth | EURO-002 has a repository Contract 134 candidate: one default-hidden server state, bounded read, owner-only adjacent transition RPC and append-only transition history. It is not applied to hosted Development or Production. SITE-002–SITE-007, EURO-003, EURO-004 and AGE-001 remain unimplemented; the requirement register in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) tracks each clause |
+| Related work | Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) (Stage C2 data protection, open); draft PR #602 implements EURO-002 as repository Contract 135 only |
+| Implementation truth | EURO-002 has a repository Contract 135 candidate: one default-hidden server state, bounded read, owner-only adjacent transition RPC and append-only transition history. It is not applied to hosted Development or Production. SITE-002–SITE-007, EURO-003, EURO-004 and AGE-001 remain unimplemented; the requirement register in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) tracks each clause |
 
 ## Context
 
@@ -73,7 +73,7 @@ ADR 0019 deferred the brand decision with a trigger and left the repository name
 
 ## Implemented position
 
-EURO-002 is implemented in the repository Contract 134 candidate only. `predictor_internal.euro_publication_state` owns one default-`hidden` value, `public.euro_publication_state()` exposes only state and change time, and `public.admin_transition_euro_publication_state(...)` permits a signed-in `super_admin` to advance one adjacent lifecycle state with expected-state checking and a mandatory reason. Every successful change is written to append-only transition history. No hosted rollout is claimed.
+EURO-002 is implemented in the repository Contract 135 candidate only. `predictor_internal.euro_publication_state` owns one default-`hidden` value, `public.euro_publication_state()` exposes only state and change time, and `public.admin_transition_euro_publication_state(...)` permits a signed-in `super_admin` to advance one adjacent lifecycle state with expected-state checking and a mandatory reason. Every successful change is written to append-only transition history. No hosted rollout is claimed.
 
 The rest of this ADR remains unimplemented. Three things it *depends on* already exist and are not claimed as implementing the remaining clauses:
 
@@ -90,7 +90,7 @@ Every clause above except EURO-002 remains unimplemented and carries a stable id
 Stated so that no later reader mistakes a decision for a delivery:
 
 - there is no second Netlify site, and no second-site build configuration;
-- the Contract 134 repository candidate supplies the publication-state enum/current-state/history and bounded RPCs, but there is no hosted apply and no EURO-004 route guard yet; the weekly Hub still lists Euro 2028 from a static catalogue;
+- the Contract 135 repository candidate supplies the publication-state enum/current-state/history and bounded RPCs, but there is no hosted apply and no EURO-004 route guard yet; the weekly Hub still lists Euro 2028 from a static catalogue;
 - neither production domain is in a redirect allow-list, because neither production domain exists yet;
 - there is no age field, age gate or 18+ signup rule;
 - the transactional sender is still the Euro 2028 Predictor domain;
@@ -105,7 +105,7 @@ Stated so that no later reader mistakes a decision for a delivery:
 
 ## Concurrent work
 
-Draft PR #602 implements EURO-002 as the repository-only Contract 134 candidate; it deliberately does not change the catalogue, landing page, metadata or route guards. The Euro catalogue entry this record makes wrong lives in the Hub's static competition catalogue, which is being actively changed by other work; removing it is implementation and is deliberately not attempted here.
+Draft PR #602 implements EURO-002 as the repository-only Contract 135 candidate; it deliberately does not change the catalogue, landing page, metadata or route guards. The Euro catalogue entry this record makes wrong lives in the Hub's static competition catalogue, which is being actively changed by other work; removing it is implementation and is deliberately not attempted here.
 
 ## Consequences
 
