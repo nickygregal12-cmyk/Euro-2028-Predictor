@@ -1,175 +1,274 @@
 # Nightly run — 9 August 2026
 
-**Session branch:** `claude/cool-lamport-4pmhiq`
-**Pull request:** [#605](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/605) — Contract 134: `rate_limit_events` holds no browser privilege (`DB-005`)
-**CI:** all thirteen checks green, including `local-supabase` (pgTAP + Database parity) and `authenticated-browser` (Browser E2E).
-**Merge outcome:** **held for owner review** — a database migration and a privilege change on an abuse-control table. Green CI is the precondition for your decision, not for a merge.
-
-This is an unattended run's report. Everything below is stated as evidence or as an
-assumption, never as a hope. Where a suite could not run in this environment, it
-says so rather than implying coverage.
-
----
+Unattended scheduled session. British English throughout. Every figure below was
+produced by a command that actually ran in this session; where a suite could not
+run, that is stated rather than worked around.
 
 ## 1. What I inspected
 
-**In the order the standing instructions require: `main`, then repository authorities, then migrations/schema, then code, then tests, then deployment posture.**
+**Git and GitHub, first.** `origin/main` at `7e6aeac` ("docs: record 2026-08-09
+01:00 predictor progress", #601). The designated branch
+`claude/bold-ride-ic2fkh` existed on the remote and was identical to
+`origin/main` — no prior commits, so no restart or rebase was needed. Six pull
+requests were open at the start of this run: #593 (private Championship player
+UI), #597 (docs reconciliation), #600 (DFA-004 canonical weekly routes), #602
+and #605 (**both claiming contract 134**), and #604 (docs handover). That
+duplicate contract claim is the single most important fact for choosing work
+tonight: it rules out any batch that would need a contract number.
 
-- **Current `main`** at `7e6aeac` (`docs: record 2026-08-09 01:00 predictor progress` #601). My branch started level with it — zero commits ahead or behind before I began.
-- **Open pull requests**, in full, because five sessions are active on this repository tonight: #604 (docs handover), #602 (draft, `EURO-002` publication state, **claims contract 134**), #600 (draft, `DFA-004` canonical routes), #597 (draft, docs reconciliation), #593 (draft, private Championship UI). This shaped the batch decision more than anything else — the three highest-value roadmap items are all already claimed by open branches.
-- **Repository authorities**: `CLAUDE.md`, `AGENTS.md`, `NOW.md`, `docs/quality/current-status.md`, `docs/roadmap.md` (including the 7 August Domestic Frontend Alpha amendment and its fourteen-step order), `docs/quality/accepted-requirements.md` (30 outstanding, 6 blocked), `docs/quality/risk-register.md` in full, `docs/ops/ops-pending-migrations.md`, and `config/deployment-contract.json` / `development-hosted-contract.json` / `production-hosted-contract.json`.
-- **Prior nightly runs**: `claude/nightly/2026-08-05-nightly-run.md` and `2026-08-06-nightly-run.md`, including their recorded environment constraints and recommendations.
-- **Migrations and schema, measured rather than read about.** I parsed all 133 committed migrations and computed which `public` tables are revoked from browser roles: 36 of 52 carry an explicit revoke. Of the 16 that do not, 15 are the original Euro tournament relations the application reads directly under RLS — and one, `rate_limit_events`, is a server-only table whose own creating migration says browser roles have no access. That measurement is what produced the batch.
-- **Code**, to check the claim rather than assume it: `grep` across `src/`, `e2e/` and `scripts/` returns **no application reference to `rate_limit_events` at all**, confirming there is no browser read path to preserve.
-- **Baseline test state on unmodified `main`**: `npm ci`, `npx oxlint --deny-warnings`, `npx tsc -b`, full `vitest run`, `npm run build`, `npm audit --omit=dev --audit-level=high` — all green before I changed anything.
-- **Environment constraint, verified rather than assumed:** `docker info` fails — the client is present, there is no daemon. So `supabase start`, `supabase test db --local` and the Database parity job **cannot run in this sandbox**. This is the third consecutive night this has been recorded (5, 6 and 9 August, by independent sessions). It did not rule the batch out this time, but it does move part of the verification into CI, and section 4 says exactly which part.
-- **Deployed app: not touched.** No hosted Supabase or Netlify state was read or written by this work.
+**Authority documents, in the order `CLAUDE.md` prescribes.** `NOW.md`
+(repository contract 133, development hosted 132, production 132 with promotion
+**not** authorised; one pending development migration),
+`docs/quality/current-status.md`, `docs/roadmap.md` including the 7 August
+Domestic Frontend Alpha amendment, `docs/quality/risk-register.md` in full,
+`docs/quality/accepted-requirements.md`, and the two prior nightly reports in
+`claude/nightly/`.
 
-### Current-state findings worth recording
+**Environment, verified rather than assumed.** `docker info` fails on
+`/var/run/docker.sock` — **there is no Docker daemon here.** This is the third
+independent session to record the same constraint (5 and 6 August). It means
+`supabase start`, pgTAP and Database parity cannot run in this sandbox, so any
+migration, RPC, RLS or policy work is unverifiable locally tonight.
 
-1. **The repository is well ahead of both hosted environments and that is deliberate.** Repository was at contract 133; Development and Production are both independently verified at 132. Production promotion is not authorised and the contract gate keeps the last good deploy live. Nothing in this run changes any of that.
-2. **Documentation describing a feature is not proof it exists — and one such gap was real.** `20260720210000_rate_limits.sql` states in a comment that `rate_limit_events` has "No client access at all". That statement had never been true: no `revoke` exists anywhere for it, and Supabase's default privileges grant every ordinary privilege on a new `public` table to `anon` and `authenticated`.
-3. **The guard that should have caught it was structurally unable to.** `tests/database-parity/dataApiExposure.test.ts` pinned explicit `grant` statements. No `grant` on this table was ever written — the *default* privileges did it. A guard that reads grants cannot see a table that was never granted and never revoked.
-4. **Nothing at higher severity was open.** No unresolved scoring, ranking, settlement or auth defect surfaced in the risk register or the issue tracker. `DATA-009`, the last live scoring finding, is recorded resolved at contract 106 with pgTAP evidence.
+**Code and tests, measured before changing anything.** `npm ci`, then a full
+`vitest run` on untouched `main`: **350 files passed, 3 skipped; 3154 tests
+passed, 26 skipped, 0 failed.** That is the baseline every later figure is
+compared against.
 
----
+**A targeted defect hunt** rather than only reading the register. The repository
+has one recurring defect shape, named explicitly in `CLAUDE.md` and in six
+contract records: *a read written for a tournament, never widened for a season,
+returning a plausible but wrong answer.* Contracts 86, 98, 116, 118, 120 and 128
+each fixed an instance. I looked for the **browser-side** version of the same
+shape — a server authority that exists and that nothing can call — and found
+one.
+
+### Current-state findings
+
+- **`get_season_league_standings` (contract 128, merged 6 August) had no
+  browser caller.** Grepping the whole repository for it returned only
+  `tests/database-parity/seasonLeagueStandingsParity.test.ts` and a comment in
+  `e2e/seed-contract.ts`. No service wrapper, no hook, no surface.
+- Meanwhile `src/features/season/gameLeaguesModel.ts` still produced a
+  `standingsNote` reading *"League tables are not open yet… so no table is shown
+  rather than one that would read zero for everybody"*, and
+  `SeasonLeaguesPage.tsx` rendered it. That sentence was **correct until
+  contract 128 and false afterwards.**
+- The register's remaining open findings were checked and deliberately not
+  taken: `DB-005` needs a migration **and is already the subject of PR #605**;
+  `DATA-007` (count-then-insert rate limiter) and `SEC-001` (six-character
+  invite codes) both need migrations; `AUTH-002` is a hosted Supabase Auth
+  setting, not repository-verifiable; `SEC-002` (CSP `unsafe-inline`) is
+  explicitly recorded as a gradual campaign whose failure mode is discovered in
+  production — a poor choice for an unattended run; `ACQ-R19`'s remaining half
+  is SHA-pinning third-party GitHub Actions, which would mean resolving commit
+  hashes for repositories outside this session's GitHub scope, so I left it.
+- No new scoring, data-integrity, auth or admin-safety defect surfaced.
+  `DATA-009`, the last live scoring finding, remains closed at contract 106 with
+  pgTAP evidence.
 
 ## 2. The batch I chose, and why
 
-**Chosen: close `DB-005` — the browser privileges Supabase's default grants left on the rate-limit event log — and close the guard blind spot that allowed it.**
+**Chosen: open a season private league into its own table — wire contract 128's
+`get_season_league_standings` through to the Leagues surface.**
 
-Against the stated priority order:
+Where it sits in the stated priority order: **(b), unblocking work already in
+progress**, and it is the cleanest available instance of it. Contract 128 did
+the hard, rule-bearing half — totals from `season_standings` so a league can
+never disagree with the season, rank recomputed inside the league because a
+private league is its own table, and the tournament read taught to refuse a
+season league by naming the one that answers. The remaining half was browser
+plumbing with no rule in it.
 
-- **(a) Defects threatening scoring, data integrity, auth or admin safety.** This is the batch, at the security end of (a). `rate_limit_events` is the enforcement record for the platform's two abuse controls: 60 prediction saves/minute and 5 league-membership writes/minute. Browser roles held `delete` and `truncate` on it. Today RLS denies every row, so this is **latent, not live, and the PR says so plainly** — I am not dressing a hardening fix up as an incident. What makes it worth a night is the failure mode: the table is protected by one control where its design intended two, and the second control's absence is invisible. One future migration that disables RLS to investigate something, or adds a single broad policy, silently hands a signed-in user the ability to erase their own rate-limit history.
-- **(b) Unblocking partially-implemented work.** Not applicable without colliding. The three items I would otherwise have picked up — `DFA-004` routes, `EURO-001`/`EURO-002` publication state, the private Championship UI — are all live on other sessions' open branches (#600, #602, #593). `CLAUDE.md` forbids restacking or merging another session's branch without establishing ownership, so I stayed clear.
-- **(c) Highest-value active roadmap item.** Same answer: steps 2, 3 and part of 9 of the Domestic Frontend Alpha order are claimed. Starting a fourth frontend slice tonight would have produced a fourth branch competing for the same files.
-- **(d) Hardening / least privilege.** The third part of this batch — the exhaustive public-table exposure guard — is squarely here, and is the part with the longest-lived value.
+Why it is worth doing rather than the next roadmap item:
 
-**Value against tournament-time risk.** The change is two `revoke` statements. It alters no rule, no scoring, no lock, no ranking, no read, no write path and no user-visible surface, and it removes privileges rather than granting any — the direction that fails closed if I am wrong about something. Set against that: a named, audited, open security finding is closed with its specified evidence, and the class of defect is made impossible to repeat silently.
+- **A read nobody can call is, to a player, a read that does not exist.** This
+  repository has fixed that shape six times on the server side. Leaving the
+  browser side open recreates it.
+- **The surface was actively saying something untrue.** A note explaining why
+  there is no table is worse than useless once the table is available.
+- **It is finishable and verifiable here.** No SQL, so nothing depends on the
+  absent Docker daemon; the whole batch is provable by lint, typecheck, the full
+  Vitest suite and a production build, all of which ran.
+- **It claims no contract number**, which matters on a night when two open pull
+  requests are already claiming 134.
 
-**What I deliberately did not do, and why.** `DATA-007` is the *other* open finding in the same limiter — enforcement is count-then-insert, so concurrent transactions can each see a count below the ceiling and all proceed. It is untouched and stays open. It is a defect in `enforce_rate_limit`'s body needing an atomic counter or advisory lock, with different evidence and a real behavioural risk; folding it into a privileges-only change would have made both harder to review and would have put actual limiter behaviour in a PR I cannot fully verify in this sandbox. It is my recommended next batch (section 7).
+Why not the alternatives: anything touching the database is unverifiable here
+and contested on numbering; the highest-value *named* roadmap items (DFA-004
+routes, EURO-002 publication state, the Championship player UI) are each already
+owned by an open pull request, and `CLAUDE.md` forbids restacking another
+session's branch.
 
----
+**Risk:** low in mechanism — no migration, no scoring, no lock, settlement or
+progression change, no new grant, and no second ranking authority in the browser
+(page, rank, ordering and cursor all remain the server's). But the *subject* is
+a ranking table, which the merge policy names explicitly. See §5.
 
 ## 3. Exactly what changed
 
-**Branch** `claude/cool-lamport-4pmhiq`, one commit `757e586`. **PR** [#605](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/605).
+**Branch:** `claude/bold-ride-ic2fkh`
+**Commit:** `a88657b` — "Open a season private league into its own table"
+**Pull request:** https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/606
 
-### Database objects
+17 files, 1,667 insertions, 60 deletions.
 
-| Object | Change |
+**New source**
+
+| File | What it is |
 | --- | --- |
-| `public.rate_limit_events` (table) | `revoke all … from anon, authenticated` |
-| its identity sequence | `revoke all on sequence … from anon, authenticated` |
+| `src/services/supabase/seasonLeagueStandingsModel.ts` | Pure response parser. Refuses a row missing matchweeks played (ADR 0012 pairs it with points), a row missing `hasEntry`/`isOwner`/`isYou`, and a page claiming more rows while offering no cursor. |
+| `src/services/supabase/seasonLeagueStandings.ts` | The RPC wrapper for `get_season_league_standings`, with an explicit prohibition on ever growing a direct-table fallback. |
+| `src/features/season/leagueStandingsModel.ts` | Presentation model and code-keyed refusal classification. |
+| `src/features/season/useSeasonLeagueStandings.ts` | Accumulating paging, server cursor passed back untouched, late-response guard, reset when the league changes. |
+| `src/features/season/SeasonLeagueStandings.tsx` + `.module.css` | The table itself, phone-first, tokens only. |
 
-Nothing else. **Unchanged on purpose:** row-level security (still enabled), both RLS-adjacent controls, the 60/min and 5/min thresholds, `enforce_rate_limit`'s definition, both `before` triggers, every policy, every other relation, and `service_role`'s privileges.
+**Changed source**
 
-`service_role` is left alone deliberately: it is not a browser role, `DB-005` does not name it, and narrowing the server key's reach across the schema is a separate decision that needs its own evidence. The pgTAP file asserts it is still there, so the omission is recorded rather than accidental.
+- `src/features/season/SeasonLeaguesPage.tsx` — each league card gains a
+  "View <league> table" control that expands the table in place; the
+  `standingsNote` paragraph is gone. The standings gateway is a **required**
+  prop, not optional, so the surface cannot quietly go back to having no table.
+- `src/features/season/gameLeaguesModel.ts` — `standingsNote` removed from the
+  view and its rationale comment rewritten to record why it existed and why it
+  no longer does.
+- `src/features/season/SeasonLeaguesPage.module.css` — the note's style removed
+  with it.
+- `src/features/season/SeasonGameRoutes.tsx` — wires the real read (13 lines).
 
-The sequence revoke is included because `rate_limit_events.id` is this repository's **only** `generated always as identity` column, so its sequence is the only one Supabase's default sequence privileges reach on a table meant to have no client access. An identity column advances its sequence through PostgreSQL's internal `nextval`, which performs no ACL check — so the revoke cannot take the definer function's insert away. That is proven by driving the insert, not by citing the documentation.
+**Database objects: none.** No migration, no function, no grant, no policy, no
+row. No contract number claimed.
 
-### Files
+**Tests** — 60 new, across four new files and three updated ones. Deliberately
+weighted to failure and correction paths: RPC refusal propagation; nine
+malformed-payload variants; a missing matchweek count; a page claiming more rows
+with no cursor; an append failure that keeps the loaded rows on screen; retry
+from page one after a first-read failure; a membership lost mid-read; a member
+with no entry in the game.
 
-**Added**
+Three judgement calls worth recording, because they are decisions rather than
+plumbing:
 
-- `supabase/migrations/20260809030000_rate_limit_events_client_revoke.sql` — the migration. Additive, idempotent, privileges only.
-- `supabase/tests/187_rate_limit_events_client_revoke.sql` — 22 pgTAP assertions in four sections:
-  - *the boundary* — `table_privs_are` for the exact empty ACL on each browser role; the identity sequence unreachable by both; `enforce_rate_limit` still uncallable by `authenticated`, so the log has no browser-reachable writer either;
-  - *the behaviour, driven as the browser roles* — `select`, `insert`, `update`, `delete` and `truncate` as `authenticated`, and `select` as `anon`, each refused `42501`. This is the assertion that distinguishes before from after: previously a browser `select` returned zero rows through RLS, which looks identical to being refused and stops looking identical the moment someone disables RLS. It uses the repository's own `pg_temp.capture_sqlstate` idiom from `030_entry_boundary_integrity.sql` rather than inventing a pattern;
-  - *the limiter still works* — the half `DB-005` did not ask for, and the one that matters most. After the revoke, `enforce_rate_limit` logs a first and second event, is refused at the ceiling on the third with exactly two rows written, and prunes a two-hour-old event on a separate action. A revoke on a table only a `security definer` function touches is precisely the change that can disarm a control with nothing failing, so it is exercised;
-  - *the deliberate non-changes* — `service_role` still holds its privileges; both limiter triggers still bound to their tables.
-
-**Modified**
-
-- `tests/database-parity/dataApiExposure.test.ts` — the durable half. Adds an exhaustive pin: every `public` table is either revoked from **both** browser roles, or on a named 16-entry `RLS_ONLY_TABLES` list. Four cases, including an anti-vacuity check (the table scan must find >40 tables) and a reverse-drift check (a table that is in fact revoked must not stay on the list). Comments record what it *cannot* check — whether those 16 tables' RLS policies are correct — so the coverage is not overread.
-- `config/deployment-contract.json` — contract 133 → 134, migration count 133 → 134, plus the contract note. No RPC signature added; this contract creates no function.
-- `e2e/seed-contract.ts` — `SEED_REVIEWED_AT_CONTRACT` 133 → 134, with a longer-than-usual note because this is the only entry in that list changing privileges on an *existing* table: a seeded user never reads `rate_limit_events`, but every seeded prediction save writes to it through the trigger, and the note explains why the definer boundary means the revoke cannot reach that path and which evidence proves it.
-- `docs/quality/risk-register.md` — `DB-005` rewritten to "Resolved in the repository at contract 134; hosted rollout pending", with the original finding preserved verbatim inside the row rather than overwritten, plus a dated 9 August correction record. The 6 August audit line saying `DB-005` was "deliberately not acted on" is left as written with a parenthetical pointing forward — the history is not rewritten to look cleaner.
-- Live authorities brought to contract 134: `AGENTS.md`, `docs/quality/current-status.md`, `docs/ops/ops-pending-migrations.md` (now recording **two** pending development migrations and both hosted environments as two behind), and `NOW.md` regenerated by `npm run generate:now`.
-- Contract-134 boundary notes appended to the nine documents the authority-freshness checker requires: `CLAUDE.md`, `MASTER-TODO.md`, `docs/roadmap.md`, `docs/adr/README.md`, `docs/design/README.md`, `docs/competition-structure.md`, `docs/quality/feature-baseline.md`, `docs/architecture/programme-plan.md`, `docs/architecture/multi-competition-hub-build-plan.md`. Each says what this contract does *not* change in that document's domain, because for almost all of them the answer is "nothing".
-
-**No `src/` file was touched.** No scoring, lock, ranking, settlement, progression, membership or route code changed. No RLS policy changed. No hosted state was read or written.
-
----
+1. **A league member who has not entered the game shows "Not entered", never a
+   zero.** The read includes them on purpose — its boundary is league
+   membership, not game entry, because the alternative hides a league from the
+   person who created it. But a "0 points from 0 matchweeks" row beside players
+   who have actually played misrepresents them, so the numbers are replaced by a
+   word and their rank is not read out to assistive technology either.
+2. **One table open at a time.** Two open tables of the same players invite
+   exactly the cross-league comparison neither of them means.
+3. **`aria-controls` is set only while the panel is in the document.** A
+   dangling reference is what axe reports, and this repository counts axe's
+   `incomplete` results rather than discarding them.
 
 ## 4. What I tested, and the results
 
-**Ran locally, at the pushed head:**
+| Check | Result |
+| --- | --- |
+| `npx oxlint --deny-warnings` | **Pass** |
+| `npx tsc -b` | **Pass** |
+| Full `npx vitest run` | **354 files passed, 3 skipped; 3214 tests passed, 26 skipped, 0 failed** |
+| Baseline for comparison (on untouched `main`) | 350 files / 3154 tests passed |
+| `npm run build` (incl. `prebuild` contract validation) | **Pass** |
+| `npm run check:dead-code` (knip) | No findings against any new module |
+| `npm audit --omit=dev --audit-level=high` | **0 vulnerabilities** |
+| Database parity / pgTAP | **Not run — no Docker daemon in this sandbox.** No SQL changed, so there is nothing new for it to assert. |
+| Browser E2E / axe | **Not runnable here** (same reason). `/competitions/premier-league/2026-27/leagues` is already in the axe route list and now carries a new expandable control, so CI is the only place this can be proven. |
+
+**The deploy preview's Lighthouse run reported Performance 21, down 75 from
+production — and it is not attributable to this change.** Accessibility stayed
+at 100. I checked rather than assuming: building `origin/main` in a separate
+worktree and comparing chunk-for-chunk, the entry chunk (`index`, 247.05 kB) and
+`LandingPage` (21.65 kB) are byte-identical to this branch's. The only chunk
+that moved is `SeasonGameRouteBundle`, 60.07 kB → 66.91 kB raw (16.84 → 18.00 kB
+gzipped), and it is lazily loaded on the season routes rather than on the path
+Lighthouse audited. The drop is preview noise or a pre-existing regression on
+`main`; either way it is worth someone looking at, and it is not this diff.
+
+One real regression was caught and fixed during the run rather than shipped:
+`SeasonGameRoutes.test.tsx` mocks each Supabase service module, and the new
+static import made it construct the real client, which throws without
+`VITE_SUPABASE_*`. The mock was added, and a route-level test now asserts that
+the browser reaches contract 128's read at all — the precise thing that was
+missing.
+
+**CI: green in full.** Observed complete against commit `1148bf7`, and matching
+the earlier run against the code commit `a88657b` up to the point that run was
+superseded. Every check passed, with nothing skipped that should have run:
 
 | Check | Result |
 | --- | --- |
-| `npx oxlint --deny-warnings` | pass |
-| `npx tsc -b` | pass |
-| Full `vitest run` | **3159 passed / 26 skipped / 0 failed** (350 files passed, 3 skipped) |
-| `tests/scripts/` + `tests/database-parity/` re-run after the final SQL edit | 1311 passed / 15 skipped / 0 failed |
-| `npm run build` | pass |
-| `npm run check:now` | `NOW.md is current: repository 134` |
-| `npm run check:documentation-authorities` | `Documentation authorities agree with contract 134` |
-| `node scripts/check-migration-timestamps.mjs` | pass — the added migration is strictly ordered above `main`'s highest |
-| `npm audit --omit=dev --audit-level=high` | 0 vulnerabilities |
+| `ci` — migration timestamps, documentation authorities, generated current-state, git-less hygiene, build, **compressed bundle budgets**, lint, domain-coverage thresholds, full Vitest, production dependency audit | **success** |
+| `authenticated-browser` — full Browser E2E, including the axe accessibility sweep over the leagues route | **success** |
+| `deploy-preview-smoke` | **success** |
+| CodeQL — `javascript-typescript` and `actions` | **success** |
+| Netlify header rules, redirect rules | **success** |
+| Supabase Preview | skipped (no migration) |
 
-**The guards were mutant-tested rather than trusted green,** because a new guard that passes proves nothing until it has been made to fail:
-
-- delete the table revoke → the new suite fails (2 cases);
-- weaken it to `from anon` alone → the new suite fails (2 cases);
-- restore → 9 passed.
-
-I also confirmed the *existing* contract-count guard is live: my uncommitted migration made `deploymentContractGuard` fail with "Repository has 134 migrations but deployment contract requires 133" before I bumped the contract, which is the guard doing exactly its job.
-
-**Could not run here, stated rather than glossed:**
-
-- **pgTAP (`supabase test db --local`) and the Database parity job** — no Docker daemon in this sandbox. The 22 new pgTAP assertions are verified by CI's `local-supabase` job on PR #605, not by me locally.
-- **Browser E2E** — same constraint. It matters for this PR specifically, because `SEED_REVIEWED_AT_CONTRACT` was raised: CI's `authenticated-browser` job is what re-verifies the seeded prediction-save journey through the limiter trigger.
-
-**CI on PR #605: all thirteen checks green.** Verified after they completed, not assumed:
-
-| Check | Conclusion |
-| --- | --- |
-| `ci` | success |
-| `local-supabase` (pgTAP + Database parity) | **success** — this is the evidence for the 22 new pgTAP assertions |
-| `migration-transition` | success |
-| `authenticated-browser` (Browser E2E) | **success** — this is the re-verification behind the raised `SEED_REVIEWED_AT_CONTRACT` |
-| `verify` | success |
-| `deploy-preview-smoke` | success |
-| `CodeQL` + `Analyse actions` + `Analyse javascript-typescript` | success |
-| Netlify `Header rules` / `Redirect rules` | success |
-| Netlify `Pages changed` | neutral (informational) |
-| `Supabase Preview` | skipped |
-
-So both CI-only halves of the verification came back green: the pgTAP file's 22 assertions ran against a real PostgreSQL rebuilt from all 134 migrations, and the authenticated browser journey — which writes through the limiter trigger on every prediction save — passed against the revoked table.
-
-**One process note, recorded because it nearly produced a false claim.** My first attempt to watch CI from this sandbox used the *unauthenticated* GitHub API, hit its hourly rate limit, and my filter treated the resulting error as "no checks in progress" — briefly reporting all checks settled when four were still running. The environment's `GITHUB_TOKEN` is a 14-character placeholder that returns HTTP 401, so authenticated polling is not available here either. The watcher was rewritten to treat an API error as *still waiting* and to say so out loud, which is how the four real results above were obtained. Worth knowing for future runs: a CI watcher in this sandbox must fail loud, because silence and success look identical.
-
-**Netlify deploy preview built successfully** ([preview](https://deploy-preview-605--euro28predictor.netlify.app)). Its Lighthouse comparison reports performance 20 against production's 76 — that is a cold unoptimised preview measured against a much older production build, and this PR touches no `src/` file at all, so it cannot be the cause. Recorded rather than actioned.
-
----
+The Browser E2E and bundle-budget results are the two this sandbox could not
+produce, and both are the ones that most needed CI: the first exercises the new
+expandable control against axe, and the second proves the season bundle's growth
+stays inside budget.
 
 ## 5. Merge outcome
 
-**Held for your review. Not auto-merged, and it will not be auto-merged by this session.**
+**Held for your review. Not merged, and auto-merge not enabled. CI is green —
+the hold is a policy decision, not a red build.**
 
-The overnight merge policy holds anything touching database migrations, and this batch also changes privileges on a table in the abuse-control path. Both conditions apply. CI is fully green — including the pgTAP and Browser E2E jobs — so nothing is blocking except the review itself.
+The stated policy holds a batch that touches "scoring or points,
+ranking/leaderboards … or anything that could affect official tournament data".
+This batch renders a ranking table, so it is held on the face of the rule even
+though the mechanism is conservative: it adds no migration, changes no scoring,
+lock, settlement or progression rule, adds no grant, and recomputes nothing in
+the browser — every number, the ordering and the paging cursor come from the
+server authority contract 128 already reviewed and merged.
 
-**Awaiting your review:**
-1. the migration and its contract-134 claim;
-2. the `service_role` scope decision — I left it untouched deliberately (reasoning in section 3), and the opposite call is defensible;
-3. whether the hosted Development fast-lane apply should follow, which is an operational decision this run had no authority to take.
-
----
+If you would rather this class of change (a browser read of an
+already-approved server ranking authority, with no rule of its own) merged
+automatically in future, that is a one-line change to the standing instruction
+and I will follow it.
 
 ## 6. What remains uncertain, and what I need from you
 
-1. **Contract-number collision with PR #602 — the one thing needing a decision before either lands.** Draft PR #602 also claims contract 134. The number is not a free choice: `documentationContractFreshness.test.ts` requires `contractVersion === migrationCount`, so whichever PR merges second **must** renumber to 135 and re-run its documentation sweep. I mitigated rather than resolved this: this branch's migration timestamp (`20260809030000`) is deliberately *later* than #602's (`20260809001500`) and its pgTAP index (`187`) later than #602's (`186`), so if #602 lands first only the documentation numbers here need bumping and the migration chain order is already correct. **Please decide the merge order**, or tell me to renumber to 135 pre-emptively.
-2. **`DB-005` is not closed in either hosted environment, and this PR does not claim it is.** The revoke reaches Development only through the guarded additive fast lane, and Production only through its own approved promotion. Until then both environments still grant every ordinary privilege on that table to both browser roles. The register row and the ops record both say so. **Do you want the fast-lane apply run after merge?**
-3. **Still no Docker daemon in this environment — third consecutive night, three independent sessions.** Tonight I chose a batch whose CI-only half is narrow and clearly named, but this is now a recurring structural limit on what a scheduled run can verify. Worth deciding whether these runs should be pointed at an environment with Docker access, or should be permanently scoped to batches whose evidence is fully local.
-4. **Five sessions were active on this repository tonight** (#593, #597, #600, #602, #604). I stayed off every one of their branches and did not review, merge or comment on any. Several are drafts that have been open for hours. Worth confirming whether nightly runs should triage other sessions' stale automation PRs, or leave that alone as I did.
-5. **One reasoned claim in the migration is not locally proven, only CI-proven:** that revoking the identity sequence cannot break the definer insert, because PostgreSQL advances an identity column's sequence without an ACL check. The pgTAP file drives the insert to prove it, so CI's `local-supabase` job is the evidence. If that job fails on the insert, the sequence revoke is the first thing to drop — the table revoke alone still closes `DB-005` as specified.
-
----
+1. **Two open pull requests both claim contract 134** (#602 "own Euro
+   publication state on the server" and #605 "`rate_limit_events` holds no
+   browser privilege"). The repository has already been made unmergeable once by
+   a duplicate claim. One of them needs renumbering, and that is an ownership
+   call between those two sessions rather than mine to make.
+2. **This sandbox still has no Docker daemon** — now recorded by three separate
+   sessions. Every migration-shaped item left in the risk register (`DB-003`
+   indexes, `DATA-007` atomic rate limiting, `SEC-001` invite-code entropy) is
+   therefore unreachable by an unattended run here. Either point these runs at
+   an environment with Docker, or accept that they will keep selecting
+   application-layer batches. This is the single biggest constraint on what
+   these nights can achieve.
+3. **I edited no authority document.** `docs/quality/current-status.md` records
+   contract-level truth and this batch claims no contract; #597 and #604 are
+   both open documentation pull requests, and adding a third editor to those
+   files tonight would have created a conflict for no benefit. If you want the
+   Leagues surface's new state recorded there, say so and I will add one line in
+   a follow-up rather than guessing at the right section.
+4. **`e2e/seed-contract.ts` mentions contract 128's read but no E2E spec
+   exercises the new surface.** A browser journey opening a league table on
+   seeded development data would be the honest proof this change works
+   end-to-end, and I could not write and run one here.
 
 ## 7. Recommended next batch
 
-1. **`DATA-007` — make rate-limit enforcement atomic.** Same subsystem, now with a pgTAP file and an exposure guard in place to build on, and the natural sequel to tonight. `enforce_rate_limit` does `select count(*)`, compares, then inserts, with no advisory lock or atomic upsert, so concurrent transactions can each observe a count below the ceiling and all proceed. Coverage is also narrower than it reads: both limits are triggers on the *written* table, so an **invalid** league code fails before any insert and consumes no limit at all — which is exactly what makes invite-code probing unbounded, and links this to `SEC-001`. It needs a Docker-capable environment or acceptance that CI is the only verifier, and it should be held for review like tonight's.
-2. **Apply contract 134 (and 133) to hosted Development through the guarded additive fast lane, then verify the ACL there.** Cheap, and it is what actually closes `DB-005` rather than closing it in the repository only. Also the run that finally proves or disproves `OPS-010`, whose closure condition is the next fast-lane rollout opening its pull request unaided.
-3. **`SEC-001` — invite-code strength and preview disclosure.** The register already specifies the closure: at least 10 characters from cryptographically secure bytes, an atomic limiter covering previews and failed joins, minimal preview disclosure, and code rotation. It shares the limiter work in (1), so doing them adjacently is cheaper than doing them apart — but they are separate PRs, since one changes an abuse control's arithmetic and the other changes a user-visible code format.
-4. **If a fully-local batch is wanted instead:** last night's recommendation is still open and still small — `src/services/supabase/seasonLeaderboard.ts`'s `fetchSeasonLeaderboardPage` has no direct unit test and no adapter matching `SeasonStandingsGateway`'s shape, one game short of the coverage the 6 August run added for the other two.
+1. **A browser E2E journey for the season league table**, in an environment with
+   Docker: open `/competitions/premier-league/2026-27/leagues` as a seeded
+   member, expand a league, assert the seeded totals agree with the season
+   standings for the same players, and assert the "Not entered" row for a member
+   with no entry. That closes the one gap tonight's batch leaves.
+2. **`get_rival_entry`'s browser half (contract 129) and the round-keyed
+   consensus (contract 130)** — I did not verify these tonight, but they are the
+   same shape as what I fixed: server reads added on 6–7 August whose callers
+   may or may not exist. Fifteen minutes of grepping will tell you, and if a
+   caller is missing it is the same low-risk, no-migration batch again.
+3. **`SEC-001` / `DATA-007` together, in a Docker-capable session.** Six
+   characters from `random()` over a 31-character alphabet, previewable with no
+   rate limit because the limiter is a trigger on the *written* table, is the
+   most serious repository-fixable finding still open. It needs one migration
+   and pgTAP, and it needs an environment that can run them.
+
+No production, Supabase or Netlify mutation was made or attempted in this
+session. Production investigation was not required and was not performed.

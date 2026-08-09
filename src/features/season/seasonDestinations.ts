@@ -1,4 +1,5 @@
 import {
+  competitionRefFromPath,
   competitionRoute,
   competitionSectionRoute,
   type CompetitionRouteRef,
@@ -24,7 +25,9 @@ export function seasonBasePath(competitionSlug: string, seasonSlug: string): str
 }
 
 function competitionRefFromBase(base: string): CompetitionRouteRef {
-  const match = base.match(/^\/competitions\/([^/]+)\/([^/]+)$/)
-  if (!match?.[1] || !match[2]) throw new Error(`Invalid competition base route: ${base}`)
-  return { competitionSlug: match[1], seasonSlug: match[2] }
+  const ref = competitionRefFromPath(base)
+  if (ref === null || competitionRoute(ref) !== base) {
+    throw new Error(`Invalid competition base route: ${base}`)
+  }
+  return ref
 }

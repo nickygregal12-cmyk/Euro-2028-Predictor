@@ -1,0 +1,318 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.eyebrow,
+.fixtureMeta,
+.openLabel {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx2);
+}
+
+.heading,
+.sectionHeading,
+.cardTitle,
+.roundHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.heading {
+  font-size: var(--fs-4);
+}
+
+.sectionHeading,
+.cardTitle,
+.roundHeading {
+  font-size: var(--fs-2);
+}
+
+.caption,
+.cardCopy,
+.matchFootnote {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  line-height: 1.5;
+  color: var(--tx2);
+}
+
+.instanceSection,
+.instanceList,
+.roundList,
+.fixtureList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.instanceList,
+.fixtureList,
+.tableList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.instanceCard,
+.matchCard,
+.round {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.instanceCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color var(--duration-micro) var(--ease-out), transform var(--duration-micro) var(--ease-out);
+}
+
+.instanceCard:hover {
+  border-color: var(--acc);
+}
+
+.instanceCard:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.instanceTopline,
+.matchStatus,
+.fixtureTags {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.fixtureSummary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.fixtureOpponent,
+.playerName {
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.openLabel {
+  color: var(--acc);
+}
+
+.matchCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  padding: var(--sp-4);
+}
+
+.myMatch {
+  box-shadow: inset 3px 0 0 var(--acc);
+}
+
+.result {
+  font-family: var(--font-display);
+  color: var(--tx);
+}
+
+.versus {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.playerSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  min-width: 0;
+}
+
+.playerSideAway {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.playerName {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score,
+.fixtureScore {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.score {
+  font-size: var(--fs-4);
+}
+
+.youTag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--acc) 16%, transparent);
+  color: var(--acc);
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tableHead,
+.tableRow {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem 2.5rem 3rem;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2);
+}
+
+.tableHead {
+  min-height: 30px;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx2);
+}
+
+.tableRow {
+  min-height: var(--tap-min);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+.tableRow:last-child {
+  border-bottom: 0;
+}
+
+.tableRow > :not(.tableName) {
+  text-align: right;
+}
+
+.tableRow > :first-child {
+  text-align: center;
+}
+
+.tableRow strong {
+  font-family: var(--font-display);
+  color: var(--tx);
+}
+
+.tableRowYou {
+  background: var(--chip);
+}
+
+.tableName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--tx);
+}
+
+.round {
+  overflow: hidden;
+}
+
+.roundHeading {
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.fixtureList {
+  gap: 0;
+}
+
+.fixtureRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.fixtureRow:last-child {
+  border-bottom: 0;
+}
+
+.fixtureRowMine {
+  background: var(--chip);
+  box-shadow: inset 3px 0 0 var(--acc);
+}
+
+.fixtureTeams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.fixtureTeams > :last-child {
+  text-align: right;
+}
+
+.fixtureScore {
+  min-width: 2.5rem;
+  text-align: center;
+}
+
+@media (min-width: 760px) {
+  .instanceList {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fixtureRow {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .fixtureTeams {
+    flex: 1;
+  }
+}

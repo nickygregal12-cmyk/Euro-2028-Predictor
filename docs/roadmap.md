@@ -1,6 +1,6 @@
 # Multi-competition platform — roadmap
 
-**Status date:** 7 August 2026  
+**Status date:** 8 August 2026
 **Purpose:** current delivery position and next executable slice.  
 **Current facts:** [`quality/current-status.md`](quality/current-status.md)  
 **Parent programme:** [`architecture/programme-plan.md`](architecture/programme-plan.md)  
@@ -27,6 +27,16 @@ What is durable enough to state here:
 - Stage B: complete through PR #226, with the retained checklist closed by PR #239;
 - Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. The Stage C1 migration is merged (PRs #317, #349) with hosted rollout tooling and a guarded GitHub workflow (PRs #350, #351); the hosted development apply **completed and was postflight-verified 2–3 August 2026** (PRs #359–#368 hardened the tooling en route). No production write is authorised;
 - lock policy is **game-owned** (ADR 0020, PR #353): the competition supplies identity, calendar and structure; each game supplies its own explicit lock policy, failing closed when missing or incompatible.
+
+## Domestic Frontend Alpha checkpoint — 8 August 2026
+
+The accepted sequence in the UI execution authority still governs, but its first items are no longer all open:
+
+- `DFA-003` reusable club identity and `DFA-005` deterministic parent navigation are implemented.
+- `DFA-004` route convergence and `DFA-006` meaningful action/Play aggregation are partial and remain active.
+- `DFA-007` is partial: real Scottish Matchweek 1 result truth and reload-persistent Matchweek 2 LMS are proven. The private Championship read contract is now applied and persistently verified in Development; PR #593 remains parked only on the real Team-SSO-protected signed-in desktop/phone browser acceptance. The ordinary MW1 scoring/rederivation proof and later MW2 Match Predictor points feed remain separate rehearsal gaps.
+- The four-provider capability/terms audit is merged as PR #594. The first provenance-backed team-profile schema candidate is PR #595, with the Development-only retained-response population lane stacked as PR #596. Both remain deliberately behind the `DFA-007` hosted/signed-in dependency and add no provider-to-official-result authority.
+- Production release posture is not inferred from any of these candidates; read the live status and operations inventory for the database, Netlify declaration and actually published artifact separately.
 
 ## Development operating model
 

@@ -4,7 +4,7 @@ import { AppBar, PageShell, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useTheme } from './providers/ThemeProvider'
-import { isCompetitionModePath, weeklyRoutes } from './weeklyRoutes'
+import { isCompetitionModePath, weeklyRoutes } from './shellRoutes'
 
 function activeTab(pathname: string): NavKey {
   if (pathname === weeklyRoutes.play) return 'predict'
