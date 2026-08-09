@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import type { FixtureListRow } from './fixtureListModel'
-import { SeasonMatchCentre } from './SeasonMatchCentre'
+import { SeasonMatchCentre, type SeasonFootballContext } from './SeasonMatchCentre'
 import type { SeasonMatchCentreCardReader } from './useSeasonMatchCentre'
 import {
   useSeasonFixtureWindow,
@@ -53,6 +53,12 @@ export type SeasonMatchesPageProps = {
    * plain rows rather than controls that open nothing.
    */
   readMatchweekCard?: SeasonMatchCentreCardReader
+  /**
+   * Contract 141's club form and season head-to-head, for an opened fixture.
+   * Optional and independent of the card: the football is the same for
+   * everybody and is shown even where an entry could not be read.
+   */
+  football?: SeasonFootballContext
 }
 
 const SKELETON_ROWS = 6
@@ -129,6 +135,7 @@ export function SeasonMatchesPage({
   gateway,
   timeZone,
   readMatchweekCard,
+  football,
 }: SeasonMatchesPageProps) {
   const { status, view, window, stepping, error, previous, next, reload } =
     useSeasonFixtureWindow(gateway, timeZone)
@@ -221,7 +228,11 @@ export function SeasonMatchesPage({
                     }
                   >
                     {readMatchweekCard && openFixture === row.id ? (
-                      <SeasonMatchCentre fixture={row} read={readMatchweekCard} />
+                      <SeasonMatchCentre
+                        fixture={row}
+                        read={readMatchweekCard}
+                        football={football}
+                      />
                     ) : null}
                   </Match>
                 ))}

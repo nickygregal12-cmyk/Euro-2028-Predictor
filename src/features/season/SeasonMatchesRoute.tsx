@@ -1,9 +1,15 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
+import {
+  fetchSeasonClubForm,
+  fetchSeasonClubHeadToHead,
+} from '../../services/supabase/seasonClubForm'
+import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
+import type { SeasonFootballContext } from './SeasonMatchCentre'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchesPage } from './SeasonMatchesPage'
@@ -86,6 +92,45 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
     return (matchweek: number) => gateway.load(matchweek)
   }, [context, tournamentId])
 
+  /**
+   * Contract 141's club form, once per season rather than once per fixture:
+   * the read returns every club in one call, so a list showing a fortnight of
+   * fixtures costs one request however many clubs appear in it.
+   *
+   * It fails silently and alone. Form is context beside the answer — a Matches
+   * section without it is the section that shipped last week, and one that
+   * refused to render because form could not be read would be worse.
+   */
+  const [clubForm, setClubForm] = useState<readonly SeasonClubForm[] | null>(null)
+  useEffect(() => {
+    if (tournamentId === null) return
+    let active = true
+    setClubForm(null)
+    fetchSeasonClubForm(tournamentId)
+      .then((table) => {
+        if (active) setClubForm(table.clubs)
+      })
+      .catch(() => {
+        if (active) setClubForm(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [tournamentId])
+
+  const football = useMemo<SeasonFootballContext | undefined>(() => {
+    if (tournamentId === null || clubForm === null) return undefined
+    // Joined by name because contract 139's fixture read carries no team id.
+    // Both names come from `public.teams.name`, so this is an equality on one
+    // source of truth rather than a fuzzy match.
+    const byName = new Map(clubForm.map((club) => [club.name, club]))
+    return {
+      formFor: (name: string) => byName.get(name) ?? null,
+      headToHead: (teamId: string, opponentId: string) =>
+        fetchSeasonClubHeadToHead(tournamentId, teamId, opponentId),
+    }
+  }, [tournamentId, clubForm])
+
   if (state.kind === 'loading') {
     return (
       <div className={styles.page} aria-busy="true" aria-live="polite">
@@ -132,6 +177,7 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
         gateway={fixtures}
         timeZone={context.timeZone}
         readMatchweekCard={readCard}
+        football={football}
       />
     </SeasonCompetitionShell>
   )
