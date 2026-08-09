@@ -25,6 +25,8 @@ import {
 } from './competitionCatalogue'
 import { applyHubMembership } from './hubMembership'
 import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAction'
+import { CompetitionWeekPanel } from './CompetitionWeekPanel'
+import { useCompetitionWeek } from './useCompetitionWeek'
 import { SeasonCompetitionShell } from '../season/SeasonCompetitionShell'
 import { seasonShellDestinations } from '../season/seasonDestinations'
 
@@ -78,7 +80,7 @@ function useCompetitionDashboard(competition: HubCompetition | null) {
     }
   }, [seasonRowName, nonce, competition])
 
-  return { state, reload: useCallback(() => setNonce((value) => value + 1), []) }
+  return { state, nonce, reload: useCallback(() => setNonce((value) => value + 1), []) }
 }
 
 type CompetitionPageMode = 'overview' | 'games'
@@ -90,7 +92,7 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
     seasonSlug: string
   }>()
   const catalogue = findHubCompetition(competitionSlug, seasonSlug)
-  const { state, reload } = useCompetitionDashboard(catalogue)
+  const { state, nonce, reload } = useCompetitionDashboard(catalogue)
   const [acting, setActing] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -133,6 +135,18 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
   const base = competitionSectionRoute(competition, 'overview')
   const destinations = seasonShellDestinations(base)
 
+  // Where each game lives, resolved once here rather than inside the week hook:
+  // the Match Predictor destination is flag-gated and that decision belongs in
+  // the one place that already makes it.
+  const weekHrefs = {
+    matchPredictor: isNextUi('seasonMatchPredictor')
+      ? competitionGameRoute(competition, 'match-predictor')
+      : null,
+    lms: competitionGameRoute(competition, 'lms'),
+    championship: competitionGameRoute(competition, 'championship'),
+  }
+  const week = useCompetitionWeek(competitionSlug, seasonSlug, servedGames, weekHrefs, nonce)
+
   return (
     <SeasonCompetitionShell
       competitionName={competition.name}
@@ -161,6 +175,15 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             </h2>
           </div>
           <p className={s.sub}>{competition.summary}</p>
+          {/* §7.3's Overview job: what is due, before what exists. It renders
+              nothing at all for a player who has joined no game here — an
+              action panel with no actions is furniture. */}
+          <CompetitionWeekPanel
+            week={week.week}
+            loading={week.loading}
+            failed={week.failed}
+            timeZone={week.timeZone}
+          />
           <Button
             variant="primary"
             fullWidth

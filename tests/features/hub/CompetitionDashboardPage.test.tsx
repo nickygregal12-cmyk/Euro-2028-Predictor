@@ -23,6 +23,26 @@ vi.mock('../../../src/services/supabase/bonusGames', () => ({
   withdrawBonusCompetition: mocks.withdrawBonusCompetition,
 }))
 
+// Overview's weekly summary asks each joined game's own read. These stand in
+// for the three Supabase-backed gateway factories it builds; the summary's own
+// behaviour is proven against `competitionWeekModel` directly, so what matters
+// here is only that the dashboard still renders while they answer.
+vi.mock('../../../src/services/supabase/seasonPlayContext', () => ({
+  createSeasonPlayContextGateway: () => ({ load: () => new Promise(() => {}) }),
+}))
+
+vi.mock('../../../src/services/supabase/seasonMatchPredictor', () => ({
+  createSeasonMatchPredictorRpcGateway: () => ({ load: () => new Promise(() => {}) }),
+}))
+
+vi.mock('../../../src/services/supabase/seasonLms', () => ({
+  createSeasonLmsRpcGateway: () => ({ load: () => new Promise(() => {}) }),
+}))
+
+vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
+  createSeasonCupPlayerViewRpcGateway: () => ({ load: () => new Promise(() => {}) }),
+}))
+
 const MAIN_PREDICTOR_ID = '60000000-0000-0000-0000-000000000101'
 const SERVER_NOW = '2026-08-06T12:00:00Z'
 

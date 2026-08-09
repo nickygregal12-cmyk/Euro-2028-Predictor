@@ -51,6 +51,33 @@ function isConcurrentMembershipInsert(error: DatabaseError | null): boolean {
  * PostgreSQL returns that expected loser as 23505 only after the winning
  * transaction has settled, so it follows the same shared-row read path.
  */
+/**
+ * The caller's tournament entry, or null when they have none.
+ *
+ * READ-ONLY, AND THAT IS THE WHOLE POINT. `getOrCreateEntry` below UPSERTS, and
+ * the contract-66 membership trigger fires on that insert — so merely rendering
+ * a surface that mounted the predictions provider enrolled the visitor in the
+ * competition. Harmless while every signed-in route was a Euro route; not
+ * harmless once More -> Profile is two taps from a Scottish Premiership player's
+ * Hub. Entry is an act, not a side effect of looking.
+ *
+ * `maybeSingle` rather than `single`: no row is the ordinary answer here.
+ */
+export async function fetchMyEntry(
+  userId: string,
+  tournamentId: string,
+): Promise<Entry | null> {
+  const { data, error } = await supabase
+    .from('entries')
+    .select('id, submitted_at')
+    .eq('user_id', userId)
+    .eq('tournament_id', tournamentId)
+    .maybeSingle()
+
+  if (error) throw error
+  return data ? mapEntry(data) : null
+}
+
 export async function getOrCreateEntry(userId: string, tournamentId: string): Promise<Entry> {
   const created = await supabase
     .from('entries')

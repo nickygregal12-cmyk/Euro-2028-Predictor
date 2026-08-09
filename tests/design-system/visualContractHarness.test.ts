@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { sectionAnchor } from '../../src/dev/sectionAnchor'
@@ -12,9 +12,11 @@ import { sectionAnchor } from '../../src/dev/sectionAnchor'
  * still reporting green. Every assertion here guards one of the decisions that
  * prevents that, so relaxing one is a visible edit rather than a quiet one.
  *
- * The suite itself cannot run in CI yet, and that is deliberate — baselines have
- * to be rendered on the runner that will compare them. This is what can be
- * checked before that bootstrap happens.
+ * The suite now runs on every pull request that can move a pixel. It could not
+ * before, because baselines have to be rendered on the runner that will compare
+ * them and none existed; the bootstrap has since run and its images are
+ * committed, so the assertions below check the live contract rather than the
+ * conditions for starting it.
  */
 
 const repositoryRoot = process.cwd()
@@ -120,18 +122,45 @@ describe('the harness is pinned against variation', () => {
 })
 
 describe('the CI bootstrap', () => {
-  it('cannot compare before baselines exist', () => {
-    // A `pull_request` trigger added before the bootstrap run would redden
-    // every pull request, and the usual fix for that is to weaken the suite.
+  it('compares every pull request against committed baselines', () => {
+    // This assertion used to say the opposite: no `pull_request` trigger, because
+    // one added before the bootstrap run would redden every pull request and the
+    // usual fix for that is to weaken the suite. The bootstrap has now run, so
+    // the guard flips — a comparison suite nothing triggers holds nothing.
     expect(workflow).toMatch(/workflow_dispatch:/)
-    expect(workflow, 'the visual suite runs on pull requests before its baselines exist').not.toMatch(
-      /^on:[\s\S]*?\n\s{2}pull_request:/m,
+    expect(workflow).toMatch(/^on:[\s\S]*?\n\s{2}pull_request:/m)
+  })
+
+  it('has the baselines that trigger depends on', () => {
+    // The pair is the contract: the trigger without the images is a red suite on
+    // every pull request, and deleting the images is how someone would silence
+    // it. Counted rather than merely present, because one stray PNG would
+    // satisfy an existence check while 51 sections went unphotographed.
+    const baselines = readdirSync(resolve(repositoryRoot, 'e2e/visual-baselines')).filter((file) =>
+      file.endsWith('.png'),
     )
+    // Thirteen curated sections × two pinned widths × two themes.
+    expect(baselines.length).toBe(52)
+    for (const width of ['phone', 'desktop']) {
+      for (const theme of ['light', 'dark']) {
+        expect(
+          baselines.filter((file) => file.endsWith(`-${width}-${theme}.png`)).length,
+          `no ${width}/${theme} baselines`,
+        ).toBe(13)
+      }
+    }
   })
 
   it('renders baselines on the runner that will compare them', () => {
     expect(workflow).toMatch(/--update-snapshots/)
     expect(workflow).toMatch(/upload-artifact/)
+  })
+
+  it('never lets a re-render land on the default branch unreviewed', () => {
+    // Baselines decide what CI enforces. A workflow that can push them straight
+    // to the default branch is one that eventually will.
+    expect(workflow).toMatch(/commit_baselines/)
+    expect(workflow).toMatch(/default_branch/)
   })
 
   it('is absent from the suites that gate a merge', () => {

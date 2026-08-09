@@ -1,5 +1,8 @@
+import { useState } from 'react'
 import { Alert, Button, Skeleton } from '../../design-system'
 import type { LeagueStandingsRow, SeasonLeagueStandingsGateway } from './leagueStandingsModel'
+import type { SeasonHeadToHead as HeadToHead } from '../../services/supabase/seasonHeadToHeadModel'
+import { SeasonHeadToHead } from './SeasonHeadToHead'
 import { useSeasonLeagueStandings } from './useSeasonLeagueStandings'
 import styles from './SeasonLeagueStandings.module.css'
 
@@ -31,11 +34,28 @@ export type SeasonLeagueStandingsProps = {
   leagueId: string
   /** Named in the heading so two open tables can never be confused. */
   leagueName: string
+  /**
+   * Opens a head-to-head against one rival for one matchweek (contract 129).
+   *
+   * OPTIONAL, AND ABSENT IS A REAL STATE. It needs a matchweek, and a season
+   * past its last lock has none — the caller decides, because it is the caller
+   * that resolved the play context. With no reader supplied, rows carry no
+   * compare control at all rather than one that refuses.
+   */
+  headToHead?: { matchweek: number; load: (opponentId: string) => Promise<HeadToHead> }
 }
 
 const SKELETON_ROWS = 4
 
-function Row({ row, pinned = false }: { row: LeagueStandingsRow; pinned?: boolean }) {
+function Row({
+  row,
+  pinned = false,
+  onCompare,
+}: {
+  row: LeagueStandingsRow
+  pinned?: boolean
+  onCompare?: (row: LeagueStandingsRow) => void
+}) {
   return (
     <li
       className={[styles.row, row.isYou ? styles.rowYou : '', pinned ? styles.rowPinned : '']
@@ -66,6 +86,18 @@ function Row({ row, pinned = false }: { row: LeagueStandingsRow; pinned?: boolea
           </span>
         </>
       )}
+      {/* Not on your own row, and not on a member who has not entered: there is
+          nothing of theirs to compare against, and the server would refuse. */}
+      {onCompare && row.userId && !row.notEnteredLabel ? (
+        <button
+          type="button"
+          className={styles.compare}
+          onClick={() => onCompare(row)}
+        >
+          <span className={styles.srOnly}>Compare this matchweek with {row.displayName}</span>
+          <span aria-hidden="true">vs</span>
+        </button>
+      ) : null}
     </li>
   )
 }
@@ -74,11 +106,15 @@ export function SeasonLeagueStandings({
   gateway,
   leagueId,
   leagueName,
+  headToHead,
 }: SeasonLeagueStandingsProps) {
   const { status, view, loadingMore, error, loadMore, reload } = useSeasonLeagueStandings(
     gateway,
     leagueId,
   )
+  // One at a time. Two open comparisons would be two answers to "how am I doing
+  // against them", and the table is already the answer to the general form.
+  const [rival, setRival] = useState<LeagueStandingsRow | null>(null)
 
   if (status === 'loading') {
     return (
@@ -131,7 +167,7 @@ export function SeasonLeagueStandings({
 
       <ul className={styles.list}>
         {view.rows.map((row) => (
-          <Row key={row.key} row={row} />
+          <Row key={row.key} row={row} onCompare={headToHead ? setRival : undefined} />
         ))}
       </ul>
 
@@ -153,6 +189,20 @@ export function SeasonLeagueStandings({
         <Button variant="secondary" onClick={loadMore} disabled={loadingMore}>
           {loadingMore ? 'Loading…' : 'Load more'}
         </Button>
+      ) : null}
+
+      {/* Below the table rather than over it: a modal would hide the ranking the
+          comparison is about, and this is a detail of the row, not a
+          destination. Keyed on the rival so switching rows reloads rather than
+          showing the previous player's matchweek under a new name. */}
+      {headToHead && rival?.userId ? (
+        <SeasonHeadToHead
+          key={rival.userId}
+          opponentName={rival.displayName}
+          matchweek={headToHead.matchweek}
+          load={() => headToHead.load(rival.userId as string)}
+          onClose={() => setRival(null)}
+        />
       ) : null}
     </div>
   )

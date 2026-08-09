@@ -9,6 +9,7 @@ import type {
 
 function row(overrides: Partial<SeasonLeagueStandingsRow> = {}): SeasonLeagueStandingsRow {
   return {
+    userId: 'user-sam',
     displayName: 'Sam',
     points: 84,
     rank: 1,

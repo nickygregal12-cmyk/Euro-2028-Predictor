@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
-import { fetchSeasonMatchweekFixtures } from '../../services/supabase/seasonFixtures'
+import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchesPage } from './SeasonMatchesPage'
@@ -58,7 +58,10 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
     () =>
       tournamentId === null
         ? null
-        : { load: (matchweek: number) => fetchSeasonMatchweekFixtures(tournamentId, matchweek) },
+        : {
+            load: (window: { from?: string; to?: string }) =>
+              fetchSeasonFixtureList(tournamentId, window),
+          },
     [tournamentId],
   )
 
@@ -100,13 +103,11 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
       active="matches"
       destinations={seasonShellDestinations(base)}
     >
-      <SeasonMatchesPage
-        gateway={fixtures}
-        timeZone={context.timeZone}
-        // The matchweek about to lock is the one a player is looking for. Once
-        // a season has none left, the last one played is.
-        openAt={context.matchweek ?? context.matchweekCount}
-      />
+      {/* No `openAt`. The window is the server's default — the last week and
+          the next fortnight — because "what is on around now" is the question
+          this section answers, and anchoring it to a matchweek is what filed a
+          postponed November fixture under a September heading. */}
+      <SeasonMatchesPage gateway={fixtures} timeZone={context.timeZone} />
     </SeasonCompetitionShell>
   )
 }

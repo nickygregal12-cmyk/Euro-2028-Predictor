@@ -3,6 +3,7 @@ import { mapSeasonLeagueStandingsPage } from '../../src/services/supabase/season
 
 function row(overrides: Record<string, unknown> = {}) {
   return {
+    userId: 'user-sam',
     displayName: 'Sam',
     points: 84,
     rank: 1,
@@ -46,7 +47,8 @@ describe('mapSeasonLeagueStandingsPage', () => {
     const page = mapSeasonLeagueStandingsPage(payload({ you: row({ position: 9, rank: 7 }) }))
 
     expect(page.you).toEqual({
-      displayName: 'Sam',
+      userId: 'user-sam',
+    displayName: 'Sam',
       points: 84,
       rank: 7,
       matchweeksPlayed: 22,

@@ -135,7 +135,7 @@ describe('Appendix E.4 token discipline', () => {
 })
 
 describe('Appendix E.3 content order', () => {
-  it('runs hero → proof → how → experience → leagues → games → Euro → CTA', () => {
+  it('runs hero → proof → how → experience → leagues → games → CTA', () => {
     const body = prototype.split('<body>')[1]
     const markers = [
       'class="hero"',
@@ -144,12 +144,24 @@ describe('Appendix E.3 content order', () => {
       'id="experience"',
       'id="leagues"',
       'id="games"',
-      'euro-band',
       'final-cta',
     ]
     const positions = markers.map((m) => body.indexOf(m))
     expect(positions.every((p) => p >= 0)).toBe(true)
     expect([...positions].sort((a, b) => a - b)).toEqual(positions)
+  })
+
+  it('carries no Euro 2028 band, and no Euro anything (EURO-003)', () => {
+    // `euro-band` used to sit between games and the final CTA, and the order
+    // above pinned it there. ADR 0026 superseded revision 1.5's Euro
+    // positioning and EURO-003 requires Euro absent from the weekly platform
+    // while its publication state is hidden, so the prototype loses it too —
+    // this file exists precisely so the prototype and the appendix cannot
+    // disagree with the product about what the page is.
+    //
+    // The whole document, not just the band: a mention in the hero or the
+    // footer breaks the same requirement and leaves no `euro-band` to find.
+    expect(prototype.toLowerCase()).not.toContain('euro')
   })
 })
 
@@ -168,10 +180,19 @@ describe('Appendix E.7 acceptance checklist', () => {
     expect(setup).not.toContain('checked')
   })
 
-  it('keeps both domestic competitions ahead of Euro 2028', () => {
-    const body = prototype.split('<body>')[1]
-    expect(body.indexOf('Scottish Premiership')).toBeLessThan(body.indexOf('Euro 2028'))
-    expect(body.indexOf('Premier League')).toBeLessThan(body.indexOf('Euro 2028'))
+  it('still leads with both domestic competitions, with nothing behind them', () => {
+    // E.7 asked for both domestic competitions AHEAD of the Euro band. With the
+    // band gone under EURO-003 the ordering half is moot, but the half that
+    // still matters is not: both competitions must be on the page and in the
+    // order Appendix E names them, which is what the requirement was protecting
+    // when it put them first.
+    const body = prototype.split('<body>')[1] as string
+    const scottish = body.indexOf('Scottish Premiership')
+    const premier = body.indexOf('Premier League')
+
+    expect(scottish).toBeGreaterThan(-1)
+    expect(premier).toBeGreaterThan(-1)
+    expect(scottish).toBeLessThan(premier)
   })
 
   it('keeps the modal accessible: dialog semantics, focus trap, escape, restoration', () => {

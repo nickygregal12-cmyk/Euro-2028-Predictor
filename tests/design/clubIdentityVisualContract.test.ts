@@ -6,6 +6,15 @@ const matchCard = readFileSync('src/design-system/ClubMatchCard.tsx', 'utf8')
 const leagueTable = readFileSync('src/design-system/LeagueTable.tsx', 'utf8')
 const seasonLms = readFileSync('src/features/season/SeasonLmsPage.tsx', 'utf8')
 const seasonMatches = readFileSync('src/features/season/SeasonMatchesPage.tsx', 'utf8')
+// The Matches surface resolves its identity in the DECODER rather than in the
+// component. That is an improvement rather than a loosening: contract 139
+// returns each club's stored short code and colours, so the tokens come from
+// reference data instead of being derived from a name at render time — which
+// is what `resolveClubIdentity` falls back to when it is given neither.
+const seasonMatchesDecoder = readFileSync(
+  'src/services/supabase/seasonFixtureListModel.ts',
+  'utf8',
+)
 const gallery = readFileSync('src/dev/ComponentsPreview.tsx', 'utf8')
 
 describe('DFA-003 club identity visual contract', () => {
@@ -33,7 +42,10 @@ describe('DFA-003 club identity visual contract', () => {
     expect(seasonLms).toContain('<ClubIdentity')
     expect(seasonMatches).toContain('<ClubIdentity')
     expect(seasonLms).toContain('resolveClubIdentity')
-    expect(seasonMatches).toContain('resolveClubIdentity')
+    // Resolved once, where the payload is decoded, and passed down as tokens.
+    expect(seasonMatchesDecoder).toContain('resolveClubIdentity')
+    expect(seasonMatchesDecoder).toContain('short_code')
+    expect(seasonMatchesDecoder).toContain('club_colours')
   })
 
   it('remains visible in the design-system gallery with Premier and Scottish examples', () => {

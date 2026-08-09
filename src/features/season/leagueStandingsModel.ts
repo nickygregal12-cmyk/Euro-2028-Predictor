@@ -34,6 +34,11 @@ import { userFacingError } from '../../shared/errors/userFacingError'
 
 export type LeagueStandingsRow = {
   key: string
+  /**
+   * The member's account id, carried through so a row can open a head-to-head.
+   * Null for the caller's own row, because there is no comparison to make.
+   */
+  userId: string | null
   /** "4", or "=4" when the rank is shared. */
   rankLabel: string
   rank: number
@@ -96,6 +101,7 @@ function toRow(source: SeasonLeagueStandingsYou, isYou: boolean): LeagueStanding
     key: `row-${source.position}`,
     rankLabel: source.tied ? `=${source.rank}` : `${source.rank}`,
     rank: source.rank,
+    userId: isYou ? null : source.userId,
     displayName: source.displayName,
     points: source.hasEntry ? source.points : null,
     matchweeksPlayed: source.hasEntry ? source.matchweeksPlayed : null,

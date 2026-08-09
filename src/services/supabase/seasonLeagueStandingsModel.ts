@@ -26,6 +26,17 @@
  */
 
 export type SeasonLeagueStandingsRow = {
+  /**
+   * The member's account id, which the read has always sent and this decoder
+   * used to drop.
+   *
+   * IT IS WHY CONTRACT 129 HAD NO CALLER. `get_season_head_to_head` is
+   * addressed by an opponent's user id, and the public season leaderboard
+   * exposes none — only display names. This read is the single browser surface
+   * that carries one, so discarding it left a granted head-to-head with no way
+   * to name an opponent from anywhere in the product.
+   */
+  userId: string
   displayName: string
   points: number
   /** Recomputed within the league by the server. Never derived here. */
@@ -75,6 +86,7 @@ function mapYou(value: unknown): SeasonLeagueStandingsYou | null {
   // key is still allowed to be null, and a null must not be read as a zero row.
   if (value === null || value === undefined) return null
   const row = objectOf(value)
+  const userId = stringOrNull(row.userId)
   const displayName = stringOrNull(row.displayName)
   const points = integerOrNull(row.points)
   const rank = integerOrNull(row.rank)
@@ -85,6 +97,7 @@ function mapYou(value: unknown): SeasonLeagueStandingsYou | null {
   const hasEntry = booleanOrNull(row.hasEntry)
 
   if (
+    !userId ||
     !displayName ||
     points === null ||
     rank === null ||
@@ -97,7 +110,17 @@ function mapYou(value: unknown): SeasonLeagueStandingsYou | null {
     return null
   }
 
-  return { displayName, points, rank, matchweeksPlayed, tied, position, isOwner, hasEntry }
+  return {
+    userId,
+    displayName,
+    points,
+    rank,
+    matchweeksPlayed,
+    tied,
+    position,
+    isOwner,
+    hasEntry,
+  }
 }
 
 function mapRow(value: unknown): SeasonLeagueStandingsRow | null {

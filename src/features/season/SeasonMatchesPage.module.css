@@ -168,3 +168,31 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* Row metadata: the matchweek label on a day that mixes them, and the
+   provisional marker. A second line under the fixture rather than a fourth
+   column — the row is already home / score / away on a phone, and a fourth
+   cell would squeeze the club names that carry the meaning. */
+.rowMeta {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: 2px;
+}
+
+.roundTag,
+.provisional {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+/* Marked, not coloured: §11.8 forbids conveying status by colour alone, and a
+   provisional score that only differed by hue would read as a result to anyone
+   who cannot see the difference. */
+.provisional::before {
+  content: '· ';
+}

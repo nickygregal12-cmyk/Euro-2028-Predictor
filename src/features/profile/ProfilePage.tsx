@@ -6,7 +6,12 @@ import { ChevronLeftIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
 import { usePredictions } from '../../app/providers/PredictionsProvider'
-import { buildBracketPipeline } from '../bracket'
+// From the module, not the barrel. `../bracket/index.ts` re-exports the round,
+// tie, switcher and champion components as well as the pipeline, so importing
+// the pipeline through it pulled four retired bracket SCREENS into the
+// production bundle behind one function. `AccountPage` and `useShareModel`
+// already reach for the module directly; this was the odd one out.
+import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { scoreOneMatch } from '../predict/matchScoring'
 import { profileStats, type OutcomeKind } from '../../domain/tournament/profileStats'
 import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
@@ -183,6 +188,25 @@ export function ProfilePage() {
         <div className={s.card}>
           <Skeleton lines={4} />
         </div>
+      </div>
+    )
+  }
+
+  // A PROFILE OF ZEROS IS NOT A PROFILE. Every figure below is derived from the
+  // caller's predictions, and a visitor with no entry has none — so before this
+  // said so, they were shown an accuracy breakdown of nothing, zero points and
+  // no rank, all of it perfectly plausible and about nobody. It became the
+  // ordinary case the moment the provider stopped creating an entry just
+  // because somebody opened this page.
+  if (!preds.hasEntry) {
+    return (
+      <div className={s.page}>
+        {header}
+        <Alert variant="info" title="Nothing to show here yet">
+          Your profile is built from the predictions you have made, and you have
+          not entered a competition that reports here. Join a game from your
+          competition and this fills in.
+        </Alert>
       </div>
     )
   }

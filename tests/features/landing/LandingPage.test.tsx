@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { ThemeProvider } from '../../../src/app/providers/ThemeProvider'
 import { LandingPage } from '../../../src/features/landing/LandingPage'
@@ -112,14 +112,21 @@ describe('the public landing page', () => {
     expect(toggle).toBeTruthy()
   })
 
-  it('names Euro 2028 as separately joined, below the domestic sections', () => {
-    renderLanding()
+  it('mentions Euro 2028 nowhere at all (EURO-003)', () => {
+    // The inverse of what this asserted before. Revision 1.5 gave the page a
+    // Euro acquisition band and this pinned its heading and its "separately
+    // joined" wording; ADR 0026 superseded that and EURO-003 requires Euro
+    // absent from the weekly platform — landing content included — while its
+    // publication state is hidden.
+    //
+    // Asserted over the whole rendered page rather than over the removed
+    // section's id, because the section coming back is only one of the ways
+    // this regresses: a stray mention in the hero, the games list or the final
+    // call to action would violate the same requirement while leaving no
+    // `#euro` to look for.
+    const { container } = renderLanding()
 
-    const euro = document.getElementById('euro')
-    expect(euro).not.toBeNull()
-    expect(within(euro as HTMLElement).getByRole('heading', { level: 2 }).textContent).toMatch(
-      /Euro 2028/,
-    )
-    expect(euro?.textContent).toMatch(/separately joined/i)
+    expect(document.getElementById('euro')).toBeNull()
+    expect(container.textContent ?? '').not.toMatch(/euro/i)
   })
 })

@@ -32,21 +32,18 @@ describe('the landing page content model', () => {
       'experience',
       'leagues',
       'games',
-      'euro',
       'final',
     ])
   })
 
-  it('puts both domestic competitions before Euro 2028 (E.7)', () => {
-    // The whole reconciliation in Appendix E is that the recurring domestic
-    // product is the proposition and the tournament is a separate acquisition
-    // surface further down. If Euro ever climbs above the proof band, the page
-    // is selling the thing the plan explicitly demoted.
-    const proof = LANDING_SECTION_ORDER.indexOf('proof')
-    const euro = LANDING_SECTION_ORDER.indexOf('euro')
-
-    expect(proof).toBeGreaterThan(-1)
-    expect(euro).toBeGreaterThan(proof)
+  it('offers no Euro 2028 section at all (EURO-003)', () => {
+    // This assertion used to say the opposite: that Euro sat somewhere BELOW
+    // the proof band, because revision 1.5 put an acquisition band there and
+    // the only risk was it climbing. ADR 0026 superseded that positioning and
+    // EURO-003 requires Euro absent from the weekly platform entirely while its
+    // publication state is hidden, so the ordering question no longer exists —
+    // there is nothing to order.
+    expect(LANDING_SECTION_ORDER).not.toContain('euro' as never)
     expect(DOMESTIC_COMPETITIONS.map((c) => c.name)).toEqual([
       'Scottish Premiership',
       'Premier League',

@@ -1,0 +1,107 @@
+/* Post-lock prediction consensus. Tokens only. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.fixtureHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.teams {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--tx);
+  min-width: 0;
+}
+
+.result {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+  white-space: nowrap;
+}
+
+/* Three shares of one whole. The segments carry no text, so they are described
+   once on the container rather than three times inside it. */
+.bar {
+  display: flex;
+  width: 100%;
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+}
+
+.home {
+  background: var(--acc);
+}
+
+.draw {
+  background: var(--mut);
+}
+
+.away {
+  background: var(--cyn);
+}
+
+.shares {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+.top {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}

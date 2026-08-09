@@ -4,6 +4,8 @@ import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { MatchPredictorGateway } from './matchPredictorModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
 import { SeasonGameSubNav } from './SeasonGameSubNav'
+import { SeasonConsensusPanel } from './SeasonConsensusPanel'
+import type { SeasonConsensus } from '../../services/supabase/seasonConsensusModel'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonMatchPredictor } from './useSeasonMatchPredictor'
 import styles from './SeasonMatchPredictorPage.module.css'
@@ -15,6 +17,12 @@ export type SeasonMatchPredictorPageProps = {
   seasonLabel: string
   destinations?: Partial<Record<SeasonShellSection, string>>
   registration?: SeasonLmsRegistrationGateway
+  /**
+   * The post-lock consensus read, supplied by the route. Omitted by the DEV
+   * harness, which has no season to read one from — the panel is then absent
+   * rather than empty.
+   */
+  consensus?: (matchweek: number) => Promise<SeasonConsensus>
 }
 
 const SKELETON_ROWS = 10
@@ -38,6 +46,7 @@ export function SeasonMatchPredictorPage({
   seasonLabel,
   destinations,
   registration,
+  consensus,
 }: SeasonMatchPredictorPageProps) {
   const view = useSeasonMatchPredictor(gateway, matchweek)
 
@@ -226,6 +235,13 @@ export function SeasonMatchPredictorPage({
           ) : null}
         </div>
       </section>
+
+      {/* After the card, never before it. The read refuses until this
+          matchweek's own lock has passed, so the panel simply is not there
+          while a player is still predicting. */}
+      {consensus ? (
+        <SeasonConsensusPanel matchweek={page.matchweek.number} load={consensus} />
+      ) : null}
     </SeasonCompetitionShell>
   )
 }

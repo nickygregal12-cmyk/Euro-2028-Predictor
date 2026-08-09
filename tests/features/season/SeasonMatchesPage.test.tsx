@@ -1,169 +1,134 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SeasonMatchesPage } from '../../../src/features/season/SeasonMatchesPage'
-import type { SeasonMatchesGateway } from '../../../src/features/season/matchesModel'
-import type {
-  SeasonFixture,
-  SeasonMatchweekFixtures,
-} from '../../../src/services/supabase/seasonFixtures'
+import { mapSeasonFixtureList } from '../../../src/services/supabase/seasonFixtureListModel'
+import type { SeasonFixtureWindowGateway } from '../../../src/features/season/useSeasonFixtureWindow'
 
-function fixture(overrides: Partial<SeasonFixture> = {}): SeasonFixture {
+const ZONE = 'Europe/London'
+const FROM = '2026-08-01T00:00:00.000Z'
+const TO = '2026-08-22T00:00:00.000Z'
+
+function page(fixtures: Record<string, unknown>[], window = { from: FROM, to: TO }) {
+  return mapSeasonFixtureList({
+    competition: {
+      id: 'season-1',
+      name: 'Scottish Premiership',
+      season_key: '2026-27',
+      time_zone: ZONE,
+    },
+    window,
+    server_now: '2026-08-08T09:00:00Z',
+    fixtures,
+  })
+}
+
+function fixture(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'fixture-1',
-    kickoffAt: '2026-08-08T14:00:00+00:00',
+    id: 'f1',
+    kickoff_at: '2026-08-08T14:00:00Z',
     status: 'scheduled',
-    homeName: 'Dundee',
-    awayName: 'Aberdeen',
-    homeScore: null,
-    awayScore: null,
+    round: { id: 'r5', ordinal: 5, label: 'Matchweek 5' },
+    home: { name: 'Dundee', short_code: 'DUN', club_colours: 'Navy / White' },
+    away: { name: 'Aberdeen', short_code: 'ABE', club_colours: 'Red / White' },
+    result: null,
+    live: null,
     ...overrides,
   }
 }
 
-function matchweek(number: number, fixtures: SeasonFixture[]): SeasonMatchweekFixtures {
-  return { matchweek: number, matchweekCount: 38, fixtures }
-}
-
 function gatewayFor(
-  answer: (matchweek: number) => SeasonMatchweekFixtures | Error,
-): SeasonMatchesGateway {
+  answer: (window: { from?: string; to?: string }) => ReturnType<typeof page> | Error,
+): SeasonFixtureWindowGateway {
   return {
-    load: vi.fn(async (number: number) => {
-      const result = answer(number)
+    load: vi.fn(async (window: { from?: string; to?: string }) => {
+      const result = answer(window)
       if (result instanceof Error) throw result
       return result
     }),
   }
 }
 
-function renderPage(gateway: SeasonMatchesGateway, openAt = 2) {
-  render(<SeasonMatchesPage gateway={gateway} timeZone="Europe/London" openAt={openAt} />)
-}
-
 describe('the competition matches surface', () => {
-  it('shows the real fixtures for the matchweek it opens at', async () => {
+  it('asks for no window at all on first load, leaving it to the server', async () => {
+    // The browser holds no opinion about where "now" starts. Anchoring the
+    // first window locally is how two devices with different clocks would show
+    // different fixture lists for the same league.
+    const gateway = gatewayFor(() => page([fixture()]))
+    render(<SeasonMatchesPage gateway={gateway} timeZone={ZONE} />)
+
+    await waitFor(() => expect(screen.getByText('Dundee')).toBeTruthy())
+    expect(gateway.load).toHaveBeenCalledWith({})
+  })
+
+  it('steps by date from the window the server returned', async () => {
+    const gateway = gatewayFor(() => page([fixture()]))
+    render(<SeasonMatchesPage gateway={gateway} timeZone={ZONE} />)
+
+    await waitFor(() => expect(screen.getByText('Dundee')).toBeTruthy())
+    fireEvent.click(screen.getByRole('button', { name: 'Later fixtures' }))
+
+    await waitFor(() =>
+      expect(gateway.load).toHaveBeenLastCalledWith({
+        from: '2026-08-15T00:00:00.000Z',
+        to: '2026-09-05T00:00:00.000Z',
+      }),
+    )
+  })
+
+  it('explains a day that carries two matchweeks rather than leaving it odd', async () => {
     const gateway = gatewayFor(() =>
-      matchweek(2, [
-        fixture({ id: 'a', homeName: 'Rangers', awayName: 'Hibernian' }),
-        fixture({ id: 'b', homeName: 'Kilmarnock', awayName: 'Celtic' }),
+      page([
+        fixture({ id: 'ordinary' }),
+        fixture({
+          id: 'postponed',
+          kickoff_at: '2026-08-08T17:00:00Z',
+          round: { id: 'r2', ordinal: 2, label: 'Matchweek 2' },
+        }),
       ]),
     )
-    renderPage(gateway)
+    render(<SeasonMatchesPage gateway={gateway} timeZone={ZONE} />)
 
-    expect(await screen.findByText('Rangers')).toBeTruthy()
-    expect(screen.getByText('Hibernian')).toBeTruthy()
-    expect(screen.getByText('Celtic')).toBeTruthy()
-    expect(gateway.load).toHaveBeenCalledWith(2)
+    await waitFor(() => expect(screen.getByText('Matchweek 2')).toBeTruthy())
+    expect(screen.getByText(/keeps the matchweek it was scheduled in/)).toBeTruthy()
   })
 
-  it('opens at the matchweek it was given, not at the first of the season', async () => {
-    const gateway = gatewayFor((number) => matchweek(number, [fixture()]))
-    renderPage(gateway, 17)
-
-    expect(await screen.findByText('Matchweek 17 of 38')).toBeTruthy()
-  })
-
-  it('steps to the next matchweek and reads it from the server', async () => {
-    const gateway = gatewayFor((number) =>
-      matchweek(number, [fixture({ homeName: `Home ${number}` })]),
+  it('marks a provisional score as provisional, in words', async () => {
+    // §11.8: status is never conveyed by colour alone, and a provider's number
+    // shown as a plain scoreline reads as a result.
+    const gateway = gatewayFor(() =>
+      page([
+        fixture({
+          live: { kind: 'in_play', home: 1, away: 0, observed_at: '2026-08-08T14:30:00Z' },
+        }),
+      ]),
     )
-    renderPage(gateway)
+    render(<SeasonMatchesPage gateway={gateway} timeZone={ZONE} />)
 
-    await screen.findByText('Home 2')
-    fireEvent.click(screen.getByRole('button', { name: 'Next matchweek' }))
-
-    expect(await screen.findByText('Home 3')).toBeTruthy()
-    expect(await screen.findByText('Matchweek 3 of 38')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('Provisional')).toBeTruthy())
   })
 
-  it('cannot step past either end of the season', async () => {
-    const first = gatewayFor(() => matchweek(1, [fixture()]))
-    renderPage(first, 1)
+  it('offers to step on rather than saying a season is empty', async () => {
+    const gateway = gatewayFor(() => page([]))
+    render(<SeasonMatchesPage gateway={gateway} timeZone={ZONE} />)
 
-    await screen.findByText('Matchweek 1 of 38')
-    expect(
-      (screen.getByRole('button', { name: 'Previous matchweek' }) as HTMLButtonElement).disabled,
-    ).toBe(true)
+    await waitFor(() => expect(screen.getByText('No fixtures in this period')).toBeTruthy())
+    expect(screen.getByRole('button', { name: 'Later fixtures' })).toBeTruthy()
   })
 
-  it('explains a blank score column rather than leaving it looking broken', async () => {
-    // Every season fixture in development is `scheduled`, because nothing can
-    // record a season result yet. That renders every score blank, which is
-    // honest and looks like a fault unless it is said out loud.
-    renderPage(gatewayFor(() => matchweek(2, [fixture(), fixture({ id: 'b' })])))
+  it('shows a failed read as a failure with a retry, never as an empty list', async () => {
+    const gateway = gatewayFor(() => new Error('offline'))
+    render(<SeasonMatchesPage gateway={gateway} timeZone={ZONE} />)
 
-    expect(await screen.findByText(/No results yet for this matchweek/)).toBeTruthy()
+    await waitFor(() => expect(screen.getByText('We could not load these fixtures')).toBeTruthy())
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy()
   })
 
-  it('shows a confirmed result as a scoreline', async () => {
-    renderPage(
-      gatewayFor(() =>
-        matchweek(2, [fixture({ status: 'played', homeScore: 2, awayScore: 1 })]),
-      ),
-    )
+  it('keeps the club name beside its shirt, never the shirt alone', async () => {
+    // DFA-003: the identity is never the sole identifier.
+    const gateway = gatewayFor(() => page([fixture()]))
+    render(<SeasonMatchesPage gateway={gateway} timeZone={ZONE} />)
 
-    expect(await screen.findByText('2 - 1')).toBeTruthy()
-  })
-
-  it('shows a failed read as a failure, never as an empty fixture list', async () => {
-    renderPage(gatewayFor(() => new Error('offline')))
-
-    expect(await screen.findByText('We could not load these fixtures')).toBeTruthy()
-    expect(screen.queryByText('No fixtures in this matchweek')).toBeNull()
-  })
-
-  it('says a matchweek has no fixtures rather than rendering a bare list', async () => {
-    renderPage(gatewayFor(() => matchweek(2, [])))
-
-    expect(await screen.findByText('No fixtures in this matchweek')).toBeTruthy()
-  })
-
-  it('keeps the outgoing matchweek on screen while the next one loads', async () => {
-    // Replacing a readable list with a skeleton on every tap makes the stepper
-    // feel broken on a slow connection.
-    // Held on an object rather than in a `let`: assigning inside the promise
-    // executor is invisible to control-flow analysis, which then narrows a
-    // local to `never` at the call below.
-    const gate: { release: (() => void) | null } = { release: null }
-    const gateway: SeasonMatchesGateway = {
-      load: vi.fn(async (number: number) => {
-        if (number === 3) {
-          await new Promise<void>((resolve) => {
-            gate.release = resolve
-          })
-        }
-        return matchweek(number, [fixture({ homeName: `Home ${number}` })])
-      }),
-    }
-    renderPage(gateway)
-
-    await screen.findByText('Home 2')
-    fireEvent.click(screen.getByRole('button', { name: 'Next matchweek' }))
-
-    // Still showing matchweek 2 while 3 is in flight.
-    await waitFor(() => expect(gateway.load).toHaveBeenCalledWith(3))
-    expect(screen.getByText('Home 2')).toBeTruthy()
-
-    gate.release?.()
-    expect(await screen.findByText('Home 3')).toBeTruthy()
-  })
-
-  it('announces the matchweek it landed on', async () => {
-    // A screen-reader user stepping through matchweeks needs to hear where
-    // they are; the arrows say only "next" and "previous".
-    renderPage(gatewayFor((number) => matchweek(number, [fixture()])))
-
-    const live = await screen.findByText('Matchweek 2 of 38')
-    expect(live.getAttribute('aria-live')).toBe('polite')
-  })
-
-  it('shows no prediction, because that belongs to the game and not to the fixtures', async () => {
-    // §7.3 separates Matches from Play. The decoder drops the prediction, so
-    // there is nothing here that could render one.
-    renderPage(gatewayFor(() => matchweek(2, [fixture()])))
-
-    await screen.findByText('Dundee')
-    expect(screen.queryByRole('spinbutton')).toBeNull()
-    expect(screen.queryByRole('textbox')).toBeNull()
+    await waitFor(() => expect(screen.getByText('Dundee')).toBeTruthy())
+    expect(screen.getByText('Aberdeen')).toBeTruthy()
   })
 })

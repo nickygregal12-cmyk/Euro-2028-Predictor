@@ -12,7 +12,7 @@ import type { SaveStatus } from '../../design-system'
 import {
   deleteMatchPrediction,
   fetchMatchPredictions,
-  getOrCreateEntry,
+  fetchMyEntry,
   submitEntry,
   upsertMatchPrediction,
 } from '../../services/supabase/predictions'
@@ -84,6 +84,11 @@ export type PredictionsLoadStatus = 'idle' | 'loading' | 'ready' | 'error'
 
 type PredictionsContextValue = {
   ready: boolean
+  /**
+   * Whether the caller holds an entry in this tournament. False is an ordinary
+   * state on the weekly site, where nothing offers a way to enter one.
+   */
+  hasEntry: boolean
   loadStatus: PredictionsLoadStatus
   loadMessage: string | null
   retryInitialLoad: () => void
@@ -370,9 +375,26 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    getOrCreateEntry(userId, tournamentId)
+    // READS THE ENTRY; DOES NOT CREATE ONE. This used to call
+    // `getOrCreateEntry`, whose upsert fires the contract-66 membership trigger
+    // — so a player who merely opened More -> Profile was enrolled in Euro 2028
+    // and became a member of its competition. Invisible while every signed-in
+    // route was a Euro route; a live EURO-001 violation with a stored
+    // consequence once the platform went multi-competition. Entry is an act,
+    // not a side effect of looking, and the act belongs to a join journey the
+    // weekly site deliberately no longer has.
+    fetchMyEntry(userId, tournamentId)
       .then(async (entry) => {
         if (!active) return
+        if (!entry) {
+          // No entry is an answer, not a failure and not an empty one. The
+          // surfaces above read `hasEntry` and say so rather than deriving a
+          // profile of zeros from predictions nobody made.
+          setReady(true)
+          setLoadStatus('ready')
+          setLoadMessage(null)
+          return
+        }
         entryIdRef.current = entry.id
         setEntryId(entry.id)
         setSubmittedAt(entry.submittedAt)
@@ -507,7 +529,9 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       const revisions = { ...localEditRevisionsRef.current }
       const [entryResult, matchResult, tieResult, progressionResult, goldenBootResult] =
         await Promise.allSettled([
-          getOrCreateEntry(userId, tournamentId),
+          // Read, not upsert, for the same reason the initial load is: a
+          // foreground refresh must never be the thing that enters somebody.
+          fetchMyEntry(userId, tournamentId),
           fetchMatchPredictions(id),
           fetchTieResolutions(id),
           fetchProgression(id),
@@ -518,6 +542,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
 
       if (
         entryResult.status === 'fulfilled' &&
+        entryResult.value !== null &&
         entryResult.value.id === id &&
         !submittingRef.current
       ) {
@@ -854,6 +879,7 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
   )
 
   const value: PredictionsContextValue = {
+    hasEntry: entryId !== null,
     ready,
     loadStatus,
     loadMessage,

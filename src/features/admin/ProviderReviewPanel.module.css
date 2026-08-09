@@ -1,0 +1,124 @@
+/* Provider review queues. Tokens only; desktop-leaning like the rest of the
+   administration surface, and still wrapping rather than overflowing. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.subheading {
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.list,
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.queue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  min-width: 0;
+}
+
+.queueHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.queueName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--tx);
+  min-width: 0;
+}
+
+/* The count is a number beside a name, not a coloured pill. §11.8 forbids
+   conveying status by colour alone, and "how many" is the status here. */
+.count {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+.item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-1) 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.summary {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.when {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  white-space: nowrap;
+}
+
+.footnotes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}

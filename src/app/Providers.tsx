@@ -6,8 +6,6 @@ import { getPendingJoin } from '../features/leagues/pendingJoin'
 import { RouteAccessibility } from './RouteAccessibility'
 import { RouteFallback } from './RouteFallback'
 import { isNextUi } from './routeFlags'
-import { TournamentDataProvider } from './providers/TournamentDataProvider'
-import { PredictionsProvider } from './providers/PredictionsProvider'
 
 // Lazy, so the marketing page is never in a signed-in player's bundle. It is
 // the one route a returning player never sees.
@@ -17,8 +15,10 @@ const LandingPage = lazy(() =>
 
 // Session-aware app composition. AuthProvider sits at the top so both the auth
 // screens and the app share one session; two gates then split the tree:
-//   • RequireAuth  — mounts the tournament data + predictions providers and the
-//     app shell only once signed in; otherwise redirects to the log-in screen.
+//   • RequireAuth  — admits a signed-in user to the app shell; otherwise
+//     redirects to the log-in screen. It no longer mounts the tournament data
+//     and predictions providers: those belong to the routes that consume them,
+//     and now sit under `TournamentJourney` (see that file for why).
 //   • RedirectIfAuthed — keeps the auth screens for signed-out users only.
 // While the session is still resolving, both gates show a neutral splash so a
 // refresh never flashes the logged-out screens (docs/auth-plan.md §3).
@@ -54,13 +54,7 @@ export function RequireAuth() {
   const { pathname } = useLocation()
   if (loading) return <AuthSplash />
   if (!userId) return <SignedOutDestination pathname={pathname} />
-  return (
-    <TournamentDataProvider>
-      <PredictionsProvider>
-        <Outlet />
-      </PredictionsProvider>
-    </TournamentDataProvider>
-  )
+  return <Outlet />
 }
 
 /**
@@ -77,8 +71,8 @@ export function RequireAuth() {
  *
  * Rendering the landing page here, rather than declaring it as its own
  * `<Route>`, is deliberate. React Router resolves one element per path, and `/`
- * is already claimed by the Hub inside three nested gates that mount the
- * tournament data providers, the welcome gate and the app shell. Giving the
+ * is already claimed by the Hub inside three nested gates — the auth gate, the
+ * welcome gate and the app shell. Giving the
  * landing page its own path would have moved the signed-in Hub off `/` — a URL
  * change for every existing player, and every bookmark and shared link they
  * hold, to avoid a five-line branch.

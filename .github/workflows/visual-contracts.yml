@@ -15,20 +15,50 @@ name: Visual contracts
 #
 #   1. run this workflow with `update_baselines: true`. It renders the images on
 #      the runner and uploads them as an artifact. Nothing is compared;
-#   2. download the artifact, commit the PNGs under `e2e/visual-baselines/`, and
-#      review them — they are the reference every later diff is judged against,
-#      so they get read like code rather than accepted like output;
+#   2. get the PNGs under `e2e/visual-baselines/` onto the branch and review them
+#      — they are the reference every later diff is judged against, so they get
+#      read like code rather than accepted like output;
 #   3. add `pull_request` to the triggers below. From then on the suite compares
 #      every change against images produced by the same kind of machine.
 #
-# Step 3 is deliberately not done here. A pull-request trigger added before the
-# baselines exist would make every PR red.
+# ALL THREE STEPS ARE DONE. `e2e/visual-baselines/` holds 52 images — thirteen
+# gallery sections at two widths in both themes — rendered by run 31303704179 on
+# an `ubuntu-latest` runner, which is what every later comparison runs on.
+# Re-render them with the two inputs below whenever a deliberate design change
+# makes the current images wrong; the new ones arrive as a commit on the branch
+# and are reviewed in the pull request beside the change that caused them.
+#
+# STEP 2 IS NOW A WORKFLOW INPUT RATHER THAN A MANUAL DOWNLOAD. `commit_baselines`
+# pushes the rendered images straight to the dispatched branch, so the bootstrap
+# is one action instead of a download, an unzip and a hand-made commit — three
+# steps that each silently invite the wrong file. The artifact upload stays: on a
+# comparison run it is the only way a failure is reviewable.
+#
+# It refuses to write to the default branch. Baselines are reviewed in a pull
+# request like any other change to what CI enforces, and a workflow that can push
+# to `main` is a workflow that will eventually push to `main` by accident.
 
 on:
+  # Scoped to what can actually move a pixel. A documentation-only pull request
+  # does not need four minutes of Chromium to prove the gallery is unchanged —
+  # and a filter that skipped something real would show up as a baseline that
+  # never fails, which is the failure mode this suite is built to avoid.
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'e2e/visual-gallery.spec.ts'
+      - 'e2e/visual-baselines/**'
+      - 'playwright.visual.config.ts'
+      - 'package-lock.json'
+      - '.github/workflows/visual-contracts.yml'
   workflow_dispatch:
     inputs:
       update_baselines:
         description: 'Render baselines on this runner and upload them, instead of comparing'
+        type: boolean
+        default: false
+      commit_baselines:
+        description: 'Push the rendered baselines to the dispatched branch (requires update_baselines; never main)'
         type: boolean
         default: false
 
@@ -37,7 +67,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    permissions:
+      contents: write
+
     steps:
+      # Refuse the unsafe combinations before spending twenty minutes rendering.
+      - name: Check the requested bootstrap is allowed
+        if: ${{ inputs.commit_baselines }}
+        run: |
+          if [ "${{ inputs.update_baselines }}" != "true" ]; then
+            echo "commit_baselines requires update_baselines: there is nothing new to commit." >&2
+            exit 1
+          fi
+          if [ "${{ github.ref_name }}" = "${{ github.event.repository.default_branch }}" ]; then
+            echo "Refusing to commit baselines to the default branch. Dispatch this on a branch." >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
 
       # Pinned explicitly, as every other workflow here does. An image is only
@@ -62,6 +108,22 @@ jobs:
       - name: Compare against committed baselines
         if: ${{ !inputs.update_baselines }}
         run: npx playwright test --config=playwright.visual.config.ts
+
+      # Only the images. `test-results/` and the HTML report are run output, not
+      # contract, and committing them would make every later run a diff.
+      - name: Commit the rendered baselines to this branch
+        if: ${{ inputs.commit_baselines }}
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all e2e/visual-baselines
+          if git diff --cached --quiet; then
+            echo "Baselines are unchanged; nothing to commit."
+            exit 0
+          fi
+          git commit -m 'Render the visual-contract baselines on the comparison runner'
+          git push origin "HEAD:${{ github.ref_name }}"
 
       # On a bootstrap run this is the deliverable. On a comparison run it is
       # the evidence: the diff images are what make a failure reviewable rather

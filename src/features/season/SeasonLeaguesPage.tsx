@@ -3,7 +3,10 @@ import { Alert, Button, EmptyState, Skeleton, TextInput } from '../../design-sys
 import { InvitePanel } from '../leagues/InvitePanel'
 import { presentGameLeagues, type SeasonLeaguesGateway } from './gameLeaguesModel'
 import type { SeasonLeagueStandingsGateway } from './leagueStandingsModel'
-import { SeasonLeagueStandings } from './SeasonLeagueStandings'
+import {
+  SeasonLeagueStandings,
+  type SeasonLeagueStandingsProps,
+} from './SeasonLeagueStandings'
 import { useSeasonLeagues } from './useSeasonLeagues'
 import styles from './SeasonLeaguesPage.module.css'
 
@@ -42,6 +45,12 @@ export type SeasonLeaguesPageProps = {
    * gateway is how it would quietly go back to having none.
    */
   standings: SeasonLeagueStandingsGateway
+  /**
+   * Head-to-head against one league rival for one matchweek (contract 129).
+   * Optional: a season past its last lock has no matchweek to compare, and the
+   * route is what knows.
+   */
+  headToHead?: SeasonLeagueStandingsProps['headToHead']
   /** The game these leagues belong to, as the interface names it. */
   gameName: string
   /** Whether the caller holds an active membership in that game. */
@@ -55,6 +64,7 @@ export function SeasonLeaguesPage({
   standings,
   gameName,
   joinedGame,
+  headToHead,
 }: SeasonLeaguesPageProps) {
   const {
     status,
@@ -162,6 +172,7 @@ export function SeasonLeaguesPage({
                       gateway={standings}
                       leagueId={league.id}
                       leagueName={league.name}
+                      headToHead={headToHead}
                     />
                   </div>
                 ) : null}
