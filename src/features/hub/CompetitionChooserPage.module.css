@@ -25,7 +25,7 @@
   min-height: var(--tap-min);
   padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--card);
   text-decoration: none;
   /* A grid/flex child defaults to min-width:auto, which lets a long

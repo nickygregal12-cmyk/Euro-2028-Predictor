@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Alert, Button, EmptyIllustration } from '../../design-system'
 import {
@@ -26,9 +26,12 @@ import {
 import { applyHubMembership } from './hubMembership'
 import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAction'
 import { CompetitionWeekPanel } from './CompetitionWeekPanel'
+import { formatWeekDeadline, weekActionForGame } from './competitionWeekModel'
 import { useCompetitionWeek } from './useCompetitionWeek'
 import { SeasonCompetitionShell } from '../season/SeasonCompetitionShell'
+import { SeasonFixturePreview } from '../season/SeasonFixturePreview'
 import { seasonShellDestinations } from '../season/seasonDestinations'
+import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
 
 function domesticGameRoute(game: HubGame): DomesticGameRoute | null {
   switch (game.kind) {
@@ -46,6 +49,32 @@ function domesticGameRoute(game: HubGame): DomesticGameRoute | null {
 function gamePath(competition: HubCompetition, game: HubGame): string | null {
   const route = domesticGameRoute(game)
   return route ? competitionGameRoute(competition, route) : null
+}
+
+/**
+ * Overview's fixtures, in their own component for one reason: the gateway must
+ * keep its identity between renders or the window hook's effect re-runs for
+ * ever, and the memo that gives it one cannot be a hook inside `CompetitionPage`
+ * — that component already returns early when the slugs name no competition.
+ * A child renders only when there is a season, so its hooks are unconditional.
+ */
+function OverviewFixtures({
+  tournamentId,
+  timeZone,
+  onSeeAll,
+}: {
+  tournamentId: string
+  timeZone: string
+  onSeeAll: () => void
+}) {
+  const gateway = useMemo(
+    () => ({
+      load: (window: { from?: string; to?: string }) =>
+        fetchSeasonFixtureList(tournamentId, window),
+    }),
+    [tournamentId],
+  )
+  return <SeasonFixturePreview gateway={gateway} timeZone={timeZone} onSeeAll={onSeeAll} />
 }
 
 type DashboardState =
@@ -184,6 +213,18 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             failed={week.failed}
             timeZone={week.timeZone}
           />
+          {/* And what the COMPETITION is playing, which the panel above does
+              not say: it reports what each GAME is asking of this player, so a
+              player who has joined nothing here saw an Overview with no
+              football on it at all. Fixtures belong to the competition and are
+              the same for everyone following it, joined or not. */}
+          {state.status === 'ready' && state.season ? (
+            <OverviewFixtures
+              tournamentId={state.season.tournamentId}
+              timeZone={week.timeZone}
+              onSeeAll={() => navigate(competitionSectionRoute(competition, 'matches'))}
+            />
+          ) : null}
           <Button
             variant="primary"
             fullWidth
@@ -235,6 +276,28 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                       )}
                     </div>
                     <span className={h.gameDescription}>{game.description}</span>
+
+                    {/* What this game is asking of the player right now, from
+                        the game's OWN read — the same computation Overview's
+                        summary uses, so a card and the panel cannot disagree
+                        about a deadline. A game the player has not joined says
+                        nothing here: it is asking them for nothing. */}
+                    {(() => {
+                      const action = weekActionForGame(week.week, game.gameKey)
+                      if (!action) return null
+                      const when = formatWeekDeadline(action, week.timeZone)
+                      return (
+                        <p
+                          className={
+                            action.outstanding ? h.gameStateOutstanding : h.gameState
+                          }
+                        >
+                          {action.title}
+                          {when ? <span className={h.gameWhen}>{when}</span> : null}
+                        </p>
+                      )
+                    })()}
+
                     <div className={h.actions}>
                       <Button
                         variant={path ? 'primary' : 'secondary'}

@@ -265,3 +265,31 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* What a game is asking of the player, on its own card. Two classes rather than
+   one plus a colour: §11.8 forbids conveying status by colour alone, and the
+   outstanding variant earns its weight from type rather than hue. */
+.gameState,
+.gameStateOutstanding {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  min-width: 0;
+}
+
+.gameStateOutstanding {
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.gameWhen {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  font-weight: 400;
+  color: var(--tx2);
+}

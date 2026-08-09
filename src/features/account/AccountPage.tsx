@@ -5,15 +5,10 @@ import {
   Button,
   ConfirmModal,
   Skeleton,
-  TeamFlag,
   initialsOf,
 } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
 import { useAuth } from '../auth/AuthProvider'
-import { useTournamentData } from '../../app/providers/TournamentDataProvider'
-import { usePredictions } from '../../app/providers/PredictionsProvider'
-import { buildBracketPipeline } from '../bracket/bracketPipeline'
-import { useTournamentEntryLocked } from '../shared/useTournamentEntryLocked'
 import { checkDisplayName, DISPLAY_NAME_MAX } from '../auth/displayNamePolicy'
 import { friendlyAuthError } from '../auth/authErrors'
 import { validateNewPassword, hasNewPasswordErrors } from '../auth/authValidation'
@@ -27,8 +22,6 @@ import {
   updateMyDisplayName,
   updateReminderEmails,
 } from '../../services/supabase/profile'
-import { clearMyPredictions } from '../../services/supabase/predictions'
-import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { AccountPrivacySupport } from './AccountPrivacySupport'
 import s from '../shared.module.css'
@@ -37,42 +30,6 @@ import a from './account.module.css'
 export function AccountPage() {
   const navigate = useNavigate()
   const { userId, displayName, signOut, refreshProfile } = useAuth()
-  const data = useTournamentData()
-  const preds = usePredictions()
-  const entryLocked = useTournamentEntryLocked(true)
-  const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
-  const locked =
-    data.status === 'ready' ? entryLocked : true
-
-  // Headline: points + rank (pre-results guard as on the Profile page).
-  // A failed read is not the pre-results state — the two get different copy.
-  const [headline, setHeadline] = useState<{
-    points: number
-    rank: number | null
-  } | null>(null)
-  const [headlineFailed, setHeadlineFailed] = useState(false)
-  useEffect(() => {
-    if (!tournamentId) return
-    let active = true
-    fetchLeaderboardPage(tournamentId, { limit: 1 })
-      .then((page) => {
-        if (!active) return
-        const preResults = page.totalCount === 0 || page.rows[0]?.rank === null
-        setHeadlineFailed(false)
-        setHeadline({
-          points: page.you?.totalPoints ?? 0,
-          rank: preResults ? null : (page.you?.rank ?? null),
-        })
-      })
-      .catch(() => {
-        if (!active) return
-        setHeadline(null)
-        setHeadlineFailed(true)
-      })
-    return () => {
-      active = false
-    }
-  }, [tournamentId])
 
   // Account details (name + preferences) and the email state.
   const [account, setAccount] = useState<{
@@ -105,16 +62,6 @@ export function AccountPage() {
       active = false
     }
   }, [userId, accountNonce])
-
-  const champion =
-    data.status === 'ready' && preds.ready
-      ? buildBracketPipeline(
-          data.data,
-          preds.getPrediction,
-          preds.tieResolutions,
-          preds.bracketProgression,
-        ).champion
-      : null
 
   // --- Change display name -------------------------------------------------
   const [nameDraft, setNameDraft] = useState<string | null>(null)
@@ -213,26 +160,6 @@ export function AccountPage() {
   }
 
   // --- Danger zone ---------------------------------------------------------
-  const [clearOpen, setClearOpen] = useState(false)
-  const [clearing, setClearing] = useState(false)
-  const [clearError, setClearError] = useState<string | null>(null)
-  const doClear = async () => {
-    if (!tournamentId) return
-    setClearing(true)
-    setClearError(null)
-    try {
-      await clearMyPredictions(tournamentId)
-      preds.retryInitialLoad()
-      setClearOpen(false)
-    } catch (error) {
-      setClearError(
-        userFacingError(error, 'Your predictions could not be cleared.'),
-      )
-    } finally {
-      setClearing(false)
-    }
-  }
-
   const [signOutOpen, setSignOutOpen] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [signOutError, setSignOutError] = useState<string | null>(null)
@@ -265,23 +192,13 @@ export function AccountPage() {
           </span>
           <div className={a.identity}>
             <span className={a.name}>{name || <Skeleton lines={1} />}</span>
-            <span className={a.oneLiner}>
-              {headline
-                ? `${headline.points} pts${headline.rank !== null ? ` · ${headline.rank}${ordinal(headline.rank)} overall` : ''}`
-                : headlineFailed
-                  ? 'Your standings couldn’t be loaded right now.'
-                  : 'Standings update once results land'}
-            </span>
-            {champion ? (
-              <span className={a.champion}>
-                <TeamFlag
-                  countryCode={champion.countryCode}
-                  label={champion.name}
-                  size="table"
-                />
-                {champion.name}
-              </span>
-            ) : null}
+            {/* No points, no rank and no predicted champion. Those are one
+                competition's numbers, and this page belongs to the account
+                rather than to a competition — printing a Euro 2028 total under
+                a player's name told a Scottish Premiership player something
+                true about a tournament they had never entered. Their standing
+                lives on the surface that ranks them. */}
+            <span className={a.oneLiner}>{emails.email ?? ''}</span>
           </div>
         </div>
         <button
@@ -446,19 +363,6 @@ export function AccountPage() {
 
       <div className={`${s.card} ${a.danger}`}>
         <span className={s.eyebrow}>Danger zone</span>
-        {!locked ? (
-          <div className={a.detailRow}>
-            <div className={a.detailBody}>
-              <span className={a.detailLabel}>Clear my predictions</span>
-              <span className={a.detailValue}>
-                Wipes your entry back to empty. Pre-lock only.
-              </span>
-            </div>
-            <Button variant="destructive" onClick={() => setClearOpen(true)}>
-              Clear…
-            </Button>
-          </div>
-        ) : null}
         <div className={a.detailRow}>
           <div className={a.detailBody}>
             <span className={a.detailLabel}>Sign out</span>
@@ -476,22 +380,6 @@ export function AccountPage() {
       </div>
 
       <ConfirmModal
-        open={clearOpen}
-        onClose={() => setClearOpen(false)}
-        onConfirm={doClear}
-        title="Clear all your predictions?"
-        confirmLabel="Clear everything"
-        destructive
-        loading={clearing}
-      >
-        <p>
-          This clears all 36 scores, your bracket, jokers and awards picks. Your
-          account and leagues are untouched.
-        </p>
-        {clearError ? <p role="alert">{clearError}</p> : null}
-      </ConfirmModal>
-
-      <ConfirmModal
         open={signOutOpen}
         onClose={() => setSignOutOpen(false)}
         onConfirm={doSignOut}
@@ -505,11 +393,4 @@ export function AccountPage() {
       </ConfirmModal>
     </div>
   )
-}
-
-function ordinal(rank: number): string {
-  const tens = rank % 100
-  if (tens >= 11 && tens <= 13) return 'th'
-  const unit = rank % 10
-  return unit === 1 ? 'st' : unit === 2 ? 'nd' : unit === 3 ? 'rd' : 'th'
 }

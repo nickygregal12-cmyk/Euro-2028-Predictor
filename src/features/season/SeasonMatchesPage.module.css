@@ -40,7 +40,7 @@
   margin: 0;
   padding: var(--sp-3);
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--chip);
   font-family: var(--font-body);
   font-size: var(--fs-1);
@@ -81,29 +81,51 @@
   padding: 0;
   list-style: none;
   border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-card);
   background: var(--card);
   overflow: hidden;
 }
 
+/* The list item. It holds the row and, when the fixture is open, the Match
+   Centre panel below it — which is why the border moved here from the row: a
+   rule under the row would cut between a fixture and its own detail. */
+.matchItem {
+  border-bottom: 1px solid var(--line);
+}
+
+.list .matchItem:last-child {
+  border-bottom: 0;
+}
+
 /* Home | score-or-kickoff | away. Each club column now carries the same fixed
    shirt footprint used by dense league-table rows, while the centre remains
-   fixed so every scoreline aligns however long the club names are. */
+   fixed so every scoreline aligns however long the club names are.
+   Also the row's control when a Match Centre can open behind it, hence the
+   button reset: width, inherited font and a text-aligned box. */
 .match {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
   align-items: center;
   gap: var(--sp-2);
+  width: 100%;
   min-height: var(--tap-min);
   padding: var(--sp-1) var(--sp-2);
-  border-bottom: 1px solid var(--line);
+  border: 0;
+  background: none;
+  text-align: inherit;
   font-family: var(--font-body);
   font-size: var(--fs-2);
   color: var(--tx);
 }
 
-.list .match:last-child {
-  border-bottom: 0;
+/* Only where the row is a control. A pointer over a plain row promises
+   something that is not there. */
+button.match {
+  cursor: pointer;
+}
+
+button.match[aria-expanded='true'] {
+  background: var(--chip);
 }
 
 .home,

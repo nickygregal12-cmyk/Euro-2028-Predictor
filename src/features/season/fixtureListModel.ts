@@ -48,10 +48,19 @@ export type FixtureListRow = {
   kickoff: string | null
   /** "Matchweek 5", printed only when the day carries more than one. */
   roundLabel: string | null
+  /**
+   * The round itself, always. `roundLabel` answers "should this row print its
+   * matchweek"; this answers "which matchweek is it", which a surface reading
+   * the player's card for this fixture needs whether or not the day mixes them.
+   */
+  round: { ordinal: number; name: string }
   /** "2 - 1" once the platform has settled it. */
   score: string | null
   /** A provider's current score, when there is no official one. Never a result. */
   provisional: string | null
+  /** When the provider last reported that provisional score, in the
+   *  competition's zone. Null when there is none to report. */
+  provisionalAt: string | null
   played: boolean
   accessibleSummary: string
 }
@@ -71,6 +80,61 @@ export type FixtureListView = {
   resultsNote: string | null
   /** True when at least one day mixes matchweeks — a rescheduled fixture. */
   hasRescheduled: boolean
+}
+
+/**
+ * A handful of rows from the same window, for a surface that is not the fixture
+ * list — Overview's "what is on".
+ *
+ * IT IS A SLICE OF THE LIST, NOT A SECOND READ OF IT. Deriving the preview from
+ * the view the Matches section already builds is what stops the two disagreeing:
+ * one order, one set of labels, one rule about provisional scores. A separate
+ * model over the same fixtures would be a second answer to the same question,
+ * which is the shape the by-round view was retired for.
+ */
+export type FixturePreviewRow = FixtureListRow & {
+  /** The day this row sits under, carried on the row because a preview has no
+   *  day headings to sit under. */
+  dayLabel: string
+}
+
+export type FixturePreview = {
+  /**
+   * `upcoming` when the window still holds a fixture that has not been played
+   * and the list runs forward from it; `results` when every fixture in the
+   * window is played and the list is the most recent of them. The distinction
+   * is the heading's, and it must come from the data rather than from a clock.
+   */
+  kind: 'upcoming' | 'results'
+  rows: readonly FixturePreviewRow[]
+  /** Fixtures in the same window that this preview is not showing. */
+  hidden: number
+  empty: boolean
+}
+
+export function previewFixtures(view: FixtureListView, limit: number): FixturePreview {
+  const all: FixturePreviewRow[] = view.days.flatMap((day) =>
+    day.rows.map((row) => ({ ...row, dayLabel: day.label })),
+  )
+
+  // The first fixture the server has not marked played — never a comparison
+  // against now, which would call an abandoned match finished and a delayed one
+  // over. The days are already in kickoff order, so the rows after it are the
+  // ones still to come.
+  const next = all.findIndex((row) => !row.played)
+  const rows =
+    next === -1
+      ? // Every fixture in the window is played, so the useful few are the last
+        // ones rather than the first: a season's most recent results.
+        all.slice(Math.max(0, all.length - limit))
+      : all.slice(next, next + limit)
+
+  return {
+    kind: next === -1 ? 'results' : 'upcoming',
+    rows,
+    hidden: all.length - rows.length,
+    empty: all.length === 0,
+  }
 }
 
 function parts(
@@ -142,6 +206,10 @@ export function presentFixtureList(
     return fixtures.map((fixture) => {
       const when = fixture.kickoffAt ? parts(fixture.kickoffAt, timeZone) : null
       const kickoff = when?.time ?? null
+      const provisional =
+        !fixture.result && fixture.live && fixture.live.home !== null && fixture.live.away !== null
+          ? `${fixture.live.home} - ${fixture.live.away}`
+          : null
 
       return {
         id: fixture.id,
@@ -149,12 +217,17 @@ export function presentFixtureList(
         away: fixture.away,
         kickoff,
         roundLabel: mixed ? fixture.round.label : null,
+        round: { ordinal: fixture.round.ordinal, name: fixture.round.label },
         score: fixture.result ? `${fixture.result.home} - ${fixture.result.away}` : null,
         // Only where there is no official score, and only when the provider
         // sent both numbers. A one-sided provisional score is not a scoreline.
-        provisional:
-          !fixture.result && fixture.live && fixture.live.home !== null && fixture.live.away !== null
-            ? `${fixture.live.home} - ${fixture.live.away}`
+        provisional,
+        // Said with the score wherever the score is shown at length: "what a
+        // provider reported at 16:42" is checkable, and "2 - 1" on its own
+        // invites being read as the result.
+        provisionalAt:
+          provisional && fixture.live
+            ? (parts(fixture.live.observedAt, timeZone)?.time ?? null)
             : null,
         // The status the server settled, never the clock. A fixture is played
         // because the server said so, which is right every time a match is

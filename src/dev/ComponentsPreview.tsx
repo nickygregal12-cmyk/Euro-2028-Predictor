@@ -58,6 +58,15 @@ import { MyLeagueCard } from '../features/leagues/MyLeagueCard'
 import { LeaguePreviewCard } from '../features/leagues/LeaguePreviewCard'
 import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
+import { SeasonMatchesPage } from '../features/season/SeasonMatchesPage'
+import { SeasonMatchCentre } from '../features/season/SeasonMatchCentre'
+import { SeasonFixturePreview } from '../features/season/SeasonFixturePreview'
+import { presentFixtureList } from '../features/season/fixtureListModel'
+import type { MatchPredictorPage } from '../features/season/matchPredictorModel'
+import { mapSeasonFixtureList } from '../services/supabase/seasonFixtureListModel'
+import { ProviderReviewPanel } from '../features/admin/ProviderReviewPanel'
+import { mapProviderReviewQueues } from '../services/supabase/providerReviewQueuesModel'
+import { resolveClubIdentity } from '../domain/clubIdentity/clubIdentityTokens'
 import { SignUpForm } from '../features/auth/SignUpForm'
 import { ResetRequestForm } from '../features/auth/ResetRequestForm'
 import { UpdatePasswordForm } from '../features/auth/UpdatePasswordForm'
@@ -257,6 +266,169 @@ const HOSTILE_ROWS: LeagueTableRow[] = [
     movement: 'down',
   },
 ]
+
+
+/**
+ * A competition season's fixtures, as contract 139's read sends them.
+ *
+ * Deliberately not a tidy Saturday. It carries a rescheduled matchweek 3 match
+ * sitting among matchweek 5's, a fixture in play with a provider score and no
+ * official result, and a settled one — the three cases the day list, the
+ * provisional rule and the Match Centre are each there to get right.
+ */
+const SEASON_ZONE = 'Europe/London'
+
+const SEASON_FIXTURE_PAGE = mapSeasonFixtureList({
+  competition: {
+    id: 'season-1',
+    name: 'Scottish Premiership',
+    season_key: '2026-27',
+    time_zone: SEASON_ZONE,
+  },
+  window: { from: '2026-08-01T00:00:00Z', to: '2026-08-22T00:00:00Z' },
+  server_now: '2026-08-08T16:30:00Z',
+  fixtures: [
+    {
+      id: 'sf-settled',
+      kickoff_at: '2026-08-08T11:30:00Z',
+      status: 'played',
+      round: { id: 'r5', ordinal: 5, label: 'Matchweek 5' },
+      home: { name: 'Celtic', short_code: 'CEL', club_colours: 'Green / White' },
+      away: { name: 'Hibernian', short_code: 'HIB', club_colours: 'Green / White' },
+      result: { home: 3, away: 1 },
+      live: null,
+    },
+    {
+      id: 'sf-live',
+      kickoff_at: '2026-08-08T14:00:00Z',
+      status: 'live',
+      round: { id: 'r5', ordinal: 5, label: 'Matchweek 5' },
+      home: { name: 'Rangers', short_code: 'RAN', club_colours: 'Blue / White' },
+      away: { name: 'Aberdeen', short_code: 'ABE', club_colours: 'Red / White' },
+      result: null,
+      live: { kind: 'in_play', home: 2, away: 1, observed_at: '2026-08-08T15:12:00Z' },
+    },
+    {
+      id: 'sf-rescheduled',
+      kickoff_at: '2026-08-08T14:00:00Z',
+      status: 'scheduled',
+      round: { id: 'r3', ordinal: 3, label: 'Matchweek 3' },
+      home: { name: 'Dundee', short_code: 'DUN', club_colours: 'Navy / White' },
+      away: { name: 'Hearts', short_code: 'HEA', club_colours: 'Maroon / White' },
+      result: null,
+      live: null,
+    },
+    {
+      id: 'sf-later',
+      kickoff_at: '2026-08-09T15:00:00Z',
+      status: 'scheduled',
+      round: { id: 'r5', ordinal: 5, label: 'Matchweek 5' },
+      home: { name: 'St Mirren', short_code: 'STM', club_colours: 'Black / White' },
+      away: { name: 'Motherwell', short_code: 'MOT', club_colours: 'Claret / Amber' },
+      result: null,
+      live: null,
+    },
+  ],
+})
+
+const seasonFixtureGateway = { load: async () => SEASON_FIXTURE_PAGE }
+
+const SEASON_ROWS = presentFixtureList(SEASON_FIXTURE_PAGE, SEASON_ZONE).days.flatMap(
+  (day) => day.rows,
+)
+const seasonRow = (id: string) => {
+  const found = SEASON_ROWS.find((row) => row.id === id)
+  if (!found) throw new Error(`the gallery fixture ${id} is not in the season window`)
+  return found
+}
+const seasonScoredRow = seasonRow('sf-settled')
+const seasonLiveRow = seasonRow('sf-live')
+
+const seasonClub = (name: string) => ({
+  name,
+  shortName: name,
+  tokens: resolveClubIdentity({ externalId: name, name }),
+})
+
+/** The caller's own matchweek 5 card: an exact score on one, blank on another. */
+const SEASON_CARD: MatchPredictorPage = {
+  competition: { name: 'Scottish Premiership', seasonLabel: '2026/27', timeZone: SEASON_ZONE },
+  matchweek: { number: 5, of: 38 },
+  fixtures: [
+    {
+      fixtureId: 'sf-settled',
+      kickoffAt: '2026-08-08T11:30:00Z',
+      home: seasonClub('Celtic'),
+      away: seasonClub('Hibernian'),
+      prediction: { home: 3, away: 1 },
+      result: { home: 3, away: 1 },
+      points: null,
+    },
+    {
+      fixtureId: 'sf-live',
+      kickoffAt: '2026-08-08T14:00:00Z',
+      home: seasonClub('Rangers'),
+      away: seasonClub('Aberdeen'),
+      prediction: { home: 2, away: 1 },
+      result: null,
+      points: null,
+    },
+  ],
+  cardStatus: 'confirmed',
+  lock: { status: 'locked', locked: true, lockAt: '2026-08-08T11:30:00Z', reason: 'match_kickoff_reached' },
+  joker: { playedHere: true, remainingThisHalf: 4, playable: false },
+  settledPoints: 24,
+}
+
+const seasonCardReader = async () => SEASON_CARD
+
+/** Contract 138's queues: one section with work, and everything clear. */
+const PROVIDER_QUEUES_CLEAR = {
+  competition: { id: 'season-1', name: 'Scottish Premiership', season_key: '2026-27' },
+  limit: 20,
+  result_refusals: { unreviewed: 0, items: [] },
+  status_observations: { unreviewed: 0, items: [] },
+  consumption_problems: { unreviewed: 0, items: [] },
+  kickoff_revisions: { unreviewed: 0, items: [] },
+  window_conflicts: { unreviewed: 0, items: [] },
+  pending_calendar_proposals: 0,
+  recent_result_changes: [],
+}
+
+const PROVIDER_QUEUES_BUSY = {
+  ...PROVIDER_QUEUES_CLEAR,
+  result_refusals: {
+    unreviewed: 4,
+    items: [
+      {
+        id: 'rr-1',
+        reason: 'protected_confirmation',
+        provider: 'sportmonks',
+        provider_status: 'FT',
+        detail: {},
+        refused_at: '2026-08-08T16:00:00Z',
+        fixture: {
+          id: 'sf-live',
+          home: 'Rangers',
+          away: 'Aberdeen',
+          kickoff_at: '2026-08-08T14:00:00Z',
+        },
+      },
+    ],
+  },
+  window_conflicts: {
+    unreviewed: 1,
+    items: [
+      {
+        id: 'wc-1',
+        round: 'Matchweek 5',
+        blocked_by: 'Matchweek 6',
+        detected_at: '2026-08-08T10:00:00Z',
+      },
+    ],
+  },
+  pending_calendar_proposals: 380,
+}
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -1917,6 +2089,49 @@ function Gallery() {
         />
         <Label>no leagues → create prompt</Label>
         <LeagueSnapshot league={null} onOpen={() => {}} onCreate={() => {}} />
+      </Section>
+
+      {/* THE SEASON SURFACES. Everything above this point is tournament-era —
+          the gallery grew alongside Euro 2028 and never followed the product
+          onto a competition season, so the fixture list, the Match Centre and
+          the administrator's provider queues had no picture anywhere. A visual
+          contract is the only cheap way to hold "the provisional score is not
+          in the result column", which is precisely the kind of thing a
+          stylesheet edit can undo without failing a single assertion. */}
+
+      <Section title="Season fixtures — day list, rescheduled matchweek, provisional score">
+        {/* One Saturday carrying two matchweeks, because that is the case the
+            by-date list exists for, plus a live fixture whose provider score
+            must read as provisional rather than as a result. */}
+        <SeasonMatchesPage gateway={seasonFixtureGateway} timeZone={SEASON_ZONE} />
+      </Section>
+
+      <Section title="Season Match Centre — an opened fixture with its prediction and points">
+        <SeasonMatchCentre fixture={seasonScoredRow} read={seasonCardReader} />
+        <Label>settled: prediction, official result and this fixture&rsquo;s points</Label>
+        <SeasonMatchCentre fixture={seasonLiveRow} read={seasonCardReader} />
+        <Label>in play: a provider&rsquo;s score, outside the result field, awarding nothing</Label>
+      </Section>
+
+      <Section title="Season Overview — next up">
+        <SeasonFixturePreview
+          gateway={seasonFixtureGateway}
+          timeZone={SEASON_ZONE}
+          onSeeAll={() => {}}
+        />
+      </Section>
+
+      <Section title="Provider review queues — work waiting and nothing waiting">
+        <ProviderReviewPanel
+          load={async () => mapProviderReviewQueues(PROVIDER_QUEUES_BUSY)}
+          acknowledge={async () => ({ marked: 1 })}
+        />
+        <Label>with work waiting</Label>
+        <ProviderReviewPanel
+          load={async () => mapProviderReviewQueues(PROVIDER_QUEUES_CLEAR)}
+          acknowledge={async () => ({ marked: 0 })}
+        />
+        <Label>clear</Label>
       </Section>
 
       {/* The three states §9.1 and §9.2 name that this harness could not show.

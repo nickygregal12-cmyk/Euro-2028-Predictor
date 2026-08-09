@@ -199,9 +199,16 @@ export async function deleteMatchPrediction(
 }
 
 /**
- * The Account danger-zone clear (contract 57): one atomic pre-lock wipe of the
- * caller's own entry — scores, ties, positions, bracket, awards — and the
- * submitted flag. The server refuses post-lock.
+ * Contract 57's clear: one atomic pre-lock wipe of the caller's own entry —
+ * scores, ties, positions, bracket, awards — and the submitted flag. The server
+ * refuses post-lock.
+ *
+ * NO CALLER TODAY, deliberately. It used to be the Account page's danger zone,
+ * which put a destructive control over one tournament's entry on a page that
+ * belongs to the account: a player whose only competition is a league season
+ * was offered it too. Clearing an entry is a per-competition action and returns
+ * on the surface that owns the entry, alongside the rest of the parked Euro
+ * scope. The RPC is unchanged and still enforces the lock.
  */
 export async function clearMyPredictions(tournamentId: string): Promise<void> {
   const { error } = await supabase.rpc('clear_my_predictions', {

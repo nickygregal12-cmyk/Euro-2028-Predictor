@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { presentCompetitionWeek } from '../../../src/features/hub/competitionWeekModel'
+import {
+  formatWeekDeadline,
+  presentCompetitionWeek,
+  weekActionForGame,
+} from '../../../src/features/hub/competitionWeekModel'
 import type { MatchPredictorPage } from '../../../src/features/season/matchPredictorModel'
 import type { LmsRoundPage } from '../../../src/features/season/lmsRoundModel'
 import type { ChampionshipPlayerView } from '../../../src/services/supabase/seasonCupPlayer'
@@ -232,5 +236,75 @@ describe('the competition week', () => {
 
     expect(week.primary?.href).toBeNull()
     expect(week.primary?.outstanding).toBe(true)
+  })
+})
+
+
+describe('a game card asks the week about itself', () => {
+  it('answers by game key, translating between the two vocabularies once', () => {
+    const week = presentCompetitionWeek({
+      matchPredictor: { page: card({ entered: 1, total: 3 }), href: '/mp' },
+      lms: { page: round(), href: '/lms' },
+      championship: { view: championship(), href: '/cup' },
+      now: NOW,
+    })
+
+    expect(weekActionForGame(week, 'main_predictor')?.kind).toBe('match_predictor')
+    expect(weekActionForGame(week, 'last_man_standing')?.kind).toBe('last_man_standing')
+    expect(weekActionForGame(week, 'predictor_cup')?.kind).toBe('championship')
+  })
+
+  it('finds an action the summary dropped for being fourth', () => {
+    // The summary is capped at three because ADR 0023 fixes that shape for
+    // Overview. A card speaks for its own game and must not lose its state to
+    // another surface's cap.
+    const week = presentCompetitionWeek({
+      matchPredictor: { page: card({ entered: 1, total: 3 }), href: '/mp' },
+      lms: { page: round(), href: '/lms' },
+      championship: { view: championship(), href: '/cup' },
+      now: NOW,
+    })
+
+    expect(week.secondary.length).toBeLessThanOrEqual(2)
+    expect(week.actions).toHaveLength(3)
+    expect(weekActionForGame(week, 'predictor_cup')).not.toBeNull()
+  })
+
+  it('says nothing for a game the player has not joined', () => {
+    const week = presentCompetitionWeek({
+      matchPredictor: { page: card({ entered: 0, total: 3 }), href: '/mp' },
+      now: NOW,
+    })
+    expect(weekActionForGame(week, 'last_man_standing')).toBeNull()
+  })
+
+  it('says nothing at all when there is no week', () => {
+    expect(weekActionForGame(null, 'main_predictor')).toBeNull()
+  })
+})
+
+describe('the deadline line', () => {
+  it('reads as a future lock while something is outstanding', () => {
+    const week = presentCompetitionWeek({
+      lms: { page: round(), href: '/lms' },
+      now: NOW,
+    })
+    expect(formatWeekDeadline(week.primary!, 'Europe/London')).toMatch(/^Locks /)
+  })
+
+  it('reads as a past one once it is not', () => {
+    const week = presentCompetitionWeek({
+      lms: { page: round({ pick: { teamId: 'celtic' } }), href: '/lms' },
+      now: NOW,
+    })
+    expect(formatWeekDeadline(week.actions[0]!, 'Europe/London')).toMatch(/^Locked /)
+  })
+
+  it('says nothing rather than guessing when the read supplied no instant', () => {
+    const week = presentCompetitionWeek({
+      matchPredictor: { page: card({ entered: 0, total: 3, lockAt: null }), href: '/mp' },
+      now: NOW,
+    })
+    expect(formatWeekDeadline(week.primary!, 'Europe/London')).toBeNull()
   })
 })

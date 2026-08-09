@@ -44,8 +44,8 @@
   font-family: var(--font-body);
   font-size: var(--fs-2);
   color: var(--tx);
-  background: var(--sf);
-  border: 1px solid var(--ln);
+  background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
@@ -68,7 +68,7 @@
 .table td {
   padding: 8px 10px;
   text-align: left;
-  border-bottom: 1px solid var(--ln);
+  border-bottom: 1px solid var(--line);
 }
 
 .table th {
@@ -79,5 +79,5 @@
 /* Never a foreground colour — the LeagueTable contrast guard (PR #344) exists
    because `--mut` as a text colour failed contrast. This is a background tint. */
 .you {
-  background: var(--sf2);
+  background: var(--chip);
 }
