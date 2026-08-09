@@ -37,9 +37,9 @@ const SeasonStandingsRoute = lazy(() =>
 const SeasonLmsRoute = lazy(() =>
   import('./features/season/SeasonGameRouteBundle').then((m) => ({ default: m.SeasonLmsRoute })),
 )
-const SeasonChampionshipRoute = lazy(() =>
-  import('./features/season/SeasonGameRouteBundle').then((m) => ({
-    default: m.SeasonChampionshipRoute,
+const SeasonChampionshipRouter = lazy(() =>
+  import('./features/season/SeasonChampionshipRouter').then((m) => ({
+    default: m.SeasonChampionshipRouter,
   })),
 )
 const SeasonLeaguesRoute = lazy(() =>
@@ -211,8 +211,8 @@ export default function App() {
                       element={<SeasonLmsRoute />}
                     />
                     <Route
-                      path="/competitions/:competitionSlug/:seasonSlug/games/championship"
-                      element={<SeasonChampionshipRoute />}
+                      path="/competitions/:competitionSlug/:seasonSlug/games/championship/*"
+                      element={<SeasonChampionshipRouter />}
                     />
                     <Route
                       path="/competitions/:competitionSlug/:seasonSlug/leagues"

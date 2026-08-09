@@ -119,7 +119,7 @@
   status = 200
 
 [[redirects]]
-  from = "/competitions/:competitionSlug/:seasonSlug/games/championship"
+  from = "/competitions/:competitionSlug/:seasonSlug/games/championship/*"
   to = "/index.html"
   status = 200
 
