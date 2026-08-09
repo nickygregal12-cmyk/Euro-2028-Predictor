@@ -174,6 +174,16 @@ plumbing:
 | Database parity / pgTAP | **Not run — no Docker daemon in this sandbox.** No SQL changed, so there is nothing new for it to assert. |
 | Browser E2E / axe | **Not runnable here** (same reason). `/competitions/premier-league/2026-27/leagues` is already in the axe route list and now carries a new expandable control, so CI is the only place this can be proven. |
 
+**The deploy preview's Lighthouse run reported Performance 21, down 75 from
+production — and it is not attributable to this change.** Accessibility stayed
+at 100. I checked rather than assuming: building `origin/main` in a separate
+worktree and comparing chunk-for-chunk, the entry chunk (`index`, 247.05 kB) and
+`LandingPage` (21.65 kB) are byte-identical to this branch's. The only chunk
+that moved is `SeasonGameRouteBundle`, 60.07 kB → 66.91 kB raw (16.84 → 18.00 kB
+gzipped), and it is lazily loaded on the season routes rather than on the path
+Lighthouse audited. The drop is preview noise or a pre-existing regression on
+`main`; either way it is worth someone looking at, and it is not this diff.
+
 One real regression was caught and fixed during the run rather than shipped:
 `SeasonGameRoutes.test.tsx` mocks each Supabase service module, and the new
 static import made it construct the real client, which throws without
@@ -181,10 +191,16 @@ static import made it construct the real client, which throws without
 the browser reaches contract 128's read at all — the precise thing that was
 missing.
 
-**CI status at the time of writing:** the run was triggered on push and was
-still in progress (`ci`, `authenticated-browser`, `deploy-preview-smoke`, CodeQL
-and the three Netlify checks). This report does not claim a result it does not
-have. I am subscribed to the pull request and will act on failures.
+**CI status when this report was finalised.** Nine of the ten checks had
+completed and **every one passed**: `authenticated-browser` (the full Browser
+E2E suite, including the axe accessibility sweep over the leagues route — the
+one gate this sandbox could not run), `deploy-preview-smoke`, both CodeQL
+analyses, and the Netlify header/redirect/pages checks. Inside the `ci` job,
+build, **compressed bundle budgets**, lint, domain-coverage thresholds,
+migration-timestamp validation, the documentation-authority check and the
+generated-current-state check had all passed; only its Vitest step was still
+running. This report does not claim a result it does not have. I am subscribed
+to the pull request and will act on a failure if one arrives.
 
 ## 5. Merge outcome
 
