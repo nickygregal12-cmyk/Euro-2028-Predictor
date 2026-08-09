@@ -2,7 +2,11 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 9 August 2026 (fourth entry)
+## Current state — 9 August 2026 (fifth entry)
+
+Contracts 140 and 141 were applied to hosted Development by guarded fast-lane run **31315796640** from exact `main` `d03fcaf` and verified: 141 rows, newest `20260809110000`, and all twelve Scottish clubs returning real derived form from results the provider wrote automatically. Contract 142 (`20260809120000_sportmonks_second_half_status.sql`) is the only migration now pending; it is additive and inserts one vocabulary row. Production remains at contract 132 and is untouched.
+
+## Superseded — 9 August 2026 (fourth entry)
 
 Contracts 138 and 139 were applied to hosted Development by guarded fast-lane run **31312456909** from exact `main` `d05d469` and independently verified: 139 rows, newest `20260809090000`, the three new RPCs present, no browser grant on the acknowledgement record, and both reads driven against real Development data. That verification also produced the first live evidence of the ingestion chain: **233 provider responses consumed, 2 official results written by the provider**, and 12 fixtures held by an unmapped SportMonks status token which contract 138 now makes visible. Contract 140 (`20260809100000_leave_eligibility_read.sql`) and contract 141 (`20260809110000_season_club_form.sql`) are the two now pending for Development; both are additive. Production remains at contract 132 and is untouched.
 

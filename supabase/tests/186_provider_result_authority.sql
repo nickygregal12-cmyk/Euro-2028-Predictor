@@ -19,7 +19,7 @@
 
 begin;
 
-select plan(25);
+select plan(26);
 
 -- ---------------------------------------------------------------------------
 -- The six new relations are internal and stay that way.
@@ -77,6 +77,15 @@ select is(
      from predictor_internal.provider_status_kinds where kind = 'final'),
   3,
   'each supported provider has exactly one measured way of saying finished');
+
+-- Contract 142. Measured from retained payloads: the same fixture carried token
+-- 22 with a different score at different times, which cannot happen after full
+-- time. Pinned as in play rather than final, because mapping it final would have
+-- written a wrong result mid-match and then "corrected" it.
+select is(
+  predictor_internal.provider_status_kind('sportmonks', '22'),
+  'in_play',
+  'SportMonks state 22 is the second half, not a finished match');
 
 -- ---------------------------------------------------------------------------
 -- Setup: one season, one matchweek, one fixture, mapped to football-data.
