@@ -29,6 +29,13 @@ const config = read('playwright.visual.config.ts')
 const spec = read('e2e/visual-gallery.spec.ts')
 const workflow = read('.github/workflows/visual-contracts.yml')
 const gallery = read('src/dev/ComponentsPreview.tsx')
+
+/** The spec's own curated list, read rather than restated. */
+const sections = [
+  ...(spec.match(/const SECTIONS = \[([\s\S]*?)\] as const/)?.[1] ?? '').matchAll(
+    /'([a-z0-9-]+)'/g,
+  ),
+].map((match) => match[1] as string)
 const galleryStyles = read('src/dev/ComponentsPreview.module.css')
 
 describe('the section anchor', () => {
@@ -135,18 +142,39 @@ describe('the CI bootstrap', () => {
     // The pair is the contract: the trigger without the images is a red suite on
     // every pull request, and deleting the images is how someone would silence
     // it. Counted rather than merely present, because one stray PNG would
-    // satisfy an existence check while 51 sections went unphotographed.
+    // satisfy an existence check while the rest went unphotographed.
+    //
+    // DERIVED FROM THE SPEC, NOT PINNED. This assertion used to hard-code 13
+    // sections and 52 images, and adding four sections to the spec left it
+    // passing on the old count with the new sections unphotographed — which is
+    // precisely the drift the paragraph above claims to prevent. The expected
+    // number now comes from the spec's own list, so a section added without a
+    // baseline fails here rather than in a red pull request later.
     const baselines = readdirSync(resolve(repositoryRoot, 'e2e/visual-baselines')).filter((file) =>
       file.endsWith('.png'),
     )
-    // Thirteen curated sections × two pinned widths × two themes.
-    expect(baselines.length).toBe(52)
+    expect(sections.length, 'the SECTIONS list could not be read from the spec').toBeGreaterThan(
+      10,
+    )
+    expect(baselines.length).toBe(sections.length * 4)
     for (const width of ['phone', 'desktop']) {
       for (const theme of ['light', 'dark']) {
         expect(
           baselines.filter((file) => file.endsWith(`-${width}-${theme}.png`)).length,
           `no ${width}/${theme} baselines`,
-        ).toBe(13)
+        ).toBe(sections.length)
+      }
+    }
+    // Named, not merely counted: the right total with a missing image and a
+    // stray one would balance out.
+    for (const section of sections) {
+      for (const width of ['phone', 'desktop']) {
+        for (const theme of ['light', 'dark']) {
+          expect(
+            baselines,
+            `no baseline for ${section} at ${width}/${theme}`,
+          ).toContain(`${section}-${width}-${theme}.png`)
+        }
       }
     }
   })

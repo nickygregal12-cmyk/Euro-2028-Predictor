@@ -21,9 +21,12 @@ name: Visual contracts
 #   3. add `pull_request` to the triggers below. From then on the suite compares
 #      every change against images produced by the same kind of machine.
 #
-# ALL THREE STEPS ARE DONE. `e2e/visual-baselines/` holds 52 images — thirteen
-# gallery sections at two widths in both themes — rendered by run 31303704179 on
-# an `ubuntu-latest` runner, which is what every later comparison runs on.
+# ALL THREE STEPS ARE DONE. `e2e/visual-baselines/` holds four images per curated
+# gallery section — two widths in both themes — rendered on an `ubuntu-latest`
+# runner, which is what every later comparison runs on. The count is no longer
+# stated here or in the guard: `visualContractHarness` derives it from the spec's
+# own SECTIONS list, because a pinned number stayed green through four sections
+# being added with no baselines behind them.
 # Re-render them with the two inputs below whenever a deliberate design change
 # makes the current images wrong; the new ones arrive as a commit on the branch
 # and are reviewed in the pull request beside the change that caused them.

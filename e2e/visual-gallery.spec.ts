@@ -43,6 +43,14 @@ const SECTIONS = [
   'state-refreshing',
   'state-stale',
   'state-error-blocking',
+  // The season surfaces. Every entry above this line is tournament-era, which
+  // is what the gallery grew alongside; these are the ones where a stylesheet
+  // edit could quietly move a provisional score into a result's place, and no
+  // assertion anywhere would notice.
+  'season-fixtures-day-list',
+  'season-match-centre',
+  'season-overview-next-up',
+  'provider-review-queues',
 ] as const
 
 const WIDTHS = ['phone', 'desktop'] as const

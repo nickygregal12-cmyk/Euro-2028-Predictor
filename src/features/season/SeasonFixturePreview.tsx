@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import { previewFixtures, type FixturePreviewRow } from './fixtureListModel'
@@ -83,11 +84,15 @@ export function SeasonFixturePreview({
   limit = DEFAULT_LIMIT,
 }: SeasonFixturePreviewProps) {
   const { status, view, error, reload } = useSeasonFixtureWindow(gateway, timeZone)
+  // Generated, not written. A fixed id makes the component unusable twice on
+  // one page — which the component gallery does immediately, rendering both
+  // theme panels at once, and axe called it a critical duplicate-id-aria.
+  const headingId = useId()
 
   if (status === 'loading') {
     return (
-      <section className={styles.card} aria-busy="true" aria-labelledby="overview-fixtures">
-        <h3 className={styles.heading} id="overview-fixtures">
+      <section className={styles.card} aria-busy="true" aria-labelledby={headingId}>
+        <h3 className={styles.heading} id={headingId}>
           Fixtures
         </h3>
         <Skeleton lines={3} />
@@ -97,8 +102,8 @@ export function SeasonFixturePreview({
 
   if (status === 'failed' || !view) {
     return (
-      <section className={styles.card} aria-labelledby="overview-fixtures">
-        <h3 className={styles.heading} id="overview-fixtures">
+      <section className={styles.card} aria-labelledby={headingId}>
+        <h3 className={styles.heading} id={headingId}>
           Fixtures
         </h3>
         {/* Failed is not empty. "No fixtures" would tell a player the season is
@@ -118,9 +123,9 @@ export function SeasonFixturePreview({
   const preview = previewFixtures(view, limit)
 
   return (
-    <section className={styles.card} aria-labelledby="overview-fixtures">
+    <section className={styles.card} aria-labelledby={headingId}>
       <div className={styles.head}>
-        <h3 className={styles.heading} id="overview-fixtures">
+        <h3 className={styles.heading} id={headingId}>
           {/* Named for what the rows are. A "Next up" heading over a list of
               finished matches is the kind of small lie that costs trust. */}
           {preview.kind === 'results' ? 'Latest results' : 'Next up'}
