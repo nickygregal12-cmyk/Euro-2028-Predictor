@@ -245,7 +245,10 @@ export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentre
                 <ul className={styles.meetings}>
                   {headToHead.meetings.map((meeting, index) => (
                     <li key={index} className={styles.meeting} data-outcome={meeting.outcome}>
-                      {fixture.home.name} {meeting.text}
+                      {/* Whole, from the model. The club whose result this is
+                          comes from the head-to-head read rather than from the
+                          fixture row, so one name describes one result. */}
+                      {meeting.text}
                     </li>
                   ))}
                 </ul>

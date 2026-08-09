@@ -157,7 +157,10 @@ describe('what this season’s meetings say', () => {
       ),
     )
 
-    expect(summary?.meetings[0]?.text).toBe('Matchweek 2 · won 2 - 1 · away')
+    // The club name comes from the READ, not from whichever fixture row the
+    // panel happens to be rendering: two names for one result is how a panel
+    // ends up saying "Rangers won 2 - 0" under a Celtic-and-Hibernian headline.
+    expect(summary?.meetings[0]?.text).toBe('Celtic · Matchweek 2 · won 2 - 1 · away')
     expect(summary?.meetings[0]?.outcome).toBe('W')
   })
 

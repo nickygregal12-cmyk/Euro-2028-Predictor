@@ -289,7 +289,7 @@ describe('contract 141’s football beside the player’s own side of it', () =>
     // carries none.
     await waitFor(() => expect(headToHead).toHaveBeenCalledWith('t-dundee', 't-aberdeen'))
     await waitFor(() =>
-      expect(screen.getByText('Dundee Matchweek 1 · lost 0 - 2 · away')).toBeTruthy(),
+      expect(screen.getByText('Dundee · Matchweek 1 · lost 0 - 2 · away')).toBeTruthy(),
     )
   })
 

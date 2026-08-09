@@ -64,6 +64,10 @@ import { SeasonFixturePreview } from '../features/season/SeasonFixturePreview'
 import { presentFixtureList } from '../features/season/fixtureListModel'
 import type { MatchPredictorPage } from '../features/season/matchPredictorModel'
 import { mapSeasonFixtureList } from '../services/supabase/seasonFixtureListModel'
+import {
+  mapClubHeadToHead,
+  mapSeasonClubForm,
+} from '../services/supabase/seasonClubFormModel'
 import { ProviderReviewPanel } from '../features/admin/ProviderReviewPanel'
 import { mapProviderReviewQueues } from '../services/supabase/providerReviewQueuesModel'
 import { resolveClubIdentity } from '../domain/clubIdentity/clubIdentityTokens'
@@ -381,6 +385,117 @@ const SEASON_CARD: MatchPredictorPage = {
 }
 
 const seasonCardReader = async () => SEASON_CARD
+
+/**
+ * Contract 141's football beside the player's own side of the fixture: one club
+ * with a run of results, one that has not played yet, and a meeting earlier in
+ * the season. The second is the case that matters — a club with nothing settled
+ * must not render as a row of empty pills, which reads as defeats.
+ */
+const SEASON_CLUB_FORM = mapSeasonClubForm({
+  server_now: '2026-08-08T16:30:00Z',
+  matches: 6,
+  clubs: [
+    {
+      team_id: 't-celtic',
+      name: 'Celtic',
+      short_code: 'CEL',
+      club_colours: 'Green / White',
+      played: 6,
+      won: 4,
+      drawn: 1,
+      lost: 1,
+      goals_for: 13,
+      goals_against: 6,
+      form: ['W', 'W', 'D', 'L', 'W', 'W'],
+    },
+    {
+      team_id: 't-hibs',
+      name: 'Hibernian',
+      short_code: 'HIB',
+      club_colours: 'Green / White',
+      played: 6,
+      won: 2,
+      drawn: 2,
+      lost: 2,
+      goals_for: 7,
+      goals_against: 8,
+      form: ['L', 'D', 'W', 'W', 'D', 'L'],
+    },
+    {
+      team_id: 't-rangers',
+      name: 'Rangers',
+      short_code: 'RAN',
+      club_colours: 'Blue / White',
+      played: 5,
+      won: 3,
+      drawn: 1,
+      lost: 1,
+      goals_for: 11,
+      goals_against: 5,
+      form: ['W', 'W', 'D', 'W', 'L'],
+    },
+    {
+      team_id: 't-aberdeen',
+      name: 'Aberdeen',
+      short_code: 'ABE',
+      club_colours: 'Red / White',
+      played: 0,
+      won: 0,
+      drawn: 0,
+      lost: 0,
+      goals_for: 0,
+      goals_against: 0,
+      form: [],
+    },
+  ],
+})
+
+const SEASON_FORM_BY_NAME = new Map(
+  SEASON_CLUB_FORM.clubs.map((club) => [club.name, club] as const),
+)
+
+const SEASON_FORM_BY_ID = new Map(
+  SEASON_CLUB_FORM.clubs.map((club) => [club.teamId, club] as const),
+)
+
+const seasonFootball = {
+  formFor: (name: string) => SEASON_FORM_BY_NAME.get(name) ?? null,
+  /**
+   * Answers for the PAIR it was asked about, rather than returning one fixed
+   * meeting. The first draft did the latter and the gallery rendered "Rangers ·
+   * Matchweek 1 · won 2 - 0" under the headline "Celtic and Hibernian have met
+   * once this season" — a fixture stub telling two stories about one result.
+   * The panel no longer allows that (the club name comes from the read), and
+   * the harness should not model it either.
+   */
+  headToHead: async (teamId: string, opponentId: string) => {
+    const team = SEASON_FORM_BY_ID.get(teamId)
+    const opponent = SEASON_FORM_BY_ID.get(opponentId)
+    const met = (team?.played ?? 0) > 0 && (opponent?.played ?? 0) > 0
+
+    return mapClubHeadToHead({
+      team: { team_id: teamId, name: team?.name ?? 'Home' },
+      opponent: { team_id: opponentId, name: opponent?.name ?? 'Away' },
+      summary: met
+        ? { played: 1, won: 1, drawn: 0, lost: 0, goals_for: 2, goals_against: 0 }
+        : { played: 0, won: 0, drawn: 0, lost: 0, goals_for: 0, goals_against: 0 },
+      meetings: met
+        ? [
+            {
+              season_fixture_id: 'sf-earlier',
+              kickoff_at: '2026-08-01T14:00:00Z',
+              at_home: false,
+              goals_for: 2,
+              goals_against: 0,
+              outcome: 'W',
+              round: 'Matchweek 1',
+            },
+          ]
+        : [],
+    })
+  },
+}
 
 /** Contract 138's queues: one section with work, and everything clear. */
 const PROVIDER_QUEUES_CLEAR = {
@@ -2107,10 +2222,21 @@ function Gallery() {
       </Section>
 
       <Section title="Season Match Centre — an opened fixture with its prediction and points">
-        <SeasonMatchCentre fixture={seasonScoredRow} read={seasonCardReader} />
+        <SeasonMatchCentre
+          fixture={seasonScoredRow}
+          read={seasonCardReader}
+          football={seasonFootball}
+        />
         <Label>settled: prediction, official result and this fixture&rsquo;s points</Label>
-        <SeasonMatchCentre fixture={seasonLiveRow} read={seasonCardReader} />
-        <Label>in play: a provider&rsquo;s score, outside the result field, awarding nothing</Label>
+        <SeasonMatchCentre
+          fixture={seasonLiveRow}
+          read={seasonCardReader}
+          football={seasonFootball}
+        />
+        <Label>
+          in play: a provider&rsquo;s score, outside the result field, awarding nothing — and a
+          club with nothing settled saying so rather than showing empty pills
+        </Label>
       </Section>
 
       <Section title="Season Overview — next up">

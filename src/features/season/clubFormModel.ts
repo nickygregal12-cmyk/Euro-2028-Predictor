@@ -48,7 +48,19 @@ export function summariseClubForm(club: SeasonClubForm | null): ClubFormSummary 
 }
 
 export type MeetingLine = {
-  /** "Matchweek 2 · won 2 - 1 at home", from the home club's point of view. */
+  /**
+   * "Celtic · Matchweek 2 · won 2 - 1 · away", whole, from `head.team`'s point
+   * of view.
+   *
+   * THE CLUB NAME IS IN THE LINE RATHER THAN PREPENDED BY THE COMPONENT, and
+   * that is a correction rather than a preference. The component had the
+   * fixture's home club to hand and the headline had the READ's team, so two
+   * names described one result and nothing made them agree — a rendering of
+   * the gallery showed "Rangers Matchweek 1 · won 2 - 0" under the headline
+   * "Celtic and Hibernian have met once this season". They agree in production
+   * because the ids come from the form read, but a surface should not depend on
+   * that: the read says whose result it is, once.
+   */
   text: string
   outcome: 'W' | 'D' | 'L'
 }
@@ -86,6 +98,7 @@ export function summariseHeadToHead(head: ClubHeadToHead | null): HeadToHeadSumm
     meetings: head.meetings.map((meeting) => ({
       outcome: meeting.outcome,
       text: [
+        head.team.name,
         meeting.round,
         // The scoreline is always this club's goals first, matching the verb
         // beside it. Printing it home-first would make "won 1 - 2" possible.
