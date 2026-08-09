@@ -179,4 +179,12 @@ Real domestic fixture adoption now has a backend publication gate: provider evid
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 supplies server-owned opponent/table/fixture data for the accepted Predictor Championship My Fixture / Table / Fixtures surfaces. It changes no visual authority and does not make History available.
 
+> **Contract 135–136 boundary (9 August 2026):** Contract 135 changes no visual authority; it is the
+> provider result rule and its driver. Contract 136 does change what a surface can draw with:
+> `ClubIdentity` has always taken a three-letter code and a colour string and has never been given
+> either, so every club rendered in the neutral fallback. The matchweek card now carries both, from
+> an owner-controlled reference rather than from a provider, and a club the reference does not name
+> renders exactly as it does today. No crest, logo or provider image is introduced — the capability
+> audit's media rule is untouched.
+
 > **Contract 134 boundary (9 August 2026):** Contract 134 changes no visual or presentation authority. It is a privileges-only database correction on the rate-limit log, closing risk-register `DB-005`, with no user-visible surface.

@@ -74,4 +74,9 @@ The repository is at contract 132. Fresh provider calendars must follow archive/
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 adds authenticated-only season Predictor Championship instance discovery and an explicit selected-instance player read. The reads reuse the existing phase/table and neutral Cup scoring authorities; private Cup tables remain browser-revoked.
 
+> **Contract 135–136 boundary (9 August 2026):** Contract 135 implements the owner decision of 9 August 2026 amending ADR 0020: a measured provider final status writes the official result of a league-season fixture with no human action, through contract 125's audited writer, and an administrator's correction ends provider authority over that fixture. It also supplies the driver that contracts 117 and 132 had never had — measured rather than assumed, neither had a caller anywhere in `supabase/`, `src/` or the Edge Function, so the poll archived and decoded every five minutes and nothing read the result. Contract 136 gives a club a code and colours, resolved at read time from an owner-controlled reference, so `ClubIdentity` stops rendering every club as the same blank shirt; it alters no existing table and adds no browser-reachable relation.
+> The tournament path is untouched and keeps the protected confirmation gate in full; `INGEST-002`,
+> `INGEST-003` and `INGEST-005` are unchanged, so a newly discovered, removed or cancelled fixture
+> still needs administrative approval.
+
 > **Contract 134 boundary (9 August 2026):** Contract 134 closes risk-register `DB-005`, a privileges-only change: `public.rate_limit_events` and its identity sequence are revoked from `anon` and `authenticated`. Row-level security, the thresholds, `enforce_rate_limit`, both triggers and `service_role` are untouched, and no rule, relation or read moves.

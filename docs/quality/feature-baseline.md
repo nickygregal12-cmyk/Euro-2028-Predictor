@@ -250,4 +250,12 @@ The domestic-season baseline now includes staged initial provider fixture propos
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 closes the server-read prerequisite for the private season Predictor Championship UI: an entrant can discover their own private instance and read the server-owned current group, opponent, table and fixture schedule without direct private-table grants.
 
+> **Contract 135–136 boundary (9 August 2026):** Contract 135 changes the baseline in one place and one
+> only: the official result of a **league-season** fixture may now be written by a measured provider final
+> status with no human action, under the owner's ADR 0020 amendment. It is written through the same audited
+> writer an administrator uses, it is numbered and attributable, and an administrator's correction ends
+> provider authority over that fixture. The tournament baseline is unchanged: Euro 2028 results remain
+> confirmable only by a signed-in administrator. Contract 136 adds club codes and colours to the matchweek
+> card so `ClubIdentity` renders a club as itself; a club the reference does not name is unchanged.
+
 > **Contract 134 boundary (9 August 2026):** Contract 134 adds no feature. It closes risk-register `DB-005` by revoking `public.rate_limit_events` and its identity sequence from both browser roles, and proves in pgTAP that the limiter still logs, still refuses at its ceiling and still prunes.

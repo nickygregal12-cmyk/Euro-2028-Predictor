@@ -104,6 +104,36 @@ describe('row-level security', () => {
       // until a competition administrator explicitly approves or rejects the
       // complete initial calendar. No player-facing API needs direct access.
       { schema: 'predictor_internal', name: 'provider_fixture_proposals' },
+      // Contract 135. What a provider status token means. Internal because it
+      // is the vocabulary a fail-closed rule is decided by, not a fact about
+      // any competition — and because a browser able to write it could make an
+      // arbitrary token mean 'final'.
+      { schema: 'predictor_internal', name: 'provider_status_kinds' },
+      // Contract 135. Status tokens with no mapping, so a vocabulary that fails
+      // closed is visible rather than silent. An operator's queue.
+      { schema: 'predictor_internal', name: 'provider_status_observations' },
+      // Contract 135. The provisional provider view of a fixture: latest
+      // status, score and observation time. Internal because it decides
+      // nothing — the bounded card read exposes it, labelled as provisional,
+      // and no lock, score or standing may take it as an input.
+      { schema: 'predictor_internal', name: 'season_fixture_live_state' },
+      // Contract 135. Which result revisions the provider wrote. Internal for
+      // the same reason as the revision record it keys onto: it explains a
+      // number a player can see, to whoever has to answer for it.
+      { schema: 'predictor_internal', name: 'season_fixture_result_sources' },
+      // Contract 135. Every provider result this platform declined to apply,
+      // with the reason. The administrator-owned case is why it exists: a
+      // provider that silently stops writing a fixture is indistinguishable
+      // from one that agrees with it.
+      { schema: 'predictor_internal', name: 'provider_result_refusals' },
+      // Contract 135. Which decoded responses the driver has handled, which is
+      // what makes it idempotent. Ingestion bookkeeping, read by nobody else.
+      { schema: 'predictor_internal', name: 'provider_response_consumption' },
+      // Contract 136. Owner-controlled club codes and colours, matched onto
+      // teams by normalised name. Internal because it is reference data behind
+      // a bounded read rather than a competition relation, and because it is
+      // not provider data and must not be mistaken for it.
+      { schema: 'predictor_internal', name: 'club_identity_reference' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

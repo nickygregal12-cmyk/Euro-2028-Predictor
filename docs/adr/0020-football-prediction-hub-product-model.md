@@ -284,6 +284,59 @@ reopened for anything else.
   a round is played — but this amendment removes its original consumer, and any
   later use of it needs its own justification rather than inheriting this one.
 
+### Owner amendment, 9 August 2026 — a provider result is official for a league season
+
+**This reverses § Ingestion's provisional-only rule for league seasons, and only
+for league seasons.** That section, and `INGEST-006` beside it, said that
+provider data never becomes official result truth automatically and that
+protected confirmation remains the scoring and progression gate.
+
+The owner's decision, in their own words: the provider **is** final truth for
+awarding points, and it must remain auditable and correctable from the admin
+panel in the unlikely event a correction is needed.
+
+**What is now in force**
+
+1. A provider status that this platform has measured as meaning *finished*, with
+   both scores present, writes the official result of a league-season fixture
+   with no human action.
+2. That write goes through the same audited writer an administrator uses. It is
+   numbered, it records the result it replaced, and it cannot be rewritten —
+   a correction is another revision, never an edit.
+3. Every provider-written revision is attributable: the provider is named, with
+   the archived response behind it.
+4. **An administrator's correction ends provider authority over that fixture.**
+   Once a signed-in administrator has confirmed, corrected or cleared a result,
+   the provider stops writing it and the refusal is recorded rather than
+   discarded. A human decision stands until a human changes it.
+5. Nothing settles as a side effect. The existing rederivation job produces the
+   points, which is also how a correction has always reached the table.
+
+**What this amendment does NOT change**
+
+- **The tournament path.** Euro 2028's results remain confirmable only by a
+  signed-in administrator through the tournament RPCs. No part of the provider
+  path may so much as name `public.matches` or `public.match_result_revisions`.
+- **What a competition consists of.** A fixture this platform does not hold is
+  still not created by ingestion. `INGEST-002`, `INGEST-003` and `INGEST-005`
+  stand: a newly discovered fixture, a removal, a cancellation, an abandonment
+  or a material identity change still requires administrative approval. The
+  amendment is about the *result of a fixture we already hold*, and nothing
+  wider.
+- **Failing closed.** An unmeasured provider status is not a result. A final
+  status with no score is not a nil-nil draw. One unmapped identifier still
+  fails the whole payload.
+
+**Why it is recorded rather than quietly applied.** It reverses a rule this
+repository had made structural: `171_ingestion_write_boundary.sql` existed to
+prove no ingestion function could write a result. That guard was amended in the
+same change rather than deleted, and now asserts the narrower boundary above —
+including that the applier reaches the audited writer and writes nothing itself.
+A rule that moves without its guard moving is how the guard comes to pass while
+proving nothing.
+
+Implemented by contract 135.
+
 ## Consequences
 
 - `/` becomes the authenticated competition hub rather than the Euro dashboard.

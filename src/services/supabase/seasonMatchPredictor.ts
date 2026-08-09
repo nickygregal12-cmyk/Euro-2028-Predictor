@@ -49,6 +49,12 @@ type CardPayload = {
     status: string
     home_name: string
     away_name: string
+    // Contract 136. Null for a club the identity reference does not name, which
+    // resolves to the neutral fallback exactly as an absent field did before.
+    home_short_code?: string | null
+    away_short_code?: string | null
+    home_club_colours?: string | null
+    away_club_colours?: string | null
     result_home: number | null
     result_away: number | null
     prediction: { home: number; away: number; version: number } | null
@@ -135,15 +141,30 @@ export function createSeasonMatchPredictorRpcGateway(options: {
         fixtures: card.fixtures.map((fixture) => ({
           fixtureId: fixture.id,
           kickoffAt: fixture.kickoff_at ?? '',
+          // Contract 136 supplies the code and the colours the resolver has
+          // always taken and never been given, so a club renders as itself
+          // rather than as the neutral fallback. `tla` is also what keys the
+          // curated pattern overlay, which is why Newcastle can be striped at
+          // all. Both are optional: an unnamed club resolves exactly as before.
           home: {
             name: fixture.home_name,
             shortName: fixture.home_name,
-            tokens: resolveClubIdentity({ externalId: fixture.id, name: fixture.home_name }),
+            tokens: resolveClubIdentity({
+              externalId: fixture.id,
+              name: fixture.home_name,
+              tla: fixture.home_short_code ?? undefined,
+              clubColors: fixture.home_club_colours ?? undefined,
+            }),
           },
           away: {
             name: fixture.away_name,
             shortName: fixture.away_name,
-            tokens: resolveClubIdentity({ externalId: fixture.id, name: fixture.away_name }),
+            tokens: resolveClubIdentity({
+              externalId: fixture.id,
+              name: fixture.away_name,
+              tla: fixture.away_short_code ?? undefined,
+              clubColors: fixture.away_club_colours ?? undefined,
+            }),
           },
           prediction: fixture.prediction
             ? { home: fixture.prediction.home, away: fixture.prediction.away }

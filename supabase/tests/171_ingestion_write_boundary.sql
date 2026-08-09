@@ -1,5 +1,36 @@
 -- What provider ingestion is allowed to write.
 --
+-- AMENDED 9 AUGUST 2026 BY OWNER DECISION (contract 135). The rule this file
+-- was written to enforce has changed, and the file changes with it rather than
+-- being quietly satisfied by a technicality.
+--
+-- What changed: a provider result may now become the official SEASON result
+-- without a human typing it. The owner's words were that the provider is final
+-- truth for awarding points, and that it must stay auditable and correctable
+-- from the admin panel.
+--
+-- What did NOT change, and is now asserted here rather than assumed:
+--
+--   * the TOURNAMENT path is untouched. Nothing in the provider path may write
+--     `public.matches` or `public.match_result_revisions`. Euro 2028 keeps the
+--     protected confirmation gate in full (assertion 10);
+--   * a provider result reaches `season_fixtures` only through contract 125's
+--     `record_season_fixture_result`, which numbers the revision, records what
+--     it replaced and cannot be rewritten. The applier writes no `public`
+--     relation of its own (assertion 8);
+--   * that writer still reaches no score, total, lock, progression, standing or
+--     player prediction. A result is the ONLY official truth the provider path
+--     can now produce; everything downstream still derives from it through the
+--     authorities that own it (assertion 9).
+--
+-- Why the extra assertions were needed at all: assertion 2 scans each ingestion
+-- function's own text, and `season_fixtures` is deliberately not in the
+-- forbidden list because contract 117 legitimately revises a kickoff. So the
+-- applier would have passed this file unchanged while doing something this file
+-- previously said was impossible — the "reaches it through a callee" limit the
+-- header below already admits, arriving for real. A guard that passes because
+-- the property it names moved out from under it is worse than no guard.
+--
 -- WHY THIS GUARD EXISTS. `MASTER-TODO.md` Stage D carries the claim that
 -- automatic ingestion is "unable to write official results, locks, scores, totals,
 -- ranks or standings". Contract 132 adds a separately gated competition-admin
@@ -62,7 +93,7 @@
 
 begin;
 
-select plan(7);
+select plan(12);
 
 -- ---------------------------------------------------------------------------
 -- The official truth ingestion may never write.
@@ -129,6 +160,17 @@ insert into ingestion_functions (name, permitted_writes) values
   ('touch_provider_poll_target',       'the poll target row''s own updated_at trigger.'),
   ('touch_provider_entity_map',        'the identity map row''s own updated_at trigger.'),
   ('reject_provider_custody_mutation', 'refuses a custody mutation; writes nothing.'),
+  ('apply_provider_fixture_facts',
+   'contract 135. The provisional live projection, the unknown-status and '
+   'refusal queues, and the provenance row naming the provider behind a result '
+   'revision -- all internal. It writes NO public relation itself: the official '
+   'season result is reached only through record_season_fixture_result, which '
+   'is asserted separately below.'),
+  ('consume_provider_responses',
+   'contract 135. The consumption record that makes the driver idempotent. It '
+   'routes to contracts 117, 132 and the applier and writes nothing else.'),
+  ('provider_status_kind',             'reads the status vocabulary; writes nothing.'),
+  ('resolve_provider_response_season', 'resolves which season a response is about; writes nothing.'),
   ('provider_mapping_gaps',            'reports unmapped identifiers; writes nothing.'),
   ('resolve_provider_season',          'reads the identity map; writes nothing.'),
   ('resolve_provider_round',           'reads the identity map; writes nothing.'),
@@ -282,6 +324,98 @@ select is(
   'the kickoff importer writes no official-truth relation -- it revises '
   'season_fixtures and records the move, and every derived lock, score and '
   'standing follows from authorities it never touches');
+
+-- ---------------------------------------------------------------------------
+-- 8. The applier writes no public relation of its own.
+-- ---------------------------------------------------------------------------
+--
+-- Contract 135's whole audit argument rests on this. If the applier could
+-- update `public.season_fixtures` directly it would set a score with no
+-- revision, no numbering and no record of what it replaced — an official result
+-- that no administrator could later explain. Routing through contract 125's
+-- writer is what makes the owner's "auditable" requirement structural rather
+-- than a promise.
+--
+-- The signature is resolved and asserted non-null first, for the reason
+-- assertion 6 records: `pg_get_functiondef(null)` is null and every `~*`
+-- against it is null too, so a drifted signature would pass while checking
+-- nothing.
+
+select ok(
+  to_regprocedure(
+    'predictor_internal.apply_provider_fixture_facts(text,uuid,jsonb,uuid,timestamptz)'
+  ) is not null,
+  'the contract 135 applier resolves at the signature this file checks');
+
+select is(
+  (select (
+     pg_get_functiondef(
+       to_regprocedure(
+         'predictor_internal.apply_provider_fixture_facts(text,uuid,jsonb,uuid,timestamptz)'
+       )::oid
+     ) ~* '(insert\s+into|update|delete\s+from)\s+public\.')),
+  false,
+  'the provider result applier writes no public relation directly -- an '
+  'official season result is reached only through the audited writer');
+
+select is(
+  (select (
+     pg_get_functiondef(
+       to_regprocedure(
+         'predictor_internal.apply_provider_fixture_facts(text,uuid,jsonb,uuid,timestamptz)'
+       )::oid
+     ) ~* 'record_season_fixture_result')),
+  true,
+  'and it does reach that writer -- an applier that stopped calling it would '
+  'satisfy the assertion above by doing nothing at all');
+
+-- ---------------------------------------------------------------------------
+-- 9. What the audited writer may reach, now that ingestion can call it.
+-- ---------------------------------------------------------------------------
+--
+-- Before contract 135 this function was only ever reached by a signed-in
+-- administrator, so its own writes were outside this file's scope. They are
+-- inside it now: whatever `record_season_fixture_result` can touch, the
+-- provider path can cause. It writes the fixture and its revision record, and
+-- settles nothing — the hourly rederivation owns that, which is why a provider
+-- result cannot reach a score, total, rank or standing even indirectly.
+
+select is(
+  (select coalesce(jsonb_agg(distinct t.relation order by t.relation), '[]'::jsonb)
+     from official_truth t
+    where pg_get_functiondef(
+            to_regprocedure(
+              'predictor_internal.record_season_fixture_result(uuid,text,smallint,smallint,text)'
+            )::oid
+          ) ~* ('(insert\s+into|update|delete\s+from)\s+public\.' || t.relation || '\M')),
+  '[]'::jsonb,
+  'the audited result writer reaches no score, total, lock, progression, '
+  'standing or player prediction -- it writes the fixture and its revision, and '
+  'settlement remains the job that derives everything else');
+
+-- ---------------------------------------------------------------------------
+-- 10. The tournament keeps its gate.
+-- ---------------------------------------------------------------------------
+--
+-- The owner's amendment is about a league season. Euro 2028's results remain
+-- confirmable only by a signed-in administrator through the tournament RPCs,
+-- and no part of the provider path may so much as name those relations.
+
+select is(
+  (select coalesce(jsonb_agg(distinct offender.detail order by offender.detail), '[]'::jsonb)
+     from (
+       select f.name || ' -> ' || t.relation as detail
+         from ingestion_functions f
+         join pg_proc p on p.proname = f.name and p.prokind = 'f'
+         join pg_namespace n on n.oid = p.pronamespace
+                            and n.nspname in ('predictor_internal', 'public')
+         cross join (values ('matches'), ('match_result_revisions')) as t(relation)
+        where pg_get_functiondef(p.oid) ~* ('public\.' || t.relation || '\M')
+     ) offender),
+  '[]'::jsonb,
+  'no provider ingestion function so much as names a tournament result '
+  'relation -- the amendment moved the season boundary and left this one where '
+  'it was');
 
 select finish();
 rollback;

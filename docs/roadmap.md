@@ -200,4 +200,10 @@ Contract 132 establishes the controlled first-publication authority for real dom
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 is a bounded DFA-007 enabler after Contract 132: it exposes caller-owned private Predictor Championship instances and selected player fixture/table/schedule state. It does not reorder the Domestic Frontend Alpha or change Championship scoring/settlement.
 
+> **Contract 135–136 boundary (9 August 2026):** Contract 135 is the owner's ADR 0020 amendment made
+> executable, and it reorders nothing in the Domestic Frontend Alpha: it closes the Stage D gap where a
+> decoded provider response was archived every five minutes and read by nothing. Contract 136 serves
+> `DFA-003` by giving the matchweek card the club code and colours `resolveClubIdentity` has always
+> taken and never been given.
+
 > **Contract 134 boundary (9 August 2026):** Contract 134 is off the Domestic Frontend Alpha sequence and reorders nothing. It is the `DB-005` least-privilege fix: the rate-limit log is revoked from both browser roles, and the public-table exposure guard is now exhaustive rather than grant-only.
