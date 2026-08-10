@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { globalNav } from './global-navigation'
 
 const liveRegion = '[aria-live="polite"][aria-atomic="true"]'
 
@@ -18,9 +19,9 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await page.keyboard.press('Enter')
   await expect(main).toBeFocused()
 
-  const playLink = page
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: 'Play', exact: true })
+  // Whichever global navigation this width shows. The keyboard journey is the
+  // thing under test and it must work in both.
+  const playLink = globalNav(page).getByRole('link', { name: 'Play', exact: true })
 
   await playLink.focus()
   await expect(playLink).toBeFocused()
@@ -31,9 +32,7 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await expect(main).toBeFocused()
   await expect(page.locator(liveRegion)).toHaveText('Play page loaded')
 
-  const homeLink = page
-    .getByRole('navigation', { name: 'Primary' })
-    .getByRole('link', { name: 'Home', exact: true })
+  const homeLink = globalNav(page).getByRole('link', { name: 'Home', exact: true })
   await homeLink.focus()
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL((url) => url.pathname === '/')

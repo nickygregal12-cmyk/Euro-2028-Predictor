@@ -511,7 +511,7 @@ Games
 Joined games first, available games second.
 Leagues
 Competition-scoped private leagues and competitions.
-Navigation ruleThe global desktop rail remains global and remains visible inside competition context. It never swaps its destinations. Competition identity lives in a masthead at the top of the content column, followed by a horizontal sub-navigation: Overview, Play, Matches, Games and Leagues. The Hub therefore remains one click away without a compensating Back to Hub control.
+Navigation rule *(implemented 10 August 2026 as `SideRail`; the owner's [UI finalisation direction](ui-finalisation.md) additionally allows the desktop rail to expose competition and More destinations the phone bar does not, which is an ADDITION beneath the five and not a swap of them)*The global desktop rail remains global and remains visible inside competition context. It never swaps its destinations. Competition identity lives in a masthead at the top of the content column, followed by a horizontal sub-navigation: Overview, Play, Matches, Games and Leagues. The Hub therefore remains one click away without a compensating Back to Hub control.
 
 ## Desktop rail contract
 Expanded width: 240px. Collapsed width: 64px icon rail. The user's choice is persisted.

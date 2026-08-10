@@ -1,26 +1,20 @@
 import { expect, test } from '@playwright/test'
+import { expectGlobalNavigation, globalNav } from './global-navigation'
 
 const PREMIER = '/competitions/premier-league/2026-27'
 
+/**
+ * The five global destinations, in whichever navigation this width shows — the
+ * bottom bar on the phone project, the persistent rail on the desktop one. The
+ * helper also asserts the other is NOT on screen, which is the property that
+ * matters most: two visible global navigations at one width would be the
+ * failure the composition exists to avoid.
+ */
 test('the weekly Hub exposes the canonical five-destination global shell', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
 
-  const primary = page.getByRole('navigation', { name: 'Primary' })
-  const expected = [
-    ['Home', '/'],
-    ['Play', '/play'],
-    ['Matches', '/matches'],
-    ['Leagues', '/leagues'],
-    ['More', '/more'],
-  ] as const
-
-  for (const [label, href] of expected) {
-    await expect(primary.getByRole('link', { name: label, exact: true })).toHaveAttribute(
-      'href',
-      href,
-    )
-  }
+  await expectGlobalNavigation(page)
 })
 
 /**
@@ -39,7 +33,7 @@ test('competition mode keeps the global tabs and adds its own beneath them', asy
 
   await expect(page.getByRole('heading', { name: 'Premier League' })).toBeVisible()
 
-  const primary = page.getByRole('navigation', { name: 'Primary' })
+  const primary = globalNav(page)
   await expect(primary).toBeVisible()
   await expect(primary.getByRole('link', { name: 'Home', exact: true })).toHaveAttribute(
     'href',

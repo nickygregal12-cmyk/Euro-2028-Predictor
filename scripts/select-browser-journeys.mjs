@@ -39,6 +39,10 @@ export const ALWAYS_FULL_SUITE = [
   'playwright.auth.config.ts',
   'playwright.production.config.ts',
   'e2e/global-setup.ts',
+  // The shared global-navigation helper: which navigation a width shows is a
+  // property every weekly journey depends on, so a change to it is not one
+  // journey's business.
+  'e2e/global-navigation.ts',
   'e2e/seed-contract.ts',
   'e2e/local-supabase.ts',
   'package.json',
