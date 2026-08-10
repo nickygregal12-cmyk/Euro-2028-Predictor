@@ -16,9 +16,10 @@ import { expect, type Locator, type Page } from '@playwright/test'
  * is display:none and therefore absent from the accessibility tree — which is
  * exactly the behaviour that is wanted and would look like a regression.
  *
- * THE DESTINATIONS ARE THE SAME FIVE IN BOTH. Only the Leagues label differs:
- * "Leagues & Competitions" on desktop, where there is room for the distinction
- * between a private league and a competition to be made.
+ * THE DESTINATIONS ARE THE SAME IN BOTH, and so are their words. The desktop
+ * rail briefly widened "Leagues" to "Leagues & Competitions"; the 10 August
+ * navigation amendment reverted it, so there is no per-width label to resolve
+ * here any more — only which element carries them.
  */
 
 const DESKTOP_BREAKPOINT = 1024
@@ -33,13 +34,13 @@ export function globalNav(page: Page): Locator {
   return page.getByRole('navigation', { name: isDesktopViewport(page) ? 'Sections' : 'Primary' })
 }
 
-/** The five global destinations, labelled as this width labels them. */
-function globalDestinations(page: Page): readonly (readonly [string, string])[] {
+/** The five global destinations. Identical at every width. */
+function globalDestinations(): readonly (readonly [string, string])[] {
   return [
     ['Home', '/'],
     ['Play', '/play'],
     ['Matches', '/matches'],
-    [isDesktopViewport(page) ? 'Leagues & Competitions' : 'Leagues', '/leagues'],
+    ['Leagues', '/leagues'],
     // The More TAB is a phone destination: on desktop the rail reaches its
     // contents — How to play, Profile, Account — directly, so there is no index
     // page to send anyone to.
@@ -57,7 +58,7 @@ export async function expectGlobalNavigation(page: Page): Promise<void> {
   const nav = globalNav(page)
   await expect(nav).toBeVisible()
 
-  for (const [label, href] of globalDestinations(page)) {
+  for (const [label, href] of globalDestinations()) {
     if (isDesktopViewport(page) && label === 'More') continue
     await expect(nav.getByRole('link', { name: label, exact: true })).toHaveAttribute('href', href)
   }
