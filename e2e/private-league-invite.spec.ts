@@ -93,7 +93,9 @@ test('owner creates an invite and a second account joins through the deep link',
     })
     await expect(inviteCodeButton).toBeVisible()
     const inviteLabel = await inviteCodeButton.getAttribute('aria-label')
-    const inviteCode = inviteLabel?.match(/Copy invite code ([A-Z0-9]{6})/)?.[1]
+    // Six to sixteen, not six: contract 152 mints twelve-character codes while
+    // every code issued before it keeps working, so this has to match both.
+    const inviteCode = inviteLabel?.match(/Copy invite code ([A-Z0-9]{6,16})/)?.[1]
     if (!inviteCode) throw new Error('Created league exposed no valid invite code.')
 
     await createdDialog.getByRole('button', { name: 'View league' }).click()
@@ -110,8 +112,18 @@ test('owner creates an invite and a second account joins through the deep link',
     await invitedPage.goto(`/join/${inviteCode}`)
     await expect(invitedPage).toHaveURL((url) => url.pathname === `/join/${inviteCode}`)
     await expect(invitedPage.getByRole('heading', { name: leagueName })).toBeVisible()
-    await expect(invitedPage.getByText('1 member', { exact: true })).toBeVisible()
-    await expect(invitedPage.getByText('Owner: E2E Tester', { exact: true })).toBeVisible()
+
+    // THE JOIN SCREEN NO LONGER SHOWS THE SIZE OF THE GROUP OR WHO RUNS IT, and
+    // asserting their ABSENCE is the point rather than an omission. Contract 152
+    // removed both from `get_league_preview` because they were what turned a
+    // guessed invite code into a positively identified private group, and the
+    // owner's display name disclosed a real person to whoever guessed. The
+    // league name stays, because an invitee has to know what they are joining.
+    //
+    // Both reappear on the league page below, AFTER joining, which is the
+    // distinction the contract draws: a member may see the membership.
+    await expect(invitedPage.getByText('1 member', { exact: true })).toBeHidden()
+    await expect(invitedPage.getByText('Owner: E2E Tester', { exact: true })).toBeHidden()
 
     const joined = invitedPage.waitForResponse((response) =>
       successfulRpc(response, 'join_league'),

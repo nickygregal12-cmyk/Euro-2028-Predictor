@@ -2289,13 +2289,13 @@ function Gallery() {
 
       <Section title="League preview (join / deep link)">
         <LeaguePreviewCard
-          preview={{ id: 'x', name: 'The Office Sweepstake', memberCount: 14, ownerName: 'Priya Shah', isMember: false }}
+          preview={{ name: 'The Office Sweepstake', isMember: false }}
           onJoin={() => {}}
           onDecline={() => {}}
         />
         <Label>already a member</Label>
         <LeaguePreviewCard
-          preview={{ id: 'x', name: 'The Office Sweepstake', memberCount: 14, ownerName: 'Priya Shah', isMember: true }}
+          preview={{ name: 'The Office Sweepstake', isMember: true }}
           onJoin={() => {}}
           onDecline={() => {}}
         />

@@ -832,7 +832,41 @@
  * 150: a new function name, no table, column, policy, trigger, relation grant
  * or default, and an unauthenticated caller refused.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 151
+/**
+ * Contract 152 is the FIRST in this list that changes what an existing
+ * authenticated read returns, so it is the first for which the answer is not
+ * "nothing a seeded journey calls has moved".
+ *
+ * What it changes, and what each means for a seeded user:
+ *
+ *   - `gen_invite_code()` now returns TWELVE characters, not six. A seeded
+ *     journey that creates a league and reads its code back has to accept the
+ *     longer form; `private-league-invite.spec.ts` extracted exactly six and is
+ *     updated to `{6,16}` — both, because codes issued before this contract are
+ *     untouched and still six.
+ *   - `get_league_preview` no longer returns `id`, `member_count` or
+ *     `owner_name`. The join screen therefore no longer renders "1 member" or
+ *     "Owner: …", and the same spec asserted both. It now asserts their
+ *     ABSENCE, which is the boundary rather than a deletion — both reappear on
+ *     the league page after joining, because a member may see the membership.
+ *   - `get_league_preview` and `join_league` now charge a 20/min
+ *     `league_invite_probe` limit. Neither can gate a seeded journey: a seeded
+ *     user previews and joins a handful of times, and the join path was already
+ *     under the stricter 5/min membership trigger, which is unchanged.
+ *   - The `leagues_invite_code_check` constraint WIDENED, from `{6}` to
+ *     `{6,16}` in the same character class. A widened check cannot reject a row
+ *     that previously inserted, so no seeded fixture can start failing on it.
+ *   - `rotate_league_invite_code` is a new name called by nothing, and
+ *     `gen_invite_code` is revoked from `public` exactly as it was.
+ *
+ * NOT EXECUTED HERE, and that is the limit of this marker on this contract.
+ * The reasoning above is analysis of the change plus the two spec edits it
+ * forced, in the same form as contracts 67, 68 and 69. The authoring
+ * environment has no Docker daemon, no Supabase CLI and no seeded database, so
+ * no seeded user was driven. Exact-head Database parity and Browser E2E must
+ * both pass on the contract 152 pull request before this marker is relied on.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 152
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

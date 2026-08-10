@@ -6,7 +6,27 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (eighteenth entry)
+## Current state — 10 August 2026 (nineteenth entry)
+
+**Contract 152 is a repository candidate and is applied to neither hosted environment.**
+
+`20260810190000_invite_code_hardening.sql` closes the three parts of `SEC-001` that contract 145 did not: invite codes drawn from pgcrypto's CSPRNG with rejection sampling and twelve characters rather than six; `get_league_preview` reduced to the league name and whether the caller is already a member; and a new `league_invite_probe` limiter charged by both the preview and the join **before** either looks a code up. `rotate_league_invite_code` makes a leaked code recoverable, owner-only.
+
+**It touches no existing row.** Codes already issued keep working and keep their six characters until an owner rotates them — the constraint widened to `^[A-Z0-9]{6,16}$` rather than moving. Invalidating outstanding invitations is an operator decision with a blast radius, so it is recorded as the remainder rather than performed by a migration.
+
+**Additive, and it is the third-category kind.** It carries one `alter table ... drop constraint` immediately followed by the replacement, which `check-migration-additive.mjs` reports rather than refuses: no row is at risk, and the guarantee that briefly goes is reinstated on the next statement with a strictly wider character-length range and an unchanged character class.
+
+**Not proven locally, and that is stated rather than implied.** `supabase/tests/201_invite_code_hardening.sql` holds 16 assertions including a 200-code distribution check that would fail against a modulo-biased generator, and **it has not been executed**: the authoring environment has no Docker daemon and no Supabase CLI, so `supabase db reset --local` could not run. The suite is handed over to be run by whoever applies the migration. No hosted claim of any kind is made here.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository | **152** | `20260810190000_invite_code_hardening.sql`, declared in `config/deployment-contract.json` | CANDIDATE |
+| Development Supabase `iouzoutneyjpugbbtdem` | **151** | Unchanged since the seventeenth entry. Contract 152 pending. | ONE BEHIND THE REPOSITORY |
+| Production Supabase | **151** | Unchanged since the seventeenth entry. Contract 152 is not part of any authorised promotion. | ONE BEHIND THE REPOSITORY |
+
+**One consequence of contract 152 is worth recording for whoever runs the rollout.** The browser control for `rotate_league_invite_code` is deliberately **not** in the pull request that adds the function. Since `TYPE-001` closed, every service module is on the typed client, and `database.types.ts` is generated from hosted Development — which does not hold contract 152 — so calling the new RPC from `src/` is a compile error until the rollout runs and the types are regenerated. That ordering is a feature rather than an obstacle: it makes it impossible to ship a button whose function does not exist yet. The control follows in its own pull request after the rollout.
+
+## Superseded — 10 August 2026 (eighteenth entry)
 
 **Production is open for play.** The seventeenth entry levelled the schema at contract 151; this entry records the operating state that turns a levelled database into a product a player can use, and what it deliberately did not do.
 
