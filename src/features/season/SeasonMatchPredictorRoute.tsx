@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { isNextUi } from '../../app/routeFlags'
 import { logicalWeeklyParent, weeklyRoutes } from '../../app/weeklyRoutes'
@@ -50,6 +50,7 @@ export function SeasonMatchPredictorRoute({
     seasonSlug: string
   }>()
 
+  const [search] = useSearchParams()
   const enabled = isNextUi('seasonMatchPredictor')
   const destinations = seasonShellDestinations(
     seasonBasePath(competitionSlug ?? '', seasonSlug ?? ''),
@@ -140,10 +141,30 @@ export function SeasonMatchPredictorRoute({
 
   if (cardGateway === null) return null
 
+  /**
+   * Which matchweek to open at.
+   *
+   * The play context answers "the one you can play now", which is the right
+   * default and was until now the only answer — so a player looking at a
+   * September fixture could not reach the card that predicts it. `?matchweek=`
+   * names one instead.
+   *
+   * IT FALLS BACK RATHER THAN REFUSING. An absent, unparseable or out-of-range
+   * value opens the current matchweek, because a stale or shared link should
+   * land somewhere useful rather than on an error. The season's own matchweek
+   * count is the bound; nothing here trusts the number into a read.
+   */
+  const requested = Number(search.get('matchweek'))
+  const withinSeason =
+    Number.isInteger(requested) &&
+    requested >= 1 &&
+    requested <= state.context.matchweekCount
+  const matchweek = withinSeason ? requested : state.matchweek
+
   return (
     <SeasonMatchPredictorPage
       gateway={cardGateway}
-      matchweek={state.matchweek}
+      matchweek={matchweek}
       competitionName={state.context.competitionName}
       seasonLabel={state.context.seasonLabel}
       destinations={destinations}

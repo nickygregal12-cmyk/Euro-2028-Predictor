@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import type { FixtureListRow } from './fixtureListModel'
@@ -53,12 +54,12 @@ import styles from './SeasonMatchCentre.module.css'
  * an equality on one source of truth rather than a fuzzy match, and the team
  * ids it yields are what make the head-to-head callable at all.
  *
- * THERE IS NO "OPEN THIS MATCHWEEK" LINK, and the reason is a route fact rather
- * than a design preference. The Match Predictor route carries no matchweek: it
- * opens at whichever one the play context says is current. A link from a
- * September fixture would therefore land the player on a different matchweek
- * from the one they were reading about, which is worse than no link. It becomes
- * possible when that route takes a matchweek, and not before.
+ * IT NOW LINKS TO THE MATCHWEEK IT BELONGS TO. This file used to record that it
+ * could not: the Match Predictor route carried no matchweek and always opened
+ * at the current one, so a link from a September fixture would land the player
+ * somewhere else, which is worse than no link. `?matchweek=` closes that, and
+ * the link is the thing a player was missing — seeing a match and having no way
+ * to reach the card that predicts it is where the journey used to stop.
  */
 
 /**
@@ -94,6 +95,11 @@ export type SeasonMatchCentreProps = {
   fixture: FixtureListRow
   read: SeasonMatchCentreCardReader
   football?: SeasonFootballContext
+  /**
+   * Where this fixture's matchweek is predicted. Supplied by the route, which
+   * owns the slugs; absent where the Match Predictor is not reachable.
+   */
+  predictHref?: (matchweek: number) => string
 }
 
 function FormRow({ name, summary }: { name: string; summary: ClubFormSummary }) {
@@ -159,7 +165,12 @@ function useHeadToHead(
   return summary
 }
 
-export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentreProps) {
+export function SeasonMatchCentre({
+  fixture,
+  read,
+  football,
+  predictHref,
+}: SeasonMatchCentreProps) {
   const state = useSeasonMatchCentre(read, fixture)
   const homeForm = summariseClubForm(football?.formFor?.(fixture.home.name) ?? null)
   const awayForm = summariseClubForm(football?.formFor?.(fixture.away.name) ?? null)
@@ -264,6 +275,16 @@ export function SeasonMatchCentre({ fixture, read, football }: SeasonMatchCentre
 
           <p className={styles.note}>{state.view.explanation}</p>
           {state.view.jokerNote ? <p className={styles.note}>{state.view.jokerNote}</p> : null}
+
+          {/* The way out, which is the whole point of opening a fixture and
+              was missing: seeing a match and being unable to reach the card
+              that predicts it is where the journey stopped. It is a real link
+              rather than a button because it goes somewhere. */}
+          {predictHref ? (
+            <Link className={styles.predict} to={predictHref(fixture.round.ordinal)}>
+              Open {fixture.round.name}
+            </Link>
+          ) : null}
         </>
       )}
 

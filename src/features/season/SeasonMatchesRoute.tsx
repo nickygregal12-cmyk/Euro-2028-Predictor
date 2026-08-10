@@ -19,6 +19,8 @@ import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchesPage } from './SeasonMatchesPage'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
+import { competitionMatchPredictorRoute } from '../../app/weeklyRoutes'
+import { isNextUi } from '../../app/routeFlags'
 import { useSeasonPlayContext } from './useSeasonPlayContext'
 import styles from './SeasonMatchPredictorRoute.module.css'
 
@@ -205,6 +207,20 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
     }
   }, [tournamentId, clubForm, lmsRound, eligibility])
 
+  /**
+   * Where a fixture's matchweek is predicted.
+   *
+   * Behind the same flag as the route it points at — a link to a page that
+   * renders Not Found is the dead control this batch is removing — and absent
+   * for a caller with no entry, since there is no card of theirs to open.
+   */
+  const predictHref = useMemo(() => {
+    if (!isNextUi('seasonMatchPredictor')) return undefined
+    if (seasonEntryStanding(eligibility) !== 'entered') return undefined
+    const ref = { competitionSlug: competitionSlug ?? '', seasonSlug: seasonSlug ?? '' }
+    return (matchweek: number) => competitionMatchPredictorRoute(ref, matchweek)
+  }, [eligibility, competitionSlug, seasonSlug])
+
   if (state.kind === 'loading') {
     return (
       <div className={styles.page} aria-busy="true" aria-live="polite">
@@ -252,6 +268,7 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
         timeZone={context.timeZone}
         readMatchweekCard={readCard}
         football={football}
+        predictHref={predictHref}
       />
     </SeasonCompetitionShell>
   )

@@ -44,3 +44,54 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-input);
 }
+
+/* Tap-to-step, stacked above and below the box.
+   VERTICAL BECAUSE THE ROW HAS NO WIDTH TO SPARE: the card is
+   `club name | scores | club name`, and six 44px targets plus a separator
+   between two names does not fit a 360px screen. This adds height only. */
+.stepper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Full box width so the column stays square, and 36px tall — under --tap-min
+   on one axis only, which the 44px width and the 4px gap either side keep
+   comfortably above the 44px target area the tap actually lands in. */
+.step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: 36px;
+  padding: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--tx2);
+  background: var(--chip);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+}
+
+.step:hover:not(:disabled) {
+  color: var(--tx);
+  border-color: var(--acc);
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* A real boundary, shown as one: an empty box has nothing to take away and a
+   nil cannot go lower. Dimmed AND non-interactive, never a live-looking
+   control that refuses. */
+.step:disabled {
+  color: var(--tx3);
+  background: transparent;
+  cursor: not-allowed;
+}

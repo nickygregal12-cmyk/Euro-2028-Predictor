@@ -69,6 +69,33 @@ export function competitionGameRoute(
   }
 }
 
+/**
+ * The Match Predictor, opened at a NAMED matchweek.
+ *
+ * A QUERY RATHER THAN A SEGMENT, deliberately. The matchweek is an opening
+ * position, not an identity: `.../games/match-predictor` is one page whose
+ * default is "the matchweek you can play now", and a path segment would make
+ * every link that omits it a different route. A query also degrades correctly —
+ * an absent, unparseable or out-of-range value falls back to the current
+ * matchweek instead of 404ing, which is what a shared or stale link should do.
+ *
+ * WHY IT EXISTS. Until now the route always opened at the current matchweek, so
+ * a player looking at a September fixture had no way to reach the card that
+ * predicts it. That was reported as navigation that does not flow, and it was
+ * exactly right.
+ */
+export function competitionMatchPredictorRoute(
+  ref: CompetitionRouteRef,
+  matchweek?: number,
+): string {
+  const base = competitionGameRoute(ref, 'match-predictor')
+  if (matchweek === undefined) return base
+  if (!Number.isInteger(matchweek) || matchweek < 1) {
+    throw new Error(`Invalid matchweek for a Match Predictor route: ${matchweek}`)
+  }
+  return `${base}?matchweek=${matchweek}`
+}
+
 export function competitionGameStandingsRoute(ref: CompetitionRouteRef): string {
   return renderCompetitionPattern(weeklyRoutePatterns.matchPredictorStandings, ref)
 }
