@@ -827,7 +827,12 @@
  * name, no table, column, policy, trigger, relation grant or default, and an
  * unauthenticated caller refused.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 150
+/**
+ * Contract 151 completes the MIG-UI read batch on the same terms as 149 and
+ * 150: a new function name, no table, column, policy, trigger, relation grant
+ * or default, and an unauthenticated caller refused.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 151
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -218,6 +218,7 @@ These names may remain but their semantics must support both kinds safely:
 - `get_season_lms_round`
 - `get_season_matchweek_card`
 - `get_season_period_standings`
+- `get_season_player_profile`
 - `get_season_prediction_consensus`
 - `save_season_prediction`
 - `set_season_matchweek_joker`
