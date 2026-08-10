@@ -3,6 +3,14 @@ import type {
   SeasonListFixture,
 } from '../../services/supabase/seasonFixtureListModel'
 import type { ClubIdentityTokens } from '../../domain/clubIdentity/clubIdentityTypes'
+import { formatKickoffTime, formatMatchDay, matchDayKey } from '../../shared/time/kickoff'
+
+/**
+ * A deterministic zone override. Production omits it and the shared authority
+ * resolves the viewer's own, which is the rule; the dev harnesses and the tests
+ * pin one so a screenshot and an assertion do not depend on the machine.
+ */
+type Zone = string | undefined
 
 /**
  * Presentation model for a competition's fixtures over a date window
@@ -31,8 +39,14 @@ import type { ClubIdentityTokens } from '../../domain/clubIdentity/clubIdentityT
  * other. A row shows the official score when there is one, and otherwise may
  * show a provisional score SAID TO BE PROVISIONAL — never as the score.
  *
- * PURE. Time zone is an input, no clock is read, and the server's order is
- * preserved rather than re-derived.
+ * DAYS AND TIMES ARE THE VIEWER'S, not the competition's. This surface shipped
+ * resolving both in the competition's persisted zone; the owner's 10 August
+ * 2026 UI direction reverses that, and `src/shared/time/kickoff.ts` holds the
+ * reasoning and the formatting. The zone parameter survives only as a
+ * deterministic override for harnesses and tests.
+ *
+ * PURE. No clock is read, and the server's order is preserved rather than
+ * re-derived.
  */
 
 export type FixtureListClub = {
@@ -44,7 +58,7 @@ export type FixtureListRow = {
   id: string
   home: FixtureListClub
   away: FixtureListClub
-  /** "15:00" in the competition's zone, or null when no kickoff is scheduled. */
+  /** "15:00" in the VIEWER's zone, or null when no kickoff is scheduled. */
   kickoff: string | null
   /** "Matchweek 5", printed only when the day carries more than one. */
   roundLabel: string | null
@@ -58,17 +72,17 @@ export type FixtureListRow = {
   score: string | null
   /** A provider's current score, when there is no official one. Never a result. */
   provisional: string | null
-  /** When the provider last reported that provisional score, in the
-   *  competition's zone. Null when there is none to report. */
+  /** When the provider last reported that provisional score, in the viewer's
+   *  zone. Null when there is none to report. */
   provisionalAt: string | null
   played: boolean
   accessibleSummary: string
 }
 
 export type FixtureListDay = {
-  /** `YYYY-MM-DD` in the competition's zone. Sorts and keys correctly. */
+  /** `YYYY-MM-DD` in the viewer's zone. Sorts and keys correctly. */
   key: string
-  /** "Saturday 8 August", in the competition's zone. */
+  /** "Saturday 8 August", in the viewer's zone. */
   label: string
   rows: readonly FixtureListRow[]
 }
@@ -139,28 +153,12 @@ export function previewFixtures(view: FixtureListView, limit: number): FixturePr
 
 function parts(
   instant: string,
-  timeZone: string,
+  timeZone: Zone,
 ): { key: string; label: string; time: string } | null {
-  const at = new Date(instant)
-  if (Number.isNaN(at.getTime())) return null
-
-  // `en-CA` yields `YYYY-MM-DD`, which sorts and keys correctly. Used for the
-  // KEY only; the label below is formatted for reading.
-  const key = at.toLocaleDateString('en-CA', { timeZone })
-  const label = at.toLocaleDateString(undefined, {
-    timeZone,
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  })
-  // The ZONE is the competition's; the 12-or-24-hour FORMAT is the viewer's,
-  // which is a reading preference rather than a fact about the fixture.
-  const time = at.toLocaleTimeString(undefined, {
-    timeZone,
-    hour: 'numeric',
-    minute: '2-digit',
-  })
-
+  const key = matchDayKey(instant, timeZone)
+  const label = formatMatchDay(instant, timeZone)
+  const time = formatKickoffTime(instant, timeZone)
+  if (key === null || label === null || time === null) return null
   return { key, label, time }
 }
 
@@ -176,7 +174,7 @@ function summarise(fixture: SeasonListFixture, kickoff: string | null, mixed: bo
 
 export function presentFixtureList(
   page: SeasonFixtureList,
-  timeZone: string,
+  timeZone?: Zone,
 ): FixtureListView {
   type Bucket = { label: string; fixtures: SeasonListFixture[] }
   const byDay = new Map<string, Bucket>()

@@ -172,9 +172,13 @@ export function mapSeasonFixtureList(value: unknown): SeasonFixtureList {
       id,
       name,
       seasonKey,
-      // The competition's own zone, not the viewer's and not UTC. A Saturday
-      // 15:00 kickoff is Saturday to everyone who follows that league; falling
-      // back to UTC rather than the device keeps two players agreeing.
+      // The competition's own calendar zone, as the server persists it. It is
+      // NO LONGER A PRESENTATION INPUT: since the owner's 10 August 2026 UI
+      // direction, kickoffs and day headings resolve in the viewer's device
+      // zone through `src/shared/time/kickoff.ts`. This field is retained
+      // because it is a fact about the competition — the zone its calendar and
+      // its monthly retention table are derived in — and a decoder that
+      // discarded it would make that unavailable to the reads that need it.
       timeZone: stringOrNull(competition.time_zone) ?? 'UTC',
     },
     window: { from, to },

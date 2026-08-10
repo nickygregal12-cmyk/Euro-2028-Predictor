@@ -24,7 +24,8 @@ export type CompetitionWeekPanelProps = {
   loading: boolean
   /** Set when a game's read failed; the week is then not shown at all. */
   failed: boolean
-  timeZone: string
+  /** Deterministic zone override for harnesses and tests; production omits it. */
+  timeZone?: string
 }
 
 function ActionRow({
@@ -33,7 +34,7 @@ function ActionRow({
   primary,
 }: {
   action: WeekAction
-  timeZone: string
+  timeZone?: string
   primary: boolean
 }) {
   const when = formatWeekDeadline(action, timeZone)

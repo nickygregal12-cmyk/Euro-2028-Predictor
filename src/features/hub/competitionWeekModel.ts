@@ -1,6 +1,7 @@
 import type { MatchPredictorPage } from '../season/matchPredictorModel'
 import type { LmsRoundPage } from '../season/lmsRoundModel'
 import type { ChampionshipPlayerView } from '../../services/supabase/seasonCupPlayer'
+import { formatDeadline } from '../../shared/time/kickoff'
 
 /**
  * "What do I need to do this week?" for one competition season (`DFA-006`).
@@ -240,21 +241,17 @@ export function weekActionForGame(
  * formatters over one instant is two chances to disagree about when a lock is,
  * and the one nearer the player is the one that would be wrong.
  *
- * The competition's zone, never the viewer's — a Saturday 15:00 lock is
- * Saturday to everyone who follows that league.
+ * THE VIEWER'S ZONE, not the competition's — reversed on 10 August 2026. This
+ * function used to say the opposite in this very comment, on the reasoning that
+ * a Saturday 15:00 lock is Saturday to everyone who follows that league. The
+ * owner's UI direction decides for the device's zone without qualification, and
+ * a deadline that disagreed with the kickoff printed beside it would be the
+ * worst thing on the page. `timeZone` survives only as a deterministic override
+ * for harnesses and tests.
  */
-export function formatWeekDeadline(action: WeekAction, timeZone: string): string | null {
-  if (!action.locksAt) return null
-  const at = new Date(action.locksAt)
-  if (Number.isNaN(at.getTime())) return null
-  const when = at.toLocaleString(undefined, {
-    timeZone,
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+export function formatWeekDeadline(action: WeekAction, timeZone?: string): string | null {
+  const when = formatDeadline(action.locksAt, timeZone)
+  if (!when) return null
   return action.outstanding ? `Locks ${when}` : `Locked ${when}`
 }
 

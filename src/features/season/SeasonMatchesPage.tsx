@@ -8,6 +8,7 @@ import {
   useSeasonFixtureWindow,
   type SeasonFixtureWindowGateway,
 } from './useSeasonFixtureWindow'
+import { formatDayShort } from '../../shared/time/kickoff'
 import styles from './SeasonMatchesPage.module.css'
 
 /**
@@ -44,8 +45,12 @@ import styles from './SeasonMatchesPage.module.css'
 
 export type SeasonMatchesPageProps = {
   gateway: SeasonFixtureWindowGateway
-  /** The competition's own timezone; every date and time is resolved in it. */
-  timeZone: string
+  /**
+   * A deterministic zone override for harnesses and tests. Production omits it
+   * and every day and time resolves in the VIEWER's own zone, per the shared
+   * kickoff authority.
+   */
+  timeZone?: string
   /**
    * Reads the caller's own matchweek card, for the Match Centre a fixture
    * opens into. Omitted where there is no entry to read — the DEV harness, and
@@ -65,15 +70,15 @@ export type SeasonMatchesPageProps = {
 
 const SKELETON_ROWS = 6
 
-function windowLabel(window: { from: string; to: string } | null, timeZone: string): string {
+function windowLabel(window: { from: string; to: string } | null, timeZone?: string): string {
   if (!window) return 'Fixtures'
-  const format = (instant: string) =>
-    new Date(instant).toLocaleDateString(undefined, {
-      timeZone,
-      day: 'numeric',
-      month: 'short',
-    })
-  return `${format(window.from)} – ${format(window.to)}`
+  const from = formatDayShort(window.from, timeZone)
+  const to = formatDayShort(window.to, timeZone)
+  // A half-formatted range is not a range. The server always sends both, so
+  // this is a fallback rather than a state, and it says what the section is
+  // rather than printing an em dash with one end missing.
+  if (!from || !to) return 'Fixtures'
+  return `${from} – ${to}`
 }
 
 function Match({

@@ -1,4 +1,5 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
+import { formatCalendarDate } from '../../shared/time/kickoff'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton, type MatchTeam } from '../../design-system'
@@ -21,12 +22,10 @@ type State =
   | { status: 'ready'; profile: PlayerProfileRead }
 
 function lockDateLabel(lockAt: string | null): string {
-  if (!lockAt) return 'the published deadline'
-  return new Intl.DateTimeFormat(undefined, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(lockAt))
+  // Through the shared kickoff/date authority, like every other instant a
+  // player reads, and it names the deadline rather than printing "Invalid Date"
+  // when the instant is absent or unreadable.
+  return formatCalendarDate(lockAt) ?? 'the published deadline'
 }
 
 function returnPath(state: unknown): string {

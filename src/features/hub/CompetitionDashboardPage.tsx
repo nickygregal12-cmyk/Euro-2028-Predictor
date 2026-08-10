@@ -66,11 +66,9 @@ function gamePath(competition: HubCompetition, game: HubGame): string | null {
  */
 function OverviewFixtures({
   tournamentId,
-  timeZone,
   onSeeAll,
 }: {
   tournamentId: string
-  timeZone: string
   onSeeAll: () => void
 }) {
   const gateway = useMemo(
@@ -80,7 +78,7 @@ function OverviewFixtures({
     }),
     [tournamentId],
   )
-  return <SeasonFixturePreview gateway={gateway} timeZone={timeZone} onSeeAll={onSeeAll} />
+  return <SeasonFixturePreview gateway={gateway} onSeeAll={onSeeAll} />
 }
 
 type DashboardState =
@@ -257,7 +255,6 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             week={week.week}
             loading={week.loading}
             failed={week.failed}
-            timeZone={week.timeZone}
           />
           {/* And what the COMPETITION is playing, which the panel above does
               not say: it reports what each GAME is asking of this player, so a
@@ -267,7 +264,6 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
           {state.status === 'ready' && state.season ? (
             <OverviewFixtures
               tournamentId={state.season.tournamentId}
-              timeZone={week.timeZone}
               onSeeAll={() => navigate(competitionSectionRoute(competition, 'matches'))}
             />
           ) : null}
@@ -309,7 +305,7 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                   : null
                 const busy = served !== undefined && acting === served.id
                 const action = weekActionForGame(week.week, game.gameKey)
-                const when = action ? formatWeekDeadline(action, week.timeZone) : null
+                const when = action ? formatWeekDeadline(action) : null
                 const callToAction = weekActionCallToAction(action)
                 // The action's destination when it has one, else the card's.
                 const destination = (callToAction ? action?.href : null) ?? path

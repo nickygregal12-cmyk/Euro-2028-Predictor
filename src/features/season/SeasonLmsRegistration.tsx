@@ -1,6 +1,6 @@
 import { Alert, Button, Skeleton } from '../../design-system'
 import type { RegistrationCopy, SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
-import { formatInstant } from './formatInstant'
+import { formatDeadline } from '../../shared/time/kickoff'
 import { useSeasonLmsRegistration } from './useSeasonLmsRegistration'
 import styles from './SeasonLmsRegistration.module.css'
 
@@ -66,9 +66,9 @@ export function SeasonLmsRegistration({
   if (presentation.state === 'entered') return null
 
   const deadline =
-    presentation.state === 'open' ? formatInstant(presentation.closesAt) : null
+    presentation.state === 'open' ? formatDeadline(presentation.closesAt) : null
   const opening =
-    presentation.state === 'not_open' ? formatInstant(presentation.opensAt) : null
+    presentation.state === 'not_open' ? formatDeadline(presentation.opensAt) : null
 
   return (
     <section className={styles.panel}>
