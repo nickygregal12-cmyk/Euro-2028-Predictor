@@ -7,7 +7,7 @@ This runbook defines the live Netlify project boundary for the Football Predicti
 - Live Netlify project: `euro28predictor`.
 - Production domain: `https://euro28predictor.com`.
 - Historic project `euro28-predictor-dev` is retired and must not be configured, deployed or treated as current evidence.
-- Netlify Team SSO currently protects **all deploy contexts**, including production.
+- The project is protected on **all deploy contexts**, including production. The protection *mechanism* changed on 10 August 2026 and needs an owner confirmation — see [Access-control posture](#access-control-posture).
 
 ## Contract declarations
 
@@ -32,11 +32,39 @@ The blank `dev-server` override is a Netlify configuration debt. Remove it or se
 
 ## Published production artifact
 
-The currently published production deploy is still the 30 July 2026 build from commit `8244b7222b9d108e59380fd16351c02b578497ee` (deploy `6a6bac566b6e440008d44e5b`, `state: ready`, `context: production`, `branch: main`). It is a Contract-63-era application artifact even though the current production environment declaration now says 145 and the Production database is hosted at 145.
+The published production deploy is **`6a79b4d5a5e45e0008beec70`**, built from commit
+`ff1fe15db680dd5f5f6698749a8371aba2584cec` and published at **11:24:44Z on
+10 August 2026**. It is the first application artifact to move since 30 July, and
+the first ever to target a Production database at contract 145.
 
-That deploy record also names the mechanism that produced it: `deploy_source: "api"` with `has_source_zip: true` and `manual_deploy: false`. The published artifact was uploaded as a source zip and built in Netlify's build system, not pushed from a local `dist`. That matters for recovery, because it is the same path an agent session is offered and the path that is currently unavailable — see below.
+| Field | Value |
+| --- | --- |
+| Source commit | `ff1fe15db680dd5f5f6698749a8371aba2584cec` (`main`) |
+| Deploy ID | `6a79b4d5a5e45e0008beec70` |
+| State / context / branch | `ready` / `production` / `main` |
+| Published | 2026-08-10T11:24:44.813Z, build time 38s |
+| Application contract | 145 |
+| Supabase project / contract | `vkfnsqdyhvtwyqkisxhk` / 145 |
+| Netlify declaration | `EURO28_DEPLOYED_DB_CONTRACT=145` (production context) |
+| Access-control posture | Protected; anonymous requests answer 401 |
+| Rollback deploy | `6a6bac566b6e440008d44e5b` (30 July, `8244b722…`) |
+| Deploy summary | 38 files uploaded, 35 redirect rules, 1 header rule, no functions |
+| Secret scan | 1651 files scanned, 0 matches |
 
-### Why the artifact has not moved since 30 July
+It was produced by **Netlify's own repository build on the push to `main`**, not by
+an upload — which is the stronger of the two evidence paths, because the deploy
+record carries the exact `commit_ref` it was built from.
+
+### The superseded artifact, for reference
+
+The previous production deploy was `6a6bac566b6e440008d44e5b` from
+`8244b7222b9d108e59380fd16351c02b578497ee`, published 30 July 2026 — a
+Contract-63-era bundle. Its record reads `deploy_source: "api"` with
+`has_source_zip: true` and `manual_deploy: false`: it was uploaded as a source zip
+and built in Netlify's build system rather than pushed from a local `dist`. It is
+the recorded rollback target for the release above.
+
+### Why the artifact had not moved since 30 July
 
 `npm run build` runs `scripts/validate-deployment-contract.mjs` in `prebuild`, and for the production context it demands an **exact** match between `EURO28_DEPLOYED_DB_CONTRACT` and the repository's `contractVersion`. A trailing declaration is waved through for non-production only. From 31 July until 10 August the production declaration sat at 132 while the repository moved to 133 and beyond, so any production build from `main` would have failed that gate before Vite ran. The stale artifact is the expected consequence of the guard doing its job, not a separate fault.
 
@@ -46,7 +74,62 @@ As of 10 August 2026 the declaration and the repository are both at 145, so the 
 
 An agent session cannot currently upload the artifact itself. The Netlify MCP tools work, because they execute outside the session container, and they are sufficient to read the project, read and write environment variables and read a deploy. The zip-and-build upload is different: it runs `npx @netlify/mcp` **inside** the container, and on 10 August 2026 both `api.netlify.com` and `netlify-mcp.netlify.app` were refused by the session egress policy with `CONNECT tunnel failed, response 403`, with no proxy-side relay failure recorded. That is an organisation egress denial and must be reported rather than routed around.
 
-The route that remains is Netlify's own repository build on a push to `main`. Record which of the two produced any future release, because they are not equivalent evidence: a repository build carries the exact `commit_ref` it was built from, and a zip upload does not have to.
+The route that remains — and the one that produced the 10 August release — is Netlify's own repository build on a push to `main`. Record which of the two produced any future release, because they are not equivalent evidence: a repository build carries the exact `commit_ref` it was built from, and a zip upload does not have to.
+
+## Access-control posture
+
+**The perimeter holds, and the mechanism changed.** Two independent observations on 10 August 2026 confirm an anonymous visitor is refused: the deploy's own Lighthouse plugin could not load the site (`Status code: 401`), and `production-smoke.yml` run `31383883792` received 401 on all 120 attempts between 11:32 and 11:42.
+
+The *mechanism* is what moved. A project read at 11:0x showed `requiresSSOTeamLogin: true` across all contexts with `requiresPassword: false`. A read at 11:26, minutes after the release, showed the reverse: `requiresPassword: true` with `whichProjectsRequirePassword: "all"`, and `requiresSSOTeamLogin: false`.
+
+Nothing in the release changed it. The only Netlify write in the release was `EURO28_DEPLOYED_DB_CONTRACT` in the production context, and an environment variable cannot move an access control.
+
+**The owner confirmed on 10 August 2026 that the switch was deliberate**: site password protection is easier to hold open while testing the real application than Team SSO, and the owner's position is that nothing private sits behind it. The perimeter is therefore **site password protection on all contexts**, by decision, and Team SSO is off.
+
+Two things follow, and neither is softened by the confirmation.
+
+The password is a **convenience perimeter, not a confidentiality control**. It keeps the site out of public view and out of search indexes; it is not a reason to place anything behind it that would matter if the password leaked. Real access control stays where it already is: Supabase row-level security, the bounded RPCs and the server-enforced reveal rules. Production holds one auth user and 36 match predictions today, and that data is protected by the database, not by Netlify.
+
+The perimeter is **not** `AGE-001`. ADR 0026's 18+ restriction on the initial external cohort is accepted and unimplemented, and a shared password is not a substitute for it. This remains not a public launch.
+
+### Sharing the password
+
+The password must not be pasted into an agent session transcript. It has no use there — the session egress policy blocks `euro28predictor.com` outright, so an agent cannot reach the site with or without it.
+
+Where it has a use is a GitHub Actions runner, which can reach the site. It therefore belongs in a repository secret and is referenced by name from a workflow, so that no transcript, log, pull request or file in this repository ever contains the value.
+
+### The anonymous smoke cannot pass while the site is protected
+
+`production-smoke.yml` fetches `https://euro28predictor.com/release.json` with plain `curl` and no credentials, then retries 120 times before failing. Against a protected site every attempt is a 401, so **the workflow fails by construction regardless of what was published** — it would have failed identically before this release. Its failure is therefore not evidence about the artifact, in either direction.
+
+This is the same limitation already recorded for protected previews. The gap is that the release gate names a smoke the perimeter forbids.
+
+**The password makes it closable**, which team login did not. The intended shape is two assertions rather than one, because an authenticated-only smoke would be weaker than today's evidence in one respect — it would stop proving that an anonymous visitor is refused:
+
+1. **Anonymous** — request `/release.json` with no credential and require **401**. This asserts the perimeter holds, and it is the check that currently fails by accident rather than by design.
+2. **Authenticated** — repeat the existing release-identity, security-header and browser assertions with the site credential supplied from a repository secret.
+
+Two things must be settled before writing it, and neither should be guessed:
+
+- **The mechanism.** Netlify's site password protection is a login form, not HTTP Basic auth; Basic-Auth-via-`_headers` is a different feature. The exact non-interactive exchange has to be established **empirically on a runner**, because the session egress policy blocks the site. A probe step that prints status codes only — never the credential, never a response body — is the way to establish it.
+- **The secret.** The value is added to repository secrets by the owner and referenced by name. It is never echoed, never written to a log, never committed, and never placed in a workflow `run:` line where it could reach a diagnostic dump.
+
+### A stale allowance the release has now unblocked
+
+`scripts/production-smoke.mjs` accepts **either** brand in the application title:
+
+```js
+// Contract-65 bundles brand the global shell "Football Prediction Hub"
+// (PR #357); production remains paused on a pre-rename bundle until its next
+// intentional release, so both brands are valid until then. Retire the
+// legacy form when production moves past contract 63.
+```
+
+Production has now moved past contract 63 — it is at 145 — so that allowance has met its own retirement condition and the legacy `Euro 2028 Predictor` form should be dropped, leaving `Football Prediction Hub` as the only accepted title.
+
+It is **not** retired in the same change that records this, deliberately. The smoke cannot currently run, so tightening an assertion here would be tightening it blind against an artifact nobody has read. Retire it in the same change that makes the smoke runnable, where the first authenticated run proves the published title before the looser branch is deleted.
+
+## Reporting distinctions
 
 That distinction is intentional and mandatory in status reporting:
 
