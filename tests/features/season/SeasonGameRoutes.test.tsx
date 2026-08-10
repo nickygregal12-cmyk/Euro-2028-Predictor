@@ -35,6 +35,13 @@ vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
   createSeasonCupDiscoveryRpcGateway: mocks.createSeasonCupDiscoveryRpcGateway,
   createSeasonCupPlayerViewRpcGateway: mocks.createSeasonCupPlayerViewRpcGateway,
 }))
+// The Last Man Standing route's contextual form panel reads contract 141.
+// Empty here: this file tests routing and shell composition, not the panel.
+vi.mock('../../../src/services/supabase/seasonClubForm', () => ({
+  fetchSeasonClubForm: vi.fn(() => Promise.resolve({ serverNow: null, matches: 6, clubs: [] })),
+  fetchSeasonClubHeadToHead: vi.fn(),
+}))
+
 vi.mock('../../../src/services/supabase/seasonPeriodStandings', () => ({
   fetchSeasonPeriodStandings: mocks.fetchSeasonPeriodStandings,
   fetchMyEntryId: mocks.fetchMyEntryId,
