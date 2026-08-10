@@ -76,6 +76,50 @@ What the episode actually exposed is narrower and more durable than the gap it r
 
 The general lesson is recorded because it will recur: **an automation that produces correct evidence and cannot deliver it is indistinguishable, to every downstream reader, from one that produced nothing.**
 
+## Correction record — 10 August 2026, audit remediation batch
+
+The first working batch against the 10 August audit. Position is tracked in
+[`audit-2026-08-10-remediation.md`](audit-2026-08-10-remediation.md), which is a
+work tracker and not an authority. What moved in **this** register:
+
+- **`AUTH-002` reduced, and its recorded closure corrected.** The closure said
+  "enable leaked-password protection in both projects"; that toggle is Pro-plan
+  only and cannot be enabled on the current tier, so the closure as written was
+  never achievable. A client-side k-anonymous breach-corpus check now exists on
+  the sign-up and reset forms. It is a mitigation, not the closure — it is
+  bypassable, the length floor is untouched at six, and the policy for existing
+  passwords is still undecided. The row says all of that.
+- **`SEC-002` is unchanged and was not made worse.** `connect-src` gained
+  `https://api.pwnedpasswords.com`, which widens the policy by one origin. That
+  is a deliberate outbound dependency and `contentSecurityPolicyParity.test.ts`
+  now derives the permitted external hosts from what `src/` actually references
+  rather than comparing against a hand-written list, so the widening cannot
+  outlive the code that needs it. `style-src 'unsafe-inline'` is untouched.
+- **`ACQ-R19` — SHA pinning is blocked here for the second time, recorded rather
+  than retried.** The 6 August record says pinning "could not be performed from
+  the working environment, and inventing a hash would break CI rather than
+  secure it". It still cannot: `api.github.com` answers 403 from the remediation
+  environment, so no tag could be resolved to a commit. Nothing was invented.
+  What *did* land is `.github/workflows/workflow-lint.yml`, running `actionlint`
+  and `zizmor` report-only over the workflows — which will itself report the
+  unpinned actions, so the finding becomes visible on every workflow change
+  instead of living only here. The dependency-scanning half is also widened: CI
+  now runs a second, non-blocking `npm audit --audit-level=moderate` including
+  devDependencies. Dependabot **alerts** remain a repository setting and remain
+  off.
+- **`DOC-001` — one instance of the drift it describes was corrected.** Three
+  documents disagreed about the site perimeter: `netlify-deploy-access.md`
+  recorded the 10 August switch to site password protection in one section while
+  still asserting Team SSO in two others, `current-status.md` carried the
+  8 August Team SSO reading as current, and the dated release record's title says
+  "behind Team SSO". The two live authorities are corrected; the dated release
+  record keeps its title and gains a correction banner, because rewriting it
+  would destroy the only trace that the release and the perimeter change crossed.
+  The structural half of `DOC-001` is untouched and the finding stays open.
+- **Nothing else moved.** No migration, no hosted change, no scoring, lock,
+  settlement, progression or reveal rule. `SEC-001`, `DATA-007`, `DB-003`,
+  `DB-004`, `TYPE-001`, `PERF-001`, `PERF-002` and `OPS-006` are all untouched.
+
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
 
 The 6 August audit record above says `DATA-007` was "deliberately not acted on" because it requires a migration, and the 9 August record above says it stayed open when `DB-005` was fixed in the same limiter. Contract 145 is the migration, and it takes **one** of the four things `DATA-007`'s closure asks for. The earlier records are left exactly as written; this one says what changed and what did not.
@@ -157,7 +201,7 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 | ID | Finding | Current status |
 | --- | --- | --- |
 | `AUTH-001` | Turnstile/CAPTCHA contexts not fully verified | **Partial.** Netlify non-production contexts use the Cloudflare always-pass test site key and production retains its real key. Matching development Supabase secret/toggle and preview sign-up/login/recovery evidence remain open in issue #28. |
-| `AUTH-002` | Leaked-password protection disabled | **Open decision. Reconfirmed 6 August 2026** by the live Supabase security advisors in **both** environments — this is a hosted Auth setting and is not repository-verifiable, so the advisor reading is the evidence. Users may therefore choose passwords known from previous breaches, which is what makes credential stuffing worth attempting. Turnstile tokens are correctly threaded to Auth for login, signup and recovery. Required closure: enable leaked-password protection in both projects, set a sensible minimum length, retain Turnstile, consider MFA for administrators, and decide a deliberate policy for **existing** passwords — changing the setting does not force a reset. |
+| `AUTH-002` | Leaked-password protection disabled | **Open, reduced 10 August 2026 — and its stated closure is now known to be unachievable.** The required closure below reads "enable leaked-password protection in both projects". That toggle is a **Pro-plan-and-above feature**, and this project is on the free tier: the setting is not merely off, it cannot be switched on. The closure was written on the assumption it was a dashboard checkbox, and it is not. **What now exists instead** is a client-side breach-corpus check — `src/services/auth/pwnedPassword.ts`, wired into the sign-up and password-reset forms, calling HaveIBeenPwned's k-anonymous range API so only the first five hex characters of the SHA-1 leave the browser. It fails open on every error path, deliberately: an unreachable corpus must not become a signup outage, and Turnstile, the contract-145 atomic limiter and the length floor all still stand without it. **This is a mitigation and not the closure, for a reason worth naming:** it is bypassable by calling the Supabase auth endpoint directly. That bypass is close to irrelevant for the threat actually recorded here — the risk is an ordinary user reusing a password already in a credential-stuffing list, and that population uses the form. It is not irrelevant for an attacker, which is why this row stays open. **The advisor will keep reporting this finding no matter what is built**, because it reads the toggle rather than the implementation; that is recorded here so a permanent warning does not quietly train anyone to ignore the advisor panel. **Still open and untouched:** the minimum length is still six — Supabase's default rather than a chosen policy — secure password change is not required, MFA for administrators is undecided, and there is still no deliberate policy for **existing** passwords, which no setting change would re-validate anyway. Evidence: `tests/services/auth/pwnedPassword.test.ts`, `tests/features/auth/breachedPasswordForms.test.tsx`, and the after-state assertions in `tests/features/auth/antiBotAndPasswordBeforeState.test.ts`, which previously pinned the *absence* of any breach check. Original finding, **reconfirmed 6 August 2026** by the live Supabase security advisors in **both** environments — this is a hosted Auth setting and is not repository-verifiable, so the advisor reading is the evidence. Users may therefore choose passwords known from previous breaches, which is what makes credential stuffing worth attempting. Turnstile tokens are correctly threaded to Auth for login, signup and recovery. Required closure: enable leaked-password protection in both projects, set a sensible minimum length, retain Turnstile, consider MFA for administrators, and decide a deliberate policy for **existing** passwords — changing the setting does not force a reset. |
 | `OPS-008` | Legacy public development site remains | **Reduced.** Anonymous public access was removed and Netlify team SSO is required. The hourly legacy function and missing/inaccessible Supabase ref remain open in issue #27. |
 | `REL-007` | Stale device can delete a newer bracket pick | **Implementation present; final controlled browser evidence pending** |
 | `REL-008` | Netlify deploy-preview policy was inconsistent across documentation branches | **Reduced; final contract-63 preview passed.** |

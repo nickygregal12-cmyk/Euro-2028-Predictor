@@ -80,3 +80,18 @@ export function validateNewPassword(
 export function hasNewPasswordErrors(errors: NewPasswordErrors): boolean {
   return Object.keys(errors).length > 0
 }
+
+/**
+ * Shown when a password appears in the Pwned Passwords corpus (`AUTH-002`).
+ *
+ * Deliberately says nothing about how many times it was found. The count is a
+ * useful signal to an engineer and an alarming, unactionable number to somebody
+ * creating an account — and quoting it back also confirms to anyone testing the
+ * form exactly how well-known a candidate password is.
+ *
+ * It names the cause rather than blaming the choice: a password can be strong,
+ * long and still be in the corpus because it was typed into a service that was
+ * later breached. "Not strong enough" would be both wrong and unhelpful.
+ */
+export const BREACHED_PASSWORD_MESSAGE =
+  'This password has appeared in a known data breach. Please choose a different one.'

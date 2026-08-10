@@ -1,7 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { Alert, Button, TextInput } from '../../design-system'
-import { PASSWORD_MIN, hasNewPasswordErrors, validateNewPassword } from './authValidation'
+import {
+  BREACHED_PASSWORD_MESSAGE,
+  PASSWORD_MIN,
+  hasNewPasswordErrors,
+  validateNewPassword,
+} from './authValidation'
 import type { NewPasswordErrors } from './authValidation'
+import { pwnedCount, type PwnedPasswordCheck } from '../../services/auth/pwnedPassword'
 import s from './auth.module.css'
 
 export type UpdatePasswordFormProps = {
@@ -13,6 +19,10 @@ export type UpdatePasswordFormProps = {
   // Set once the password has been changed — shows the confirmation + Continue.
   done?: boolean
   onContinue?: () => void
+  // Breach-corpus check (`AUTH-002`), injectable exactly as on sign-up. The
+  // reset flow needs it for the same reason signup does: this is where a user
+  // who has just been told their password was compromised chooses the next one.
+  checkPwnedPassword?: PwnedPasswordCheck
 }
 
 /**
@@ -26,17 +36,33 @@ export function UpdatePasswordForm({
   error,
   done = false,
   onContinue,
+  checkPwnedPassword = pwnedCount,
 }: UpdatePasswordFormProps) {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<NewPasswordErrors>({})
+  const [checkingPassword, setCheckingPassword] = useState(false)
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (submitting) return
+    if (submitting || checkingPassword) return
     const errors = validateNewPassword(password, confirmPassword)
     setFieldErrors(errors)
     if (hasNewPasswordErrors(errors)) return
+
+    // Last, after the local checks — see the equivalent note on SignUpForm.
+    setCheckingPassword(true)
+    let breachCount = 0
+    try {
+      breachCount = await checkPwnedPassword(password)
+    } finally {
+      setCheckingPassword(false)
+    }
+    if (breachCount > 0) {
+      setFieldErrors({ password: BREACHED_PASSWORD_MESSAGE })
+      return
+    }
+
     onSubmit(password)
   }
 
@@ -67,7 +93,7 @@ export function UpdatePasswordForm({
           value={password}
           error={fieldErrors.password}
           hint={`At least ${PASSWORD_MIN} characters.`}
-          disabled={submitting}
+          disabled={submitting || checkingPassword}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
@@ -78,7 +104,7 @@ export function UpdatePasswordForm({
           placeholder="Type it again"
           value={confirmPassword}
           error={fieldErrors.confirmPassword}
-          disabled={submitting}
+          disabled={submitting || checkingPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
         />
@@ -86,7 +112,7 @@ export function UpdatePasswordForm({
           type="submit"
           variant="primary"
           fullWidth
-          loading={submitting}
+          loading={submitting || checkingPassword}
           disabled={!password || !confirmPassword}
         >
           Save new password

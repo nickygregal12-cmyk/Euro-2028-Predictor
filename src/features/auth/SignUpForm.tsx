@@ -3,11 +3,13 @@ import { Alert, Button, TextInput } from '../../design-system'
 import { TurnstileWidget } from './TurnstileWidget'
 import { TURNSTILE_SITE_KEY, turnstileEnabled } from './turnstileConfig'
 import {
+  BREACHED_PASSWORD_MESSAGE,
   DISPLAY_NAME_MAX,
   hasErrors,
   validateSignUp,
   type SignUpFieldErrors,
 } from './authValidation'
+import { pwnedCount, type PwnedPasswordCheck } from '../../services/auth/pwnedPassword'
 import s from './auth.module.css'
 
 export type SignUpFormProps = {
@@ -23,6 +25,11 @@ export type SignUpFormProps = {
   // A friendly, already-mapped server error (e.g. email already in use).
   error?: string | null
   onSwitch?: () => void
+  // Breach-corpus check (`AUTH-002`). Injectable so tests and the component
+  // gallery can supply one without reaching the network; the default is the
+  // real k-anonymous lookup and fails open, so a form rendered without this
+  // prop still behaves correctly offline.
+  checkPwnedPassword?: PwnedPasswordCheck
 }
 
 /**
@@ -30,13 +37,23 @@ export type SignUpFormProps = {
  * and password with per-field validation. The parent owns the sign-up call and
  * navigation. No Supabase logic, so it previews in /dev/components.
  */
-export function SignUpForm({ onSubmit, submitting = false, error, onSwitch }: SignUpFormProps) {
+export function SignUpForm({
+  onSubmit,
+  submitting = false,
+  error,
+  onSwitch,
+  checkPwnedPassword = pwnedCount,
+}: SignUpFormProps) {
   const [displayName, setDisplayName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<SignUpFieldErrors>({})
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaKey, setCaptchaKey] = useState(0)
+  // The breach lookup is a network round trip, so the button has to show it is
+  // working. Tracked separately from `submitting`, which the parent owns for the
+  // sign-up call itself.
+  const [checkingPassword, setCheckingPassword] = useState(false)
 
   // A Turnstile token is single-use; after a failed submit, reset the widget.
   useEffect(() => {
@@ -46,14 +63,30 @@ export function SignUpForm({ onSubmit, submitting = false, error, onSwitch }: Si
     }
   }, [error])
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (submitting) return
+    if (submitting || checkingPassword) return
     const values = { displayName: displayName.trim(), email: email.trim(), password }
     const errors = validateSignUp(values)
     setFieldErrors(errors)
     if (hasErrors(errors)) return
     if (turnstileEnabled && !captchaToken) return
+
+    // The breach check runs LAST, after the cheap local checks and the Turnstile
+    // gate. A password that is too short is rejected without spending a request,
+    // and the corpus is never asked about a submission that was going nowhere.
+    setCheckingPassword(true)
+    let breachCount = 0
+    try {
+      breachCount = await checkPwnedPassword(password)
+    } finally {
+      setCheckingPassword(false)
+    }
+    if (breachCount > 0) {
+      setFieldErrors({ password: BREACHED_PASSWORD_MESSAGE })
+      return
+    }
+
     onSubmit({ ...values, captchaToken: captchaToken ?? undefined })
   }
 
@@ -93,7 +126,7 @@ export function SignUpForm({ onSubmit, submitting = false, error, onSwitch }: Si
           value={password}
           error={fieldErrors.password}
           hint="At least 6 characters."
-          disabled={submitting}
+          disabled={submitting || checkingPassword}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
@@ -109,7 +142,7 @@ export function SignUpForm({ onSubmit, submitting = false, error, onSwitch }: Si
           type="submit"
           variant="primary"
           fullWidth
-          loading={submitting}
+          loading={submitting || checkingPassword}
           disabled={turnstileEnabled && !captchaToken}
         >
           Create account
