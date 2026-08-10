@@ -1,0 +1,90 @@
+name: Net exposure check (DB-004)
+
+# READ-ONLY, BOTH ENVIRONMENTS, INCLUDING PRODUCTION.
+#
+# `DB-004`'s stated closure is "a hosted assertion, run against both
+# environments, that `net` is never an exposed API schema". The thing it guards
+# against — the `net` schema appearing in the project's Data API settings — is
+# not in any migration and cannot be asserted from the repository. It is a
+# console setting, one click away, made by someone who has no reason to connect
+# "expose the net schema" with "hand every browser session an arbitrary outbound
+# HTTP request".
+#
+# So this runs against the hosted targets, and it only ever reads:
+# `supabase/checks/net-exposure.sql` contains no statement that writes, and
+# `tests/scripts/netExposureCheck.test.ts` asserts that over the file rather
+# than trusting this comment. Running a read against Production is not a
+# production mutation and needs no promotion authorisation, but it is still
+# Production, which is why the read-only property is tested rather than stated.
+#
+# Scheduled as well as manual, because the setting it watches can change without
+# any pull request — that is the entire failure mode. Weekly rather than daily:
+# the exposure is latent and contained (DB-004), and a check nobody reads
+# because it runs constantly is worse than one that runs when it matters.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 07:15 UTC on Mondays. Off the hour so it does not queue behind everything
+    # else the platform schedules at :00.
+    - cron: '15 7 * * 1'
+  pull_request:
+    paths:
+      - supabase/checks/net-exposure.sql
+      - .github/workflows/net-exposure-check.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      # Never fail-fast: if Development is exposed, the Production answer is the
+      # one somebody needs next, and cancelling it to save a runner-minute would
+      # withhold exactly that.
+      fail-fast: false
+      matrix:
+        include:
+          - environment: Development
+            secret_name: SUPABASE_DEV_DB_URL
+          - environment: Production
+            secret_name: SUPABASE_PROD_DB_URL
+    name: ${{ matrix.environment }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Assert net is not exposed
+        env:
+          # Indirection through one variable so the matrix does not need a
+          # `secrets[...]` lookup per branch.
+          TARGET_DB_URL: ${{ matrix.environment == 'Production' && secrets.SUPABASE_PROD_DB_URL || secrets.SUPABASE_DEV_DB_URL }}
+          ENVIRONMENT: ${{ matrix.environment }}
+          SECRET_NAME: ${{ matrix.secret_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${TARGET_DB_URL}" ]; then
+            echo "::error::Repository secret ${SECRET_NAME} is not set, so the ${ENVIRONMENT} net-exposure check could not run."
+            echo "A check that cannot reach its target has not passed. Failing rather than skipping."
+            exit 1
+          fi
+
+          command -v psql >/dev/null 2>&1 || {
+            echo "::error::psql is unavailable on this runner."
+            exit 1
+          }
+
+          echo "Checking ${ENVIRONMENT} — read-only."
+          PGCONNECT_TIMEOUT=15 psql "${TARGET_DB_URL}" \
+            --no-psqlrc \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/checks/net-exposure.sql
+
+          {
+            echo "## ${ENVIRONMENT}: net is not an exposed API schema"
+            echo
+            echo "Read-only assertion passed against ${ENVIRONMENT} at $(date -u +%Y-%m-%dT%H:%M:%SZ)."
+            echo "Evidence is this run and this instant only — the setting it reads can change at any time from the project console."
+          } >> "${GITHUB_STEP_SUMMARY}"

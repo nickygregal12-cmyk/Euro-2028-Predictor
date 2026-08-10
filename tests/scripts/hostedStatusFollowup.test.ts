@@ -96,3 +96,62 @@ describe('the hosted-status follow-up cannot strand a record silently', () => {
     )
   })
 })
+
+describe('the follow-up carries the Netlify contract value too (OPS-011)', () => {
+  /** The step that owns `EURO28_DEPLOYED_DB_CONTRACT`. */
+  const step = workflow.slice(workflow.indexOf('Align the Netlify non-production contract value'))
+
+  it('exists at all, which is the open half of OPS-011', () => {
+    // The value is a Netlify environment variable maintained by hand, so it
+    // goes stale the moment a rollout moves the database past it. Nothing else
+    // reports that: a trailing non-production value deliberately does NOT fail
+    // a preview build, because failing would be the circular gate ADR 0024
+    // removed. That is exactly why it is easy to miss.
+    expect(step.length).toBeGreaterThan(500)
+    expect(step).toContain('EURO28_DEPLOYED_DB_CONTRACT')
+  })
+
+  it('touches the three non-production contexts and names no other', () => {
+    // `production` holds the value its promotion gate reads, and changing it is
+    // a production configuration change. `dev-server` is blank on purpose so it
+    // fails closed.
+    expect(step).toMatch(/contexts="dev branch-deploy deploy-preview"/)
+    expect(step, 'the production context must never be a target').not.toMatch(
+      /--context\s+production/,
+    )
+    expect(step, 'the dev-server context must stay blank').not.toMatch(/--context\s+dev-server/)
+  })
+
+  it('refuses from inside if the list is ever widened to either of them', () => {
+    // A guard rather than a convention: the list above is one edit away from
+    // including a context nobody meant to move.
+    expect(step).toMatch(/if \[ "\$\{ctx\}" = "production" \][\s\S]{0,200}exit 1/)
+  })
+
+  it('fails with the exact commands when it has no credentials, rather than warning', () => {
+    // A warning on an otherwise green run is how this value went stale in the
+    // first place. It fails, writes the commands to the job summary, and opens
+    // an issue — the same recovery shape this workflow already uses for a
+    // stranded record.
+    expect(step).toMatch(/netlify env:set EURO28_DEPLOYED_DB_CONTRACT \$\{expected\} --context/)
+    expect(step).toContain('gh issue create')
+    expect(step).toMatch(/::error::Netlify EURO28_DEPLOYED_DB_CONTRACT must be raised/)
+    expect(step).toMatch(/exit 1/)
+  })
+
+  it('reads the value back after writing it', () => {
+    // Writing and assuming is precisely what a hand-maintained value already
+    // does. The read-back is what makes this an assertion rather than a hope.
+    expect(step).toMatch(/env:get EURO28_DEPLOYED_DB_CONTRACT/)
+    expect(step).toMatch(/if \[ "\$\{actual\}" != "\$\{expected\}" \]/)
+  })
+
+  it('runs last and always, so it cannot discard the pushed record', () => {
+    // The hosted record is the job. This workflow already learned once that a
+    // later refusal must not throw away an earlier success.
+    expect(step).toMatch(/if: always\(\)/)
+    expect(workflow.indexOf('Align the Netlify non-production contract value')).toBeGreaterThan(
+      workflow.indexOf('Update the machine-readable hosted contract and open a PR'),
+    )
+  })
+})

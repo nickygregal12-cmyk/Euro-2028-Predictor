@@ -151,3 +151,126 @@ jobs:
               "" \
               "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")" \
             || echo "::warning::Could not create the follow-up issue either. The job summary holds the recovery command."
+
+      # ---------------------------------------------------------------------
+      # OPS-011: the Netlify contract value, which drifts after every rollout.
+      # ---------------------------------------------------------------------
+      #
+      # `EURO28_DEPLOYED_DB_CONTRACT` tells `validate-deployment-contract.mjs`
+      # which contract the target database holds. It is a Netlify environment
+      # variable — not a repository value — and it is maintained by hand, so it
+      # goes stale the moment a rollout moves the database past it. That is the
+      # open half of `OPS-011`, and it is the same failure class as `OPS-010`:
+      # correct evidence exists and nothing carries it to where it is read.
+      #
+      # A trailing value does not fail a non-production build — the validator
+      # deliberately waves it through and reports what is unavailable, because
+      # failing would be the circular gate ADR 0024 removed. Which is exactly
+      # why it is easy to miss: previews report a contract gap that does not
+      # exist, weakening release evidence for as long as nobody notices.
+      #
+      # THE THREE NON-PRODUCTION CONTEXTS ONLY. `production` is never passed to
+      # anything here, and a guard below refuses if it ever appears in the list:
+      # production's value is what its promotion gate reads, and moving it is a
+      # production configuration change. `dev-server` is left blank on purpose
+      # so it fails closed, and is not in the list either.
+      #
+      # ALWAYS RUNS, AND RUNS LAST. The hosted record was pushed by the step
+      # above; a failure here must not discard that, which is the lesson this
+      # workflow already carries about not letting a later refusal throw away an
+      # earlier success.
+      - name: Align the Netlify non-production contract value, or say exactly what is stale
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          SOURCE_RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          contexts="dev branch-deploy deploy-preview"
+
+          for ctx in ${contexts}; do
+            if [ "${ctx}" = "production" ] || [ "${ctx}" = "dev-server" ]; then
+              echo "::error::Refusing to touch the ${ctx} context."
+              exit 1
+            fi
+          done
+
+          if [ -z "${NETLIFY_AUTH_TOKEN}" ] || [ -z "${NETLIFY_SITE_ID}" ]; then
+            # THE ACTIONABLE MISMATCH, which is the half of OPS-011's closure
+            # that is reachable without credentials this repository does not
+            # hold. It fails rather than warns: a warning on a green run is how
+            # this value went stale in the first place.
+            {
+              echo "## Netlify \`EURO28_DEPLOYED_DB_CONTRACT\` needs raising to ${expected}"
+              echo
+              echo "Hosted Development is now at contract **${expected}** (rollout run \`${SOURCE_RUN_ID}\`),"
+              echo "and this job cannot update Netlify because \`NETLIFY_AUTH_TOKEN\` and/or"
+              echo "\`NETLIFY_SITE_ID\` are not set as repository secrets."
+              echo
+              echo "**Three non-production contexts. Do not touch \`production\` or \`dev-server\`.**"
+              echo
+              echo '```bash'
+              for ctx in ${contexts}; do
+                echo "netlify env:set EURO28_DEPLOYED_DB_CONTRACT ${expected} --context ${ctx}"
+              done
+              echo '```'
+              echo
+              echo "A trailing value does not fail a preview build — the validator waves a"
+              echo "non-production trail through on purpose — so nothing else will report this."
+            } >> "${GITHUB_STEP_SUMMARY}"
+
+            gh issue create \
+              --title "Netlify EURO28_DEPLOYED_DB_CONTRACT is behind hosted Development (${expected})" \
+              --body "$(printf '%s\n' \
+                "Hosted Development reached contract ${expected} through rollout run ${SOURCE_RUN_ID}." \
+                "" \
+                "The Netlify variable \`EURO28_DEPLOYED_DB_CONTRACT\` is maintained by hand and is now stale for the three non-production contexts. A trailing value does NOT fail a preview build, so no other check will report it." \
+                "" \
+                "Run, for each of \`dev\`, \`branch-deploy\` and \`deploy-preview\` — and for none of the others:" \
+                "" \
+                '```' \
+                "netlify env:set EURO28_DEPLOYED_DB_CONTRACT ${expected} --context <context>" \
+                '```' \
+                "" \
+                "Do not change \`production\`: its value is what the promotion gate reads. Leave \`dev-server\` blank; it fails closed by design." \
+                "" \
+                "Set \`NETLIFY_AUTH_TOKEN\` and \`NETLIFY_SITE_ID\` as repository secrets to have this job do it automatically." \
+                "" \
+                "Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")" \
+              || echo "::warning::Could not open the follow-up issue; the job summary holds the commands."
+
+            echo "::error::Netlify EURO28_DEPLOYED_DB_CONTRACT must be raised to ${expected} for dev, branch-deploy and deploy-preview. See the job summary for the exact commands."
+            exit 1
+          fi
+
+          # With credentials: set each non-production context, then READ IT BACK.
+          # Writing and assuming is what a hand-maintained value already does.
+          failed=0
+          for ctx in ${contexts}; do
+            npx --yes netlify-cli@latest env:set EURO28_DEPLOYED_DB_CONTRACT "${expected}" \
+              --context "${ctx}" --site "${NETLIFY_SITE_ID}" >/dev/null
+
+            actual="$(npx --yes netlify-cli@latest env:get EURO28_DEPLOYED_DB_CONTRACT \
+              --context "${ctx}" --site "${NETLIFY_SITE_ID}" | tr -d '[:space:]')"
+
+            if [ "${actual}" != "${expected}" ]; then
+              echo "::error::Netlify ${ctx} still reports EURO28_DEPLOYED_DB_CONTRACT=${actual}, expected ${expected}."
+              failed=1
+            else
+              echo "Netlify ${ctx}: EURO28_DEPLOYED_DB_CONTRACT=${actual}."
+            fi
+          done
+
+          {
+            echo "## Netlify non-production contract value"
+            echo
+            echo "Set to **${expected}** and read back for \`dev\`, \`branch-deploy\` and \`deploy-preview\`."
+            echo "\`production\` and \`dev-server\` were not touched."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          exit "${failed}"
+
