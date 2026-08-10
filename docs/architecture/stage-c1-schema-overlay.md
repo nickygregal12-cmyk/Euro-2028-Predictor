@@ -215,6 +215,7 @@ it is a consumer of the C1 competition-season identity rather than a change to
 it:
 
 - `get_season_period_standings`
+- `get_season_player_profile`
 
 Contracts 129 and 130 add two more with the same season-scoped disposition.
 Both take `p_tournament_id` and a matchweek ordinal, resolve the round through
