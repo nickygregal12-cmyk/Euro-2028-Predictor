@@ -789,8 +789,27 @@
  * redefinition. Exact-head Database parity and Browser E2E must still both pass
  * on the contract 145 pull request before this marker is relied on; that is
  * what re-verifies the seeded prediction-save journey itself.
+ *
+ * Contract 146 cannot gate an authenticated read, which is the single failure
+ * this number exists to catch, and the reason is structural rather than a
+ * judgement about what it happens to touch. It adds three columns and four
+ * check constraints to `public.provider_poll_targets`, and redefines two
+ * functions plus adds two more, all four of which live in
+ * `predictor_internal` and are revoked from `public`, `anon`, `authenticated`
+ * and `service_role`. A seeded user cannot execute any of them and cannot read
+ * the table. It creates no policy, moves no grant, and adds no trigger to any
+ * relation a seeded journey writes — `season_fixtures` is read by the new live
+ * check but not written by it.
+ *
+ * The one thing it does change for a seeded environment is how often the
+ * provider poll fires, and it changes it downward: a target with no fixture
+ * near it drops from every five minutes to once a day. A seed that depended on
+ * the poll running constantly would be depending on a background job it never
+ * declares, which is not a dependency this file is willing to invent.
+ * Exact-head Database parity and Browser E2E must still both pass on the
+ * contract 146 pull request before this marker is relied on.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 145
+export const SEED_REVIEWED_AT_CONTRACT = 146
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

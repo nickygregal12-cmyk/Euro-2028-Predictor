@@ -158,6 +158,14 @@ insert into ingestion_functions (name, permitted_writes) values
    'truth: no result, score or lock derives from it.'),
   ('post_provider_poll',               'the outbound request; no competition relation.'),
   ('due_provider_poll_targets',        'reads poll targets; writes nothing.'),
+  ('resolve_provider_poll_path',
+   'contract 146. Substitutes date placeholders in a stored path and returns a '
+   'string. It is immutable, reads no relation at all and writes nothing.'),
+  ('provider_target_is_live',
+   'contract 146. Reads season_fixtures kickoff and score to decide whether a '
+   'match is near enough to poll often, and writes nothing. It reads no '
+   'prediction, entry or score event: how often we talk to a provider is not '
+   'allowed to depend on who is playing our games.'),
   ('provider_poll_endpoint',           'resolves an endpoint; writes nothing.'),
   ('touch_provider_poll_target',       'the poll target row''s own updated_at trigger.'),
   ('touch_provider_entity_map',        'the identity map row''s own updated_at trigger.'),
