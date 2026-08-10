@@ -12,7 +12,7 @@ const PREMIER = '/competitions/premier-league/2026-27'
  */
 test('the weekly Hub exposes the canonical five-destination global shell', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
 
   await expectGlobalNavigation(page)
 })

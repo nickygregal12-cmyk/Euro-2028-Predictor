@@ -231,3 +231,12 @@ Nine gallery sections are declared in `e2e/visual-gallery.spec.ts` beyond the or
 The fix restores the coverage rather than relaxing it: `mobile-bottom-navigation` renders `BottomNav` directly, which is viewport-independent and is the same thing the rail section has always done. Two framing corrections came from reviewing the same images — the rail frame was 420px tall and clipped everything below the third competition shortcut, so the baseline could not show that "All competitions" exists, which is the bound's whole point; and the frame stretched to the panel, leaving ~900px of empty pixels for a pixel comparison to look through.
 
 `AWAITING_BASELINE` in the same spec names any section declared but not yet rendered. `visualContractHarness` excludes those from its baseline count and **fails once a name in it has baselines on disk**, so an entry expires with the dispatch that satisfies it and cannot become the way new sections are added.
+
+## 15. What the browser suite caught
+
+The Playwright suite cannot run in a development container, so its first execution was on the pull request — and it found two things nothing local could:
+
+- **The root's document title still said "Competitions."** The page's heading, the bottom bar and the rail all say Home; the browser tab was the last place the retired chooser survived. `getRouteTitle('/')` is Home now, in both signed-out and signed-in states, and the unit assertion that used to record the difference between them records the convergence with the reason attached.
+- **`globalNav()` asked for the rail by accessible name without `exact`.** Playwright matches accessible names as a case-insensitive substring, so on a competition route at desktop width `'Sections'` matched both the rail and the competition's own "Premier League sections" sub-navigation, and every assertion routed through the helper died on a strict-mode violation rather than on anything about the product.
+
+Neither is reachable from jsdom — one needs a real document title, the other needs two navigations in one tree at a width jsdom does not have. Six specs also carried the old Hub heading and were updated; the keyboard journey's "open a competition" step moved to `/competitions`, which is where the catalogue now lives.

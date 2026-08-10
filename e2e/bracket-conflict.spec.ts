@@ -53,7 +53,7 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Log in', exact: true }).click()
   await expectAuthenticatedPath(page, '/')
-  await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
 }
 
 async function openBracket(page: Page) {

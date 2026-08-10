@@ -329,7 +329,7 @@ test.describe('Admin result workflow', () => {
       await expect(
         page.getByRole('heading', { name: 'Results Centre' }),
       ).toHaveCount(0)
-      await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
     } finally {
       await deleteOrdinaryUser(ordinary.id)
     }

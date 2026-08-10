@@ -29,9 +29,22 @@ function isDesktopViewport(page: Page): boolean {
   return width >= DESKTOP_BREAKPOINT
 }
 
-/** The navigation the viewer can actually see and operate at this width. */
+/**
+ * The navigation the viewer can actually see and operate at this width.
+ *
+ * `exact` IS LOAD-BEARING, and CI is what proved it. Playwright's accessible
+ * name matching is substring and case-insensitive by default, so on a
+ * competition route at desktop width `{ name: 'Sections' }` matched two navs —
+ * the rail, labelled "Sections", and the competition's own sub-navigation,
+ * labelled "Premier League sections" — and every assertion through this helper
+ * died on a strict-mode violation rather than on anything about the product.
+ * The exact form is the one that means "the rail".
+ */
 export function globalNav(page: Page): Locator {
-  return page.getByRole('navigation', { name: isDesktopViewport(page) ? 'Sections' : 'Primary' })
+  return page.getByRole('navigation', {
+    name: isDesktopViewport(page) ? 'Sections' : 'Primary',
+    exact: true,
+  })
 }
 
 /** The five global destinations. Identical at every width. */
@@ -65,6 +78,7 @@ export async function expectGlobalNavigation(page: Page): Promise<void> {
 
   const other = page.getByRole('navigation', {
     name: isDesktopViewport(page) ? 'Primary' : 'Sections',
+    exact: true,
   })
   await expect(other).toBeHidden()
 }

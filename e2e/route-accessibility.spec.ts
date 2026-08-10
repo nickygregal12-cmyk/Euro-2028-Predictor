@@ -8,8 +8,8 @@ test('keyboard navigation preserves skip target, route focus and announcements',
 }) => {
   await page.goto('/')
   await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
-  await expect(page.getByRole('heading', { name: 'Choose your competition' })).toBeVisible()
-  await expect(page).toHaveTitle('Competitions | Football Prediction Hub')
+  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+  await expect(page).toHaveTitle('Home | Football Prediction Hub')
 
   const skipLink = page.getByRole('link', { name: 'Skip to main content' })
   const main = page.locator('#main-content')
@@ -37,9 +37,18 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await page.keyboard.press('Enter')
   await expect(page).toHaveURL((url) => url.pathname === '/')
 
-  const competitionButton = page.getByRole('button', { name: 'View Premier League' })
-  await competitionButton.focus()
-  await expect(competitionButton).toBeFocused()
+  // Into a competition. The root used to be the chooser and carried a "View
+  // Premier League" button per published competition; it is the personalised
+  // dashboard now and the catalogue moved to `/competitions`, which is where
+  // this step goes. The link is scoped to the main content because the desktop
+  // rail carries a Premier League shortcut of its own — same destination,
+  // different control, and the catalogue is the one under test here.
+  await page.goto('/competitions')
+  await expect(page).toHaveURL((url) => url.pathname === '/competitions', { timeout: 15_000 })
+
+  const competitionLink = main.getByRole('link', { name: /Premier League/ }).first()
+  await competitionLink.focus()
+  await expect(competitionLink).toBeFocused()
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL(

@@ -6,7 +6,12 @@ const APP_NAME = 'Football Prediction Hub'
 const SIGNED_OUT_ROOT_TITLE = 'Home'
 
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
-  { path: weeklyRoutes.hub, title: 'Competitions' },
+  // "Home", not "Competitions". The root used to be a competition chooser and
+  // the title described it; it is now the personalised dashboard, its heading
+  // says Home and the global destination that reaches it says Home. A tab
+  // reading "Competitions" was the last place the retired shape survived, and
+  // the catalogue it named lives at `/competitions` with a title of its own.
+  { path: weeklyRoutes.hub, title: 'Home' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },
   { path: '/auth/reset', title: 'Reset password' },
