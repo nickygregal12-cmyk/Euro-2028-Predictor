@@ -79,7 +79,7 @@ jobs:
         with:
           node-version: 22.22.2
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.84.2
 

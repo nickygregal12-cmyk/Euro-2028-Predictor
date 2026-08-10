@@ -125,7 +125,7 @@ jobs:
           node-version: 22.22.2
           cache: npm
 
-      - uses: supabase/setup-cli@v2
+      - uses: supabase/setup-cli@v3
         with:
           version: 2.84.2
           github-token: ${{ github.token }}
