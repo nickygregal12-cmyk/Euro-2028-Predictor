@@ -21,10 +21,12 @@ import type { HubCompetition } from './competitionCatalogue'
  * membership" and `favourite` is not "followed"; collapsing any two would be
  * the exact simplification the authority forbids.
  *
- * FOLLOW HAS NO PERSISTENCE YET, and this model says so rather than inventing
- * one. Nothing in the repository stores a followed competition — the audit is
- * recorded as `MIG-UI-10` — so `followed` is `'unknown'` for every competition
- * today and `relevanceSource` reports which question actually answered.
+ * FOLLOW IS NOT READ HERE YET, and this model says so rather than inventing an
+ * answer. Contract 157 (`MIG-UI-10`) added the persistence on 11 August 2026 and
+ * nothing consumes it, so `followed` is `'unknown'` for every competition today
+ * and `relevanceSource` reports which question actually answered. The value is
+ * `'unknown'` rather than `false` because "we have not asked" and "they have
+ * not" would send a player to a different screen.
  *
  * WHAT THE UI USES IN THE MEANTIME is game membership, which IS a server
  * authority and IS durable: a player who has joined a game in a competition is

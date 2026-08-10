@@ -365,7 +365,7 @@ Stated here because "the backend authority exists" and "a player can reach it" a
 
 **One defect closed with them.** `/profile` was registered inside the Euro tournament boundary, which refuses every player route while the publication state is `hidden`. The visible Profile controls — the top-bar avatar, More and the desktop rail — therefore sent a domestic player to Home. `/profile` is now the platform profile, outside that boundary and reading no tournament; Euro's own profiles moved to `/tournament/profile` and stayed inside it.
 
-**What no browser can still reach.** Private Last Man Standing and Championship creation/join (`MIG-UI-05`, `MIG-UI-06`), a code for a container that is not a league (`MIG-UI-07`'s remaining half), permanent Season Wrapped and history (`MIG-UI-08`), and Follow / favourite team / onboarding persistence (`MIG-UI-10`) — which is why the four onboarding steps remain built, tested and deliberately unwired.
+**What no browser can still reach.** Private Last Man Standing and Championship creation/join, the universal invite code, permanent Season Wrapped and history, and Follow / favourite team / onboarding and pinned-rival preferences — which is why the four onboarding steps remain built, tested and deliberately unwired. Their BACKEND landed on 11 August 2026 at contracts 152–157, so these are no longer backend-gated; they are unconsumed, which is the state contracts 147–151 were in the day before. The distinction matters here more than anywhere: this file is the one that must not let "the authority exists" read as "a player can reach it".
 
 **No hosted claim is made here.** These are repository facts. The signed-in hosted acceptance is `UI-F19` and remains outstanding.
 

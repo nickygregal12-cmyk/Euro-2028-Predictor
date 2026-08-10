@@ -65,7 +65,7 @@ The launch product has two domestic competitions. The information architecture m
 
 `Follow ≠ Join game ≠ Favourite`, and no frontend implementation may merge them to simplify the UI. They are modelled apart in `src/features/hub/playerCompetitions.ts`.
 
-**Follow has no persistence today.** Nothing in the repository stores a followed competition, so `followed` is `'unknown'` everywhere and the surfaces fall back to **game membership**, which is a real server authority. That is a fallback for an absent read, not a definition of Follow, and it is narrower: a player who follows a competition without joining a game is currently invisible to it. The audit is `MIG-UI-10`.
+**Follow is stored but not yet read.** Until 11 August 2026 nothing in the repository could store a followed competition; contract 157 (`MIG-UI-10`) added the persistence, and **no frontend consumes it**. So `followed` is still `'unknown'` everywhere and the surfaces still fall back to **game membership**, which is a real server authority — but the reason has changed from "no authority exists" to "no consumer exists", and only the second is a frontend job. The fallback stays narrower than Follow either way: a player who follows a competition without joining a game is still invisible to it.
 
 **Which competitions exist, and where each one lives, are both the server's answer (`MIG-UI-12` — closed).** Contract 147's `get_published_weekly_seasons()` returns each published league season's **route slug** beside its season key, competition identity, lifecycle and calendar zone. `HUB_COMPETITIONS` is **gone**: `catalogueFromPublishedSeasons()` builds the catalogue from that read, and publishing a league on the server is now the whole of making it exist AND making it openable. The `kind = 'league_season'` filter lives in the RPC, so Euro (`kind = 'tournament'`) is excluded by what it *is*, its own publication boundary is untouched, and the browser does not re-filter — a second opinion about what the platform publishes is precisely what could disagree.
 
@@ -150,7 +150,7 @@ The complete flow remains accepted and unbuilt (`DFA-001`, `DFA-002`): account/d
 
 Competition selection must not become a flat wall of cards: search, sensible grouping, selected competitions pinned, a clear selected count, deliberate Explore behaviour. Bulk game selection ("apply these games to all selected competitions", then "customise by competition") is acceptable **provided every membership choice stays explicit and reviewable** — nothing is silently joined.
 
-**Audit before migrating.** Game memberships already have server authorities and must keep using them; do not create a parallel frontend membership model. `MIG-UI-10` is the audit of what can store the non-game choices.
+**Audit before migrating.** Game memberships already have server authorities and must keep using them; do not create a parallel frontend membership model. `MIG-UI-10` asked what could store the non-game choices, and contract 157 answered it — so wiring the flow is now a frontend task rather than a blocked one.
 
 ## 5. Match Centre target
 
@@ -217,7 +217,9 @@ A surface is not complete because it renders. It must be immediately understanda
 | `MIG-UI-11` | 148 | The Match Centre resolves its fixture by id. The `?on=` day, the date-window search and the "that match is not in this window" state are all gone |
 | `MIG-UI-12` | 147 | The catalogue, with route slugs, from the server. `HUB_COMPETITIONS` is deleted |
 
-**Still genuinely backend-gated:** `MIG-UI-05` and `MIG-UI-06` (private LMS and Championship containers), `MIG-UI-07`'s remaining half (a code for a container that is not a league, which needs those containers to exist), `MIG-UI-08` (the Wrapped/history archive) and `MIG-UI-10` (Follow, favourite team and onboarding persistence). `MIG-UI-04` and `MIG-UI-09` remain optional and are explicitly not blockers.
+**No longer backend-gated, and not yet consumed either.** `MIG-UI-05`, `-06`, `-07`, `-08`, `-09` and `-10` had their backend landed on 11 August 2026 by contracts 152–157, as one batch. That is the same state contracts 147–151 were in the day before this section was written: **the read or the write exists in the repository and no frontend calls it**, and none of the six is applied to a hosted environment. Describing them as gated would now be wrong; describing them as delivered would be wronger. The accurate statement is that the private-container journeys, the universal invite code, permanent Wrapped and the Follow/favourite/onboarding/rival preferences are the **next** frontend consumption pass, and the register rows are contract 152–157's to mark.
+
+`MIG-UI-04` remains optional and is explicitly not a blocker.
 
 **Three gaps were newly found on 11 August and registered rather than approximated:**
 
