@@ -88,7 +88,7 @@ const SECTIONS = [
   'league-matchweek-comparison',
   'match-centre-your-leagues',
   'season-player-profile',
-  'competition-recent-form',
+  'competition-club-form',
 ] as const
 
 /**
@@ -112,15 +112,13 @@ const SECTIONS = [
  * UI-finalisation sections passed through it and are gone from it.
  */
 export const AWAITING_BASELINE: readonly string[] = [
-  // Declared 11 August 2026 with the contract 147–151 consumption. Their
-  // images come from a dispatch of `visual-contracts.yml` with
-  // `update_baselines` and `commit_baselines`, on the runner that will compare
-  // them — a container-rendered baseline differs by font build and graphics
-  // stack and would hand CI a failure nobody can act on.
-  'league-matchweek-comparison',
-  'match-centre-your-leagues',
-  'season-player-profile',
-  'competition-recent-form',
+  // Renamed 11 August 2026: the panel's heading became "Club form" so it stops
+  // colliding with the Match Centre's "Recent form" for an opened fixture's two
+  // clubs — the browser suite caught the duplicate as a strict-mode violation,
+  // which is the same defect a screen-reader user meets navigating by heading.
+  // Its images come from the next `visual-contracts.yml` dispatch; the four
+  // rendered under the old name are deleted rather than left orphaned.
+  'competition-club-form',
 ]
 
 const WIDTHS = ['phone', 'desktop'] as const

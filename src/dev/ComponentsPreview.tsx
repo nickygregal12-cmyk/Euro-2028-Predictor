@@ -1627,7 +1627,7 @@ function Gallery() {
         <SeasonPlayerSeason profile={PLAYER_SEASON} />
       </Section>
 
-      <Section title="Competition recent form">
+      <Section title="Competition club form">
         <SeasonCompetitionForm clubs={COMPETITION_FORM} matches={6} />
       </Section>
 

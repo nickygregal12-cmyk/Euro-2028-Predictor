@@ -38,36 +38,46 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await expect(page).toHaveURL((url) => url.pathname === '/')
 
   // Into a competition. The root used to be the chooser and carried a "View
-  // Premier League" button per published competition; it is the personalised
+  // <competition>" button per published competition; it is the personalised
   // dashboard now and the catalogue moved to `/competitions`, which is where
   // this step goes. The link is scoped to the main content because the desktop
-  // rail carries a Premier League shortcut of its own — same destination,
-  // different control, and the catalogue is the one under test here.
+  // rail carries a shortcut of its own — same destination, different control,
+  // and the catalogue is the one under test here.
+  //
+  // THE SCOTTISH SEASON, because it is the one this environment publishes.
+  // Since contract 147 the catalogue is `get_published_weekly_seasons`, which
+  // excludes drafts, and the Premier League season is created `draft` by the
+  // C1b migration and never opened here. It is therefore not in the catalogue
+  // and not routable — `weekly-navigation.spec.ts` asserts that directly.
   await page.goto('/competitions')
   await expect(page).toHaveURL((url) => url.pathname === '/competitions', { timeout: 15_000 })
 
-  const competitionLink = main.getByRole('link', { name: /Premier League/ }).first()
+  const competitionLink = main.getByRole('link', { name: /Scottish Premiership/ }).first()
   await competitionLink.focus()
   await expect(competitionLink).toBeFocused()
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL(
-    (url) => url.pathname === '/competitions/premier-league/2026-27',
+    (url) => url.pathname === '/competitions/scottish-premiership/2026-27',
     { timeout: 15_000 },
   )
   await expect(main).toBeFocused()
 
   const competitionPlay = page
-    .getByRole('navigation', { name: 'Premier League sections' })
+    .getByRole('navigation', { name: 'Scottish Premiership sections' })
     .getByRole('link', { name: 'Play', exact: true })
   await competitionPlay.focus()
   await expect(competitionPlay).toBeFocused()
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL(
-    (url) => url.pathname === '/competitions/premier-league/2026-27/play',
+    (url) => url.pathname === '/competitions/scottish-premiership/2026-27/play',
   )
-  await expect(page).toHaveTitle('Premier League 2026/27 Play | Football Prediction Hub')
+  await expect(page).toHaveTitle(
+    'Scottish Premiership 2026/27 Play | Football Prediction Hub',
+  )
   await expect(main).toBeFocused()
-  await expect(page.locator(liveRegion)).toHaveText('Premier League 2026/27 Play page loaded')
+  await expect(page.locator(liveRegion)).toHaveText(
+    'Scottish Premiership 2026/27 Play page loaded',
+  )
 })

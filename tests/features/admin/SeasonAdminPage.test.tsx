@@ -7,21 +7,21 @@ import type {
   SeasonOpenOutcome,
   SeasonResultOutcome,
 } from '../../../src/services/supabase/seasonAdmin'
-import { catalogueFromPublishedSeasons } from '../../../src/features/hub/competitionCatalogue'
 
 const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
   fetchSeasonMatchweekFixtures: vi.fn<() => Promise<SeasonMatchweekFixtures>>(),
   openSeasonCompetition: vi.fn<() => Promise<SeasonOpenOutcome>>(),
   recordSeasonFixtureResult: vi.fn<() => Promise<SeasonResultOutcome>>(),
-  playerCompetitions: vi.fn(),
+  fetchAdministeredSeasons: vi.fn(),
 }))
 
-// Which seasons this page administers comes from the shell's server-driven
-// catalogue (contract 147) rather than from a frontend array, so the page test
-// supplies it the same way the shell would.
-vi.mock('../../../src/app/providers/PlayerCompetitionsProvider', () => ({
-  usePlayerCompetitions: () => mocks.playerCompetitions(),
+// The seasons this page administers come from its OWN read, which includes
+// drafts — deliberately not the published catalogue, because opening a draft is
+// what an administrator is here for and contract 147 excludes drafts from the
+// player-facing one.
+vi.mock('../../../src/services/supabase/administeredSeasons', () => ({
+  fetchAdministeredSeasons: mocks.fetchAdministeredSeasons,
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -90,32 +90,16 @@ function matchweek(status = 'scheduled'): SeasonMatchweekFixtures {
 }
 
 beforeEach(() => {
-  mocks.playerCompetitions.mockReturnValue({
-    status: 'ready',
-    player: {
-      mine: [],
-      shortcuts: [],
-      overflow: 0,
-      catalogue: catalogueFromPublishedSeasons(
-        [
-          {
-            competitionSlug: 'premier-league',
-            seasonKey: '2026-27',
-            competitionId: 'competition-1',
-            competitionName: 'Premier League',
-            seasonId: 'season-1',
-            seasonName: 'Premier League 2026/27',
-            status: 'active',
-            timeZone: 'Europe/London',
-          },
-        ],
-        [],
-      ),
-      relevanceSource: 'game-membership',
-      empty: true,
+  // A DRAFT season, which is the case that matters: it is absent from the
+  // player-facing catalogue and must still be administrable.
+  mocks.fetchAdministeredSeasons.mockResolvedValue([
+    {
+      id: 'season-1',
+      name: 'Premier League 2026/27',
+      seasonKey: '2026-27',
+      status: 'draft',
     },
-    reload: () => {},
-  })
+  ])
   vi.clearAllMocks()
   mocks.fetchHubMembership.mockResolvedValue([membership()])
   mocks.fetchSeasonMatchweekFixtures.mockResolvedValue(matchweek())

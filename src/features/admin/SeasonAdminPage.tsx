@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Skeleton, TextInput } from '../../design-system'
 import {
   fetchHubMembership,
@@ -15,8 +15,10 @@ import {
   fetchProviderReviewQueues,
 } from '../../services/supabase/providerReviewQueues'
 import { ProviderReviewPanel } from './ProviderReviewPanel'
-import type { HubCompetition } from '../hub/competitionCatalogue'
-import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
+import {
+  fetchAdministeredSeasons,
+  type AdministeredSeason,
+} from '../../services/supabase/administeredSeasons'
 import {
   openOutcomeMessage,
   openableGames,
@@ -81,23 +83,35 @@ function parseScore(value: string): number | null {
 }
 
 export function SeasonAdminPage() {
-  // The seasons this page administers are the ones the server publishes
-  // (contract 147). Euro 2028 is `kind = 'tournament'` and is excluded by the
-  // catalogue read itself, so the weekly administration surface cannot reach it
-  // by accident. A draft season is absent for the same reason it is a draft.
-  const { player } = usePlayerCompetitions()
-  const seasons = useMemo<readonly HubCompetition[]>(
-    () => player?.catalogue ?? [],
-    [player],
-  )
-  const [selected, setSelected] = useState<HubCompetition | null>(null)
+  // The seasons this page administers, INCLUDING DRAFTS — which is why it does
+  // not use the shell's published catalogue. Contract 147 excludes a draft
+  // season, correctly, because a player must not walk into one; but opening a
+  // draft is exactly what this page is for, and both league seasons are created
+  // as `draft` by the C1b migration with nothing moving them out. An
+  // administration surface built on the published catalogue would be empty on a
+  // fresh database and on Production.
+  const [seasons, setSeasons] = useState<readonly AdministeredSeason[]>([])
+  const [seasonsError, setSeasonsError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<AdministeredSeason | null>(null)
 
-  // Settle on the first published season once the catalogue arrives, and never
-  // re-select afterwards: an administrator's choice must not be reset by a
-  // background reload of the shell's catalogue.
   useEffect(() => {
-    setSelected((current) => current ?? seasons[0] ?? null)
-  }, [seasons])
+    let active = true
+    fetchAdministeredSeasons()
+      .then((rows) => {
+        if (!active) return
+        setSeasons(rows)
+        // Settle on the first season once the list arrives and never re-select
+        // afterwards: an administrator's choice must not be reset by a reload.
+        setSelected((current) => current ?? rows[0] ?? null)
+      })
+      .catch((error: unknown) => {
+        // A list that could not be read is a failure, not an empty platform.
+        if (active) setSeasonsError(seasonAdminRefusal(error))
+      })
+    return () => {
+      active = false
+    }
+  }, [])
   const [membership, setMembership] = useState<HubSeasonMembership | null>(null)
   const [membershipError, setMembershipError] = useState<string | null>(null)
   const [matchweek, setMatchweek] = useState(1)
@@ -112,7 +126,7 @@ export function SeasonAdminPage() {
     setMembership(null)
     setMembershipError(null)
     if (!selected) return
-    const seasonRowName = selected.seasonRowName
+    const seasonRowName = selected.name
     fetchHubMembership([seasonRowName])
       .then((rows) => {
         if (!active) return
@@ -244,11 +258,11 @@ export function SeasonAdminPage() {
         <div className={styles.chooser} role="group" aria-label="Season">
           {seasons.map((season) => (
             <button
-              key={season.seasonRowName}
+              key={season.id}
               type="button"
-              aria-pressed={season.seasonRowName === selected?.seasonRowName}
+              aria-pressed={season.id === selected?.id}
               className={
-                season.seasonRowName === selected?.seasonRowName
+                season.id === selected?.id
                   ? styles.seasonButtonActive
                   : styles.seasonButton
               }
@@ -258,7 +272,10 @@ export function SeasonAdminPage() {
                 setNotice(null)
               }}
             >
-              {season.name} {season.seasonLabel}
+              {/* The stored season name already carries its season, and the
+                  lifecycle is shown beside it because a draft is exactly what
+                  an administrator is here to open. */}
+              {season.name} · {season.status ?? 'unknown state'}
             </button>
           ))}
         </div>
@@ -268,6 +285,9 @@ export function SeasonAdminPage() {
         <Alert variant={notice.tone === 'success' ? 'success' : 'warning'}>{notice.text}</Alert>
       ) : null}
 
+      {/* A season list that could not be read is a failure, and is said so
+          rather than rendering as a platform with no seasons on it. */}
+      {seasonsError ? <Alert variant="warning">{seasonsError}</Alert> : null}
       {membershipError ? <Alert variant="warning">{membershipError}</Alert> : null}
 
       <section className={styles.panel} aria-labelledby="season-games-heading">

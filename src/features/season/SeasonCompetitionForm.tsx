@@ -58,13 +58,19 @@ export function SeasonCompetitionForm({ clubs, matches }: SeasonCompetitionFormP
 
   return (
     <section className={styles.panel} aria-labelledby={headingId}>
+      {/* "Club form", not "Recent form". The Match Centre already heads the
+          two clubs of an OPENED fixture with "Recent form", and both live on
+          this page — a fixture opens inside the list. Two headings with the
+          same accessible name on one page is a real defect for anyone
+          navigating by heading, and the browser suite caught it as a
+          strict-mode violation, which is the same thing said mechanically. */}
       <h2 className={styles.heading} id={headingId}>
-        Recent form
+        Club form
       </h2>
       <p className={styles.note}>
-        Each club&rsquo;s last {matches} settled matches in this competition, most recent first.
-        This is form, not the league table — a table carries the competition&rsquo;s own rules and
-        is not derived here.
+        Every club in this competition over its last {matches} settled matches, most recent
+        first. This is form, not the league table — a table carries the competition&rsquo;s own
+        rules and is not derived here.
       </p>
 
       <div className={styles.scroll}>

@@ -2,6 +2,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+
+  /* A CONTAINER, NOT A VIEWPORT. The two layouts below switch on the width
+     THIS PANEL actually has, not on the width of the window. It matters in the
+     product, not only in the gallery: the panel renders inside a league card,
+     which sits inside a workspace column, so a 1440px viewport does not mean
+     1440px of room — a matrix of ten fixtures in a 320px column would overflow
+     its own container while the media query said "desktop".
+
+     It is also what makes the phone layout PHOTOGRAPHABLE. The component
+     gallery pins each panel's WIDTH in CSS while a viewport media query reads
+     the window, so the runner rendered the matrix into the phone baseline and
+     the purpose-built list was under no baseline at all. That is exactly the
+     loss of coverage `pageshell-bottomnav` hit, found the same way — by
+     reading the image rather than accepting it. */
+  container-type: inline-size;
 }
 
 .caption {
@@ -217,7 +232,7 @@
   color: var(--tx);
 }
 
-@media (min-width: 900px) {
+@container (min-width: 900px) {
   .fixtures {
     display: none;
   }
