@@ -153,7 +153,7 @@ unprotected release-identity endpoint or an authenticated smoke path. Both are
 decisions about the perimeter, not fixes to apply in passing, so the gap is
 recorded rather than closed here.
 
-## Access-control posture — changed, and needs owner confirmation
+## Access-control posture — changed, and confirmed
 
 A project read at 11:0x showed `requiresSSOTeamLogin: true` on all contexts with
 `requiresPassword: false`. A read at 11:26, minutes after the release, showed the
@@ -162,17 +162,35 @@ reverse: `requiresPassword: true`, `whichProjectsRequirePassword: "all"`,
 
 Nothing in this release changed it — the only Netlify write was
 `EURO28_DEPLOYED_DB_CONTRACT` in the production context, and an environment
-variable cannot move an access control. **An owner should confirm the switch from
-Team SSO to password protection was deliberate.** The site is protected either
-way, and this is not a public launch.
+variable cannot move an access control.
+
+**The owner confirmed the same day that the switch was deliberate**: a site
+password is easier to hold open while testing the real application than Team SSO,
+and nothing private sits behind it. The perimeter is therefore site password
+protection on all contexts, by decision.
+
+That confirmation does not widen what the perimeter is for. It is a convenience
+barrier, not a confidentiality control — real access control stays in Supabase
+row-level security, the bounded RPCs and the server-enforced reveal rules. And it
+is not `AGE-001`: a shared password is no substitute for the 18+ restriction
+ADR 0026 places on the initial external cohort, which is still accepted and
+unimplemented. This is still not a public launch.
 
 ## What still owes evidence
 
-1. **Owner confirmation of the access-control change** described above.
-2. **A release smoke that can actually run** against a protected site, or an
-   explicit decision that the 401 observations are the accepted substitute.
-3. **A signed-in check of the released application** — nothing here proves what a
+1. **A release smoke that can actually run.** The password makes this closable,
+   which Team SSO did not. See
+   [`netlify-deploy-access.md`](netlify-deploy-access.md) for the intended shape:
+   an anonymous assertion that a credential-free request is refused, plus an
+   authenticated pass for the release-identity and browser checks. The exchange
+   Netlify's password protection expects must be established empirically on a
+   runner, because the agent session cannot reach the site at all.
+2. **A signed-in check of the released application** — nothing here proves what a
    logged-in player sees, only what was built and published.
+3. **Retirement of the legacy-brand allowance** in `scripts/production-smoke.mjs`,
+   which has met its own stated retirement condition now that production is past
+   contract 63. Do it in the change that makes the smoke runnable, so the first
+   authenticated run proves the published title first.
 
 ## What this release is not
 
