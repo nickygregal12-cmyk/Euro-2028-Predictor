@@ -6,7 +6,39 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (eighth entry)
+## Current state — 10 August 2026 (ninth entry)
+
+**Production is at contract 144.** The promotion the seventh entry recorded as authorised-but-blocked has happened, and the machine records are reconciled from an independent read rather than from the job's own output.
+
+**How it cleared.** The blocker was the secret, not the schema: `SUPABASE_PROD_DB_URL` named the IPv6-only direct host while GitHub runners are IPv4-only. Repointing it at the `eu-west-2` session pooler on port 5432 cleared it, and backup run **31365261774** then completed in five minutes where run 31327860208 had failed in thirty-four seconds.
+
+**The rehearsal took four attempts and found three defects, all of them in the rehearsal workflow rather than in the twelve migrations.** Recorded because the runs are in the history and a reader deserves to know they say nothing about the promotion's safety: run 31366046231 called bare `pg_dump`, which resolves to Ubuntu's 16 client and refuses against a 17.6 server; run 31367760639 dumped with `--no-privileges`, so the fresh local stack's own default privileges granted `anon` and `authenticated` on every restored public table and contract 139 correctly refused a target that was not Production-shaped; run 31370007090 reported `dump is empty: roles.sql` because `supabase init` makes the work directory a project root and the CLI resolves a relative `--file` against that rather than against the working directory. The second of those is the one worth keeping: it proved the guard catches an unfaithful target, and it prompted measuring the real privilege shape on both hosted projects, which return NONE.
+
+**Rehearsal run 31373514522** then restored a fresh Production dump into a disposable local target and replayed all twelve there, reaching exactly 144 with every player-owned count intact and the three new contracts inert.
+
+**Rollout run 31374274932** applied contracts 133–144 to Production from exact `main` `e54a45b`, after its own API check that the backup and rehearsal runs had both concluded success. Independent read-only verification afterwards:
+
+```json
+{"migration_count": 144, "latest_version": "20260809140000",
+ "latest_name": "provider_team_profile_foundation", "contract_145_absent": true,
+ "auth_users": 1, "profiles": 1, "entries": 2, "match_predictions": 36, "entry_totals": 2,
+ "euro_publication_state": "hidden", "euro_publication_history": 0,
+ "sportmonks_final_statuses": 1, "provider_team_profiles": 0, "season_fixtures": 0}
+```
+
+Every player-owned count is identical to the pre-apply snapshot. Contract 145 is absent, held back by the pinned boundary as intended.
+
+**What this did NOT do**, so no later reader mistakes a schema promotion for a launch: it did not publish Euro 2028 — contract 143 arrived `hidden` and publication remains an owner act; it did not promote the application, which is separately controlled and still at the Euro baseline; it imported no football, and Production still holds zero season fixtures, so contract 135's provider result authority has nothing to act on there yet. `promotionAuthorised` stays `false` in `config/production-hosted-contract.json`, which is the fail-closed default and is enforced by `production-hosted-contract-expectations.mjs`.
+
+**Contract 145 remains unpromoted to either hosted environment.** It is pending for Development and outside the authorised Production set. It redefines `enforce_rate_limit` to take an advisory lock, which is a behaviour change to a security control and wants its own decision rather than a ride-along.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | ONE AHEAD OF BOTH HOSTED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **144** | Guarded fast-lane run `31327666892`, independently confirmed by a read-only ledger query returning 144 rows. Contract 145 not yet applied. | ONE BEHIND REPOSITORY |
+| Production Supabase | **144** | Rollout run `31374274932` from exact `main` `e54a45b`, gated on backup `31365261774` and rehearsal `31373514522`; independently confirmed by a read-only ledger query returning 144 rows ending `20260809140000_provider_team_profile_foundation` with contract 145 absent. | LEVEL WITH DEVELOPMENT |
+
+## Superseded — 10 August 2026 (eighth entry)
 
 **The repository is at contract 145 and hosted Development is one behind at 144.** `20260810010000_rate_limit_atomicity.sql` is the only pending Development migration. It is additive in the sense the fast lane checks — it creates and drops nothing, and redefines exactly one function — and it is privileges-neutral: `create or replace` preserves the existing access-control list, and the migration re-states the original `revoke all ... from public` rather than restoring it.
 

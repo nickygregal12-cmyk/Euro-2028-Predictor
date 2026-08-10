@@ -1,12 +1,13 @@
 {
   "projectRef": "vkfnsqdyhvtwyqkisxhk",
-  "requiredMigrationCount": 132,
-  "latestMigrationVersion": "20260807210812",
-  "latestMigrationName": "provider_initial_fixture_approval",
-  "verifiedAt": "2026-08-08T04:18:00.000Z",
+  "requiredMigrationCount": 144,
+  "latestMigrationVersion": "20260809140000",
+  "latestMigrationName": "provider_team_profile_foundation",
+  "verifiedAt": "2026-08-10T09:28:26.000Z",
   "evidence": {
-    "source": "Independent read-only Supabase migration-ledger verification on 8 August 2026 confirmed Production at exactly Contract 132, ending 20260807210812_provider_initial_fixture_approval. This reconciles the machine record that was left at 131 after the guarded Contract 132 rollout; application promotion remains separately controlled.",
-    "repositoryHead": "305b4e12b43a28f349f5fd27c954bd8247742a52"
+    "source": "Guarded Production rollout run 31374274932 applied contracts 133-144 from exact main e54a45b83543185b4a04f7c507d94f9b1856686a, after its own API check that backup run 31365261774 and rehearsal run 31373514522 had both concluded success. An independent read-only query of supabase_migrations.schema_migrations then confirmed exactly 144 rows ending 20260809140000_provider_team_profile_foundation, with contract 145 absent, every player-owned count unchanged across the apply (1 auth user, 1 profile, 2 entries, 36 match predictions, 2 entry totals), and the three new contracts arriving inert: Euro publication hidden with empty history, exactly one SportMonks final status, zero provider team profiles. Application promotion remains separately controlled and is NOT claimed by this record.",
+    "repositoryHead": "e54a45b83543185b4a04f7c507d94f9b1856686a",
+    "workflowRunId": 31374274932
   },
   "promotionAuthorised": false
 }
