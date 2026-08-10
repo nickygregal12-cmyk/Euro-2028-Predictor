@@ -182,8 +182,10 @@ select is(
 
 -- The self-limiting half: once the result exists, the fixture stops holding the
 -- window open even though the tail has not elapsed.
+-- Status moves with the score: `season_fixtures_scores_match_status` refuses a
+-- scheduled fixture that has one, which is the shape a real settlement writes.
 update public.season_fixtures
-   set home_score = 2, away_score = 1
+   set status = 'played', home_score = 2, away_score = 1
  where tournament_id = current_setting('test.appc_tournament')::uuid
    and kickoff_at = timestamptz '2026-08-10T13:00:00Z';
 
