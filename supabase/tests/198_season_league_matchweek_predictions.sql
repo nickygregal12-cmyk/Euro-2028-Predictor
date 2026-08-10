@@ -249,7 +249,10 @@ set local role authenticated;
 select throws_ok(
   format($$select public.get_season_league_matchweek_predictions(%L::uuid, %L::uuid)$$,
          current_setting('test.lp_league'), current_setting('test.lp_locked')),
-  'insufficient_privilege',
+  -- The SQLSTATE, not the condition name: pgTAP treats a second argument that
+  -- is not five characters as an error MESSAGE, so the condition name would be
+  -- compared against 'Not a member of this league' and never match.
+  '42501',
   null,
   'someone who is not in the league is refused, revealed or not');
 
