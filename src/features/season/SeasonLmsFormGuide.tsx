@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { ClubIdentity } from '../../design-system'
 import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
 import type { LmsFormGuide, LmsFormRow } from './lmsFormGuideModel'
@@ -64,9 +65,13 @@ function FormRow({ row }: { row: LmsFormRow }) {
 }
 
 export function SeasonLmsFormGuide({ guide }: { guide: LmsFormGuide }) {
+  // Generated, not written. A fixed id makes the component unusable twice on
+  // one page — which the component gallery does immediately, rendering both
+  // theme panels at once, and axe calls it a critical duplicate-id-aria.
+  const headingId = useId()
   return (
-    <section className={styles.panel} aria-labelledby="lms-form-guide">
-      <h2 className={styles.heading} id="lms-form-guide">
+    <section className={styles.panel} aria-labelledby={headingId}>
+      <h2 className={styles.heading} id={headingId}>
         Form guide
       </h2>
       <p className={styles.note}>

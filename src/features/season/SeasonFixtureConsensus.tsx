@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { Skeleton } from '../../design-system'
 import {
   ConsensusHiddenError,
@@ -115,6 +115,9 @@ export function SeasonFixtureConsensus({
 }
 
 function Distribution({ fixture }: { fixture: SeasonConsensusFixture }) {
+  // Generated: the panel is rendered more than once on a gallery page, and a
+  // fixed id is a critical duplicate-id-aria the moment it is.
+  const headingId = useId()
   const bars = [
     { key: 'home', label: fixture.homeName, share: fixture.shares.homeWin, count: fixture.homeWin },
     { key: 'draw', label: 'Draw', share: fixture.shares.draw, count: fixture.draw },
@@ -122,8 +125,8 @@ function Distribution({ fixture }: { fixture: SeasonConsensusFixture }) {
   ]
 
   return (
-    <section className={styles.panel} aria-labelledby="fixture-consensus">
-      <h2 className={styles.heading} id="fixture-consensus">
+    <section className={styles.panel} aria-labelledby={headingId}>
+      <h2 className={styles.heading} id={headingId}>
         Everyone
       </h2>
       <p className={styles.note}>

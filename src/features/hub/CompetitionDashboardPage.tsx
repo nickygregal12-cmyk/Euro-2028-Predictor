@@ -20,6 +20,7 @@ import h from './hub.module.css'
 import { isNextUi } from '../../app/routeFlags'
 import {
   findHubCompetition,
+  gamesJoinedFirst,
   type HubCompetition,
   type HubGame,
 } from './competitionCatalogue'
@@ -300,7 +301,11 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             </div>
 
             <div className={h.gameStack}>
-              {competition.games.map((game) => {
+              {/* Joined first (`UI-F08`). A player opens Games to do something
+                  in a game they are in, and the catalogue's declaration order
+                  put an unjoined game above a joined one whenever it happened
+                  to list it first. */}
+              {gamesJoinedFirst(competition.games).map((game) => {
                 const path = gamePath(competition, game)
                 const headingId = `game-${game.kind}`
                 const served = servedGames.find((entry) => entry.gameKey === game.gameKey)

@@ -133,6 +133,34 @@ export function isJoinedCompetition(competition: HubCompetition): boolean {
   return competition.games.some((game) => game.joined)
 }
 
+/**
+ * The games of a competition, joined first.
+ *
+ * WHY ORDER MATTERS HERE. `UI-F08` asks for joined games before available ones,
+ * and the reason is the five-second test: a player opens Games to do something
+ * in a game they are IN, and the catalogue's declaration order put an
+ * unjoined game above a joined one whenever the catalogue happened to list it
+ * first. Ordering by membership costs nothing and makes the section answer the
+ * question it is opened with.
+ *
+ * MEMBERSHIP IS THE SERVER'S, carried on the overlaid catalogue entry by
+ * `applyHubMembership`. A game whose membership could not be read keeps
+ * `joined: false` and therefore sorts second, which is the safe direction: it
+ * is listed and reachable either way, just not promoted on a guess.
+ *
+ * THE CATALOGUE'S OWN ORDER IS THE TIE-BREAK, so the section does not reshuffle
+ * between renders and two joined games keep a stable relationship.
+ */
+export function gamesJoinedFirst(games: readonly HubGame[]): HubGame[] {
+  return games
+    .map((game, index) => ({ game, index }))
+    .sort((left, right) => {
+      if (left.game.joined !== right.game.joined) return left.game.joined ? -1 : 1
+      return left.index - right.index
+    })
+    .map((entry) => entry.game)
+}
+
 export function partitionHubCompetitions(competitions: HubCompetition[]): {
   mine: HubCompetition[]
   discover: HubCompetition[]

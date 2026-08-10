@@ -9,6 +9,7 @@ import {
   competitionsPlaying,
   presentPlayerCompetitions,
 } from '../../../src/features/hub/playerCompetitions'
+import { gamesJoinedFirst } from '../../../src/features/hub/competitionCatalogue'
 import { presentExplore } from '../../../src/features/hub/exploreModel'
 import { presentPlayInbox } from '../../../src/features/hub/playInboxModel'
 import { presentPrivatePlay } from '../../../src/features/hub/privatePlayModel'
@@ -217,5 +218,47 @@ describe('a twenty-competition platform, for a player who plays in three', () =>
     // Unchanged: the player joined nothing new.
     expect(bigger.shortcuts).toHaveLength(3)
     expect(bigger.mine).toHaveLength(3)
+  })
+})
+
+/**
+ * `UI-F08` — joined games before available ones.
+ *
+ * The five-second test again: a player opens Games to do something in a game
+ * they are IN, and the catalogue's declaration order put an unjoined game above
+ * a joined one whenever it happened to list it first.
+ */
+describe('the Games section leads with what the player plays', () => {
+  function game(name: string, joined: boolean) {
+    return {
+      kind: 'league-predictor' as const,
+      gameKey: 'main_predictor' as const,
+      name,
+      description: '',
+      joined,
+      status: (joined ? 'joined' : 'available') as 'joined' | 'available',
+    }
+  }
+
+  it('puts joined games first and keeps the catalogue order within each half', () => {
+    const ordered = gamesJoinedFirst([
+      game('Match Predictor', false),
+      game('Last Man Standing', true),
+      game('Predictor Championship', false),
+    ])
+    expect(ordered.map((entry) => entry.name)).toEqual([
+      'Last Man Standing',
+      'Match Predictor',
+      'Predictor Championship',
+    ])
+  })
+
+  it('leaves an all-joined or all-available list exactly as the catalogue lists it', () => {
+    const names = ['A', 'B', 'C']
+    for (const joined of [true, false]) {
+      expect(gamesJoinedFirst(names.map((name) => game(name, joined))).map((e) => e.name)).toEqual(
+        names,
+      )
+    }
   })
 })

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton, StatusBadge } from '../../design-system'
 import type {
@@ -314,12 +314,15 @@ function ChampionshipStandingPanel({
   view: ChampionshipPlayerView
   tableHref: string | null
 }) {
+  // Generated, for the same reason every other panel's is: a fixed id is a
+  // critical duplicate-id-aria as soon as two of these render together.
+  const standingHeadingId = useId()
   const standing = presentChampionshipStanding(view)
   if (standing.empty) return null
 
   return (
-    <section className={styles.standingPanel} aria-labelledby="championship-standing">
-      <h2 className={styles.standingHeading} id="championship-standing">
+    <section className={styles.standingPanel} aria-labelledby={standingHeadingId}>
+      <h2 className={styles.standingHeading} id={standingHeadingId}>
         Your group
       </h2>
       {standing.phaseLine ? (

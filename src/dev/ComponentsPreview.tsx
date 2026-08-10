@@ -42,6 +42,10 @@ import {
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
 import { railGroups } from '../app/railDestinations'
+import { SeasonLmsFormGuide } from '../features/season/SeasonLmsFormGuide'
+import { SeasonFixtureConsensus } from '../features/season/SeasonFixtureConsensus'
+import type { LmsFormGuide } from '../features/season/lmsFormGuideModel'
+import type { SeasonConsensus } from '../services/supabase/seasonConsensusModel'
 import { twentyCompetitionPlayer } from './scaleFixture'
 import { PointsBreakdown } from '../features/scoring'
 import type { ScoreEvent } from '../domain/tournament/scoreEvents'
@@ -585,6 +589,98 @@ const PROVIDER_QUEUES_BUSY = {
     ],
   },
   pending_calendar_proposals: 380,
+}
+
+/**
+ * Fixture data for the two game panels. Fixed, so the screenshots are
+ * deterministic, and shaped exactly like what the models return.
+ */
+const LMS_FORM_GUIDE: LmsFormGuide = {
+  empty: false,
+  rows: [
+    {
+      teamId: 't-celtic',
+      name: 'Celtic',
+      picked: false,
+      used: false,
+      opponent: 'Rangers',
+      summary: {
+        letters: ['W', 'W', 'W', 'D', 'W'],
+        record: 'Won 4, drawn 1, lost 0 of the last 5',
+        goalDifference: '+9',
+        played: 5,
+      },
+    },
+    {
+      teamId: 't-hearts',
+      name: 'Hearts',
+      picked: true,
+      used: false,
+      opponent: 'Hibernian',
+      summary: {
+        letters: ['W', 'D', 'L', 'W', 'D'],
+        record: 'Won 2, drawn 2, lost 1 of the last 5',
+        goalDifference: '+1',
+        played: 5,
+      },
+    },
+    {
+      teamId: 't-rangers',
+      name: 'Rangers',
+      picked: false,
+      used: true,
+      opponent: 'Celtic',
+      summary: {
+        letters: ['L', 'W', 'D'],
+        record: 'Won 1, drawn 1, lost 1 of the last 3',
+        goalDifference: '0',
+        played: 3,
+      },
+    },
+    {
+      teamId: 't-dundee',
+      name: 'Dundee United',
+      picked: false,
+      used: false,
+      opponent: 'Aberdeen',
+      summary: { letters: [], record: null, goalDifference: null, played: 0 },
+    },
+  ],
+}
+
+const CONSENSUS_READY: SeasonConsensus = {
+  suppressed: false,
+  matchweek: 2,
+  minimumEntries: 10,
+  submittedEntries: 47,
+  lockedAt: '2026-08-15T14:00:00.000Z',
+  fixtures: [
+    {
+      id: 'fx-1',
+      homeName: 'Celtic',
+      awayName: 'Rangers',
+      kickoffAt: '2026-08-15T14:00:00.000Z',
+      resultHome: null,
+      resultAway: null,
+      predicted: 47,
+      homeWin: 30,
+      draw: 11,
+      awayWin: 6,
+      shares: { homeWin: 64, draw: 23, awayWin: 13 },
+      topScores: [
+        { home: 2, away: 1, picks: 21 },
+        { home: 1, away: 0, picks: 15 },
+        { home: 2, away: 0, picks: 11 },
+      ],
+    },
+  ],
+}
+
+const CONSENSUS_SUPPRESSED: SeasonConsensus = {
+  ...CONSENSUS_READY,
+  suppressed: true,
+  submittedEntries: 6,
+  fixtures: [],
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -1163,6 +1259,37 @@ function Gallery() {
 
       <Section title="Desktop navigation rail">
         <SideRailDemo />
+      </Section>
+
+      {/* The two game contextual panels. They live at route level in the
+          application — the routes own the reads — so the DEV page harnesses
+          never render them, and without a gallery section they would have no
+          visual coverage in either theme at all. */}
+      <Section title="LMS form guide panel">
+        <SeasonLmsFormGuide guide={LMS_FORM_GUIDE} />
+        <Label>no settled matches</Label>
+        <SeasonLmsFormGuide guide={{ rows: LMS_FORM_GUIDE.rows, empty: true }} />
+      </Section>
+
+      <Section title="Fixture consensus panel">
+        <Label>after lock</Label>
+        <SeasonFixtureConsensus
+          matchweek={2}
+          fixtureId="fx-1"
+          load={() => Promise.resolve(CONSENSUS_READY)}
+        />
+        <Label>short cohort</Label>
+        <SeasonFixtureConsensus
+          matchweek={2}
+          fixtureId="fx-1"
+          load={() => Promise.resolve(CONSENSUS_SUPPRESSED)}
+        />
+        <Label>failed</Label>
+        <SeasonFixtureConsensus
+          matchweek={2}
+          fixtureId="fx-1"
+          load={() => Promise.reject(new Error('network'))}
+        />
       </Section>
 
       <Section title="Masthead">
