@@ -13,16 +13,16 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **149** | latest `20260810150000_season_league_matchweek_predictions.sql` |
+| Repository | **150** | latest `20260810160000_season_league_rank_movement.sql` |
 | Development hosted | **145** | at `20260810010000_rate_limit_atomicity.sql`, verified `2026-08-10T09:55:52.724Z`, fast-lane run `31376619737` |
 | Production | **145** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** 4 — `20260810120000_adaptive_provider_poll_cadence.sql`, `20260810130000_published_weekly_season_catalogue.sql`, `20260810140000_season_fixture_by_id.sql`, `20260810150000_season_league_matchweek_predictions.sql`
+**Pending development migrations:** 5 — `20260810120000_adaptive_provider_poll_cadence.sql`, `20260810130000_published_weekly_season_catalogue.sql`, `20260810140000_season_fixture_by_id.sql`, `20260810150000_season_league_matchweek_predictions.sql`, `20260810160000_season_league_rank_movement.sql`
 
-**Next free contract number:** 150. Check open pull requests
+**Next free contract number:** 151. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

@@ -136,7 +136,9 @@ insert into expected_authenticated_functions (signature) values
   ('get_published_weekly_seasons()'),
   ('get_season_fixture(uuid)'),
   -- Contract 149: what a private league predicted, once the matchweek locked.
-  ('get_season_league_matchweek_predictions(uuid,uuid)');
+  ('get_season_league_matchweek_predictions(uuid,uuid)'),
+  -- Contract 150: how a league table moved over one settled matchweek.
+  ('get_season_league_rank_movement(uuid,uuid)');
 
 -- Contract 140: the caller's own leave eligibility. Contract 141: club form and
 -- club head-to-head, which are football about clubs and disclose no player.
