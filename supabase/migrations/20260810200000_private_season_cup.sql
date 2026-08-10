@@ -214,8 +214,27 @@ grant execute on function public.launch_private_season_cup(uuid) to authenticate
 
 do $$
 declare
-  v_launch text := pg_get_functiondef('public.launch_private_season_cup(uuid)'::regprocedure);
-  v_create text := pg_get_functiondef('public.create_private_season_cup(uuid,text)'::regprocedure);
+  -- The assertions below are about what these functions DO, so they are made
+  -- against the code with its comments stripped.
+  --
+  -- Scanning the comments too is what made the first version of this block
+  -- refuse its own migration, twice over. `launch_private_season_cup`
+  -- documents that "Contract 111 owns the format, the seeding, the draw" — and
+  -- `seed` matched inside `seeding`, so the sentence explaining that the
+  -- function DELEGATES the format read as the function RESTATING it. The
+  -- `draw_completed_at` check below failed the same way, on a comment saying
+  -- that column stays null until contract 111 sets it.
+  --
+  -- Stripping comments keeps the checks strict rather than loosening them: a
+  -- real `seeding` or `draw_completed_at` in the code still trips them. Found
+  -- by the pgTAP suite on run 31442319307 — the first run in which a local
+  -- database started, and so the first execution these blocks ever had.
+  v_launch text := regexp_replace(
+    pg_get_functiondef('public.launch_private_season_cup(uuid)'::regprocedure),
+    '--[^\n]*', '', 'g');
+  v_create text := regexp_replace(
+    pg_get_functiondef('public.create_private_season_cup(uuid,text)'::regprocedure),
+    '--[^\n]*', '', 'g');
 begin
   -- The launch delegates the whole format decision.
   if v_launch !~ 'launch_season_cup' then
