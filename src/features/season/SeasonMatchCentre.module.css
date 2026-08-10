@@ -260,3 +260,29 @@
   text-transform: uppercase;
   color: var(--tx2);
 }
+
+/* The way out of an opened fixture: to the card that predicts its matchweek.
+   A link, because it goes somewhere — styled as the panel's primary action. */
+.predict {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap-min);
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--card);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+  text-decoration: none;
+}
+
+.predict:hover {
+  border-color: var(--acc);
+}
+
+.predict:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}

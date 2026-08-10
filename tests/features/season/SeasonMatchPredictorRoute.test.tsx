@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import type {
@@ -7,6 +7,8 @@ import type {
 } from '../../../src/features/season/seasonPlayContextModel'
 
 const cardGateways: { tournamentId: string; competitionName: string }[] = []
+
+const requestedMatchweeks: number[] = []
 
 vi.mock('../../../src/services/supabase/client', () => ({
   supabase: { rpc: vi.fn() },
@@ -22,7 +24,10 @@ vi.mock('../../../src/services/supabase/seasonMatchPredictor', () => ({
       competitionName: options.competitionName,
     })
     return {
-      load: async () => {
+      // Records which matchweek the page asked for before refusing. The card's
+      // CONTENT is not what this file tests; which matchweek it opens at is.
+      load: async (matchweek: number) => {
+        requestedMatchweeks.push(matchweek)
         throw new Error('the card read is not what this file is testing')
       },
       apply: async () => {},
@@ -169,5 +174,43 @@ describe('with the flag on', () => {
       '/competitions/premier-league/2026-27',
     )
     vi.unstubAllEnvs()
+  })
+})
+
+describe('opening at a named matchweek', () => {
+  // The flow gap: this route always opened at the matchweek the play context
+  // called current, so a player looking at a September fixture had no way to
+  // reach the card that predicts it.
+  beforeEach(() => {
+    requestedMatchweeks.length = 0
+    vi.stubEnv('VITE_UI_SEASON_MATCH_PREDICTOR', 'true')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('opens the matchweek the link names', async () => {
+    renderRoute(resolving, `${URL}?matchweek=7`)
+    await waitFor(() => expect(requestedMatchweeks).toContain(7))
+  })
+
+  it('opens the current matchweek when the link names none', async () => {
+    // The default is unchanged and is still the right one.
+    renderRoute(resolving)
+    await waitFor(() => expect(requestedMatchweeks).toContain(3))
+  })
+
+  it('falls back rather than refusing a matchweek this season does not have', async () => {
+    // A stale or shared link should land somewhere useful. 39 is past the
+    // season's 38, so the current matchweek answers instead.
+    renderRoute(resolving, `${URL}?matchweek=39`)
+    await waitFor(() => expect(requestedMatchweeks).toContain(3))
+    expect(requestedMatchweeks).not.toContain(39)
+  })
+
+  it('ignores a matchweek that is not a number at all', async () => {
+    renderRoute(resolving, `${URL}?matchweek=banana`)
+    await waitFor(() => expect(requestedMatchweeks).toContain(3))
   })
 })

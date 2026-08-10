@@ -4,22 +4,7 @@ import { AppBar, PageShell, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useTheme } from './providers/ThemeProvider'
-import { isCompetitionModePath, weeklyRoutes } from './shellRoutes'
-
-function activeTab(pathname: string): NavKey {
-  if (pathname === weeklyRoutes.play) return 'predict'
-  if (pathname === weeklyRoutes.matches || pathname.startsWith('/match/')) return 'matches'
-  if (pathname === weeklyRoutes.leagues || pathname.startsWith('/league/')) return 'league'
-  if (
-    pathname === weeklyRoutes.more ||
-    pathname.startsWith('/more/') ||
-    pathname === '/account' ||
-    pathname.startsWith('/profile')
-  ) {
-    return 'more'
-  }
-  return 'home'
-}
+import { globalNavTab, isCompetitionModePath } from './shellRoutes'
 
 const TAB_CONTEXT: Record<NavKey, string> = {
   home: 'Home',
@@ -29,18 +14,34 @@ const TAB_CONTEXT: Record<NavKey, string> = {
   more: 'More',
 }
 
+/**
+ * The signed-in frame.
+ *
+ * THE GLOBAL NAVIGATION IS ALWAYS THERE, including inside a competition. It
+ * used to be hidden for the whole `/competitions/**` family, on the reasoning
+ * that competition mode "owns its navigation" — but the design authority is
+ * explicit in the other direction: the global rail "remains visible inside
+ * competition context", "never swaps its destinations", and the Hub is
+ * therefore "one click away without a compensating Back to Hub control", which
+ * that authority lists among the things not to do. Hiding it meant a player who
+ * tapped through to a game lost every global destination at once and could
+ * leave only by a Back link or the browser's own back button.
+ *
+ * The competition masthead and its sub-navigation sit inside the content
+ * column, under the bar rather than instead of it, so competition identity is
+ * still unmistakable.
+ */
 export function AppShell() {
   const location = useLocation()
   const navigate = useNavigate()
   const { displayName } = useAuth()
   const { theme, toggle } = useTheme()
   const competitionMode = isCompetitionModePath(location.pathname)
-  const tab = activeTab(location.pathname)
+  const tab = globalNavTab(location.pathname)
 
   return (
     <PageShell
       active={tab}
-      showBottomNav={!competitionMode}
       topBar={
         <AppBar
           context={competitionMode ? 'Competition' : TAB_CONTEXT[tab]}

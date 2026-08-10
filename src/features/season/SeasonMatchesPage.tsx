@@ -59,6 +59,8 @@ export type SeasonMatchesPageProps = {
    * everybody and is shown even where an entry could not be read.
    */
   football?: SeasonFootballContext
+  /** Where a fixture's matchweek is predicted; passed through to the panel. */
+  predictHref?: (matchweek: number) => string
 }
 
 const SKELETON_ROWS = 6
@@ -136,6 +138,7 @@ export function SeasonMatchesPage({
   timeZone,
   readMatchweekCard,
   football,
+  predictHref,
 }: SeasonMatchesPageProps) {
   const { status, view, window, stepping, error, previous, next, reload } =
     useSeasonFixtureWindow(gateway, timeZone)
@@ -232,6 +235,7 @@ export function SeasonMatchesPage({
                         fixture={row}
                         read={readMatchweekCard}
                         football={football}
+                        predictHref={predictHref}
                       />
                     ) : null}
                   </Match>

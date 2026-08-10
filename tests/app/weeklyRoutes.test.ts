@@ -9,6 +9,7 @@ import {
   competitionSectionRoute,
   logicalWeeklyParent,
   weeklyRoutes,
+  competitionMatchPredictorRoute,
 } from '../../src/app/weeklyRoutes'
 
 const premier = { competitionSlug: 'premier-league', seasonSlug: '2026-27' }
@@ -114,5 +115,28 @@ describe('weekly route authority', () => {
     expect(logicalWeeklyParent('/auth/login')).toBeNull()
     expect(logicalWeeklyParent('/admin/results')).toBeNull()
     expect(logicalWeeklyParent('/somewhere-unknown')).toBeNull()
+  })
+})
+
+describe('opening the Match Predictor at a named matchweek', () => {
+  const ref = { competitionSlug: 'scottish-premiership', seasonSlug: '2026-27' }
+
+  it('adds the matchweek as a query, leaving the route itself unchanged', () => {
+    // An opening position, not an identity: every link that omits it must be
+    // the same route, or a shared link becomes a different page.
+    expect(competitionMatchPredictorRoute(ref)).toBe(
+      competitionGameRoute(ref, 'match-predictor'),
+    )
+    expect(competitionMatchPredictorRoute(ref, 7)).toBe(
+      `${competitionGameRoute(ref, 'match-predictor')}?matchweek=7`,
+    )
+  })
+
+  it('refuses a matchweek that could never be one', () => {
+    // Building the link is where a nonsense value should fail — loudly, in the
+    // caller — rather than travelling into a URL somebody later shares.
+    expect(() => competitionMatchPredictorRoute(ref, 0)).toThrow()
+    expect(() => competitionMatchPredictorRoute(ref, -1)).toThrow()
+    expect(() => competitionMatchPredictorRoute(ref, 1.5)).toThrow()
   })
 })

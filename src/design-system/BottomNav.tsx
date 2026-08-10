@@ -1,11 +1,13 @@
 import { Link } from 'react-router'
 import styles from './BottomNav.module.css'
 import { HomeIcon, BallIcon, CalendarIcon, TrophyIcon, MoreIcon, type IconProps } from './icons'
-import { weeklyRoutes } from '../app/shellRoutes'
+import { weeklyRoutes, type GlobalNavTab } from '../app/shellRoutes'
 
 // Internal keys are retained for design-system compatibility; the public weekly
-// navigation is Home · Play · Matches · Leagues · More.
-export type NavKey = 'home' | 'predict' | 'matches' | 'league' | 'more'
+// navigation is Home · Play · Matches · Leagues · More. The union itself lives
+// with the route authority that resolves a pathname to a tab, so the list of
+// tabs and the function that picks one cannot disagree.
+export type NavKey = GlobalNavTab
 
 const ITEMS: {
   key: NavKey

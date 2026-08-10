@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { SeasonMatchesPage } from '../../../src/features/season/SeasonMatchesPage'
 import { mapSeasonFixtureList } from '../../../src/services/supabase/seasonFixtureListModel'
@@ -502,5 +503,51 @@ describe('what a fixture means for the player’s Last Man Standing entry', () =
 
     await waitFor(() => expect(screen.getByText('Your prediction')).toBeTruthy())
     expect(screen.queryByText(/Last Man Standing/)).toBeNull()
+  })
+})
+
+describe('getting from a fixture to the card that predicts it', () => {
+  // The flow gap a player reported as navigation that does not flow: opening a
+  // match and having no way to reach the matchweek it belongs to. The route
+  // used to carry no matchweek and always opened at the current one, so a link
+  // would have landed somewhere else.
+  const inRouter = (ui: React.ReactNode) => render(<MemoryRouter>{ui}</MemoryRouter>)
+
+  it('links to the fixture’s OWN matchweek, not to whichever is current', async () => {
+    inRouter(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={{ entryStanding: 'entered' }}
+        predictHref={(matchweek) => `/competitions/x/y/games/match-predictor?matchweek=${matchweek}`}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    // The seeded fixture is Matchweek 5, so the link must say 5 — the whole
+    // point of the change.
+    const link = await screen.findByRole('link', { name: 'Open Matchweek 5' })
+    expect(link.getAttribute('href')).toBe(
+      '/competitions/x/y/games/match-predictor?matchweek=5',
+    )
+  })
+
+  it('offers no link where the route cannot be reached', async () => {
+    // A link to a page that renders Not Found is the dead control this batch
+    // removes, reintroduced by a different door.
+    inRouter(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={{ entryStanding: 'entered' }}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+    await waitFor(() => expect(screen.getByText('Your prediction')).toBeTruthy())
+    expect(screen.queryByRole('link', { name: /Open Matchweek/ })).toBeNull()
   })
 })

@@ -11,6 +11,21 @@ import {
 } from '../../app/weeklyRoutes'
 import styles from './SeasonGameSubNav.module.css'
 
+/**
+ * A game's own secondary navigation.
+ *
+ * IT LISTS ONLY WHAT EXISTS. Every item used to be declared whether or not it
+ * had a destination, and one without was rendered as a greyed span titled "Not
+ * built yet" — nine of them across the three games, three of the four on Last
+ * Man Standing, so its navigation read as four tabs of which one worked. A
+ * label that cannot be pressed is not navigation; it is a roadmap printed on
+ * the furniture, and it is what a player means by an unclickable button.
+ *
+ * `href: null` stays expressible and is filtered rather than deleted from the
+ * type: it is how the Championship's History and the Match Predictor's Trends
+ * remain recorded as intended sections in the one place that would otherwise
+ * forget them. They return, from this same list, when they have a page.
+ */
 type Item = {
   key: string
   label: string
@@ -94,43 +109,63 @@ export function SeasonGameSubNav({ game }: { game: DomesticGameRoute }) {
 
   const base = competitionGameRoute(ref, game)
   const gamesHref = competitionSectionRoute(ref, 'games')
-  const { active, items } = itemsFor(game, pathname)
+  const { active, items: declared } = itemsFor(game, pathname)
+  // The active item keeps its place though it is not a link: it is where the
+  // player is, which is the one label that needs no destination.
+  const items = declared.filter((item) => item.href !== null || item.key === active)
+  // A navigation with nowhere else to go is not a navigation. Last Man Standing
+  // has exactly one built section, so it renders its parent link and its page
+  // rather than a lone tab restating where the player already is.
+  const navigable = items.some((item) => item.key !== active)
   const instanceId = game === 'championship' ? championshipInstanceId(pathname, base) : null
   const backHref = instanceId ? base : gamesHref
   const backLabel = instanceId ? 'Back to Championships' : 'Back to Games'
+  // The game's own root already has its parent from the competition shell, so
+  // this component's back link is for the level below it.
+  const back = pathname === base ? null : { href: backHref, label: backLabel }
+
+  // With the unbuilt sections gone, a game at its own root can have neither a
+  // back link nor a second destination — Last Man Standing today. An empty
+  // wrapper would still occupy its gap in the page's flex column, so it renders
+  // nothing at all rather than blank space above the content.
+  if (!back && !navigable) return null
 
   return (
     <div className={styles.wrap}>
-      {pathname !== base ? (
-        <Link className={styles.back} to={backHref}>
-          {backLabel}
+      {back ? (
+        <Link className={styles.back} to={back.href}>
+          {back.label}
         </Link>
       ) : null}
-      <nav
-        className={styles.nav}
-        aria-label={`${GAME_NAMES[game]} navigation`}
-        tabIndex={0}
-      >
-        <ul className={styles.list}>
-          {items.map((item) => (
-            <li key={item.key}>
-              {item.key === active ? (
-                <span className={styles.active} aria-current="page">
-                  {item.label}
-                </span>
+      {navigable ? (
+        <nav
+          className={styles.nav}
+          aria-label={`${GAME_NAMES[game]} navigation`}
+          tabIndex={0}
+        >
+          <ul className={styles.list}>
+            {items.map((item) =>
+              item.key === active ? (
+                <li key={item.key}>
+                  <span className={styles.active} aria-current="page">
+                    {item.label}
+                  </span>
+                </li>
               ) : item.href ? (
-                <Link className={styles.link} to={item.href}>
-                  {item.label}
-                </Link>
-              ) : (
-                <span className={styles.disabled} aria-disabled="true" title="Not built yet">
-                  {item.label}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </nav>
+                <li key={item.key}>
+                  <Link className={styles.link} to={item.href}>
+                    {item.label}
+                  </Link>
+                </li>
+              ) : // Unreachable: the filter above keeps only linked items and
+              // the active one. Left as a null branch rather than a non-null
+              // assertion, so a future edit to the filter degrades to a missing
+              // label instead of a link pointing at the wrong page.
+              null,
+            )}
+          </ul>
+        </nav>
+      ) : null}
     </div>
   )
 }

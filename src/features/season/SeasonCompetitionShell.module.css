@@ -123,9 +123,10 @@
   white-space: nowrap;
 }
 
+/* There is no `.subNavDisabled`. An unavailable section is absent, not greyed
+   — see the component. */
 .subNavActive,
-.subNavLink,
-.subNavDisabled {
+.subNavLink {
   display: inline-block;
   padding: var(--sp-2) var(--sp-3);
   border-radius: var(--radius-pill);
@@ -140,11 +141,6 @@
   border: 1px solid var(--acc);
   color: var(--tx);
   font-weight: 600;
-}
-
-.subNavDisabled {
-  border: 1px solid transparent;
-  color: var(--tx3);
 }
 
 .subNavLink {
