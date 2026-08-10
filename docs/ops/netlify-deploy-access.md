@@ -82,15 +82,52 @@ The route that remains — and the one that produced the 10 August release — i
 
 The *mechanism* is what moved. A project read at 11:0x showed `requiresSSOTeamLogin: true` across all contexts with `requiresPassword: false`. A read at 11:26, minutes after the release, showed the reverse: `requiresPassword: true` with `whichProjectsRequirePassword: "all"`, and `requiresSSOTeamLogin: false`.
 
-Nothing in the release changed it. The only Netlify write in the release was `EURO28_DEPLOYED_DB_CONTRACT` in the production context, and an environment variable cannot move an access control. **This needs an owner confirmation that the switch from Team SSO to password protection was deliberate.** Until it is confirmed, treat the perimeter as holding but its mechanism as unverified, and do not describe production as "behind Team SSO" without re-reading the project.
+Nothing in the release changed it. The only Netlify write in the release was `EURO28_DEPLOYED_DB_CONTRACT` in the production context, and an environment variable cannot move an access control.
 
-Either way this is not a public launch, and `AGE-001` remains accepted and unbuilt.
+**The owner confirmed on 10 August 2026 that the switch was deliberate**: site password protection is easier to hold open while testing the real application than Team SSO, and the owner's position is that nothing private sits behind it. The perimeter is therefore **site password protection on all contexts**, by decision, and Team SSO is off.
+
+Two things follow, and neither is softened by the confirmation.
+
+The password is a **convenience perimeter, not a confidentiality control**. It keeps the site out of public view and out of search indexes; it is not a reason to place anything behind it that would matter if the password leaked. Real access control stays where it already is: Supabase row-level security, the bounded RPCs and the server-enforced reveal rules. Production holds one auth user and 36 match predictions today, and that data is protected by the database, not by Netlify.
+
+The perimeter is **not** `AGE-001`. ADR 0026's 18+ restriction on the initial external cohort is accepted and unimplemented, and a shared password is not a substitute for it. This remains not a public launch.
+
+### Sharing the password
+
+The password must not be pasted into an agent session transcript. It has no use there — the session egress policy blocks `euro28predictor.com` outright, so an agent cannot reach the site with or without it.
+
+Where it has a use is a GitHub Actions runner, which can reach the site. It therefore belongs in a repository secret and is referenced by name from a workflow, so that no transcript, log, pull request or file in this repository ever contains the value.
 
 ### The anonymous smoke cannot pass while the site is protected
 
 `production-smoke.yml` fetches `https://euro28predictor.com/release.json` with plain `curl` and no credentials, then retries 120 times before failing. Against a protected site every attempt is a 401, so **the workflow fails by construction regardless of what was published** — it would have failed identically before this release. Its failure is therefore not evidence about the artifact, in either direction.
 
-This is the same limitation already recorded for protected previews: team-login protection is human-authenticated and offers no supported non-interactive session for GitHub Actions. The gap is that the release gate names a smoke the perimeter forbids. Closing it needs either a deliberately unprotected release-identity endpoint or an authenticated smoke path, and that is a decision, not a fix to apply in passing.
+This is the same limitation already recorded for protected previews. The gap is that the release gate names a smoke the perimeter forbids.
+
+**The password makes it closable**, which team login did not. The intended shape is two assertions rather than one, because an authenticated-only smoke would be weaker than today's evidence in one respect — it would stop proving that an anonymous visitor is refused:
+
+1. **Anonymous** — request `/release.json` with no credential and require **401**. This asserts the perimeter holds, and it is the check that currently fails by accident rather than by design.
+2. **Authenticated** — repeat the existing release-identity, security-header and browser assertions with the site credential supplied from a repository secret.
+
+Two things must be settled before writing it, and neither should be guessed:
+
+- **The mechanism.** Netlify's site password protection is a login form, not HTTP Basic auth; Basic-Auth-via-`_headers` is a different feature. The exact non-interactive exchange has to be established **empirically on a runner**, because the session egress policy blocks the site. A probe step that prints status codes only — never the credential, never a response body — is the way to establish it.
+- **The secret.** The value is added to repository secrets by the owner and referenced by name. It is never echoed, never written to a log, never committed, and never placed in a workflow `run:` line where it could reach a diagnostic dump.
+
+### A stale allowance the release has now unblocked
+
+`scripts/production-smoke.mjs` accepts **either** brand in the application title:
+
+```js
+// Contract-65 bundles brand the global shell "Football Prediction Hub"
+// (PR #357); production remains paused on a pre-rename bundle until its next
+// intentional release, so both brands are valid until then. Retire the
+// legacy form when production moves past contract 63.
+```
+
+Production has now moved past contract 63 — it is at 145 — so that allowance has met its own retirement condition and the legacy `Euro 2028 Predictor` form should be dropped, leaving `Football Prediction Hub` as the only accepted title.
+
+It is **not** retired in the same change that records this, deliberately. The smoke cannot currently run, so tightening an assertion here would be tightening it blind against an artifact nobody has read. Retire it in the same change that makes the smoke runnable, where the first authenticated run proves the published title before the looser branch is deleted.
 
 ## Reporting distinctions
 
