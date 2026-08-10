@@ -334,6 +334,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
+          # The repository moves faster than a pinned boundary, and it has:
+          # contract 145 (20260810010000_rate_limit_atomicity) landed on main
+          # while this workflow was being repaired. `supabase db push` applies
+          # everything pending, so without this it would carry contract 145
+          # into a rehearsal authorised only to 144.
+          #
+          # Anything above the target is moved out of the tree for the duration
+          # and restored by the step below, which runs even on failure. This is
+          # the pattern production-batch-a-rollout.yml already uses for exactly
+          # this situation. The pinned boundary is preserved rather than
+          # widened: the authorised set is the twelve, and contract 145 is not
+          # in it.
+          mkdir -p "${WORK_DIR}/later-migrations"
+          : > "${WORK_DIR}/moved-files.txt"
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            filename="$(basename "${file}")"
+            version="${filename:0:14}"
+            if [[ "${version}" > "${TARGET_VERSION}" ]]; then
+              mv "${file}" "${WORK_DIR}/later-migrations/${filename}"
+              printf '%s\n' "${file}" >> "${WORK_DIR}/moved-files.txt"
+            fi
+          done
+          if [ -s "${WORK_DIR}/moved-files.txt" ]; then
+            echo 'Held back as ABOVE the pinned target, not rehearsed here:'
+            cat "${WORK_DIR}/moved-files.txt"
+          fi
+
           supabase db push --db-url "${LOCAL_DB_URL}" --dry-run \
             > "${WORK_DIR}/dry-run.txt" 2>&1
           cat "${WORK_DIR}/dry-run.txt"
@@ -363,6 +391,23 @@ jobs:
           }
 
           supabase db push --db-url "${LOCAL_DB_URL}" 2>&1 | tee "${WORK_DIR}/apply.txt"
+
+      - name: Restore the repository migration tree in the runner
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Runs even when the rehearsal failed, so a later step or a rerun on
+          # this runner never sees a tree with migrations missing.
+          if [ -f "${WORK_DIR}/moved-files.txt" ]; then
+            while IFS= read -r file; do
+              [ -n "${file}" ] || continue
+              filename="$(basename "${file}")"
+              if [ -e "${WORK_DIR}/later-migrations/${filename}" ]; then
+                mv "${WORK_DIR}/later-migrations/${filename}" "${file}"
+              fi
+            done < "${WORK_DIR}/moved-files.txt"
+          fi
 
       - name: Verify the rehearsed result reaches exactly contract 144
         shell: bash
