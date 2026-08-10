@@ -130,9 +130,13 @@ select is(
   'Matchweek 1',
   'it carries its matchweek label');
 
-select ok(
-  (public.get_season_fixture(current_setting('test.cat_fixture')::uuid)
-     -> 'fixture' -> 'result') is null,
+-- `jsonb -> key` returns JSON null, not SQL NULL, when the key holds a null.
+-- `is null` would therefore be false however the function behaved, so the type
+-- is what has to be asserted -- and it is what a browser actually receives.
+select is(
+  jsonb_typeof(public.get_season_fixture(current_setting('test.cat_fixture')::uuid)
+    -> 'fixture' -> 'result'),
+  'null',
   'a fixture that has not been played reports no result');
 
 -- Contract 136/137's club identity is joined here too, not only in the list.
