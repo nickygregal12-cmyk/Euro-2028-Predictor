@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **145** | latest `20260810010000_rate_limit_atomicity.sql` |
 | Development hosted | **145** | at `20260810010000_rate_limit_atomicity.sql`, verified `2026-08-10T09:55:52.724Z`, fast-lane run `31376619737` |
-| Production | **144** | promotion **not authorised** |
+| Production | **145** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
