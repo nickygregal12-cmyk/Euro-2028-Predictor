@@ -8,13 +8,13 @@ This is the operational migration inventory. Machine-readable hosted state is au
 
 ## Current state — 10 August 2026 (sixteenth entry)
 
-**Contract 146, contract 147 and contract 148 are the repository candidate and are applied to neither hosted environment.** They are being accumulated as one batch before rollout, at the owner's direction, rather than promoted one at a time.
+**Contract 146, contract 147, contract 148 and contract 149 are the repository candidate and are applied to neither hosted environment.** They are being accumulated as one batch before rollout, at the owner's direction, rather than promoted one at a time.
 
 Contract 146 makes the provider poll affordable and makes its question move. Contract 147 and contract 148 close two of the `MIG-UI-*` backend gaps the UI finalisation work registered: `MIG-UI-12`, the published weekly catalogue carrying the **route slug** a URL is built from — publishing a league previously needed a frontend code change for it to exist — and `MIG-UI-11`, one season fixture addressed by its own id, so an addressable Match Centre link no longer has to carry the fixture's day as a hint.
 
 Contract 147 returns **league seasons only**, which is an `EURO-001` safety property and not a filter of convenience: a catalogue enumerating `tournaments` without discriminating on kind would put Euro 2028 on the weekly platform's own discovery surface. It excludes drafts, so Production correctly returns nothing there until a season is opened.
 
-**Still to be added to this batch, at the owner's direction:** `MIG-UI-01` (league-wide prediction reveal), `MIG-UI-03` (league rank movement) and `MIG-UI-02` (player profile and prediction history). `MIG-UI-04`, `MIG-UI-08` and `MIG-UI-09` are marked not-blockers by the register itself; `MIG-UI-05`, `MIG-UI-06` and `MIG-UI-10` are a separate and larger workstream and are not in this batch.
+**Contract 149 adds `MIG-UI-01`** — the league-wide prediction reveal, gated on the matchweek's own lock. **Still to be added to this batch:** `MIG-UI-03` (league rank movement) and `MIG-UI-02` (player profile and prediction history). `MIG-UI-04`, `MIG-UI-08` and `MIG-UI-09` are marked not-blockers by the register itself; `MIG-UI-05`, `MIG-UI-06` and `MIG-UI-10` are a separate and larger workstream and are not in this batch.
 
 **The `MIG-UI-*` register itself is not yet on `main`** — it lives on the unmerged UI finalisation branch, so the identifiers above are traceable only there until that branch lands.
 
