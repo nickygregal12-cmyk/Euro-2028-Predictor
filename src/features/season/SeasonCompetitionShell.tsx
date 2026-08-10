@@ -3,11 +3,11 @@ import { Link, useLocation } from 'react-router'
 import { Workspace } from '../../design-system'
 import {
   competitionRefFromPath,
-  competitionRoute,
   competitionSectionRoute,
   logicalWeeklyParent,
   weeklyRoutes,
 } from '../../app/weeklyRoutes'
+import { CompetitionSwitcher } from './CompetitionSwitcher'
 import styles from './SeasonCompetitionShell.module.css'
 
 /**
@@ -72,7 +72,7 @@ export function SeasonCompetitionShell({
   width = 'reading',
   children,
 }: SeasonCompetitionShellProps) {
-  const { pathname, search, hash } = useLocation()
+  const { pathname } = useLocation()
   const ref = competitionRefFromPath(pathname)
   const gamesPath = ref ? competitionSectionRoute(ref, 'games') : null
   const effectiveActive: SeasonShellSection =
@@ -80,17 +80,6 @@ export function SeasonCompetitionShell({
       ? 'games'
       : active
   const parent = logicalWeeklyParent(pathname)
-  const switchRef = ref
-    ? {
-        competitionSlug:
-          ref.competitionSlug === 'premier-league' ? 'scottish-premiership' : 'premier-league',
-        seasonSlug: '2026-27',
-      }
-    : null
-  const switchLabel = ref?.competitionSlug === 'premier-league' ? 'Scottish Premiership' : 'Premier League'
-  const switchHref = ref && switchRef
-    ? `${pathname.replace(competitionRoute(ref), competitionRoute(switchRef))}${search}${hash}`
-    : null
 
   return (
     <div className={styles.shell}>
@@ -106,11 +95,11 @@ export function SeasonCompetitionShell({
         <p className={styles.eyebrow}>{seasonLabel}</p>
         <div className={styles.mastheadRow}>
           <h1 className={styles.name}>{competitionName}</h1>
-          {switchHref ? (
-            <Link className={styles.switcherLink} to={switchHref}>
-              Switch to {switchLabel}
-            </Link>
-          ) : null}
+          {/* A compact selector rather than "Switch to <the other one>". That
+              control chose its destination with an `if` on two slugs and a
+              hard-coded season — the two-competition world written into the
+              code. */}
+          <CompetitionSwitcher competitionName={competitionName} />
         </div>
         {statusStrip.length > 0 ? (
           <dl className={styles.status}>

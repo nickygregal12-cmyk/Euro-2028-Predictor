@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router'
 import { describe, expect, it } from 'vitest'
 import { SeasonCompetitionShell } from '../../../src/features/season/SeasonCompetitionShell'
 import { seasonShellDestinations } from '../../../src/features/season/seasonDestinations'
+import { PlayerCompetitionsProvider } from '../../../src/app/providers/PlayerCompetitionsProvider'
 
 const BASE = '/competitions/premier-league/2026-27'
 const SCOTTISH = '/competitions/scottish-premiership/2026-27'
@@ -10,6 +11,11 @@ const SCOTTISH = '/competitions/scottish-premiership/2026-27'
 function renderShell(path: string, active: 'overview' | 'play' | 'matches' | 'games' | 'leagues') {
   render(
     <MemoryRouter initialEntries={[path]}>
+      {/* The masthead's competition selector reads the shell's membership. In
+          a test there is no provider answer, so it renders its loading shape —
+          which is the state these assertions want anyway: the shell's own
+          navigation must be right before any read returns. */}
+      <PlayerCompetitionsProvider>
       <SeasonCompetitionShell
         competitionName="Premier League"
         seasonLabel="2026/27"
@@ -19,6 +25,7 @@ function renderShell(path: string, active: 'overview' | 'play' | 'matches' | 'ga
       >
         <p>Route content</p>
       </SeasonCompetitionShell>
+      </PlayerCompetitionsProvider>
     </MemoryRouter>,
   )
 }
@@ -59,19 +66,33 @@ describe('SeasonCompetitionShell', () => {
     expect(screen.getByRole('link', { name: 'Leagues' }).getAttribute('href')).toBe(`${BASE}/leagues`)
   })
 
-  it('offers a one-tap switch to the other domestic competition', () => {
+  /**
+   * The masthead used to carry "Switch to Scottish Premiership", built by
+   * asking whether the current slug was `premier-league` and picking the other
+   * one, with the season hard-coded. It was the clearest place the
+   * two-competition world was written into the code rather than the data, and
+   * on a platform of twenty competitions it would offer exactly one of them.
+   * These assertions are the record that it is gone.
+   */
+  it('offers a compact competition selector rather than one hard-coded rival', () => {
     renderShell(BASE, 'overview')
 
-    expect(
-      screen.getByRole('link', { name: 'Switch to Scottish Premiership' }).getAttribute('href'),
-    ).toBe(SCOTTISH)
+    expect(screen.queryByRole('link', { name: /Switch to/ })).toBeNull()
+    // The selector names the competition the player is in — the masthead
+    // heading says it too, which is why this asks the disclosure by role.
+    expect(screen.getByRole('group')).toHaveTextContent('Premier League')
+    expect(screen.getByRole('link', { name: 'All competitions' })).toHaveAttribute(
+      'href',
+      '/competitions',
+    )
   })
 
-  it('switches competition without dropping a deep route, query or hash', () => {
+  it('never assembles a destination from a second competition it was not told about', () => {
+    // With no membership answer there is no other competition to offer, and the
+    // selector says so rather than guessing at one.
     renderShell(`${BASE}/games/match-predictor/standings?view=month#you`, 'games')
 
-    expect(
-      screen.getByRole('link', { name: 'Switch to Scottish Premiership' }).getAttribute('href'),
-    ).toBe(`${SCOTTISH}/games/match-predictor/standings?view=month#you`)
+    const links = screen.getAllByRole('link').map((link) => link.getAttribute('href'))
+    expect(links.some((href) => href?.startsWith(SCOTTISH))).toBe(false)
   })
 })

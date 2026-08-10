@@ -251,7 +251,7 @@ describe('the season game routes', () => {
 
     renderRoute(<SeasonStandingsRoute />, STANDINGS, `${PREMIER}/games/match-predictor/standings`)
 
-    await waitFor(() => expect(screen.getByText('Premier League')).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Premier League' })).toBeTruthy())
     expect(screen.getByRole('navigation', { name: /sections/ })).toBeTruthy()
   })
 

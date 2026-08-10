@@ -60,6 +60,16 @@ export type FixtureListRow = {
   away: FixtureListClub
   /** "15:00" in the VIEWER's zone, or null when no kickoff is scheduled. */
   kickoff: string | null
+  /**
+   * The kickoff as the server sent it.
+   *
+   * CARRIED BESIDE THE FORMATTED TIME, not instead of it. A surface that
+   * compares fixtures across days — "which of these finished since Tuesday",
+   * "which is next" — cannot do it with "15:00", and re-parsing a localised
+   * string would be a second, worse formatter. It is an ordering fact and never
+   * a lock: whether a match has been played is still the server's `played`.
+   */
+  kickoffAt: string | null
   /** "Matchweek 5", printed only when the day carries more than one. */
   roundLabel: string | null
   /**
@@ -214,6 +224,7 @@ export function presentFixtureList(
         home: fixture.home,
         away: fixture.away,
         kickoff,
+        kickoffAt: fixture.kickoffAt,
         roundLabel: mixed ? fixture.round.label : null,
         round: { ordinal: fixture.round.ordinal, name: fixture.round.label },
         score: fixture.result ? `${fixture.result.home} - ${fixture.result.away}` : null,

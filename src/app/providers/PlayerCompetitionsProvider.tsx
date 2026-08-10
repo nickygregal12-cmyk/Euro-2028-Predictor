@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { fetchHubMembership } from '../../services/supabase/competitionGames'
 import { HUB_COMPETITIONS } from '../../features/hub/competitionCatalogue'
 import {
   presentPlayerCompetitions,
@@ -29,6 +28,14 @@ import {
  * IT MOUNTS INSIDE THE SIGNED-IN SHELL ONLY. A signed-out visitor has no
  * membership to read, and the landing page must not issue an authenticated
  * request to render.
+ *
+ * THE SUPABASE READ IS IMPORTED LAZILY, INSIDE THE EFFECT. Importing it at
+ * module scope pulls `services/supabase/client` — which throws at module load
+ * without configuration — into the graph of everything that renders the shell,
+ * including the competition masthead's switcher. That turned a presentational
+ * component into one that could not be rendered in a test or a harness without
+ * credentials, which is the seam the architecture rule about components and
+ * Supabase exists to keep clean.
  */
 
 export type PlayerCompetitionsState = {
@@ -51,20 +58,24 @@ export function PlayerCompetitionsProvider({ children }: { children: ReactNode }
   useEffect(() => {
     let active = true
     setStatus('loading')
-    fetchHubMembership(HUB_COMPETITIONS.map((competition) => competition.seasonRowName))
-      .then((seasons) => {
+    void (async () => {
+      try {
+        const { fetchHubMembership } = await import('../../services/supabase/competitionGames')
+        const seasons = await fetchHubMembership(
+          HUB_COMPETITIONS.map((competition) => competition.seasonRowName),
+        )
         if (!active) return
         setPlayer(presentPlayerCompetitions(HUB_COMPETITIONS, seasons))
         setStatus('ready')
-      })
-      .catch(() => {
+      } catch {
         if (!active) return
         // The previous answer is discarded rather than left on screen: a rail
         // that keeps showing a competition after the read that proved it failed
         // is asserting membership nothing confirmed.
         setPlayer(null)
         setStatus('failed')
-      })
+      }
+    })()
     return () => {
       active = false
     }

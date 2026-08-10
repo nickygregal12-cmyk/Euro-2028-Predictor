@@ -126,7 +126,7 @@ describe('with the flag on', () => {
     await waitFor(() =>
       expect(screen.getByText(/no matchweek left to play/i)).toBeInTheDocument(),
     )
-    expect(screen.getByText('Premier League')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Premier League' })).toBeInTheDocument()
     expect(screen.getByText('Games').getAttribute('aria-current')).toBe('page')
     expect(cardGateways).toHaveLength(0)
     vi.unstubAllEnvs()
