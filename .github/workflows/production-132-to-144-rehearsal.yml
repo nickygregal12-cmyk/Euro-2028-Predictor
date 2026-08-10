@@ -218,41 +218,93 @@ jobs:
           supabase init --force --workdir "${WORK_DIR}" >/dev/null 2>&1 || true
           supabase start --workdir "${WORK_DIR}"
 
-          # Read-only against Production: pg_dump only.
+          # ---------------------------------------------------------------
+          # READ-ONLY against Production. Dumps only.
           #
-          # The ABSOLUTE path is required, not stylistic. Bare `pg_dump` on this
-          # runner image resolves to Ubuntu's default 16 client, and pg_dump
-          # refuses outright against a newer server:
+          # The ABSOLUTE pg_dump path is required, not stylistic: bare `pg_dump`
+          # on this runner resolves to Ubuntu's 16 client, which refuses against
+          # a 17.6 server outright. Run 31366046231 failed exactly there.
           #
-          #   pg_dump: error: aborting because of server version mismatch
-          #   detail: server version: 17.6; pg_dump version: 16.14
+          # This uses the Supabase-native four-file dump rather than one custom
+          # -format archive, because run 31367760639 proved the archive route
+          # does not reproduce Production. That run restored with
+          # `--no-privileges`, which strips the source ACLs; the fresh local
+          # stack's own ALTER DEFAULT PRIVILEGES then granted `anon` and
+          # `authenticated` on every restored public table. Contract 139 refused
+          # to apply onto it:
           #
-          # Production is Postgres 17.6, so the 17 client this job installs is
-          # the one that has to run. production-backup.yml already does this;
-          # the first run of this workflow did not, and failed here.
-          /usr/lib/postgresql/17/bin/pg_dump "${SUPABASE_PROD_DB_URL}" \
-            --format=custom \
-            --no-owner \
-            --no-privileges \
-            --file "${WORK_DIR}/production.dump"
+          #   ERROR: season_fixtures must stay behind a bounded read, not a
+          #   table grant (SQLSTATE P0001)
+          #
+          # That refusal was CORRECT and the target was wrong. Live Production
+          # holds no such grant — measured read-only on both hosted projects,
+          # which return NONE. A rehearsal that does not carry privileges is not
+          # a rehearsal of Production.
+          # ---------------------------------------------------------------
+          mkdir -p "${WORK_DIR}/bundle"
+          cd "${WORK_DIR}/bundle"
 
-          /usr/lib/postgresql/17/bin/pg_restore \
-            --dbname "${LOCAL_DB_URL}" \
-            --no-owner \
-            --no-privileges \
-            --clean \
-            --if-exists \
-            "${WORK_DIR}/production.dump" 2>&1 | tail -40 || true
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file roles.sql --role-only
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file schema.sql
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file data.sql --use-copy --data-only \
+            -x storage.buckets_vectors -x storage.vector_indexes
+          /usr/lib/postgresql/17/bin/pg_dump \
+            --dbname "${SUPABASE_PROD_DB_URL}" \
+            --schema supabase_migrations --no-owner --no-privileges \
+            --file migration-history.sql
 
-          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
-            select count(*) from supabase_migrations.schema_migrations
-          " > "${WORK_DIR}/restored-count.txt"
-          restored="$(cat "${WORK_DIR}/restored-count.txt")"
+          for required in roles.sql schema.sql data.sql migration-history.sql; do
+            [ -s "${required}" ] || { echo "ERROR: dump is empty: ${required}"; exit 1; }
+          done
+
+          cd "${GITHUB_WORKSPACE}"
+
+          # Restore order matters and is the source of the defect above.
+          #
+          # prepare-disposable-restore-target.sql revokes the TARGET's default
+          # table privileges before any object exists, so restored objects
+          # cannot inherit grants the source revoked. Its own header says to run
+          # it after roles.sql and before schema.sql. production-batch-a-
+          # rehearsal.yml copies that file into its bundle and never executes
+          # it; this workflow executes it, which is the difference between a
+          # faithful target and the one contract 139 rejected.
+          cd "${WORK_DIR}/bundle"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file roles.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --file "${GITHUB_WORKSPACE}/scripts/database-rollout/prepare-disposable-restore-target.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file schema.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --command 'SET session_replication_role = replica' --file data.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --file "${GITHUB_WORKSPACE}/scripts/database-rollout/managed-schema-customizations.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file migration-history.sql
+          cd "${GITHUB_WORKSPACE}"
+
+          restored="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c \
+            'select count(*) from supabase_migrations.schema_migrations')"
           [ "${restored}" = "${SOURCE_CONTRACT}" ] || {
             echo "ERROR: restored target holds ${restored} migrations, expected ${SOURCE_CONTRACT}."
             exit 1
           }
-          echo "Disposable target restored at contract ${restored} from Production-shaped data."
+
+          # Prove the target actually carries Production's privilege shape
+          # before rehearsing onto it, rather than discovering it eight
+          # migrations in. This is the specific condition run 31367760639 got
+          # wrong, so it is now checked directly.
+          leaked="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c \
+            "select count(*) from information_schema.role_table_grants
+              where table_schema = 'public'
+                and table_name = 'season_fixtures'
+                and grantee in ('anon','authenticated')")"
+          [ "${leaked}" = "0" ] || {
+            echo "ERROR: restored target grants season_fixtures to browser roles (${leaked} grants); Production grants none."
+            echo 'The restore did not carry the source privilege shape, so this is not a rehearsal of Production.'
+            exit 1
+          }
+          echo "Disposable target restored at contract ${restored} with Production's privilege shape."
 
       - name: Rehearse the forward apply on the disposable target
         shell: bash
@@ -341,12 +393,17 @@ jobs:
           console.log('Rehearsal reached exactly contract 144 with every boundary intact.')
           NODE
 
-      - name: Shred the dump and stop the disposable target
+      - name: Shred the plaintext dumps and stop the disposable target
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f "${WORK_DIR}/production.dump" ]; then
-            shred -u "${WORK_DIR}/production.dump" || rm -f "${WORK_DIR}/production.dump"
+          # data.sql carries auth.users in the clear. This job uploads no
+          # artifact, so the bundle must not survive the runner either. `find`
+          # rather than a named file: the dump is four files now, and a rename
+          # must not silently stop shredding one of them.
+          if [ -d "${WORK_DIR}/bundle" ]; then
+            find "${WORK_DIR}/bundle" -type f -exec shred -u {} + 2>/dev/null || true
+            rm -rf "${WORK_DIR}/bundle"
           fi
           supabase stop --no-backup --workdir "${WORK_DIR}" || true
