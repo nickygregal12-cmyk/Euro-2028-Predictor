@@ -5,6 +5,10 @@ import { RouteFallback } from './RouteFallback'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useTheme } from './providers/ThemeProvider'
 import { railGroups } from './railDestinations'
+import {
+  PlayerCompetitionsProvider,
+  usePlayerCompetitions,
+} from './providers/PlayerCompetitionsProvider'
 import { useRailCollapsed } from './useRailCollapsed'
 import { globalNavTab, isCompetitionModePath } from './shellRoutes'
 
@@ -34,19 +38,36 @@ const TAB_CONTEXT: Record<NavKey, string> = {
  * still unmistakable.
  *
  * ON DESKTOP THE SAME NAVIGATION IS A PERSISTENT LEFT RAIL. `PageShell` shows
- * exactly one of the two at any width; the rail's first group is the bar's five
+ * exactly one of the two at any width; the rail's first group is the bar's own
  * destinations in the bar's order, and the two groups beneath it are the extra
  * reach the width pays for.
+ *
+ * THE RAIL IS PERMANENTLY GLOBAL. It carries bounded shortcuts to the player's
+ * own competitions, each opening that competition's Overview, and never expands
+ * into a competition's sections — those live under the competition masthead in
+ * the content column, where both layers are visible at once because they answer
+ * different questions.
  */
 export function AppShell() {
+  return (
+    <PlayerCompetitionsProvider>
+      <SignedInFrame />
+    </PlayerCompetitionsProvider>
+  )
+}
+
+function SignedInFrame() {
   const location = useLocation()
   const navigate = useNavigate()
   const { displayName } = useAuth()
   const { theme, toggle } = useTheme()
   const rail = useRailCollapsed()
+  // One membership read for the whole shell. The rail's shortcuts are the
+  // server's answer about this player, never the catalogue's placeholder flags.
+  const { player } = usePlayerCompetitions()
   const competitionMode = isCompetitionModePath(location.pathname)
   const tab = globalNavTab(location.pathname)
-  const groups = useMemo(() => railGroups(location.pathname), [location.pathname])
+  const groups = useMemo(() => railGroups(player), [player])
 
   return (
     <PageShell

@@ -3,6 +3,7 @@ import { getRouteTitle } from '../../src/app/RouteAccessibility'
 import { declaredRoutes, redirectRoutes } from './declaredRoutes'
 
 const SAMPLE_PARAMS: Record<string, string> = {
+  fixtureId: 'fixture-1',
   code: 'ABC123',
   id: '42',
   rivalId: '42',

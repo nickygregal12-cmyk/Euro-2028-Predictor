@@ -55,14 +55,28 @@ const SeasonLeaguesRoute = lazy(() =>
     default: m.SeasonLeaguesRoute,
   })),
 )
-const CompetitionChooserPage = lazy(() =>
-  import('./features/hub/CompetitionChooserPage').then((m) => ({
-    default: m.CompetitionChooserPage,
+const GlobalPlayPage = lazy(() =>
+  import('./features/hub/GlobalPlayPage').then((m) => ({ default: m.GlobalPlayPage })),
+)
+const GlobalMatchesPage = lazy(() =>
+  import('./features/hub/GlobalMatchesPage').then((m) => ({ default: m.GlobalMatchesPage })),
+)
+const GlobalLeaguesPage = lazy(() =>
+  import('./features/hub/GlobalLeaguesPage').then((m) => ({ default: m.GlobalLeaguesPage })),
+)
+const ExploreCompetitionsPage = lazy(() =>
+  import('./features/hub/ExploreCompetitionsPage').then((m) => ({
+    default: m.ExploreCompetitionsPage,
   })),
 )
 const SeasonMatchesRoute = lazy(() =>
   import('./features/season/SeasonMatchesRoute').then((m) => ({
     default: m.SeasonMatchesRoute,
+  })),
+)
+const SeasonMatchCentreRoute = lazy(() =>
+  import('./features/season/SeasonMatchCentreRoute').then((m) => ({
+    default: m.SeasonMatchCentreRoute,
   })),
 )
 const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
@@ -187,9 +201,17 @@ export default function App() {
                 <Route element={<RequireWelcome />}>
                   <Route element={<AppShell />}>
                     <Route path={weeklyRoutes.hub} element={<HubPage />} />
-                    <Route path={weeklyRoutes.play} element={<CompetitionChooserPage section="play" title="Play" />} />
-                    <Route path={weeklyRoutes.matches} element={<CompetitionChooserPage section="matches" title="Matches" />} />
-                    <Route path={weeklyRoutes.leagues} element={<CompetitionChooserPage section="leagues" title="Leagues" />} />
+                    {/* The three global destinations are destinations in
+                        their own right, not competition choosers: an action
+                        inbox, one combined football calendar and all the
+                        player's private play. The chooser they replaced asked
+                        which competition before answering anything, which got
+                        worse with every competition the platform adds. */}
+                    <Route path={weeklyRoutes.play} element={<GlobalPlayPage />} />
+                    <Route path={weeklyRoutes.matches} element={<GlobalMatchesPage />} />
+                    <Route path={weeklyRoutes.leagues} element={<GlobalLeaguesPage />} />
+                    {/* The catalogue, as deliberate discovery. Not a tab. */}
+                    <Route path={weeklyRoutes.competitions} element={<ExploreCompetitionsPage />} />
                     <Route path={weeklyRoutes.more} element={<MorePage />} />
 
                     <Route
@@ -203,6 +225,10 @@ export default function App() {
                     <Route
                       path={weeklyRoutePatterns.matches}
                       element={<SeasonMatchesRoute />}
+                    />
+                    <Route
+                      path={weeklyRoutePatterns.matchCentre}
+                      element={<SeasonMatchCentreRoute />}
                     />
                     <Route
                       path={weeklyRoutePatterns.games}

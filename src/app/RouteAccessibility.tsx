@@ -17,6 +17,7 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: weeklyRoutes.matches, title: 'Matches' },
   { path: '/fixtures', title: 'Matches' },
   { path: weeklyRoutes.leagues, title: 'Leagues' },
+  { path: weeklyRoutes.competitions, title: 'All competitions' },
   { path: '/league', title: 'Leagues' },
   { path: '/league/:id', title: 'League details' },
   { path: '/h2h/:rivalId', title: 'Head-to-head' },
@@ -61,6 +62,10 @@ const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: s
   [weeklyRoutePatterns.championshipWildcard, 'Predictor Championship'],
   [weeklyRoutePatterns.lms, 'Last Man Standing'],
   [weeklyRoutePatterns.games, 'Games'],
+  // Before the section it sits under, because `matchPath` with `end: true`
+  // would otherwise never reach it — a fixture route is a longer path, not a
+  // different one.
+  [weeklyRoutePatterns.matchCentre, 'Match Centre'],
   [weeklyRoutePatterns.matches, 'Matches'],
   [weeklyRoutePatterns.leagues, 'Leagues'],
   [weeklyRoutePatterns.play, 'Play'],

@@ -42,6 +42,7 @@ import {
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
 import { railGroups } from '../app/railDestinations'
+import { twentyCompetitionPlayer } from './scaleFixture'
 import { PointsBreakdown } from '../features/scoring'
 import type { ScoreEvent } from '../domain/tournament/scoreEvents'
 import {
@@ -666,16 +667,22 @@ const SHARE_MODEL: ShareCardModel = {
  */
 function SideRailDemo() {
   const [collapsed, setCollapsed] = useState(false)
+  // THE TWENTY-COMPETITION PLATFORM, not the two-competition one. The binding
+  // scalability requirement is that seventeen extra published competitions do
+  // not make ordinary navigation noisy, and the only way to see whether the
+  // rail holds it is to render it against that catalogue. The player plays in
+  // three; the rail should show three rows and one Explore link.
+  const player = twentyCompetitionPlayer()
   return (
     <div className={styles.railFrame}>
       <SideRail
-        groups={railGroups('/competitions/premier-league/2026-27/games/lms')}
+        groups={railGroups(player)}
         pathname="/competitions/premier-league/2026-27/games/lms"
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />
       <SideRail
-        groups={railGroups('/')}
+        groups={railGroups(player)}
         pathname="/"
         collapsed
         onToggleCollapsed={() => {}}

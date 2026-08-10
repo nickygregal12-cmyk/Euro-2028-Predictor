@@ -3,125 +3,51 @@ import {
   BallIcon,
   CalendarIcon,
   CardsIcon,
+  GlobeIcon,
   HomeIcon,
   InfoIcon,
   MoreIcon,
   TrophyIcon,
 } from '../design-system/icons'
-import { HUB_COMPETITIONS, competitionPath } from '../features/hub/competitionCatalogue'
-import { isNextUi } from './routeFlags'
-import {
-  competitionGameRoute,
-  competitionRefFromPath,
-  competitionSectionRoute,
-  weeklyRoutes,
-} from './weeklyRoutes'
+import { competitionPath } from '../features/hub/competitionCatalogue'
+import type { PlayerCompetitions } from '../features/hub/playerCompetitions'
+import { weeklyRoutes } from './weeklyRoutes'
 
 /**
- * What the persistent desktop rail offers, derived from the pathname.
+ * What the persistent desktop rail offers.
+ *
+ * THE RAIL IS PERMANENTLY GLOBAL AND NEVER BECOMES A COMPETITION TREE. That is
+ * the 10 August 2026 navigation authority, and it is a correction to what this
+ * module did first: it expanded the competition the player was inside into
+ * Overview / Play / Matches / Games / Leagues, which put a second copy of the
+ * competition's own navigation in the frame beside the real one under the
+ * masthead. Two navigations answering the same question is worse than one, and
+ * the one in the content column is the one that belongs to the competition.
+ *
+ * THE TWO LAYERS ANSWER DIFFERENT QUESTIONS and are both visible on desktop:
+ * the rail answers "where am I going in the platform", the competition
+ * sub-navigation answers "where am I going inside this competition". A
+ * competition shortcut here opens that competition's OVERVIEW and nothing
+ * deeper.
+ *
+ * IT IS BOUNDED, BECAUSE TWENTY COMPETITIONS IS THE DESIGN TARGET. Only the
+ * player's own competitions appear, capped at `COMPETITION_SHORTCUT_LIMIT`,
+ * followed by All competitions. The rail's height is therefore a function of
+ * what the player plays, never of what the platform publishes — a platform with
+ * twenty published competitions and a player relevant to three renders three
+ * rows.
+ *
+ * IT CLAIMS NO MEMBERSHIP IT WAS NOT TOLD. The shortcuts come from the server's
+ * membership read through `PlayerCompetitions`, never from the presentation
+ * catalogue's `joined` flags, which are placeholders. While that read is in
+ * flight or after it fails, the group is the single Explore destination: an
+ * honest "here is where competitions are" rather than a guess at which are
+ * yours.
  *
  * WHY IT LIVES HERE AND NOT IN THE DESIGN SYSTEM. Which destinations exist is a
- * routing and catalogue fact; `SideRail` renders whatever it is handed. Keeping
- * the two apart is what lets this be a pure function with a test, and keeps the
- * design system free of route knowledge.
- *
- * THE FIRST GROUP IS THE BOTTOM BAR, EXACTLY. Same five destinations, same
- * order, so the rail is a presentation of the global navigation at a wider
- * width and not a second information architecture. Only the Leagues label
- * differs — "Leagues & Competitions" on desktop, as the direction specifies,
- * because there is room for the distinction to be made.
- *
- * THE COMPETITION GROUP IS DISCOVERY, NOT MEMBERSHIP. It lists the competitions
- * the platform runs. It must never be read as "your competitions": the
- * catalogue's `joined` flags are presentation placeholders, and a rail built on
- * them would confidently name competitions the player never entered. Each link
- * opens surfaces that read real membership from the server.
- *
- * NO DEAD LINKS. A nested game appears only where its route renders something:
- * the Match Predictor is behind `VITE_UI_SEASON_MATCH_PREDICTOR` and its route
- * answers `NotFoundPage` while that flag is off, so it is omitted rather than
- * offered. This is the same rule that removed the nine greyed sub-navigation
- * labels, applied before they can come back in a new place.
+ * routing and catalogue fact; `SideRail` renders whatever it is handed. That
+ * separation is what lets this be a pure function with a test.
  */
-
-function hubGroup(): RailGroup {
-  return {
-    key: 'hub',
-    links: [
-      { key: 'home', label: 'Home', href: weeklyRoutes.hub, Icon: HomeIcon },
-      { key: 'play', label: 'Play', href: weeklyRoutes.play, Icon: BallIcon },
-      { key: 'matches', label: 'Matches', href: weeklyRoutes.matches, Icon: CalendarIcon },
-      {
-        key: 'leagues',
-        // The desktop name. The bottom bar says "Leagues", which is short and
-        // familiar on a phone; the extra width here is spent making the
-        // distinction between a private league and a competition clearer.
-        label: 'Leagues & Competitions',
-        href: weeklyRoutes.leagues,
-        Icon: TrophyIcon,
-      },
-    ],
-  }
-}
-
-/**
- * The sections and games of the competition the player is currently inside,
- * indented under it. Only for the current one: expanding every competition at
- * once would make the rail a sitemap.
- */
-function competitionChildren(pathname: string, base: string): RailLink[] {
-  const ref = competitionRefFromPath(pathname)
-  if (!ref) return []
-  if (competitionSectionRoute(ref, 'overview') !== base) return []
-
-  const children: RailLink[] = [
-    {
-      key: 'overview',
-      label: 'Overview',
-      href: competitionSectionRoute(ref, 'overview'),
-      nested: true,
-    },
-    { key: 'play', label: 'Play', href: competitionSectionRoute(ref, 'play'), nested: true },
-    {
-      key: 'matches',
-      label: 'Matches',
-      href: competitionSectionRoute(ref, 'matches'),
-      nested: true,
-    },
-    { key: 'games', label: 'Games', href: competitionSectionRoute(ref, 'games'), nested: true },
-  ]
-
-  if (isNextUi('seasonMatchPredictor')) {
-    children.push({
-      key: 'match-predictor',
-      label: 'Match Predictor',
-      href: competitionGameRoute(ref, 'match-predictor'),
-      nested: true,
-    })
-  }
-  children.push(
-    {
-      key: 'lms',
-      label: 'Last Man Standing',
-      href: competitionGameRoute(ref, 'lms'),
-      nested: true,
-    },
-    {
-      key: 'championship',
-      label: 'Predictor Championship',
-      href: competitionGameRoute(ref, 'championship'),
-      nested: true,
-    },
-    {
-      key: 'competition-leagues',
-      label: 'Leagues',
-      href: competitionSectionRoute(ref, 'leagues'),
-      nested: true,
-    },
-  )
-
-  return children
-}
 
 /**
  * "PL", "SP" — the initials of a competition's name.
@@ -132,7 +58,7 @@ function competitionChildren(pathname: string, base: string): RailLink[] {
  * gives two letters of that word so a single-word competition is not one
  * character.
  */
-function monogramOf(name: string): string {
+export function monogramOf(name: string): string {
   const words = name.split(/\s+/).filter(Boolean)
   if (words.length === 0) return '?'
   if (words.length === 1) return (words[0] as string).slice(0, 2).toUpperCase()
@@ -143,19 +69,48 @@ function monogramOf(name: string): string {
     .toUpperCase()
 }
 
-function competitionsGroup(pathname: string): RailGroup {
-  const links: RailLink[] = []
-  for (const competition of HUB_COMPETITIONS) {
-    const base = competitionPath(competition)
-    links.push({
-      key: competition.competitionSlug,
-      label: competition.name,
-      href: base,
-      monogram: monogramOf(competition.name),
-    })
-    links.push(...competitionChildren(pathname, base))
+function mainGroup(): RailGroup {
+  return {
+    key: 'main',
+    links: [
+      { key: 'home', label: 'Home', href: weeklyRoutes.hub, Icon: HomeIcon },
+      { key: 'play', label: 'Play', href: weeklyRoutes.play, Icon: BallIcon },
+      { key: 'matches', label: 'Matches', href: weeklyRoutes.matches, Icon: CalendarIcon },
+      // "Leagues", not "Leagues & Competitions". The label was widened on
+      // desktop and the authority narrowed it back: the page itself explains
+      // the difference between a private league and a private LMS or
+      // Championship competition, and a two-word navigation label is a worse
+      // place to teach it than the page that lists them.
+      { key: 'leagues', label: 'Leagues', href: weeklyRoutes.leagues, Icon: TrophyIcon },
+    ],
   }
-  return { key: 'competitions', title: 'Competitions', links }
+}
+
+function competitionsGroup(player: PlayerCompetitions | null): RailGroup {
+  const links: RailLink[] = []
+
+  for (const entry of player?.shortcuts ?? []) {
+    links.push({
+      key: entry.competition.seasonRowName,
+      label: entry.competition.name,
+      // The competition's OVERVIEW. Never a section, never a game: those are
+      // the content shell's, and putting one here would be the tree again.
+      href: competitionPath(entry.competition),
+      monogram: monogramOf(entry.competition.name),
+    })
+  }
+
+  // Always last and always present. It is where the rest of `mine` goes when
+  // the player has more than the rail shows, and it is the whole catalogue's
+  // only permanent entry point.
+  links.push({
+    key: 'explore',
+    label: 'All competitions',
+    href: weeklyRoutes.competitions,
+    Icon: GlobeIcon,
+  })
+
+  return { key: 'competitions', title: 'My competitions', links }
 }
 
 function moreGroup(): RailGroup {
@@ -170,6 +125,6 @@ function moreGroup(): RailGroup {
   }
 }
 
-export function railGroups(pathname: string): RailGroup[] {
-  return [hubGroup(), competitionsGroup(pathname), moreGroup()]
+export function railGroups(player: PlayerCompetitions | null): RailGroup[] {
+  return [mainGroup(), competitionsGroup(player), moreGroup()]
 }
