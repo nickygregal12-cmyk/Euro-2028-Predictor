@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
 import styles from './SeasonCompetitionForm.module.css'
 
@@ -36,6 +37,9 @@ export type SeasonCompetitionFormProps = {
 }
 
 export function SeasonCompetitionForm({ clubs, matches }: SeasonCompetitionFormProps) {
+  // Generated: the gallery renders this panel twice, once per theme, and a
+  // fixed id is a critical duplicate-id-aria the moment it does.
+  const headingId = useId()
   const played = clubs.filter((club) => club.played > 0)
   // Nothing settled yet is a real state and needs no panel: an empty table of
   // zeroes looks broken and says less than saying nothing.
@@ -53,8 +57,8 @@ export function SeasonCompetitionForm({ clubs, matches }: SeasonCompetitionFormP
   })
 
   return (
-    <section className={styles.panel} aria-labelledby="competition-form">
-      <h2 className={styles.heading} id="competition-form">
+    <section className={styles.panel} aria-labelledby={headingId}>
+      <h2 className={styles.heading} id={headingId}>
         Recent form
       </h2>
       <p className={styles.note}>

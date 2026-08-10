@@ -79,6 +79,16 @@ const SECTIONS = [
   'onboarding-games-and-review',
   'create-a-league-journey',
   'game-rules-disclosure',
+  // The contract 149/150/151 surfaces. Each needs a season, a league, a
+  // matchweek and a signed-in caller, so no route harness can render one and
+  // the gallery is the only place they can be photographed at all. Two visual
+  // properties matter here and no assertion holds either: that the hidden
+  // state shows no names AND no count, and that the phone layout is a
+  // purpose-built fixture list rather than the desktop matrix scaled down.
+  'league-matchweek-comparison',
+  'match-centre-your-leagues',
+  'season-player-profile',
+  'competition-recent-form',
 ] as const
 
 /**
@@ -101,7 +111,17 @@ const SECTIONS = [
  * "temporary" exemption from becoming the way new sections are added. The nine
  * UI-finalisation sections passed through it and are gone from it.
  */
-export const AWAITING_BASELINE: readonly string[] = []
+export const AWAITING_BASELINE: readonly string[] = [
+  // Declared 11 August 2026 with the contract 147–151 consumption. Their
+  // images come from a dispatch of `visual-contracts.yml` with
+  // `update_baselines` and `commit_baselines`, on the runner that will compare
+  // them — a container-rendered baseline differs by font build and graphics
+  // stack and would hand CI a failure nobody can act on.
+  'league-matchweek-comparison',
+  'match-centre-your-leagues',
+  'season-player-profile',
+  'competition-recent-form',
+]
 
 const WIDTHS = ['phone', 'desktop'] as const
 const THEMES = ['dark', 'light'] as const
