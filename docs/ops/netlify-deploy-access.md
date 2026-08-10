@@ -98,7 +98,13 @@ The password must not be pasted into an agent session transcript. It has no use 
 
 Where it has a use is a GitHub Actions runner, which can reach the site. It therefore belongs in a repository secret and is referenced by name from a workflow, so that no transcript, log, pull request or file in this repository ever contains the value.
 
-### The anonymous smoke cannot pass while the site is protected
+### The release smoke now runs — closed 10 August 2026
+
+`production-smoke.yml` run **`31397090845`** passed in full against published commit `be3efdff6ac9880e3385ae142d7f0485c5068649` at contract 145. The section below describes the gap as it stood before that run and is kept because it explains why the design is two assertions rather than one; the measured exchange behind the authenticated half is recorded in the header of `scripts/production-site-session.mjs`.
+
+The passing run also produced a finding of its own. Its route sweep failed first on `/predict`, a retired tournament path that `netlify.toml` deliberately 404s and the smoke's hand-written list still demanded 200 for. That list is now derived from netlify.toml's own 200 rules, which widened the sweep from eight routes to thirty-three.
+
+### The anonymous smoke could not pass while the site was protected
 
 `production-smoke.yml` fetches `https://euro28predictor.com/release.json` with plain `curl` and no credentials, then retries 120 times before failing. Against a protected site every attempt is a 401, so **the workflow fails by construction regardless of what was published** — it would have failed identically before this release. Its failure is therefore not evidence about the artifact, in either direction.
 
@@ -114,20 +120,11 @@ Two things must be settled before writing it, and neither should be guessed:
 - **The mechanism.** Netlify's site password protection is a login form, not HTTP Basic auth; Basic-Auth-via-`_headers` is a different feature. The exact non-interactive exchange has to be established **empirically on a runner**, because the session egress policy blocks the site. A probe step that prints status codes only — never the credential, never a response body — is the way to establish it.
 - **The secret.** The value is added to repository secrets by the owner and referenced by name. It is never echoed, never written to a log, never committed, and never placed in a workflow `run:` line where it could reach a diagnostic dump.
 
-### A stale allowance the release has now unblocked
+### A stale allowance the release unblocked — retired 10 August 2026
 
-`scripts/production-smoke.mjs` accepts **either** brand in the application title:
+`scripts/production-smoke.mjs` used to accept **either** brand in the application title, with its own comment saying to retire the legacy `Euro 2028 Predictor` form once production moved past contract 63. Production reached 145, so the condition it set itself was met.
 
-```js
-// Contract-65 bundles brand the global shell "Football Prediction Hub"
-// (PR #357); production remains paused on a pre-rename bundle until its next
-// intentional release, so both brands are valid until then. Retire the
-// legacy form when production moves past contract 63.
-```
-
-Production has now moved past contract 63 — it is at 145 — so that allowance has met its own retirement condition and the legacy `Euro 2028 Predictor` form should be dropped, leaving `Football Prediction Hub` as the only accepted title.
-
-It is **not** retired in the same change that records this, deliberately. The smoke cannot currently run, so tightening an assertion here would be tightening it blind against an artifact nobody has read. Retire it in the same change that makes the smoke runnable, where the first authenticated run proves the published title before the looser branch is deleted.
+It was retired in the change that made the smoke runnable rather than in the change that noticed it, deliberately: tightening an assertion against an artifact nobody had read would have been tightening it blind. Run `31397090845` proved the published title first, and only the current brand is accepted now.
 
 ## Reporting distinctions
 

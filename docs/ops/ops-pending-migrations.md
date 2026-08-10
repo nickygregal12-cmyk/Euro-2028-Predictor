@@ -6,7 +6,28 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (thirteenth entry)
+## Current state — 10 August 2026 (fourteenth entry)
+
+**The release smoke runs, and it passes.** `production-smoke.yml` run **`31397090845`** succeeded in full against published commit `be3efdff6ac9880e3385ae142d7f0485c5068649` at contract 145 — the anonymous perimeter assertion, the authenticated release-identity poll, the browser session, the HTTP smoke and the Playwright browser smoke. The thirteenth entry recorded that gate as unclosable in practice; it is closed.
+
+**The mechanism was measured, and the measurement contradicted the documentation.** A disposable probe ran five candidate exchanges from a runner. HTTP Basic auth was refused in both forms and the anonymous 401 carried **no `WWW-Authenticate` header at all**; a form POST of `password=` followed by the returned cookie answered 200 with our release identity. Netlify's site password is a login form, and Basic-Auth-via-`_headers` is a different feature that the public material conflates with it constantly. Building on that guess would have produced a smoke failing for a reason nobody could distinguish from a bad release.
+
+**It is two assertions rather than one.** An authenticated-only smoke would have been *weaker* than the accidental red it replaced, which at least proved an anonymous visitor was refused. So a credential-free request must now answer 401 before anything authenticates, and a 200 there is a stop rather than a warning — publishing is not a decision a workflow may take on the owner's behalf.
+
+**The first run that got far enough found a real defect.** Its route sweep failed on `/predict` — a retired tournament path that `src/App.tsx` no longer declares and `netlify.toml` deliberately sends to the 404 catch-all, but which the smoke's hand-written route list still demanded 200 for. The list is now derived from netlify.toml's own 200 rules, which widened the sweep from eight hand-listed routes to the thirty-three the configuration actually promises, including every parameterised competition, league, join, h2h and profile route — none of which had ever been checked against production. The same stale path was removed from the browser spec, where it could never have tested the signed-out gate it claimed to.
+
+**The legacy-brand allowance is retired**, in the change that made the smoke runnable rather than the one that noticed it, so the first authenticated run proved the published title before the looser branch was dropped.
+
+**What this did NOT do.** It proves the signed-out surface only. Nothing here shows what a logged-in player sees, and the honest expectation is that they would find the competitions empty: Production still holds zero season fixtures and `admin_open_season_competition` has never been run there. Euro 2028 is still `hidden`. `promotionAuthorised` stays `false`.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737`, independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+| Production Supabase | **145** | Rollout run `31379974246` gated on backup `31378953968` and rehearsal `31379390093`; independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+| Published production artifact | **145** | Deploy from `be3efdff…`, verified end to end by passing smoke run `31397090845`: perimeter, release identity, security headers, thirty-three routes, 404 catch-all and signed-out browser journeys. | LEVEL AND SMOKE-VERIFIED |
+
+## Superseded — 10 August 2026 (thirteenth entry)
 
 **The published application moved for the first time since 30 July, and every one of the four rows is now at contract 145.** Deploy **`6a79b4d5a5e45e0008beec70`** from commit `ff1fe15db680dd5f5f6698749a8371aba2584cec`, published 11:24:44Z, build time 38 seconds, 38 files, 35 redirect rules, 1 header rule, no functions, 1651 files secret-scanned with zero matches. The rollback target is the deploy it replaced, `6a6bac566b6e440008d44e5b`.
 
