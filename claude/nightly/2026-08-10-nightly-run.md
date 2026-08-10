@@ -13,7 +13,7 @@ than rewritten.
 
 **Session branch:** `claude/cool-lamport-lsdx69`
 **Batch:** Contract 145 — the rate limiter decides atomically (risk register `DATA-007`)
-**Merge outcome:** **held for your review.** It is a database migration and it changes an abuse-control enforcement path. Green CI is the precondition for your decision, not a substitute for it.
+**Merge outcome:** held for owner review by this session, and **subsequently merged by the owner** as `2395f1c` at 08:39 UTC on 10 August 2026. See the correction at the end of section 5 — the rest of this report is left as it was written at 03:29 UTC.
 
 This is an unattended run's report. Everything below is stated as evidence or as
 an assumption, never as a hope. Where a suite could not run in this environment,
@@ -268,6 +268,46 @@ hosted environment by this merge. Development receives contract 145 only through
 the guarded additive fast lane; Production only through its own separately
 approved promotion, which remains blocked on `SUPABASE_PROD_DB_URL` naming the
 IPv6-only direct host.
+
+### Correction — the real outcome, recorded 10 August 2026
+
+Everything above this heading is left exactly as it was written at 03:29 UTC. It
+was accurate then and is now wrong about one thing, so this says what happened
+rather than editing the record to look prescient.
+
+**PR #632 was merged by the owner as `2395f1c` at 08:39 UTC**, roughly five hours
+after it opened, with all fourteen checks green. The hold did what a hold is for:
+the decision was taken by the person entitled to take it, on evidence, rather
+than by an unattended session. The report should not go on claiming the PR is
+open.
+
+**Merged `main` was re-verified afterwards, because #632 did not land on the
+commit it was cut from.** Its base moved from `cba1f6f` to `18efb4f` while it was
+open — #630, #634, #635 and #636 landed in between, and #629 had already merged.
+Two of those touched files this batch also edited, so a clean textual merge was
+not by itself proof of a consistent result. On merged `main`:
+
+| Check | Result |
+| --- | --- |
+| `npx oxlint --deny-warnings` | **Pass** |
+| `npx tsc -b` | **Pass** |
+| Full Vitest suite | **Pass** — 379 files, 3500 tests, 0 failures (more than this branch carried, because #635 and #636 added their own) |
+| `check-documentation-authorities` | **Pass** — agree with contract 145 |
+| `check-hosted-migration-inventory` | **Pass** — repository 145, development 144, production 132 |
+
+**What the merge did NOT do, which matters more than the merge.** Contract 145 is
+now the repository contract and is applied to **neither** hosted environment.
+Development is still at 144 and receives it only through the guarded additive
+fast lane; Production is still at 132. So the race described in section 2 is
+still live in both hosted databases, and `DATA-007` is still open there in full.
+The finding is reduced **in the repository** and nowhere else. Nothing in
+sections 1–5 above claimed otherwise, and this restates it because a merged
+migration is the exact point at which a reader starts assuming a fix is running
+somewhere.
+
+Everything in section 6 still stands: the per-caller key, the read-committed
+boundary, the three untouched quarters of `DATA-007` and the per-row trigger
+observation are decisions and open questions that a merge does not settle.
 
 ---
 
