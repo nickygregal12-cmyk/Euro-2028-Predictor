@@ -48,7 +48,7 @@ const overlayFunctions = bulletTokens(
 
 describe('Stage C1 schema overlay coverage', () => {
   it('keeps positive controls for the original coverage inventory', () => {
-    expect(currentRelations).toHaveLength(35)
+    expect(currentRelations).toHaveLength(36)
     expect(newRelations).toHaveLength(4)
     // 57 -> 58 at contract 116: `get_season_lms_round`, the season Last Man
     // Standing round read. 58 -> 59 at contract 121:
@@ -72,7 +72,7 @@ describe('Stage C1 schema overlay coverage', () => {
     // 67 -> 70 at contracts 140 and 141:
     // `get_game_leave_eligibility`, and the two club-football derivations
     // `get_season_club_form` and `get_season_club_head_to_head`.
-    expect(reviewedFunctions).toHaveLength(71)
+    expect(reviewedFunctions).toHaveLength(76)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

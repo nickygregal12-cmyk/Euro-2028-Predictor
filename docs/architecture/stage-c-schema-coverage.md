@@ -121,6 +121,7 @@ Every Stage C source/test/config file must stay inside this graph.
 | `tournaments` | preserve table/UUID; add competition parent, season key, kind, IANA timezone and lifecycle |
 | `profiles` | durable competitive/profile anchor; add nullable unique auth link and pseudonymisation timestamp |
 | `rate_limit_events` | remain auth housekeeping and cascade on auth deletion |
+| `invite_code_registry` | own the invite-code namespace shared by leagues and private competitions; browser-revoked so codes cannot be enumerated, read only through the contract 155 resolver |
 | `entry_totals` view | preserve browser revokes and rationale; redefine over explicit season-scoped entries/events if required by schema change |
 
 ### Direct season scope
@@ -219,6 +220,11 @@ These names may remain but their semantics must support both kinds safely:
 - `get_season_matchweek_card`
 - `get_season_period_standings`
 - `get_season_player_profile`
+- `create_private_season_lms`
+- `create_private_season_cup`
+- `get_season_wrapped`
+- `set_competition_follow`
+- `set_pinned_rival`
 - `get_season_prediction_consensus`
 - `save_season_prediction`
 - `set_season_matchweek_joker`

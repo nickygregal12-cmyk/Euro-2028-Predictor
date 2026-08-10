@@ -144,8 +144,23 @@ Nothing in this overlay approves a C2 target. Technical research recorded under 
 | `competition_rounds` | Tournament rounds and league matchweeks | Read only where required; RLS enabled |
 | `competition_lock_events` | Internal append-only observed lock transition. **Evidence only — never an enforcement input.** `lock_at` and `kickoff_at` remain the sole lock authorities, so a corrected deadline reopens the entry or fixture. An earlier draft consulted this table inside `enforce_entry_lock_generic`, `enforce_entry_lock_scores` and `enforce_joker_rules`, which made a lock permanent once observed and left no admin route back — see the entry-lock decision in `docs/quality/current-status.md` | No direct browser authority |
 | `competition_awards` | Additive season-scoped award results | Read through reviewed bounded paths |
+| `invite_code_registry` | Contract 152. Owns the invite-code namespace shared by leagues and private competitions, so one code cannot resolve to two containers | No direct browser authority; revoked from every browser role because selecting from it enumerates every private competition |
 
 No `competitors` table or parallel `competition_seasons` table is introduced.
+
+
+
+Contracts 152, 156 and 157 add three more, all browser-revoked and reached
+only through definer functions:
+
+- `invite_code_registry` — owns the invite-code namespace shared by leagues
+  and private competitions, so one code cannot mean two things. Revoked from
+  every browser role because a role that can select from it can enumerate
+  every private competition on the platform.
+- `season_wrapped` — the permanent end-of-season archive, immutable once
+  written and read one player at a time.
+- `competition_follows` and `pinned_rivals` — preferences keyed on canonical
+  competition identity. Following is deliberately not game membership.
 
 ## 6. Function and RPC disposition
 
@@ -216,6 +231,20 @@ it:
 
 - `get_season_period_standings`
 - `get_season_player_profile`
+
+Contracts 152 to 157 add five more taking `p_tournament_id`, all with the
+same season-scoped disposition: they read or write only that competition
+season's own rows and change no auth ownership. `create_private_season_lms`
+and `create_private_season_cup` create a container on the named season;
+`get_season_wrapped` reads the caller's own archived finish in it;
+`set_competition_follow` and `set_pinned_rival` record a preference scoped to
+it, and neither confers game entry.
+
+- `create_private_season_lms`
+- `create_private_season_cup`
+- `get_season_wrapped`
+- `set_competition_follow`
+- `set_pinned_rival`
 
 Contracts 129 and 130 add two more with the same season-scoped disposition.
 Both take `p_tournament_id` and a matchweek ordinal, resolve the round through

@@ -140,7 +140,19 @@ insert into expected_authenticated_functions (signature) values
   -- Contract 150: how a league table moved over one settled matchweek.
   ('get_season_league_rank_movement(uuid,uuid)'),
   -- Contract 151: one player's season, gated on a shared private league.
-  ('get_season_player_profile(uuid,uuid)');
+  ('get_season_player_profile(uuid,uuid)'),
+  -- Contract 152-157: the private containers, the one code entry point, the
+  -- permanent archive and the preference authority.
+  ('create_private_season_lms(uuid,text,smallint,smallint,text,text)'),
+  ('join_private_competition(text)'),
+  ('create_private_season_cup(uuid,text)'),
+  ('launch_private_season_cup(uuid)'),
+  ('resolve_invite_code(text)'),
+  ('get_season_wrapped(uuid)'),
+  ('set_competition_follow(uuid,boolean,uuid)'),
+  ('set_onboarding_progress(text,boolean)'),
+  ('set_pinned_rival(uuid,uuid,boolean)'),
+  ('get_my_preferences()');
 
 -- Contract 140: the caller's own leave eligibility. Contract 141: club form and
 -- club head-to-head, which are football about clubs and disclose no player.
