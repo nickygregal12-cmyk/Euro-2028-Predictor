@@ -1,6 +1,6 @@
 {
-  "contractVersion": 146,
-  "requiredMigrationCount": 146,
+  "contractVersion": 148,
+  "requiredMigrationCount": 148,
   "requiredRpcSignatures": [
     "public.acknowledge_provider_review_items(text,uuid[],text)",
     "public.admin_actual_third_place_tie_revisions(uuid)",
@@ -53,11 +53,13 @@
     "public.get_prediction_consensus(uuid)",
     "public.get_provider_review_queues(uuid,integer)",
     "public.get_public_capacity()",
+    "public.get_published_weekly_seasons()",
     "public.get_rival_entry(uuid,uuid)",
     "public.get_season_club_form(uuid,integer)",
     "public.get_season_club_head_to_head(uuid,uuid,uuid)",
     "public.get_season_cup_phase(uuid)",
     "public.get_season_cup_player_view(uuid)",
+    "public.get_season_fixture(uuid)",
     "public.get_season_fixtures(uuid,timestamp with time zone,timestamp with time zone)",
     "public.get_season_head_to_head(uuid,uuid,integer)",
     "public.get_season_leaderboard(uuid,integer,text)",

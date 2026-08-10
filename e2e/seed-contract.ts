@@ -808,8 +808,15 @@
  * declares, which is not a dependency this file is willing to invent.
  * Exact-head Database parity and Browser E2E must still both pass on the
  * contract 146 pull request before this marker is relied on.
+ *
+ * Contracts 147 and 148 add two read-only functions and nothing else: no table,
+ * column, policy, trigger, grant on a relation, or default. Both are new names
+ * rather than redefinitions, so no existing call can start behaving
+ * differently, and both refuse an unauthenticated caller exactly as every other
+ * season read already does. A seeded user's journey is unchanged because
+ * nothing a seeded journey calls has moved.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 146
+export const SEED_REVIEWED_AT_CONTRACT = 148
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
