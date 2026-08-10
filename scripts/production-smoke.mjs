@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
+import { resolveSiteCookie } from './production-site-session.mjs'
+
 const PRODUCTION_ORIGIN = 'https://euro28predictor.com'
 const PRODUCTION_SUPABASE_REF = 'vkfnsqdyhvtwyqkisxhk'
 const DEVELOPMENT_SUPABASE_REF = 'iouzoutneyjpugbbtdem'
@@ -48,20 +50,32 @@ if (origin !== PRODUCTION_ORIGIN && !allowNonProduction) {
   )
 }
 
-console.log(`Checking ${origin}`)
+/**
+ * The site session, opened once and attached to every request below.
+ *
+ * Declared here rather than beside `fetchText` for the reason at the top of
+ * this file: the checks run at import time, so a `const` further down would
+ * still be in its temporal dead zone when the first check calls it.
+ *
+ * An empty password means "no protection expected" and leaves every request
+ * anonymous, which is what a preview check against an open origin wants.
+ */
+const siteCookie = await resolveSiteCookie(
+  origin,
+  process.env.EURO28_SITE_PASSWORD || '',
+)
+
+console.log(`Checking ${origin}${siteCookie ? ' with a site session' : ' anonymously'}`)
 
 const root = await fetchText('/')
 assertIncludes(root.body, '<div id="root"></div>', 'React root')
-// Contract-65 bundles brand the global shell "Football Prediction Hub"
-// (PR #357); production remains paused on a pre-rename bundle until its next
-// intentional release, so both brands are valid until then. Retire the
-// legacy form when production moves past contract 63.
-if (
-  !root.body.includes('Football Prediction Hub') &&
-  !root.body.includes('Euro 2028 Predictor')
-) {
-  stop('application title is missing both "Football Prediction Hub" and "Euro 2028 Predictor".')
-}
+// The dual-brand allowance that stood here has been retired. It existed because
+// production was paused on a pre-rename, contract-63-era bundle and accepted the
+// legacy "Euro 2028 Predictor" title alongside the current one, with its own
+// comment saying to drop the legacy form once production moved past contract 63.
+// Production reached contract 145 on 10 August 2026, so the condition it set
+// itself is met and only the current brand is accepted.
+assertIncludes(root.body, 'Football Prediction Hub', 'application title')
 verifySecurityHeaders(root.headers)
 
 const releaseResponse = await fetchText('/release.json')
@@ -186,7 +200,10 @@ async function fetchText(pathname, expectedStatus = 200) {
       response = await fetch(url, {
         redirect: 'follow',
         signal: AbortSignal.timeout(30_000),
-        headers: { 'user-agent': 'euro28-production-smoke/1' },
+        headers: {
+          'user-agent': 'euro28-production-smoke/1',
+          ...(siteCookie ? { cookie: siteCookie } : {}),
+        },
       })
       break
     } catch (error) {

@@ -185,6 +185,13 @@ describe('JavaScript under scripts/', () => {
     'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',
     'scripts/production-hosted-contract-expectations.mjs',
+    // The site-session trio arrived clean: measured at zero checkJs errors on
+    // 10 August 2026, so they are checked rather than deferred. They also
+    // handle the site password and the session JWT, which is the last place
+    // an unexamined type error should be allowed to live.
+    'scripts/production-site-session.mjs',
+    'scripts/wait-for-production-release.mjs',
+    'scripts/write-production-storage-state.mjs',
     'scripts/generate-now.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
