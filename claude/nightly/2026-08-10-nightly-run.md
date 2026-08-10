@@ -204,25 +204,45 @@ description before the fix and reported the lock as being in the wrong place. It
 now reads from the `create or replace` onwards, and the reason is a comment in
 the test.
 
-**What did NOT run here, and must be read from CI rather than from this report:**
+**What did NOT run here, and was read from CI instead:**
 
 - `supabase/tests/195_rate_limit_atomicity.sql` — the pgTAP file. `docker info`
   fails in this sandbox (client present, no daemon), so `supabase start` and
-  `supabase test db --local` cannot run. **CI's `local-supabase` job is the first
-  execution of that file and of the migration itself**, against a database
-  rebuilt from all 145 migrations.
+  `supabase test db --local` cannot run. CI's `local-supabase` job was the first
+  execution of that file and of the migration itself, against a database rebuilt
+  from all 145 migrations.
 - Browser E2E (`authenticated-browser`), for the same reason. It is the job that
   re-verifies the seeded prediction-save journey through the redefined trigger,
   which is why `SEED_REVIEWED_AT_CONTRACT` was raised with reasoning rather than
   on assertion.
 
-I have not claimed either passed. **Do not merge before both are green.**
+**CI outcome on PR #632, at commit `d03ee49`: all fourteen checks completed, none
+failed.** `local-supabase` **passed** at 03:33:40Z, so the migration applies to a
+database built from all 145 migrations and all 17 pgTAP assertions hold —
+including the `pg_locks` reads, which is the part this sandbox could not verify
+at all. `authenticated-browser` **passed** at 03:36:34Z, so the seeded
+prediction-save journey still works through the redefined trigger. Also green:
+`ci`, `verify`, `migration-transition`, `visual`, `deploy-preview-smoke`,
+`CodeQL`, both CodeQL analyses and the two Netlify rules checks. `Supabase
+Preview` is skipped and `Pages changed` is neutral, as on every recent pull
+request.
+
+**One thing on that run needs saying so nobody chases it.** Netlify's Lighthouse
+comment reports performance 19, "down 77 from production". It is not a
+regression and this pull request changes no runtime code —
+`docs/quality/lighthouse-baseline.md` § "Why it audits a local build and not the
+deploy preview" records that two earlier pull requests which changed **no runtime
+code at all** scored 20 and 21 on their previews while the same bundle scores
+89–95 locally. That documented artefact is the entire reason the repository
+audits a local build. The only `src/` edit here is a comment in a module the
+application never imports.
 
 ---
 
 ## 5. Merge outcome
 
-**Held for your review. Not merged, and auto-merge not enabled.**
+**Held for your review. Not merged, and auto-merge not enabled — with CI fully
+green.** The hold is not a CI outcome and was never going to be resolved by one.
 
 It falls squarely inside the hold list: it is a database migration, and it
 changes an enforcement path that gates writes. It touches no scoring, ranking,
@@ -242,8 +262,9 @@ IPv6-only direct host.
 
 ## 6. What remains uncertain, and what I need from you
 
-1. **Two suites are unverified locally** (section 4). Read `local-supabase` and
-   `authenticated-browser` in CI before deciding.
+1. ~~Two suites are unverified locally.~~ **Resolved during the run:**
+   `local-supabase` and `authenticated-browser` both passed in CI (section 4).
+   Nothing about this batch is now unverified for want of a runner.
 2. **The per-caller lock key is a judgement call, and it is the one thing in
    this batch worth disagreeing with.** Section 2 states the reasoning and the
    cost. If you would rather have per-(caller, action) keys and accept the
