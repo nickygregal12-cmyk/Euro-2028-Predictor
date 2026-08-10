@@ -241,28 +241,54 @@ jobs:
           # which return NONE. A rehearsal that does not carry privileges is not
           # a rehearsal of Production.
           # ---------------------------------------------------------------
-          mkdir -p "${WORK_DIR}/bundle"
-          cd "${WORK_DIR}/bundle"
+          # EVERY path below is absolute, and nothing here relies on `cd`.
+          #
+          # Run 31370007090 failed as "ERROR: dump is empty: roles.sql" while
+          # the CLI had in fact written the dump — to the wrong directory:
+          #
+          #   Dumped schema to /tmp/production-132-to-144-rehearsal/data.sql
+          #
+          # not .../bundle/data.sql. `supabase init` earlier in this step makes
+          # WORK_DIR a Supabase project root, and the CLI resolves a relative
+          # --file against the project root it discovers by walking up from the
+          # working directory, not against the working directory itself. The
+          # `cd` into bundle/ therefore did nothing for the CLI while the
+          # emptiness check honoured it, so a successful dump read as a missing
+          # one. Absolute paths remove the ambiguity rather than working around
+          # it.
+          BUNDLE="${WORK_DIR}/bundle"
+          ROLLOUT="${GITHUB_WORKSPACE}/scripts/database-rollout"
+          mkdir -p "${BUNDLE}"
 
           supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
-            --file roles.sql --role-only
+            --file "${BUNDLE}/roles.sql" --role-only
           supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
-            --file schema.sql
+            --file "${BUNDLE}/schema.sql"
           supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
-            --file data.sql --use-copy --data-only \
+            --file "${BUNDLE}/data.sql" --use-copy --data-only \
             -x storage.buckets_vectors -x storage.vector_indexes
           /usr/lib/postgresql/17/bin/pg_dump \
             --dbname "${SUPABASE_PROD_DB_URL}" \
             --schema supabase_migrations --no-owner --no-privileges \
-            --file migration-history.sql
+            --file "${BUNDLE}/migration-history.sql"
 
           for required in roles.sql schema.sql data.sql migration-history.sql; do
-            [ -s "${required}" ] || { echo "ERROR: dump is empty: ${required}"; exit 1; }
+            [ -s "${BUNDLE}/${required}" ] || {
+              echo "ERROR: dump is empty or missing: ${BUNDLE}/${required}"
+              echo 'Contents of the work directory, to show where the CLI actually wrote:'
+              ls -la "${WORK_DIR}" "${BUNDLE}" || true
+              exit 1
+            }
           done
 
-          cd "${GITHUB_WORKSPACE}"
+          # The dump must actually carry the account data, not merely exist.
+          # production-backup.yml asserts exactly this and it costs nothing.
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?auth"?\."?users"?' "${BUNDLE}/data.sql" || {
+            echo 'ERROR: data.sql does not contain auth.users; this is not a faithful copy.'
+            exit 1
+          }
 
-          # Restore order matters and is the source of the defect above.
+          # Restore order matters and is the source of the privilege defect.
           #
           # prepare-disposable-restore-target.sql revokes the TARGET's default
           # table privileges before any object exists, so restored objects
@@ -271,17 +297,15 @@ jobs:
           # rehearsal.yml copies that file into its bundle and never executes
           # it; this workflow executes it, which is the difference between a
           # faithful target and the one contract 139 rejected.
-          cd "${WORK_DIR}/bundle"
-          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file roles.sql
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/roles.sql"
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
-            --file "${GITHUB_WORKSPACE}/scripts/database-rollout/prepare-disposable-restore-target.sql"
-          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file schema.sql
+            --file "${ROLLOUT}/prepare-disposable-restore-target.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/schema.sql"
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
-            --command 'SET session_replication_role = replica' --file data.sql
+            --command 'SET session_replication_role = replica' --file "${BUNDLE}/data.sql"
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
-            --file "${GITHUB_WORKSPACE}/scripts/database-rollout/managed-schema-customizations.sql"
-          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file migration-history.sql
-          cd "${GITHUB_WORKSPACE}"
+            --file "${ROLLOUT}/managed-schema-customizations.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/migration-history.sql"
 
           restored="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c \
             'select count(*) from supabase_migrations.schema_migrations')"
