@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs'
 import process from 'node:process'
 import { fileURLToPath } from 'node:url'
 
+import { resolveSiteCookie } from './production-site-session.mjs'
+
 const PRODUCTION_ORIGIN = 'https://euro28predictor.com'
 const PRODUCTION_SUPABASE_REF = 'vkfnsqdyhvtwyqkisxhk'
 const DEVELOPMENT_SUPABASE_REF = 'iouzoutneyjpugbbtdem'
@@ -26,6 +28,13 @@ const DEVELOPMENT_SUPABASE_REF = 'iouzoutneyjpugbbtdem'
 const TRANSPORT_ATTEMPTS = 3
 const TRANSPORT_RETRY_DELAY_MS = 2_000
 
+/**
+ * Stands in for a route parameter or wildcard segment. Any value works: the
+ * assertion is that the edge serves the SPA shell, and which entity the slug
+ * names is decided client-side after the shell loads.
+ */
+const ROUTE_PROBE = 'PRODUCTION-READ-ONLY-PROBE'
+
 const origin = normaliseOrigin(
   process.env.EURO28_SMOKE_ORIGIN || PRODUCTION_ORIGIN,
 )
@@ -48,20 +57,32 @@ if (origin !== PRODUCTION_ORIGIN && !allowNonProduction) {
   )
 }
 
-console.log(`Checking ${origin}`)
+/**
+ * The site session, opened once and attached to every request below.
+ *
+ * Declared here rather than beside `fetchText` for the reason at the top of
+ * this file: the checks run at import time, so a `const` further down would
+ * still be in its temporal dead zone when the first check calls it.
+ *
+ * An empty password means "no protection expected" and leaves every request
+ * anonymous, which is what a preview check against an open origin wants.
+ */
+const siteCookie = await resolveSiteCookie(
+  origin,
+  process.env.EURO28_SITE_PASSWORD || '',
+)
+
+console.log(`Checking ${origin}${siteCookie ? ' with a site session' : ' anonymously'}`)
 
 const root = await fetchText('/')
 assertIncludes(root.body, '<div id="root"></div>', 'React root')
-// Contract-65 bundles brand the global shell "Football Prediction Hub"
-// (PR #357); production remains paused on a pre-rename bundle until its next
-// intentional release, so both brands are valid until then. Retire the
-// legacy form when production moves past contract 63.
-if (
-  !root.body.includes('Football Prediction Hub') &&
-  !root.body.includes('Euro 2028 Predictor')
-) {
-  stop('application title is missing both "Football Prediction Hub" and "Euro 2028 Predictor".')
-}
+// The dual-brand allowance that stood here has been retired. It existed because
+// production was paused on a pre-rename, contract-63-era bundle and accepted the
+// legacy "Euro 2028 Predictor" title alongside the current one, with its own
+// comment saying to drop the legacy form once production moved past contract 63.
+// Production reached contract 145 on 10 August 2026, so the condition it set
+// itself is met and only the current brand is accepted.
+assertIncludes(root.body, 'Football Prediction Hub', 'application title')
 verifySecurityHeaders(root.headers)
 
 const releaseResponse = await fetchText('/release.json')
@@ -104,16 +125,7 @@ if (expectedEnvironment === 'production') {
 
 console.log('Release identity: PASS')
 
-const routes = [
-  '/auth/login',
-  '/auth/signup',
-  '/auth/reset',
-  '/join/PRODUCTION-READ-ONLY-PROBE',
-  '/predict',
-  '/league',
-  '/matches',
-  '/more',
-]
+const routes = committedOkRoutes()
 
 for (const route of routes) {
   const response = await fetchText(route)
@@ -186,7 +198,10 @@ async function fetchText(pathname, expectedStatus = 200) {
       response = await fetch(url, {
         redirect: 'follow',
         signal: AbortSignal.timeout(30_000),
-        headers: { 'user-agent': 'euro28-production-smoke/1' },
+        headers: {
+          'user-agent': 'euro28-production-smoke/1',
+          ...(siteCookie ? { cookie: siteCookie } : {}),
+        },
       })
       break
     } catch (error) {
@@ -244,6 +259,47 @@ function committedHeaders() {
   }
   if (values.size === 0) stop('netlify.toml declares no security headers to compare against.')
   return values
+}
+
+/**
+ * Every route netlify.toml says must answer 200, derived rather than restated.
+ *
+ * This list used to be written out by hand here, and it drifted. It still
+ * demanded 200 for `/predict` — a route the application no longer declares and
+ * which netlify.toml deliberately sends to the 404 catch-all, along with the
+ * other retired Euro/tournament paths. Nothing caught it, because the smoke
+ * could not run against the password-protected site at all; the first
+ * authenticated run, on 10 August 2026, failed on exactly that line.
+ *
+ * Deriving it removes the whole class rather than the one instance, and it is
+ * the same principle `committedHeaders()` above already applies: compare the
+ * deployment against the configuration this commit intends to serve, never
+ * against a second hand-maintained copy of it.
+ *
+ * `tests/app/spaRoutingStatus.test.ts` separately proves netlify.toml agrees
+ * with the routes `src/App.tsx` declares, so the chain runs application →
+ * configuration → deployment with no hand-copied link in it.
+ */
+function committedOkRoutes() {
+  const config = readFileSync(
+    fileURLToPath(new URL('../netlify.toml', import.meta.url)),
+    'utf8',
+  )
+
+  const routes = []
+  for (const [, from, , status] of config.matchAll(
+    /\[\[redirects\]\]\s*\n\s*from = "([^"]+)"\s*\n\s*to = "([^"]+)"\s*\n\s*status = (\d+)/g,
+  )) {
+    // The catch-all is a 404 by design (SEO-001) and is probed separately.
+    if (status !== '200') continue
+    // The root is already fetched as the shell every other route is compared to.
+    if (from === '/') continue
+
+    routes.push(from.replace(/:[A-Za-z]+/g, ROUTE_PROBE).replace(/\/\*$/, `/${ROUTE_PROBE}`))
+  }
+
+  if (routes.length === 0) stop('netlify.toml declares no 200 redirect rules to check.')
+  return routes
 }
 
 /** A CSP string as directive name → set of sources. */
