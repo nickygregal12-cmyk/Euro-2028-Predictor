@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
-import { fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
+import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
+import { CreateLeagueJourney } from '../leagues/CreateLeagueJourney'
+import { JoinLeagueModal } from '../leagues/JoinLeagueModal'
+import { presentCreateJourney } from '../leagues/createJourneyModel'
 import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
 import { competitionSectionRoute, weeklyRoutes } from '../../app/weeklyRoutes'
@@ -27,13 +30,18 @@ import s from '../shared.module.css'
  * belongs to appear. Creating and joining are the two actions at the top,
  * because those are the ways the list grows.
  *
- * CREATE IS NOT OFFERED HERE, AND THE PAGE SAYS WHY. Creating a private league
- * is addressed by a `game_competition_id` — the league ranks one game inside
- * one competition — so a global Create must first ask which game in which
- * competition, and that is the unified creation wizard (`UI-F13`), which needs
- * `MIG-UI-05` and `MIG-UI-06` before it can offer all three games honestly. A
- * button that opened a wizard with two broken branches would be worse than a
- * sentence pointing at the game surfaces that do work today.
+ * CREATE AND JOIN ARE BOTH HERE NOW, and both do what they say. Creating is
+ * addressed by a `game_competition_id` — the league ranks one game inside one
+ * competition — so the journey asks which game and which competition before
+ * anything else, and offers only the combinations `create_game_league` will
+ * accept. The two games it will not accept are listed with the reason rather
+ * than rendered as forms that fail on submit, which is what `UI-F13`'s
+ * blocked branches would have been.
+ *
+ * JOINING NEEDS NO SUCH WIZARD, because `join_league` resolves the game from
+ * the invite code itself and refuses a caller who has not joined it. A code is
+ * therefore enough on its own here, and the sheet the tournament already uses
+ * is the same sheet — one code path, not two.
  */
 
 const GAME_KINDS: readonly PrivatePlayGameKind[] = [
@@ -50,6 +58,10 @@ export function GlobalLeaguesPage() {
   const { status: membership, player, reload } = usePlayerCompetitions()
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
   const [filter, setFilter] = useState<PrivatePlayFilter>('all')
+  const [creating, setCreating] = useState(false)
+  const [joining, setJoining] = useState(false)
+  const [joined, setJoined] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   const key = (player?.mine ?? []).map((entry) => entry.competition.seasonRowName).join('|')
 
@@ -106,7 +118,7 @@ export function GlobalLeaguesPage() {
       active = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, player === null])
+  }, [key, player === null, reloadKey])
 
   const view = useMemo(
     () =>
@@ -147,6 +159,42 @@ export function GlobalLeaguesPage() {
         Private leagues, Last Man Standing competitions and Championships you have joined — across
         every football competition you play in.
       </p>
+
+      {joined ? (
+        <Alert variant="success" title="You have joined the league">
+          It is in the list below. Its table updates as the matchweek scores.
+        </Alert>
+      ) : null}
+
+      {creating ? (
+        <CreateLeagueJourney
+          journey={presentCreateJourney(player)}
+          create={createGameLeague}
+          onCancel={() => {
+            setCreating(false)
+            setReloadKey((value) => value + 1)
+          }}
+        />
+      ) : (
+        <div className={styles.actions}>
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            Create a league
+          </Button>
+          <Button variant="secondary" onClick={() => setJoining(true)}>
+            Join with a code
+          </Button>
+        </div>
+      )}
+
+      <JoinLeagueModal
+        open={joining}
+        onClose={() => setJoining(false)}
+        onJoined={() => {
+          setJoining(false)
+          setJoined(true)
+          setReloadKey((value) => value + 1)
+        }}
+      />
 
       {view.unreadable.length > 0 ? (
         <Alert variant="warning" title="Some private play could not be read">
@@ -215,15 +263,6 @@ export function GlobalLeaguesPage() {
         </ul>
       )}
 
-      {/* Stated rather than offered. Creating and joining are addressed by a
-          game inside a competition, and the unified wizard that would ask for
-          both is UI-F13 — blocked on the private LMS and Championship
-          authorities. A global Create button today would open a flow with two
-          branches the server cannot complete. */}
-      <p className={styles.note}>
-        Create or join a private league from inside the game it ranks. One combined
-        “Create” and “Join with code” arrives with the unified creation flow.
-      </p>
     </div>
   )
 }

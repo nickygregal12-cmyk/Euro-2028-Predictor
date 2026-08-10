@@ -59,6 +59,10 @@ import {
   type OnboardingDraft,
 } from '../features/onboarding/onboardingDraft'
 import { ONBOARDING_GAME_OFFERS, ONBOARDING_TEAMS } from './onboardingFixture'
+import { CreateLeagueJourney } from '../features/leagues/CreateLeagueJourney'
+import { presentCreateJourney } from '../features/leagues/createJourneyModel'
+import { GameRulesDisclosure } from '../features/season/GameRulesDisclosure'
+import { seasonGameRules } from '../features/season/gameRules'
 import { presentPlayerCompetitions } from '../features/hub/playerCompetitions'
 import { HUB_COMPETITIONS } from '../features/hub/competitionCatalogue'
 import { PointsBreakdown } from '../features/scoring'
@@ -1431,6 +1435,34 @@ function Gallery() {
 
       <Section title="Onboarding — games and review">
         <OnboardingGamesDemo />
+      </Section>
+
+      {/* Creating a private league. The gallery is the only place both the
+          offer and the refusals are visible at once — a real player sees one
+          game they can create and two they cannot, and the refusals are the
+          part that is easy to get wrong. */}
+      <Section title="Create a league journey">
+        <CreateLeagueJourney
+          journey={presentCreateJourney(twentyCompetitionPlayer())}
+          create={async (_id, leagueName) => ({
+            id: 'demo',
+            name: leagueName,
+            inviteCode: 'ABC234',
+          })}
+          onCancel={() => {}}
+        />
+        <Label>nothing joined yet — every game refused, with the reason</Label>
+        <CreateLeagueJourney
+          journey={presentCreateJourney(null)}
+          create={async () => ({ id: 'demo', name: 'demo', inviteCode: 'ABC234' })}
+          onCancel={() => {}}
+        />
+      </Section>
+
+      <Section title="Game rules disclosure">
+        <GameRulesDisclosure rules={seasonGameRules('main_predictor')} defaultOpen />
+        <GameRulesDisclosure rules={seasonGameRules('last_man_standing')} defaultOpen />
+        <GameRulesDisclosure rules={seasonGameRules('predictor_cup')} />
       </Section>
 
       <Section title="Masthead">

@@ -1,0 +1,172 @@
+/* The create-a-league journey. Four steps, one card, no modal: on a phone a
+   three-step wizard inside a sheet fights the keyboard, and on a desktop the
+   reading column already gives it the right measure. */
+
+.journey {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Position in the flow, for sighted orientation only. The heading and the
+   controls carry the same information in the accessibility tree, so repeating
+   it there would be noise. */
+.steps {
+  margin: 0;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--tx3);
+}
+
+.lead,
+.only,
+.note {
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+  max-width: 60ch;
+}
+
+.note {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.gameList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.game,
+.gameRefused,
+.host {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--tap-min);
+  margin: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+  color: var(--tx);
+  text-align: left;
+  font-family: var(--font-body);
+}
+
+.game,
+.host {
+  cursor: pointer;
+}
+
+.game:hover,
+.host:hover {
+  border-color: var(--border-strong);
+}
+
+.game:focus-visible,
+.host:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* Not a control, and not dressed as one. */
+.gameRefused {
+  border-style: dashed;
+  background: transparent;
+  color: var(--tx2);
+}
+
+.hostOn {
+  border-color: var(--acc);
+  background: var(--chip);
+}
+
+.gameName,
+.hostName {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.gameDescription,
+.hostSeason {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+  font-variant-numeric: var(--numeric);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.groupTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--tx3);
+}
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  margin: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--bg);
+}
+
+.reviewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.reviewLabel {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.reviewValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}

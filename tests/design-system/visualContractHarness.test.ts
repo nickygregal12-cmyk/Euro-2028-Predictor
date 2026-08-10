@@ -36,6 +36,12 @@ const sections = [
     /'([a-z0-9-]+)'/g,
   ),
 ].map((match) => match[1] as string)
+/** The sections declared but not yet rendered on the comparison runner. */
+const awaitingBaseline = [
+  ...(
+    spec.match(/export const AWAITING_BASELINE: readonly string\[\] = \[([\s\S]*?)\]/)?.[1] ?? ''
+  ).matchAll(/'([a-z0-9-]+)'/g),
+].map((match) => match[1] as string)
 const galleryStyles = read('src/dev/ComponentsPreview.module.css')
 
 describe('the section anchor', () => {
@@ -156,18 +162,22 @@ describe('the CI bootstrap', () => {
     expect(sections.length, 'the SECTIONS list could not be read from the spec').toBeGreaterThan(
       10,
     )
-    expect(baselines.length).toBe(sections.length * 4)
+    // Sections awaiting their first render on the comparison runner are
+    // excluded — see AWAITING_BASELINE in the spec — and the assertion below
+    // makes that exclusion expire.
+    const photographed = sections.filter((section) => !awaitingBaseline.includes(section))
+    expect(baselines.length).toBe(photographed.length * 4)
     for (const width of ['phone', 'desktop']) {
       for (const theme of ['light', 'dark']) {
         expect(
           baselines.filter((file) => file.endsWith(`-${width}-${theme}.png`)).length,
           `no ${width}/${theme} baselines`,
-        ).toBe(sections.length)
+        ).toBe(photographed.length)
       }
     }
     // Named, not merely counted: the right total with a missing image and a
     // stray one would balance out.
-    for (const section of sections) {
+    for (const section of photographed) {
       for (const width of ['phone', 'desktop']) {
         for (const theme of ['light', 'dark']) {
           expect(
@@ -176,6 +186,23 @@ describe('the CI bootstrap', () => {
           ).toContain(`${section}-${width}-${theme}.png`)
         }
       }
+    }
+  })
+
+  it('lets a pending baseline expire rather than persist', () => {
+    // AWAITING_BASELINE is a note that a dispatch is outstanding, not a way to
+    // opt a section out of the suite. Once the runner has produced its images
+    // the entry is stale, and a stale entry would silently stop counting a
+    // section that IS photographed — so it fails here until it is removed.
+    const baselines = readdirSync(resolve(repositoryRoot, 'e2e/visual-baselines'))
+    for (const section of awaitingBaseline) {
+      expect(
+        baselines,
+        `${section} has baselines now — remove it from AWAITING_BASELINE`,
+      ).not.toContain(`${section}-desktop-dark.png`)
+      // And a name that is not in SECTIONS at all is a typo that would exempt
+      // nothing while looking like it did.
+      expect(sections, `${section} is not in SECTIONS`).toContain(section)
     }
   })
 

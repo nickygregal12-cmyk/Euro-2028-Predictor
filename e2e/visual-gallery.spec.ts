@@ -57,7 +57,48 @@ const SECTIONS = [
   'season-match-centre',
   'season-overview-next-up',
   'provider-review-queues',
+  // The UI-finalisation surfaces. Each is a composition no route harness
+  // renders, so the gallery is the only place they can be photographed at all:
+  // the desktop rail against a twenty-competition catalogue, the two game
+  // contextual panels, the onboarding steps, the create-a-league journey and
+  // the rules disclosure.
+  'desktop-navigation-rail',
+  'lms-form-guide-panel',
+  'fixture-consensus-panel',
+  'onboarding-choose-competitions',
+  'onboarding-favourite-team',
+  'onboarding-games-and-review',
+  'create-a-league-journey',
+  'game-rules-disclosure',
 ] as const
+
+/**
+ * Sections declared above whose baselines have not been rendered yet.
+ *
+ * WHY THIS LIST EXISTS AND WHY IT IS NOT A WEAKENING. A baseline is only
+ * meaningful when it was rendered on the machine that will compare it, and only
+ * the GitHub runner is that machine — an image produced in a development
+ * container differs from the runner's by font build and graphics stack, so
+ * committing one from here would hand CI a failure nobody can act on and invite
+ * someone to raise the tolerance. The sections are therefore declared now, and
+ * `visual-contracts.yml` is dispatched with `update_baselines` and
+ * `commit_baselines` to produce them.
+ *
+ * IT IS SELF-DELETING. `visualContractHarness` fails if a name here already has
+ * baselines on disk, so the entry cannot outlive the dispatch that satisfies
+ * it — which is what stops a "temporary" exemption from becoming the way new
+ * sections are added.
+ */
+export const AWAITING_BASELINE: readonly string[] = [
+  'desktop-navigation-rail',
+  'lms-form-guide-panel',
+  'fixture-consensus-panel',
+  'onboarding-choose-competitions',
+  'onboarding-favourite-team',
+  'onboarding-games-and-review',
+  'create-a-league-journey',
+  'game-rules-disclosure',
+]
 
 const WIDTHS = ['phone', 'desktop'] as const
 const THEMES = ['dark', 'light'] as const

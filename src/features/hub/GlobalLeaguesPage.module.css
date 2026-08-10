@@ -117,8 +117,10 @@
   font-weight: 600;
 }
 
-.note {
-  margin: 0;
-  color: var(--tx3);
-  font-size: var(--fs-1);
+/* The two ways the list grows, at the top of the page rather than the bottom:
+   an empty Leagues page is exactly the one where they matter most. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
 }

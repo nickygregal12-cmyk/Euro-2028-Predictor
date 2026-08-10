@@ -39,6 +39,12 @@ import { seasonShellDestinations } from '../season/seasonDestinations'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
 import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEligibility'
 import type { GameLeaveEligibility } from '../../services/supabase/gameLeaveEligibilityModel'
+import { GameRulesDisclosure } from '../season/GameRulesDisclosure'
+import {
+  SEASON_GAME_RULES,
+  seasonGameRules,
+  type SeasonRulesGameKey,
+} from '../season/gameRules'
 
 function domesticGameRoute(game: HubGame): DomesticGameRoute | null {
   switch (game.kind) {
@@ -342,6 +348,18 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                       )}
                     </div>
                     <span className={h.gameDescription}>{game.description}</span>
+
+                    {/* "How it works", answered here rather than linked away.
+                        The rules come from `domain/season/`, which is what
+                        decides them; a game this build has no rules content for
+                        renders nothing rather than a generic paragraph. */}
+                    <GameRulesDisclosure
+                      rules={
+                        game.gameKey in SEASON_GAME_RULES
+                          ? seasonGameRules(game.gameKey as SeasonRulesGameKey)
+                          : null
+                      }
+                    />
 
                     {/* What this game is asking of the player right now, from
                         the game's OWN read — the same computation Overview's
