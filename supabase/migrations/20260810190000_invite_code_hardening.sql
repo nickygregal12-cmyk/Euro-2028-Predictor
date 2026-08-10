@@ -56,7 +56,7 @@
 create or replace function gen_invite_code() returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
   alphabet   text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -130,72 +130,129 @@ alter table public.leagues
 --
 -- It was `language sql` and `stable`; charging the limiter is a write, so it is
 -- now `plpgsql` and volatile. PostgREST calls RPCs with POST either way.
-create or replace function get_league_preview(p_code text)
+--
+-- DROPPED AND RECREATED, NOT REPLACED, AND THAT COSTS THIS MIGRATION THE FAST
+-- LANE. PostgreSQL refuses `create or replace` when a function's OUT-parameter
+-- row type changes — `cannot change return type of existing function
+-- (SQLSTATE 42P13)` — and narrowing five columns to two is exactly that. The
+-- Database parity job caught it by rebuilding every committed migration on a
+-- disposable local database; nothing that reads the SQL could have.
+--
+-- The alternative was contract 131's idiom: leave the old signature defined,
+-- revoke it, and add the replacement under a new name. That is rejected here
+-- for a specific reason rather than a stylistic one. `get_league_preview` is a
+-- LIVE browser call, and since `TYPE-001` closed the browser can only call an
+-- RPC that hosted Development already has — so a renamed function would be a
+-- compile error today and the existing call would keep pointing at a revoked
+-- name until the rollout and a type regeneration caught up. Keeping the name
+-- keeps the browser working across the rollout; the fixture reads `name` and
+-- `is_member`, which exist in both shapes.
+--
+-- `drop function` is DESTRUCTIVE to `check-migration-additive.mjs`, correctly:
+-- narrowing a return type removes a guarantee a caller may rely on. Contract
+-- 152 therefore goes through the guarded rollout with its backup and restore
+-- rehearsal, not the additive fast lane.
+drop function if exists public.get_league_preview(text);
+
+create function public.get_league_preview(p_code text)
 returns table (name text, is_member boolean)
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
-  v_uid uuid := auth.uid();
+  v_uid uuid := (select auth.uid());
 begin
   if v_uid is null then
-    raise exception 'Not authenticated' using errcode = 'insufficient_privilege';
+    raise exception 'Not authenticated'
+      using errcode = 'insufficient_privilege';
   end if;
 
-  perform enforce_rate_limit('league_invite_probe', 20);
+  perform public.enforce_rate_limit('league_invite_probe', 20);
 
   return query
-    select l.name,
-           exists (select 1 from league_members m
-                   where m.league_id = l.id and m.user_id = v_uid)
-    from leagues l
-    where l.invite_code = upper(btrim(p_code));
+    select league.name,
+           exists (select 1 from public.league_members membership
+                   where membership.league_id = league.id
+                     and membership.user_id = v_uid)
+    from public.leagues league
+    where league.invite_code = upper(btrim(p_code));
 end;
 $$;
 
-revoke all on function get_league_preview(text) from public;
-grant execute on function get_league_preview(text) to authenticated;
+-- The drop took the grants with it, so both are restated rather than assumed.
+revoke all on function public.get_league_preview(text) from public;
+grant execute on function public.get_league_preview(text) to authenticated;
 
 -- --- join_league: the same charge, before the lookup ------------------------
--- Redefined rather than left alone because the limiter has to be charged on the
--- path that ACTS on a code, not only the one that inspects it. Otherwise the
--- preview is limited and the join is not, and an attacker simply stops
--- previewing. The membership trigger still applies on top, unchanged: this adds
--- a charge, it does not replace one.
+-- Redefined because the limiter has to be charged on the path that ACTS on a
+-- code, not only the one that inspects it. Otherwise the preview is limited and
+-- the join is not, and an attacker simply stops previewing. The membership
+-- trigger still applies on top, unchanged: this adds a charge, it does not
+-- replace one.
 --
--- Everything else is verbatim from `20260803070000_c1b_game_catalogue_memberships.sql`.
-create or replace function join_league(p_code text)
-returns table (id uuid, name text)
+-- THE BODY IS `20260803070000_c1b_game_catalogue_memberships.sql`'s, VERBATIM,
+-- WITH ONE LINE ADDED. An earlier draft of this migration rebuilt it from the
+-- 19 July original instead and silently dropped two things: the game-membership
+-- gate — *"Join this league game before joining its private league"* — and the
+-- pinned empty `search_path`. Deleting a membership rule while claiming to add
+-- a rate limit is precisely the kind of change this repository forbids doing
+-- quietly, and it is recorded here rather than fixed in silence.
+create or replace function public.join_league(
+  p_code text
+)
+returns table(id uuid, name text)
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
-  v_uid uuid := auth.uid();
-  v_id  uuid;
+  v_uid uuid := (select auth.uid());
+  v_id uuid;
+  v_game_id uuid;
 begin
   if v_uid is null then
-    raise exception 'Not authenticated' using errcode = 'insufficient_privilege';
+    raise exception 'Not authenticated'
+      using errcode = 'insufficient_privilege';
   end if;
 
-  perform enforce_rate_limit('league_invite_probe', 20);
+  -- THE ONE ADDED LINE, and its position is the fix: before the lookup, so a
+  -- miss costs exactly what a hit costs.
+  perform public.enforce_rate_limit('league_invite_probe', 20);
 
-  select l.id into v_id from leagues l where l.invite_code = upper(btrim(p_code));
+  select league.id, league.game_competition_id
+    into v_id, v_game_id
+    from public.leagues league
+    where league.invite_code = upper(btrim(p_code));
+
   if v_id is null then
-    raise exception 'That invite code does not match a league' using errcode = 'no_data_found';
+    raise exception 'That invite code does not match a league'
+      using errcode = 'no_data_found';
   end if;
 
-  insert into league_members (league_id, user_id, role)
+  if not exists (
+    select 1 from public.game_memberships membership
+    where membership.game_competition_id = v_game_id
+      and membership.user_id = v_uid
+      and membership.status = 'active'
+  ) then
+    raise exception 'Join this league game before joining its private league'
+      using errcode = 'insufficient_privilege';
+  end if;
+
+  insert into public.league_members (league_id, user_id, role)
   values (v_id, v_uid, 'member')
   on conflict (league_id, user_id) do nothing;
 
-  return query select l.id, l.name from leagues l where l.id = v_id;
+  return query
+    select league.id, league.name
+    from public.leagues league
+    where league.id = v_id;
 end;
 $$;
 
-revoke all on function join_league(text) from public;
-grant execute on function join_league(text) to authenticated;
+revoke all on function public.join_league(text) from public;
+grant execute on function public.join_league(text) to authenticated;
 
 -- ===========================================================================
 -- 4. Rotation, so a leaked code is recoverable
@@ -211,10 +268,10 @@ create or replace function rotate_league_invite_code(p_league_id uuid)
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = ''
 as $$
 declare
-  v_uid  uuid := auth.uid();
+  v_uid  uuid := (select auth.uid());
   v_code text;
   v_try  int := 0;
 begin
@@ -223,7 +280,8 @@ begin
   end if;
 
   if not exists (
-    select 1 from leagues l where l.id = p_league_id and l.owner_id = v_uid
+    select 1 from public.leagues league
+     where league.id = p_league_id and league.owner_id = v_uid
   ) then
     -- Same refusal whether the league does not exist or is not the caller's, so
     -- this cannot be used to discover which league ids are real.
@@ -233,13 +291,13 @@ begin
 
   -- Rotating is a write on the caller's own league and is not invite probing,
   -- but it is still cheap to script, so it carries the membership budget.
-  perform enforce_rate_limit('league_membership', 5);
+  perform public.enforce_rate_limit('league_membership', 5);
 
   loop
     v_try := v_try + 1;
     v_code := gen_invite_code();
     begin
-      update leagues set invite_code = v_code where id = p_league_id;
+      update public.leagues set invite_code = v_code where id = p_league_id;
       exit;
     exception when unique_violation then
       if v_try >= 10 then
@@ -252,5 +310,5 @@ begin
 end;
 $$;
 
-revoke all on function rotate_league_invite_code(uuid) from public;
-grant execute on function rotate_league_invite_code(uuid) to authenticated;
+revoke all on function public.rotate_league_invite_code(uuid) from public;
+grant execute on function public.rotate_league_invite_code(uuid) to authenticated;

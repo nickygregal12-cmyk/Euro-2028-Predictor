@@ -142,7 +142,7 @@ select ok(
 
 select ok(
   (select position('enforce_rate_limit' in prosrc) <
-          position('where l.invite_code' in prosrc)
+          position('where league.invite_code' in prosrc)
    from pg_catalog.pg_proc p
    join pg_catalog.pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'join_league'),

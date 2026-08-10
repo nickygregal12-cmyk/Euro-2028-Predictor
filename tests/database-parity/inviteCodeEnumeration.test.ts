@@ -80,12 +80,19 @@ function generatorBody(): string {
   return definitions[definitions.length - 1][1]
 }
 
-/** The live definition of a function, by name — the last redefinition wins. */
+/**
+ * The live definition of a function, by name — the last one wins.
+ *
+ * Matches `create function` as well as `create or replace function`, because
+ * contract 152 has to DROP `get_league_preview` before recreating it: narrowing
+ * a return type is `cannot change return type of existing function` to
+ * PostgreSQL, so replace is not available.
+ */
 function functionBody(name: string): string {
   const matches = [
     ...allSql.matchAll(
       new RegExp(
-        `create\\s+or\\s+replace\\s+function\\s+(?:public\\.)?${name}[\\s\\S]*?\\$\\$;`,
+        `create\\s+(?:or\\s+replace\\s+)?function\\s+(?:public\\.)?${name}[\\s\\S]*?\\$\\$;`,
         'gi',
       ),
     ),
@@ -148,6 +155,28 @@ describe('invite-code generation', () => {
     expect(allSql).toMatch(/exception\s+when\s+unique_violation/i)
   })
 
+  it('drops the preview rather than replacing it, because a narrowed return needs it', () => {
+    // PostgreSQL answers `cannot change return type of existing function`
+    // (42P13) to a `create or replace` that narrows OUT parameters, and five
+    // columns to two is exactly that. Database parity found this by rebuilding
+    // every migration on a disposable database; nothing that reads the SQL
+    // could have. The drop is what makes contract 152 non-additive, so this
+    // assertion is also the reason it takes the guarded rollout.
+    expect(allSql).toMatch(/drop\s+function\s+if\s+exists\s+public\.get_league_preview\(text\)/i)
+  })
+
+  it('keeps the game-membership gate that join_league already enforced', () => {
+    // An earlier draft of contract 152 rebuilt `join_league` from the 19 July
+    // original instead of from `20260803070000_c1b_game_catalogue_memberships`,
+    // and silently dropped this refusal along with the pinned empty
+    // `search_path` — while claiming to add only a rate limit. Deleting a
+    // membership rule is not something a rate-limit change gets to do.
+    const join = functionBody('join_league')
+
+    expect(join).toContain('Join this league game before joining its private league')
+    expect(join).toMatch(/set\s+search_path\s*=\s*''/)
+  })
+
   it('still accepts every code already issued', () => {
     // The constraint had to widen rather than move: a league created before
     // contract 152 holds a six-character code, and a migration that invalidated
@@ -192,7 +221,7 @@ describe('invite-code probing costs the caller', () => {
     // for success.
     const join = functionBody('join_league')
     const charge = join.search(/enforce_rate_limit/i)
-    const lookup = join.search(/where\s+l\.invite_code/i)
+    const lookup = join.search(/where\s+league\.invite_code/i)
 
     expect(charge).toBeGreaterThan(-1)
     expect(lookup).toBeGreaterThan(-1)
@@ -201,7 +230,7 @@ describe('invite-code probing costs the caller', () => {
 
   it('tells one guess only what a join screen needs', () => {
     const signature =
-      /create\s+or\s+replace\s+function\s+(?:public\.)?get_league_preview\s*\(\s*p_code\s+text\s*\)\s*returns\s+table\s*\(([^)]*)\)/gi
+      /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?get_league_preview\s*\(\s*p_code\s+text\s*\)\s*returns\s+table\s*\(([^)]*)\)/gi
     const matches = [...allSql.matchAll(signature)]
     const columns = [
       ...matches[matches.length - 1][1].matchAll(/([a-z_]+)\s+(?:uuid|text|int|boolean)/gi),
