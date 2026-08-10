@@ -24,20 +24,29 @@ function renderShell(path: string, active: 'overview' | 'play' | 'matches' | 'ga
 }
 
 describe('SeasonCompetitionShell', () => {
-  it('gives a directly loaded competition page a deterministic Hub exit', () => {
+  /**
+   * The design authority keeps the global navigation visible inside a
+   * competition and says the Hub is therefore one click away "without a
+   * compensating Back to Hub control", listing the addition of one among the
+   * things not to do. The Home tab in the global bar is that control; a link
+   * here would be the second one it forbids.
+   */
+  it('adds no Back to Hub control beside the global navigation', () => {
     renderShell(BASE, 'overview')
 
-    expect(screen.getByRole('link', { name: 'Back to Hub' }).getAttribute('href')).toBe('/')
+    expect(screen.queryByRole('link', { name: 'Back to Hub' })).toBeNull()
     expect(screen.queryByRole('link', { name: 'Back to Games' })).toBeNull()
   })
 
-  it('gives a directly loaded game child Back to Games and Back to Hub', () => {
+  it('still gives a directly loaded game child its logical parent', () => {
     renderShell(`${BASE}/games/lms`, 'games')
 
+    // `DFA-005` is a different requirement from a way home: a deep route has to
+    // say where it sits, and this is that answer rather than a Hub exit.
     expect(screen.getByRole('link', { name: 'Back to Games' }).getAttribute('href')).toBe(
       `${BASE}/games`,
     )
-    expect(screen.getByRole('link', { name: 'Back to Hub' }).getAttribute('href')).toBe('/')
+    expect(screen.queryByRole('link', { name: 'Back to Hub' })).toBeNull()
     expect(screen.getByText('Games').getAttribute('aria-current')).toBe('page')
   })
 
