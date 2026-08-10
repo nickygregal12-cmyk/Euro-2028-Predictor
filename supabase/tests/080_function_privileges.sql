@@ -130,7 +130,11 @@ insert into expected_authenticated_functions (signature) values
 insert into expected_authenticated_functions (signature) values
   ('get_provider_review_queues(uuid,integer)'),
   ('acknowledge_provider_review_items(text,uuid[],text)'),
-  ('get_season_fixtures(uuid,timestamp with time zone,timestamp with time zone)');
+  ('get_season_fixtures(uuid,timestamp with time zone,timestamp with time zone)'),
+  -- Contract 147 and 148: the published weekly catalogue and one addressed
+  -- fixture. Both are player reads, granted to authenticated and to nobody else.
+  ('get_published_weekly_seasons()'),
+  ('get_season_fixture(uuid)');
 
 -- Contract 140: the caller's own leave eligibility. Contract 141: club form and
 -- club head-to-head, which are football about clubs and disclose no player.

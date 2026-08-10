@@ -8,7 +8,7 @@
 
 begin;
 
-select plan(14);
+select plan(12);
 
 select set_config('test.cat_season',
   (select t.id::text from public.tournaments t where t.name = 'Scottish Premiership 2026/27'), true);
@@ -17,17 +17,10 @@ select set_config('test.cat_season',
 select set_config('test.cat_user',
   (select id::text from auth.users order by created_at limit 1), true);
 
--- ---------------------------------------------------------------------------
--- Both reads refuse an anonymous caller.
--- ---------------------------------------------------------------------------
-
-select throws_ok(
-  $$select public.get_published_weekly_seasons()$$,
-  '42501', null, 'the catalogue refuses an anonymous caller');
-
-select throws_ok(
-  $$select public.get_season_fixture('00000000-0000-0000-0000-000000000001'::uuid)$$,
-  '42501', null, 'the addressed fixture read refuses an anonymous caller');
+-- Anonymous access is proved by the GRANT, not by a runtime call: neither
+-- function is granted to `anon` at all, which `080_function_privileges.sql`
+-- asserts for every function in the allowlist. Calling one as an unauthenticated
+-- role here would only exercise `auth.uid()` against absent JWT claims.
 
 set local role authenticated;
 select set_config('request.jwt.claims',
