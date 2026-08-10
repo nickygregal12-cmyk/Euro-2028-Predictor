@@ -72,6 +72,23 @@ export type LeagueStandingsView = {
    * than silence.
    */
   yourStandingLine: string | null
+  /**
+   * The gap to the member immediately above the caller, and to the leader when
+   * that is somebody else: "6 points behind Jamie · 14 behind Priya".
+   *
+   * WHY IT IS HERE AND NOT A NEW READ. The owner's 10 August direction asks the
+   * product to answer "how are the people I play with doing" without burying
+   * it, and names the gap to a leader or a close rival among the things a Hub
+   * or league card should say. Every number in it is already on screen — this
+   * is subtraction over rows contract 128 returned, not a second ranking
+   * authority and not a second request.
+   *
+   * NULL WHENEVER IT WOULD BE A GUESS. No entry, nobody else entered, or the
+   * rows that would answer it are on a page the member has not loaded: a gap
+   * derived from a partial table would be confidently wrong, and the standing
+   * line above it is still true.
+   */
+  yourGapLine: string | null
 }
 
 const NOT_ENTERED = 'Not entered'
@@ -130,6 +147,73 @@ function yourStandingLine(
   return `You are ${rank} of ${totalCount} on ${points}.`
 }
 
+function points(value: number): string {
+  return value === 1 ? '1 point' : `${value} points`
+}
+
+/**
+ * The gap to the nearest rival above, and to the leader.
+ *
+ * IT READS THE SERVER'S RANK AND SUBTRACTS THE SERVER'S POINTS. Nothing here
+ * re-orders anybody: who is above whom is the order contract 128 returned, and
+ * every difference is between two totals the server sent.
+ *
+ * "NEAREST" IS A CLAIM ABOUT LOADED ROWS, so it is only made when the caller's
+ * own row is among them. Paging is sequential from the top, so a loaded own row
+ * means the row above it is loaded too; a member deep in a long league who has
+ * only fetched page one has their own row PINNED rather than listed, and the
+ * member immediately above them is on a page nobody asked for. Calling the
+ * leader their nearest rival in that state would be confidently wrong, so the
+ * sentence becomes the one that is still true — the gap to the leader, named as
+ * the leader.
+ *
+ * A MEMBER WHO HAS NOT ENTERED IS NOT A RIVAL. They are ranked last on zero by
+ * the read so that a league is not hidden from the person who created it, and
+ * treating that as a lead would be a sentence about somebody who has not
+ * played.
+ */
+function yourGapLine(
+  you: SeasonLeagueStandingsYou | null,
+  accumulated: readonly SeasonLeagueStandingsRow[],
+): string | null {
+  if (!you || !you.hasEntry) return null
+
+  const leader = accumulated.find((row) => row.hasEntry && !row.isYou && row.rank === 1) ?? null
+  const youIndex = accumulated.findIndex((row) => row.isYou)
+
+  if (youIndex === -1) {
+    if (!leader) return null
+    const gap = leader.points - you.points
+    if (gap <= 0) return null
+    return `${points(gap)} behind the leader, ${leader.displayName}.`
+  }
+
+  // Above and below the caller, in the server's own order, entrants only.
+  const above = accumulated.slice(0, youIndex).filter((row) => row.hasEntry).at(-1) ?? null
+  const below = accumulated.slice(youIndex + 1).find((row) => row.hasEntry) ?? null
+
+  if (!above) {
+    // Top of the table, or everyone above has not entered.
+    if (leader && leader.rank === you.rank) return `Level at the top with ${leader.displayName}.`
+    if (!below) return null
+    const lead = you.points - below.points
+    return lead <= 0
+      ? `Level with ${below.displayName} on points.`
+      : `Leading ${below.displayName} by ${points(lead)}.`
+  }
+
+  const gap = above.points - you.points
+  const nearest =
+    gap <= 0
+      ? `Level with ${above.displayName} on points.`
+      : `${points(gap)} behind ${above.displayName}.`
+
+  if (!leader || leader.userId === above.userId) return nearest
+  const toLeader = leader.points - you.points
+  if (toLeader <= 0) return nearest
+  return `${nearest} ${toLeader} behind ${leader.displayName}.`
+}
+
 /**
  * Present accumulated pages as one table.
  *
@@ -153,6 +237,7 @@ export function presentLeagueStandings(
     nextCursor: page.nextCursor,
     captionLine: memberCountLine(page.totalCount),
     yourStandingLine: yourStandingLine(page.you, page.totalCount),
+    yourGapLine: yourGapLine(page.you, accumulatedRows),
   }
 }
 

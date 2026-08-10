@@ -95,7 +95,15 @@ function Row({
           onClick={() => onCompare(row)}
         >
           <span className={styles.srOnly}>Compare this matchweek with {row.displayName}</span>
-          <span aria-hidden="true">vs</span>
+          {/* "Compare" where there is room for the word, "vs" where there is
+              not. The glyph alone was the whole discoverability of the only
+              player-comparison journey in the product. */}
+          <span className={styles.compareWide} aria-hidden="true">
+            Compare
+          </span>
+          <span className={styles.compareNarrow} aria-hidden="true">
+            vs
+          </span>
         </button>
       ) : null}
     </li>
@@ -153,7 +161,15 @@ export function SeasonLeagueStandings({
           row, but a member of a forty-strong league should not have to find
           themselves in it to learn their own position. */}
       {view.yourStandingLine ? (
-        <p className={styles.yourStanding}>{view.yourStandingLine}</p>
+        <p className={styles.yourStanding}>
+          {view.yourStandingLine}
+          {/* The gap to the rival immediately above, and to the leader when
+              that is somebody else. Subtraction over rows already on screen —
+              no second read — and absent whenever it would be a guess. */}
+          {view.yourGapLine ? (
+            <span className={styles.yourGap}>{view.yourGapLine}</span>
+          ) : null}
+        </p>
       ) : null}
 
       <div className={styles.columns} aria-hidden="true">
