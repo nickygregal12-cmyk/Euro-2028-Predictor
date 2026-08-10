@@ -6,7 +6,26 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (twelfth entry)
+## Current state — 10 August 2026 (thirteenth entry)
+
+**The published application moved for the first time since 30 July, and every one of the four rows is now at contract 145.** Deploy **`6a79b4d5a5e45e0008beec70`** from commit `ff1fe15db680dd5f5f6698749a8371aba2584cec`, published 11:24:44Z, build time 38 seconds, 38 files, 35 redirect rules, 1 header rule, no functions, 1651 files secret-scanned with zero matches. The rollback target is the deploy it replaced, `6a6bac566b6e440008d44e5b`.
+
+**Netlify's own repository build produced it, not an upload.** The twelfth entry recorded that the agent session could not upload an artifact because `api.netlify.com` and `netlify-mcp.netlify.app` are refused by the session egress policy. Merging the documentation change that recorded that denial was itself a push to `main`, Netlify built it, and the release happened. The denial delayed the release by one merge rather than blocking it. A repository build is also the stronger evidence: the deploy record carries the exact `commit_ref`, which an upload need not.
+
+**The release smoke could not run, and that is not a verdict on the artifact.** `production-smoke.yml` run `31383883792` fetches `release.json` anonymously and retries 120 times; every attempt between 11:32 and 11:42 returned **401**, because the site is protected. The workflow fails by construction against a protected site whatever was published, and would have failed identically before this release. What it does establish is that the perimeter refuses an anonymous visitor — corroborated independently by the deploy's own Lighthouse plugin, which could not load the site for the same reason.
+
+**The access-control mechanism changed and needs an owner confirmation.** A project read at 11:0x showed `requiresSSOTeamLogin: true` with `requiresPassword: false`; a read at 11:26 showed `requiresPassword: true` across all contexts with `requiresSSOTeamLogin: false`. Nothing in this work changed it — the only Netlify write was the production `EURO28_DEPLOYED_DB_CONTRACT`, and an environment variable cannot move an access control. The site is protected either way and this is not a public launch, but production should not be described as "behind Team SSO" until the project is read again.
+
+**What this did NOT do.** It published no football and opened no competition: Production still holds zero season fixtures and `admin_open_season_competition` has still never been run there, so a signed-in visitor finds the competitions empty. It did not publish Euro 2028 — the state is still `hidden`. It did not make the site public. It proves what was built and published, not what a logged-in player sees. `promotionAuthorised` stays `false`.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737`, independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+| Production Supabase | **145** | Rollout run `31379974246` gated on backup `31378953968` and rehearsal `31379390093`; independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+| Published production artifact | **145** | Deploy `6a79b4d5a5e45e0008beec70` from `ff1fe15d…`, published 11:24:44Z by a Netlify repository build on the push to `main`. Rollback target `6a6bac566b6e440008d44e5b`. | LEVEL — RELEASE SMOKE UNRUNNABLE AGAINST A PROTECTED SITE |
+
+## Superseded — 10 August 2026 (twelfth entry)
 
 **All four declarations are now at contract 145, and the published application is still not.** The eleventh entry levelled the repository and the two databases. This entry moves the Netlify declarations onto them and records what happened when the application release was attempted.
 
