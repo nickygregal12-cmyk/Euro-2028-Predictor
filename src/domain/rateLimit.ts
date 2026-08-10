@@ -24,6 +24,13 @@ export type RateLimitedAction = keyof typeof RATE_LIMITS
  * Whether an action should be BLOCKED now: true when the number of prior events
  * within the window is already at/above `max` (mirrors the SQL `count(...) >=
  * max` guard, checked before logging the new event).
+ *
+ * This is the rule, not the enforcement. The rule only holds if the count and
+ * the insert cannot interleave, which is the SQL side's problem and not this
+ * module's: `enforce_rate_limit` serialises a caller's decisions on a
+ * transaction-scoped advisory lock (contract 145, risk-register `DATA-007`).
+ * Before that, concurrent requests could each observe a count below `max` and
+ * all proceed.
  */
 export function exceedsRateLimit(
   recentMs: number[],

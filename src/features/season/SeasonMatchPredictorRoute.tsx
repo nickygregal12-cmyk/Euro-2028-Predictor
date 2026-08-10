@@ -2,7 +2,11 @@ import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { isNextUi } from '../../app/routeFlags'
-import { logicalWeeklyParent, weeklyRoutes } from '../../app/weeklyRoutes'
+import {
+  competitionMatchPredictorRoute,
+  logicalWeeklyParent,
+  weeklyRoutes,
+} from '../../app/weeklyRoutes'
 import { NotFoundPage } from '../notfound/NotFoundPage'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import { fetchSeasonConsensus } from '../../services/supabase/seasonConsensus'
@@ -170,6 +174,15 @@ export function SeasonMatchPredictorRoute({
       destinations={destinations}
       registration={registration}
       consensus={consensusReader}
+      // Built here rather than in the page: URL construction belongs to the
+      // route authority, and this is the same builder the Match Centre's link
+      // into this card already uses.
+      matchweekHref={(target) =>
+        competitionMatchPredictorRoute(
+          { competitionSlug: competitionSlug ?? '', seasonSlug: seasonSlug ?? '' },
+          target,
+        )
+      }
     />
   )
 }

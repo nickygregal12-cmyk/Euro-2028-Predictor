@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { createSeasonMatchPredictorGateway } from '../../../src/dev/seasonMatchPredictorGateway'
-import { instantFor } from '../../../src/dev/seasonPreviewFixture'
+import { MATCHWEEK_COUNT, instantFor } from '../../../src/dev/seasonPreviewFixture'
 import { SeasonMatchPredictorPage } from '../../../src/features/season/SeasonMatchPredictorPage'
 import type { SeasonLmsRegistrationGateway } from '../../../src/features/season/lmsRegistrationModel'
 import { seasonShellDestinations } from '../../../src/features/season/seasonDestinations'
@@ -119,5 +119,93 @@ describe('the Match Predictor entry path', () => {
 
     await waitFor(() => expect(screen.getByText('Premier League')).toBeTruthy())
     expect(screen.queryByRole('button', { name: 'Join' })).toBeNull()
+  })
+})
+
+describe('moving between matchweeks', () => {
+  const href = (matchweek: number) => `${BASE}/games/match-predictor?matchweek=${matchweek}`
+
+  it('offers no previous at the first matchweek, and does not grey one out', async () => {
+    renderPage({ matchweek: 1, matchweekHref: href })
+
+    await screen.findByRole('navigation', { name: 'Matchweek' })
+    expect(screen.queryByRole('link', { name: 'Previous matchweek' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Next matchweek' }).getAttribute('href')).toBe(
+      href(2),
+    )
+  })
+
+  it('steps both ways in the middle of a season', async () => {
+    renderPage({ matchweek: 5, matchweekHref: href })
+
+    const previous = await screen.findByRole('link', { name: 'Previous matchweek' })
+    expect(previous.getAttribute('href')).toBe(href(4))
+    expect(screen.getByRole('link', { name: 'Next matchweek' }).getAttribute('href')).toBe(
+      href(6),
+    )
+  })
+
+  it('offers no next at the last matchweek the season actually has', async () => {
+    // The bound is the card read's own `of`, not a number this page invented.
+    renderPage({ matchweek: MATCHWEEK_COUNT, matchweekHref: href })
+
+    await screen.findByRole('navigation', { name: 'Matchweek' })
+    expect(screen.queryByRole('link', { name: 'Next matchweek' })).toBeNull()
+    expect(
+      screen.getByRole('link', { name: 'Previous matchweek' }).getAttribute('href'),
+    ).toBe(href(MATCHWEEK_COUNT - 1))
+  })
+
+  it('says the matchweek once, not twice', async () => {
+    renderPage({ matchweek: 5, matchweekHref: href })
+
+    // The status strip drops its copy when the stepper carries one, so the
+    // page does not print "Matchweek 5 of 38" in two places.
+    await screen.findByRole('navigation', { name: 'Matchweek' })
+    expect(screen.getAllByText(`Matchweek 5 of ${MATCHWEEK_COUNT}`)).toHaveLength(1)
+  })
+
+  it('keeps the status strip copy where there is no stepper', async () => {
+    renderPage({ matchweek: 5 })
+
+    expect(await screen.findByText(`Matchweek 5 of ${MATCHWEEK_COUNT}`)).toBeTruthy()
+    expect(screen.queryByRole('navigation', { name: 'Matchweek' })).toBeNull()
+  })
+})
+
+describe('no control on the card is disabled', () => {
+  /**
+   * The rule batch I set on the competition dashboard, applied to the surface a
+   * player spends most of their time on. A disabled button cannot be told apart
+   * from a broken one, so anything the server would refuse is a sentence.
+   */
+  it('renders no disabled control anywhere on a normal editable card', async () => {
+    renderPage({ matchweek: 1 })
+
+    await screen.findByRole('region', { name: 'Matchweek 1 card' })
+    const disabled = [...document.body.querySelectorAll('button, a, input')]
+      .filter(
+        (node) => node.hasAttribute('disabled') || node.getAttribute('aria-disabled') === 'true',
+      )
+      // ONE EXCEPTION, NAMED RATHER THAN GLOSSED. A score stepper's "−" greys at
+      // zero, which is a bound on an increment rather than a refused action: the
+      // pair must hold its place while a player taps, and removing an arrow
+      // mid-edit would shift every row under their thumb. Everything else here
+      // is an action, and an action the server would refuse is a sentence.
+      .filter((node) => !/^(Add one to|Subtract one from) /.test(node.ariaLabel ?? ''))
+
+    expect(disabled.map((node) => node.textContent)).toEqual([])
+  })
+
+  it('states a confirmed card rather than greying the button that confirmed it', async () => {
+    renderPage({ matchweek: 1 })
+
+    // Nothing is entered yet, so confirming is refused — and the refusal is the
+    // model's own sentence rather than an unpressable primary button.
+    expect(
+      await screen.findByText('Enter at least one prediction before confirming the card.'),
+    ).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Confirm card' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Card confirmed' })).toBeNull()
   })
 })
