@@ -196,7 +196,7 @@ A surface is not complete because it renders. It must be immediately understanda
 | `UI-F15` | Retention and recap: Since you were last here, Matchweek Recap, rank/rival movement, milestones, share entry points | **Partial** — see § 4A |
 | `UI-F16` | Season Wrapped and history | Outstanding (`MIG-UI-08`) |
 | `UI-F17` | Account, preferences, onboarding | **Partial** — the four onboarding steps are built, tested and gallery-covered as reusable components: competition selection that scales to twenty with search and pinned selection, an optional favourite with a real skip, per-competition game choice with a replace-not-merge bulk mode, and a review that keeps Follow, Join game and Favourite apart. They are deliberately NOT wired into first sign-in: `MIG-UI-10` owns the persistence and resume semantics, and the review step renders without a submit until it exists |
-| `UI-F18` | Final design pass: spacing, typography, hover/focus, motion, skeletons, all states, both themes, density | **Partial** — a measured responsive sweep at 390 / 768 / 1023 / 1024 / 1280 / 1440 / 1800 in both themes found no horizontal overflow anywhere and three undersized tap targets, all in the Match Centre topbar, now fixed; see § 13 |
+| `UI-F18` | Final design pass: spacing, typography, hover/focus, motion, skeletons, all states, both themes, density | **Partial** — a measured responsive sweep at 390 / 768 / 1023 / 1024 / 1280 / 1440 / 1800 in both themes found no horizontal overflow anywhere and no undersized tap target on a shipping season surface; the three it did find were in the parked tournament Match Centre and were fixed anyway. See § 13 |
 | `UI-F19` | Full signed-in acceptance: phone + desktop, light + dark | Outstanding |
 | `UI-F20` | Public acquisition landing page | Outstanding, and deliberately last (`DFA-011`) |
 
@@ -214,9 +214,11 @@ The `UI-F18` sweep is a measurement rather than an impression. Every reachable s
 - **Tap targets.** Every `button`, `a[href]`, `input` and `select` shorter than 40px. A visually-hidden input inside a label is measured at its label, because the label is the target — measuring the input reports every accessible radio group as a 13px control, which is the false positive this check has to avoid to be worth running.
 - **The rail breakpoint.** Whether the desktop rail and the mobile bottom navigation are each present, so the 1024px handover is observed rather than assumed.
 
-Result: **no horizontal overflow at any width in either theme.** Three shipping controls were under the tap minimum and all three were in the Match Centre topbar — `Previous` and `Next` at 34px and `Back` at 26px, the smallest control in the product and the one a player presses to leave the page. Both were fixed in `MatchCentre.module.css` rather than by relaxing the check.
+Result: **no horizontal overflow at any width in either theme, on any surface.**
 
-Two classes of sub-44px control remain and neither is a defect. The development harnesses' own scenario switchers are not shipping UI and are now marked `data-harness` so the sweep says so instead of the reader having to know. The score stepper's `+`/`−` is 44px wide and 36px tall — under the minimum on one axis only, with 4px gaps either side — which is a decision recorded in `ScoreInput.module.css` rather than an oversight, and it stands.
+On tap targets the sweep found three undersized controls, and it is worth being exact about where: `Previous`, `Next` and `Back` in the **tournament** Match Centre topbar, at 34px, 34px and 26px. `src/features/matches/` is parked Euro code rather than a shipping weekly surface, so this is not a live defect; it was fixed anyway in `MatchCentre.module.css`, because a two-line stylesheet correction is cheaper than a note explaining why it was left.
+
+**No shipping season surface has an undersized control.** Two classes of sub-44px element remain and neither is a defect. The development harnesses' own scenario switchers are not shipping UI and are now marked `data-harness`, so the sweep says so instead of the reader having to know. The score stepper's `+`/`−` is 44px wide and 36px tall — under the minimum on one axis only, with 4px gaps either side — which is a decision recorded in `ScoreInput.module.css` rather than an oversight, and it stands.
 
 What the sweep cannot cover is the signed-in application routes, which need a session. Those remain part of the hosted acceptance in `UI-F19`, and the Team-SSO boundary on that environment is a genuine gate rather than an obstacle to work around.
 
