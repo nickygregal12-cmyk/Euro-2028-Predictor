@@ -252,6 +252,11 @@ const PROVIDER_RELATIONS = [
   // deliberately in `predictor_internal` instead, alongside contract 96's
   // custody tables, because nothing outside the job ever has cause to read it.
   'table:provider_poll_targets',
+  // Contract 152. The invite-code namespace shared by leagues and private
+  // competitions. Row-level security enabled with no policy and every browser
+  // grant revoked, because a role that can select from it can enumerate every
+  // private competition on the platform. Read only through the resolver.
+  'table:invite_code_registry',
 ]
 
 const reviewedRelations = [
@@ -273,7 +278,7 @@ describe('Stage C public-relation coverage after C1b and the season fixtures', (
     // counted here. This count is a positive control on the migration parser:
     // if it silently stopped recognising `create table`, every disposition
     // below would be vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(52)
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(53)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

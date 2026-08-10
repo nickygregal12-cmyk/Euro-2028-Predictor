@@ -70,6 +70,8 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `group_teams.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate group/team season scope |
 | `group_teams.validate_group_team_scope` | `predictor_internal.validate_group_team_scope` | preserve group/team validation |
 | `league_members.rate_limit_league_membership` | `public.trg_rate_limit_league_membership` | preserve membership rate limiting |
+| `leagues.trg_register_league_invite_code` | `predictor_internal.register_league_invite_code` | register a league's code in the shared namespace so a private competition cannot reissue it |
+| `bonus_competitions.trg_register_competition_invite_code` | `predictor_internal.register_competition_invite_code` | register a private competition's code in the same namespace, and release it when the code is cleared or the row is deleted |
 | `leagues.enforce_total_league_limit` | `predictor_internal.enforce_total_league_limit` | preserve operating-cap enforcement |
 | `match_predictions.a_prepare_competition_season_scope` | `predictor_internal.prepare_competition_season_scope` | derive and validate entry/match season scope |
 | `match_predictions.enforce_joker_rules_trg` | `public.enforce_joker_rules` | preserve Joker authority |

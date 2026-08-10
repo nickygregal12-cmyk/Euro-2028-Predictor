@@ -97,6 +97,7 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'actual_third_place_resolutions.updated_by -> set null',
   'bonus_competition_audit.actor_id -> set null',
   'bonus_competition_entrants.user_id -> cascade',
+  'bonus_competitions.owner_id -> restrict',
   'bonus_cup_fixtures.winner_user_id -> restrict',
   'bonus_knockout_predictions.user_id -> cascade',
   'entries.user_id -> cascade',

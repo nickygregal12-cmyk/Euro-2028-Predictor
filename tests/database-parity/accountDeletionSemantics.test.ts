@@ -108,6 +108,7 @@ describe('account deletion — declared foreign-key semantics', () => {
       // unknown, matching the repository's other administrator audit trails.
       '20260809130000_euro_publication_state.sql euro_publication_state.changed_by → set null',
       '20260809130000_euro_publication_state.sql euro_publication_transitions.actor_id → set null',
+      '20260810180000_private_container_identity.sql bonus_competitions.owner_id → restrict',
     ])
   })
 
@@ -131,6 +132,7 @@ describe('account deletion — declared foreign-key semantics', () => {
 describe('account deletion — consequences', () => {
   it('names the references that block deletion outright', () => {
     expect(sitesOf('restrict').sort()).toEqual([
+      'bonus_competitions.owner_id',
       'bonus_cup_fixtures.winner_user_id',
       'leagues.owner_id',
     ])
