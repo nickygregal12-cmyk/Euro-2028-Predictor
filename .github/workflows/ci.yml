@@ -64,6 +64,17 @@ jobs:
         run: npm run check:bundle-budget
       - name: Lint
         run: npm run lint
+      - name: Lint CSS
+        # BLOCKING from the day it lands, which is the opposite of how the Knip
+        # and Lighthouse steps below are introduced — and deliberately so. Those
+        # two have findings whose stability nobody has measured. This one was
+        # driven to zero before it was wired: the first run produced 20
+        # findings, 18 were false positives from two configuration mistakes
+        # (box-shadow's composite value, and color-mix over tokens), and the
+        # remaining 2 are real, justified literals carrying an inline exemption
+        # that says why. There is no backlog to grandfather, so a warning here
+        # would only be a rule nobody has to obey.
+        run: npm run lint:css
       - name: Domain coverage thresholds
         run: npm run test:coverage:domain
       - name: Test
@@ -128,3 +139,51 @@ jobs:
           retention-days: 7
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
+      - name: Audit all dependencies at moderate (report only)
+        # A SECOND, wider question than the blocking step above: what is there at
+        # moderate severity, including devDependencies. It is deliberately
+        # non-blocking — the point of the first run is to learn the VOLUME. A
+        # repository whose CI holds production database credentials cannot treat
+        # dev-dependency compromise as out of scope, but neither can it adopt a
+        # gate whose noise level nobody has measured.
+        #
+        # `|| true` rather than `--audit-level=none`: npm audit exits non-zero on
+        # findings at or above the level, and there is no "report but pass" flag.
+        continue-on-error: true
+        run: npm audit --audit-level=moderate || true
+      - name: Dead code report (knip, report only)
+        # `check:dead-code` and its configuration have existed since 5 August
+        # 2026 and no workflow ran them — the gate was built and never closed.
+        #
+        # Report-only, and it stays that way until the criteria in
+        # docs/quality/knip-baseline.md are met: "it becomes a CI gate once the
+        # report is stable and its intentional ignores are narrow". That baseline
+        # classified 213 findings and found most of them benign — barrel
+        # re-exports and module-local constants carrying a needless `export` —
+        # so a blocking version today would fail every pull request for reasons
+        # its own baseline calls false. The npm script already carries
+        # `--no-exit-code`; `continue-on-error` is belt and braces for the day
+        # somebody removes it without reading the baseline.
+        continue-on-error: true
+        run: npm run check:dead-code
+      - name: Lighthouse (report only)
+        # Same shape as the step above: lighthouserc.json, scripts/run-lighthouse.mjs
+        # and @lhci/cli all existed and no workflow called them.
+        #
+        # It audits a LOCAL production build, not the deploy preview, and that is
+        # a measured decision rather than a convenience — see
+        # docs/quality/lighthouse-baseline.md. Two pull requests that changed no
+        # runtime code at all scored 20 and 21 on their previews while the same
+        # bundle scores 89-95 locally, so a preview-targeted job would report
+        # infrastructure as product quality and send someone hunting a regression
+        # in code that had not changed. The audit recommending "against the
+        # deploy preview" did not have that evidence; the repository does.
+        #
+        # Report-only for the reason the same baseline gives: nobody has yet
+        # measured how far performance drifts between runs on shared CI
+        # infrastructure, and a floor set before that is a false-alarm generator.
+        # The accessibility assertion inside lighthouserc.json is already `error`
+        # at minScore 1, so when this step is promoted to blocking it arrives
+        # with teeth already fitted.
+        continue-on-error: true
+        run: npm run check:lighthouse

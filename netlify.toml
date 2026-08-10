@@ -208,7 +208,15 @@
 [[headers]]
   for = "/*"
   [headers.values]
-    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; frame-src https://challenges.cloudflare.com; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+    # `connect-src` includes api.pwnedpasswords.com for the AUTH-002 breach-corpus
+    # check. Without the permission the check fails SILENTLY — the browser blocks
+    # the request, `pwnedPassword.ts` fails open by design and returns 0, and the
+    # control is simply absent with nothing in the application to notice. That is
+    # why the permission and the code that needs it are asserted against each
+    # other in `contentSecurityPolicyParity.test.ts` rather than maintained by
+    # hand on two sides. Only the k-anonymous five-character hash prefix is ever
+    # sent to it; see the module header for why that discloses nothing.
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; frame-src https://challenges.cloudflare.com; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"

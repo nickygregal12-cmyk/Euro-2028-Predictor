@@ -2,7 +2,7 @@
 // bounds and current-user context through the paginated `get_leaderboard` RPC.
 // This module never selects profiles, entries or score events directly.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapLeaderboardPage,
   type LeaderboardPage,
@@ -20,10 +20,10 @@ export async function fetchLeaderboardPage(
   tournamentId: string,
   options: LeaderboardPageOptions = {},
 ): Promise<LeaderboardPage> {
-  const { data, error } = await supabase.rpc('get_leaderboard', {
+  const { data, error } = await db.rpc('get_leaderboard', {
     p_tournament_id: tournamentId,
     p_limit: options.limit ?? 50,
-    p_after: options.after ?? null,
+    p_after: options.after ?? undefined,
   })
   if (error) throw error
   return mapLeaderboardPage(data)

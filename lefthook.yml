@@ -1,0 +1,52 @@
+# Pre-commit checks.
+#
+# WHY. Every trivial failure — an unused import, a stray `any`, a raw hex in a
+# CSS module — currently round-trips through CI: push, wait for a runner,
+# install, build, discover a one-line problem. These run the same checks in
+# seconds against the files actually being committed.
+#
+# WHAT IT IS NOT. It is not a smaller CI. The build, the full Vitest suite, the
+# domain coverage thresholds, the bundle budgets, the documentation sweep and
+# the database work all stay in CI where they belong — a pre-commit hook that
+# takes two minutes gets bypassed, and a bypassed hook is worse than no hook
+# because it is still reported as a control. The three checks below are the ones
+# that are both fast and unarguable.
+#
+# IT IS ADVISORY BY CONSTRUCTION, and that is deliberate rather than a gap.
+# `npx lefthook install` is a step someone has to run, `--no-verify` skips
+# everything here, and neither is a problem: CI enforces all three of these
+# again, blocking, on every pull request. This makes the feedback faster; it
+# never becomes the thing that guarantees it. Nothing in this file should ever
+# be the only place a rule is checked.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: lint
+      # Only the staged files, so committing one component does not lint the
+      # repository. oxlint runs in milliseconds, so this is close to free.
+      glob: '*.{ts,tsx}'
+      run: npx oxlint --deny-warnings {staged_files}
+
+    - name: lint-css
+      # The design-system token rule (`Do not add colours outside tokens.css`).
+      # Worth catching here specifically because a raw colour is easy to add,
+      # invisible in review, and only shows up as a wrong colour in one theme.
+      glob: '*.css'
+      run: npx stylelint {staged_files}
+
+    - name: typecheck
+      # NOT scoped to staged files, and it cannot be: `tsc -b` type-checks
+      # project-wide, and the whole class of defect worth catching here is the
+      # one where an edit in file A breaks file B. Passing individual paths to
+      # tsc would also discard tsconfig's project settings, which is how
+      # "typecheck passes locally, fails in CI" happens.
+      #
+      # It is the slowest job here. If it becomes annoying, move it to
+      # pre-push rather than deleting it — the failure it catches is the one
+      # that wastes the most CI time.
+      run: npx tsc -b
+
+# Deliberately no `commit-msg`, `pre-push` or `post-merge` hooks. Each would
+# need its own justification, and an unjustified hook is friction people learn
+# to route around.

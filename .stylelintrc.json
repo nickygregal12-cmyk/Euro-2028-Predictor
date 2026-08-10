@@ -1,0 +1,78 @@
+{
+  "//": [
+    "CSS linting, whose ONE load-bearing rule is declaration-strict-value: no",
+    "colour may be written outside tokens.css.",
+    "",
+    "WHY IT EXISTS. tokens.css opens with 'Do not add colours outside this",
+    "file.' That rule has been stated since the design system was written and",
+    "enforced by nothing — JS and TSX are linted with oxlint and",
+    "--deny-warnings, while ~5,500 lines of design-system CSS plus feature CSS",
+    "had no automated guard at all. A raw hex added in a feature module is",
+    "invisible to review until somebody notices the theme is wrong in one place,",
+    "and it defeats light/dark switching entirely because a literal cannot vary",
+    "by theme.",
+    "",
+    "WHY stylelint-config-standard IS NOT EXTENDED. It brings roughly forty",
+    "stylistic rules that would fail across 110 existing files on introduction,",
+    "and fixing them is a formatting change dressed up as a lint adoption. The",
+    "cost is that this configuration is small; the benefit is that its one rule",
+    "means something. Additional rules are worth adopting one at a time, each",
+    "with its own reason.",
+    "",
+    "WHICH PROPERTIES, AND WHY box-shadow IS ABSENT. '/color$/' covers color,",
+    "background-color, border-color, outline-color and the rest by suffix; fill",
+    "and stroke are the SVG equivalents. box-shadow was in the first version and",
+    "was removed after measuring: its value is composite — offsets, blur, spread,",
+    "THEN a colour — so a whole-value check can never match '^var(--' even when",
+    "the colour is a token. It flagged 'inset 3px 0 0 var(--acc)' and",
+    "'inset var(--bar-w) 0 0 0 var(--acc)', both perfectly tokenised. A rule that",
+    "fires on correct code teaches people to disable it. The cost is stated",
+    "rather than hidden: a genuine 'rgba(0, 0, 0, 0.18)' inside a box-shadow is",
+    "still unlinted and is left to review.",
+    "",
+    "WHY color-mix() IS IGNORED. Its ARGUMENTS carry the colour, and in every",
+    "current use they are tokens — 'color-mix(in srgb, var(--cyn) 60%,",
+    "var(--line))'. The rule compares whole values, so without the exception the",
+    "correct tokenised form is rejected. The looseness is real: 'color-mix(in",
+    "srgb, #fff 50%, red)' would pass. It is accepted because the alternative",
+    "rejects the idiom the design system uses in 32 files."
+  ],
+  "plugins": ["stylelint-declaration-strict-value"],
+  "rules": {
+    "scale-unlimited/declaration-strict-value": [
+      ["/color$/", "fill", "stroke"],
+      {
+        "ignoreValues": [
+          "currentColor",
+          "inherit",
+          "transparent",
+          "none",
+          "unset",
+          "initial",
+          "revert",
+          "/^var\\(--/",
+          "/^color-mix\\(/"
+        ],
+        "ignoreFunctions": false,
+        "disableFix": true,
+        "message": "Use a design token — var(--…) — rather than a literal colour. Colours are defined in src/styles/tokens.css and nowhere else."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["src/styles/tokens.css", "src/styles/fonts.css", "src/premium/**/*.css"],
+      "rules": {
+        "scale-unlimited/declaration-strict-value": null
+      }
+    }
+  ],
+  "//overrides": [
+    "tokens.css is where the literals live, so the rule cannot apply to it.",
+    "fonts.css carries @font-face url() references and no colour.",
+    "src/premium/** is a reference-only parallel prototype application with its",
+    "own provisional brand, pinned as unreachable from the production entry by",
+    "premiumPrototypeBoundary.test.ts. It is not governed by these tokens."
+  ],
+  "ignoreFiles": ["dist/**", "node_modules/**", "coverage/**"]
+}

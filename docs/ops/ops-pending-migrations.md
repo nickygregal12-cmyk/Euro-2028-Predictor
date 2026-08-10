@@ -67,6 +67,8 @@ All five new reads and both new `predictor_internal` functions are genuinely pre
 | Development Supabase `iouzoutneyjpugbbtdem` | **151** | Guarded fast-lane run `31417611501`, independently confirmed by a read-only ledger query and by proving the five new reads, two internal functions and three columns present with zero browser grants. | LEVEL |
 | Production Supabase | **151** | Rollout run `31420443441` gated on backup `31418252958` and rehearsal `31419966598`; independently confirmed by a read-only query returning 151 rows ending `20260810170000_season_player_profile` with every player-owned count unchanged. | LEVEL |
 
+**A generated-types artifact depends on this level.** `src/services/supabase/database.types.ts` was generated read-only from Development at contract 151 precisely because Development and the repository are level; `tests/services/databaseTypes.test.ts` fails if a later migration lands without a regeneration. See [`../quality/database-types-baseline.md`](../quality/database-types-baseline.md).
+
 ## Superseded — 10 August 2026 (sixteenth entry)
 
 **Contracts 146 to 151 are the repository candidate and are applied to neither hosted environment.** They are being accumulated as one batch before rollout, at the owner's direction, rather than promoted one at a time.

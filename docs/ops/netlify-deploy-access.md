@@ -162,7 +162,7 @@ The job fails if Netlify reports failure/error, never certifies the exact head, 
 
 A pull-request base change or reopen is not deploy evidence by itself. After rebasing or retargeting, push a genuine head commit so Netlify receives a normal synchronize event and publishes a status for that exact SHA.
 
-This is not a substitute for application browser testing. The same workflow runs the authenticated application journeys against a disposable local Supabase rebuilt from every committed migration. Public CDN HTTP and browser smoke remain release-specific gates; while Team SSO protects production, the private signed-in verification is the relevant outer-access posture.
+This is not a substitute for application browser testing. The same workflow runs the authenticated application journeys against a disposable local Supabase rebuilt from every committed migration. Public CDN HTTP and browser smoke remain release-specific gates; while the site perimeter (site password protection since 10 August 2026, Team SSO before it) protects production, the private signed-in verification is the relevant outer-access posture.
 
 Do not add a shared password, hard-coded credential, commit-derived password or secret-bearing `Basic-Auth` rule merely to make CI enter a protected preview.
 
@@ -191,6 +191,10 @@ No Netlify Function or Edge Function is required for the current static Vite SPA
 
 ## Production protection
 
-Team SSO is the current private-testing perimeter across all contexts. Production database promotion, Netlify declaration alignment and application deployment are still separate operations. Before publishing a new application artifact, require the ordinary Production backup/preflight/exact-range/postflight controls, exact source/contract alignment, the intended feature flags, release smoke and a recorded rollback deploy.
+**Site password protection** is the current private-testing perimeter across all contexts, by the owner decision of 10 August 2026 recorded above; Team SSO is **off**. This paragraph said "Team SSO" until 10 August 2026 and was left behind by that switch — the same document recorded the change forty lines higher while still asserting the old mechanism here, which is the drift `DOC-001` describes and the reason a live runbook states a fact in one place only.
+
+The perimeter is a **convenience control, not a confidentiality control**, and it protects the Netlify-served site alone. Supabase endpoints are reachable on their own hostname and are not behind it, so the password mitigates neither `AUTH-002` nor `SEC-001` and must not be used to defer either. It is also not `AGE-001`.
+
+Production database promotion, Netlify declaration alignment and application deployment are still separate operations. Before publishing a new application artifact, require the ordinary Production backup/preflight/exact-range/postflight controls, exact source/contract alignment, the intended feature flags, release smoke and a recorded rollback deploy.
 
 Every production release must record the exact source commit, deploy ID, application contract, Supabase project/contract, Netlify declaration, access-control posture, smoke evidence and rollback deploy ID.

@@ -7,10 +7,12 @@
     "node": "22.22.2"
   },
   "scripts": {
+    "prepare": "lefthook install || true",
     "dev": "vite",
     "prebuild": "node scripts/validate-netlify-environment.mjs && node scripts/validate-deployment-contract.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint --deny-warnings",
+    "lint:css": "stylelint \"src/**/*.css\"",
     "check:migration-timestamps": "node scripts/check-migration-timestamps.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,6 +30,7 @@
     "check:dead-code": "knip --no-exit-code",
     "check:lighthouse": "node scripts/run-lighthouse.mjs",
     "generate:now": "node scripts/generate-now.mjs",
+    "generate:types": "node scripts/generate-database-types.mjs",
     "check:now": "node scripts/generate-now.mjs --check"
   },
   "dependencies": {
@@ -57,7 +60,11 @@
     "axe-core": "^4.12.1",
     "jsdom": "^29.1.1",
     "knip": "^6.31.0",
+    "lefthook": "^2.1.10",
     "oxlint": "^1.71.0",
+    "stylelint": "^17.14.1",
+    "stylelint-config-standard": "^40.0.0",
+    "stylelint-declaration-strict-value": "^1.11.1",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
     "vitest": "^4.1.10"

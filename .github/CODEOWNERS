@@ -1,0 +1,89 @@
+# Code owners.
+#
+# WHAT THIS IS FOR HERE. There is one maintainer, so this file assigns no work
+# that would not have reached them anyway — every line names the same person.
+# Its value is the second column of the comment: it records WHICH AUTHORITY
+# GOVERNS EACH PATH, in a file GitHub puts in front of a reviewer automatically.
+# A reviewer looking at a migration should be reminded that ADRs and the risk
+# register decide what it may do, before reading the SQL and deciding it looks
+# reasonable.
+#
+# It is therefore a map, not a rota. If a second maintainer ever appears, the
+# ownership becomes real and the mapping is already written down.
+#
+# Later lines win, so the file runs general → specific.
+
+# Default: everything.
+*                                   @nickygregal12-cmyk
+
+# ── Rules and decisions ────────────────────────────────────────────────────
+# Governed by docs/adr/**. A planning document never overrides an ADR, and the
+# design authority may not change a scoring, lock, membership, settlement,
+# progression or reveal rule.
+/docs/adr/                          @nickygregal12-cmyk
+/docs/scoring-rules.md              @nickygregal12-cmyk
+
+# ── Live authorities ───────────────────────────────────────────────────────
+# One home each, and deliberately so. current-status.md is the ONLY live status
+# authority; roadmap.md the only execution sequence; MASTER-TODO.md the only
+# detailed inventory; accepted-requirements.md the only home for an accepted,
+# unbuilt requirement — where a row is marked in place and never deleted.
+/docs/quality/current-status.md     @nickygregal12-cmyk
+/docs/quality/accepted-requirements.md @nickygregal12-cmyk
+/docs/quality/risk-register.md      @nickygregal12-cmyk
+/docs/roadmap.md                    @nickygregal12-cmyk
+/MASTER-TODO.md                     @nickygregal12-cmyk
+/AGENTS.md                          @nickygregal12-cmyk
+/CLAUDE.md                          @nickygregal12-cmyk
+
+# Generated, never hand-edited. `npm run check:now` fails on a manual change as
+# well as on a stale one.
+/NOW.md                             @nickygregal12-cmyk
+
+# ── Immutable evidence ─────────────────────────────────────────────────────
+# Dated audits, investigations and reconciliations are historical evidence at
+# their recorded commit. They are corrected alongside, never rewritten to look
+# current.
+/docs/quality/audits/               @nickygregal12-cmyk
+/docs/quality/investigations/       @nickygregal12-cmyk
+/docs/quality/reconciliations/      @nickygregal12-cmyk
+/docs/quality/history/              @nickygregal12-cmyk
+
+# ── The database ───────────────────────────────────────────────────────────
+# Append-only after hosted application. The repository contract is the migration
+# COUNT, so a number cannot be reserved and one session at a time works here.
+# Every new public table keeps RLS on; every security-definer function pins
+# search_path; browser roles get minimum privileges.
+/supabase/migrations/               @nickygregal12-cmyk
+/supabase/tests/                    @nickygregal12-cmyk
+/supabase/functions/                @nickygregal12-cmyk
+
+# The machine-readable contract records. These are read by the deploy gates and
+# by NOW.md; a hosted record is written by its rollout workflow, not by hand.
+/config/                            @nickygregal12-cmyk
+
+# ── Scoring and domain purity ──────────────────────────────────────────────
+# Pure functions only: no storage, network or ambient clock; time is an input.
+# competition/ may not import tournament/ or season/, and those two may not
+# import each other. TypeScript and PostgreSQL scoring must agree — proven by
+# tests/database-parity/, not by inspection.
+/src/domain/                        @nickygregal12-cmyk
+/tests/database-parity/             @nickygregal12-cmyk
+
+# All browser database access goes through here, via bounded RPC/read-model
+# contracts. Private integrity helpers are never exposed as browser RPCs.
+/src/services/supabase/             @nickygregal12-cmyk
+
+# ── Deployment and hosted state ────────────────────────────────────────────
+# Headers, the route allowlist and the contract gate. Production deploys are
+# paused by that gate by design; never weaken a guard to make a build pass.
+/netlify.toml                       @nickygregal12-cmyk
+
+# CI and the deploy gates. Production rollout workflows additionally require
+# explicit owner approval and target-specific evidence — no agent touches them.
+/.github/workflows/                 @nickygregal12-cmyk
+/scripts/                           @nickygregal12-cmyk
+
+# This file and the disclosure policy.
+/.github/CODEOWNERS                 @nickygregal12-cmyk
+/SECURITY.md                        @nickygregal12-cmyk

@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ALLOWED_SENTRY_INGEST_SUFFIXES } from '../../src/services/observability/sentryReporter'
+import { PWNED_PASSWORDS_ORIGIN } from '../../src/services/auth/pwnedPassword'
 
 /**
  * Parity between the committed Content-Security-Policy and what the application
@@ -105,6 +106,20 @@ describe('Content-Security-Policy parity with application requirements', () => {
     expect(sources('frame-src')).toContain('https://challenges.cloudflare.com')
   })
 
+  it('permits the breach-corpus lookup the signup and reset forms make', () => {
+    // AUTH-002. The origin is read from the module that makes the request, not
+    // written out again here, for the same reason the Sentry assertion above
+    // reads the reporter's own allow-list: the code that needs the permission is
+    // the authority for it, so the two cannot drift apart.
+    //
+    // This assertion earns its place because the failure it guards is SILENT.
+    // `pwnedCount` fails open — a blocked request returns 0, which the forms
+    // read as "no reason to warn" — so a missing permission removes the control
+    // and produces no error, no rejected signup and no visible symptom. The only
+    // evidence would be a CSP violation in a console nobody is reading.
+    expect(sources('connect-src')).toContain(PWNED_PASSWORDS_ORIGIN)
+  })
+
   it('keeps fonts and images self-hosted rather than reaching a CDN', () => {
     // Fonts are bundled woff2 and flags are bundled SVG; an external font or
     // image origin appearing here would mean an unnoticed third-party request on
@@ -133,7 +148,24 @@ describe('Content-Security-Policy parity with application requirements', () => {
       (host) => !host.endsWith('supabase.co') && !host.endsWith('sentry.io'),
     )
 
-    expect(externalHosts).toEqual(['challenges.cloudflare.com'])
+    // Derived from what `src/` actually contains rather than compared against a
+    // literal list. The literal was `['challenges.cloudflare.com']`, and adding
+    // the AUTH-002 corpus origin turned this into a failing test that said
+    // nothing about whether the new permission was justified — only that the
+    // hardcoded array was now short by one. Every host must EARN its place by
+    // being referenced, which is the property the test name claims and is a
+    // stronger check than any list that has to be edited alongside the policy.
+    for (const host of externalHosts) {
+      expect(referencesHost(host), `${host} is permitted but referenced nowhere in src/`).toBe(true)
+    }
+
+    // The set is still pinned, so a *new* origin cannot arrive unnoticed merely
+    // because somebody also added a reference to it. Widening the CSP stays a
+    // deliberate two-line change.
+    expect(externalHosts.sort()).toEqual([
+      'api.pwnedpasswords.com',
+      'challenges.cloudflare.com',
+    ])
   })
 
   it('has the smoke compare the served policy against this one', () => {

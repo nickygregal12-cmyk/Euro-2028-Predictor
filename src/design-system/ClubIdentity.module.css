@@ -11,6 +11,14 @@
   align-items: center;
   justify-content: center;
   flex: none;
+  /* stylelint-disable-next-line scale-unlimited/declaration-strict-value --
+     One of two deliberate literals in this file, and they must NOT be tokens.
+     The shirt's background is the club's own colour (contract 136), which comes
+     from football rather than from the theme, so the text on it has to be
+     chosen for contrast against THAT — white here, near-black in .onDark below.
+     A theme token would follow light/dark instead and produce dark text on a
+     dark club colour, which is precisely the unreadable case the pair exists to
+     avoid. */
   color: #fff;
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
@@ -42,6 +50,10 @@
 }
 
 .onDark {
+  /* stylelint-disable-next-line scale-unlimited/declaration-strict-value --
+     The other half of the pair above: applied when the club's own colour is
+     light enough that white text would not meet contrast. Fixed for the same
+     reason — it is contrast against the shirt, not against the page. */
   color: #0b0b0c;
 }
 

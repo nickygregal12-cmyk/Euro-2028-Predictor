@@ -1,0 +1,13 @@
+{
+  "//": [
+    "Provenance for database.types.ts. Written by scripts/generate-database-types.mjs.",
+    "generatedFromContract is the repository migration COUNT at generation time,",
+    "which databaseTypes.test.ts compares against the current count to detect a",
+    "types file left behind by a later migration."
+  ],
+  "source": "hosted-development",
+  "projectRef": "iouzoutneyjpugbbtdem",
+  "generatedFromContract": 151,
+  "developmentHostedContract": 151,
+  "developmentVerifiedAt": "2026-08-10T18:11:15.890Z"
+}

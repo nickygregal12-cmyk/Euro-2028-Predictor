@@ -25,6 +25,29 @@ import { PASSWORD_MIN } from '../../../src/features/auth/authValidation'
  * is fixed: raising the client floor without the matching Supabase setting is
  * theatre, and arming the build gate is a decision about when production is
  * allowed to fail, which belongs to the owner.
+ *
+ * ── PARTIAL TRANSITION, 10 August 2026 ──────────────────────────────────────
+ *
+ * **One of `ACQ-R09`'s three items has moved, and this is that visible edit.**
+ * Leaked-password protection now exists as a client-side breach-corpus check
+ * (`src/services/auth/pwnedPassword.ts`), so the "no breach check" assertion
+ * below is replaced by its after-state. The other two items are untouched and
+ * their before-state assertions are left exactly as written:
+ *
+ *   - **the floor is still six.** Raising it is `AUD-03`, and it is an owner
+ *     task rather than a code one — the client mirror says it mirrors
+ *     Supabase's server rule, and moving it alone would make that comment false
+ *     while changing nothing an attacker experiences. The dashboard setting
+ *     moves first;
+ *   - **the deploy gate still does not know Turnstile exists.** Unchanged, for
+ *     the reason recorded below.
+ *
+ * `AUTH-002` is REDUCED, not closed, and the register says so. The check is
+ * bypassable by calling the Supabase auth endpoint directly, and the hosted
+ * toggle it was supposed to be closed by is a Pro-plan feature this project
+ * cannot enable at all. What it does cover is the population the finding is
+ * actually about: an ordinary user reusing a password that is already in a
+ * credential-stuffing list, who uses the form every time.
  */
 
 const repositoryRoot = process.cwd()
@@ -41,13 +64,57 @@ describe('password floor — before-state', () => {
     expect(PASSWORD_MIN).toBe(6)
   })
 
-  it('has no composition, breach or strength check beyond length', () => {
-    // Length is the entire client-side policy. Recorded because "we validate
-    // passwords" is true and misleading: a six-character dictionary word passes.
+  it('still has no composition or strength check beyond length', () => {
+    // Length remains the entire LOCAL policy. Unchanged, and still worth
+    // pinning: a six-character dictionary word that happens not to be in the
+    // breach corpus passes every check this application makes.
     const source = read('src/features/auth/authValidation.ts')
 
     expect(source).toMatch(/password\.length < PASSWORD_MIN/)
-    expect(source).not.toMatch(/entropy|breach|pwned|haveibeenpwned|zxcvbn/i)
+    expect(source).not.toMatch(/entropy|zxcvbn/i)
+  })
+
+  it('now refuses a password found in the breach corpus — after-state', () => {
+    // The replaced assertion. It read `.not.toMatch(/breach|pwned/)` and pinned
+    // the absence of any breach check; that absence is what changed, so the
+    // assertion is inverted rather than deleted. Deleting it would leave no
+    // trace that the control was ever missing, and no test that fails if it is
+    // quietly removed again.
+    //
+    // Asserted at BOTH forms deliberately. The reset flow is the easier one to
+    // forget and the more important one to have: it is where somebody who has
+    // just been told their password was compromised chooses the next one, and a
+    // sign-up-only check would let them choose another breached password.
+    for (const form of [
+      'src/features/auth/SignUpForm.tsx',
+      'src/features/auth/UpdatePasswordForm.tsx',
+    ]) {
+      const source = read(form)
+      expect(source, `${form} must run the breach check`).toMatch(/checkPwnedPassword/)
+      expect(source, `${form} must block on a hit`).toMatch(/BREACHED_PASSWORD_MESSAGE/)
+    }
+  })
+
+  it('fails open, so an unreachable corpus cannot stop account creation', () => {
+    // The property that makes the control safe to ship. If this inverts, a HIBP
+    // outage becomes a signup outage — and the compensating controls (Turnstile,
+    // the contract-145 atomic limiter, the length floor) all still stand without
+    // it, so failing closed would trade a real availability loss for very
+    // little.
+    const source = read('src/services/auth/pwnedPassword.ts')
+
+    expect(source).toMatch(/catch\s*\{[\s\S]*?return 0/)
+    expect(source).toMatch(/if \(!response\.ok\) return 0/)
+  })
+
+  it('sends only a hash prefix, never the password', () => {
+    // k-anonymity. A regression here would keep working perfectly while
+    // disclosing every candidate password to a third party, which is the kind of
+    // defect that is never noticed from behaviour.
+    const source = read('src/services/auth/pwnedPassword.ts')
+
+    expect(source).toMatch(/hash\.slice\(0, PREFIX_LENGTH\)/)
+    expect(source).toMatch(/PREFIX_LENGTH = 5/)
   })
 
   it('applies the same floor to a reset as to sign-up', () => {
