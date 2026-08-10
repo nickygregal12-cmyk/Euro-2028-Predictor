@@ -29,10 +29,26 @@ export type HubCompetition = {
 }
 
 /**
- * Weekly frontend presentation catalogue. Only currently published domestic
- * seasons belong here. Euro 2028 is intentionally absent from the weekly
- * client while its server-owned publication state and route guard remain a
- * separate requirement; removing it here reduces exposure but does not claim
+ * TRANSITIONAL presentation metadata. **Not the authority on which competitions
+ * exist.**
+ *
+ * WHICH SEASONS EXIST IS THE SERVER'S ANSWER (`MIG-UI-12`).
+ * `fetchPublishedSeasons()` enumerates `public.tournaments` where
+ * `kind = 'league_season'`, and that is the catalogue. This array supplies two
+ * things the server cannot yet hand a browser: the **route slug**, because
+ * `public.competitions.slug` is revoked from `authenticated`, and presentation
+ * copy. A published season absent from here is still listed — named, with its
+ * lifecycle, and honestly unopenable — rather than made invisible by a missing
+ * frontend edit.
+ *
+ * DO NOT ADD A COMPETITION HERE TO MAKE IT EXIST. Publish it on the server. Add
+ * a row here only to give an existing published season a URL, and delete this
+ * array entirely once `MIG-UI-12` exposes the slug.
+ *
+ * Euro 2028 is intentionally absent from the weekly client while its
+ * server-owned publication state and route guard remain a separate requirement;
+ * it is also `kind = 'tournament'`, so the server-driven catalogue excludes it
+ * by its own stored kind. Removing it here reduces exposure but does not claim
  * EURO-001–EURO-004 complete.
  */
 export const HUB_COMPETITIONS: HubCompetition[] = [

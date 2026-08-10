@@ -102,3 +102,11 @@
   text-transform: uppercase;
   color: var(--tx3);
 }
+
+/* Published, and not a link. It must not look like one: the competition is
+   real and this build cannot route to it. */
+.cardInert {
+  border-style: dashed;
+  color: var(--tx2);
+  cursor: default;
+}

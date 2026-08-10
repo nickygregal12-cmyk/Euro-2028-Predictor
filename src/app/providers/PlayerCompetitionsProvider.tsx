@@ -60,12 +60,30 @@ export function PlayerCompetitionsProvider({ children }: { children: ReactNode }
     setStatus('loading')
     void (async () => {
       try {
-        const { fetchHubMembership } = await import('../../services/supabase/competitionGames')
-        const seasons = await fetchHubMembership(
-          HUB_COMPETITIONS.map((competition) => competition.seasonRowName),
-        )
+        const [{ fetchHubMembership }, { fetchPublishedSeasons }] = await Promise.all([
+          import('../../services/supabase/competitionGames'),
+          import('../../services/supabase/publishedSeasons'),
+        ])
+        // WHICH SEASONS EXIST comes from the server (`MIG-UI-12`); the static
+        // catalogue supplies only route slugs and copy for the ones it knows.
+        // The membership read is still addressed by name, because that is what
+        // `get_competition_games` can be reached by, but the names now come
+        // from the server's own list rather than from a frontend array.
+        const published = await fetchPublishedSeasons()
+        const names = new Set([
+          ...published.map((season) => season.name),
+          ...HUB_COMPETITIONS.map((competition) => competition.seasonRowName),
+        ])
+        const seasons = await fetchHubMembership([...names])
         if (!active) return
-        setPlayer(presentPlayerCompetitions(HUB_COMPETITIONS, seasons))
+        setPlayer(
+          presentPlayerCompetitions(
+            HUB_COMPETITIONS,
+            seasons,
+            undefined,
+            published,
+          ),
+        )
         setStatus('ready')
       } catch {
         if (!active) return

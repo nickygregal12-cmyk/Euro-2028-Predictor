@@ -23,6 +23,7 @@ import type { HubSeasonMembership } from '../../../src/services/supabase/competi
 const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
   fetchSeasonFixtureList: vi.fn(),
+  fetchPublishedSeasons: vi.fn(),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -31,6 +32,13 @@ vi.mock('../../../src/services/supabase/competitionGames', () => ({
 
 vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({
   fetchSeasonFixtureList: mocks.fetchSeasonFixtureList,
+}))
+
+// Which seasons the server holds (MIG-UI-12). Empty here: these assertions are
+// about the shape of the dashboard, and the static catalogue still supplies the
+// route slugs for the competitions the membership mock names.
+vi.mock('../../../src/services/supabase/publishedSeasons', () => ({
+  fetchPublishedSeasons: mocks.fetchPublishedSeasons,
 }))
 
 // The Hub asks each joined game what it needs; none of those reads is under
@@ -83,6 +91,7 @@ function renderPage() {
 describe('the Hub is a dashboard, not a catalogue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.fetchPublishedSeasons.mockResolvedValue([])
     mocks.fetchSeasonFixtureList.mockResolvedValue({
       competition: { id: 'c', name: 'Premier League', seasonKey: '2026-27', timeZone: 'UTC' },
       window: { from: '2026-08-01T00:00:00Z', to: '2026-08-20T00:00:00Z' },

@@ -118,7 +118,7 @@ Authority: [ADR 0023](../adr/0023-hub-information-architecture.md) § Private co
 
 Authority: [owner UI finalisation direction, 10 August 2026](../design/ui-finalisation.md), § 12. Detailed presentation intent for each consumer is in that document.
 
-These are the backend capabilities the finalised signed-in product needs and the weekly season does not currently expose. `MIG-UI-08`–`MIG-UI-11` were added by the direction's 10 August amendment and by the frontend work that reached their boundaries. **They are a separate backend workstream.** A UI session that reaches one of them records the data requirement here and continues with other UI work; it does not create a speculative migration and does not fake the behaviour in the client. Identifiers are the direction's own, so the two cannot drift apart.
+These are the backend capabilities the finalised signed-in product needs and the weekly season does not currently expose. `MIG-UI-08`–`MIG-UI-12` were added by the direction's 10 August amendment and by the frontend work that reached their boundaries. **They are a separate backend workstream.** A UI session that reaches one of them records the data requirement here and continues with other UI work; it does not create a speculative migration and does not fake the behaviour in the client. Identifiers are the direction's own, so the two cannot drift apart.
 
 | ID | Requirement | Depends on | Acceptance evidence | Status |
 | --- | --- | --- | --- | --- |
@@ -133,6 +133,28 @@ These are the backend capabilities the finalised signed-in product needs and the
 | `MIG-UI-09` | A pinned-rival preference: one or two private-league co-member ids in a competition/season context, so Rival Watch survives a device change | An audit of the existing account/preferences authority first — the narrowest possible contract if it cannot hold them | Either the audit concluding no change is required, or a preference contract with tests. Never followers, friend requests, public social graphs or user discovery | Accepted — optional, and explicitly not a blocker: a rival can be selected per session from reads that already exist |
 | `MIG-UI-10` | Persistence for the non-game onboarding choices: followed competition seasons, optional favourite team, and onboarding completion/progress — keyed on canonical competition and team identity, supporting many competitions without a schema change per league | An audit of the existing profile/preference/membership authorities first. Game memberships keep their existing server authorities and must not be duplicated | Either the audit concluding an existing authority can hold them, or one persistence contract that keeps Follow distinct from game membership, allows onboarding resume and later edits, preserves pending invite context and is publication-aware | Accepted — unimplemented, and the reason `followed` is `'unknown'` everywhere in `playerCompetitions.ts` today. Blocks the Follow half of the scalability contract and the persisted onboarding flow |
 | `MIG-UI-11` | A season fixture read addressed by fixture id, returning the one fixture with its round, kickoff, status, result and provisional score | Contract 139's fixture facts | A bounded read plus a route test that a Match Centre link resolves without a date hint | Accepted — optional but wanted. Contract 139's read is windowed by date and caps at 120 days, so the addressable Match Centre carries the fixture's day in the URL and reports honestly when the fixture falls outside the window it loaded |
+| `MIG-UI-12` | A browser-safe read of the published weekly competition catalogue: canonical competition and season identity, competition display name, **route slug**, season label, lifecycle/publication state, and weekly-platform eligibility — so publishing a league needs no frontend code change for it to exist | Audited and **partially closed without a migration**; see the audit note below | The remaining gap is one field. Evidence would be a bounded read exposing the route slug (and, if a publication decision is wanted, a state distinct from `tournaments.status`), plus a frontend that resolves a competition's URL from it and a test that a newly published season is routable with no static-catalogue edit | Accepted — **reduced, not closed**. Season DISCOVERY is implemented without a migration; the route slug is not readable and remains the blocker |
+
+### `MIG-UI-12` audit — what already exists, and the one thing that does not
+
+Carried out before proposing anything, as the requirement asks. Findings, all measured against the migrations in this repository rather than assumed:
+
+| Question | Answer today |
+| --- | --- |
+| Canonical season identity | **Yes** — `public.tournaments.id`, and `tournaments` is readable to `authenticated` (`tournaments readable`, select `true`) |
+| Display name | **Partly** — `tournaments.name` is the combined "Premier League 2026/27". The competition's own name lives in `public.competitions.name` |
+| Season label | **Yes** — `tournaments.season_key` |
+| Lifecycle state | **Yes** — `tournaments.status` (`draft`/`scheduled`/`active`/`complete`/`archived`) |
+| Weekly-platform eligibility | **Yes, canonically** — `tournaments.kind = 'league_season'`. Euro is `kind = 'tournament'` and is excluded by its own stored kind, not by an allowlist; its `euro_publication_state()` boundary is untouched |
+| Available games | **Yes, per season** — `get_competition_games(uuid)`, which describes a season and cannot enumerate one |
+| Calendar zone | **Yes** — `tournaments.display_timezone` |
+| **Route slug** | **No** — `public.competitions.slug` is the canonical route identity and `public.competitions` is `revoke all … from public, anon, authenticated` |
+| Publication decision distinct from lifecycle | **No** — `status` is a lifecycle. The weekly platform has no equivalent of Euro's publication state |
+| Grouping metadata (region, country, type, popularity) | **None held.** Not invented; Explore stays search + pinned + the rest |
+
+**What was therefore implemented in the frontend, with no migration:** `fetchPublishedSeasons()` enumerates `tournaments` where `kind = 'league_season'`, and `presentPlayerCompetitions` treats that as the catalogue. `HUB_COMPETITIONS` is demoted to **transitional presentation metadata** — a route slug and copy for the seasons it happens to know — and a published season it does not know is listed in Explore under "Newly published", named with its lifecycle and explicitly not openable, rather than being invisible. `tests/features/hub/serverDrivenCatalogue.test.ts` pins that boundary.
+
+**What still needs the backend:** the route slug, and — if publication is to be a decision rather than a lifecycle — a state that says so. Nothing else. The frontend must not derive a slug from a name: that would be a client-side invention of a server-owned identifier, and the season routes were built specifically to avoid it.
 
 ## Documentation safeguards
 
@@ -144,6 +166,6 @@ Authority: [`../ops/documentation-authorities.md`](../ops/documentation-authorit
 
 This register was created on 6 August 2026 by the documentation reconciliation that also produced [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md). It supersedes no prior file. Before it existed, accepted-but-unimplemented requirements were spread across ADR prose, the roadmap and `MASTER-TODO.md` without stable identifiers, which is how several were lost and later rediscovered by audit.
 
-The 10 August 2026 UI finalisation direction extends it again with `MIG-UI-01`–`MIG-UI-11`, for the same reason: those are the backend gaps a frontend session is most likely to discover, and a discovery recorded only in a session report is a discovery lost.
+The 10 August 2026 UI finalisation direction extends it again with `MIG-UI-01`–`MIG-UI-12`, for the same reason: those are the backend gaps a frontend session is most likely to discover, and a discovery recorded only in a session report is a discovery lost.
 
 The 7 August 2026 Domestic Frontend Alpha reconciliation extends the same register rather than creating a second requirements file. Requirement rows remain here until implementation evidence exists; roadmap/TODO references may point to these identifiers without restating their acceptance evidence.
