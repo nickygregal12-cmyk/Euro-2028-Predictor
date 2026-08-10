@@ -59,25 +59,40 @@ describe('the hosted-status follow-up cannot strand a record silently', () => {
     expect(workflow).toMatch(/git ls-files 'supabase\/migrations\/\*\.sql'/)
   })
 
-  it('runs only after a successful rollout, and reads production rather than restating it', () => {
+  it('runs only after a successful rollout', () => {
     expect(workflow).toContain("github.event.workflow_run.conclusion == 'success'")
+  })
 
-    // These two lines used to be asserted as the literals `productionContract =
-    // 63` and `productionPromotionAuthorised = false`. Pinning the literal is
-    // what let it rot: 63 was production's contract when it was written, and
-    // from the next production rollout onwards every run of this job proposed
-    // rewriting a correct 132 back down to it. Four such pull requests were
-    // open simultaneously, each one an unapproved contract-declaration change,
-    // and the correct development half of each record could not be merged
-    // without the wrong production half. The guard now asserts the shape that
-    // cannot rot — that both values are READ from the production hosted
-    // record, which is their authority — for the same reason the development
-    // count above is read from `deployment-contract.json` rather than typed.
-    expect(workflow).toContain("fs.readFileSync('config/production-hosted-contract.json', 'utf8')")
-    expect(workflow).toContain('current.productionContract = production.requiredMigrationCount')
+  it('writes a record that states development and does not state production at all', () => {
+    // This assertion has now been rewritten twice, and the second rewrite is
+    // the interesting one.
+    //
+    // First the workflow wrote `productionContract = 63` — a literal, true when
+    // typed and silently false from the next production rollout onwards, which
+    // put four unmergeable contract-declaration changes on `origin` at once.
+    // The fix pointed it at `config/production-hosted-contract.json`, and the
+    // guard here pinned that it READ the value rather than restating it.
+    //
+    // Reading the right file was not enough, because the copy survived. This
+    // job runs after a DEVELOPMENT rollout; a PRODUCTION rollout has nothing
+    // that refreshes the copy. On 10 August 2026 `NOW.md` therefore reported
+    // production at 145 while production stood at 151, and `npm run check:now`
+    // agreed with it, because it regenerated from the same copy. A duplicated
+    // fact with a one-directional check cannot be caught by that check.
+    //
+    // So the guard is now the absence of the copy. Every reader reads
+    // production's own record at the point of use.
+    expect(workflow).toContain('delete current.productionContract')
+    expect(workflow).toContain('delete current.productionPromotionAuthorised')
+    expect(workflow).not.toMatch(/current\.productionContract\s*=[^=]/)
+    expect(workflow).not.toMatch(/current\.productionPromotionAuthorised\s*=[^=]/)
+  })
+
+  it('still reads production’s own record when it names production in the PR body', () => {
+    // Reading it at the point of use is the whole point; what is forbidden is
+    // writing the answer down somewhere a later reader might trust.
     expect(workflow).toContain(
-      'current.productionPromotionAuthorised = production.promotionAuthorised === true',
+      "require('./config/production-hosted-contract.json').requiredMigrationCount",
     )
-    expect(workflow).not.toMatch(/productionContract = \d+/)
   })
 })

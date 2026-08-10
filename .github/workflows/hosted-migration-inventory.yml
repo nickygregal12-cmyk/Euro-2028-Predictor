@@ -5,6 +5,7 @@ on:
     paths:
       - config/deployment-contract.json
       - config/development-hosted-contract.json
+      - config/production-hosted-contract.json
       - docs/ops/ops-pending-migrations.md
       - scripts/check-hosted-migration-inventory.mjs
       - .github/workflows/hosted-migration-inventory.yml
@@ -13,6 +14,7 @@ on:
     paths:
       - config/deployment-contract.json
       - config/development-hosted-contract.json
+      - config/production-hosted-contract.json
       - docs/ops/ops-pending-migrations.md
       - scripts/check-hosted-migration-inventory.mjs
       - .github/workflows/hosted-migration-inventory.yml

@@ -15,10 +15,12 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **151** | latest `20260810170000_season_player_profile.sql` |
 | Development hosted | **151** | at `20260810170000_season_player_profile.sql`, verified `2026-08-10T18:11:15.890Z`, fast-lane run `31417611501` |
-| Production | **145** | promotion **not authorised** |
+| Production | **151** | promotion **not authorised** |
 
-Production promotion is read from the hosted record. It is never inferred from
-how far the repository or development has come.
+Production is read from production's own hosted record, and promotion
+authorisation with it. It is never inferred from how far the repository or
+development has come, and it is never copied into a second file — a copy goes
+stale the moment the other one moves.
 
 **Pending development migrations:** None. Hosted development is level with the repository.
 

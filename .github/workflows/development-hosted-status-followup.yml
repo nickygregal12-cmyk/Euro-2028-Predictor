@@ -68,18 +68,25 @@ jobs:
             workflowRunId: Number(process.env.SOURCE_RUN_ID),
             repositoryHead: process.env.SOURCE_HEAD_SHA
           }
-          // Production contract is READ from the production hosted record, never
-          // restated here. This line used to be `= 63`, a literal that was true
-          // when it was written and silently false from the next production
-          // rollout onwards: every run of this job rewrote the development
-          // record's view of production back to 63 while production sat at 132.
-          // Four such pull requests were open at once, each one an unapproved
-          // contract-declaration change that could not be merged as written.
-          const production = JSON.parse(
-            fs.readFileSync('config/production-hosted-contract.json', 'utf8')
-          )
-          current.productionContract = production.requiredMigrationCount
-          current.productionPromotionAuthorised = production.promotionAuthorised === true
+          // THIS RECORD STATES DEVELOPMENT. IT DOES NOT STATE PRODUCTION AT ALL.
+          //
+          // It used to carry `productionContract` and
+          // `productionPromotionAuthorised`. First as literals — `= 63`, true
+          // when written and silently false from the next production rollout
+          // onwards, which put four unmergeable contract-declaration changes on
+          // origin at once. Then as values READ from the production record here,
+          // which fixed the source and kept the copy: this job runs after a
+          // DEVELOPMENT rollout, so a PRODUCTION rollout left the copy behind
+          // with nothing to refresh it. That is how `NOW.md` came to report
+          // production at 145 on 10 August 2026 while production stood at 151,
+          // with `npm run check:now` agreeing, because it regenerated from the
+          // same stale copy.
+          //
+          // Every reader now reads `config/production-hosted-contract.json`
+          // directly. Do not reintroduce a copy here to save them the read —
+          // `scripts/generate-now.mjs` fails closed on one, deliberately.
+          delete current.productionContract
+          delete current.productionPromotionAuthorised
           fs.writeFileSync(path, `${JSON.stringify(current, null, 2)}\n`)
           NODE
 
