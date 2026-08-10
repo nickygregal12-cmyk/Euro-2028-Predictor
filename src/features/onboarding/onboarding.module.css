@@ -240,9 +240,13 @@
   align-items: flex-start;
 }
 
-/* Unavailable or already joined: not a control, and not styled as one. */
+/* Unavailable or already joined: not a control, and not styled as one.
+   Its own gap, because the row gap that separates a game's copy from its tick
+   becomes a hole between a sentence and the sentence explaining it once the
+   row stacks. */
 .gameInert {
   flex-direction: column;
+  gap: var(--sp-1);
   cursor: default;
   border-style: dashed;
   color: var(--tx2);
