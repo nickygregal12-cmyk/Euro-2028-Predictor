@@ -103,6 +103,40 @@ describe('identity is asserted, not just reachability', () => {
   })
 })
 
+describe('the checked routes are derived, not restated', () => {
+  const netlify = readFileSync(resolve(root, 'netlify.toml'), 'utf8')
+
+  it('reads the 200 rules out of netlify.toml', () => {
+    expect(smoke).toContain('function committedOkRoutes()')
+    expect(smoke).toContain('const routes = committedOkRoutes()')
+  })
+
+  it('keeps no hand-written route list beside it', () => {
+    // The hand-written list drifted: it demanded 200 for `/predict`, a retired
+    // tournament path that netlify.toml deliberately 404s. A second copy is the
+    // defect, so a reintroduced literal list is what this catches.
+    // Anchored to a top-level declaration: the accumulator inside the
+    // derivation is indented and is not what this is about.
+    expect(smoke).not.toMatch(/^const routes = \[/m)
+  })
+
+  it('does not expect the retired tournament path', () => {
+    expect(smoke).not.toMatch(/'\/predict'/)
+    expect(netlify).not.toContain('from = "/predict"')
+  })
+
+  it('substitutes parameters and wildcards rather than skipping those rules', () => {
+    // Dropping them would quietly stop checking every competition and league
+    // route, which is most of the application's surface.
+    expect(smoke).toContain('.replace(/:[A-Za-z]+/g, ROUTE_PROBE)')
+    expect(smoke).toContain('.replace(/\\/\\*$/, `/${ROUTE_PROBE}`)')
+  })
+
+  it('refuses to pass vacuously when no rule is found', () => {
+    expect(smoke).toContain('netlify.toml declares no 200 redirect rules to check.')
+  })
+})
+
 describe('the dual-brand allowance is retired', () => {
   it('accepts only the current brand now that production is past contract 63', () => {
     expect(smoke).toContain("assertIncludes(root.body, 'Football Prediction Hub', 'application title')")
