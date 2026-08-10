@@ -84,23 +84,24 @@ const SECTIONS = [
 /**
  * Sections declared above whose baselines have not been rendered yet.
  *
- * WHY THIS LIST EXISTS AND WHY IT IS NOT A WEAKENING. A baseline is only
+ * **EMPTY, AND THAT IS THE POINT.** Every section above is photographed.
+ *
+ * WHY THE LIST EXISTS AT ALL, AND WHY IT IS NOT A WEAKENING. A baseline is only
  * meaningful when it was rendered on the machine that will compare it, and only
  * the GitHub runner is that machine — an image produced in a development
  * container differs from the runner's by font build and graphics stack, so
  * committing one from here would hand CI a failure nobody can act on and invite
- * someone to raise the tolerance. The sections are therefore declared now, and
- * `visual-contracts.yml` is dispatched with `update_baselines` and
- * `commit_baselines` to produce them. The eight UI-finalisation sections that
- * were listed here have been rendered and are gone from it; only the bottom
- * bar, added in response to what that render showed, is still outstanding.
+ * someone to raise the tolerance. A section added from a development container
+ * therefore lands here, and `visual-contracts.yml` is dispatched with
+ * `update_baselines` and `commit_baselines` to produce its images.
  *
- * IT IS SELF-DELETING. `visualContractHarness` fails if a name here already has
- * baselines on disk, so the entry cannot outlive the dispatch that satisfies
- * it — which is what stops a "temporary" exemption from becoming the way new
- * sections are added.
+ * IT IS SELF-DELETING. `visualContractHarness` excludes these from its baseline
+ * count and **fails if a name here already has baselines on disk**, so an entry
+ * cannot outlive the dispatch that satisfies it — which is what stops a
+ * "temporary" exemption from becoming the way new sections are added. The nine
+ * UI-finalisation sections passed through it and are gone from it.
  */
-export const AWAITING_BASELINE: readonly string[] = ['mobile-bottom-navigation']
+export const AWAITING_BASELINE: readonly string[] = []
 
 const WIDTHS = ['phone', 'desktop'] as const
 const THEMES = ['dark', 'light'] as const
