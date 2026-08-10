@@ -14,13 +14,13 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **151** | latest `20260810170000_season_player_profile.sql` |
-| Development hosted | **145** | at `20260810010000_rate_limit_atomicity.sql`, verified `2026-08-10T09:55:52.724Z`, fast-lane run `31376619737` |
+| Development hosted | **151** | at `20260810170000_season_player_profile.sql`, verified `2026-08-10T18:11:15.890Z`, fast-lane run `31417611501` |
 | Production | **145** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** 6 — `20260810120000_adaptive_provider_poll_cadence.sql`, `20260810130000_published_weekly_season_catalogue.sql`, `20260810140000_season_fixture_by_id.sql`, `20260810150000_season_league_matchweek_predictions.sql`, `20260810160000_season_league_rank_movement.sql`, `20260810170000_season_player_profile.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 152. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
