@@ -33,6 +33,7 @@ import {
   StatCard,
   ClubIdentity,
   LeagueTable,
+  SideRail,
   type JokerButtonState,
   type TieResolverTeam,
   type ClubIdentityTokens,
@@ -40,6 +41,7 @@ import {
   type LeagueZone,
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
+import { railGroups } from '../app/railDestinations'
 import { PointsBreakdown } from '../features/scoring'
 import type { ScoreEvent } from '../domain/tournament/scoreEvents'
 import {
@@ -648,6 +650,40 @@ const SHARE_MODEL: ShareCardModel = {
   url: 'euro28predictor.com',
 }
 
+/**
+ * The persistent desktop rail, at both widths, out of its media query.
+ *
+ * IT IS RENDERED HERE UNCONDITIONALLY. In the application the rail is hidden
+ * below 1024px by `PageShell`, which means a gallery panel — 340px wide, or 390
+ * pinned — would never show it at all. The component itself carries no width
+ * rule, so mounting it directly is the honest way to review it, and reviewing
+ * both states side by side is the only way to see that a collapsed link still
+ * has a name.
+ *
+ * The destinations are the real ones, from the same `railGroups` the shell
+ * calls, so a change to the catalogue or the route authority shows up here
+ * rather than in a copy that quietly stops matching.
+ */
+function SideRailDemo() {
+  const [collapsed, setCollapsed] = useState(false)
+  return (
+    <div className={styles.railFrame}>
+      <SideRail
+        groups={railGroups('/competitions/premier-league/2026-27/games/lms')}
+        pathname="/competitions/premier-league/2026-27/games/lms"
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed((value) => !value)}
+      />
+      <SideRail
+        groups={railGroups('/')}
+        pathname="/"
+        collapsed
+        onToggleCollapsed={() => {}}
+      />
+    </div>
+  )
+}
+
 function PageShellDemo() {
   const [active, setActive] = useState<NavKey>('home')
   const [demoTheme, setDemoTheme] = useState<'dark' | 'light'>('dark')
@@ -1116,6 +1152,10 @@ function Gallery() {
 
       <Section title="PageShell + BottomNav">
         <PageShellDemo />
+      </Section>
+
+      <Section title="Desktop navigation rail">
+        <SideRailDemo />
       </Section>
 
       <Section title="Masthead">

@@ -3,7 +3,6 @@ import {
   BallIcon,
   CalendarIcon,
   CardsIcon,
-  GlobeIcon,
   HomeIcon,
   InfoIcon,
   MoreIcon,
@@ -124,6 +123,26 @@ function competitionChildren(pathname: string, base: string): RailLink[] {
   return children
 }
 
+/**
+ * "PL", "SP" — the initials of a competition's name.
+ *
+ * A COMPETITION IS NOT A CATEGORY, so it does not get a category's icon. Every
+ * competition drawn as the same globe is indistinguishable in the collapsed
+ * rail, where the name is only a tooltip; its own initials are not. One word
+ * gives two letters of that word so a single-word competition is not one
+ * character.
+ */
+function monogramOf(name: string): string {
+  const words = name.split(/\s+/).filter(Boolean)
+  if (words.length === 0) return '?'
+  if (words.length === 1) return (words[0] as string).slice(0, 2).toUpperCase()
+  return words
+    .slice(0, 2)
+    .map((word) => (word as string)[0])
+    .join('')
+    .toUpperCase()
+}
+
 function competitionsGroup(pathname: string): RailGroup {
   const links: RailLink[] = []
   for (const competition of HUB_COMPETITIONS) {
@@ -132,7 +151,7 @@ function competitionsGroup(pathname: string): RailGroup {
       key: competition.competitionSlug,
       label: competition.name,
       href: base,
-      Icon: GlobeIcon,
+      monogram: monogramOf(competition.name),
     })
     links.push(...competitionChildren(pathname, base))
   }

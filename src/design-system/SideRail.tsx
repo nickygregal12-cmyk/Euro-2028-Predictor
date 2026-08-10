@@ -43,6 +43,13 @@ export type RailLink = {
   label: string
   href: string
   Icon?: (props: IconProps) => React.ReactElement
+  /**
+   * One or two characters drawn in place of an icon, for a destination whose
+   * identity is a name rather than a category. Two competitions both drawn as
+   * a globe are indistinguishable in the collapsed rail, where the label is a
+   * tooltip; "PL" and "SP" are not.
+   */
+  monogram?: string
   /** Rendered indented under its competition — a section or a game. */
   nested?: boolean
 }
@@ -86,7 +93,15 @@ export function SideRail({ groups, pathname, collapsed, onToggleCollapsed }: Sid
               <h2 className={collapsed ? styles.srOnly : styles.groupTitle}>{group.title}</h2>
             ) : null}
             <ul className={styles.list}>
-              {group.links.map((link) => {
+              {/* COLLAPSED, THE NESTED DESTINATIONS ARE NOT SHOWN. They have no
+                  icon of their own — a section is not a category — so in a
+                  64px rail they would be a column of identical dots whose only
+                  label is a tooltip. Nine indistinguishable targets is worse
+                  than four honest ones, and the control that reveals them is
+                  immediately below. */}
+              {group.links
+                .filter((link) => !(collapsed && link.nested))
+                .map((link) => {
                 const current = isCurrent(pathname, link.href)
                 const Icon = link.Icon
                 return (
@@ -108,7 +123,13 @@ export function SideRail({ groups, pathname, collapsed, onToggleCollapsed }: Sid
                       aria-label={collapsed ? link.label : undefined}
                     >
                       <span className={styles.glyph} aria-hidden="true">
-                        {Icon ? <Icon size={20} /> : <span className={styles.dot} />}
+                        {link.monogram ? (
+                          <span className={styles.monogram}>{link.monogram}</span>
+                        ) : Icon ? (
+                          <Icon size={20} />
+                        ) : (
+                          <span className={styles.dot} />
+                        )}
                       </span>
                       <span className={collapsed ? styles.srOnly : styles.label}>{link.label}</span>
                     </Link>

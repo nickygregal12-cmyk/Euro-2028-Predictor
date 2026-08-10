@@ -122,6 +122,35 @@ describe('the rail collapses without losing its names', () => {
     expect(screen.getByRole('button', { name: 'Expand navigation' })).toBeInTheDocument()
   })
 
+  it('drops the nested destinations rather than drawing them as identical dots', () => {
+    // Found by looking at it. A section has no icon of its own, so in a 64px
+    // rail the nested links rendered as a column of 4px dots whose only label
+    // was a tooltip — nine indistinguishable targets. The control that reveals
+    // them is immediately below, so hiding them is the honest answer.
+    const pathname = `${BASE}/games/lms`
+    render(
+      <MemoryRouter initialEntries={[pathname]}>
+        <SideRail
+          groups={railGroups(pathname)}
+          pathname={pathname}
+          collapsed
+          onToggleCollapsed={() => {}}
+        />
+      </MemoryRouter>,
+    )
+    const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'))
+    expect(hrefs).toContain(BASE)
+    expect(hrefs).not.toContain(`${BASE}/games/lms`)
+  })
+
+  it('gives each competition its own initials rather than a shared icon', () => {
+    // Two competitions drawn as the same globe are indistinguishable when the
+    // name is only a tooltip. Also found by looking at it.
+    render(rail('/'))
+    expect(screen.getByText('PL')).toBeInTheDocument()
+    expect(screen.getByText('SP')).toBeInTheDocument()
+  })
+
   it('offers the collapse control by name when open', () => {
     render(rail('/'))
     const toggle = screen.getByRole('button', { name: 'Collapse navigation' })

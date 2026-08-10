@@ -191,3 +191,15 @@
   font-family: var(--font-body);
   font-size: var(--fs-2);
 }
+
+/* Two rails side by side, expanded and collapsed, so the collapsed state can be
+   reviewed against the one it collapses from. They carry their own height
+   because a rail normally fills the shell and has none of its own. */
+.railFrame {
+  display: flex;
+  gap: var(--sp-4);
+  height: 420px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
