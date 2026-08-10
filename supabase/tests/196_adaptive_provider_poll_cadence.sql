@@ -21,6 +21,17 @@ select set_config('test.appc_home',
 select set_config('test.appc_away',
   (select id::text from public.teams where name = 'Cadence Athletic'), true);
 
+-- A season fixture must attach to a league matchweek: `assert_season_fixture_shape`
+-- refuses one with a missing round, which is the trigger that caught the first
+-- draft of this suite.
+insert into public.competition_rounds (tournament_id, round_key, ordinal, kind, label)
+values (current_setting('test.appc_tournament')::uuid, 'appc-mw1', 1, 'league_matchweek', 'Matchweek 1');
+
+select set_config('test.appc_round',
+  (select id::text from public.competition_rounds
+    where tournament_id = current_setting('test.appc_tournament')::uuid
+      and round_key = 'appc-mw1'), true);
+
 -- ---------------------------------------------------------------------------
 -- Date placeholders.
 -- ---------------------------------------------------------------------------
@@ -137,9 +148,10 @@ select is(
 
 -- Now put a fixture in the live window.
 insert into public.season_fixtures (
-  tournament_id, home_team_id, away_team_id, kickoff_at, status
+  tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status
 ) values (
   current_setting('test.appc_tournament')::uuid,
+  current_setting('test.appc_round')::uuid,
   current_setting('test.appc_home')::uuid,
   current_setting('test.appc_away')::uuid,
   timestamptz '2026-08-10T13:00:00Z',
