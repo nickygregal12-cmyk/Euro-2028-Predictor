@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
+import { Alert, Button, EmptyState, Skeleton, Workspace } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
 import { presentFixtureList } from '../season/fixtureListModel'
@@ -167,6 +167,10 @@ export function GlobalMatchesPage() {
 
   return (
     <div className={s.page}>
+      {/* A reading column. A fixture row is two club names and a score; at
+          1440px the two clubs end up at opposite edges of the screen and the
+          row stops reading as one match. */}
+      <Workspace>
       <h1 className={s.title}>Matches</h1>
 
       <div className={styles.views} role="group" aria-label="Which matches">
@@ -288,6 +292,7 @@ export function GlobalMatchesPage() {
           </section>
         ))
       )}
+      </Workspace>
     </div>
   )
 }

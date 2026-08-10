@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
+import { Alert, Button, EmptyState, Skeleton, Workspace } from '../../design-system'
 import { formatDeadline } from '../../shared/time/kickoff'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
 import { weeklyRoutes } from '../../app/weeklyRoutes'
@@ -141,6 +141,13 @@ export function GlobalPlayPage() {
 
   return (
     <div className={s.page}>
+      {/* A reading column, not the full 1440px. An action inbox is a list of
+          short cards; spread across a wide monitor each one becomes a line of
+          text with two metres of empty space after it. There is no second
+          independent thing to put beside it — the football belongs to Matches
+          and the Hub already pairs the two — so this takes no contextual
+          panel. */}
+      <Workspace>
       <h1 className={s.title}>Play</h1>
       <p className={styles.intro}>
         Everything your joined games are asking for, across every competition you play in.
@@ -162,6 +169,7 @@ export function GlobalPlayPage() {
       <Group title="Urgent" actions={inbox.urgent} tone="urgent" />
       <Group title="This week" actions={inbox.thisWeek} tone="normal" />
       <Group title="Complete and waiting" actions={inbox.settled} tone="done" />
+      </Workspace>
     </div>
   )
 }

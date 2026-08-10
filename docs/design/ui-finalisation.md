@@ -66,12 +66,15 @@ The launch product has two domestic competitions. The information architecture m
 
 **Follow has no persistence today.** Nothing in the repository stores a followed competition, so `followed` is `'unknown'` everywhere and the surfaces fall back to **game membership**, which is a real server authority. That is a fallback for an absent read, not a definition of Follow, and it is narrower: a player who follows a competition without joining a game is currently invisible to it. The audit is `MIG-UI-10`.
 
+**Which competitions exist is the server's answer (`MIG-UI-12`).** `fetchPublishedSeasons()` enumerates `public.tournaments` where `kind = 'league_season'` — a canonical, stored discriminator, so Euro (`kind = 'tournament'`) is excluded by what it *is* rather than by an allowlist, and its own publication boundary is untouched. `HUB_COMPETITIONS` is **transitional presentation metadata**: a route slug and copy for the seasons it happens to know, not the authority on which competitions exist. A published season it does not know is listed in Explore as itself, named with its lifecycle and honestly unopenable. The one remaining gap is the route slug — `public.competitions.slug` is revoked from `authenticated` — and the frontend must not derive one from a name.
+
 **Scaling rules:**
 
 - Global surfaces default to the player's own competitions, never the platform catalogue.
 - Navigation shows roughly 4–6 competition shortcuts, then All competitions. The rail's height is a function of what the player plays, never of what the platform publishes.
 - The whole catalogue is deliberate discovery at `/competitions`, with search and the player's own pinned. It is not a sixth global destination.
-- Adding a competition must require no navigation redesign.
+- Adding a competition must require no navigation redesign, and ideally no frontend edit at all: publish it on the server, and it appears.
+- **No invented metadata.** Region, country, competition type and popularity are not held anywhere, so Explore is search plus the player's own pinned plus the rest. The grouping seam exists; the taxonomy does not, and guessing one from competition names would be a heading that lies.
 
 **The acceptance test is executable.** `src/dev/scaleFixture.ts` is a synthetic platform of twenty published competitions where the player plays in three — deliberately not the first three — and `tests/features/hub/twentyCompetitionScale.test.ts` plus `tests/app/desktopRail.test.tsx` assert against it. With the real catalogue's two entries a bounded list and an unbounded one are indistinguishable.
 
