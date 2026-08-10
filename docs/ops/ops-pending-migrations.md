@@ -6,7 +6,112 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (eighth entry)
+## Current state — 10 August 2026 (twelfth entry)
+
+**All four declarations are now at contract 145, and the published application is still not.** The eleventh entry levelled the repository and the two databases. This entry moves the Netlify declarations onto them and records what happened when the application release was attempted.
+
+**The Netlify declarations moved after their databases, never before.** The three non-production contexts were raised from 132 to 145 once the guarded fast lane had applied contract 145 to Development. The production context was raised from 132 to 144, and then from 144 to 145 only after rollout run `31379974246` had applied contract 145 to Production and the read-only ledger query in the eleventh entry had confirmed it. A direct Netlify project read on 10 August 2026 confirms all four values and confirms every other context value survived the change; `dev-server` is still blank and still fails closed.
+
+**Why the artifact has been stuck since 30 July, measured rather than assumed.** `scripts/validate-deployment-contract.mjs` runs in `prebuild` and demands an *exact* match for the production context; only a non-production context may trail. The production declaration read 132 from 31 July until this morning while the repository moved to 133 and beyond, so every production build from `main` in that window would have failed the gate before Vite ran. The stale bundle is the guard working, not a separate fault. With declaration and repository both at 145 the gate is satisfied for the first time since 30 July.
+
+**The agent session cannot upload the artifact.** The Netlify MCP tools work, because they run outside the session container, and they were enough to read the project, read and write the environment variables and read the published deploy. The zip-and-build upload runs `npx @netlify/mcp` *inside* the container, and both `api.netlify.com` and `netlify-mcp.netlify.app` were refused by the session egress policy with `CONNECT tunnel failed, response 403`, with no proxy-side relay failure recorded. That is an organisation egress denial: it is reported here rather than routed around. The route that remains is Netlify's own repository build on a push to `main`.
+
+**Rollback target recorded.** Published production deploy `6a6bac566b6e440008d44e5b`, `state: ready`, `context: production`, `branch: main`, `commit_ref: 8244b7222b9d108e59380fd16351c02b578497ee`, published 30 July 2026. Its own record says `deploy_source: "api"` with `has_source_zip: true` and `manual_deploy: false` — the currently live bundle was itself a source-zip build, not a local `dist` push.
+
+**Feature flags are unchanged and that is deliberate.** Production carries `VITE_UI_SEASON_MATCH_PREDICTOR=true`, set by the owner on 8 August 2026. `VITE_UI_PUBLIC_LANDING` is set for `deploy-preview` only, in `netlify.toml`, and is not set for production. `src/app/routeFlags.ts` fails closed, so a production build serves the UI Alpha season Match Predictor and the **legacy** landing. No flag was added or removed in this entry.
+
+**Team SSO is unchanged and still protects all contexts.** This is not a public launch; `AGE-001` remains accepted and unbuilt.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737`, independently confirmed by a read-only ledger query and by driving the contract on the target. Unchanged since the eleventh entry. | LEVEL |
+| Production Supabase | **145** | Rollout run `31379974246` gated on backup `31378953968` and rehearsal `31379390093`; independently confirmed by a read-only ledger query and by driving the contract on the target. Unchanged since the eleventh entry. | LEVEL |
+| Published production artifact | **63-era** | Deploy `6a6bac566b6e440008d44e5b` from `8244b722…`, published 30 July 2026. Not moved by this entry. | THIRTEEN CONTRACTS BEHIND THE DATABASE IT TALKS TO |
+| Netlify `euro28predictor` non-production contexts | **145 hosted declaration** | Direct Netlify read on 10 August 2026: `dev`, `branch-deploy` and `deploy-preview` point to Development and each declare 145, raised only after the fast lane applied contract 145 there. `dev-server` remains blank and fails closed. A declaration may intentionally trail its hosted database but must never lead it. | LEVEL WITH HOSTED DEVELOPMENT |
+| Netlify `euro28predictor` production | **145 hosted declaration** | Direct Netlify read on 10 August 2026: production points to Production Supabase and declares 145, raised from 144 only after rollout run `31379974246` and its independent ledger verification. Team SSO protects production. The published artifact is still the 30 July `8244b722…` Contract-63-era bundle, so declaration alignment is **not** an application deployment. | LEVEL WITH HOSTED PRODUCTION; PUBLISHED APPLICATION STILL OLD |
+
+## Superseded — 10 August 2026 (eleventh entry)
+
+**Repository, Development and Production are all at contract 145.** For the first time in this sequence the three are level.
+
+Contract 145 reached Production through guarded rollout run **31379974246** from exact `main` `03a0ca0c82a9857c2e63f39a524e62f3877e0abc`, after its own API check that backup run **31378953968** and rehearsal run **31379390093** had both concluded success. Independent read-only verification afterwards:
+
+```json
+{"migration_count": 145, "latest": "20260810010000_rate_limit_atomicity",
+ "enforce_rate_limit_takes_advisory_lock": true,
+ "enforce_rate_limit_public_execute": 0, "rate_limit_events_browser_grants": 0,
+ "auth_users": 1, "entries": 2, "match_predictions": 36,
+ "euro_publication_state": "hidden", "sportmonks_final_statuses": 1}
+```
+
+The advisory lock is genuinely in the function rather than merely the migration row being present; no grant moved on `enforce_rate_limit` or on `rate_limit_events`; no player-owned count moved; and the Euro state and SportMonks vocabulary are untouched, which a rate-limiter change has no business moving.
+
+**The rehearsal passed first time.** That is worth recording against the previous boundary, where it took four attempts and found three defects — all in the workflow rather than in the migrations. The successors were derived from the pair that worked rather than written afresh, so the absolute Postgres 17 `pg_dump`, the faithful privilege restore that runs `prepare-disposable-restore-target.sql`, and paths that never rely on `cd` were present from the start. Deriving from a proven artefact rather than a remembered one is the transferable lesson.
+
+**Two step labels in the successor rehearsal were stale** and are corrected here: the source-proof step read "contract 132" and the verification step read "contract 144", both inherited from the derivation. Cosmetic only — the logic reads `SOURCE_CONTRACT` and `TARGET_CONTRACT`, which is why the run correctly proved a 144 source and a 145 result — but a misleading label on a production promotion is worth fixing before someone reads a run and believes it.
+
+**Risk-register `DATA-007`.** The atomicity half is now closed in both hosted environments. The rest of that entry is unchanged: invalid operations still consume no limit, the expensive read RPCs are still unbounded, and there are no edge/IP controls or alerting, so the entry stays open and reduced.
+
+**What this did NOT do.** It did not publish Euro 2028 — the state is still `hidden` in Production. It did not promote the application: the published artifact remains the 30 July contract-63 bundle, and [`production-application-release-144.md`](production-application-release-144.md) describes the separate release, which is now one contract further behind. It imported no football; Production still holds zero season fixtures. `promotionAuthorised` stays `false`.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737`, independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+| Production Supabase | **145** | Rollout run `31379974246` gated on backup `31378953968` and rehearsal `31379390093`; independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+
+## Superseded — 10 August 2026 (tenth entry)
+
+**Development is at contract 145; Production is at 144 and its promotion to 145 is authorised and prepared.**
+
+Contract 145 reached Development through guarded fast-lane run **31376619737** from exact `main` `a4baae0`. Confirmed by an independent read-only query rather than from the job: 145 rows ending `20260810010000_rate_limit_atomicity`, `enforce_rate_limit` genuinely containing `pg_advisory_xact_lock`, and zero execute grants on that function alongside zero browser grants on `rate_limit_events` — so the redefinition did the thing it exists to do and widened no control while doing it.
+
+**The 132→144 promotion pair is spent.** Those workflows are pinned one-shots and now refuse by design: their source check requires live Production at 132, and Production is 144. `production-144-to-145-rehearsal.yml` and `production-144-to-145-rollout.yml` are their successors, derived from the pair that succeeded so the three defects found across four rehearsal attempts — the Ubuntu 16 `pg_dump`, the stripped privileges, the `--file` resolved against the project root — are fixed in them from the start.
+
+**What the new pair asserts is different, because contract 145 is different.** The 132→144 verification checked that three new contracts arrived inert. Contract 145 redefines exactly one function, so "Euro is hidden, zero profiles" would prove nothing about it. The successors assert that `enforce_rate_limit` contains `pg_advisory_xact_lock`, that it still carries no PUBLIC/`anon`/`authenticated` execute grant — `create or replace` preserves the access-control list, so a redefinition must not have widened a security control — that `rate_limit_events` still has no browser grant, and that the Euro state and SportMonks vocabulary are untouched, since a rate-limiter change has no business moving them.
+
+**A fresh backup is required and the earlier one does not carry over.** Backup run 31365261774 captured Production at contract 132. The 144→145 rollout gates on a backup run id and a rehearsal run id it verifies through the API, and both must describe the boundary actually being promoted.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737` from exact `main` `a4baae0`, independently confirmed by a read-only ledger query returning 145 rows and by driving the contract on the target: the advisory lock is in the function and no grant moved. | LEVEL WITH REPOSITORY |
+| Production Supabase | **144** | Rollout run `31374274932`, independently confirmed. Promotion to 145 authorised 10 August 2026; the pinned successor workflows exist and no backup or rehearsal has yet been run for this boundary. | ONE BEHIND, PROMOTION PREPARED |
+
+## Superseded — 10 August 2026 (ninth entry)
+
+**Production is at contract 144.** The promotion the seventh entry recorded as authorised-but-blocked has happened, and the machine records are reconciled from an independent read rather than from the job's own output.
+
+**How it cleared.** The blocker was the secret, not the schema: `SUPABASE_PROD_DB_URL` named the IPv6-only direct host while GitHub runners are IPv4-only. Repointing it at the `eu-west-2` session pooler on port 5432 cleared it, and backup run **31365261774** then completed in five minutes where run 31327860208 had failed in thirty-four seconds.
+
+**The rehearsal took four attempts and found three defects, all of them in the rehearsal workflow rather than in the twelve migrations.** Recorded because the runs are in the history and a reader deserves to know they say nothing about the promotion's safety: run 31366046231 called bare `pg_dump`, which resolves to Ubuntu's 16 client and refuses against a 17.6 server; run 31367760639 dumped with `--no-privileges`, so the fresh local stack's own default privileges granted `anon` and `authenticated` on every restored public table and contract 139 correctly refused a target that was not Production-shaped; run 31370007090 reported `dump is empty: roles.sql` because `supabase init` makes the work directory a project root and the CLI resolves a relative `--file` against that rather than against the working directory. The second of those is the one worth keeping: it proved the guard catches an unfaithful target, and it prompted measuring the real privilege shape on both hosted projects, which return NONE.
+
+**Rehearsal run 31373514522** then restored a fresh Production dump into a disposable local target and replayed all twelve there, reaching exactly 144 with every player-owned count intact and the three new contracts inert.
+
+**Rollout run 31374274932** applied contracts 133–144 to Production from exact `main` `e54a45b`, after its own API check that the backup and rehearsal runs had both concluded success. Independent read-only verification afterwards:
+
+```json
+{"migration_count": 144, "latest_version": "20260809140000",
+ "latest_name": "provider_team_profile_foundation", "contract_145_absent": true,
+ "auth_users": 1, "profiles": 1, "entries": 2, "match_predictions": 36, "entry_totals": 2,
+ "euro_publication_state": "hidden", "euro_publication_history": 0,
+ "sportmonks_final_statuses": 1, "provider_team_profiles": 0, "season_fixtures": 0}
+```
+
+Every player-owned count is identical to the pre-apply snapshot. Contract 145 is absent, held back by the pinned boundary as intended.
+
+**What this did NOT do**, so no later reader mistakes a schema promotion for a launch: it did not publish Euro 2028 — contract 143 arrived `hidden` and publication remains an owner act; it did not promote the application, which is separately controlled and still at the Euro baseline; it imported no football, and Production still holds zero season fixtures, so contract 135's provider result authority has nothing to act on there yet. `promotionAuthorised` stays `false` in `config/production-hosted-contract.json`, which is the fail-closed default and is enforced by `production-hosted-contract-expectations.mjs`.
+
+**Contract 145 remains unpromoted to either hosted environment.** It is pending for Development and outside the authorised Production set. It redefines `enforce_rate_limit` to take an advisory lock, which is a behaviour change to a security control and wants its own decision rather than a ride-along.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | ONE AHEAD OF BOTH HOSTED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **144** | Guarded fast-lane run `31327666892`, independently confirmed by a read-only ledger query returning 144 rows. Contract 145 not yet applied. | ONE BEHIND REPOSITORY |
+| Production Supabase | **144** | Rollout run `31374274932` from exact `main` `e54a45b`, gated on backup `31365261774` and rehearsal `31373514522`; independently confirmed by a read-only ledger query returning 144 rows ending `20260809140000_provider_team_profile_foundation` with contract 145 absent. | LEVEL WITH DEVELOPMENT |
+
+## Superseded — 10 August 2026 (eighth entry)
 
 **The repository is at contract 145 and hosted Development is one behind at 144.** `20260810010000_rate_limit_atomicity.sql` is the only pending Development migration. It is additive in the sense the fast lane checks — it creates and drops nothing, and redefines exactly one function — and it is privileges-neutral: `create or replace` preserves the existing access-control list, and the migration re-states the original `revoke all ... from public` rather than restoring it.
 
@@ -151,8 +256,8 @@ Contract 112 was pending for part of 5 August 2026 — the first time in this se
 | Repository candidate | **134** | Contract 117 is the repeatable path a provider kickoff change takes to the fixture, `20260805130000_provider_fixture_revision_import.sql` — it revises an existing kickoff, creates none, deletes none and never writes `competition_round_id`. Beneath it: contract 116 is the season Last Man Standing round read, from a concurrent session. Beneath that: Contract 115 makes the database a provider kickoff change takes to the fixture, `20260805120000_provider_fixture_revision_import.sql` — it creates no fixture, deletes none and never writes `competition_round_id`. Beneath it: Contract 115 makes the database able to call the provider at all, `20260805110000_provider_poll_dispatch.sql` — `pg_net` was available on the project and **not installed**, so PostgreSQL could make no outbound HTTP request, and the deployed `provider-poll` Edge Function had a scheduler that could not reach it. It installs the extension and attempts to revoke the `net` schema from `anon`, `authenticated` and `service_role` and, where the platform owns pg_net, reports that it could not — measured on hosted development, `postgres` is neither superuser nor a member of `supabase_admin`, so it cannot change platform grants; what it enforces instead is that no browser-reachable function in an exposed schema calls into `net`, which is the actual path from a session to an outbound request, then drives the Edge Function from `pg_cron` every five minutes at each target's declared cadence. It records no poll target and imports no fixture, so on application the job runs and does nothing. Beneath it: Contract 114 gives the season matchweek card its bounded browser path — one read and three writes scoped to the caller's own entry, `20260805100000_season_card_rpcs.sql`. Beneath that: Contract 113 is the round play window, `20260805090000_round_play_windows.sql` — the authority `fixtureReassignment.ts` resolves a moved kickoff against and never had. Beneath it: | Contract 112 is the provider identity map, `20260805080000_provider_entity_map.sql` — the fact every ingestion step was blocked on. Beneath it: | Contract 108 refuses any successor round that opened or locked before its predecessor finished, through `20260805040000_successor_window_calendar_guard.sql`; contract 109 supplies the calendar itself — the next eligible league round, the successor's windows generated from it exactly once, and the hourly job that drives the restart — through `20260805050000_lms_successor_window_scheduler.sql`, completing ADR 0025 decision 1; contract 110 gives the season Predictor Championship rounds it can be played over, through `20260805060000_season_cup_round_calendar.sql` | MERGED AND ROLLED OUT |
 | Development Supabase `iouzoutneyjpugbbtdem` | **133** | Development Fast Lane run `31276698062` / #46 from exact `main` `1138d0967bcff4168680980dc3352517f1e9c772` proved the sole pending migration additive, applied `20260808003000_private_season_cup_player_reads.sql`, and postflight confirmed Contract 133; independent read-only verification confirmed the ledger tip. | LEVEL WITH CONTRACT-133 REPOSITORY CANDIDATE |
 | Production Supabase | **132** | Independent read-only ledger verification on 8 August 2026 ends at `20260807210812_provider_initial_fixture_approval`; application promotion remains separately controlled. | TWO BEHIND CONTRACT-134 REPOSITORY CANDIDATE — Contracts 133 and 134 both pending |
-| Netlify `euro28predictor` non-production contexts | **132 hosted declaration** | Direct Netlify read on 8 August 2026: `dev`, `branch-deploy` and `deploy-preview` point to Development, each declare 132, and Team SSO protects all contexts. `dev-server` remains blank and fails closed. A declaration may intentionally trail its hosted database but must never lead it. | TRAILS HOSTED DEVELOPMENT 133 BY ONE; VALID UNDER THE GUARDED TRAILING-DECLARATION MODEL |
-| Netlify `euro28predictor` production | **132 hosted declaration** | Direct Netlify read on 8 August 2026: production points to Production Supabase and declares 132; Team SSO protects production. The published artifact is still the 30 July `8244b722…` Contract-63-era bundle, so declaration alignment is **not** an application deployment. | LEVEL WITH HOSTED PRODUCTION; PUBLISHED APPLICATION STILL OLD |
+
+The two Netlify declaration rows that stood in this table are preserved here as prose rather than as table rows, because the current declaration now lives in the twelfth entry and the machine check requires exactly one row per context group. Their content is unchanged and is not restated more favourably: a direct Netlify read on **8 August 2026** found `dev`, `branch-deploy` and `deploy-preview` pointing at Development and each declaring **132**, trailing hosted Development 133 by one — valid under the guarded trailing-declaration model — with `dev-server` blank and failing closed; and production pointing at Production Supabase and declaring **132**, level with hosted Production, with Team SSO protecting production and the published artifact still the 30 July `8244b722…` Contract-63-era bundle, so declaration alignment was **not** an application deployment.
 
 The historic Netlify project `euro28-predictor-dev` is out of scope and must not be inspected as current state, configured or deployed to.
 

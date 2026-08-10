@@ -1,14 +1,14 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 144,
-  "latestMigrationVersion": "20260809140000",
-  "latestMigrationName": "provider_team_profile_foundation",
-  "verifiedAt": "2026-08-09T17:57:15.108Z",
+  "requiredMigrationCount": 145,
+  "latestMigrationVersion": "20260810010000",
+  "latestMigrationName": "rate_limit_atomicity",
+  "verifiedAt": "2026-08-10T09:55:52.724Z",
   "evidence": {
     "source": "Development fast-lane rollout",
-    "workflowRunId": 31327666892,
-    "repositoryHead": "72af0852883347f3ce10761c05bf68fb30f66225"
+    "workflowRunId": 31376619737,
+    "repositoryHead": "a4baae0600ff5620bc97f1eb190be9689e4ae93e"
   },
-  "productionContract": 132,
+  "productionContract": 145,
   "productionPromotionAuthorised": false
 }
