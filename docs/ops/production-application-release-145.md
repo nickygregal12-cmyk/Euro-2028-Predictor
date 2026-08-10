@@ -135,23 +135,54 @@ carries the exact `commit_ref` it was built from and a zip upload need not.
 The published commit is the one intended: `ff1fe15d…` is the exact `main` head at
 merge time, and the deploy's `commit_ref` matches it character for character.
 
-## Release smoke — could not run, and why that is not a verdict
+## Release smoke — closed, and green
 
-`production-smoke.yml` run **`31383883792`** failed. It fetches
-`https://euro28predictor.com/release.json` with plain `curl` and no credentials
-and retries 120 times; every attempt between 11:32 and 11:42 returned **401**.
+**`production-smoke.yml` run `31397090845` passed in full on 10 August 2026**,
+against published commit `be3efdff6ac9880e3385ae142d7f0485c5068649` at contract
+145. Every step succeeded: the anonymous perimeter assertion, the authenticated
+release-identity poll, the browser session, the HTTP smoke and the Playwright
+browser smoke.
 
-Against a protected site this workflow **fails by construction, whatever was
-published** — it would have failed identically before this release. Its failure
-is therefore not evidence about the artifact in either direction, and it must not
-be reported as a failed release. It does confirm one thing: the perimeter refuses
-an anonymous visitor.
+That took three attempts, and the two failures were both worth having.
 
-The release gate in [`netlify-deploy-access.md`](netlify-deploy-access.md) names a
-smoke the perimeter forbids. Closing that gap needs either a deliberately
-unprotected release-identity endpoint or an authenticated smoke path. Both are
-decisions about the perimeter, not fixes to apply in passing, so the gap is
-recorded rather than closed here.
+**Attempt 1 — run `31383883792`.** The pre-rework smoke fetched `release.json`
+with no credentials and retried 120 times; every attempt between 11:32 and 11:42
+returned 401. Against a protected site it **failed by construction whatever was
+published**, and would have failed identically before the release. That failure
+was never evidence about the artifact in either direction — only that the
+perimeter refuses an anonymous visitor.
+
+**Attempt 2 — run `31394280878`.** The reworked smoke got through the perimeter
+assertion, found the exact release and opened a browser session, then stopped:
+
+```
+STOP: https://euro28predictor.com/predict returned HTTP 404; expected 200.
+```
+
+A real finding, and the stale side was the smoke. `src/App.tsx` declares no
+`/predict` route and `netlify.toml` deliberately sends it to the 404 catch-all
+with the other retired Euro/tournament paths. Only the smoke's hand-written route
+list still demanded 200 there, and nothing had caught it because the smoke had
+not been able to run far enough to look. The list is now derived from
+netlify.toml's own 200 rules, which also widened the sweep from eight hand-listed
+routes to the thirty-three the configuration actually promises — every
+parameterised competition, league, join, h2h and profile route among them, none
+of which had ever been checked against production.
+
+**Attempt 3 — run `31397090845`.** Green.
+
+### What the passing run establishes
+
+- An anonymous visitor is refused: `/release.json` without a credential answers
+  401, asserted rather than merely observed.
+- The published release identity is exact — environment, application contract,
+  hosted contract, Supabase project and commit.
+- Deployed security headers match the ones `netlify.toml` commits.
+- All thirty-three routes the configuration promises serve the SPA shell, and an
+  unknown path answers 404 rather than a soft 200.
+- The signed-out browser journeys behave: login, signup, reset, the not-found
+  page, and the signed-out gate on `/` and `/play`.
+- No browser request reached the Development Supabase project.
 
 ## Access-control posture — changed, and confirmed
 
@@ -178,19 +209,17 @@ unimplemented. This is still not a public launch.
 
 ## What still owes evidence
 
-1. **A release smoke that can actually run.** The password makes this closable,
-   which Team SSO did not. See
-   [`netlify-deploy-access.md`](netlify-deploy-access.md) for the intended shape:
-   an anonymous assertion that a credential-free request is refused, plus an
-   authenticated pass for the release-identity and browser checks. The exchange
-   Netlify's password protection expects must be established empirically on a
-   runner, because the agent session cannot reach the site at all.
-2. **A signed-in check of the released application** — nothing here proves what a
-   logged-in player sees, only what was built and published.
-3. **Retirement of the legacy-brand allowance** in `scripts/production-smoke.mjs`,
-   which has met its own stated retirement condition now that production is past
-   contract 63. Do it in the change that makes the smoke runnable, so the first
-   authenticated run proves the published title first.
+**A signed-in check of the released application.** Everything above is the
+signed-out surface. Nothing here proves what a logged-in player sees, and the
+honest expectation is that they would find the competitions empty: Production
+holds zero season fixtures and `admin_open_season_competition` has never been run
+there.
+
+Two items that stood here are now closed and are recorded above rather than
+deleted: the release smoke runs (run `31397090845`), and the legacy-brand
+allowance in `scripts/production-smoke.mjs` is retired — the first authenticated
+run proved the published title before the looser branch was dropped, which is
+exactly why it waited.
 
 ## What this release is not
 
