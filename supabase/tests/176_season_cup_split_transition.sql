@@ -104,12 +104,16 @@ insert into public.profiles (id, display_name, welcomed_at)
 select md5('scs-user-' || n)::uuid, format('Scs Player %s', n), now()
 from generate_series(1, 5) as n;
 
+-- Contract 152 requires a private competition to carry a name, an owner and an
+-- invite code. The split transition under test reads none of them.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at
+  draw_required, visibility_kind, registration_opens_at,
+  name, owner_id, invite_code
 ) values (
   md5('scs-cup')::uuid, current_setting('test.scs_season')::uuid,
-  'predictor_cup', true, 'active', true, 'private', now() - interval '2 days'
+  'predictor_cup', true, 'active', true, 'private', now() - interval '2 days',
+  'SCS Split Cup', md5('scs-user-1')::uuid, 'SCSCUP'
 );
 
 insert into public.bonus_competition_entrants (competition_id, user_id, joined_at)
@@ -130,10 +134,12 @@ select throws_ok(
 -- depend on what a seed happened to publish elsewhere.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at
+  draw_required, visibility_kind, registration_opens_at,
+  name, owner_id, invite_code
 ) values (
   md5('scs-lms')::uuid, current_setting('test.scs_season')::uuid,
-  'last_man_standing', true, 'active', false, 'private', now() - interval '2 days'
+  'last_man_standing', true, 'active', false, 'private', now() - interval '2 days',
+  'SCS Wrong Game', md5('scs-user-1')::uuid, 'SCSLMS'
 );
 
 select throws_ok(

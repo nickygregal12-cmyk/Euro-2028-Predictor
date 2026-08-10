@@ -34,6 +34,22 @@ begin
 end
 $seed$;
 
+-- Contract 152 gives a private competition an owner that references
+-- `auth.users`, so this suite needs one player to own the private series it
+-- builds. It owns them and does nothing else; every assertion below is about
+-- lineage, not about who created anything.
+set local session_replication_role = replica;
+insert into auth.users (
+  id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values (
+  md5('c103-owner')::uuid, 'c103-owner@example.test',
+  'authenticated', 'authenticated', '{}'::jsonb, '{}'::jsonb, now(), now()
+);
+set local session_replication_role = origin;
+
+insert into public.profiles (id, display_name, welcomed_at)
+values (md5('c103-owner')::uuid, 'C103 Organiser', now());
+
 -- ---------------------------------------------------------------------------
 -- The backfill. Every existing row is instance one of its own series.
 -- ---------------------------------------------------------------------------
@@ -123,14 +139,16 @@ select throws_ok(
 select lives_ok(
   $$insert into public.bonus_competitions
       (id, tournament_id, game_key, published, availability_status,
-       visibility_kind, series_id)
+       visibility_kind, series_id, name, owner_id, invite_code)
     values
       (md5('c103-private-a')::uuid,
        (select id from lineage where label = 'season'),
-       'last_man_standing', false, 'active', 'private', md5('c103-private-a')::uuid),
+       'last_man_standing', false, 'active', 'private', md5('c103-private-a')::uuid,
+       'C103 Private A', md5('c103-owner')::uuid, 'C103PA'),
       (md5('c103-private-b')::uuid,
        (select id from lineage where label = 'season'),
-       'last_man_standing', false, 'active', 'private', md5('c103-private-b')::uuid)$$,
+       'last_man_standing', false, 'active', 'private', md5('c103-private-b')::uuid,
+       'C103 Private B', md5('c103-owner')::uuid, 'C103PB')$$,
   'two independent private LMS series may coexist with the one live public instance'
 );
 
@@ -144,12 +162,14 @@ select lives_ok(
 select lives_ok(
   $$insert into public.bonus_competitions
       (id, tournament_id, game_key, published, availability_status,
-       visibility_kind, series_id, series_sequence, predecessor_competition_id)
+       visibility_kind, series_id, series_sequence, predecessor_competition_id,
+       name, owner_id, invite_code)
     values (
       md5('c103-private-a-2')::uuid,
       (select id from lineage where label = 'season'),
       'last_man_standing', false, 'active', 'private',
-      md5('c103-private-a')::uuid, 2, md5('c103-private-a')::uuid
+      md5('c103-private-a')::uuid, 2, md5('c103-private-a')::uuid,
+      'C103 Private A2', md5('c103-owner')::uuid, 'C103A2'
     )$$,
   'a private successor reuses its own series while another private series remains live'
 );
@@ -167,11 +187,13 @@ select is(
 select throws_ok(
   $$insert into public.bonus_competitions
       (tournament_id, game_key, published, availability_status,
-       visibility_kind, series_id, series_sequence, predecessor_competition_id)
+       visibility_kind, series_id, series_sequence, predecessor_competition_id,
+       name, owner_id, invite_code)
     values (
       (select id from lineage where label = 'season'),
       'last_man_standing', false, 'active', 'private',
-      md5('c103-private-a')::uuid, 3, md5('c103-private-a-2')::uuid
+      md5('c103-private-a')::uuid, 3, md5('c103-private-a-2')::uuid,
+      'C103 Private A3', md5('c103-owner')::uuid, 'C103A3'
     )$$,
   '23505',
   null,

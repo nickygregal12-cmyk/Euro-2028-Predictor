@@ -76,6 +76,13 @@ select is(
 -- THE FIRST IRREVERSIBLE CASE: nothing is drawn at creation.
 -- ---------------------------------------------------------------------------
 
+-- The role convention in this file. What a PLAYER can do is asserted as
+-- `authenticated`; what the DATABASE now holds is asserted as the session role.
+-- `bonus_cup_groups` and `bonus_competitions` are revoked from every browser
+-- role, so reading them to verify a draw did or did not happen is not a thing a
+-- player does.
+reset role;
+
 select is(
   (select count(*)::integer from public.bonus_cup_groups
     where competition_id = current_setting('test.pc_competition')::uuid),
@@ -140,6 +147,7 @@ select throws_ok(
   null,
   'an entrant cannot launch, because the draw they would fix cannot be undone');
 
+reset role;
 select is(
   (select count(*)::integer from public.bonus_cup_groups
     where competition_id = current_setting('test.pc_competition')::uuid),
@@ -163,6 +171,8 @@ select isnt(
   current_setting('test.pc_launch')::jsonb ->> 'outcome',
   'not_open',
   'a private Championship has no hundred-entrant threshold, so five entrants is a field');
+
+reset role;
 
 select cmp_ok(
   (select count(*)::integer from public.bonus_cup_groups

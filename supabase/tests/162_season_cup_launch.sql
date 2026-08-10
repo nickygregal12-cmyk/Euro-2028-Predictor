@@ -140,12 +140,17 @@ select is(
 -- THE LAUNCH — a private Championship of twelve
 -- ---------------------------------------------------------------------------
 
+-- Contract 152 requires a private competition to carry a name, an owner and an
+-- invite code. The launch under test reads none of them: its field size comes
+-- from the entrants, and its threshold exemption from `visibility_kind`.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at
+  draw_required, visibility_kind, registration_opens_at,
+  name, owner_id, invite_code
 ) values (
   md5('cl-private')::uuid, current_setting('test.cl_pl')::uuid,
-  'predictor_cup', true, 'active', true, 'private', now() - interval '2 days'
+  'predictor_cup', true, 'active', true, 'private', now() - interval '2 days',
+  'CL Private Twelve', md5('cl-user-1')::uuid, 'CLPRIV'
 );
 
 insert into public.bonus_competition_entrants (competition_id, user_id, joined_at)
@@ -272,10 +277,12 @@ where round.tournament_id = current_setting('test.cl_sp')::uuid
 
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at
+  draw_required, visibility_kind, registration_opens_at,
+  name, owner_id, invite_code
 ) values (
   md5('cl-narrow')::uuid, current_setting('test.cl_sp')::uuid,
-  'predictor_cup', true, 'active', true, 'private', now() - interval '2 days'
+  'predictor_cup', true, 'active', true, 'private', now() - interval '2 days',
+  'CL Narrow Calendar', md5('cl-user-1')::uuid, 'CLNARW'
 );
 
 insert into public.bonus_competition_entrants (competition_id, user_id, joined_at)

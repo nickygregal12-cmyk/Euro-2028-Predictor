@@ -271,12 +271,16 @@ select is(
 -- A first instance is not covered at all, which is why the Euro catalogue and
 -- part one of this suite were never obstructed.
 
+-- Contract 152 requires a private competition to carry a name, an owner and an
+-- invite code. The window guard under test reads none of them.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at
+  draw_required, visibility_kind, registration_opens_at,
+  name, owner_id, invite_code
 ) values (
   md5('wg-first')::uuid, current_setting('test.wg_tournament')::uuid,
-  'last_man_standing', true, 'active', false, 'private', now() - interval '5 days'
+  'last_man_standing', true, 'active', false, 'private', now() - interval '5 days',
+  'WG First Instance', md5('wg-user-1')::uuid, 'WGFRST'
 );
 
 select lives_ok(
