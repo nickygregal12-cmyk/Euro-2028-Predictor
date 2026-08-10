@@ -77,7 +77,7 @@ export function SeasonLeaderboardPreview() {
         as a player from another season is the quickest way to see the boundary work.
       </p>
 
-      <div className={styles.controls}>
+      <div className={styles.controls} data-harness>
         <label className={styles.label} htmlFor="season-id">
           Season (competition) id
         </label>

@@ -160,7 +160,7 @@ export function SeasonPreview() {
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Scenario</h2>
-          <div className={styles.controls}>
+          <div className={styles.controls} data-harness>
             <label className={styles.control}>
               Matchweek
               <select

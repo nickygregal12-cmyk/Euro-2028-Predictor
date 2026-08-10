@@ -377,10 +377,17 @@ function SeasonLmsFormPanel({ tournamentId }: { tournamentId: string }) {
     setGuide(null)
     void (async () => {
       const [round, form] = await Promise.all([
-        createSeasonLmsRpcGateway({ tournamentId }).load().then(
-          (page) => page,
-          () => null,
-        ),
+        // `Promise.resolve().then(...)` rather than calling the gateway
+        // directly: BUILDING it can throw synchronously, and a synchronous
+        // throw escapes the rejection handler two lines below — the panel
+        // would take the page's error boundary with it instead of failing
+        // silently, which is the one thing this component promises not to do.
+        Promise.resolve()
+          .then(() => createSeasonLmsRpcGateway({ tournamentId }).load())
+          .then(
+            (page) => page,
+            () => null,
+          ),
         fetchSeasonClubForm(tournamentId).then(
           (table) => table.clubs,
           () => null,
