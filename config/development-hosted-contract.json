@@ -1,13 +1,13 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 145,
-  "latestMigrationVersion": "20260810010000",
-  "latestMigrationName": "rate_limit_atomicity",
-  "verifiedAt": "2026-08-10T09:55:52.724Z",
+  "requiredMigrationCount": 151,
+  "latestMigrationVersion": "20260810170000",
+  "latestMigrationName": "season_player_profile",
+  "verifiedAt": "2026-08-10T18:11:15.890Z",
   "evidence": {
     "source": "Development fast-lane rollout",
-    "workflowRunId": 31376619737,
-    "repositoryHead": "a4baae0600ff5620bc97f1eb190be9689e4ae93e"
+    "workflowRunId": 31417611501,
+    "repositoryHead": "2d8ffcbbb90bc9a7562433b1fe583ab82d93996a"
   },
   "productionContract": 145,
   "productionPromotionAuthorised": false
