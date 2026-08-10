@@ -18,6 +18,7 @@ import type { LmsRoundPage } from './lmsRoundModel'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchesPage } from './SeasonMatchesPage'
+import { SeasonCompetitionForm } from './SeasonCompetitionForm'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
 import { competitionMatchPredictorRoute } from '../../app/weeklyRoutes'
 import { isNextUi } from '../../app/routeFlags'
@@ -109,13 +110,19 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
    * refused to render because form could not be read would be worse.
    */
   const [clubForm, setClubForm] = useState<readonly SeasonClubForm[] | null>(null)
+  // How many matches back the server was asked for, carried so the form panel
+  // can state its own window rather than assume the default.
+  const [formWindow, setFormWindow] = useState<number | null>(null)
   useEffect(() => {
     if (tournamentId === null) return
     let active = true
     setClubForm(null)
+    setFormWindow(null)
     fetchSeasonClubForm(tournamentId)
       .then((table) => {
-        if (active) setClubForm(table.clubs)
+        if (!active) return
+        setClubForm(table.clubs)
+        setFormWindow(table.matches)
       })
       .catch(() => {
         if (active) setClubForm(null)
@@ -272,6 +279,14 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
         football={football}
         predictHref={predictHref}
       />
+      {/* The football half of the Matches section's accepted shape, as far as
+          the data honestly reaches. Contract 141's derivation is explicitly
+          NOT a league table, so this is recent form and says so; the league
+          table itself has no authority and is registered as `MIG-UI-13`
+          rather than approximated under a heading that would lie. */}
+      {clubForm && formWindow !== null ? (
+        <SeasonCompetitionForm clubs={clubForm} matches={formWindow} />
+      ) : null}
     </SeasonCompetitionShell>
   )
 }

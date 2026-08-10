@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { SeasonLeaguesPage } from '../../../src/features/season/SeasonLeaguesPage'
 import type { SeasonLeaguesGateway } from '../../../src/features/season/gameLeaguesModel'
@@ -77,13 +78,17 @@ function renderPage(
   joinedGame = true,
   standings: SeasonLeagueStandingsGateway = standingsGatewayFor(),
 ) {
+  // Which league is open, and which of its three views, are held in the URL so
+  // Back and a shared link both restore them — so the page needs a router.
   render(
-    <SeasonLeaguesPage
-      gateway={gateway}
-      standings={standings}
-      gameName="Main Predictor"
-      joinedGame={joinedGame}
-    />,
+    <MemoryRouter>
+      <SeasonLeaguesPage
+        gateway={gateway}
+        standings={standings}
+        gameName="Main Predictor"
+        joinedGame={joinedGame}
+      />
+    </MemoryRouter>,
   )
 }
 
@@ -119,7 +124,7 @@ describe('the competition leagues surface', () => {
     await screen.findByText('The Office')
     expect(standings.load).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open The Office' }))
 
     await waitFor(() => expect(standings.load).toHaveBeenCalledWith('league-1', null))
     expect(await screen.findByText('Sam')).toBeTruthy()
@@ -129,8 +134,8 @@ describe('the competition leagues surface', () => {
     renderPage(gatewayFor([league(), league({ id: 'league-2', name: 'Five-a-side' })]))
 
     await screen.findByText('The Office')
-    expect(screen.getByRole('button', { name: 'View The Office table' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'View Five-a-side table' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Open The Office' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Open Five-a-side' })).toBeTruthy()
   })
 
   it('keeps one table open at a time', async () => {
@@ -139,27 +144,27 @@ describe('the competition leagues surface', () => {
     renderPage(gatewayFor([league(), league({ id: 'league-2', name: 'Five-a-side' })]))
 
     await screen.findByText('The Office')
-    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
-    await screen.findByRole('button', { name: 'Hide The Office table' })
+    fireEvent.click(screen.getByRole('button', { name: 'Open The Office' }))
+    await screen.findByRole('button', { name: 'Hide The Office' })
 
-    fireEvent.click(screen.getByRole('button', { name: 'View Five-a-side table' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open Five-a-side' }))
 
-    await screen.findByRole('button', { name: 'Hide Five-a-side table' })
-    expect(screen.getByRole('button', { name: 'View The Office table' })).toBeTruthy()
+    await screen.findByRole('button', { name: 'Hide Five-a-side' })
+    expect(screen.getByRole('button', { name: 'Open The Office' })).toBeTruthy()
   })
 
   it('closes the open table when its own control is pressed again', async () => {
     renderPage(gatewayFor([league()]))
 
     await screen.findByText('The Office')
-    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
-    const hide = await screen.findByRole('button', { name: 'Hide The Office table' })
+    fireEvent.click(screen.getByRole('button', { name: 'Open The Office' }))
+    const hide = await screen.findByRole('button', { name: 'Hide The Office' })
     expect(hide.getAttribute('aria-expanded')).toBe('true')
 
     fireEvent.click(hide)
 
     expect(
-      (await screen.findByRole('button', { name: 'View The Office table' })).getAttribute(
+      (await screen.findByRole('button', { name: 'Open The Office' })).getAttribute(
         'aria-expanded',
       ),
     ).toBe('false')
@@ -176,7 +181,7 @@ describe('the competition leagues surface', () => {
     renderPage(gatewayFor([league()]), true, standings)
 
     await screen.findByText('The Office')
-    fireEvent.click(screen.getByRole('button', { name: 'View The Office table' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open The Office' }))
 
     expect(await screen.findByText('You are no longer a member of this league.')).toBeTruthy()
     expect(screen.getByText('The Office')).toBeTruthy()

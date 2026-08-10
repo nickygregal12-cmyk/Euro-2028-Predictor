@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { HUB_COMPETITIONS } from '../../features/hub/competitionCatalogue'
+import { catalogueFromPublishedSeasons } from '../../features/hub/competitionCatalogue'
 import {
   presentPlayerCompetitions,
   type PlayerCompetitions,
@@ -60,28 +60,21 @@ export function PlayerCompetitionsProvider({ children }: { children: ReactNode }
     setStatus('loading')
     void (async () => {
       try {
-        const [{ fetchHubMembership }, { fetchPublishedSeasons }] = await Promise.all([
+        const [{ fetchHubMembership }, { fetchPublishedWeeklySeasons }] = await Promise.all([
           import('../../services/supabase/competitionGames'),
-          import('../../services/supabase/publishedSeasons'),
+          import('../../services/supabase/weeklyCatalogue'),
         ])
-        // WHICH SEASONS EXIST comes from the server (`MIG-UI-12`); the static
-        // catalogue supplies only route slugs and copy for the ones it knows.
-        // The membership read is still addressed by name, because that is what
-        // `get_competition_games` can be reached by, but the names now come
-        // from the server's own list rather than from a frontend array.
-        const published = await fetchPublishedSeasons()
-        const names = new Set([
-          ...published.map((season) => season.name),
-          ...HUB_COMPETITIONS.map((competition) => competition.seasonRowName),
-        ])
-        const seasons = await fetchHubMembership([...names])
+        // WHICH SEASONS EXIST, AND WHERE EACH ONE LIVES, both come from the
+        // server (contract 147, closing `MIG-UI-12`). There is no static
+        // competition array left to merge in: publishing a league on the server
+        // is the whole of making it exist and making it routable.
+        const published = await fetchPublishedWeeklySeasons()
+        const seasons = await fetchHubMembership(published.map((season) => season.seasonName))
         if (!active) return
         setPlayer(
           presentPlayerCompetitions(
-            HUB_COMPETITIONS,
+            catalogueFromPublishedSeasons(published, seasons),
             seasons,
-            undefined,
-            published,
           ),
         )
         setStatus('ready')

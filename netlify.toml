@@ -173,6 +173,15 @@
   to = "/index.html"
   status = 200
 
+# One player's season inside a competition (contract 151). A 200 because it is
+# linked from private-league surfaces and the Match Centre and can be reloaded
+# or shared between co-members; who may actually READ it is the server's
+# decision, and this redirect makes none.
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/players/:playerId"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/competitions/:competitionSlug/:seasonSlug"
   to = "/index.html"
@@ -193,8 +202,16 @@
   to = "/index.html"
   status = 200
 
+# The Euro tournament's own profiles, under `/tournament/` since the platform
+# profile took `/profile`. Their route guard is `TournamentJourney`, not this
+# file: a 200 here is a served document, never an authorisation.
 [[redirects]]
-  from = "/profile/:playerId"
+  from = "/tournament/profile"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/tournament/profile/:playerId"
   to = "/index.html"
   status = 200
 

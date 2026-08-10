@@ -79,7 +79,7 @@ export function PredictEntryPage() {
       </section>
 
       <div className={p.quickGrid}>
-        <button type="button" className={p.quickCard} onClick={() => navigate('/profile')}>
+        <button type="button" className={p.quickCard} onClick={() => navigate('/tournament/profile')}>
           <strong>Points breakdown</strong>
           <span>See exactly where every point came from.</span>
         </button>

@@ -1,0 +1,164 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.league {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.league + .league {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.leagueName {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.note {
+  margin: 0;
+  color: var(--tx3);
+  font-size: var(--fs-1);
+}
+
+/* "34th → 29th · ↑5". A line of its own, above the names, because it is the
+   consequence and the names are the evidence. */
+.movement {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.movementRank {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.movementUp {
+  color: var(--acc);
+  font-variant-numeric: var(--numeric);
+}
+
+.movementDown {
+  color: var(--amb);
+  font-variant-numeric: var(--numeric);
+}
+
+.movementLevel {
+  color: var(--tx3);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Name, prediction, outcome. The prediction column is fixed so a column of
+   scorelines lines up and can be scanned rather than read. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5ch auto;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: 2px 0;
+}
+
+.rowSelf {
+  font-weight: 600;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.rowSelf .name {
+  color: var(--tx);
+}
+
+.nameLink {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.nameLink:hover,
+.nameLink:focus-visible {
+  border-bottom-color: currentColor;
+}
+
+.prediction {
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.predictionNone {
+  text-align: right;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.outcome {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+  white-space: nowrap;
+}
+
+.outcomeExact {
+  color: var(--acc);
+}
+
+.outcomeCorrect {
+  color: var(--tx2);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

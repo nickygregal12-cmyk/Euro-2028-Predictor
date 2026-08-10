@@ -52,11 +52,41 @@ export type SeasonListFixture = {
   live: { kind: string; home: number | null; away: number | null; observedAt: string } | null
 }
 
+export type SeasonFixtureCompetition = {
+  id: string
+  name: string
+  seasonKey: string
+  timeZone: string
+  /**
+   * The competition's route segment. Contract 148 returns it; contract 139
+   * does not, so it is optional and a list-derived fixture leaves it null. A
+   * surface that needs to build a URL from a fixture alone reads it from the
+   * addressed read.
+   */
+  slug: string | null
+}
+
 export type SeasonFixtureList = {
-  competition: { id: string; name: string; seasonKey: string; timeZone: string }
+  competition: SeasonFixtureCompetition
   window: { from: string; to: string }
   serverNow: string | null
   fixtures: readonly SeasonListFixture[]
+}
+
+/**
+ * One fixture, addressed by its own id (contract 148, `MIG-UI-11`).
+ *
+ * IT IS A SIBLING OF THE LIST, NOT A WIDENING OF IT. The RPC returns contract
+ * 139's fixture entry field for field, which is why it decodes through the same
+ * `mapFixture` below: a fixture must look identical whether it arrived from the
+ * calendar or from a link, and two decoders over one payload shape is how that
+ * stops being true.
+ */
+export type SeasonFixtureAnswer = {
+  competition: SeasonFixtureCompetition
+  serverNow: string | null
+  /** Null when the payload carried no usable fixture. Never a partial one. */
+  fixture: SeasonListFixture | null
 }
 
 function objectOf(value: unknown): Record<string, unknown> {
@@ -150,37 +180,58 @@ function mapFixture(value: unknown): SeasonListFixture | null {
   }
 }
 
-export function mapSeasonFixtureList(value: unknown): SeasonFixtureList {
-  const payload = objectOf(value)
-  const competition = objectOf(payload.competition)
-  const window = objectOf(payload.window)
-
+function mapCompetition(value: unknown, what: string): SeasonFixtureCompetition {
+  const competition = objectOf(value)
   const id = stringOrNull(competition.id)
   const name = stringOrNull(competition.name)
   const seasonKey = stringOrNull(competition.season_key)
+
+  if (!id || !name || !seasonKey) {
+    throw new Error(`The ${what} response was not in the expected shape.`)
+  }
+
+  return {
+    id,
+    name,
+    seasonKey,
+    // The competition's own calendar zone, as the server persists it. It is
+    // NO LONGER A PRESENTATION INPUT: since the owner's 10 August 2026 UI
+    // direction, kickoffs and day headings resolve in the viewer's device
+    // zone through `src/shared/time/kickoff.ts`. This field is retained
+    // because it is a fact about the competition — the zone its calendar and
+    // its monthly retention table are derived in — and a decoder that
+    // discarded it would make that unavailable to the reads that need it.
+    timeZone: stringOrNull(competition.time_zone) ?? 'UTC',
+    slug: stringOrNull(competition.slug),
+  }
+}
+
+/** Contract 148: the one fixture a Match Centre URL names, with no date hint. */
+export function mapSeasonFixture(value: unknown): SeasonFixtureAnswer {
+  const payload = objectOf(value)
+  return {
+    competition: mapCompetition(payload.competition, 'season fixture'),
+    serverNow: stringOrNull(payload.server_now),
+    fixture: mapFixture(payload.fixture),
+  }
+}
+
+export function mapSeasonFixtureList(value: unknown): SeasonFixtureList {
+  const payload = objectOf(value)
+  const window = objectOf(payload.window)
+
+  const competition = mapCompetition(payload.competition, 'season fixtures')
   const from = stringOrNull(window.from)
   const to = stringOrNull(window.to)
 
-  if (!id || !name || !seasonKey || !from || !to) {
+  if (!from || !to) {
     throw new Error('The season fixtures response was not in the expected shape.')
   }
 
   const raw = Array.isArray(payload.fixtures) ? payload.fixtures : []
 
   return {
-    competition: {
-      id,
-      name,
-      seasonKey,
-      // The competition's own calendar zone, as the server persists it. It is
-      // NO LONGER A PRESENTATION INPUT: since the owner's 10 August 2026 UI
-      // direction, kickoffs and day headings resolve in the viewer's device
-      // zone through `src/shared/time/kickoff.ts`. This field is retained
-      // because it is a fact about the competition — the zone its calendar and
-      // its monthly retention table are derived in — and a decoder that
-      // discarded it would make that unavailable to the reads that need it.
-      timeZone: stringOrNull(competition.time_zone) ?? 'UTC',
-    },
+    competition,
     window: { from, to },
     serverNow: stringOrNull(payload.server_now),
     // Server order is kickoff order and is preserved exactly. Re-sorting here

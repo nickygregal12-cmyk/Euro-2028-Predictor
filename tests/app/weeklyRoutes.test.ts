@@ -81,7 +81,11 @@ describe('weekly route authority', () => {
       ['/account', { href: '/more', label: 'Back to More' }],
       ['/profile', { href: '/more', label: 'Back to More' }],
       ['/more/scoring', { href: '/more', label: 'Back to More' }],
-      ['/profile/player-1', { href: '/leagues', label: 'Back to Leagues' }],
+      // The Euro tournament's own profiles moved under `/tournament/` when the
+      // PLATFORM profile took `/profile`. That was the fix for a visible
+      // domestic control pointing into the hidden Euro boundary.
+      ['/tournament/profile', { href: '/more', label: 'Back to More' }],
+      ['/tournament/profile/player-1', { href: '/leagues', label: 'Back to Leagues' }],
       ['/h2h/player-1', { href: '/leagues', label: 'Back to Leagues' }],
       ['/league/private-1', { href: '/leagues', label: 'Back to Leagues' }],
       ['/match/fixture-1', { href: '/matches', label: 'Back to Matches' }],

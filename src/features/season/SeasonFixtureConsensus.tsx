@@ -25,9 +25,11 @@ import styles from './SeasonFixtureConsensus.module.css'
  * load" are never the same sentence.
  *
  * NOTHING HERE IDENTIFIES ANYBODY. Counts and shares only. Named league
- * predictions are a separate read that does not exist yet (`MIG-UI-01`), and
- * this panel must not be mistaken for it — the heading says "Everyone", and
- * the note says the numbers are anonymous.
+ * predictions are a SEPARATE read — contract 149, rendered by
+ * `SeasonFixtureLeagues` under its own "Your leagues" heading — and the two
+ * must never be merged: this one is anonymous, platform-wide and has a minimum
+ * cohort; that one is named, private and league-scoped. The heading says
+ * "Everyone", and the note says the numbers are anonymous.
  */
 
 export type SeasonFixtureConsensusProps = {

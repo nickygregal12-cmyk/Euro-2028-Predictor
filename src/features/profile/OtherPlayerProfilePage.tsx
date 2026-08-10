@@ -51,7 +51,7 @@ export function OtherPlayerProfilePage() {
 
   useEffect(() => {
     if (playerId && userId && playerId === userId) {
-      navigate('/profile', { replace: true })
+      navigate('/tournament/profile', { replace: true })
       return
     }
     if (data.status === 'error') {

@@ -65,7 +65,6 @@ import { presentCreateJourney } from '../features/leagues/createJourneyModel'
 import { GameRulesDisclosure } from '../features/season/GameRulesDisclosure'
 import { seasonGameRules } from '../features/season/gameRules'
 import { presentPlayerCompetitions } from '../features/hub/playerCompetitions'
-import { HUB_COMPETITIONS } from '../features/hub/competitionCatalogue'
 import { PointsBreakdown } from '../features/scoring'
 import type { ScoreEvent } from '../domain/tournament/scoreEvents'
 import {
@@ -840,24 +839,11 @@ function OnboardingDemo() {
       <OnboardingCompetitionStep player={null} failed draft={EMPTY_DRAFT} onToggle={() => {}} />
       <Label>nothing published yet</Label>
       <OnboardingCompetitionStep
-        player={presentPlayerCompetitions([], [], undefined, [])}
+        player={presentPlayerCompetitions([], [])}
         draft={EMPTY_DRAFT}
         onToggle={() => {}}
       />
-      <Label>a published competition this build cannot open (MIG-UI-12)</Label>
-      <OnboardingCompetitionStep
-        player={presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-          {
-            id: 'unroutable-demo',
-            name: 'Bundesliga 2026/27',
-            seasonKey: '2026-27',
-            status: 'active',
-            timeZone: 'Europe/Berlin',
-          },
-        ])}
-        draft={EMPTY_DRAFT}
-        onToggle={() => {}}
-      />
+
     </>
   )
 }

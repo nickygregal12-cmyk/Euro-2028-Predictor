@@ -6,6 +6,7 @@ import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureLis
 import { presentFixtureList } from '../season/fixtureListModel'
 import { formatDeadline, matchDayKey } from '../../shared/time/kickoff'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
+import { useAuth } from '../auth/AuthProvider'
 import { competitionMatchCentreRoute, weeklyRoutes } from '../../app/weeklyRoutes'
 import { competitionPath } from './competitionCatalogue'
 import { useGlobalPlayInbox } from './useGlobalPlayInbox'
@@ -15,6 +16,8 @@ import {
   type CombinedFixtureSource,
 } from './combinedFixturesModel'
 import { presentSinceLastVisit } from './sinceLastVisitModel'
+import { useMatchweekRecap } from './useMatchweekRecap'
+import { ordinal } from '../league/ordinal'
 import { readLastVisit, writeLastVisit } from './lastVisit'
 import type { InboxAction } from './playInboxModel'
 import s from '../shared.module.css'
@@ -37,11 +40,22 @@ import h from './hub.module.css'
  * discovery. On desktop the football and the competitions move into the
  * contextual panel so the action keeps the main column to itself.
  *
- * WHAT IT DELIBERATELY DOES NOT SHOW. Rank movement, Rival Watch, the Matchweek
- * Recap and the points half of "since you were last here" all need reads that
- * do not exist (`MIG-UI-01`, `MIG-UI-03`). They are absent rather than
- * approximated: a dashboard that guessed at a player's rank would be wrong in
- * the one place a player checks first.
+ * WHAT IT NOW SHOWS, AND WHERE IT COMES FROM. The Matchweek Recap is real:
+ * contract 151 supplies the player's banked matchweek points, season total,
+ * rank of field size and exact/correct counts, and contract 150 supplies
+ * movement inside a private league. Nothing is approximated — a dashboard that
+ * guessed at a player's rank would be wrong in the one place a player checks
+ * first — and a competition with nothing settled contributes no card.
+ *
+ * ITS BOUNDS ARE STATED ON THE SURFACE. A player relevant to twenty
+ * competitions must not make the Hub issue twenty requests, so the recap covers
+ * the first three and fetches league movement for the most relevant one. The
+ * section says how many it did not summarise; a cap nobody can see reads as
+ * "we covered everything".
+ *
+ * WHAT IS STILL ABSENT. Rival Watch pinning needs `MIG-UI-09` (optional), and
+ * permanent Season Wrapped needs `MIG-UI-08`'s immutable archive. Neither is
+ * approximated here.
  */
 
 function PrimaryAction({ action }: { action: InboxAction }) {
@@ -96,14 +110,16 @@ function FixtureRow({ row, href }: { row: CombinedFixtureRow; href: string | nul
 
 export function HubPage() {
   const { status: membership, player, reload } = usePlayerCompetitions()
+  const { userId } = useAuth()
   const { inbox } = useGlobalPlayInbox(player)
 
-  // Read once on mount and immediately advance the marker: the page shows what
-  // changed since the PREVIOUS visit, and this visit begins now.
+  // Read once on mount. The marker is NOT advanced here, and that is a fix
+  // rather than an omission: it used to advance on mount, so a Hub whose
+  // fixture reads then failed silently consumed a period the player never
+  // actually saw — the next visit measured "since" from a moment nothing was
+  // shown at. It now advances only once the football this section is built from
+  // has resolved, below.
   const [lastVisit] = useState(readLastVisit)
-  useEffect(() => {
-    writeLastVisit(new Date())
-  }, [])
 
   const [sources, setSources] = useState<CombinedFixtureSource[] | null>(null)
   const key = (player?.mine ?? []).map((entry) => entry.competition.seasonRowName).join('|')
@@ -125,9 +141,14 @@ export function HubPage() {
         })),
       )
       if (!active) return
-      setSources(
-        results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : [])),
+      const resolved = results.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value] : [],
       )
+      setSources(resolved)
+      // The visit counts as seen only now, and only if at least one competition
+      // answered. A total read failure leaves the marker where it was, so the
+      // next visit still shows what changed.
+      if (resolved.length > 0) writeLastVisit(new Date())
     })()
     return () => {
       active = false
@@ -140,6 +161,10 @@ export function HubPage() {
     () => (sources ? presentCombinedFixtures(sources, [], 'today', today) : null),
     [sources, today],
   )
+  // What the results did to the player (contracts 151 and 150). Bounded, and
+  // the bound is stated in the section below rather than applied silently.
+  const recap = useMatchweekRecap(player, userId)
+
   const since = useMemo(() => {
     if (!sources) return null
     const all = sources.flatMap((source) =>
@@ -165,7 +190,6 @@ export function HubPage() {
         seasonSlug: entry.competition.seasonSlug,
       },
       row.id,
-      matchDayKey(row.kickoffAt),
     )
   }
 
@@ -334,11 +358,61 @@ export function HubPage() {
                 {since.more} more {since.more === 1 ? 'result' : 'results'} in your competitions.
               </p>
             ) : null}
-            {/* Said plainly: this block is results, not a points summary, and
-                what it is missing needs a read that does not exist yet. */}
-            <p className={h.panelNote}>
-              What these results did to your points and rank is not shown yet.
-            </p>
+          </section>
+        ) : null}
+
+        {/* What those results did to the player. Contract 151 supplies the
+            banked matchweek points, the season position and the exact/correct
+            counts; contract 150 supplies movement inside a private league.
+            Nothing is estimated, and a competition with nothing settled
+            contributes no card rather than an empty one. */}
+        {recap.status === 'ready' && recap.recaps.length > 0 ? (
+          <section className={h.section} aria-labelledby="hub-recap">
+            <h2 className={h.sectionTitle} id="hub-recap">
+              Matchweek recap
+            </h2>
+            <ul className={h.fixtureList}>
+              {recap.recaps.map((entry) => (
+                <li key={entry.competitionKey}>
+                  <Link className={h.competitionRow} to={entry.href}>
+                    <span className={h.competitionName}>
+                      {entry.competitionName} · {entry.matchweekLabel}
+                    </span>
+                    <span className={h.competitionMeta}>
+                      {entry.points} pts
+                      {entry.jokerPlayed ? ' · Joker' : ''}
+                      {entry.exactScores !== null ? ` · ${entry.exactScores} exact` : ''}
+                      {entry.correctOutcomes !== null
+                        ? ` · ${entry.correctOutcomes} correct`
+                        : ''}
+                      {entry.seasonRank !== null && entry.fieldSize !== null
+                        ? ` · ${ordinal(entry.seasonRank)} of ${entry.fieldSize}`
+                        : ''}
+                    </span>
+                    {entry.leagues.map((league) => (
+                      <span className={h.competitionMeta} key={league.leagueId}>
+                        {league.leagueName}: {ordinal(league.rankBefore)} →{' '}
+                        {ordinal(league.rankAfter)}
+                        {league.movement > 0
+                          ? ` · ↑${league.movement}`
+                          : league.movement < 0
+                            ? ` · ↓${Math.abs(league.movement)}`
+                            : ' · no change'}
+                      </span>
+                    ))}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {recap.notCovered > 0 ? (
+              // The bound, stated. A cap nobody can see reads as "we covered
+              // everything".
+              <p className={h.panelNote}>
+                {recap.notCovered} more{' '}
+                {recap.notCovered === 1 ? 'competition is' : 'competitions are'} not summarised
+                here. Open one to see its matchweek.
+              </p>
+            ) : null}
           </section>
         ) : null}
       </Workspace>

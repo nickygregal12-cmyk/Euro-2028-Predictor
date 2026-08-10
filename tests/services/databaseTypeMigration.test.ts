@@ -119,7 +119,7 @@ describe('TYPE-001 migration to the typed client', () => {
     expect(
       remaining.length,
       `Modules still on the untyped client:\n  ${remaining.join('\n  ')}`,
-    ).toBe(39)
+    ).toBe(38)
 
     // And none of them is one we have already declared done.
     for (const name of MIGRATED) {

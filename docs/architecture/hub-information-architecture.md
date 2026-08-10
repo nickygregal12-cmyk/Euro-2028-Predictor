@@ -13,7 +13,7 @@
 | Governs | The **weekly platform's** route tree, shell behaviour, page ownership, onboarding steps, deterministic parent navigation and responsive interaction rules |
 | Does not govern | Any decision (ADRs 0023 and 0026); the Euro 2028 site's surfaces; scoring, locks, settlement or reveal; current implementation state ([`../quality/current-status.md`](../quality/current-status.md)) |
 | Supersedes | Tournament-era route and navigation descriptions where they disagree with ADR 0023 |
-| Superseded by | None |
+| Superseded by | § 5's navigation model only, by the [UI finalisation direction](../design/ui-finalisation.md) § 2 of 10 August 2026. The rest of this document stands |
 | Related work | Domestic Frontend Alpha is the next named weekly-frontend milestone; exact current implementation remains in current status / feature baseline |
 | Implementation truth | The route tree below is the target. What is registered today is decided by `src/App.tsx` and the route-declaration tests, not by this file |
 
@@ -210,13 +210,54 @@ Cards show competition, game, format, status, creator and next action.
 
 Profile, notifications, account, followed competitions, favourite team, game preferences, How to Play, scoring/rules, accessibility, support and legal. Admin appears only to an authorised capability.
 
+**This is the target list, not a checklist to fill with empty rows.** What ships is
+what can be made truthful: Account, Profile and How the games work exist today.
+Followed competitions and favourite team wait on `MIG-UI-10`; notifications wait
+on an action-centre audit finding enough real state to be worth a control. A row
+that leads to an empty screen is the dead control § 10 of the UI finalisation
+direction forbids.
+
+**Profile is the PLATFORM's, not a competition's.** `/profile` holds display
+identity and the player's competition seasons, and links into each season's own
+player profile at
+`/competitions/:competitionSlug/:seasonSlug/players/:playerId` (contract 151).
+It reads no tournament and depends on no publication state — it used to be the
+Euro tournament profile, which meant every visible Profile control sent a
+domestic player into a boundary that refuses while Euro is hidden.
+
 ## 5. Competition shell
 
-Entering a competition replaces the global tab bar/rail with:
+> **Superseded in part, 10 August 2026.** The two paragraphs marked below —
+> "entering a competition **replaces** the global tab bar/rail" and "the two
+> navigation systems are **never shown together**" — were reversed by the owner's
+> [UI finalisation direction](../design/ui-finalisation.md) § 2, which is the
+> current navigation authority. The direction is newer and it wins.
+>
+> **What is true now.** The global navigation is PERMANENT: a bottom bar below
+> 1024px and a persistent left rail at and above it, visible inside competition
+> context and never swapping its destinations. The competition's own navigation
+> lives BENEATH THE COMPETITION MASTHEAD, in the content column, and the two are
+> deliberately visible at once on desktop because they answer different
+> questions — "what do I want to do across my account" and "what do I want to do
+> inside this competition". A competition shortcut in the rail opens that
+> competition's Overview and never expands into its sections.
+>
+> **This is recorded rather than rewritten.** The superseded text stays below as
+> dated evidence of what was accepted on 3 August 2026, so a later reader can see
+> that the model changed and when. It must not be re-implemented: `src/app/
+> AppShell.tsx`, `src/design-system/SideRail.tsx` and `tests/app/desktopRail.test.tsx`
+> hold the current behaviour, and `tests/app/globalNavigation.test.tsx` fails if
+> the global navigation is hidden inside a competition.
 
-```text
-Overview · Play · Matches · Games · Leagues
-```
+*Superseded text, 3 August 2026 — historical:*
+
+> Entering a competition replaces the global tab bar/rail with:
+>
+> ```text
+> Overview · Play · Matches · Games · Leagues
+> ```
+>
+> The two navigation systems are never shown together.
 
 The shell includes:
 
@@ -226,8 +267,6 @@ The shell includes:
 - notification/avatar access;
 - compact competition masthead;
 - focused competition navigation.
-
-The two navigation systems are never shown together.
 
 ## 6. Competition Overview
 

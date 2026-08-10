@@ -3,6 +3,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HubSeasonMembership } from '../../../src/services/supabase/competitionGames'
 import type { CompetitionGame } from '../../../src/services/supabase/competitionGamesModel'
+import { catalogueFromPublishedSeasons } from '../../../src/features/hub/competitionCatalogue'
 
 const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
@@ -17,6 +18,30 @@ const mocks = vi.hoisted(() => ({
   createGameLeague: vi.fn(),
   joinLeague: vi.fn(),
   fetchSeasonLeagueStandingsPage: vi.fn(),
+  playerCompetitions: vi.fn(),
+}))
+
+// The season a route names is resolved from the shell's server-driven catalogue
+// (contract 147) rather than from a frontend array, so these route tests supply
+// it the way the shell would. An unknown slug is still unknown — the catalogue
+// simply does not hold it.
+vi.mock('../../../src/app/providers/PlayerCompetitionsProvider', () => ({
+  usePlayerCompetitions: () => mocks.playerCompetitions(),
+}))
+
+// Contracts 149 and 150, reached from the private-league workspace. Neither is
+// exercised here: this suite is about route resolution, and both have their own
+// model and component suites.
+vi.mock('../../../src/services/supabase/seasonLeaguePredictions', () => ({
+  fetchSeasonLeagueMatchweekPredictions: vi.fn(() => new Promise(() => {})),
+}))
+vi.mock('../../../src/services/supabase/seasonLeagueMovement', () => ({
+  fetchSeasonLeagueMovement: vi.fn(() => new Promise(() => {})),
+}))
+// The workspace's Matchweek tab resolves a matchweek ordinal to its round id
+// from contract 139's fixtures.
+vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({
+  fetchSeasonFixtureList: vi.fn(() => new Promise(() => {})),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -140,6 +165,32 @@ const CHAMPIONSHIP_TABLE = `${CHAMPIONSHIP_INSTANCE}/table`
 describe('the season game routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.playerCompetitions.mockReturnValue({
+      status: 'ready',
+      player: {
+        mine: [],
+        shortcuts: [],
+        overflow: 0,
+        catalogue: catalogueFromPublishedSeasons(
+          [
+            {
+              competitionSlug: 'premier-league',
+              seasonKey: '2026-27',
+              competitionId: 'competition-1',
+              competitionName: 'Premier League',
+              seasonId: '60000000-0000-0000-0000-000000000001',
+              seasonName: 'Premier League 2026/27',
+              status: 'active',
+              timeZone: 'Europe/London',
+            },
+          ],
+          [],
+        ),
+        relevanceSource: 'game-membership',
+        empty: true,
+      },
+      reload: () => {},
+    })
     mocks.createSeasonLmsRpcGateway.mockReturnValue({ load: vi.fn(), pick: vi.fn() })
     mocks.createSeasonCupDiscoveryRpcGateway.mockReturnValue({
       load: vi.fn(() => new Promise(() => {})),
@@ -382,7 +433,10 @@ describe('the season game routes', () => {
 
     renderRoute(<SeasonLeaguesRoute />, `${DASHBOARD}/leagues`, `${PREMIER}/leagues`)
 
-    fireEvent.click(await screen.findByRole('button', { name: 'View The Office table' }))
+    // The control opens the league's WORKSPACE now — Table, Matchweek and
+    // Members — rather than the table alone, which is what contract 149 made
+    // completable. Table is the tab it opens at.
+    fireEvent.click(await screen.findByRole('button', { name: 'Open The Office' }))
 
     await waitFor(() =>
       expect(mocks.fetchSeasonLeagueStandingsPage).toHaveBeenCalledWith(LEAGUE_ID, {

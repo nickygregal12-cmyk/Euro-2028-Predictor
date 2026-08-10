@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
-import { Alert, Button, EmptyIllustration } from '../../design-system'
+import { Alert, Button, EmptyIllustration, Skeleton } from '../../design-system'
 import {
   competitionGameRoute,
   competitionSectionRoute,
@@ -19,11 +19,11 @@ import s from '../shared.module.css'
 import h from './hub.module.css'
 import { isNextUi } from '../../app/routeFlags'
 import {
-  findHubCompetition,
   gamesJoinedFirst,
   type HubCompetition,
   type HubGame,
 } from './competitionCatalogue'
+import { useHubCompetition } from './useHubCompetition'
 import { applyHubMembership } from './hubMembership'
 import { decideGameMembership, gameMembershipRefusal } from './gameMembershipAction'
 import { CompetitionWeekPanel } from './CompetitionWeekPanel'
@@ -167,10 +167,40 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
     competitionSlug: string
     seasonSlug: string
   }>()
-  const catalogue = findHubCompetition(competitionSlug, seasonSlug)
+  // The competition comes from the server's own catalogue (contract 147), which
+  // is read once by the shell. It has a LOADING state, and telling a player
+  // their competition does not exist while that read is in flight would be a
+  // lie that lasts as long as the request.
+  const resolved = useHubCompetition(competitionSlug, seasonSlug)
+  const catalogue = resolved.status === 'ready' ? resolved.competition : null
   const { state, nonce, reload } = useCompetitionDashboard(catalogue)
   const [acting, setActing] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+
+  // Every route below is built from the URL's own segments rather than from the
+  // resolved catalogue entry, so the hooks that need them run whether or not the
+  // catalogue has arrived. A page whose hook count changes when a read resolves
+  // is a page React will refuse to render.
+  const ref = { competitionSlug: competitionSlug ?? '', seasonSlug: seasonSlug ?? '' }
+  const base = competitionSectionRoute(ref, 'overview')
+  const destinations = seasonShellDestinations(base)
+
+  // Where each game lives, resolved once here rather than inside the week hook:
+  // the Match Predictor destination is flag-gated and that decision belongs in
+  // the one place that already makes it.
+  const weekHrefs = {
+    matchPredictor: isNextUi('seasonMatchPredictor')
+      ? competitionGameRoute(ref, 'match-predictor')
+      : null,
+    lms: competitionGameRoute(ref, 'lms'),
+    championship: competitionGameRoute(ref, 'championship'),
+  }
+  const servedGames = state.status === 'ready' ? (state.season?.seasonGames.games ?? []) : []
+  const week = useCompetitionWeek(competitionSlug, seasonSlug, servedGames, weekHrefs, nonce)
+  const leaveEligibility = useLeaveEligibility(
+    state.status === 'ready' ? (state.season?.tournamentId ?? null) : null,
+    nonce,
+  )
 
   const changeMembership = async (served: CompetitionGame, leaving: boolean) => {
     if (acting) return
@@ -188,13 +218,29 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
     }
   }
 
+  if (resolved.status === 'loading') {
+    return (
+      <div className={s.page} aria-busy="true" aria-live="polite">
+        <Skeleton width="45%" height={28} />
+        <Skeleton height={220} radius="card" />
+      </div>
+    )
+  }
+
   if (!catalogue) {
     return (
       <div className={s.page}>
         <div className={h.empty}>
           <EmptyIllustration variant="list" />
         </div>
-        <Alert variant="warning" title="This competition could not be found">
+        <Alert
+          variant="warning"
+          title={
+            resolved.status === 'failed'
+              ? 'The competition list could not be read'
+              : 'This competition could not be found'
+          }
+        >
           Return to the Hub and choose an available competition season.
         </Alert>
         <Button variant="primary" fullWidth onClick={() => navigate('/')}>
@@ -206,26 +252,7 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
 
   const competition = state.status === 'ready' ? state.competition : catalogue
   const membershipKnown = state.status === 'ready'
-  const servedGames = state.status === 'ready' ? (state.season?.seasonGames.games ?? []) : []
   const serverNow = state.status === 'ready' ? (state.season?.seasonGames.serverNow ?? null) : null
-  const base = competitionSectionRoute(competition, 'overview')
-  const destinations = seasonShellDestinations(base)
-
-  // Where each game lives, resolved once here rather than inside the week hook:
-  // the Match Predictor destination is flag-gated and that decision belongs in
-  // the one place that already makes it.
-  const weekHrefs = {
-    matchPredictor: isNextUi('seasonMatchPredictor')
-      ? competitionGameRoute(competition, 'match-predictor')
-      : null,
-    lms: competitionGameRoute(competition, 'lms'),
-    championship: competitionGameRoute(competition, 'championship'),
-  }
-  const week = useCompetitionWeek(competitionSlug, seasonSlug, servedGames, weekHrefs, nonce)
-  const leaveEligibility = useLeaveEligibility(
-    state.status === 'ready' ? (state.season?.tournamentId ?? null) : null,
-    nonce,
-  )
 
   return (
     <SeasonCompetitionShell

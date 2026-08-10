@@ -74,6 +74,18 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
     '/competitions/:competitionSlug/:seasonSlug/matches/:fixtureId',
     'parameterised Match Centre route — a concrete fixture id needs the seeded domestic season harness',
   ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/players/:playerId',
+    'parameterised season player profile — a concrete co-member id needs the seeded domestic league harness',
+  ],
+  [
+    '/tournament/profile',
+    'Euro tournament profile behind the hidden publication boundary — it is unreachable to scan while EURO-002 is hidden',
+  ],
+  [
+    '/tournament/profile/:playerId',
+    'parameterised Euro tournament profile behind the hidden publication boundary and needing a concrete rival id',
+  ],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)

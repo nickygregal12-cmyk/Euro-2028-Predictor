@@ -7,12 +7,21 @@ import type {
   SeasonOpenOutcome,
   SeasonResultOutcome,
 } from '../../../src/services/supabase/seasonAdmin'
+import { catalogueFromPublishedSeasons } from '../../../src/features/hub/competitionCatalogue'
 
 const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
   fetchSeasonMatchweekFixtures: vi.fn<() => Promise<SeasonMatchweekFixtures>>(),
   openSeasonCompetition: vi.fn<() => Promise<SeasonOpenOutcome>>(),
   recordSeasonFixtureResult: vi.fn<() => Promise<SeasonResultOutcome>>(),
+  playerCompetitions: vi.fn(),
+}))
+
+// Which seasons this page administers comes from the shell's server-driven
+// catalogue (contract 147) rather than from a frontend array, so the page test
+// supplies it the same way the shell would.
+vi.mock('../../../src/app/providers/PlayerCompetitionsProvider', () => ({
+  usePlayerCompetitions: () => mocks.playerCompetitions(),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -81,6 +90,32 @@ function matchweek(status = 'scheduled'): SeasonMatchweekFixtures {
 }
 
 beforeEach(() => {
+  mocks.playerCompetitions.mockReturnValue({
+    status: 'ready',
+    player: {
+      mine: [],
+      shortcuts: [],
+      overflow: 0,
+      catalogue: catalogueFromPublishedSeasons(
+        [
+          {
+            competitionSlug: 'premier-league',
+            seasonKey: '2026-27',
+            competitionId: 'competition-1',
+            competitionName: 'Premier League',
+            seasonId: 'season-1',
+            seasonName: 'Premier League 2026/27',
+            status: 'active',
+            timeZone: 'Europe/London',
+          },
+        ],
+        [],
+      ),
+      relevanceSource: 'game-membership',
+      empty: true,
+    },
+    reload: () => {},
+  })
   vi.clearAllMocks()
   mocks.fetchHubMembership.mockResolvedValue([membership()])
   mocks.fetchSeasonMatchweekFixtures.mockResolvedValue(matchweek())
