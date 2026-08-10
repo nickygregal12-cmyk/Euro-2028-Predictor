@@ -83,7 +83,11 @@ test('anonymous production routes and environment isolation', async ({
   await expect(page).toHaveTitle(`Reset password | ${appName}`)
 
   await assertSignedOutGate(page, '/')
-  await assertSignedOutGate(page, '/predict')
+  // `/predict` stood here until 10 August 2026. It is a retired tournament path
+  // that the application no longer declares and netlify.toml deliberately sends
+  // to the 404 catch-all, so it never reached the signed-out gate — it rendered
+  // the not-found page. `/play` is the current weekly route this meant to check.
+  await assertSignedOutGate(page, '/play')
 
   await page.goto('/__production-not-found-probe__', {
     waitUntil: 'domcontentloaded',
