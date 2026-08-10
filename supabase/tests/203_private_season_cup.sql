@@ -159,6 +159,22 @@ select is(
 -- ---------------------------------------------------------------------------
 
 reset role;
+
+-- Time passes between creating a Championship and launching it. It has to: the
+-- organiser has to share the code and wait for a field, which is the whole
+-- reason contract 154 made these two calls rather than one.
+--
+-- pgTAP cannot let it pass. This file is ONE transaction, so `now()` is frozen
+-- at its start — `create_private_season_cup` stamps `registration_opens_at` and
+-- `launch_private_season_cup` stamps `registration_closes_at` with the SAME
+-- instant, and `bonus_competitions_registration_order` requires closes > opens,
+-- strictly. Backdating the opening is how the test says "a day went by"; in the
+-- real journey the two calls are separate transactions and the instants differ
+-- on their own.
+update public.bonus_competitions
+   set registration_opens_at = now() - interval '1 day'
+ where id = current_setting('test.pc_competition')::uuid;
+
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('pc-user-1')::uuid, 'role', 'authenticated',
                     'app_metadata', json_build_object())::text, true);

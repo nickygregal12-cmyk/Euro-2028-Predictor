@@ -263,9 +263,17 @@ select throws_ok(
   'a successor cannot change game while retaining its predecessor'
 );
 
+-- The identity columns are cleared in the SAME statement, on purpose. Contract
+-- 152 requires a public competition to carry no name, owner or invite code, so
+-- flipping visibility alone would be refused by the identity constraint (23514)
+-- before the lineage key could refuse it — and the assertion would pass its
+-- neighbours' meaning rather than its own. Handing it a row that is a LEGAL
+-- public competition leaves the scope change as the only thing wrong with it,
+-- which is what this test claims to prove.
 select throws_ok(
   $$update public.bonus_competitions
-       set visibility_kind = 'public'
+       set visibility_kind = 'public',
+           name = null, owner_id = null, invite_code = null
      where id = md5('c103-private-a')::uuid$$,
   '23503',
   null,
