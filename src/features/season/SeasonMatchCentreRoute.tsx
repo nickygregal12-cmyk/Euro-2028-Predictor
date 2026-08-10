@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
-import { Alert, Skeleton } from '../../design-system'
+import { Alert, Skeleton, Workspace } from '../../design-system'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
@@ -9,6 +9,8 @@ import {
   fetchSeasonClubHeadToHead,
 } from '../../services/supabase/seasonClubForm'
 import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEligibility'
+import { fetchSeasonConsensus } from '../../services/supabase/seasonConsensus'
+import { SeasonFixtureConsensus } from './SeasonFixtureConsensus'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
 import { presentFixtureList, type FixtureListRow } from './fixtureListModel'
 import { seasonEntryStanding } from './seasonEntryStanding'
@@ -46,8 +48,20 @@ import styles from './SeasonMatchPredictorRoute.module.css'
  *
  * IT RENDERS THE SAME PANEL AS THE LIST. `SeasonMatchCentre` is unchanged, so
  * the two ways in cannot drift; what this route adds is the resolution, the
- * shell and a heading, because a page needs to say what it is before its
- * content loads.
+ * shell, a heading, and the two things a page has room for that an inline
+ * panel did not.
+ *
+ * THE PAGE IS A COMPOSITION, NOT THE PANEL AT A URL. On a wide screen the
+ * football and the player's own side of the match keep the main column, and
+ * what everybody predicted sits beside them — contract 130's matchweek
+ * consensus, narrowed to this fixture, which is the "Everyone" half of the
+ * direction's Match Centre and needed no new authority. Below the wide
+ * breakpoint it stacks under, in source order, so a phone reads the result and
+ * the prediction first.
+ *
+ * WHAT IS STILL ABSENT IS ABSENT, NOT APPROXIMATED. Named private-league
+ * predictions (`MIG-UI-01`) and rank movement (`MIG-UI-03`) have no read; the
+ * page shows neither and claims neither.
  */
 
 /** A window wide enough to hold the day, inside the server's 120-day cap. */
@@ -150,6 +164,16 @@ export function SeasonMatchCentreRoute() {
     }
   }, [tournamentId])
 
+  /**
+   * Contract 130's consensus, for the matchweek this fixture belongs to. The
+   * fixture row carries its round, so no extra resolution is needed; the read
+   * enforces the lock itself, and the panel renders nothing until it passes.
+   */
+  const consensusLoad = useMemo(() => {
+    if (tournamentId === null) return null
+    return (matchweek: number) => fetchSeasonConsensus(tournamentId, matchweek)
+  }, [tournamentId])
+
   const predictHref = useMemo(() => {
     if (!isNextUi('seasonMatchPredictor')) return undefined
     const ref = { competitionSlug: competitionSlug ?? '', seasonSlug: seasonSlug ?? '' }
@@ -195,6 +219,9 @@ export function SeasonMatchCentreRoute() {
       statusStrip={[heading]}
       active="matches"
       destinations={seasonShellDestinations(base)}
+      // The page composes its own two columns, so the shell stops capping the
+      // content at a reading column and lets it.
+      width="full"
     >
       {fixture === null ? (
         <div aria-busy="true">
@@ -210,7 +237,18 @@ export function SeasonMatchCentreRoute() {
           </div>
         </Alert>
       ) : (
-        <>
+        <Workspace
+          asideLabel="What everyone predicted"
+          aside={
+            consensusLoad ? (
+              <SeasonFixtureConsensus
+                matchweek={fixture.round.ordinal}
+                fixtureId={fixture.id}
+                load={consensusLoad}
+              />
+            ) : undefined
+          }
+        >
           <h1 className={styles.srOnly}>{fixture.accessibleSummary}</h1>
           <SeasonMatchCentre
             fixture={fixture}
@@ -218,7 +256,7 @@ export function SeasonMatchCentreRoute() {
             football={football}
             predictHref={predictHref}
           />
-        </>
+        </Workspace>
       )}
     </SeasonCompetitionShell>
   )
