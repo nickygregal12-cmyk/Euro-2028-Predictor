@@ -104,11 +104,20 @@ describe('accepted-but-unimplemented requirement register', () => {
     }
   })
 
-  it('keeps the decision that created it indexed as an ADR', () => {
+  it('keeps the decision that created it indexed as an ADR, with a status', () => {
     const adr = '0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md'
 
     expect(read('docs/adr/README.md')).toContain(adr)
-    expect(read(`docs/adr/${adr}`)).toContain('- **Status:** Accepted direction — unimplemented')
+    // THE STATUS MUST EXIST AND MUST SAY "Accepted direction"; how far it has
+    // got is deliberately not pinned. This assertion used to require the exact
+    // words "Accepted direction — unimplemented", which made every legitimate
+    // step forward a test failure — and it duly failed the moment `EURO-002`
+    // and `EURO-004` were built and the ADR was updated to say so. A guard that
+    // breaks when the thing it guards makes progress is testing the wrong fact.
+    // What matters here is that ADR 0026 is indexed and carries a status line;
+    // whether that status is accurate is the register's own job, and the rows
+    // above already check the register.
+    expect(read(`docs/adr/${adr}`)).toMatch(/^- \*\*Status:\*\* Accepted direction — \S/m)
   })
 
   it('records the documentation safeguards in their own authority, not here', () => {
