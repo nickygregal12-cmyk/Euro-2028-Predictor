@@ -832,7 +832,7 @@
  * 150: a new function name, no table, column, policy, trigger, relation grant
  * or default, and an unauthenticated caller refused.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 154
+export const SEED_REVIEWED_AT_CONTRACT = 155
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
