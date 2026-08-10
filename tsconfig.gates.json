@@ -21,6 +21,7 @@
     "scripts/production-site-session.mjs",
     "scripts/wait-for-production-release.mjs",
     "scripts/write-production-storage-state.mjs",
+    "scripts/generate-database-types.mjs",
     "scripts/generate-now.mjs",
     "scripts/reset-development-seed.mjs",
     "scripts/run-lighthouse.mjs",

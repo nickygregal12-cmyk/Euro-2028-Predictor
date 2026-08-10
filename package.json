@@ -30,6 +30,7 @@
     "check:dead-code": "knip --no-exit-code",
     "check:lighthouse": "node scripts/run-lighthouse.mjs",
     "generate:now": "node scripts/generate-now.mjs",
+    "generate:types": "node scripts/generate-database-types.mjs",
     "check:now": "node scripts/generate-now.mjs --check"
   },
   "dependencies": {

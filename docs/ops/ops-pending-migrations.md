@@ -6,7 +6,24 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (sixteenth entry)
+## Current state — 10 August 2026 (seventeenth entry)
+
+**Contracts 146 to 151 are applied to hosted Development.** Guarded fast-lane run `31417611501` applied the whole six-migration batch from exact `main` `2d8ffcbbb90bc9a7562433b1fe583ab82d93996a`, and the machine record was landed on `main` by PR #664. The sixteenth entry below said this batch was "applied to neither hosted environment"; that was true when written and is superseded by this entry rather than edited.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **151** | 151 canonical migrations through `20260810170000_season_player_profile.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **151** | Guarded fast-lane run `31417611501` from exact main `2d8ffcbb…`, recorded in `config/development-hosted-contract.json` and landed by PR #664. | LEVEL WITH THE REPOSITORY |
+| Production Supabase | **145** | Rollout run `31379974246`, unchanged by this entry. Contracts 146 to 151 are **not** promoted and promotion is not authorised. | SIX BEHIND DEVELOPMENT, BY DESIGN |
+| Published production artifact | **145** | Deploy from `be3efdff…`, unchanged by this entry. | UNCHANGED |
+
+**No development migration is pending.** `NOW.md` records this and `npm run check:now` enforces it.
+
+**What this entry does NOT claim.** It is a Development apply only. Nothing here promotes Production, publishes an application, imports football, or changes the Euro publication state. `promotionAuthorised` stays `false`. The Production observations recorded in the fifteenth and sixteenth entries — no `provider_poll_caller_key`, zero season fixtures, both league seasons `draft` — are untouched by it.
+
+**A generated-types artifact now depends on this level.** `src/services/supabase/database.types.ts` was generated read-only from Development at this contract precisely because Development and the repository are level; `tests/services/databaseTypes.test.ts` fails if a later migration lands without a regeneration. See [`../quality/database-types-baseline.md`](../quality/database-types-baseline.md).
+
+## Superseded — 10 August 2026 (sixteenth entry)
 
 **Contracts 146 to 151 are the repository candidate and are applied to neither hosted environment.** They are being accumulated as one batch before rollout, at the owner's direction, rather than promoted one at a time.
 

@@ -192,6 +192,10 @@ describe('JavaScript under scripts/', () => {
     'scripts/production-site-session.mjs',
     'scripts/wait-for-production-release.mjs',
     'scripts/write-production-storage-state.mjs',
+    // Arrived clean: measured at zero checkJs errors on 10 August 2026, so it is
+    // checked rather than deferred. It also names hosted project refs and
+    // refuses Production by name, which is not code to leave unexamined.
+    'scripts/generate-database-types.mjs',
     'scripts/generate-now.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
