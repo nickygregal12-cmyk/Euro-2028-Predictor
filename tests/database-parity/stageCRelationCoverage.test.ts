@@ -257,6 +257,15 @@ const PROVIDER_RELATIONS = [
   // grant revoked, because a role that can select from it can enumerate every
   // private competition on the platform. Read only through the resolver.
   'table:invite_code_registry',
+  // Contract 156. The permanent season archive: immutable once written, and
+  // browser-revoked because a season's whole final table is what a `select *`
+  // turns into a scrape. Read one player at a time by `get_season_wrapped`.
+  'table:season_wrapped',
+  // Contract 157. Preferences, keyed on canonical competition identity so a
+  // twenty-competition platform needs no schema change per league. Follow is
+  // deliberately NOT game membership and grants no entry.
+  'table:competition_follows',
+  'table:pinned_rivals',
 ]
 
 const reviewedRelations = [
@@ -278,7 +287,7 @@ describe('Stage C public-relation coverage after C1b and the season fixtures', (
     // counted here. This count is a positive control on the migration parser:
     // if it silently stopped recognising `create table`, every disposition
     // below would be vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(53)
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(56)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

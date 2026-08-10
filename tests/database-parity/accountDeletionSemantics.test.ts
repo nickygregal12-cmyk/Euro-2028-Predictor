@@ -109,6 +109,10 @@ describe('account deletion — declared foreign-key semantics', () => {
       '20260809130000_euro_publication_state.sql euro_publication_state.changed_by → set null',
       '20260809130000_euro_publication_state.sql euro_publication_transitions.actor_id → set null',
       '20260810180000_private_container_identity.sql bonus_competitions.owner_id → restrict',
+      '20260810220000_season_wrapped_archive.sql season_wrapped.user_id → cascade',
+      '20260810230000_player_preferences.sql competition_follows.user_id → cascade',
+      '20260810230000_player_preferences.sql pinned_rivals.user_id → cascade',
+      '20260810230000_player_preferences.sql pinned_rivals.rival_user_id → cascade',
     ])
   })
 
@@ -151,12 +155,16 @@ describe('account deletion — consequences', () => {
     expect(sitesOf('cascade')).toEqual([
       'bonus_competition_entrants.user_id',
       'bonus_knockout_predictions.user_id',
+      'competition_follows.user_id',
       'entries.user_id',
       'game_memberships.user_id',
       'league_members.user_id',
+      'pinned_rivals.rival_user_id',
+      'pinned_rivals.user_id',
       'profiles.id',
       'rank_history.user_id',
       'rate_limit_events.user_id',
+      'season_wrapped.user_id',
     ])
   })
 

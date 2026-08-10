@@ -218,3 +218,5 @@ Real domestic fixture adoption now has a backend publication gate: provider evid
 > audit's media rule is untouched.
 
 > **Contract 134 boundary (9 August 2026):** Contract 134 changes no visual or presentation authority. It is a privileges-only database correction on the rate-limit log, closing risk-register `DB-005`, with no user-visible surface.
+
+> **Contract 152–157 boundary (10 August 2026):** Contracts 152 to 157 close the six remaining `MIG-UI` items as one batch — the private container's identity and a single invite-code namespace (152), private Last Man Standing creation, invite and join (153, `MIG-UI-05`), private Predictor Championship creation and launch (154, `MIG-UI-06`), one code entry point resolving either container (155, `MIG-UI-07`), the permanent season Wrapped archive (156, `MIG-UI-08`), and Follow, favourite team, onboarding progress and the pinned rival (157, `MIG-UI-10`/`MIG-UI-09`). Contract 153 also closes a hole it would otherwise have opened: `join_competition_game` never checked `visibility_kind`, so a private competition could have been joined by its id. None is applied to a hosted environment by this note.

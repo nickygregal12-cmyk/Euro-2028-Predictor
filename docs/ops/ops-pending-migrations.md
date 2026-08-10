@@ -6,7 +6,32 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (eighteenth entry)
+## Current state — 10 August 2026 (nineteenth entry)
+
+**Contracts 152 to 157 are the repository candidate and are applied to neither hosted environment.** They close the six `MIG-UI` items that remained after the contract 146–151 batch, and they are accumulated as one batch at the owner's direction.
+
+| Contract | Item | What it adds |
+| --- | --- | --- |
+| 152 | foundation | A private competition's name, owner and invite code, and one namespace for every code |
+| 153 | `MIG-UI-05` | Private Last Man Standing: create, invite, join |
+| 154 | `MIG-UI-06` | Private Predictor Championship: create, invite, join, launch |
+| 155 | `MIG-UI-07` | One code entry point resolving league or private container |
+| 156 | `MIG-UI-08` | The permanent season Wrapped archive |
+| 157 | `MIG-UI-09`, `MIG-UI-10` | Follow, favourite team, onboarding progress, pinned rival |
+
+**The audit the register demanded was run rather than reasoned about.** `MIG-UI-09` and `MIG-UI-10` both say to check the existing account/preference authority first and add a contract only if it cannot hold them. Measured on hosted Development, `public.profiles` holds `id`, `display_name`, `created_at`, `last_seen_at`, `last_seen_points`, `welcomed_at` and `reminder_emails` — and that is all of it. No preferences table exists anywhere in `public` or `predictor_internal`. So the audit's answer is that a contract is needed, and contract 157 is the narrowest one.
+
+**Two obstacles are recorded rather than worked around.** The container registry is refused by this session's egress policy (403 from `pkg-containers.githubusercontent.com`), so no local Supabase stack could be started; contract 152 was instead validated against hosted Development's real schema inside a **rolled-back transaction**, which applied cleanly, backfilled all four existing league codes, left the one seeded private row intact, and was confirmed to have changed nothing afterwards. Separately, `database.types.ts` is generated from the hosted Development project rather than locally, so that guard cannot go green until the Development rollout has applied this batch — it is expected red until then, and is not a defect in the contracts.
+
+**Nothing is claimed hosted.** These contracts reach Development only through the guarded additive fast lane, and Production only through its own separately approved promotion.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **157** | 157 canonical migrations through `20260810230000_player_preferences.sql`. | SIX AHEAD OF BOTH HOSTED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **151** | Guarded fast-lane run `31417611501`, independently confirmed. Contracts 152 to 157 pending. | SIX BEHIND REPOSITORY |
+| Production Supabase | **151** | Rollout run `31420443441` gated on backup `31418252958` and rehearsal `31419966598`, independently confirmed. | SIX BEHIND REPOSITORY |
+
+## Superseded — 10 August 2026 (eighteenth entry)
 
 **Production is open for play.** The seventeenth entry levelled the schema at contract 151; this entry records the operating state that turns a levelled database into a product a player can use, and what it deliberately did not do.
 
