@@ -219,13 +219,24 @@ jobs:
           supabase start --workdir "${WORK_DIR}"
 
           # Read-only against Production: pg_dump only.
-          pg_dump "${SUPABASE_PROD_DB_URL}" \
+          #
+          # The ABSOLUTE path is required, not stylistic. Bare `pg_dump` on this
+          # runner image resolves to Ubuntu's default 16 client, and pg_dump
+          # refuses outright against a newer server:
+          #
+          #   pg_dump: error: aborting because of server version mismatch
+          #   detail: server version: 17.6; pg_dump version: 16.14
+          #
+          # Production is Postgres 17.6, so the 17 client this job installs is
+          # the one that has to run. production-backup.yml already does this;
+          # the first run of this workflow did not, and failed here.
+          /usr/lib/postgresql/17/bin/pg_dump "${SUPABASE_PROD_DB_URL}" \
             --format=custom \
             --no-owner \
             --no-privileges \
             --file "${WORK_DIR}/production.dump"
 
-          pg_restore \
+          /usr/lib/postgresql/17/bin/pg_restore \
             --dbname "${LOCAL_DB_URL}" \
             --no-owner \
             --no-privileges \
