@@ -1,6 +1,6 @@
 {
-  "contractVersion": 152,
-  "requiredMigrationCount": 152,
+  "contractVersion": 153,
+  "requiredMigrationCount": 153,
   "requiredRpcSignatures": [
     "public.acknowledge_provider_review_items(text,uuid[],text)",
     "public.admin_actual_third_place_tie_revisions(uuid)",
@@ -27,6 +27,7 @@
     "public.confirm_season_matchweek_card(uuid,integer)",
     "public.create_game_league(uuid,text)",
     "public.create_league(uuid,text)",
+    "public.create_private_season_lms(uuid,text,smallint,smallint,text,text)",
     "public.delete_knockout_prediction(uuid,integer)",
     "public.delete_league(uuid)",
     "public.delete_match_prediction(uuid,uuid,integer)",
@@ -74,6 +75,7 @@
     "public.get_season_prediction_consensus(uuid,integer)",
     "public.join_competition_game(uuid)",
     "public.join_league(text)",
+    "public.join_private_competition(text)",
     "public.leave_competition_game(uuid)",
     "public.leave_league(uuid)",
     "public.process_due_entry_submissions(timestamp with time zone)",
