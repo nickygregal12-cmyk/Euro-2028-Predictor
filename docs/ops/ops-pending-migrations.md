@@ -6,7 +6,25 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (ninth entry)
+## Current state — 10 August 2026 (tenth entry)
+
+**Development is at contract 145; Production is at 144 and its promotion to 145 is authorised and prepared.**
+
+Contract 145 reached Development through guarded fast-lane run **31376619737** from exact `main` `a4baae0`. Confirmed by an independent read-only query rather than from the job: 145 rows ending `20260810010000_rate_limit_atomicity`, `enforce_rate_limit` genuinely containing `pg_advisory_xact_lock`, and zero execute grants on that function alongside zero browser grants on `rate_limit_events` — so the redefinition did the thing it exists to do and widened no control while doing it.
+
+**The 132→144 promotion pair is spent.** Those workflows are pinned one-shots and now refuse by design: their source check requires live Production at 132, and Production is 144. `production-144-to-145-rehearsal.yml` and `production-144-to-145-rollout.yml` are their successors, derived from the pair that succeeded so the three defects found across four rehearsal attempts — the Ubuntu 16 `pg_dump`, the stripped privileges, the `--file` resolved against the project root — are fixed in them from the start.
+
+**What the new pair asserts is different, because contract 145 is different.** The 132→144 verification checked that three new contracts arrived inert. Contract 145 redefines exactly one function, so "Euro is hidden, zero profiles" would prove nothing about it. The successors assert that `enforce_rate_limit` contains `pg_advisory_xact_lock`, that it still carries no PUBLIC/`anon`/`authenticated` execute grant — `create or replace` preserves the access-control list, so a redefinition must not have widened a security control — that `rate_limit_events` still has no browser grant, and that the Euro state and SportMonks vocabulary are untouched, since a rate-limiter change has no business moving them.
+
+**A fresh backup is required and the earlier one does not carry over.** Backup run 31365261774 captured Production at contract 132. The 144→145 rollout gates on a backup run id and a rehearsal run id it verifies through the API, and both must describe the boundary actually being promoted.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737` from exact `main` `a4baae0`, independently confirmed by a read-only ledger query returning 145 rows and by driving the contract on the target: the advisory lock is in the function and no grant moved. | LEVEL WITH REPOSITORY |
+| Production Supabase | **144** | Rollout run `31374274932`, independently confirmed. Promotion to 145 authorised 10 August 2026; the pinned successor workflows exist and no backup or rehearsal has yet been run for this boundary. | ONE BEHIND, PROMOTION PREPARED |
+
+## Superseded — 10 August 2026 (ninth entry)
 
 **Production is at contract 144.** The promotion the seventh entry recorded as authorised-but-blocked has happened, and the machine records are reconciled from an independent read rather than from the job's own output.
 
