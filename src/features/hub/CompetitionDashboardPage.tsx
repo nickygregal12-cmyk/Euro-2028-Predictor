@@ -357,14 +357,25 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                           because the action knows which surface answers it —
                           they are the same route today, built by the same
                           authority, and this does not assume that. */}
-                      <Button
-                        variant={destination ? 'primary' : 'secondary'}
-                        fullWidth
-                        disabled={!destination}
-                        onClick={() => destination && navigate(destination)}
-                      >
-                        {destination ? (callToAction ?? 'Open game') : 'Build pending'}
-                      </Button>
+                      {/* A BUTTON ONLY WHERE THERE IS SOMETHING TO PRESS. This
+                          card used to render up to three disabled ones — "Build
+                          pending", "Checking…" and "Entry unavailable" — which
+                          is what a player meant by unclickable buttons. Each of
+                          those is a STATEMENT, so each is now a sentence, and
+                          the controls that remain all do something. */}
+                      {destination ? (
+                        <Button
+                          variant="primary"
+                          fullWidth
+                          onClick={() => navigate(destination)}
+                        >
+                          {callToAction ?? 'Open game'}
+                        </Button>
+                      ) : (
+                        <p className={h.gameMeta}>
+                          This game does not have a page yet. It appears here when it does.
+                        </p>
+                      )}
 
                       {decision?.action ? (
                         <Button
@@ -379,10 +390,17 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                         </Button>
                       ) : decision?.refusal ? (
                         <p className={h.gameMeta}>{decision.refusal}</p>
+                      ) : state.status === 'loading' ? (
+                        <p className={h.gameMeta}>Checking your entry…</p>
                       ) : (
-                        <Button variant="secondary" fullWidth disabled>
-                          {state.status === 'loading' ? 'Checking…' : 'Entry unavailable'}
-                        </Button>
+                        // The season runs no such game yet — measured, this is
+                        // the current state of both league seasons, so it is
+                        // the state most players actually meet. It is not a
+                        // refusal of the player and does not read as one.
+                        <p className={h.gameMeta}>
+                          This competition has not opened {game.name} yet. Entry appears here
+                          when it does.
+                        </p>
                       )}
                     </div>
                   </section>

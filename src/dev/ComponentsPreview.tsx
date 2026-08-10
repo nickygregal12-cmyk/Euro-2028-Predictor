@@ -1261,6 +1261,12 @@ function Gallery() {
           homeScore={1}
           awayScore={1}
           saveStatus="saving"
+          // Editable, so the steppers appear with `−` ENABLED. The card above
+          // covers the empty box where `−` is at its floor; without a filled
+          // one the baseline would never photograph the live state of the
+          // control this section exists to show.
+          onHomeScoreChange={() => {}}
+          onAwayScoreChange={() => {}}
         />
         <MatchCard
           state="editable"

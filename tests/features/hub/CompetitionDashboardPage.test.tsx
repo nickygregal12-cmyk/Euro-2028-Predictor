@@ -251,6 +251,38 @@ describe('competition Overview and Games', () => {
     expect(screen.getAllByRole('button', { name: 'Open game' }).length).toBeGreaterThan(0)
   })
 
+  it('renders no button a player cannot press', async () => {
+    // Reported as "there's still unclickable buttons". A season that serves no
+    // games — measured, the current state of both league seasons — rendered
+    // "Build pending", "Checking…" and "Entry unavailable" as disabled
+    // controls. Each is a statement, so each is now a sentence, and every
+    // button left on the card does something.
+    mocks.fetchHubMembership.mockResolvedValue(season([]))
+    renderGames()
+
+    // All three cards carry it: the season serves none of its games.
+    await waitFor(() => expect(screen.getAllByText(/has not opened/)).toHaveLength(3))
+
+    for (const button of screen.queryAllByRole<HTMLButtonElement>('button')) {
+      expect(button.disabled, `"${button.textContent}" is a control nobody can use`).toBe(
+        false,
+      )
+    }
+    expect(screen.queryByText('Entry unavailable')).toBeNull()
+    expect(screen.queryByText('Build pending')).toBeNull()
+  })
+
+  it('says which game a competition has not opened, rather than refusing the player', async () => {
+    // "Entry unavailable" reads as a refusal of the person. The competition
+    // simply has not started the game yet, and the sentence says so by name.
+    mocks.fetchHubMembership.mockResolvedValue(season([]))
+    renderGames()
+
+    await waitFor(() =>
+      expect(screen.getByText(/has not opened\s*Match Predictor\s*yet/)).toBeTruthy(),
+    )
+  })
+
   it('withdraws Leave once the server says it would refuse it', async () => {
     // Contract 140. Before it, this page rendered "Leave game" for an entrant
     // whose scoring had started and let them press it, because the fact was
