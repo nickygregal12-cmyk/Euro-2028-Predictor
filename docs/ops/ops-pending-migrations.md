@@ -6,7 +6,23 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (fifteenth entry)
+## Current state — 10 August 2026 (sixteenth entry)
+
+**Contract 146, contract 147 and contract 148 are the repository candidate and are applied to neither hosted environment.** They are being accumulated as one batch before rollout, at the owner's direction, rather than promoted one at a time.
+
+Contract 146 makes the provider poll affordable and makes its question move. Contract 147 and contract 148 close two of the `MIG-UI-*` backend gaps the UI finalisation work registered: `MIG-UI-12`, the published weekly catalogue carrying the **route slug** a URL is built from — publishing a league previously needed a frontend code change for it to exist — and `MIG-UI-11`, one season fixture addressed by its own id, so an addressable Match Centre link no longer has to carry the fixture's day as a hint.
+
+Contract 147 returns **league seasons only**, which is an `EURO-001` safety property and not a filter of convenience: a catalogue enumerating `tournaments` without discriminating on kind would put Euro 2028 on the weekly platform's own discovery surface. It excludes drafts, so Production correctly returns nothing there until a season is opened.
+
+**Still to be added to this batch, at the owner's direction:** `MIG-UI-01` (league-wide prediction reveal), `MIG-UI-03` (league rank movement) and `MIG-UI-02` (player profile and prediction history). `MIG-UI-04`, `MIG-UI-08` and `MIG-UI-09` are marked not-blockers by the register itself; `MIG-UI-05`, `MIG-UI-06` and `MIG-UI-10` are a separate and larger workstream and are not in this batch.
+
+**The `MIG-UI-*` register itself is not yet on `main`** — it lives on the unmerged UI finalisation branch, so the identifiers above are traceable only there until that branch lands.
+
+**Production still cannot ingest anything.** `dispatch_due_provider_polls()` returns `configured: false`: Production holds the Vault secret `provider_poll_function_url` but **not** `provider_poll_caller_key`, which Development has. Re-checked after the owner reported adding secrets on 10 August 2026; the database Vault secret was still absent, and it is separate from the Edge Function secrets.
+
+**Development's provider waste was stopped on 10 August 2026** without waiting for contract 146: the live SportMonks target's `cadence_minutes` moved from 5 to 1440, ending roughly 287 wasted requests a day. Its path still carries the frozen `2026-08-08/2026-08-09` window and can only become a rolling one once contract 146 is applied there.
+
+## Superseded — 10 August 2026 (fifteenth entry)
 
 **Contract 146 is the repository candidate and is applied to neither hosted environment.** It makes the provider poll affordable and makes its question move, and it exists because both halves were measured rather than suspected. On hosted Development the one live target carried `cadence_minutes = 5`, so it polled 288 times a day while the next fixture in either league was **eleven days away** — the next Premier League kickoff is 21 August and the next Scottish Premiership kickoff 22 August. It also asked for `/fixtures/between/2026-08-08/2026-08-09`, a range already in the past, so it could have polled for a month and never seen the fixtures it was paid to find. The expensive half and the useless half were independent, which is why neither was obvious alone.
 
