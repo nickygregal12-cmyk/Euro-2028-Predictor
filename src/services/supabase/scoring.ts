@@ -3,7 +3,7 @@
 // returns only their events. The stored totals reach other users only through
 // the leaderboard functions (see 20260720130000_add_scoring.sql).
 
-import { supabase } from './client'
+import { db } from './client'
 import type { ScoreCategory, ScoreEvent } from '../../domain/tournament/scoreEvents'
 
 /**
@@ -12,7 +12,7 @@ import type { ScoreCategory, ScoreEvent } from '../../domain/tournament/scoreEve
  * the explanation already names the teams. Ordered by category then time.
  */
 export async function fetchMyScoreEvents(): Promise<ScoreEvent[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('score_events')
     .select('id, category, points, joker, explanation, created_at')
     .order('category')
@@ -36,7 +36,7 @@ export type ScoreEventPoints = { matchId: string | null; points: number }
  * caller's own entry.
  */
 export async function fetchMyScoreEventPoints(): Promise<ScoreEventPoints[]> {
-  const { data, error } = await supabase.from('score_events').select('match_id, points')
+  const { data, error } = await db.from('score_events').select('match_id, points')
   if (error) throw error
   return (data ?? []).map((r) => ({
     matchId: (r.match_id as string | null) ?? null,

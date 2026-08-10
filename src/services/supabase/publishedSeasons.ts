@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 
 /**
  * Which competition seasons the server actually holds, discovered rather than
@@ -80,7 +80,7 @@ type Row = {
  * new league cannot fail to appear because nobody added it to a list.
  */
 export async function fetchPublishedSeasons(): Promise<PublishedSeason[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('tournaments')
     .select('id, name, season_key, status, display_timezone')
     .eq('kind', 'league_season')

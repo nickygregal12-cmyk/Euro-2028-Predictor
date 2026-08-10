@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import { mapPublicCapacityRow, type PublicCapacity } from './publicCapacityModel'
 
 /**
@@ -7,7 +7,7 @@ import { mapPublicCapacityRow, type PublicCapacity } from './publicCapacityModel
  * the database triggers remain the authority if this preflight races or fails.
  */
 export async function fetchPublicCapacity(): Promise<PublicCapacity> {
-  const { data, error } = await supabase.rpc('get_public_capacity')
+  const { data, error } = await db.rpc('get_public_capacity')
   if (error) throw error
 
   const row = (data ?? [])[0]

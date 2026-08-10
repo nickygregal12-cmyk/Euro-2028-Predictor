@@ -11,7 +11,7 @@
 // return. Nothing here re-derives a refusal — the write remains the authority
 // and this only reports what it would say.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapSeasonLeaveEligibility,
   type SeasonLeaveEligibility,
@@ -22,7 +22,7 @@ export type { SeasonLeaveEligibility, GameLeaveEligibility } from './gameLeaveEl
 export async function fetchSeasonLeaveEligibility(
   tournamentId: string,
 ): Promise<SeasonLeaveEligibility> {
-  const { data, error } = await supabase.rpc('get_game_leave_eligibility', {
+  const { data, error } = await db.rpc('get_game_leave_eligibility', {
     p_tournament_id: tournamentId,
   })
   if (error) throw error

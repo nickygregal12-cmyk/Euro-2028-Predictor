@@ -6,7 +6,7 @@
 // synchronous bracket edit is coalesced here into ONE complete replacement RPC.
 // That preserves the existing provider API while making the server write atomic.
 
-import { supabase } from './client'
+import { db } from './client'
 import type { ProgressionStage } from '../../domain/tournament/bracketPicks'
 import { VersionConflictError, isVersionConflict } from './writeConflict'
 
@@ -90,7 +90,7 @@ async function replaceProgressionSnapshot(
   desired: Record<string, ProgressionStage>,
   expectedVersions: Record<string, number>,
 ): Promise<StoredProgression[]> {
-  const { data, error } = await supabase.rpc('replace_predicted_progression', {
+  const { data, error } = await db.rpc('replace_predicted_progression', {
     p_entry_id: entryId,
     p_desired: desired,
     p_expected_versions: expectedVersions,
@@ -142,7 +142,7 @@ async function flushBatch(entryId: string, batch: PendingBatch): Promise<void> {
 }
 
 export async function fetchProgression(entryId: string): Promise<StoredProgression[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('predicted_progression')
     .select('team_id, stage, version')
     .eq('entry_id', entryId)

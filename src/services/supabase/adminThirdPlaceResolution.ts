@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 
 export type ActualThirdPlaceResolutionState =
   | 'not_ready'
@@ -127,7 +127,7 @@ function mapStatus(value: unknown): ActualThirdPlaceResolutionStatus {
 export async function fetchActualThirdPlaceResolutionStatus(
   tournamentId: string,
 ): Promise<ActualThirdPlaceResolutionStatus> {
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await db.rpc(
     'admin_actual_third_place_tie_status',
     { p_tournament_id: tournamentId },
   )
@@ -138,7 +138,7 @@ export async function fetchActualThirdPlaceResolutionStatus(
 export async function fetchActualThirdPlaceResolutionRevisions(
   tournamentId: string,
 ): Promise<ActualThirdPlaceResolutionRevision[]> {
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await db.rpc(
     'admin_actual_third_place_tie_revisions',
     { p_tournament_id: tournamentId },
   )
@@ -176,7 +176,7 @@ export async function resolveActualThirdPlaceTie(input: {
   orderedTeamIds: string[]
   reason: string
 }): Promise<ActualThirdPlaceResolutionStatus> {
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await db.rpc(
     'admin_resolve_actual_third_place_tie',
     {
       p_tournament_id: input.tournamentId,
@@ -192,7 +192,7 @@ export async function clearActualThirdPlaceTie(input: {
   tournamentId: string
   reason: string
 }): Promise<ActualThirdPlaceResolutionStatus> {
-  const { data, error } = await supabase.rpc(
+  const { data, error } = await db.rpc(
     'admin_clear_actual_third_place_tie',
     {
       p_tournament_id: input.tournamentId,

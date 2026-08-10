@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import { mapBonusGamesResponse, type BonusGamesRead } from './bonusGamesModel'
 
 /**
@@ -10,7 +10,7 @@ export async function fetchBonusGames(
   tournamentId: string,
   userId: string,
 ): Promise<BonusGamesRead> {
-  const { data, error } = await supabase.rpc('get_bonus_games', {
+  const { data, error } = await db.rpc('get_bonus_games', {
     p_tournament_id: tournamentId,
   })
   if (error) throw error
@@ -19,7 +19,7 @@ export async function fetchBonusGames(
 
 /** Voluntary entry into one bonus competition. The database owns every boundary. */
 export async function registerBonusCompetition(competitionId: string): Promise<void> {
-  const { error } = await supabase.rpc('register_bonus_competition', {
+  const { error } = await db.rpc('register_bonus_competition', {
     p_competition_id: competitionId,
   })
   if (error) throw error
@@ -27,7 +27,7 @@ export async function registerBonusCompetition(competitionId: string): Promise<v
 
 /** Withdrawal from one bonus competition; refused server-side once scored. */
 export async function withdrawBonusCompetition(competitionId: string): Promise<void> {
-  const { error } = await supabase.rpc('withdraw_bonus_competition', {
+  const { error } = await db.rpc('withdraw_bonus_competition', {
     p_competition_id: competitionId,
   })
   if (error) throw error

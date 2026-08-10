@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import type { CupPhaseKind, CupTableRow } from '../../features/season/cupPhaseModel'
 
 export type ChampionshipVisibility = 'public' | 'private'
@@ -244,7 +244,7 @@ export function createSeasonCupDiscoveryRpcGateway(options: {
 }): SeasonCupDiscoveryGateway {
   return {
     async load(): Promise<ChampionshipDiscovery> {
-      const { data, error } = await supabase.rpc('get_my_season_cup_instances', {
+      const { data, error } = await db.rpc('get_my_season_cup_instances', {
         p_tournament_id: options.tournamentId,
       })
       if (error) throw error
@@ -276,7 +276,7 @@ export function createSeasonCupPlayerViewRpcGateway(options: {
 }): SeasonCupPlayerViewGateway {
   return {
     async load(): Promise<ChampionshipPlayerView> {
-      const { data, error } = await supabase.rpc('get_season_cup_player_view', {
+      const { data, error } = await db.rpc('get_season_cup_player_view', {
         p_competition_id: options.competitionId,
       })
       if (error) throw error

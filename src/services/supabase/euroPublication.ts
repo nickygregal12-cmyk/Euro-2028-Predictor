@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import {
   isEuroPublicationState,
   type EuroPublicationSnapshot,
@@ -33,7 +33,7 @@ function decodeSnapshot(data: unknown): EuroPublicationSnapshot {
  * no frontend constant is allowed to become a second publication authority.
  */
 export async function fetchEuroPublicationState(): Promise<EuroPublicationSnapshot> {
-  const { data, error } = await supabase.rpc('euro_publication_state')
+  const { data, error } = await db.rpc('euro_publication_state')
   if (error) throw error
   return decodeSnapshot(data)
 }
@@ -56,7 +56,7 @@ export async function transitionEuroPublicationState(input: {
   nextState: EuroPublicationState
   reason: string
 }): Promise<EuroPublicationSnapshot> {
-  const { data, error } = await supabase.rpc('admin_transition_euro_publication_state', {
+  const { data, error } = await db.rpc('admin_transition_euro_publication_state', {
     p_expected_state: input.expectedState,
     p_next_state: input.nextState,
     p_reason: input.reason,

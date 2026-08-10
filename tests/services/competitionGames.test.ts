@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/services/supabase/client', () => ({
-  supabase: {
+  db: {
     rpc: mocks.rpc,
     from: (table: string) => {
       expect(table).toBe('tournaments')
