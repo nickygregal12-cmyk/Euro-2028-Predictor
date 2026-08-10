@@ -6,7 +6,19 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (fourteenth entry)
+## Current state — 10 August 2026 (fifteenth entry)
+
+**Contract 146 is the repository candidate and is applied to neither hosted environment.** It makes the provider poll affordable and makes its question move, and it exists because both halves were measured rather than suspected. On hosted Development the one live target carried `cadence_minutes = 5`, so it polled 288 times a day while the next fixture in either league was **eleven days away** — the next Premier League kickoff is 21 August and the next Scottish Premiership kickoff 22 August. It also asked for `/fixtures/between/2026-08-08/2026-08-09`, a range already in the past, so it could have polled for a month and never seen the fixtures it was paid to find. The expensive half and the useless half were independent, which is why neither was obvious alone.
+
+`cadence_minutes` keeps its name and becomes the **idle** cadence, now defaulting to one call a day. `live_cadence_minutes` applies only inside a window that opens `live_lead_minutes` before a kickoff and closes `live_tail_minutes` after it, **and only while that fixture still has no result** — so contract 135 writing the official result is what ends the expensive polling, rather than anyone deciding it should. A stored path may carry `{{date:+N}}` placeholders resolved at dispatch in the competition's own timezone, so the window rolls forward on its own.
+
+Cost, stated so it can be checked rather than trusted: with the defaults and a Saturday whose kickoffs run 11:30 to 19:00, the live window spans about 9h45, which is 58 requests at ten-minute spacing plus one idle call. A day with no fixtures costs exactly one request. Two league targets therefore cost about 118 requests on a full matchday and 2 on a quiet one.
+
+**Production still cannot ingest anything, and the reason is now measured.** `dispatch_due_provider_polls()` on Production returns `configured: false`. It holds the Vault secret `provider_poll_function_url` but **not** `provider_poll_caller_key`, which Development has. Until that secret and the Edge Function's `SPORTMONKS_API_TOKEN` and `provider_poll` caller key exist, no fixture can reach Production — and because contract 127 derives a season calendar from fixtures, opening a season competition first would only produce an empty calendar. The order is credentials, then fixtures, then open.
+
+**Production football state, measured 10 August 2026:** zero season fixtures, zero provider poll targets, zero provider entity map rows, zero poll dispatches, both league seasons `status = draft`, and the only 24 teams are the Euro 2028 placeholders `Team A1`…`Team F4`. No club exists in Production.
+
+## Superseded — 10 August 2026 (fourteenth entry)
 
 **The release smoke runs, and it passes.** `production-smoke.yml` run **`31397090845`** succeeded in full against published commit `be3efdff6ac9880e3385ae142d7f0485c5068649` at contract 145 — the anonymous perimeter assertion, the authenticated release-identity poll, the browser session, the HTTP smoke and the Playwright browser smoke. The thirteenth entry recorded that gate as unclosable in practice; it is closed.
 
@@ -153,7 +165,7 @@ Every player-owned count is identical to the pre-apply snapshot. Contract 145 is
 
 ## Superseded — 10 August 2026 (eighth entry)
 
-**The repository is at contract 145 and hosted Development is one behind at 144.** `20260810010000_rate_limit_atomicity.sql` is the only pending Development migration. It is additive in the sense the fast lane checks — it creates and drops nothing, and redefines exactly one function — and it is privileges-neutral: `create or replace` preserves the existing access-control list, and the migration re-states the original `revoke all ... from public` rather than restoring it.
+**At the time of this entry the repository stood at contract 145 and hosted Development was one behind at 144.** `20260810010000_rate_limit_atomicity.sql` is the only pending Development migration. It is additive in the sense the fast lane checks — it creates and drops nothing, and redefines exactly one function — and it is privileges-neutral: `create or replace` preserves the existing access-control list, and the migration re-states the original `revoke all ... from public` rather than restoring it.
 
 **What it changes, so a reviewer of the rollout knows what to look at.** `public.enforce_rate_limit(text, int)` now takes `pg_advisory_xact_lock` keyed on the calling user before it prunes, counts and inserts. Its signature, its `security definer` property, its pinned `search_path`, both ceilings (60/min prediction save, 5/min league membership), both trigger bindings and `public.rate_limit_events` itself are untouched. Nothing else in the schema moves.
 

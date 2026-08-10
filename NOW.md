@@ -13,16 +13,16 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **145** | latest `20260810010000_rate_limit_atomicity.sql` |
+| Repository | **146** | latest `20260810120000_adaptive_provider_poll_cadence.sql` |
 | Development hosted | **145** | at `20260810010000_rate_limit_atomicity.sql`, verified `2026-08-10T09:55:52.724Z`, fast-lane run `31376619737` |
 | Production | **145** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 1 — `20260810120000_adaptive_provider_poll_cadence.sql`
 
-**Next free contract number:** 146. Check open pull requests
+**Next free contract number:** 147. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
