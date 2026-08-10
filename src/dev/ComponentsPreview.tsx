@@ -12,6 +12,7 @@ import {
   EmptyIllustration,
   Masthead,
   PageShell,
+  BottomNav,
   type NavKey,
   Alert,
   Toast,
@@ -916,6 +917,31 @@ function OnboardingGamesDemo() {
   )
 }
 
+/**
+ * The mobile bottom bar, photographed on its own.
+ *
+ * IT NEEDS ITS OWN SECTION BECAUSE THE GALLERY CANNOT SIMULATE A PHONE
+ * VIEWPORT. `PageShell` hides the bar above 1024px, and that is a VIEWPORT
+ * media query, while the gallery pins each panel's WIDTH in CSS — so the
+ * runner's 1280px window puts both panels above the breakpoint and the
+ * "PageShell + BottomNav" section photographs a shell with no bar in it. The
+ * first runner render of the new baselines is what showed this: that section's
+ * image lost the five tabs and shrank by a fifth.
+ *
+ * Rendering the component directly is the same thing `SideRailDemo` does for
+ * the rail, and it restores the coverage rather than relaxing it: the bar's
+ * five destinations, its selected state and both themes are back under a
+ * baseline.
+ */
+function BottomNavDemo() {
+  const [active, setActive] = useState<NavKey>('home')
+  return (
+    <div className={styles.bottomNavFrame}>
+      <BottomNav active={active} onNavigate={setActive} />
+    </div>
+  )
+}
+
 function PageShellDemo() {
   const [active, setActive] = useState<NavKey>('home')
   const [demoTheme, setDemoTheme] = useState<'dark' | 'light'>('dark')
@@ -1384,6 +1410,10 @@ function Gallery() {
 
       <Section title="PageShell + BottomNav">
         <PageShellDemo />
+      </Section>
+
+      <Section title="Mobile bottom navigation">
+        <BottomNavDemo />
       </Section>
 
       <Section title="Desktop navigation rail">

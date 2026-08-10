@@ -62,6 +62,15 @@ const SECTIONS = [
   // the desktop rail against a twenty-competition catalogue, the two game
   // contextual panels, the onboarding steps, the create-a-league journey and
   // the rules disclosure.
+  //
+  // The BAR had to get a section of its own, and the first runner render is
+  // what showed why: `PageShell` hides it above 1024px, and that is a VIEWPORT
+  // media query while the gallery pins panel WIDTH in CSS — so the runner's
+  // window puts both panels above the breakpoint and "pageshell-bottomnav"
+  // photographs a shell with no bar in it. That image lost its five tabs and a
+  // fifth of its bytes. Rendering the component directly is what `SideRailDemo`
+  // already does for the rail.
+  'mobile-bottom-navigation',
   'desktop-navigation-rail',
   'lms-form-guide-panel',
   'fixture-consensus-panel',
@@ -82,23 +91,16 @@ const SECTIONS = [
  * committing one from here would hand CI a failure nobody can act on and invite
  * someone to raise the tolerance. The sections are therefore declared now, and
  * `visual-contracts.yml` is dispatched with `update_baselines` and
- * `commit_baselines` to produce them.
+ * `commit_baselines` to produce them. The eight UI-finalisation sections that
+ * were listed here have been rendered and are gone from it; only the bottom
+ * bar, added in response to what that render showed, is still outstanding.
  *
  * IT IS SELF-DELETING. `visualContractHarness` fails if a name here already has
  * baselines on disk, so the entry cannot outlive the dispatch that satisfies
  * it — which is what stops a "temporary" exemption from becoming the way new
  * sections are added.
  */
-export const AWAITING_BASELINE: readonly string[] = [
-  'desktop-navigation-rail',
-  'lms-form-guide-panel',
-  'fixture-consensus-panel',
-  'onboarding-choose-competitions',
-  'onboarding-favourite-team',
-  'onboarding-games-and-review',
-  'create-a-league-journey',
-  'game-rules-disclosure',
-]
+export const AWAITING_BASELINE: readonly string[] = ['mobile-bottom-navigation']
 
 const WIDTHS = ['phone', 'desktop'] as const
 const THEMES = ['dark', 'light'] as const
