@@ -822,7 +822,12 @@
  * redefinition, so no existing call can behave differently, and it refuses an
  * unauthenticated caller as every season read already does.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 149
+/**
+ * Contract 150 adds one more read-only function on the same terms as 149: a new
+ * name, no table, column, policy, trigger, relation grant or default, and an
+ * unauthenticated caller refused.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 150
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
