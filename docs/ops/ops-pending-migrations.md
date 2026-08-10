@@ -6,7 +6,38 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (seventeenth entry)
+## Current state — 10 August 2026 (eighteenth entry)
+
+**Production is open for play.** The seventeenth entry levelled the schema at contract 151; this entry records the operating state that turns a levelled database into a product a player can use, and what it deliberately did not do.
+
+**The blocker was not what the roadmap assumed.** Every round on both league seasons carried `window_opens_at` **null** — contract 113's window deriver had never been run on Production, so nothing could open, lock or settle no matter what else was published. `predictor_internal.derive_round_play_windows` wrote **38** windows for the Premier League and **33** for the Scottish Premiership, matching their round counts exactly.
+
+**What was opened, in the order the dependencies force.**
+
+| Step | Action | Result |
+| --- | --- | --- |
+| 1 | `derive_round_play_windows` on both seasons | 38 + 33 windows |
+| 2 | `tournaments.status` `draft` → `active` | both seasons enter contract 147's catalogue |
+| 3 | `bonus_competitions` published, active, registration open | all six games joinable |
+| 4 | `admin_open_season_competition` on both Last Man Standing | opened: 38 and 31 windows, Classic setup written |
+| 5 | `admin_open_season_competition` on both Championships | **`not_open` / `below_threshold`**, shortfall 100, nothing written |
+
+**The Championship is published and cannot be drawn, which is the rule working rather than a gap.** ADR 0014's public Championship opens at a hundred entrants; Production holds one player, so `resolve_public_cup_launch` refused and wrote no group, no draw and no fixture. Launching it anyway would fix a one-entrant draw permanently, which is exactly the irreversibility contract 127 made an operator decision. It opens itself when the field arrives.
+
+**Playability was driven, not asserted.** Read back as the owner through the browser-reachable reads: the catalogue returns both seasons; `get_season_play_context` resolves Premier League **matchweek 1** locking 2026-08-21T19:00Z and Scottish Premiership **matchweek 3** locking 2026-08-22T14:00Z; `get_season_matchweek_card` returns 10 and 6 fixtures with real clubs, short codes and colours from contracts 136–137; and `get_season_lms_round` returns window 1 with all ten Premier League fixtures and `available: true`.
+
+**One privilege moved, with owner approval and by the runbook.** `admin_capabilities` on the single account went from `["results"]` to `["results","competitions"]` — merged into the stored object so `provider`/`providers` survived. `super_admin` was declined in favour of the narrow pair, which is what [`ops-admin-bootstrap.md`](ops-admin-bootstrap.md) asks for. No other account holds any capability. The opening calls took their JWT claims **from that stored grant rather than asserting one**, so `require_competition_admin` still decided; a missing grant would have refused.
+
+**A fresh backup preceded every mutation**: run `31424038086`, encrypted and restore-verified, taken after the contract-151 rollout and before the first write.
+
+**What this did NOT do.** It did not publish Euro 2028 — still `hidden`. It did not make the site public: the password protection stands and `AGE-001` remains accepted and unbuilt, so "playable" means playable by whoever holds the password. It entered nobody into a game, and it did not launch the Championship.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Netlify `euro28predictor` non-production contexts | **151 hosted declaration** | Raised from 145 on 10 August 2026 after hosted Development was independently verified at 151. `dev-server` remains blank and fails closed. A declaration may trail its hosted database but must never lead it. | LEVEL WITH HOSTED DEVELOPMENT |
+| Netlify `euro28predictor` production | **151 hosted declaration** | Raised from 145 on 10 August 2026 only after rollout run `31420443441` applied contract 151 to Production and an independent read confirmed it. Raising it is what lets the production build pass `validate-deployment-contract.mjs`, which demands an exact match. | LEVEL WITH HOSTED PRODUCTION |
+
+## Superseded — 10 August 2026 (seventeenth entry)
 
 **Repository, Development and Production are all at contract 151.** The six-migration batch the sixteenth entry was accumulating has been promoted, in the order backup → rehearsal → rollout, and verified independently on both hosted targets.
 
@@ -126,8 +157,8 @@ Cost, stated so it can be checked rather than trusted: with the defaults and a S
 | Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737`, independently confirmed by a read-only ledger query and by driving the contract on the target. Unchanged since the eleventh entry. | LEVEL |
 | Production Supabase | **145** | Rollout run `31379974246` gated on backup `31378953968` and rehearsal `31379390093`; independently confirmed by a read-only ledger query and by driving the contract on the target. Unchanged since the eleventh entry. | LEVEL |
 | Published production artifact | **63-era** | Deploy `6a6bac566b6e440008d44e5b` from `8244b722…`, published 30 July 2026. Not moved by this entry. | THIRTEEN CONTRACTS BEHIND THE DATABASE IT TALKS TO |
-| Netlify `euro28predictor` non-production contexts | **145 hosted declaration** | Direct Netlify read on 10 August 2026: `dev`, `branch-deploy` and `deploy-preview` point to Development and each declare 145, raised only after the fast lane applied contract 145 there. `dev-server` remains blank and fails closed. A declaration may intentionally trail its hosted database but must never lead it. | LEVEL WITH HOSTED DEVELOPMENT |
-| Netlify `euro28predictor` production | **145 hosted declaration** | Direct Netlify read on 10 August 2026: production points to Production Supabase and declares 145, raised from 144 only after rollout run `31379974246` and its independent ledger verification. Team SSO protects production. The published artifact is still the 30 July `8244b722…` Contract-63-era bundle, so declaration alignment is **not** an application deployment. | LEVEL WITH HOSTED PRODUCTION; PUBLISHED APPLICATION STILL OLD |
+
+The two Netlify declaration rows that stood in this table are preserved here as prose rather than as table rows, for the same reason the earlier pair was: the machine check requires exactly one row per context group, and the live declaration now lives in the eighteenth entry. Their content is unchanged and is not restated more favourably. A direct Netlify read on **10 August 2026** found `dev`, `branch-deploy` and `deploy-preview` pointing at Development and each declaring **145**, raised only after the fast lane applied contract 145 there, with `dev-server` blank and failing closed; and production pointing at Production Supabase and declaring **145**, raised from 144 only after rollout run `31379974246` and its independent ledger verification, while the published artifact was still the 30 July `8244b722…` Contract-63-era bundle — so declaration alignment was **not** an application deployment. A declaration may intentionally trail its hosted database but must never lead it.
 
 ## Superseded — 10 August 2026 (eleventh entry)
 

@@ -15,10 +15,10 @@ Netlify's `EURO28_DEPLOYED_DB_CONTRACT` value describes the hosted database reac
 
 | Context | Supabase target | Declared hosted contract |
 | --- | --- | ---: |
-| `dev` | Development | 145 |
-| `branch-deploy` | Development | 145 |
-| `deploy-preview` | Development | 145 |
-| `production` | Production | 145 |
+| `dev` | Development | 151 |
+| `branch-deploy` | Development | 151 |
+| `deploy-preview` | Development | 151 |
+| `production` | Production | 151 |
 
 A direct Netlify project/environment read on 10 August 2026 confirmed all four values above. The three non-production contexts point to the Development Supabase project; production points to the Production Supabase project. A fifth `dev-server` context still carries an empty declaration and therefore fails closed under `scripts/validate-deployment-contract.mjs`.
 
