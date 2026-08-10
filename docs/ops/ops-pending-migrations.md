@@ -6,7 +6,21 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 9 August 2026 (seventh entry)
+## Current state — 10 August 2026 (eighth entry)
+
+**The repository is at contract 145 and hosted Development is one behind at 144.** `20260810010000_rate_limit_atomicity.sql` is the only pending Development migration. It is additive in the sense the fast lane checks — it creates and drops nothing, and redefines exactly one function — and it is privileges-neutral: `create or replace` preserves the existing access-control list, and the migration re-states the original `revoke all ... from public` rather than restoring it.
+
+**What it changes, so a reviewer of the rollout knows what to look at.** `public.enforce_rate_limit(text, int)` now takes `pg_advisory_xact_lock` keyed on the calling user before it prunes, counts and inserts. Its signature, its `security definer` property, its pinned `search_path`, both ceilings (60/min prediction save, 5/min league membership), both trigger bindings and `public.rate_limit_events` itself are untouched. Nothing else in the schema moves.
+
+**Nothing is claimed hosted.** Contract 145 reaches Development only through the guarded additive fast lane, and Production only through its own separately approved promotion — which remains blocked on `SUPABASE_PROD_DB_URL` as the seventh entry below records. Risk-register `DATA-007` therefore stays open in both hosted environments until the apply happens, and remains partly open in the repository, because atomicity is one of the four things its closure asks for.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | ONE AHEAD OF DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **144** | Unchanged since the seventh entry: guarded fast-lane run `31327666892`, independently confirmed by a read-only ledger query returning 144 rows. No rollout has been attempted for contract 145. | ONE BEHIND REPOSITORY |
+| Production Supabase | **132** | Unchanged since the seventh entry. Promotion is authorised to 144 and blocked on the IPv4 reachability of `SUPABASE_PROD_DB_URL`; contract 145 is not part of that authorised set. | THIRTEEN BEHIND, BLOCKED ON THE SECRET |
+
+## Superseded — 9 August 2026 (seventh entry)
 
 Repository, Development and the machine records all stand at **contract 144**. Development was applied by guarded fast-lane run 31327666892 from exact `main` `72af085` and independently confirmed by a read-only ledger query returning 144 rows ending `20260809140000_provider_team_profile_foundation`, with contract 142 resolving token `22` to `in_play`, contract 143 arriving `hidden` with empty history, and contract 144's writer holding no grant.
 
