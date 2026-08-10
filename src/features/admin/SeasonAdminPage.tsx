@@ -23,7 +23,7 @@ import {
   seasonAdminRefusal,
   type SeasonReadiness,
 } from './seasonAdminModel'
-import styles from './SeasonAdminPage.module.css'
+import styles from './adminPanels.module.css'
 
 /**
  * `/admin/season` — Development competition administration (`DFA-009`).

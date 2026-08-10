@@ -112,6 +112,11 @@
   to = "/index.html"
   status = 200
 
+[[redirects]]
+  from = "/admin/euro"
+  to = "/index.html"
+  status = 200
+
 # Static competition children precede the parameterised competition root.
 [[redirects]]
   from = "/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings"
