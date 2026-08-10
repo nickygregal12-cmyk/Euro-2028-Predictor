@@ -1,0 +1,63 @@
+/* Desktop page composition. Widths come from the design authority: shell about
+   1440px, reading/list column 760–820px, contextual panel 320px sticky and
+   removed entirely below 1280px. */
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+/* One column, capped at a readable measure. On a phone the cap is above the
+   viewport width and does nothing, which is why there is no media query. */
+.reading {
+  max-width: 820px;
+}
+
+.full {
+  max-width: 1440px;
+}
+
+.main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+/* Below the wide breakpoint the panel is not a panel: it stacks under the main
+   column in source order. Nothing is hidden, and nothing may be reachable only
+   from here. */
+.aside {
+  min-width: 0;
+}
+
+.asideInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+@media (min-width: 1280px) {
+  .split {
+    display: grid;
+    /* `minmax(0, …)` on the main track is load-bearing: a grid item defaults to
+       min-width:auto, so one wide table would push the panel off the page
+       instead of scrolling inside its own container. */
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+    gap: var(--sp-6);
+  }
+
+  .split .aside {
+    position: sticky;
+    /* Clears the app bar; the panel keeps its own scroll region so a long
+       insights column cannot scroll the page out from under the main one. */
+    top: var(--sp-4);
+    max-height: calc(100vh - var(--sp-6) * 2);
+    overflow-y: auto;
+  }
+}

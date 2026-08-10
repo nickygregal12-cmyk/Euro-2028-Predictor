@@ -182,6 +182,16 @@ export function SeasonMatchPredictorPage({
       statusStrip={statusStrip}
       active="games"
       destinations={destinations}
+      // The flagship desktop composition the direction names: the prediction
+      // workspace in the main column, what everybody else predicted beside it
+      // rather than a scroll below it. On a phone the panel is not a panel —
+      // it stacks under the card in source order, exactly where it was.
+      asideLabel="Match insights"
+      aside={
+        consensus ? (
+          <SeasonConsensusPanel matchweek={page.matchweek.number} load={consensus} />
+        ) : undefined
+      }
     >
       <SeasonGameSubNav game="match-predictor" />
 
@@ -337,12 +347,6 @@ export function SeasonMatchPredictorPage({
         </div>
       </section>
 
-      {/* After the card, never before it. The read refuses until this
-          matchweek's own lock has passed, so the panel simply is not there
-          while a player is still predicting. */}
-      {consensus ? (
-        <SeasonConsensusPanel matchweek={page.matchweek.number} load={consensus} />
-      ) : null}
     </SeasonCompetitionShell>
   )
 }

@@ -39,6 +39,7 @@ import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { seasonShellDestinations } from './seasonDestinations'
 import { SeasonLeaguesPage } from './SeasonLeaguesPage'
 import { SeasonPlayPage } from './SeasonPlayPage'
+import { SeasonPeriodStandings } from './SeasonPeriodStandings'
 import { SeasonStandingsPage } from './SeasonStandingsPage'
 import { SeasonLmsPage } from './SeasonLmsPage'
 import {
@@ -118,6 +119,9 @@ function RouteFrame({
   state,
   game,
   statusStrip = [],
+  aside,
+  asideLabel,
+  width,
   children,
 }: {
   title: string
@@ -125,6 +129,14 @@ function RouteFrame({
   state: RouteState
   game?: DomesticGameRoute
   statusStrip?: readonly string[]
+  /**
+   * The desktop contextual panel, built from the resolved season like the
+   * children are. A function rather than a node because the panel's own
+   * gateway needs the season identifiers, which only exist once resolved.
+   */
+  aside?: (resolved: Resolved) => React.ReactNode
+  asideLabel?: string
+  width?: 'reading' | 'full'
   children: (resolved: Resolved) => React.ReactNode
 }) {
   const { pathname } = useLocation()
@@ -175,6 +187,9 @@ function RouteFrame({
       statusStrip={statusStrip}
       active={section}
       destinations={seasonShellDestinations(competitionBase(state.resolved))}
+      aside={aside ? aside(state.resolved) : undefined}
+      asideLabel={asideLabel}
+      width={width}
     >
       {game ? <SeasonGameSubNav game={game} /> : null}
       {children(state.resolved)}
@@ -204,6 +219,16 @@ export function SeasonStandingsRoute() {
       section="games"
       state={state}
       game="match-predictor"
+      // The season table is the widest thing in the product: rank, name,
+      // matchweeks and points, for a field that can run to hundreds. It earns
+      // the full width, and ADR 0012's two retention tables move beside it
+      // rather than below it — where, on a desktop, they were previously a
+      // scroll away from the table they qualify.
+      width="full"
+      asideLabel="Monthly and rolling form"
+      aside={(resolved) => (
+        <SeasonPeriodStandingsPanel tournamentId={resolved.tournamentId} userId={userId} />
+      )}
     >
       {(resolved) => (
         <SeasonStandingsRouteBody tournamentId={resolved.tournamentId} userId={userId} />
@@ -214,7 +239,6 @@ export function SeasonStandingsRoute() {
 
 function SeasonStandingsRouteBody({
   tournamentId,
-  userId,
 }: {
   tournamentId: string
   userId: string | null
@@ -226,6 +250,31 @@ function SeasonStandingsRouteBody({
     }),
     [tournamentId],
   )
+
+  // No `periods`: the retention tables are the route's contextual panel now, so
+  // passing them here as well would render both twice on a wide screen.
+  return <SeasonStandingsPage gameName="Match Predictor" gateway={gateway} />
+}
+
+/**
+ * ADR 0012's monthly and rolling-form tables, as the standings section's
+ * contextual panel.
+ *
+ * THE SENTENCE THAT SUBORDINATES THEM TRAVELS WITH THEM. `SeasonPeriodStandings`
+ * carries its own statement that the cumulative total is the only ranking that
+ * decides a season — which matters more beside the table than beneath it, since
+ * a panel of equal visual weight is exactly the rival claim ADR 0012 forbids.
+ *
+ * ABSENT FOR A SIGNED-OUT OR UNRESOLVED CALLER, because the read is addressed by
+ * the caller's own entry. An empty panel would be furniture.
+ */
+function SeasonPeriodStandingsPanel({
+  tournamentId,
+  userId,
+}: {
+  tournamentId: string
+  userId: string | null
+}) {
   const periods = useMemo(
     () =>
       userId
@@ -237,8 +286,8 @@ function SeasonStandingsRouteBody({
         : undefined,
     [tournamentId, userId],
   )
-
-  return <SeasonStandingsPage gameName="Match Predictor" gateway={gateway} periods={periods} />
+  if (!periods) return null
+  return <SeasonPeriodStandings gateway={periods} />
 }
 
 export function SeasonLmsRoute() {

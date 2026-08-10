@@ -51,6 +51,12 @@ export type { StatusBadgeProps, StatusBadgeVariant } from './StatusBadge'
 export { BottomNav } from './BottomNav'
 export type { BottomNavProps, NavKey } from './BottomNav'
 
+export { SideRail } from './SideRail'
+export type { SideRailProps, RailGroup, RailLink } from './SideRail'
+
+export { Workspace } from './Workspace'
+export type { WorkspaceProps } from './Workspace'
+
 export { ScoreInput } from './ScoreInput'
 export type { ScoreInputProps } from './ScoreInput'
 

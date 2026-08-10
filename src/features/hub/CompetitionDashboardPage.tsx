@@ -227,6 +227,19 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
       statusStrip={[competition.status]}
       active={mode}
       destinations={destinations}
+      // Overview is the one section with two independent things to show — what
+      // this player owes the week, and what the competition is playing — so on
+      // desktop they sit side by side instead of the football being a scroll
+      // below the actions. The Games list has no second column and takes none.
+      asideLabel={mode === 'overview' ? 'Fixtures and results' : undefined}
+      aside={
+        mode === 'overview' && state.status === 'ready' && state.season ? (
+          <OverviewFixtures
+            tournamentId={state.season.tournamentId}
+            onSeeAll={() => navigate(competitionSectionRoute(competition, 'matches'))}
+          />
+        ) : undefined
+      }
     >
       {state.status === 'failed' ? (
         <Alert variant="warning" title="Couldn’t check your entries">
@@ -256,17 +269,12 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             loading={week.loading}
             failed={week.failed}
           />
-          {/* And what the COMPETITION is playing, which the panel above does
-              not say: it reports what each GAME is asking of this player, so a
-              player who has joined nothing here saw an Overview with no
-              football on it at all. Fixtures belong to the competition and are
-              the same for everyone following it, joined or not. */}
-          {state.status === 'ready' && state.season ? (
-            <OverviewFixtures
-              tournamentId={state.season.tournamentId}
-              onSeeAll={() => navigate(competitionSectionRoute(competition, 'matches'))}
-            />
-          ) : null}
+          {/* What the COMPETITION is playing — which the panel above does not
+              say, since it reports what each GAME is asking of this player —
+              is the contextual panel above. It stacks here on a phone, in
+              exactly this position, and moves beside the actions on a wide
+              screen. Fixtures belong to the competition and are the same for
+              everyone following it, joined or not. */}
           <Button
             variant="primary"
             fullWidth

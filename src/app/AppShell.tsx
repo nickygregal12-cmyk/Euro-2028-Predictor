@@ -1,9 +1,11 @@
-import { Suspense } from 'react'
+import { Suspense, useMemo } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
-import { AppBar, PageShell, type NavKey } from '../design-system'
+import { AppBar, PageShell, SideRail, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useTheme } from './providers/ThemeProvider'
+import { railGroups } from './railDestinations'
+import { useRailCollapsed } from './useRailCollapsed'
 import { globalNavTab, isCompetitionModePath } from './shellRoutes'
 
 const TAB_CONTEXT: Record<NavKey, string> = {
@@ -30,18 +32,33 @@ const TAB_CONTEXT: Record<NavKey, string> = {
  * The competition masthead and its sub-navigation sit inside the content
  * column, under the bar rather than instead of it, so competition identity is
  * still unmistakable.
+ *
+ * ON DESKTOP THE SAME NAVIGATION IS A PERSISTENT LEFT RAIL. `PageShell` shows
+ * exactly one of the two at any width; the rail's first group is the bar's five
+ * destinations in the bar's order, and the two groups beneath it are the extra
+ * reach the width pays for.
  */
 export function AppShell() {
   const location = useLocation()
   const navigate = useNavigate()
   const { displayName } = useAuth()
   const { theme, toggle } = useTheme()
+  const rail = useRailCollapsed()
   const competitionMode = isCompetitionModePath(location.pathname)
   const tab = globalNavTab(location.pathname)
+  const groups = useMemo(() => railGroups(location.pathname), [location.pathname])
 
   return (
     <PageShell
       active={tab}
+      rail={
+        <SideRail
+          groups={groups}
+          pathname={location.pathname}
+          collapsed={rail.collapsed}
+          onToggleCollapsed={rail.toggle}
+        />
+      }
       topBar={
         <AppBar
           context={competitionMode ? 'Competition' : TAB_CONTEXT[tab]}

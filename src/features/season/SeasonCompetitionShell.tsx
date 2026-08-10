@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router'
+import { Workspace } from '../../design-system'
 import {
   competitionRefFromPath,
   competitionRoute,
@@ -39,6 +40,24 @@ export type SeasonCompetitionShellProps = {
   statusStrip: readonly string[]
   active: SeasonShellSection
   destinations?: Partial<Record<SeasonShellSection, string>>
+  /**
+   * The desktop contextual panel for this section, and the name it is given as
+   * a landmark. Below the wide breakpoint it stacks under the content in source
+   * order, so nothing may be reachable only from here.
+   *
+   * COMPOSED BY THE ROUTE, not by the page: the route is where the second read
+   * and its gateway already are, and a page that fetched a panel's data would
+   * make the panel compulsory.
+   */
+  aside?: ReactNode
+  asideLabel?: string
+  /**
+   * `reading` caps the content column at a readable measure and is the default
+   * — a fixture list or a form spread across 1440px is the widened-phone
+   * failure in reverse. `full` is for the sections whose content genuinely is a
+   * wide table.
+   */
+  width?: 'reading' | 'full'
   children: ReactNode
 }
 
@@ -48,6 +67,9 @@ export function SeasonCompetitionShell({
   statusStrip,
   active,
   destinations,
+  aside,
+  asideLabel,
+  width = 'reading',
   children,
 }: SeasonCompetitionShellProps) {
   const { pathname, search, hash } = useLocation()
@@ -135,7 +157,11 @@ export function SeasonCompetitionShell({
         </ul>
       </nav>
 
-      <div className={styles.content}>{children}</div>
+      <div className={styles.content}>
+        <Workspace aside={aside} asideLabel={asideLabel} width={width}>
+          {children}
+        </Workspace>
+      </div>
     </div>
   )
 }
