@@ -1403,6 +1403,13 @@ function Gallery() {
           homeScore={2}
           awayScore={1}
           saveStatus="saved"
+          // Editable means the score can be STEPPED as well as typed, and this
+          // is the season card a player actually predicts on. The harness used
+          // to omit the handlers, so the gallery showed a card no player sees
+          // and the tap controls went unphotographed on the surface that
+          // matters most.
+          onHomeScoreChange={() => {}}
+          onAwayScoreChange={() => {}}
         />
         <ClubMatchCard
           state="editable"
@@ -1414,6 +1421,10 @@ function Gallery() {
           awayScore={null}
           saveStatus="error"
           onRetrySave={() => {}}
+          // Empty, so `−` sits at its floor and disabled — the other half of
+          // the control's state, beside the filled card above.
+          onHomeScoreChange={() => {}}
+          onAwayScoreChange={() => {}}
         />
         <ClubMatchCard
           state="locked"

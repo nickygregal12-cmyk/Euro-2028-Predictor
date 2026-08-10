@@ -36,6 +36,12 @@ const SECTIONS = [
   'emptystate',
   'pageshell-bottomnav',
   'matchcard-editable',
+  // The SEASON prediction card, which is the one a domestic player actually
+  // enters a score on and had never been photographed. Added when tap-to-step
+  // score entry landed: "the provisional score is not in the result column"
+  // has a sibling here — "the score can be changed without a keyboard" — and
+  // both are facts about layout that no assertion holds.
+  'clubmatchcard',
   'leaguetable-full-twenty-row-league',
   'state-offline',
   'state-unavailable',
