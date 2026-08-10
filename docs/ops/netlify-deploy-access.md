@@ -39,17 +39,17 @@ the first ever to target a Production database at contract 145.
 
 | Field | Value |
 | --- | --- |
-| Source commit | `ff1fe15db680dd5f5f6698749a8371aba2584cec` (`main`) |
-| Deploy ID | `6a79b4d5a5e45e0008beec70` |
+| Source commit | `9ab0ad5c042b14e41f41c1d73ba97f92573bca27` (`main`) |
+| Deploy ID | `6a7a2d87b532990008e72ca8` |
 | State / context / branch | `ready` / `production` / `main` |
-| Published | 2026-08-10T11:24:44.813Z, build time 38s |
-| Application contract | 145 |
-| Supabase project / contract | `vkfnsqdyhvtwyqkisxhk` / 145 |
-| Netlify declaration | `EURO28_DEPLOYED_DB_CONTRACT=145` (production context) |
+| Published | 2026-08-10T20:00:13.167Z, build time 69s |
+| Application contract | 151 |
+| Supabase project / contract | `vkfnsqdyhvtwyqkisxhk` / 151 |
+| Netlify declaration | `EURO28_DEPLOYED_DB_CONTRACT=151` (production context) |
 | Access-control posture | Protected; anonymous requests answer 401 |
-| Rollback deploy | `6a6bac566b6e440008d44e5b` (30 July, `8244b722…`) |
-| Deploy summary | 38 files uploaded, 35 redirect rules, 1 header rule, no functions |
-| Secret scan | 1651 files scanned, 0 matches |
+| Rollback deploy | `6a79e0d575a053000855286b` (10 August 14:32, `9a5d0749…`) |
+| Deploy summary | 54 files uploaded, 37 redirect rules, 1 header rule, no functions |
+| Secret scan | 1763 files scanned, 0 matches |
 
 It was produced by **Netlify's own repository build on the push to `main`**, not by
 an upload — which is the stronger of the two evidence paths, because the deploy
