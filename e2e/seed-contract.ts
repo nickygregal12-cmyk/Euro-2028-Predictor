@@ -768,8 +768,29 @@
  * Exact-head Database parity and Browser E2E must still both pass on the
  * contract 138/139 pull request before this marker is relied on — the reasoning
  * above is what makes raising it defensible, not what verifies it.
+ *
+ * Raised to 145 on 10 August 2026, and this one touches the seeded write path
+ * rather than sitting beside it, so it gets more than a sentence. Contract 145
+ * redefines `enforce_rate_limit` to take a transaction-scoped advisory lock
+ * before it counts. Every seeded prediction save runs through that function, by
+ * way of the `before insert or update` trigger on `match_predictions`, so the
+ * seed exercises it on every journey that saves a score.
+ *
+ * Three properties keep the seeded journey unchanged. The ceilings do not move,
+ * so a run that fitted under 60 saves a minute still does. The lock is keyed on
+ * the calling user, so the seed's three identities never wait on each other,
+ * and a single-session seed never waits at all. And it is transaction-scoped,
+ * so it is released by the commit or rollback that ends the statement's
+ * transaction and cannot leak into the next pooled connection — the failure
+ * mode that would wedge a suite rather than fail it.
+ *
+ * `195_rate_limit_atomicity.sql` drives the ceiling, the refusal, the recovery
+ * once the window slides, the prune and the unauthenticated no-op AFTER the
+ * redefinition. Exact-head Database parity and Browser E2E must still both pass
+ * on the contract 145 pull request before this marker is relied on; that is
+ * what re-verifies the seeded prediction-save journey itself.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 144
+export const SEED_REVIEWED_AT_CONTRACT = 145
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

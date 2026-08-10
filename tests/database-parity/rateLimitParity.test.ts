@@ -93,6 +93,43 @@ describe('rate-limit rule parity between TypeScript and PostgreSQL', () => {
     expect(sqlUsesAtOrAbove).toBe(true)
   })
 
+  it('decides atomically: the effective SQL takes a transaction advisory lock before it counts', () => {
+    // `DATA-007`. The rule the pure module states — "blocked when the number of
+    // prior events within the window is already at/above max" — is only a rule
+    // if the count and the insert cannot interleave. Contract 145 serialises
+    // them on a per-caller `pg_advisory_xact_lock`.
+    //
+    // This reads the LAST definition of the function, because that is the one a
+    // rebuilt database ends up with, and checks two things the pgTAP file
+    // cannot: that the lock is transaction-scoped rather than session-scoped —
+    // a session lock would survive into a pooled connection and wedge the next
+    // caller to reuse it — and that it is acquired BEFORE the count rather than
+    // somewhere after it, which would serialise nothing.
+    const definitions = migrationSql.filter(({ sql }) =>
+      /create\s+or\s+replace\s+function\s+enforce_rate_limit\b/i.test(sql),
+    )
+    expect(definitions.length).toBeGreaterThan(0)
+
+    // From the `create or replace` onwards, not from the top of the file: these
+    // migrations carry long headers, and contract 145's quotes the very
+    // count-then-insert sequence it is removing. Reading the whole file finds
+    // the defect's own description before the fix and reports it as the fix
+    // being in the wrong place.
+    const source = definitions[definitions.length - 1].sql
+    const body = source.slice(
+      source.search(/create\s+or\s+replace\s+function\s+enforce_rate_limit\b/i),
+    )
+    const lockAt = body.search(/pg_advisory_xact_lock\s*\(/i)
+    const countAt = body.search(/select\s+count\(\*\)\s+into\s+v_count/i)
+
+    expect(lockAt).toBeGreaterThan(-1)
+    expect(countAt).toBeGreaterThan(-1)
+    expect(lockAt).toBeLessThan(countAt)
+    // Session-scoped advisory locks are the wrong tool here and the failure is
+    // silent, so name the mistake rather than only the requirement.
+    expect(/pg_advisory_lock\s*\(/i.test(body)).toBe(false)
+  })
+
   it('names every SQL-enforced action in the TypeScript rule', () => {
     // Directional check with a clearer failure than the equality above: a new
     // SQL-enforced action must be added to RATE_LIMITS, or the pure rule stops
