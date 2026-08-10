@@ -3,17 +3,17 @@ name: Production 145 to 151 rehearsal
 # Manual, and READ-ONLY against hosted Production. The only migration write in
 # this workflow targets the disposable local restore on 127.0.0.1:54322.
 #
-# This rehearses the twelve-migration Production boundary 132 -> 144 against a
+# This rehearses the six-migration Production boundary 145 -> 151 against a
 # database restored from a fresh encrypted Production dump, so the forward
 # apply is exercised on Production-shaped data before it is exercised on
 # Production. It does NOT promote Production and contains no statement that
 # writes to it.
 #
 # Why a rehearsal for a set that is "only additive": additive is a property of
-# the migration text, and this batch is twelve migrations wide and includes
-# contract 135, which installs the path by which a provider status writes an
-# official result. Proving the text additive is not the same as proving the
-# chain replays onto THIS database. The rehearsal is what tells them apart.
+# the migration text, and this batch includes contract 146, which alters an
+# existing table and redefines the function the provider dispatcher calls.
+# Proving the text additive is not the same as proving the chain replays onto
+# THIS database. The rehearsal is what tells them apart.
 
 on:
   workflow_dispatch:
@@ -329,18 +329,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The repository moves faster than a pinned boundary, and it has:
-          # contract 145 (20260810170000_season_player_profile) landed on main
-          # while this workflow was being repaired. `supabase db push` applies
-          # everything pending, so without this it would carry contract 145
-          # into a rehearsal authorised only to 144.
+          # The repository moves faster than a pinned boundary, and it always
+          # will: a contract above 151 can land on main between this file being
+          # written and this run happening. `supabase db push` applies
+          # everything pending, so without this it would carry an unauthorised
+          # contract into a rehearsal pinned to 151.
           #
           # Anything above the target is moved out of the tree for the duration
           # and restored by the step below, which runs even on failure. This is
           # the pattern production-batch-a-rollout.yml already uses for exactly
           # this situation. The pinned boundary is preserved rather than
-          # widened: the authorised set is the twelve, and contract 145 is not
-          # in it.
+          # widened: the authorised set is the six listed below, and nothing
+          # above 20260810170000 is in it.
           mkdir -p "${WORK_DIR}/later-migrations"
           : > "${WORK_DIR}/moved-files.txt"
           for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do

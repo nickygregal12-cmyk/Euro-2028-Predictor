@@ -1,14 +1,14 @@
 name: Production 145 to 151 rollout
 
-# One-shot guarded promotion of the Production contract boundary 132 -> 144.
+# One-shot guarded promotion of the Production contract boundary 145 -> 151.
 #
-# The owner authorised this Production migration on 9 August 2026. That
+# The owner authorised this Production migration on 10 August 2026. That
 # authorisation is what this file records; it is not a licence the workflow
 # grants itself, and it does not extend to any other boundary.
 #
 # This is deliberately NOT a Production fast lane, and there will never be one.
-# It accepts only the twelve reviewed migrations named below, requires the exact
-# contract-132 hosted source, and requires evidence that BOTH the encrypted
+# It accepts only the six reviewed migrations named below, requires the exact
+# contract-145 hosted source, and requires evidence that BOTH the encrypted
 # backup and the Production-shaped rehearsal already succeeded — by run id,
 # checked against the API rather than asserted by whoever dispatched it.
 #
@@ -149,16 +149,15 @@ jobs:
           # The repository moves faster than a pinned boundary. This guard was
           # first written as "refuse if the repository holds more than
           # TARGET_CONTRACT migrations", which was safe but wrong in practice:
-          # contract 145 landed on main the morning this promotion was being
-          # prepared, and a boundary authorised to 144 would have been blocked
-          # by ordinary unrelated progress rather than by anything about itself.
+          # ordinary unrelated progress on main would block a boundary that has
+          # nothing to do with it.
           #
-          # The authorised set is still exactly the twelve. Anything ABOVE the
+          # The authorised set is still exactly the six. Anything ABOVE the
           # target is held back in the step that applies, and the dry run below
-          # is still required to equal the twelve exactly, so a later migration
+          # is still required to equal the six exactly, so a later migration
           # cannot ride along inside `supabase db push`. What changed is that
           # the newer work is excluded rather than treated as a reason to
-          # refuse. Contract 145 is not in this promotion.
+          # refuse. Nothing above 20260810170000 is in this promotion.
           total="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
           [ "${total}" -ge "${TARGET_CONTRACT}" ] || {
             echo "ERROR: repository holds only ${total} migrations; this rollout targets ${TARGET_CONTRACT}."
