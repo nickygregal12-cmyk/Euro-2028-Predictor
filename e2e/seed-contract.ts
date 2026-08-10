@@ -816,7 +816,13 @@
  * season read already does. A seeded user's journey is unchanged because
  * nothing a seeded journey calls has moved.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 148
+/**
+ * Contract 149 adds one read-only function and nothing else: no table, column,
+ * policy, trigger, relation grant or default. It is a new name rather than a
+ * redefinition, so no existing call can behave differently, and it refuses an
+ * unauthenticated caller as every season read already does.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 149
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

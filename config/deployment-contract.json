@@ -1,6 +1,6 @@
 {
-  "contractVersion": 148,
-  "requiredMigrationCount": 148,
+  "contractVersion": 149,
+  "requiredMigrationCount": 149,
   "requiredRpcSignatures": [
     "public.acknowledge_provider_review_items(text,uuid[],text)",
     "public.admin_actual_third_place_tie_revisions(uuid)",
@@ -63,6 +63,7 @@
     "public.get_season_fixtures(uuid,timestamp with time zone,timestamp with time zone)",
     "public.get_season_head_to_head(uuid,uuid,integer)",
     "public.get_season_leaderboard(uuid,integer,text)",
+    "public.get_season_league_matchweek_predictions(uuid,uuid)",
     "public.get_season_league_standings(uuid,integer,text)",
     "public.get_season_lms_round(uuid)",
     "public.get_season_matchweek_card(uuid,integer)",

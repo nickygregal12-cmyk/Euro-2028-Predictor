@@ -134,7 +134,9 @@ insert into expected_authenticated_functions (signature) values
   -- Contract 147 and 148: the published weekly catalogue and one addressed
   -- fixture. Both are player reads, granted to authenticated and to nobody else.
   ('get_published_weekly_seasons()'),
-  ('get_season_fixture(uuid)');
+  ('get_season_fixture(uuid)'),
+  -- Contract 149: what a private league predicted, once the matchweek locked.
+  ('get_season_league_matchweek_predictions(uuid,uuid)');
 
 -- Contract 140: the caller's own leave eligibility. Contract 141: club form and
 -- club head-to-head, which are football about clubs and disclose no player.
