@@ -14,6 +14,13 @@ vi.mock('../../src/app/providers/PredictionsProvider', () => ({
   ),
 }))
 
+// TournamentJourney has a default production reader, but every assertion below
+// injects the read explicitly. Mock the module so importing the component does
+// not initialise the real Supabase client in this credential-free unit test.
+vi.mock('../../src/services/supabase/euroPublication', () => ({
+  fetchEuroPublicationState: vi.fn(),
+}))
+
 import { TournamentJourney } from '../../src/app/TournamentJourney'
 import type { EuroPublicationSnapshot } from '../../src/services/supabase/euroPublication'
 
