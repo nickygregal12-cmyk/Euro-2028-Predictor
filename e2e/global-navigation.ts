@@ -23,7 +23,7 @@ import { expect, type Locator, type Page } from '@playwright/test'
 
 const DESKTOP_BREAKPOINT = 1024
 
-export function isDesktopViewport(page: Page): boolean {
+function isDesktopViewport(page: Page): boolean {
   const width = page.viewportSize()?.width ?? 0
   return width >= DESKTOP_BREAKPOINT
 }
@@ -34,7 +34,7 @@ export function globalNav(page: Page): Locator {
 }
 
 /** The five global destinations, labelled as this width labels them. */
-export function globalDestinations(page: Page): readonly (readonly [string, string])[] {
+function globalDestinations(page: Page): readonly (readonly [string, string])[] {
   return [
     ['Home', '/'],
     ['Play', '/play'],
