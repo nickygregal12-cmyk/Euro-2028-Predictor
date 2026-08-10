@@ -257,7 +257,7 @@ jobs:
               process.exit(1)
             }
           }
-          console.log('Live Production is exactly the rehearsed contract-132 source boundary.')
+          console.log('Live Production is exactly the rehearsed contract-145 source boundary.')
           NODE
 
       - name: Dry run, and refuse anything that is not exactly the approved batch
@@ -421,7 +421,7 @@ jobs:
 
           // The three new contracts must arrive inert. Contract 143 fails
           // closed on `hidden` with no publication event; contract 142 widens
-          // nothing about what counts as final; contract 144 backfills nothing.
+          // nothing about what counts as final; the 146-to-151 batch backfills nothing.
           // Contract 145 redefines exactly one function. It must have done that
           // thing, and it must not have widened a control while doing it.
           const expected = {
@@ -438,7 +438,7 @@ jobs:
             }
           }
 
-          console.log('Production reached exactly contract 144. No player-owned row moved.')
+          console.log('Production reached exactly contract 151. No player-owned row moved.')
           console.log(JSON.stringify(after, null, 2))
           NODE
 
@@ -448,7 +448,7 @@ jobs:
         run: |
           set -euo pipefail
           {
-            echo '## Production is at contract 144'
+            echo '## Production is at contract 151'
             echo
             echo 'Schema only. This rollout did NOT:'
             echo
