@@ -6,7 +6,37 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (tenth entry)
+## Current state — 10 August 2026 (eleventh entry)
+
+**Repository, Development and Production are all at contract 145.** For the first time in this sequence the three are level.
+
+Contract 145 reached Production through guarded rollout run **31379974246** from exact `main` `03a0ca0c82a9857c2e63f39a524e62f3877e0abc`, after its own API check that backup run **31378953968** and rehearsal run **31379390093** had both concluded success. Independent read-only verification afterwards:
+
+```json
+{"migration_count": 145, "latest": "20260810010000_rate_limit_atomicity",
+ "enforce_rate_limit_takes_advisory_lock": true,
+ "enforce_rate_limit_public_execute": 0, "rate_limit_events_browser_grants": 0,
+ "auth_users": 1, "entries": 2, "match_predictions": 36,
+ "euro_publication_state": "hidden", "sportmonks_final_statuses": 1}
+```
+
+The advisory lock is genuinely in the function rather than merely the migration row being present; no grant moved on `enforce_rate_limit` or on `rate_limit_events`; no player-owned count moved; and the Euro state and SportMonks vocabulary are untouched, which a rate-limiter change has no business moving.
+
+**The rehearsal passed first time.** That is worth recording against the previous boundary, where it took four attempts and found three defects — all in the workflow rather than in the migrations. The successors were derived from the pair that worked rather than written afresh, so the absolute Postgres 17 `pg_dump`, the faithful privilege restore that runs `prepare-disposable-restore-target.sql`, and paths that never rely on `cd` were present from the start. Deriving from a proven artefact rather than a remembered one is the transferable lesson.
+
+**Two step labels in the successor rehearsal were stale** and are corrected here: the source-proof step read "contract 132" and the verification step read "contract 144", both inherited from the derivation. Cosmetic only — the logic reads `SOURCE_CONTRACT` and `TARGET_CONTRACT`, which is why the run correctly proved a 144 source and a 145 result — but a misleading label on a production promotion is worth fixing before someone reads a run and believes it.
+
+**Risk-register `DATA-007`.** The atomicity half is now closed in both hosted environments. The rest of that entry is unchanged: invalid operations still consume no limit, the expensive read RPCs are still unbounded, and there are no edge/IP controls or alerting, so the entry stays open and reduced.
+
+**What this did NOT do.** It did not publish Euro 2028 — the state is still `hidden` in Production. It did not promote the application: the published artifact remains the 30 July contract-63 bundle, and [`production-application-release-144.md`](production-application-release-144.md) describes the separate release, which is now one contract further behind. It imported no football; Production still holds zero season fixtures. `promotionAuthorised` stays `false`.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737`, independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+| Production Supabase | **145** | Rollout run `31379974246` gated on backup `31378953968` and rehearsal `31379390093`; independently confirmed by a read-only ledger query and by driving the contract on the target. | LEVEL |
+
+## Superseded — 10 August 2026 (tenth entry)
 
 **Development is at contract 145; Production is at 144 and its promotion to 145 is authorised and prepared.**
 

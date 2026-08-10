@@ -166,7 +166,7 @@ jobs:
               ;;
           esac
 
-      - name: Prove the live source is exactly contract 132 (read-only)
+      - name: Prove the live source is exactly contract 144 (read-only)
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -387,7 +387,7 @@ jobs:
             done < "${WORK_DIR}/moved-files.txt"
           fi
 
-      - name: Verify the rehearsed result reaches exactly contract 144
+      - name: Verify the rehearsed result reaches exactly contract 145
         shell: bash
         run: |
           set -euo pipefail
