@@ -16,12 +16,15 @@
 -- second thing that can disagree with the first, and it would need backfilling
 -- for every matchweek already played.
 --
--- ONLY SETTLED MATCHWEEKS MOVE ANYTHING. `settled_at` is the gate, not the
--- presence of a row and not the fixture status: a matchweek being scored is a
--- matchweek whose totals are still changing, and reporting a climb from it
--- would show a player a position they never held. An unsettled matchweek is
--- answered honestly with `settled: false` and no movement, rather than refused
--- — the caller is entitled to ask about this week.
+-- ONLY SETTLED MATCHWEEKS MOVE ANYTHING, and in this schema a banked row IS a
+-- settlement: `season_matchweek_scores.settled_at` is NOT NULL, and
+-- `settle_season_matchweek_scores` is what writes the row in the first place. So
+-- the presence of rows for a round is the gate, and there is no such thing as a
+-- half-scored row to filter out. A matchweek with no rows has not settled, and
+-- is answered honestly with `settled: false` and no movement rather than
+-- refused — the caller is entitled to ask about this week. Reporting a climb
+-- out of a matchweek that has not settled would show a player a position they
+-- never held.
 --
 -- Ordering is by the round's ORDINAL rather than by `settled_at`, because a
 -- postponed matchweek settles late and would otherwise appear to come after
@@ -92,8 +95,7 @@ begin
      where round.tournament_id = v_tournament
        and exists (
          select 1 from public.season_matchweek_scores score
-          where score.competition_round_id = round.id
-            and score.settled_at is not null)
+          where score.competition_round_id = round.id)
      order by round.ordinal desc
      limit 1;
   else
@@ -119,8 +121,7 @@ begin
 
   select exists (
     select 1 from public.season_matchweek_scores score
-     where score.competition_round_id = v_round.id
-       and score.settled_at is not null)
+     where score.competition_round_id = v_round.id)
     into v_settled;
 
   if not v_settled then
@@ -154,7 +155,6 @@ begin
           from public.season_matchweek_scores score
           join public.competition_rounds round on round.id = score.competition_round_id
          where score.tournament_id = v_tournament
-           and score.settled_at is not null
       ),
       totals as (
         select member.*,
@@ -219,10 +219,15 @@ declare
   v_definition text := pg_get_functiondef(
     'public.get_season_league_rank_movement(uuid, uuid)'::regprocedure);
 begin
-  -- Movement may only be derived from matchweeks that have SETTLED. Reporting a
-  -- climb out of a matchweek still being scored shows a position never held.
-  if v_definition !~ 'settled_at is not null' then
-    raise exception 'Movement must be derived from settled matchweeks only';
+  -- Movement comes from banked matchweek totals and from nothing else. Reading
+  -- a fixture status or a prediction here would invent a second, disagreeing
+  -- account of what a matchweek was worth.
+  if v_definition !~ 'season_matchweek_scores' then
+    raise exception 'Movement must be derived from banked matchweek totals';
+  end if;
+
+  if v_definition ~* 'season_fixtures|season_predictions' then
+    raise exception 'Movement must not re-derive a matchweek from fixtures or predictions';
   end if;
 
   -- Ordered by ordinal, so a postponed matchweek keeps its number.

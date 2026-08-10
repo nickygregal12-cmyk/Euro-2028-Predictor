@@ -1,14 +1,18 @@
 -- Contract 150: how a league table moved over one settled matchweek.
 --
 -- THE CASE THIS FILE IS BUILT AROUND is an overtake with a postponed matchweek
--- in it. Player A leads after matchweek 1; player B wins matchweek 2 and goes
--- ahead. Matchweek 3 is played and scored but NOT settled, and matchweek 2 was
--- postponed so it settled AFTER matchweek 3's row was created.
+-- in it. Alpha leads after matchweek 1; Bravo wins matchweek 2 and goes ahead.
+-- Matchweek 1 was POSTPONED, so it settled an hour ago -- days AFTER matchweek 2
+-- settled -- and matchweek 3 has not settled at all.
 --
--- That shape kills two implementations at once: one that orders by `settled_at`
--- puts matchweek 2 after matchweek 3 and reports the wrong before-table, and one
--- that counts any scored row rather than a settled one lets matchweek 3 move
--- players who have not finished being scored.
+-- That shape kills the obvious wrong implementation: ordering the before-table
+-- by `settled_at` puts matchweek 2 before matchweek 1 and reports a table that
+-- never existed. Ordering by the round's ordinal is the only reading that gives
+-- Alpha 20 points before matchweek 2.
+--
+-- A matchweek that has not settled is one with NO banked rows:
+-- `season_matchweek_scores.settled_at` is NOT NULL, so a row IS a settlement and
+-- there is no half-scored row to filter out. Matchweek 3 therefore has no rows.
 
 begin;
 
@@ -68,22 +72,19 @@ insert into public.league_members (league_id, user_id, role) values
   (md5('mv-league')::uuid, md5('mv-user-3')::uuid, 'member')
 on conflict do nothing;
 
--- Matchweek 1: Alpha 20, Bravo 5, Charlie 5. Alpha leads.
+-- Matchweek 1: Alpha 20, Bravo 5, Charlie 5. Alpha leads. POSTPONED, so it
+--   settled an hour ago -- days after matchweek 2 did.
 -- Matchweek 2: Alpha 1, Bravo 30, Charlie 2. Bravo overtakes.
---   Settled LATER than matchweek 3's row was created, because it was postponed.
--- Matchweek 3: scored but NOT settled. It must move nobody.
+-- Matchweek 3: no rows at all, which is what "not settled" means here.
 insert into public.season_matchweek_scores
   (tournament_id, entry_id, competition_round_id, points, fixtures_scored, settled_at)
 values
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-1')::uuid, current_setting('test.mv_mw1')::uuid, 20, 10, now() - interval '9 days'),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-2')::uuid, current_setting('test.mv_mw1')::uuid,  5, 10, now() - interval '9 days'),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-3')::uuid, current_setting('test.mv_mw1')::uuid,  5, 10, now() - interval '9 days'),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-1')::uuid, current_setting('test.mv_mw2')::uuid,  1, 10, now() - interval '1 day'),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-2')::uuid, current_setting('test.mv_mw2')::uuid, 30, 10, now() - interval '1 day'),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-3')::uuid, current_setting('test.mv_mw2')::uuid,  2, 10, now() - interval '1 day'),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-1')::uuid, current_setting('test.mv_mw3')::uuid, 99, 10, null),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-2')::uuid, current_setting('test.mv_mw3')::uuid,  0, 10, null),
-  (current_setting('test.mv_season')::uuid, md5('mv-entry-3')::uuid, current_setting('test.mv_mw3')::uuid,  0, 10, null);
+  (current_setting('test.mv_season')::uuid, md5('mv-entry-1')::uuid, current_setting('test.mv_mw1')::uuid, 20, 10, now() - interval '1 hour'),
+  (current_setting('test.mv_season')::uuid, md5('mv-entry-2')::uuid, current_setting('test.mv_mw1')::uuid,  5, 10, now() - interval '1 hour'),
+  (current_setting('test.mv_season')::uuid, md5('mv-entry-3')::uuid, current_setting('test.mv_mw1')::uuid,  5, 10, now() - interval '1 hour'),
+  (current_setting('test.mv_season')::uuid, md5('mv-entry-1')::uuid, current_setting('test.mv_mw2')::uuid,  1, 10, now() - interval '3 days'),
+  (current_setting('test.mv_season')::uuid, md5('mv-entry-2')::uuid, current_setting('test.mv_mw2')::uuid, 30, 10, now() - interval '3 days'),
+  (current_setting('test.mv_season')::uuid, md5('mv-entry-3')::uuid, current_setting('test.mv_mw2')::uuid,  2, 10, now() - interval '3 days');
 
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('mv-user-1')::uuid, 'role', 'authenticated',
@@ -131,14 +132,14 @@ select is(
   '-1',
   'and the player overtaken fell by one');
 
--- The unsettled matchweek 3 must not be counted in the after-table, even though
--- Alpha has 99 points sitting in it.
+-- Matchweek 1 settled AFTER matchweek 2, so a before-table ordered by
+-- settled_at would give Alpha 1 point here instead of 20.
 select is(
   (select entry->>'points_after' from jsonb_array_elements(
      current_setting('test.mv_result')::jsonb -> 'members') entry
     where entry->>'display_name' = 'Alpha Mv'),
   '21',
-  'an unsettled matchweek contributes nothing, however many points it holds');
+  'the after-table is every matchweek up to and including this one');
 
 select is(
   (select entry->>'points_before' from jsonb_array_elements(
