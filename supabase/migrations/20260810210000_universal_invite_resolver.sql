@@ -173,7 +173,15 @@ declare
 begin
   -- It resolves. It does not join, and a resolver that writes is a join with a
   -- misleading name.
-  if v_src ~* 'insert into|update public\.|delete from' then
+  --
+  -- The write verbs are spelled with POSIX classes rather than literal spaces
+  -- deliberately. `scripts/check-migration-additive.mjs` scans DO blocks at
+  -- statement level — correctly, because a DO block can `execute` a delete —
+  -- and it cannot tell a pattern held in a string from a statement. Written
+  -- literally, the word pair below refused this migration from the ADR 0024
+  -- fast lane on run 31441578911. The class means exactly the same thing to
+  -- PostgreSQL, so the assertion is unchanged; only its spelling is.
+  if v_src ~* 'insert[[:space:]]+into|update[[:space:]]+public\.|delete[[:space:]]+from' then
     raise exception 'The resolver must not write anything';
   end if;
 
