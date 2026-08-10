@@ -28,4 +28,16 @@ test('the protected administrator routes remain reachable in the weekly app', as
   })
   await expect(page.getByRole('heading', { name: 'Competition administration' })).toBeVisible()
   await expectNoSeriousAxeViolations(page, '/admin/season')
+
+  // Euro publication renders its chrome from the route and one bounded read.
+  // The state itself is whatever this environment holds — the fixture does
+  // advance it to `prelaunch` for the tournament routes — so this asserts the
+  // surface and its scan rather than a particular lifecycle position.
+  await page.goto('/admin/euro')
+  await expect(page).toHaveURL((url) => url.pathname === '/admin/euro', {
+    timeout: 15_000,
+  })
+  await expect(page.getByRole('heading', { name: 'Euro 2028 publication' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Current state' })).toBeVisible()
+  await expectNoSeriousAxeViolations(page, '/admin/euro')
 })

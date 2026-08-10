@@ -1,26 +1,29 @@
 import { supabase } from './client'
+import {
+  isEuroPublicationState,
+  type EuroPublicationSnapshot,
+  type EuroPublicationState,
+} from './euroPublicationModel'
 
-export const EURO_PUBLICATION_STATES = [
-  'hidden',
-  'prelaunch',
-  'registration-open',
-  'live',
-  'completed',
-  'archived',
-] as const
+export {
+  EURO_PUBLICATION_STATES,
+  isEuroPublicationState,
+  type EuroPublicationSnapshot,
+  type EuroPublicationState,
+} from './euroPublicationModel'
 
-export type EuroPublicationState = (typeof EURO_PUBLICATION_STATES)[number]
+function decodeSnapshot(data: unknown): EuroPublicationSnapshot {
+  const row = ((data ?? []) as unknown[])[0] as
+    | { state?: unknown; changed_at?: unknown }
+    | undefined
+  if (!row || !isEuroPublicationState(row.state) || typeof row.changed_at !== 'string') {
+    throw new Error('Euro publication state returned an invalid row.')
+  }
 
-export type EuroPublicationSnapshot = {
-  state: EuroPublicationState
-  changedAt: string
-}
-
-function isEuroPublicationState(value: unknown): value is EuroPublicationState {
-  return (
-    typeof value === 'string' &&
-    (EURO_PUBLICATION_STATES as readonly string[]).includes(value)
-  )
+  return {
+    state: row.state,
+    changedAt: row.changed_at,
+  }
 }
 
 /**
@@ -32,14 +35,32 @@ function isEuroPublicationState(value: unknown): value is EuroPublicationState {
 export async function fetchEuroPublicationState(): Promise<EuroPublicationSnapshot> {
   const { data, error } = await supabase.rpc('euro_publication_state')
   if (error) throw error
+  return decodeSnapshot(data)
+}
 
-  const row = (data ?? [])[0] as { state?: unknown; changed_at?: unknown } | undefined
-  if (!row || !isEuroPublicationState(row.state) || typeof row.changed_at !== 'string') {
-    throw new Error('Euro publication state returned an invalid row.')
-  }
-
-  return {
-    state: row.state,
-    changedAt: row.changed_at,
-  }
+/**
+ * Advance the publication state by one adjacent step.
+ *
+ * EVERY ARGUMENT IS SENT AS GIVEN, INCLUDING A REASON THE SERVER WILL REFUSE.
+ * `admin_transition_euro_publication_state` owns who may act, which steps are
+ * legal, that the expected state still holds under a row lock and that a reason
+ * is present; it also writes the append-only history entry. This function adds
+ * none of that and validates nothing beyond the shape of what came back.
+ *
+ * `p_expected_state` is the state this caller last READ, not the state it
+ * wishes were true. That is what makes the write optimistic rather than
+ * last-writer-wins: two operators acting on one stale page cannot both succeed.
+ */
+export async function transitionEuroPublicationState(input: {
+  expectedState: EuroPublicationState
+  nextState: EuroPublicationState
+  reason: string
+}): Promise<EuroPublicationSnapshot> {
+  const { data, error } = await supabase.rpc('admin_transition_euro_publication_state', {
+    p_expected_state: input.expectedState,
+    p_next_state: input.nextState,
+    p_reason: input.reason,
+  })
+  if (error) throw error
+  return decodeSnapshot(data)
 }

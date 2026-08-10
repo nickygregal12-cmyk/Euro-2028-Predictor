@@ -1,6 +1,6 @@
 # Euro 2028 publication lifecycle
 
-**Status:** Contract 143 hosted in Development; EURO-004 player-route guard candidate  
+**Status:** Contract 143 hosted in Development; EURO-004 player-route guard merged; the owner publication surface is registered at `/admin/euro`  
 **Authority:** ADR 0026 `EURO-001`–`EURO-004`
 
 ## Contract 143 boundary
@@ -36,6 +36,27 @@ The existing authorised `/admin/results` preparation path is deliberately exempt
 
 This is deliberately a consumer of Contract 143, not a second state machine. No catalogue constant, environment flag or client preference decides whether Euro is published.
 
+## The operator surface
+
+`admin_transition_euro_publication_state` was granted to `authenticated` by Contract 143 and, measured against `src/`, had no caller. The tournament could therefore be hidden and could not be published: the only remaining route to an owner decision was hand-written SQL against a hosted database, which this project's own boundaries forbid.
+
+`/admin/euro` closes that. It is registered inside `RequireAdmin` and the shared `AdminLayout`, and deliberately **outside** `TournamentJourney` — publishing a tournament must not require loading it, and while the state is `hidden` that load is exactly what the route guard refuses.
+
+The surface:
+
+- reads `euro_publication_state()` and reports the state with the instant it last changed;
+- offers the **one** adjacent step the lifecycle permits, and nothing at `archived`;
+- sends the state it last read as the expected state, so two operators on one stale page cannot both succeed;
+- sends the reason as typed, including absent, and reports the server's refusal rather than predicting it;
+- offers no publication control at all when the state cannot be read, so an outage does not become an accidental launch;
+- re-reads after a successful write rather than trusting the returned row, proving the write landed where the route guard reads from.
+
+It adds no rule, no grant and no migration. Who may act, which step is legal, whether the expected state still holds, that a reason was given and the append-only history row all remain Contract 143's.
+
+An admin surface naming Euro is consistent with `EURO-001`, which hides Euro from the weekly platform's **player and public** surfaces. `/admin/results` is the recorded precedent for the same exemption; `tests/app/euroAbsentFromPublicSurfaces.test.ts` holds the public artefacts, and neither admin route is one of them.
+
+The transition history is written and remains unexposed: no browser read returns it, so this page shows current state and change time only.
+
 ## Remaining non-scope
 
 This boundary does not create the future Euro-specific Netlify site, change Auth redirects, implement the 18+ gate, alter tournament scoring, enrol users, call providers or perform a hosted Supabase migration.
@@ -47,3 +68,5 @@ This boundary does not create the future Euro-specific Netlify site, change Auth
 `supabase/tests/188_euro_publication_state.sql` covers default-hidden behaviour, RLS/grants, owner authorisation, invalid/skipped/stale transitions, the complete forward lifecycle and immutable history. `supabase/tests/080_function_privileges.sql` keeps both RPC signatures inside the explicit role allowlists, including the bounded service-role read while excluding the owner-only transition RPC.
 
 `tests/app/TournamentJourney.test.tsx` proves the application consumer refuses a hidden player route, fails closed when the state read fails, permits a player route after publication advances and keeps the separately authorised admin-preparation route usable while hidden.
+
+`tests/services/euroPublicationModel.test.ts` proves the offered lifecycle equals the migration's own adjacency list, that nothing follows `archived` and that no step goes backwards. `tests/features/admin/EuroPublicationPage.test.tsx` proves the operator surface sends the state it read as the expected state, sends an empty reason rather than blocking it, reports the refused-capability, concurrent-change and missing-row refusals without claiming a transition happened, offers no control when the state cannot be read, and offers exactly one control — never a way back — at every intermediate state.

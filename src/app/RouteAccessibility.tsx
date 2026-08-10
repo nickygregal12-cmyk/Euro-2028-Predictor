@@ -29,6 +29,7 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/admin/results', title: 'Results Centre' },
   { path: '/admin/users', title: 'Users' },
   { path: '/admin/season', title: 'Competition administration' },
+  { path: '/admin/euro', title: 'Euro 2028 publication' },
   { path: '/admin', title: 'Admin' },
 ]
 

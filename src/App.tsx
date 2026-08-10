@@ -79,6 +79,7 @@ const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ defau
 const AdminResultsWorkspacePage = lazy(() => import('./features/admin/AdminResultsWorkspacePage').then((m) => ({ default: m.AdminResultsWorkspacePage })))
 const AdminUsersPage = lazy(() => import('./features/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })))
 const SeasonAdminPage = lazy(() => import('./features/admin/SeasonAdminPage').then((m) => ({ default: m.SeasonAdminPage })))
+const EuroPublicationPage = lazy(() => import('./features/admin/EuroPublicationPage').then((m) => ({ default: m.EuroPublicationPage })))
 const NotFoundPage = lazy(() => import('./features/notfound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
 const ComponentsPreview = import.meta.env.DEV
@@ -268,6 +269,13 @@ export default function App() {
                             authorities, so it sits outside the tournament
                             boundary above rather than inside it. */}
                         <Route path="/admin/season" element={<SeasonAdminPage />} />
+                        {/* Euro publication reads and writes only the Contract
+                            143 publication authority. It is deliberately
+                            OUTSIDE the tournament boundary above: publishing a
+                            tournament must not require loading it, and while
+                            the state is hidden that load is exactly what the
+                            route guard refuses. */}
+                        <Route path="/admin/euro" element={<EuroPublicationPage />} />
                       </Route>
                     </Route>
                   </Route>

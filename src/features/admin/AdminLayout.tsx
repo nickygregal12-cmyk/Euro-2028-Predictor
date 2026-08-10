@@ -22,6 +22,14 @@ export function AdminLayout() {
           Competitions
         </NavLink>
         <NavLink
+          to="/admin/euro"
+          className={({ isActive }) =>
+            isActive ? a.adminNavActive : a.adminNavLink
+          }
+        >
+          Euro publication
+        </NavLink>
+        <NavLink
           to="/admin/users"
           className={({ isActive }) =>
             isActive ? a.adminNavActive : a.adminNavLink
