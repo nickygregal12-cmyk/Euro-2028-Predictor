@@ -73,15 +73,26 @@ values (md5('lp-owner')::uuid, 'lp-owner@example.test', 'authenticated', 'authen
         '{}'::jsonb, '{}'::jsonb, now(), now());
 set local session_replication_role = origin;
 
-insert into public.profiles (id, display_name) values
-  (md5('lp-owner')::uuid, 'Owner One'),
-  (md5('lp-rival')::uuid, 'Rival Two'),
-  (md5('lp-outsider')::uuid, 'Outsider Three')
+insert into public.profiles (id, display_name, welcomed_at) values
+  (md5('lp-owner')::uuid, 'Owner One', now()),
+  (md5('lp-rival')::uuid, 'Rival Two', now()),
+  (md5('lp-outsider')::uuid, 'Outsider Three', now())
 on conflict (id) do update set display_name = excluded.display_name;
 
-insert into public.entries (user_id, tournament_id) values
-  (md5('lp-owner')::uuid, current_setting('test.lp_season')::uuid),
-  (md5('lp-rival')::uuid, current_setting('test.lp_season')::uuid);
+-- An entry belongs to a game, not merely to a season:
+-- `prepare_entry_game_membership` refuses one that names no Main or Original
+-- Predictor. The league is scoped to the same game, which is what
+-- `create_game_league` does in the product.
+insert into public.bonus_competitions (
+  id, tournament_id, game_key, published, availability_status,
+  draw_required, visibility_kind, registration_opens_at
+) values (
+  md5('lp-mp')::uuid, current_setting('test.lp_season')::uuid,
+  'main_predictor', true, 'active', false, 'public', now() - interval '2 days');
+
+insert into public.entries (user_id, tournament_id, game_competition_id) values
+  (md5('lp-owner')::uuid, current_setting('test.lp_season')::uuid, md5('lp-mp')::uuid),
+  (md5('lp-rival')::uuid, current_setting('test.lp_season')::uuid, md5('lp-mp')::uuid);
 
 select set_config('test.lp_owner_entry',
   (select id::text from public.entries
@@ -92,8 +103,9 @@ select set_config('test.lp_rival_entry',
     where user_id = md5('lp-rival')::uuid
       and tournament_id = current_setting('test.lp_season')::uuid), true);
 
-insert into public.leagues (tournament_id, owner_id, name, invite_code)
-values (current_setting('test.lp_season')::uuid, md5('lp-owner')::uuid, 'Picks Probe League', 'LPPROBE1');
+insert into public.leagues (tournament_id, owner_id, name, invite_code, game_competition_id)
+values (current_setting('test.lp_season')::uuid, md5('lp-owner')::uuid, 'Picks Probe League',
+        'LPPROBE1', md5('lp-mp')::uuid);
 
 select set_config('test.lp_league',
   (select id::text from public.leagues where invite_code = 'LPPROBE1'), true);
