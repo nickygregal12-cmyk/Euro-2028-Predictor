@@ -401,11 +401,11 @@ describe('competition Overview and Games', () => {
     expect(screen.getByText('Predictor Championship')).toBeTruthy()
   })
 
-  it('provides Back to Hub on competition routes', async () => {
+  it('adds no Back to Hub control, because the global Home tab is one', async () => {
     mocks.fetchHubMembership.mockResolvedValue(season([served()]))
     renderGames()
 
-    const back = await screen.findByRole('link', { name: 'Back to Hub' })
-    expect(back.getAttribute('href')).toBe('/')
+    await waitFor(() => expect(screen.getByText('Match Predictor')).toBeTruthy())
+    expect(screen.queryByRole('link', { name: 'Back to Hub' })).toBeNull()
   })
 })

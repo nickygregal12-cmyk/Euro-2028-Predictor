@@ -1,7 +1,8 @@
+import { Link } from 'react-router'
 import { Alert, Button, ClubMatchCard, Skeleton } from '../../design-system'
 import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
 import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
-import type { MatchPredictorGateway } from './matchPredictorModel'
+import { commandRefusal, type MatchPredictorGateway } from './matchPredictorModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
 import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { SeasonConsensusPanel } from './SeasonConsensusPanel'
@@ -23,9 +24,66 @@ export type SeasonMatchPredictorPageProps = {
    * rather than empty.
    */
   consensus?: (matchweek: number) => Promise<SeasonConsensus>
+  /**
+   * Where another matchweek of this card lives. Supplied by the route, which
+   * owns URL construction; omitted by the DEV harness, which is not on one.
+   */
+  matchweekHref?: (matchweek: number) => string
 }
 
 const SKELETON_ROWS = 10
+
+/**
+ * Moving between matchweeks.
+ *
+ * THIS IS WHY THE ROUTE TAKES `?matchweek=` AT ALL. The parameter landed with
+ * the Match Centre's link into it, so a player could reach the card that
+ * predicts a fixture they were looking at — but from the card itself there was
+ * still no way to the matchweek either side, and "Matchweek 3 of 38" was a
+ * label rather than a control. Editing the address bar was the only way
+ * forward, which is not a way forward.
+ *
+ * A LINK EACH SIDE, AND NOTHING AT A BOUND. Matchweek 1 has no previous and the
+ * last has no next, so those render absent rather than as a greyed arrow: a
+ * control that cannot be pressed is what this batch is removing, not something
+ * it should be adding. `of` is the season's own matchweek count as the card
+ * read reports it, so the bound is the server's rather than a guess.
+ *
+ * They are links, not buttons, because they go somewhere — which keeps
+ * open-in-new-tab, middle-click and the browser's own back behaviour working
+ * for a player stepping back through a season.
+ */
+function MatchweekStepper({
+  number,
+  of,
+  href,
+}: {
+  number: number
+  of: number
+  href: (matchweek: number) => string
+}) {
+  return (
+    <nav className={styles.stepper} aria-label="Matchweek">
+      {number > 1 ? (
+        <Link className={styles.step} to={href(number - 1)} aria-label="Previous matchweek">
+          ←
+        </Link>
+      ) : (
+        <span className={styles.stepSpacer} aria-hidden="true" />
+      )}
+      <p className={styles.stepLabel}>
+        Matchweek {number} of {of}
+      </p>
+      {number < of ? (
+        <Link className={styles.step} to={href(number + 1)} aria-label="Next matchweek">
+          →
+        </Link>
+      ) : (
+        <span className={styles.stepSpacer} aria-hidden="true" />
+      )}
+    </nav>
+  )
+}
 
 function atLockCopy(atLock: 'unbanked' | 'banks_entered' | null, entered: number, total: number) {
   if (atLock === 'unbanked') {
@@ -47,6 +105,7 @@ export function SeasonMatchPredictorPage({
   destinations,
   registration,
   consensus,
+  matchweekHref,
 }: SeasonMatchPredictorPageProps) {
   const view = useSeasonMatchPredictor(gateway, matchweek)
 
@@ -94,14 +153,27 @@ export function SeasonMatchPredictorPage({
   }
 
   const { page, presentation } = view
+  // The matchweek is in the strip only where there is no stepper to say it.
+  // Printing "Matchweek 3 of 38" twice on one screen is how a page starts
+  // looking like two pages stitched together.
   const statusStrip = [
-    `Matchweek ${page.matchweek.number} of ${page.matchweek.of}`,
+    ...(matchweekHref ? [] : [`Matchweek ${page.matchweek.number} of ${page.matchweek.of}`]),
     presentation.lock.label,
     `${presentation.entered}/${presentation.total} entered`,
   ]
   if (page.settledPoints !== null) statusStrip.push(`${page.settledPoints} pts`)
 
   const lockConsequence = atLockCopy(presentation.atLock, presentation.entered, presentation.total)
+
+  // Why each of the two card-level commands would be refused, asked of the
+  // model that owns the answer. `null` means the command would be accepted, and
+  // that — not a disabled attribute — decides whether a control renders at all.
+  const jokerRefusal = commandRefusal(
+    presentation,
+    { kind: 'setJoker', played: !page.joker.playedHere },
+    page.joker,
+  )
+  const confirmRefusal = commandRefusal(presentation, { kind: 'confirmCard' }, page.joker)
 
   return (
     <SeasonCompetitionShell
@@ -112,6 +184,14 @@ export function SeasonMatchPredictorPage({
       destinations={destinations}
     >
       <SeasonGameSubNav game="match-predictor" />
+
+      {matchweekHref ? (
+        <MatchweekStepper
+          number={page.matchweek.number}
+          of={page.matchweek.of}
+          href={matchweekHref}
+        />
+      ) : null}
 
       {registration ? (
         <SeasonLmsRegistration
@@ -208,30 +288,51 @@ export function SeasonMatchPredictorPage({
           </div>
         )}
 
+        {/* NOTHING HERE IS DISABLED, and the two that used to be were the last
+            disabled controls in the product. Each was a STATEMENT wearing a
+            button's clothes — "Card confirmed" is a fact about the card, and a
+            greyed Joker is the sentence "you have none left" spelled in
+            opacity. Both now say what they mean, and the words come from
+            `commandRefusal`, the model that already decides why a command is
+            refused, rather than from copy written a second time here. */}
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.joker}
-            aria-pressed={page.joker.playedHere}
-            disabled={!presentation.editable || (!page.joker.playable && !page.joker.playedHere)}
-            onClick={() => view.setJoker(!page.joker.playedHere)}
-          >
-            <span className={styles.jokerLabel}>
-              {page.joker.playedHere ? 'Joker played' : 'Play Joker'}
-            </span>
-            <span className={styles.jokerMeta}>
-              Doubles this whole matchweek · {page.joker.remainingThisHalf} left this half
-            </span>
-          </button>
+          {jokerRefusal === null ? (
+            <button
+              type="button"
+              className={styles.joker}
+              aria-pressed={page.joker.playedHere}
+              onClick={() => view.setJoker(!page.joker.playedHere)}
+            >
+              <span className={styles.jokerLabel}>
+                {page.joker.playedHere ? 'Joker played' : 'Play Joker'}
+              </span>
+              <span className={styles.jokerMeta}>
+                Doubles this whole matchweek · {page.joker.remainingThisHalf} left this half
+              </span>
+            </button>
+          ) : (
+            <p className={styles.jokerState}>
+              <span className={styles.jokerLabel}>
+                {page.joker.playedHere
+                  ? 'Joker played on this matchweek'
+                  : 'No Joker on this matchweek'}
+              </span>
+              <span className={styles.jokerMeta}>{jokerRefusal}</span>
+            </p>
+          )}
 
           {presentation.editable ? (
-            <Button
-              variant="primary"
-              disabled={presentation.entered === 0 || page.cardStatus === 'confirmed'}
-              onClick={view.confirmCard}
-            >
-              {page.cardStatus === 'confirmed' ? 'Card confirmed' : 'Confirm card'}
-            </Button>
+            page.cardStatus === 'confirmed' ? (
+              <p className={styles.actionState}>
+                Card confirmed. You can still change a prediction until this matchweek locks.
+              </p>
+            ) : confirmRefusal !== null ? (
+              <p className={styles.actionState}>{confirmRefusal}</p>
+            ) : (
+              <Button variant="primary" onClick={view.confirmCard}>
+                Confirm card
+              </Button>
+            )
           ) : null}
         </div>
       </section>

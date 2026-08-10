@@ -11,9 +11,17 @@ import styles from './SeasonCompetitionShell.module.css'
 
 /**
  * The competition shell owns competition identity, parent exits, quick
- * competition switching and the one competition-level navigation system. The
- * global bottom navigation is hidden by AppShell while this route family is
- * active, so Hub and competition modes no longer compete for the same screen.
+ * competition switching and the one competition-level navigation system. It
+ * sits UNDER the global bottom navigation rather than in place of it — the
+ * design authority keeps the five global destinations visible and unchanged
+ * inside competition context.
+ *
+ * THERE IS NO "BACK TO HUB" LINK HERE, and its absence is the point. The same
+ * authority says the Hub stays one click away "without a compensating Back to
+ * Hub control", and lists adding one among the things not to do: the Home tab
+ * in the global bar IS that control. What remains is the LOGICAL PARENT, which
+ * is a different thing — `DFA-005` requires a deep route to say where it sits,
+ * and "Back to Games" from a game page is that answer, not a way home.
  */
 export type SeasonShellSection = 'overview' | 'play' | 'matches' | 'games' | 'leagues'
 
@@ -64,16 +72,13 @@ export function SeasonCompetitionShell({
 
   return (
     <div className={styles.shell}>
-      <div className={styles.parentNav} role="group" aria-label="Competition exits">
-        {parent && parent.href !== weeklyRoutes.hub ? (
+      {parent && parent.href !== weeklyRoutes.hub ? (
+        <div className={styles.parentNav} role="group" aria-label="Competition exits">
           <Link className={styles.parentLink} to={parent.href}>
             {parent.label}
           </Link>
-        ) : null}
-        <Link className={styles.parentLink} to={weeklyRoutes.hub}>
-          Back to Hub
-        </Link>
-      </div>
+        </div>
+      ) : null}
 
       <header className={styles.masthead}>
         <p className={styles.eyebrow}>{seasonLabel}</p>
@@ -112,21 +117,18 @@ export function SeasonCompetitionShell({
               )
             }
 
+            // A section with no destination is not listed. Every caller
+            // supplies all five today via `seasonShellDestinations`, so this is
+            // the DEV harness's path in practice — but it is the same trap the
+            // game sub-navigation had actually fallen into, and a greyed label
+            // left here is how the next section quietly becomes one.
+            if (!href) return null
+
             return (
               <li key={section.id}>
-                {href ? (
-                  <Link className={styles.subNavLink} to={href}>
-                    {section.label}
-                  </Link>
-                ) : (
-                  <span
-                    className={styles.subNavDisabled}
-                    aria-disabled="true"
-                    title={`${section.label} is not built yet for a season competition`}
-                  >
-                    {section.label}
-                  </span>
-                )}
+                <Link className={styles.subNavLink} to={href}>
+                  {section.label}
+                </Link>
               </li>
             )
           })}

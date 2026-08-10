@@ -27,6 +27,54 @@
   color: var(--tx2);
 }
 
+/* Moving between matchweeks. Laid out as arrow · label · arrow with the two
+   sides reserved whether or not they hold a link, so the label stays put
+   instead of sliding sideways at the first and last matchweek. */
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.step,
+.stepSpacer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-width: var(--tap-min);
+  min-height: var(--tap-min);
+  border-radius: var(--radius-input);
+}
+
+.step {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--tx);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  text-decoration: none;
+}
+
+.step:hover {
+  border-color: var(--acc);
+}
+
+.step:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.stepLabel {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
 .fixtures {
   display: flex;
   flex-direction: column;
@@ -66,11 +114,31 @@
   color: var(--gold-contrast);
 }
 
-.joker:disabled {
+/* The Joker as a STATEMENT rather than a control: same block, same two lines,
+   no gold and no cursor, because there is nothing here to press. It replaced a
+   `.joker:disabled` rule — a greyed button saying "you have none left" without
+   the words. */
+.jokerState {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  align-items: flex-start;
+  margin: 0;
+  padding: var(--sp-3);
+  border-radius: var(--radius-input);
   background: var(--chip);
-  border-color: var(--line);
-  color: var(--tx3);
-  cursor: not-allowed;
+  border: 1px solid var(--line);
+  color: var(--tx2);
+  font-family: var(--font-body);
+}
+
+/* A card-level fact where a card-level button would otherwise be. */
+.actionState {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  line-height: 1.5;
+  color: var(--tx2);
 }
 
 .jokerLabel {
