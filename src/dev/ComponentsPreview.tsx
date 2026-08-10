@@ -47,6 +47,20 @@ import { SeasonFixtureConsensus } from '../features/season/SeasonFixtureConsensu
 import type { LmsFormGuide } from '../features/season/lmsFormGuideModel'
 import type { SeasonConsensus } from '../services/supabase/seasonConsensusModel'
 import { twentyCompetitionPlayer } from './scaleFixture'
+import { OnboardingCompetitionStep } from '../features/onboarding/OnboardingCompetitionStep'
+import { OnboardingFavouriteStep } from '../features/onboarding/OnboardingFavouriteStep'
+import { OnboardingGamesStep } from '../features/onboarding/OnboardingGamesStep'
+import { OnboardingReviewStep } from '../features/onboarding/OnboardingReviewStep'
+import {
+  EMPTY_DRAFT,
+  applyGamesToAll,
+  toggleFollowed,
+  toggleGame,
+  type OnboardingDraft,
+} from '../features/onboarding/onboardingDraft'
+import { ONBOARDING_GAME_OFFERS, ONBOARDING_TEAMS } from './onboardingFixture'
+import { presentPlayerCompetitions } from '../features/hub/playerCompetitions'
+import { HUB_COMPETITIONS } from '../features/hub/competitionCatalogue'
 import { PointsBreakdown } from '../features/scoring'
 import type { ScoreEvent } from '../domain/tournament/scoreEvents'
 import {
@@ -787,6 +801,117 @@ function SideRailDemo() {
   )
 }
 
+/**
+ * The onboarding steps, driven by a real draft.
+ *
+ * STATEFUL ON PURPOSE. The whole point of these components is the separation
+ * between following, joining and favouriting, and that separation is only
+ * visible when the controls actually move: press a competition and no game
+ * appears; press Apply to all and the review changes. A static render of four
+ * steps would photograph the layout and prove nothing about the rule.
+ *
+ * IT IS NOT A LIVE JOURNEY. There is no step sequencer, no Finish and no
+ * persistence — the review step is rendered without `onFinish`, so it says in
+ * words that nothing is saved. `MIG-UI-10` owns that; until it lands, wiring
+ * this into first sign-in would collect three decisions and lose them on
+ * refresh, which is worse than not asking.
+ */
+function OnboardingDemo() {
+  const player = twentyCompetitionPlayer()
+  const [draft, setDraft] = useState<OnboardingDraft>(() =>
+    toggleFollowed(EMPTY_DRAFT, ONBOARDING_GAME_OFFERS[0]?.key ?? ''),
+  )
+  return (
+    <>
+      <Label>twenty published competitions, three followed by the fixture player</Label>
+      <OnboardingCompetitionStep
+        player={player}
+        draft={draft}
+        onToggle={(key) => setDraft((current) => toggleFollowed(current, key))}
+      />
+      <Label>reading the catalogue</Label>
+      <OnboardingCompetitionStep player={null} draft={EMPTY_DRAFT} onToggle={() => {}} />
+      <Label>catalogue read failed</Label>
+      <OnboardingCompetitionStep player={null} failed draft={EMPTY_DRAFT} onToggle={() => {}} />
+      <Label>nothing published yet</Label>
+      <OnboardingCompetitionStep
+        player={presentPlayerCompetitions([], [], undefined, [])}
+        draft={EMPTY_DRAFT}
+        onToggle={() => {}}
+      />
+      <Label>a published competition this build cannot open (MIG-UI-12)</Label>
+      <OnboardingCompetitionStep
+        player={presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
+          {
+            id: 'unroutable-demo',
+            name: 'Bundesliga 2026/27',
+            seasonKey: '2026-27',
+            status: 'active',
+            timeZone: 'Europe/Berlin',
+          },
+        ])}
+        draft={EMPTY_DRAFT}
+        onToggle={() => {}}
+      />
+    </>
+  )
+}
+
+function OnboardingFavouriteDemo() {
+  const [teamId, setTeamId] = useState<string | null>(null)
+  return (
+    <>
+      <Label>optional, with a real skip</Label>
+      <OnboardingFavouriteStep
+        teams={ONBOARDING_TEAMS}
+        selectedTeamId={teamId}
+        onSelect={setTeamId}
+      />
+      <Label>no teams to choose from</Label>
+      <OnboardingFavouriteStep teams={[]} selectedTeamId={null} onSelect={() => {}} />
+    </>
+  )
+}
+
+function OnboardingGamesDemo() {
+  const [draft, setDraft] = useState<OnboardingDraft>(() => {
+    let next = EMPTY_DRAFT
+    for (const offer of ONBOARDING_GAME_OFFERS) next = toggleFollowed(next, offer.key)
+    return next
+  })
+  return (
+    <>
+      <Label>three followed — bulk and per-competition</Label>
+      <OnboardingGamesStep
+        competitions={ONBOARDING_GAME_OFFERS}
+        draft={draft}
+        onToggleGame={(key, game) => setDraft((current) => toggleGame(current, key, game))}
+        onApplyToAll={(games) => setDraft((current) => applyGamesToAll(current, games))}
+      />
+      <Label>one competition — no mode switch, and one game already joined</Label>
+      <OnboardingGamesStep
+        competitions={ONBOARDING_GAME_OFFERS.slice(2)}
+        draft={draft}
+        onToggleGame={(key, game) => setDraft((current) => toggleGame(current, key, game))}
+        onApplyToAll={() => {}}
+      />
+      <Label>no competition selected yet</Label>
+      <OnboardingGamesStep
+        competitions={[]}
+        draft={EMPTY_DRAFT}
+        onToggleGame={() => {}}
+        onApplyToAll={() => {}}
+      />
+      <Label>the same draft, reviewed — nothing is saved</Label>
+      <OnboardingReviewStep
+        competitions={ONBOARDING_GAME_OFFERS}
+        teams={ONBOARDING_TEAMS}
+        draft={draft}
+      />
+    </>
+  )
+}
+
 function PageShellDemo() {
   const [active, setActive] = useState<NavKey>('home')
   const [demoTheme, setDemoTheme] = useState<'dark' | 'light'>('dark')
@@ -1290,6 +1415,22 @@ function Gallery() {
           fixtureId="fx-1"
           load={() => Promise.reject(new Error('network'))}
         />
+      </Section>
+
+      {/* First sign-in, as components. Mounted here rather than on a route
+          because there is nowhere truthful to save the answers yet
+          (MIG-UI-10), and a journey that asks three questions and forgets them
+          would look finished while being worse than not asking. */}
+      <Section title="Onboarding — choose competitions">
+        <OnboardingDemo />
+      </Section>
+
+      <Section title="Onboarding — favourite team">
+        <OnboardingFavouriteDemo />
+      </Section>
+
+      <Section title="Onboarding — games and review">
+        <OnboardingGamesDemo />
       </Section>
 
       <Section title="Masthead">
