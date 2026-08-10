@@ -105,10 +105,10 @@ select set_config('test.lp_rival_entry',
 
 insert into public.leagues (tournament_id, owner_id, name, invite_code, game_competition_id)
 values (current_setting('test.lp_season')::uuid, md5('lp-owner')::uuid, 'Picks Probe League',
-        'LPPROBE1', md5('lp-mp')::uuid);
+        'LP0001', md5('lp-mp')::uuid);
 
 select set_config('test.lp_league',
-  (select id::text from public.leagues where invite_code = 'LPPROBE1'), true);
+  (select id::text from public.leagues where invite_code = 'LP0001'), true);
 
 insert into public.league_members (league_id, user_id, role) values
   (current_setting('test.lp_league')::uuid, md5('lp-owner')::uuid, 'owner'),
