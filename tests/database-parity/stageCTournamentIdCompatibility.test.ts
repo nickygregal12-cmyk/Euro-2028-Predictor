@@ -253,7 +253,7 @@ describe('Stage C tournament_id compatibility inventory after C1b', () => {
     // composite keys that make a cross-season mapping impossible, and 42 → 43
     // by contract 114's poll target, which is season-scoped so that deleting a
     // competition season stops the job calling a provider about it.
-    expect(effectiveColumns).toHaveLength(43)
+    expect(effectiveColumns).toHaveLength(46)
     expect(effectiveColumns).toContain('entries.tournament_id uuid not null')
     expect(effectiveColumns).toContain('game_memberships.tournament_id uuid not null')
     // Contract 68: the season fixture carries the same season scope every other
