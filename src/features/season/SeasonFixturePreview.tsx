@@ -35,8 +35,11 @@ import styles from './SeasonFixturePreview.module.css'
 
 export type SeasonFixturePreviewProps = {
   gateway: SeasonFixtureWindowGateway
-  /** The competition's own timezone; the read's own zone wins where it has one. */
-  timeZone: string
+  /**
+   * A deterministic zone override for harnesses and tests. Production omits it
+   * and the shared kickoff authority resolves the viewer's own zone.
+   */
+  timeZone?: string
   /** Opens the full Matches section. */
   onSeeAll: () => void
   /** How many rows to show. Overview's card, not a rule. */

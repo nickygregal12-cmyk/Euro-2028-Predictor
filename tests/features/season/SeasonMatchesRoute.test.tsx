@@ -98,7 +98,11 @@ describe('the season matches route', () => {
   it('renders inside the competition shell, naming the competition', async () => {
     renderRoute(async () => context())
 
-    expect(await screen.findByText('Scottish Premiership')).toBeTruthy()
+    // By role: the masthead heading names the competition and so does the
+    // compact selector beside it, which is deliberate.
+    expect(
+      await screen.findByRole('heading', { name: 'Scottish Premiership' }),
+    ).toBeTruthy()
     expect(screen.getByRole('navigation', { name: /sections/ })).toBeTruthy()
   })
 
@@ -146,7 +150,7 @@ describe('the season matches route', () => {
   it('offers the canonical Games destination from within the shell', async () => {
     renderRoute(async () => context())
 
-    await screen.findByText('Scottish Premiership')
+    await screen.findByRole('heading', { name: 'Scottish Premiership' })
     const games = screen.getByRole('link', { name: 'Games' })
     expect(games.getAttribute('href')).toBe('/competitions/scottish-premiership/2026-27/games')
   })

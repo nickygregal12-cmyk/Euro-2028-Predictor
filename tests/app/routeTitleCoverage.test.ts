@@ -3,6 +3,7 @@ import { getRouteTitle } from '../../src/app/RouteAccessibility'
 import { declaredRoutes, redirectRoutes } from './declaredRoutes'
 
 const SAMPLE_PARAMS: Record<string, string> = {
+  fixtureId: 'fixture-1',
   code: 'ABC123',
   id: '42',
   rivalId: '42',
@@ -58,9 +59,16 @@ describe('route titles', () => {
     expect(collisions, 'routes sharing a title — check the list order').toEqual([])
   })
 
-  it('titles the root by which of its two pages is showing', () => {
-    expect(getRouteTitle('/')).toBe('Competitions')
-    expect(getRouteTitle('/', { signedOut: false })).toBe('Competitions')
+  it('titles the root Home whichever of its two pages is showing', () => {
+    // This assertion used to record a DIFFERENCE: signed out the root was the
+    // landing page and titled "Home", signed in it was the competition chooser
+    // and titled "Competitions". The chooser is gone — the signed-in root is
+    // the personalised dashboard, its heading says Home and the global
+    // destination that reaches it says Home — so the two names converged and
+    // the tab agrees with the page in both states. The catalogue the old title
+    // named is at `/competitions`, which has a title of its own.
+    expect(getRouteTitle('/')).toBe('Home')
+    expect(getRouteTitle('/', { signedOut: false })).toBe('Home')
     expect(getRouteTitle('/', { signedOut: true })).toBe('Home')
   })
 
@@ -73,7 +81,7 @@ describe('route titles', () => {
   })
 
   it('names the canonical weekly pages', () => {
-    expect(getRouteTitle('/')).toBe('Competitions')
+    expect(getRouteTitle('/')).toBe('Home')
     expect(getRouteTitle('/play')).toBe('Play')
     expect(getRouteTitle('/matches')).toBe('Matches')
     expect(getRouteTitle('/leagues')).toBe('Leagues')

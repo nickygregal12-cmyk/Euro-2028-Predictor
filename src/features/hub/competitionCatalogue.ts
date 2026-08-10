@@ -29,10 +29,26 @@ export type HubCompetition = {
 }
 
 /**
- * Weekly frontend presentation catalogue. Only currently published domestic
- * seasons belong here. Euro 2028 is intentionally absent from the weekly
- * client while its server-owned publication state and route guard remain a
- * separate requirement; removing it here reduces exposure but does not claim
+ * TRANSITIONAL presentation metadata. **Not the authority on which competitions
+ * exist.**
+ *
+ * WHICH SEASONS EXIST IS THE SERVER'S ANSWER (`MIG-UI-12`).
+ * `fetchPublishedSeasons()` enumerates `public.tournaments` where
+ * `kind = 'league_season'`, and that is the catalogue. This array supplies two
+ * things the server cannot yet hand a browser: the **route slug**, because
+ * `public.competitions.slug` is revoked from `authenticated`, and presentation
+ * copy. A published season absent from here is still listed — named, with its
+ * lifecycle, and honestly unopenable — rather than made invisible by a missing
+ * frontend edit.
+ *
+ * DO NOT ADD A COMPETITION HERE TO MAKE IT EXIST. Publish it on the server. Add
+ * a row here only to give an existing published season a URL, and delete this
+ * array entirely once `MIG-UI-12` exposes the slug.
+ *
+ * Euro 2028 is intentionally absent from the weekly client while its
+ * server-owned publication state and route guard remain a separate requirement;
+ * it is also `kind = 'tournament'`, so the server-driven catalogue excludes it
+ * by its own stored kind. Removing it here reduces exposure but does not claim
  * EURO-001–EURO-004 complete.
  */
 export const HUB_COMPETITIONS: HubCompetition[] = [
@@ -115,6 +131,34 @@ export function competitionPath(competition: HubCompetition): string {
 
 export function isJoinedCompetition(competition: HubCompetition): boolean {
   return competition.games.some((game) => game.joined)
+}
+
+/**
+ * The games of a competition, joined first.
+ *
+ * WHY ORDER MATTERS HERE. `UI-F08` asks for joined games before available ones,
+ * and the reason is the five-second test: a player opens Games to do something
+ * in a game they are IN, and the catalogue's declaration order put an
+ * unjoined game above a joined one whenever the catalogue happened to list it
+ * first. Ordering by membership costs nothing and makes the section answer the
+ * question it is opened with.
+ *
+ * MEMBERSHIP IS THE SERVER'S, carried on the overlaid catalogue entry by
+ * `applyHubMembership`. A game whose membership could not be read keeps
+ * `joined: false` and therefore sorts second, which is the safe direction: it
+ * is listed and reachable either way, just not promoted on a guess.
+ *
+ * THE CATALOGUE'S OWN ORDER IS THE TIE-BREAK, so the section does not reshuffle
+ * between renders and two joined games keep a stable relationship.
+ */
+export function gamesJoinedFirst(games: readonly HubGame[]): HubGame[] {
+  return games
+    .map((game, index) => ({ game, index }))
+    .sort((left, right) => {
+      if (left.game.joined !== right.game.joined) return left.game.joined ? -1 : 1
+      return left.index - right.index
+    })
+    .map((entry) => entry.game)
 }
 
 export function partitionHubCompetitions(competitions: HubCompetition[]): {

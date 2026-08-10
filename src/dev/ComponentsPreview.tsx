@@ -12,6 +12,7 @@ import {
   EmptyIllustration,
   Masthead,
   PageShell,
+  BottomNav,
   type NavKey,
   Alert,
   Toast,
@@ -33,6 +34,7 @@ import {
   StatCard,
   ClubIdentity,
   LeagueTable,
+  SideRail,
   type JokerButtonState,
   type TieResolverTeam,
   type ClubIdentityTokens,
@@ -40,6 +42,30 @@ import {
   type LeagueZone,
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
+import { railGroups } from '../app/railDestinations'
+import { SeasonLmsFormGuide } from '../features/season/SeasonLmsFormGuide'
+import { SeasonFixtureConsensus } from '../features/season/SeasonFixtureConsensus'
+import type { LmsFormGuide } from '../features/season/lmsFormGuideModel'
+import type { SeasonConsensus } from '../services/supabase/seasonConsensusModel'
+import { twentyCompetitionPlayer } from './scaleFixture'
+import { OnboardingCompetitionStep } from '../features/onboarding/OnboardingCompetitionStep'
+import { OnboardingFavouriteStep } from '../features/onboarding/OnboardingFavouriteStep'
+import { OnboardingGamesStep } from '../features/onboarding/OnboardingGamesStep'
+import { OnboardingReviewStep } from '../features/onboarding/OnboardingReviewStep'
+import {
+  EMPTY_DRAFT,
+  applyGamesToAll,
+  toggleFollowed,
+  toggleGame,
+  type OnboardingDraft,
+} from '../features/onboarding/onboardingDraft'
+import { ONBOARDING_GAME_OFFERS, ONBOARDING_TEAMS } from './onboardingFixture'
+import { CreateLeagueJourney } from '../features/leagues/CreateLeagueJourney'
+import { presentCreateJourney } from '../features/leagues/createJourneyModel'
+import { GameRulesDisclosure } from '../features/season/GameRulesDisclosure'
+import { seasonGameRules } from '../features/season/gameRules'
+import { presentPlayerCompetitions } from '../features/hub/playerCompetitions'
+import { HUB_COMPETITIONS } from '../features/hub/competitionCatalogue'
 import { PointsBreakdown } from '../features/scoring'
 import type { ScoreEvent } from '../domain/tournament/scoreEvents'
 import {
@@ -584,6 +610,98 @@ const PROVIDER_QUEUES_BUSY = {
   pending_calendar_proposals: 380,
 }
 
+/**
+ * Fixture data for the two game panels. Fixed, so the screenshots are
+ * deterministic, and shaped exactly like what the models return.
+ */
+const LMS_FORM_GUIDE: LmsFormGuide = {
+  empty: false,
+  rows: [
+    {
+      teamId: 't-celtic',
+      name: 'Celtic',
+      picked: false,
+      used: false,
+      opponent: 'Rangers',
+      summary: {
+        letters: ['W', 'W', 'W', 'D', 'W'],
+        record: 'Won 4, drawn 1, lost 0 of the last 5',
+        goalDifference: '+9',
+        played: 5,
+      },
+    },
+    {
+      teamId: 't-hearts',
+      name: 'Hearts',
+      picked: true,
+      used: false,
+      opponent: 'Hibernian',
+      summary: {
+        letters: ['W', 'D', 'L', 'W', 'D'],
+        record: 'Won 2, drawn 2, lost 1 of the last 5',
+        goalDifference: '+1',
+        played: 5,
+      },
+    },
+    {
+      teamId: 't-rangers',
+      name: 'Rangers',
+      picked: false,
+      used: true,
+      opponent: 'Celtic',
+      summary: {
+        letters: ['L', 'W', 'D'],
+        record: 'Won 1, drawn 1, lost 1 of the last 3',
+        goalDifference: '0',
+        played: 3,
+      },
+    },
+    {
+      teamId: 't-dundee',
+      name: 'Dundee United',
+      picked: false,
+      used: false,
+      opponent: 'Aberdeen',
+      summary: { letters: [], record: null, goalDifference: null, played: 0 },
+    },
+  ],
+}
+
+const CONSENSUS_READY: SeasonConsensus = {
+  suppressed: false,
+  matchweek: 2,
+  minimumEntries: 10,
+  submittedEntries: 47,
+  lockedAt: '2026-08-15T14:00:00.000Z',
+  fixtures: [
+    {
+      id: 'fx-1',
+      homeName: 'Celtic',
+      awayName: 'Rangers',
+      kickoffAt: '2026-08-15T14:00:00.000Z',
+      resultHome: null,
+      resultAway: null,
+      predicted: 47,
+      homeWin: 30,
+      draw: 11,
+      awayWin: 6,
+      shares: { homeWin: 64, draw: 23, awayWin: 13 },
+      topScores: [
+        { home: 2, away: 1, picks: 21 },
+        { home: 1, away: 0, picks: 15 },
+        { home: 2, away: 0, picks: 11 },
+      ],
+    },
+  ],
+}
+
+const CONSENSUS_SUPPRESSED: SeasonConsensus = {
+  ...CONSENSUS_READY,
+  suppressed: true,
+  submittedEntries: 6,
+  fixtures: [],
+}
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className={styles.section} data-section={sectionAnchor(title)}>
@@ -646,6 +764,182 @@ const SHARE_MODEL: ShareCardModel = {
   ],
   brag: { points: 112, rank: 89, total: 2140 },
   url: 'euro28predictor.com',
+}
+
+/**
+ * The persistent desktop rail, at both widths, out of its media query.
+ *
+ * IT IS RENDERED HERE UNCONDITIONALLY. In the application the rail is hidden
+ * below 1024px by `PageShell`, which means a gallery panel — 340px wide, or 390
+ * pinned — would never show it at all. The component itself carries no width
+ * rule, so mounting it directly is the honest way to review it, and reviewing
+ * both states side by side is the only way to see that a collapsed link still
+ * has a name.
+ *
+ * The destinations are the real ones, from the same `railGroups` the shell
+ * calls, so a change to the catalogue or the route authority shows up here
+ * rather than in a copy that quietly stops matching.
+ */
+function SideRailDemo() {
+  const [collapsed, setCollapsed] = useState(false)
+  // THE TWENTY-COMPETITION PLATFORM, not the two-competition one. The binding
+  // scalability requirement is that seventeen extra published competitions do
+  // not make ordinary navigation noisy, and the only way to see whether the
+  // rail holds it is to render it against that catalogue. The player plays in
+  // three; the rail should show three rows and one Explore link.
+  const player = twentyCompetitionPlayer()
+  return (
+    <div className={styles.railFrame}>
+      <SideRail
+        groups={railGroups(player)}
+        pathname="/competitions/premier-league/2026-27/games/lms"
+        collapsed={collapsed}
+        onToggleCollapsed={() => setCollapsed((value) => !value)}
+      />
+      <SideRail
+        groups={railGroups(player)}
+        pathname="/"
+        collapsed
+        onToggleCollapsed={() => {}}
+      />
+    </div>
+  )
+}
+
+/**
+ * The onboarding steps, driven by a real draft.
+ *
+ * STATEFUL ON PURPOSE. The whole point of these components is the separation
+ * between following, joining and favouriting, and that separation is only
+ * visible when the controls actually move: press a competition and no game
+ * appears; press Apply to all and the review changes. A static render of four
+ * steps would photograph the layout and prove nothing about the rule.
+ *
+ * IT IS NOT A LIVE JOURNEY. There is no step sequencer, no Finish and no
+ * persistence — the review step is rendered without `onFinish`, so it says in
+ * words that nothing is saved. `MIG-UI-10` owns that; until it lands, wiring
+ * this into first sign-in would collect three decisions and lose them on
+ * refresh, which is worse than not asking.
+ */
+function OnboardingDemo() {
+  const player = twentyCompetitionPlayer()
+  const [draft, setDraft] = useState<OnboardingDraft>(() =>
+    toggleFollowed(EMPTY_DRAFT, ONBOARDING_GAME_OFFERS[0]?.key ?? ''),
+  )
+  return (
+    <>
+      <Label>twenty published competitions, three followed by the fixture player</Label>
+      <OnboardingCompetitionStep
+        player={player}
+        draft={draft}
+        onToggle={(key) => setDraft((current) => toggleFollowed(current, key))}
+      />
+      <Label>reading the catalogue</Label>
+      <OnboardingCompetitionStep player={null} draft={EMPTY_DRAFT} onToggle={() => {}} />
+      <Label>catalogue read failed</Label>
+      <OnboardingCompetitionStep player={null} failed draft={EMPTY_DRAFT} onToggle={() => {}} />
+      <Label>nothing published yet</Label>
+      <OnboardingCompetitionStep
+        player={presentPlayerCompetitions([], [], undefined, [])}
+        draft={EMPTY_DRAFT}
+        onToggle={() => {}}
+      />
+      <Label>a published competition this build cannot open (MIG-UI-12)</Label>
+      <OnboardingCompetitionStep
+        player={presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
+          {
+            id: 'unroutable-demo',
+            name: 'Bundesliga 2026/27',
+            seasonKey: '2026-27',
+            status: 'active',
+            timeZone: 'Europe/Berlin',
+          },
+        ])}
+        draft={EMPTY_DRAFT}
+        onToggle={() => {}}
+      />
+    </>
+  )
+}
+
+function OnboardingFavouriteDemo() {
+  const [teamId, setTeamId] = useState<string | null>(null)
+  return (
+    <>
+      <Label>optional, with a real skip</Label>
+      <OnboardingFavouriteStep
+        teams={ONBOARDING_TEAMS}
+        selectedTeamId={teamId}
+        onSelect={setTeamId}
+      />
+      <Label>no teams to choose from</Label>
+      <OnboardingFavouriteStep teams={[]} selectedTeamId={null} onSelect={() => {}} />
+    </>
+  )
+}
+
+function OnboardingGamesDemo() {
+  const [draft, setDraft] = useState<OnboardingDraft>(() => {
+    let next = EMPTY_DRAFT
+    for (const offer of ONBOARDING_GAME_OFFERS) next = toggleFollowed(next, offer.key)
+    return next
+  })
+  return (
+    <>
+      <Label>three followed — bulk and per-competition</Label>
+      <OnboardingGamesStep
+        competitions={ONBOARDING_GAME_OFFERS}
+        draft={draft}
+        onToggleGame={(key, game) => setDraft((current) => toggleGame(current, key, game))}
+        onApplyToAll={(games) => setDraft((current) => applyGamesToAll(current, games))}
+      />
+      <Label>one competition — no mode switch, and one game already joined</Label>
+      <OnboardingGamesStep
+        competitions={ONBOARDING_GAME_OFFERS.slice(2)}
+        draft={draft}
+        onToggleGame={(key, game) => setDraft((current) => toggleGame(current, key, game))}
+        onApplyToAll={() => {}}
+      />
+      <Label>no competition selected yet</Label>
+      <OnboardingGamesStep
+        competitions={[]}
+        draft={EMPTY_DRAFT}
+        onToggleGame={() => {}}
+        onApplyToAll={() => {}}
+      />
+      <Label>the same draft, reviewed — nothing is saved</Label>
+      <OnboardingReviewStep
+        competitions={ONBOARDING_GAME_OFFERS}
+        teams={ONBOARDING_TEAMS}
+        draft={draft}
+      />
+    </>
+  )
+}
+
+/**
+ * The mobile bottom bar, photographed on its own.
+ *
+ * IT NEEDS ITS OWN SECTION BECAUSE THE GALLERY CANNOT SIMULATE A PHONE
+ * VIEWPORT. `PageShell` hides the bar above 1024px, and that is a VIEWPORT
+ * media query, while the gallery pins each panel's WIDTH in CSS — so the
+ * runner's 1280px window puts both panels above the breakpoint and the
+ * "PageShell + BottomNav" section photographs a shell with no bar in it. The
+ * first runner render of the new baselines is what showed this: that section's
+ * image lost the five tabs and shrank by a fifth.
+ *
+ * Rendering the component directly is the same thing `SideRailDemo` does for
+ * the rail, and it restores the coverage rather than relaxing it: the bar's
+ * five destinations, its selected state and both themes are back under a
+ * baseline.
+ */
+function BottomNavDemo() {
+  const [active, setActive] = useState<NavKey>('home')
+  return (
+    <div className={styles.bottomNavFrame}>
+      <BottomNav active={active} onNavigate={setActive} />
+    </div>
+  )
 }
 
 function PageShellDemo() {
@@ -1116,6 +1410,89 @@ function Gallery() {
 
       <Section title="PageShell + BottomNav">
         <PageShellDemo />
+      </Section>
+
+      <Section title="Mobile bottom navigation">
+        <BottomNavDemo />
+      </Section>
+
+      <Section title="Desktop navigation rail">
+        <SideRailDemo />
+      </Section>
+
+      {/* The two game contextual panels. They live at route level in the
+          application — the routes own the reads — so the DEV page harnesses
+          never render them, and without a gallery section they would have no
+          visual coverage in either theme at all. */}
+      <Section title="LMS form guide panel">
+        <SeasonLmsFormGuide guide={LMS_FORM_GUIDE} />
+        <Label>no settled matches</Label>
+        <SeasonLmsFormGuide guide={{ rows: LMS_FORM_GUIDE.rows, empty: true }} />
+      </Section>
+
+      <Section title="Fixture consensus panel">
+        <Label>after lock</Label>
+        <SeasonFixtureConsensus
+          matchweek={2}
+          fixtureId="fx-1"
+          load={() => Promise.resolve(CONSENSUS_READY)}
+        />
+        <Label>short cohort</Label>
+        <SeasonFixtureConsensus
+          matchweek={2}
+          fixtureId="fx-1"
+          load={() => Promise.resolve(CONSENSUS_SUPPRESSED)}
+        />
+        <Label>failed</Label>
+        <SeasonFixtureConsensus
+          matchweek={2}
+          fixtureId="fx-1"
+          load={() => Promise.reject(new Error('network'))}
+        />
+      </Section>
+
+      {/* First sign-in, as components. Mounted here rather than on a route
+          because there is nowhere truthful to save the answers yet
+          (MIG-UI-10), and a journey that asks three questions and forgets them
+          would look finished while being worse than not asking. */}
+      <Section title="Onboarding — choose competitions">
+        <OnboardingDemo />
+      </Section>
+
+      <Section title="Onboarding — favourite team">
+        <OnboardingFavouriteDemo />
+      </Section>
+
+      <Section title="Onboarding — games and review">
+        <OnboardingGamesDemo />
+      </Section>
+
+      {/* Creating a private league. The gallery is the only place both the
+          offer and the refusals are visible at once — a real player sees one
+          game they can create and two they cannot, and the refusals are the
+          part that is easy to get wrong. */}
+      <Section title="Create a league journey">
+        <CreateLeagueJourney
+          journey={presentCreateJourney(twentyCompetitionPlayer())}
+          create={async (_id, leagueName) => ({
+            id: 'demo',
+            name: leagueName,
+            inviteCode: 'ABC234',
+          })}
+          onCancel={() => {}}
+        />
+        <Label>nothing joined yet — every game refused, with the reason</Label>
+        <CreateLeagueJourney
+          journey={presentCreateJourney(null)}
+          create={async () => ({ id: 'demo', name: 'demo', inviteCode: 'ABC234' })}
+          onCancel={() => {}}
+        />
+      </Section>
+
+      <Section title="Game rules disclosure">
+        <GameRulesDisclosure rules={seasonGameRules('main_predictor')} defaultOpen />
+        <GameRulesDisclosure rules={seasonGameRules('last_man_standing')} defaultOpen />
+        <GameRulesDisclosure rules={seasonGameRules('predictor_cup')} />
       </Section>
 
       <Section title="Masthead">

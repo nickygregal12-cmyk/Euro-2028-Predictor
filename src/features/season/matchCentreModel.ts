@@ -1,4 +1,4 @@
-import { scoreFixture } from '../../domain/season/scoring'
+import { explainFixtureScore } from '../../domain/season/scoring'
 import type { FixtureListRow } from './fixtureListModel'
 import type { MatchPredictorPage } from './matchPredictorModel'
 
@@ -83,11 +83,7 @@ export function presentMatchCentre(
       ? { kind: 'unbanked' }
       : !prediction
         ? { kind: 'blank' }
-        : {
-            kind: 'scored',
-            points: scoreFixture(prediction, result),
-            exact: prediction.home === result.home && prediction.away === result.away,
-          }
+        : scoredOutcome(prediction, result)
 
   return {
     prediction: scoreline(prediction),
@@ -106,6 +102,25 @@ export function presentMatchCentre(
           ? 'Your Joker is on this matchweek. It doubles the whole card once the matchweek settles, never one fixture.'
           : null,
     explanation: explain(outcome, prediction !== null, provisional !== null),
+  }
+}
+
+/**
+ * The one comparison, asked once.
+ *
+ * `explainFixtureScore` returns the reason and the points together from the
+ * canonical authority, so this file no longer re-derives "was it exact" beside
+ * a number it did not derive. A parity test pins the two to `scoreFixture`.
+ */
+function scoredOutcome(
+  prediction: { home: number; away: number },
+  result: { home: number; away: number },
+): MatchCentreOutcome {
+  const explained = explainFixtureScore(prediction, result)
+  return {
+    kind: 'scored',
+    points: explained.points,
+    exact: explained.reason === 'exact_score',
   }
 }
 

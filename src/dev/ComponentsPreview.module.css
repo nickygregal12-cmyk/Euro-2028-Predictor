@@ -191,3 +191,32 @@
   font-family: var(--font-body);
   font-size: var(--fs-2);
 }
+
+/* The bar sizes itself; the frame only gives the baseline a stable edge to be
+   photographed against, the way `.shellFrame` and `.railFrame` do. */
+.bottomNavFrame {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+/* Two rails side by side, expanded and collapsed, so the collapsed state can be
+   reviewed against the one it collapses from. They carry their own height
+   because a rail normally fills the shell and has none of its own.
+   TALL ENOUGH FOR THE WHOLE RAIL. At 420px the frame clipped everything below
+   the third competition shortcut, so the baseline could not show that "All
+   competitions" exists — which is the bound's entire point — and cut the
+   collapsed rail's last monogram through the middle. The rail is 619px against
+   the twenty-competition fixture; the frame is that plus air. */
+.railFrame {
+  display: flex;
+  gap: var(--sp-4);
+  /* Shrink to the two rails. Stretched to the panel it left ~900px of empty
+     pixels in the baseline, which is area a pixel comparison has to look
+     through rather than at. */
+  width: fit-content;
+  height: 660px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}

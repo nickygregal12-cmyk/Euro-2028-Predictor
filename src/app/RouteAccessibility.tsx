@@ -6,7 +6,12 @@ const APP_NAME = 'Football Prediction Hub'
 const SIGNED_OUT_ROOT_TITLE = 'Home'
 
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
-  { path: weeklyRoutes.hub, title: 'Competitions' },
+  // "Home", not "Competitions". The root used to be a competition chooser and
+  // the title described it; it is now the personalised dashboard, its heading
+  // says Home and the global destination that reaches it says Home. A tab
+  // reading "Competitions" was the last place the retired shape survived, and
+  // the catalogue it named lives at `/competitions` with a title of its own.
+  { path: weeklyRoutes.hub, title: 'Home' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },
   { path: '/auth/reset', title: 'Reset password' },
@@ -17,6 +22,7 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: weeklyRoutes.matches, title: 'Matches' },
   { path: '/fixtures', title: 'Matches' },
   { path: weeklyRoutes.leagues, title: 'Leagues' },
+  { path: weeklyRoutes.competitions, title: 'All competitions' },
   { path: '/league', title: 'Leagues' },
   { path: '/league/:id', title: 'League details' },
   { path: '/h2h/:rivalId', title: 'Head-to-head' },
@@ -61,6 +67,10 @@ const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: s
   [weeklyRoutePatterns.championshipWildcard, 'Predictor Championship'],
   [weeklyRoutePatterns.lms, 'Last Man Standing'],
   [weeklyRoutePatterns.games, 'Games'],
+  // Before the section it sits under, because `matchPath` with `end: true`
+  // would otherwise never reach it — a fixture route is a longer path, not a
+  // different one.
+  [weeklyRoutePatterns.matchCentre, 'Match Centre'],
   [weeklyRoutePatterns.matches, 'Matches'],
   [weeklyRoutePatterns.leagues, 'Leagues'],
   [weeklyRoutePatterns.play, 'Play'],

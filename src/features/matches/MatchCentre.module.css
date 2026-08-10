@@ -19,8 +19,13 @@
 }
 
 .matchNavButton {
-  min-height: 34px;
-  padding: 6px 10px;
+  /* 34px was a comfortable pill and an uncomfortable tap target. The
+     responsive sweep measured it at 34 across every width in both themes,
+     which is below the 44px the rest of the product holds itself to. */
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--chip);
@@ -43,6 +48,10 @@
 .back {
   display: inline-flex;
   align-items: center;
+  /* Back is a text control with no box, so its height was its line height —
+     26px, the smallest target on the page. The padding gives it the tap
+     height without giving it a border it does not want. */
+  min-height: var(--tap-min);
   gap: 4px;
   padding: 4px 0;
   background: none;

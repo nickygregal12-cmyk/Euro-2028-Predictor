@@ -2,7 +2,7 @@ import { Alert, Button, ClubIdentity, EmptyState, Skeleton } from '../../design-
 import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
 import { LMS_REGISTRATION_COPY, type SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import type { LmsClub, SeasonLmsGateway } from './lmsRoundModel'
-import { formatInstant } from './formatInstant'
+import { formatDeadline } from '../../shared/time/kickoff'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonLms } from './useSeasonLms'
 import styles from './SeasonLmsPage.module.css'
@@ -105,7 +105,7 @@ export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps
     )
   }
 
-  const deadline = formatInstant(page.round.locksAt)
+  const deadline = formatDeadline(page.round.locksAt)
 
   const choose = (club: LmsClub) => {
     const isPick = page.pick?.teamId === club.teamId

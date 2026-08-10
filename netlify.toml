@@ -57,6 +57,13 @@
   to = "/index.html"
   status = 200
 
+# The published catalogue, as deliberate discovery. Not a global tab, but a
+# real address a player can be linked to and can bookmark.
+[[redirects]]
+  from = "/competitions"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/more"
   to = "/index.html"
@@ -150,6 +157,14 @@
 
 [[redirects]]
   from = "/competitions/:competitionSlug/:seasonSlug/matches"
+  to = "/index.html"
+  status = 200
+
+# One fixture's own Match Centre. It must answer 200 rather than fall to the
+# catch-all: a shared or unfurled link to a match is one of the addresses most
+# likely to be followed from outside the application.
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/matches/:fixtureId"
   to = "/index.html"
   status = 200
 

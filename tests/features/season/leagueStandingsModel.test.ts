@@ -165,3 +165,153 @@ describe('leagueStandingsRefusal', () => {
     expect(leagueStandingsRefusal(new Error('offline'))).toMatch(/went wrong|reach the server/)
   })
 })
+
+
+/**
+ * The gap to the people you play with — the "how am I doing against them"
+ * half of the owner's Player & League Insights pillar, derived from rows
+ * already on screen rather than from a new read.
+ *
+ * Every case here is a case where a naive subtraction would say something
+ * false, which is why each has a test rather than a comment.
+ */
+describe('presentLeagueStandings — the gap to a rival', () => {
+  function league(rows: SeasonLeagueStandingsRow[], you: SeasonLeagueStandingsRow) {
+    return presentLeagueStandings(
+      page({ rows, totalCount: rows.length, you }),
+      rows,
+    )
+  }
+
+  it('names the member immediately above and the leader when they differ', () => {
+    const priya = row({ userId: 'u-priya', displayName: 'Priya', rank: 1, points: 52, position: 1 })
+    const jamie = row({ userId: 'u-jamie', displayName: 'Jamie', rank: 2, points: 44, position: 2 })
+    const you = row({
+      userId: 'u-you',
+      displayName: 'You',
+      rank: 3,
+      points: 38,
+      position: 3,
+      isYou: true,
+    })
+
+    expect(league([priya, jamie, you], you).yourGapLine).toBe(
+      '6 points behind Jamie. 14 behind Priya.',
+    )
+  })
+
+  it('says the leader once when the leader is the member above', () => {
+    const jamie = row({ userId: 'u-jamie', displayName: 'Jamie', rank: 1, points: 44, position: 1 })
+    const you = row({
+      userId: 'u-you',
+      displayName: 'You',
+      rank: 2,
+      points: 43,
+      position: 2,
+      isYou: true,
+    })
+
+    expect(league([jamie, you], you).yourGapLine).toBe('1 point behind Jamie.')
+  })
+
+  it('states a lead rather than a gap when the caller is top', () => {
+    const you = row({
+      userId: 'u-you',
+      displayName: 'You',
+      rank: 1,
+      points: 50,
+      position: 1,
+      isYou: true,
+    })
+    const jamie = row({ userId: 'u-jamie', displayName: 'Jamie', rank: 2, points: 44, position: 2 })
+
+    expect(league([you, jamie], you).yourGapLine).toBe('Leading Jamie by 6 points.')
+  })
+
+  it('distinguishes level on points from ahead', () => {
+    // The server ranked them above on its own tie-break. "0 points behind" is
+    // arithmetic; "level on points" is what happened.
+    const jamie = row({
+      userId: 'u-jamie',
+      displayName: 'Jamie',
+      rank: 1,
+      points: 38,
+      position: 1,
+      tied: true,
+    })
+    const you = row({
+      userId: 'u-you',
+      displayName: 'You',
+      rank: 2,
+      points: 38,
+      position: 2,
+      isYou: true,
+    })
+
+    expect(league([jamie, you], you).yourGapLine).toBe('Level with Jamie on points.')
+  })
+
+  it('never treats a member who has not entered as a rival', () => {
+    // The read ranks them last on zero so a league is not hidden from the
+    // person who created it. A "you lead them by 38" sentence would be about
+    // somebody who has not played.
+    const you = row({
+      userId: 'u-you',
+      displayName: 'You',
+      rank: 1,
+      points: 38,
+      position: 1,
+      isYou: true,
+    })
+    const dormant = row({
+      userId: 'u-chris',
+      displayName: 'Chris',
+      rank: 2,
+      points: 0,
+      matchweeksPlayed: 0,
+      position: 2,
+      hasEntry: false,
+    })
+
+    expect(league([you, dormant], you).yourGapLine).toBeNull()
+  })
+
+  it('falls back to the leader when the member above is on an unloaded page', () => {
+    // A member deep in a long league opens page one and their own row is
+    // pinned rather than listed. The member immediately above them is on a
+    // page nobody fetched, so calling the leader their nearest rival would be
+    // confidently wrong — the sentence becomes the one still true.
+    const leader = row({ userId: 'u-a', displayName: 'Ana', rank: 1, points: 90, position: 1 })
+    const you = row({
+      userId: 'u-you',
+      displayName: 'You',
+      rank: 40,
+      points: 20,
+      position: 40,
+      isYou: true,
+    })
+    const view = presentLeagueStandings(
+      page({ rows: [leader], totalCount: 60, hasMore: true, you }),
+      [leader],
+    )
+
+    expect(view.yourStandingLine).toBe('You are 40 of 60 on 20 points.')
+    expect(view.yourGapLine).toBe('70 points behind the leader, Ana.')
+  })
+
+  it('says nothing for a member with no entry of their own', () => {
+    const other = row({ userId: 'u-jamie', displayName: 'Jamie', rank: 1, points: 44 })
+    const you = row({
+      userId: 'u-you',
+      displayName: 'You',
+      rank: 2,
+      points: 0,
+      matchweeksPlayed: 0,
+      position: 2,
+      isYou: true,
+      hasEntry: false,
+    })
+
+    expect(league([other, you], you).yourGapLine).toBeNull()
+  })
+})

@@ -17,10 +17,13 @@ const scottish = { competitionSlug: 'scottish-premiership', seasonSlug: '2026-27
 const CHAMPIONSHIP_ID = '60000000-0000-0000-0000-000000000103'
 
 describe('weekly route authority', () => {
-  it('owns the five global Hub destinations', () => {
+  it('owns the five global Hub destinations, plus the catalogue that is not one', () => {
     expect(weeklyRoutes).toEqual({
       hub: '/',
       play: '/play',
+      // Discovery, deliberately not a sixth tab: the navigation authority
+      // keeps the whole catalogue out of permanent navigation.
+      competitions: '/competitions',
       matches: '/matches',
       leagues: '/leagues',
       more: '/more',

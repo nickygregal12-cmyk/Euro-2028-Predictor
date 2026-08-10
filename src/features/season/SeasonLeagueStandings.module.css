@@ -191,3 +191,40 @@
   background: var(--chip);
   color: var(--tx);
 }
+
+/* The gap to the nearest rival, under the caller's own standing. A block of its
+   own rather than a continuation of the sentence: two facts, read separately. */
+.yourGap {
+  display: block;
+  margin-top: 2px;
+  color: var(--tx2);
+  font-weight: 400;
+}
+
+/* The compare control says the word where there is room for it. Below the
+   breakpoint the row is already four columns of numbers on a phone, and "vs"
+   is what fits; the accessible name is the full sentence either way. */
+.compareWide {
+  display: none;
+}
+
+.compareNarrow {
+  display: inline;
+}
+
+@media (min-width: 560px) {
+  .compareWide {
+    display: inline;
+  }
+
+  .compareNarrow {
+    display: none;
+  }
+
+  /* The word needs room the glyph did not; the tap target keeps its minimum
+     height so the row does not change size between widths. */
+  .compare {
+    min-width: 0;
+    padding-inline: var(--sp-3);
+  }
+}

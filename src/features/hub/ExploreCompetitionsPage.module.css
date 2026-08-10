@@ -1,0 +1,112 @@
+.intro {
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.groupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.groupTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.count {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+  font-variant-numeric: var(--numeric);
+}
+
+.note,
+.none,
+.followNote {
+  margin: 0;
+  color: var(--tx3);
+  font-size: var(--fs-1);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+/* The catalogue is the one list that genuinely grows, so it uses the width it
+   is given rather than staying a single column on a desktop. */
+@media (min-width: 900px) {
+  .list {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+.card {
+  display: grid;
+  gap: 2px;
+  min-height: var(--tap-min);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--tx);
+  text-decoration: none;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+}
+
+.season {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+  font-variant-numeric: var(--numeric);
+}
+
+.summary {
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.state {
+  margin-top: var(--sp-1);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+/* Published, and not a link. It must not look like one: the competition is
+   real and this build cannot route to it. */
+.cardInert {
+  border-style: dashed;
+  color: var(--tx2);
+  cursor: default;
+}

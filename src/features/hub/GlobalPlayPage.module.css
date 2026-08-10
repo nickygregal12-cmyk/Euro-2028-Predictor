@@ -1,0 +1,118 @@
+.intro {
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+}
+
+.allClear {
+  margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--tx2);
+  font-size: var(--fs-2);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.groupTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+/* One action. A grid rather than three stacked spans so the competition line,
+   the action and the deadline hold the same positions in every card and a
+   column of them can be scanned. */
+.action {
+  display: grid;
+  gap: 2px;
+  min-height: var(--tap-min);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--tx);
+  text-decoration: none;
+}
+
+.action:hover {
+  border-color: var(--border-strong);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* Urgency is a left bar and a word, never colour alone: the deadline is printed
+   on every card and the group heading says "Urgent" above it. */
+.actionUrgent {
+  border-left-color: var(--amb);
+}
+
+.actionDone {
+  background: transparent;
+}
+
+/* A joined game with no surface yet. Not a control, and not styled as one. */
+.actionInert {
+  cursor: default;
+  color: var(--tx2);
+}
+
+.where {
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+}
+
+.when {
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  font-variant-numeric: var(--numeric);
+}
+
+.exploreLink {
+  color: var(--acc);
+  font-weight: 600;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

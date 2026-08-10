@@ -71,6 +71,51 @@ export function scoreFixture(
   return 0
 }
 
+/**
+ * Why a fixture scored what it scored.
+ *
+ * WHY IT LIVES HERE AND NOT IN A COMPONENT. The direction asks for one reusable
+ * points-explanation driven by the canonical scoring authority, and explicitly
+ * forbids recreating the rules in presentation code to explain them. A surface
+ * that wanted to say "right result, wrong score" had to compare the outcomes
+ * itself — a second reading of the same rule, in a place with no parity test
+ * behind it. This returns the reason and the points TOGETHER, from the one
+ * comparison, so an explanation cannot disagree with the number it explains.
+ *
+ * `points` IS `scoreFixture`'s ANSWER BY CONSTRUCTION, and a test asserts the
+ * equality across every combination rather than trusting the reading.
+ *
+ * IT DECIDES NOTHING NEW. Same thresholds, same outcome comparison, same
+ * treatment of an absent or invalid scoreline. It is a second way to ask an
+ * existing question, never a second answer.
+ */
+export type FixtureScoreReason = 'exact_score' | 'correct_result' | 'wrong' | 'unscored'
+
+export type FixtureScoreExplanation = {
+  reason: FixtureScoreReason
+  /** Identical to `scoreFixture(prediction, result)`. */
+  points: number
+}
+
+export function explainFixtureScore(
+  prediction: ScorelinePrediction | null | undefined,
+  result: FixtureFinalScore,
+): FixtureScoreExplanation {
+  // `unscored` covers both an absent prediction and a malformed scoreline: in
+  // neither case did the rule award or withhold anything, and calling that
+  // "wrong" would tell a player they predicted badly when they did not predict.
+  if (!isValidScoreline(result) || !isValidScoreline(prediction)) {
+    return { reason: 'unscored', points: 0 }
+  }
+  if (prediction.home === result.home && prediction.away === result.away) {
+    return { reason: 'exact_score', points: SEASON_PREDICTOR_POINTS.exactScore }
+  }
+  if (outcomeOf(prediction) === outcomeOf(result)) {
+    return { reason: 'correct_result', points: SEASON_PREDICTOR_POINTS.correctResult }
+  }
+  return { reason: 'wrong', points: 0 }
+}
+
 export type SettledMatchweekFixture = {
   prediction: ScorelinePrediction | null
   result: FixtureFinalScore

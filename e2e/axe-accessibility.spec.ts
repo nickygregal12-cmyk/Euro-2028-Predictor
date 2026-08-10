@@ -11,6 +11,7 @@ const ROUTES = [
   '/play',
   '/matches',
   '/leagues',
+  '/competitions',
   '/more',
   '/account',
   '/profile',

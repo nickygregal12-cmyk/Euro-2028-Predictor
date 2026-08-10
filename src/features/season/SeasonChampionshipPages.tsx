@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton, StatusBadge } from '../../design-system'
 import type {
@@ -14,6 +14,8 @@ import {
   type SeasonLmsRegistrationGateway,
 } from './lmsRegistrationModel'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
+import { presentChampionshipStanding } from './championshipStandingModel'
+import { Workspace } from '../../design-system'
 import styles from './SeasonChampionshipPages.module.css'
 
 type LoadState<T> =
@@ -228,10 +230,13 @@ export function SeasonChampionshipPlayerPage({
   gateway,
   mode,
   registration,
+  tableHref,
 }: {
   gateway: SeasonCupPlayerViewGateway
   mode: ChampionshipPageMode
   registration?: SeasonLmsRegistrationGateway
+  /** Where the full group table lives, for the standing panel's one link. */
+  tableHref?: string
 }) {
   const { state, reload } = useGateway<ChampionshipPlayerView>(gateway)
 
@@ -288,10 +293,90 @@ export function SeasonChampionshipPlayerPage({
 
   if (mode === 'table') return <ChampionshipTable view={view} />
   if (mode === 'fixtures') return <ChampionshipFixtures view={view} />
-  return <ChampionshipMyFixture view={view} />
+  return <ChampionshipMyFixture view={view} tableHref={tableHref ?? null} />
 }
 
-function ChampionshipMyFixture({ view }: { view: ChampionshipPlayerView }) {
+/**
+ * Where the player stands, beside the tie they are playing.
+ *
+ * IT USES WHAT THE PAGE ALREADY LOADED. `ChampionshipPlayerView` carries the
+ * table and the members, so this costs no request; it is the same facts,
+ * arranged for the question a fixture page raises.
+ *
+ * IT IS NOT THE TABLE PAGE. Three rows — the player and their neighbours — and
+ * a link to the full table, rather than a narrower copy of a page that already
+ * exists.
+ */
+function ChampionshipStandingPanel({
+  view,
+  tableHref,
+}: {
+  view: ChampionshipPlayerView
+  tableHref: string | null
+}) {
+  // Generated, for the same reason every other panel's is: a fixed id is a
+  // critical duplicate-id-aria as soon as two of these render together.
+  const standingHeadingId = useId()
+  const standing = presentChampionshipStanding(view)
+  if (standing.empty) return null
+
+  return (
+    <section className={styles.standingPanel} aria-labelledby={standingHeadingId}>
+      <h2 className={styles.standingHeading} id={standingHeadingId}>
+        Your group
+      </h2>
+      {standing.phaseLine ? (
+        <p className={styles.standingPhase}>{standing.phaseLine}</p>
+      ) : null}
+      {standing.positionLine ? (
+        <p className={styles.standingPosition}>{standing.positionLine}</p>
+      ) : null}
+
+      <ul className={styles.standingList}>
+        {standing.rows.map((row) => (
+          <li
+            key={row.key}
+            className={`${styles.standingRow} ${row.isYou ? styles.standingRowYou : ''}`}
+          >
+            <span className={styles.srOnly}>
+              {row.rank}. {row.name}, {row.tablePoints} table points from {row.pointsFor}{' '}
+              prediction points
+            </span>
+            <span className={styles.standingRank} aria-hidden="true">
+              {row.rank}
+            </span>
+            <span className={styles.standingName} aria-hidden="true">
+              {row.name}
+            </span>
+            <span className={styles.standingPoints} aria-hidden="true">
+              {row.tablePoints}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* Said once, where it answers the obvious question about a fixture the
+          player cannot play directly. It is a rule, not a derived number. */}
+      <p className={styles.standingNote}>
+        Ties are decided by the Match Predictor points you earn each matchweek.
+      </p>
+
+      {tableHref ? (
+        <Link className={styles.standingLink} to={tableHref}>
+          Full table
+        </Link>
+      ) : null}
+    </section>
+  )
+}
+
+function ChampionshipMyFixture({
+  view,
+  tableHref,
+}: {
+  view: ChampionshipPlayerView
+  tableHref: string | null
+}) {
   const myFixtures = view.fixtures.filter((fixture) => fixture.isMyFixture)
   const fixture = myFixtures.find((entry) => entry.status === 'pending') ?? myFixtures.at(-1) ?? null
   const me = view.members.find((member) => member.isYou)
@@ -313,6 +398,13 @@ function ChampionshipMyFixture({ view }: { view: ChampionshipPlayerView }) {
   const result = resultLabel(fixture.result)
 
   return (
+    // The tie in the main column, where the player stands beside it. Both come
+    // out of the same loaded view, so the panel costs no request and cannot
+    // disagree with the page it sits next to.
+    <Workspace
+      aside={<ChampionshipStandingPanel view={view} tableHref={tableHref} />}
+      asideLabel="Your group"
+    >
     <section className={styles.page}>
       <header className={styles.header}>
         <p className={styles.eyebrow}>{view.phaseKind === 'split' ? 'The split' : 'League phase'}</p>
@@ -348,6 +440,7 @@ function ChampionshipMyFixture({ view }: { view: ChampionshipPlayerView }) {
         </p>
       </article>
     </section>
+    </Workspace>
   )
 }
 

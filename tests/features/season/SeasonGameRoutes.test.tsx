@@ -35,6 +35,13 @@ vi.mock('../../../src/services/supabase/seasonCupPlayer', () => ({
   createSeasonCupDiscoveryRpcGateway: mocks.createSeasonCupDiscoveryRpcGateway,
   createSeasonCupPlayerViewRpcGateway: mocks.createSeasonCupPlayerViewRpcGateway,
 }))
+// The Last Man Standing route's contextual form panel reads contract 141.
+// Empty here: this file tests routing and shell composition, not the panel.
+vi.mock('../../../src/services/supabase/seasonClubForm', () => ({
+  fetchSeasonClubForm: vi.fn(() => Promise.resolve({ serverNow: null, matches: 6, clubs: [] })),
+  fetchSeasonClubHeadToHead: vi.fn(),
+}))
+
 vi.mock('../../../src/services/supabase/seasonPeriodStandings', () => ({
   fetchSeasonPeriodStandings: mocks.fetchSeasonPeriodStandings,
   fetchMyEntryId: mocks.fetchMyEntryId,
@@ -251,7 +258,7 @@ describe('the season game routes', () => {
 
     renderRoute(<SeasonStandingsRoute />, STANDINGS, `${PREMIER}/games/match-predictor/standings`)
 
-    await waitFor(() => expect(screen.getByText('Premier League')).toBeTruthy())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Premier League' })).toBeTruthy())
     expect(screen.getByRole('navigation', { name: /sections/ })).toBeTruthy()
   })
 

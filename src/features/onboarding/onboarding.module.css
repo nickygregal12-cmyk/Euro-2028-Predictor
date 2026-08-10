@@ -1,0 +1,320 @@
+/* Onboarding steps. Presentation-complete and deliberately not wired into the
+   live first-sign-in journey: no authority can persist a follow, a favourite or
+   onboarding progress yet (MIG-UI-10). */
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.stepTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-5);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+.stepLead {
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+  /* A readable measure even when the step is composed into a wide column. */
+  max-width: 60ch;
+}
+
+.count {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-weight: 600;
+  color: var(--tx2);
+  font-variant-numeric: var(--numeric);
+}
+
+.none,
+.note {
+  margin: 0;
+  color: var(--tx3);
+  font-size: var(--fs-1);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.groupTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+/* Two or three across once there is room. `auto-fill` rather than a fixed
+   count, so twenty competitions reflow instead of forming a wall of equal
+   cards in one long column. */
+.choices,
+.teams {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-2);
+}
+
+@media (min-width: 640px) {
+  .choices {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  .teams {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+}
+
+/* A real button, with aria-pressed. The tick is a second, non-colour signal
+   beside the border and fill. */
+.choice,
+.team,
+.game {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  min-height: var(--tap-min);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--tx);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.choice:hover,
+.team:hover,
+.game:hover {
+  border-color: var(--border-strong);
+}
+
+.choice:focus-visible,
+.team:focus-visible,
+.game:focus-visible,
+.mode:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.choiceOn,
+.teamOn,
+.gameOn {
+  border-color: var(--acc);
+  background: var(--chip);
+}
+
+.choiceMonogram {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--tx2);
+}
+
+.choiceCopy,
+.gameCopy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+/* Competition and league names are user-facing and can be long; they wrap
+   rather than truncate, because a hidden half of a name is worse than two
+   lines. */
+.choiceName,
+.gameName,
+.teamName {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.choiceSeason,
+.gameMeta {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+  font-variant-numeric: var(--numeric);
+}
+
+.gameDescription {
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.choiceMark {
+  flex: 0 0 1.5rem;
+  text-align: right;
+  font-size: var(--fs-3);
+  font-weight: 700;
+  color: var(--acc);
+}
+
+.unroutable {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--sp-3);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-card);
+  color: var(--tx2);
+}
+
+.unroutableName {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.unroutableNote,
+.gameRefusal {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.team {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--sp-2);
+}
+
+.stepActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.mode {
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  cursor: pointer;
+}
+
+.modeOn {
+  border-color: var(--acc);
+  background: var(--chip);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.gameList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.game {
+  align-items: flex-start;
+}
+
+/* Unavailable or already joined: not a control, and not styled as one.
+   Its own gap, because the row gap that separates a game's copy from its tick
+   becomes a hole between a sentence and the sentence explaining it once the
+   row stacks. */
+.gameInert {
+  flex-direction: column;
+  gap: var(--sp-1);
+  cursor: default;
+  border-style: dashed;
+  color: var(--tx2);
+}
+
+.gameTag {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--acc);
+  font-weight: 700;
+}
+
+.reviewBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.reviewTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+}
+
+.reviewNote {
+  margin: 0;
+  color: var(--tx3);
+  font-size: var(--fs-1);
+}
+
+.reviewList {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.reviewRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  font-size: var(--fs-2);
+}
+
+.reviewWhere {
+  font-weight: 600;
+}
+
+.reviewValue {
+  color: var(--tx2);
+}
+
+.reviewFavourite {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+}

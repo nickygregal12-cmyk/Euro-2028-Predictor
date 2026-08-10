@@ -1,0 +1,126 @@
+.intro {
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-2);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.filter {
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  cursor: pointer;
+}
+
+.filter:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+/* Selected state carries aria-pressed as well as the fill — never colour
+   alone. */
+.filterOn {
+  border-color: var(--acc);
+  background: var(--chip);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.count {
+  font-variant-numeric: var(--numeric);
+  color: var(--tx3);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+
+/* Two across once there is room. A private-play card is short, and one column
+   of them on a 1440px screen is the widened-phone failure. */
+@media (min-width: 900px) {
+  .list {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+.card {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
+}
+
+/* The context that makes the name mean something once a player has two
+   leagues in two competitions. */
+.where {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.meta {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.code {
+  margin: var(--sp-1) 0 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.codeValue {
+  font-variant-numeric: var(--numeric);
+  letter-spacing: var(--tracking-open);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.open {
+  margin-top: var(--sp-2);
+  color: var(--acc);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.open:hover {
+  text-decoration: underline;
+}
+
+.link {
+  color: var(--acc);
+  font-weight: 600;
+}
+
+/* The two ways the list grows, at the top of the page rather than the bottom:
+   an empty Leagues page is exactly the one where they matter most. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}

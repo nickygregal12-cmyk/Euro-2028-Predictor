@@ -3,6 +3,15 @@ export const weeklyRoutes = {
   play: '/play',
   matches: '/matches',
   leagues: '/leagues',
+  /**
+   * The whole published catalogue, as a deliberate discovery surface.
+   *
+   * It is NOT a sixth global destination and has no tab: the 10 August 2026
+   * navigation authority keeps the catalogue out of permanent navigation and
+   * reaches it from the bounded competition shortcuts instead. It has an
+   * address because it is a page a player can be linked to and can bookmark.
+   */
+  competitions: '/competitions',
   more: '/more',
 } as const
 
@@ -15,6 +24,7 @@ export const weeklyRoutePatterns = {
   competition: '/competitions/:competitionSlug/:seasonSlug',
   play: '/competitions/:competitionSlug/:seasonSlug/play',
   matches: '/competitions/:competitionSlug/:seasonSlug/matches',
+  matchCentre: '/competitions/:competitionSlug/:seasonSlug/matches/:fixtureId',
   games: '/competitions/:competitionSlug/:seasonSlug/games',
   matchPredictor: '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   matchPredictorStandings:
@@ -51,12 +61,17 @@ export type GlobalNavTab = 'home' | 'predict' | 'matches' | 'league' | 'more'
  * competition context" and "never swaps its destinations", so every competition
  * page now has to say which of the five it sits under.
  *
- * The mapping is the chooser's, read backwards. Tapping Matches leads to a
- * competition's `matches` section (`competitionChooserModel`), so a
- * competition's `matches` section highlights Matches; the same for Play and
- * Leagues. Overview and Games were reached from the Hub itself and highlight
- * Home, while a game route under `games/` is where playing happens and
- * highlights Play rather than the Home tab that led to it.
+ * The mapping follows the global destination each section answers to. Matches
+ * is the combined football calendar, so a competition's `matches` section
+ * highlights Matches; the same for Play and Leagues. Overview and Games are
+ * reached from the Hub and highlight Home, while a game route under `games/` is
+ * where playing happens and highlights Play rather than the Home tab that led
+ * to it.
+ *
+ * The three global destinations are no longer competition CHOOSERS — they are
+ * an action inbox, one football calendar and all the player's private play —
+ * but the section they correspond to inside a competition is unchanged, which
+ * is what this mapping is for.
  *
  * MATCHING IS BY PREFIX, not by equality. The old exact comparisons meant no
  * deep route anywhere lit a tab — a player at a league table saw five
@@ -73,6 +88,10 @@ export function globalNavTab(pathname: string): GlobalNavTab {
 
   if (pathname === weeklyRoutes.play) return 'predict'
   if (pathname === weeklyRoutes.matches || pathname.startsWith('/match/')) return 'matches'
+  // Exploring the catalogue is a Home-tab activity: it is how a player finds a
+  // competition to play, and it is reached from the Hub and the rail rather
+  // than from any of the other four.
+  if (pathname === weeklyRoutes.competitions) return 'home'
   if (
     pathname === weeklyRoutes.leagues ||
     pathname.startsWith('/league/') ||

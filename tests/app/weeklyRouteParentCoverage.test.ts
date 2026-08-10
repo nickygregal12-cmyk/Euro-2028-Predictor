@@ -8,6 +8,8 @@ const ADMIN_START = appSource.indexOf('<Route element={<RequireAdmin />}>', SHEL
 const REDIRECT_ONLY = new Set(['/fixtures', '/league', '/more/points'])
 
 const SHIPPED_WEEKLY_ROUTES = [
+  '/competitions',
+  '/competitions/:competitionSlug/:seasonSlug/matches/:fixtureId',
   '/',
   '/play',
   '/matches',
@@ -37,6 +39,7 @@ function materialise(template: string): string {
     .replace(':id', 'private-1')
     .replace(':rivalId', 'player-2')
     .replace(':playerId', 'player-2')
+    .replace(':fixtureId', 'fixture-1')
     .replace('*', 'private-1')
 }
 

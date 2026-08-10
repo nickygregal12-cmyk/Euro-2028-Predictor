@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import {
   competitionChampionshipInstanceRoute,
+  competitionChampionshipTableRoute,
   competitionRoute,
   logicalWeeklyParent,
   weeklyRoutes,
@@ -39,6 +40,10 @@ import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { seasonShellDestinations } from './seasonDestinations'
 import { SeasonLeaguesPage } from './SeasonLeaguesPage'
 import { SeasonPlayPage } from './SeasonPlayPage'
+import { SeasonLmsFormGuide } from './SeasonLmsFormGuide'
+import { presentLmsFormGuide, type LmsFormGuide } from './lmsFormGuideModel'
+import { fetchSeasonClubForm } from '../../services/supabase/seasonClubForm'
+import { SeasonPeriodStandings } from './SeasonPeriodStandings'
 import { SeasonStandingsPage } from './SeasonStandingsPage'
 import { SeasonLmsPage } from './SeasonLmsPage'
 import {
@@ -118,6 +123,9 @@ function RouteFrame({
   state,
   game,
   statusStrip = [],
+  aside,
+  asideLabel,
+  width,
   children,
 }: {
   title: string
@@ -125,6 +133,14 @@ function RouteFrame({
   state: RouteState
   game?: DomesticGameRoute
   statusStrip?: readonly string[]
+  /**
+   * The desktop contextual panel, built from the resolved season like the
+   * children are. A function rather than a node because the panel's own
+   * gateway needs the season identifiers, which only exist once resolved.
+   */
+  aside?: (resolved: Resolved) => React.ReactNode
+  asideLabel?: string
+  width?: 'reading' | 'full'
   children: (resolved: Resolved) => React.ReactNode
 }) {
   const { pathname } = useLocation()
@@ -175,6 +191,9 @@ function RouteFrame({
       statusStrip={statusStrip}
       active={section}
       destinations={seasonShellDestinations(competitionBase(state.resolved))}
+      aside={aside ? aside(state.resolved) : undefined}
+      asideLabel={asideLabel}
+      width={width}
     >
       {game ? <SeasonGameSubNav game={game} /> : null}
       {children(state.resolved)}
@@ -204,6 +223,16 @@ export function SeasonStandingsRoute() {
       section="games"
       state={state}
       game="match-predictor"
+      // The season table is the widest thing in the product: rank, name,
+      // matchweeks and points, for a field that can run to hundreds. It earns
+      // the full width, and ADR 0012's two retention tables move beside it
+      // rather than below it — where, on a desktop, they were previously a
+      // scroll away from the table they qualify.
+      width="full"
+      asideLabel="Monthly and rolling form"
+      aside={(resolved) => (
+        <SeasonPeriodStandingsPanel tournamentId={resolved.tournamentId} userId={userId} />
+      )}
     >
       {(resolved) => (
         <SeasonStandingsRouteBody tournamentId={resolved.tournamentId} userId={userId} />
@@ -214,7 +243,6 @@ export function SeasonStandingsRoute() {
 
 function SeasonStandingsRouteBody({
   tournamentId,
-  userId,
 }: {
   tournamentId: string
   userId: string | null
@@ -226,6 +254,31 @@ function SeasonStandingsRouteBody({
     }),
     [tournamentId],
   )
+
+  // No `periods`: the retention tables are the route's contextual panel now, so
+  // passing them here as well would render both twice on a wide screen.
+  return <SeasonStandingsPage gameName="Match Predictor" gateway={gateway} />
+}
+
+/**
+ * ADR 0012's monthly and rolling-form tables, as the standings section's
+ * contextual panel.
+ *
+ * THE SENTENCE THAT SUBORDINATES THEM TRAVELS WITH THEM. `SeasonPeriodStandings`
+ * carries its own statement that the cumulative total is the only ranking that
+ * decides a season — which matters more beside the table than beneath it, since
+ * a panel of equal visual weight is exactly the rival claim ADR 0012 forbids.
+ *
+ * ABSENT FOR A SIGNED-OUT OR UNRESOLVED CALLER, because the read is addressed by
+ * the caller's own entry. An empty panel would be furniture.
+ */
+function SeasonPeriodStandingsPanel({
+  tournamentId,
+  userId,
+}: {
+  tournamentId: string
+  userId: string | null
+}) {
   const periods = useMemo(
     () =>
       userId
@@ -237,8 +290,8 @@ function SeasonStandingsRouteBody({
         : undefined,
     [tournamentId, userId],
   )
-
-  return <SeasonStandingsPage gameName="Match Predictor" gateway={gateway} periods={periods} />
+  if (!periods) return null
+  return <SeasonPeriodStandings gateway={periods} />
 }
 
 export function SeasonLmsRoute() {
@@ -246,7 +299,22 @@ export function SeasonLmsRoute() {
   const { userId } = useAuth()
 
   return (
-    <RouteFrame title="Last Man Standing" section="games" state={state} game="lms">
+    <RouteFrame
+      title="Last Man Standing"
+      section="games"
+      state={state}
+      game="lms"
+      // The decision this page asks for is "which of these clubs wins", and
+      // contract 141's form read answers it for the whole season in one
+      // request. It duplicates nothing: the pick list is fixtures in kickoff
+      // order, this is clubs in form order, and it recommends nothing.
+      asideLabel="Form guide"
+      aside={(resolved) =>
+        resolved.gameIds.last_man_standing ? (
+          <SeasonLmsFormPanel tournamentId={resolved.tournamentId} />
+        ) : undefined
+      }
+    >
       {(resolved) => {
         const competitionId = resolved.gameIds.last_man_standing
         if (!competitionId) return <MissingGame name="Last Man Standing" />
@@ -285,6 +353,56 @@ function SeasonLmsRouteBody({
   const now = useMemo(() => () => new Date(), [])
 
   return <SeasonLmsPage gateway={gateway} now={now} registration={registration} />
+}
+
+/**
+ * The Last Man Standing contextual panel.
+ *
+ * IT READS THE ROUND AGAIN, and that is a deliberate cost rather than an
+ * oversight. The alternative is lifting the round state out of `SeasonLmsPage`
+ * so the panel can share it, which would make the page's own state machine —
+ * pick, conflict, reload — the route's business. Two cheap reads is a better
+ * trade than one shared mutable state across a component boundary, and the
+ * panel is read-only.
+ *
+ * BOTH READS FAIL SILENTLY AND ALONE. A form guide is context beside the
+ * answer; a panel that took the pick list down with it would be the opposite of
+ * useful.
+ */
+function SeasonLmsFormPanel({ tournamentId }: { tournamentId: string }) {
+  const [guide, setGuide] = useState<LmsFormGuide | null>(null)
+
+  useEffect(() => {
+    let active = true
+    setGuide(null)
+    void (async () => {
+      const [round, form] = await Promise.all([
+        // `Promise.resolve().then(...)` rather than calling the gateway
+        // directly: BUILDING it can throw synchronously, and a synchronous
+        // throw escapes the rejection handler two lines below — the panel
+        // would take the page's error boundary with it instead of failing
+        // silently, which is the one thing this component promises not to do.
+        Promise.resolve()
+          .then(() => createSeasonLmsRpcGateway({ tournamentId }).load())
+          .then(
+            (page) => page,
+            () => null,
+          ),
+        fetchSeasonClubForm(tournamentId).then(
+          (table) => table.clubs,
+          () => null,
+        ),
+      ])
+      if (!active) return
+      setGuide(presentLmsFormGuide(round, form, round?.pick?.teamId ?? null))
+    })()
+    return () => {
+      active = false
+    }
+  }, [tournamentId])
+
+  if (!guide) return null
+  return <SeasonLmsFormGuide guide={guide} />
 }
 
 /**
@@ -347,6 +465,10 @@ function SeasonChampionshipPlayerRoute({ mode }: { mode: ChampionshipPageMode })
       section="games"
       state={state}
       game="championship"
+      // My Fixture composes its own two-column layout, because the panel is
+      // built from the view that page already loaded; the shell therefore
+      // stops capping the content at a reading column and lets it.
+      width={mode === 'fixture' ? 'full' : 'reading'}
     >
       {(resolved) => {
         const publicCompetitionId = resolved.gameIds.predictor_cup
@@ -365,6 +487,10 @@ function SeasonChampionshipPlayerRoute({ mode }: { mode: ChampionshipPageMode })
             publicCompetitionId={publicCompetitionId}
             userId={userId}
             mode={mode}
+            tableHref={competitionChampionshipTableRoute(
+              resolved.competition,
+              competitionId,
+            )}
           />
         )
       }}
@@ -378,12 +504,14 @@ function SeasonChampionshipPlayerRouteBody({
   publicCompetitionId,
   userId,
   mode,
+  tableHref,
 }: {
   tournamentId: string
   competitionId: string
   publicCompetitionId: string
   userId: string | null
   mode: ChampionshipPageMode
+  tableHref: string
 }) {
   const gateway = useMemo(
     () => createSeasonCupPlayerViewRpcGateway({ competitionId }),
@@ -397,7 +525,14 @@ function SeasonChampionshipPlayerRouteBody({
     [tournamentId, competitionId, publicCompetitionId, userId],
   )
 
-  return <SeasonChampionshipPlayerPage gateway={gateway} mode={mode} registration={registration} />
+  return (
+    <SeasonChampionshipPlayerPage
+      gateway={gateway}
+      mode={mode}
+      registration={registration}
+      tableHref={tableHref}
+    />
+  )
 }
 
 export function SeasonLeaguesRoute() {

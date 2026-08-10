@@ -57,7 +57,51 @@ const SECTIONS = [
   'season-match-centre',
   'season-overview-next-up',
   'provider-review-queues',
+  // The UI-finalisation surfaces. Each is a composition no route harness
+  // renders, so the gallery is the only place they can be photographed at all:
+  // the desktop rail against a twenty-competition catalogue, the two game
+  // contextual panels, the onboarding steps, the create-a-league journey and
+  // the rules disclosure.
+  //
+  // The BAR had to get a section of its own, and the first runner render is
+  // what showed why: `PageShell` hides it above 1024px, and that is a VIEWPORT
+  // media query while the gallery pins panel WIDTH in CSS — so the runner's
+  // window puts both panels above the breakpoint and "pageshell-bottomnav"
+  // photographs a shell with no bar in it. That image lost its five tabs and a
+  // fifth of its bytes. Rendering the component directly is what `SideRailDemo`
+  // already does for the rail.
+  'mobile-bottom-navigation',
+  'desktop-navigation-rail',
+  'lms-form-guide-panel',
+  'fixture-consensus-panel',
+  'onboarding-choose-competitions',
+  'onboarding-favourite-team',
+  'onboarding-games-and-review',
+  'create-a-league-journey',
+  'game-rules-disclosure',
 ] as const
+
+/**
+ * Sections declared above whose baselines have not been rendered yet.
+ *
+ * **EMPTY, AND THAT IS THE POINT.** Every section above is photographed.
+ *
+ * WHY THE LIST EXISTS AT ALL, AND WHY IT IS NOT A WEAKENING. A baseline is only
+ * meaningful when it was rendered on the machine that will compare it, and only
+ * the GitHub runner is that machine — an image produced in a development
+ * container differs from the runner's by font build and graphics stack, so
+ * committing one from here would hand CI a failure nobody can act on and invite
+ * someone to raise the tolerance. A section added from a development container
+ * therefore lands here, and `visual-contracts.yml` is dispatched with
+ * `update_baselines` and `commit_baselines` to produce its images.
+ *
+ * IT IS SELF-DELETING. `visualContractHarness` excludes these from its baseline
+ * count and **fails if a name here already has baselines on disk**, so an entry
+ * cannot outlive the dispatch that satisfies it — which is what stops a
+ * "temporary" exemption from becoming the way new sections are added. The nine
+ * UI-finalisation sections passed through it and are gone from it.
+ */
+export const AWAITING_BASELINE: readonly string[] = []
 
 const WIDTHS = ['phone', 'desktop'] as const
 const THEMES = ['dark', 'light'] as const

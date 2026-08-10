@@ -1,7 +1,7 @@
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import type { PeriodRowView, PeriodTableView } from './periodStandingsModel'
 import type { SeasonPeriodStandingsGateway } from './periodStandingsModel'
-import { formatMonth } from './formatInstant'
+import { formatMonth } from '../../shared/time/kickoff'
 import { useSeasonPeriodStandings } from './useSeasonPeriodStandings'
 import styles from './SeasonPeriodStandings.module.css'
 

@@ -67,25 +67,6 @@
   overflow-wrap: anywhere;
 }
 
-.switcherLink {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tap-min);
-  width: fit-content;
-  padding: var(--sp-2) var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-pill);
-  color: var(--tx2);
-  font-family: var(--font-body);
-  font-size: var(--fs-2);
-  text-decoration: none;
-}
-
-.switcherLink:hover {
-  border-color: var(--tx3);
-  color: var(--tx);
-}
-
 .status {
   display: flex;
   flex-wrap: wrap;

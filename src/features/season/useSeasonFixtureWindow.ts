@@ -52,9 +52,17 @@ function shift(instant: string, days: number): string {
   return at.toISOString()
 }
 
+/**
+ * `timeZone` is a deterministic override for harnesses and tests. Production
+ * omits it, and the shared kickoff authority resolves the viewer's own zone —
+ * the competition's persisted zone no longer decides presentation. It is
+ * deliberately no longer read off `page.competition.timeZone`: that field is
+ * the calendar's, and preferring it here is exactly the behaviour the 10 August
+ * direction reverses.
+ */
 export function useSeasonFixtureWindow(
   gateway: SeasonFixtureWindowGateway,
-  timeZone: string,
+  timeZone?: string,
 ): SeasonFixtureWindowState {
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [view, setView] = useState<FixtureListView | null>(null)
@@ -80,7 +88,7 @@ export function useSeasonFixtureWindow(
       try {
         const page = await gateway.load(next)
         if (ticket !== sequence.current) return
-        setView(presentFixtureList(page, page.competition.timeZone || timeZone))
+        setView(presentFixtureList(page, timeZone))
         setWindow(page.window)
         setStatus('ready')
         showing.current = true

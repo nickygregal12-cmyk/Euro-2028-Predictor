@@ -20,6 +20,7 @@ import h from './hub.module.css'
 import { isNextUi } from '../../app/routeFlags'
 import {
   findHubCompetition,
+  gamesJoinedFirst,
   type HubCompetition,
   type HubGame,
 } from './competitionCatalogue'
@@ -38,6 +39,12 @@ import { seasonShellDestinations } from '../season/seasonDestinations'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
 import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEligibility'
 import type { GameLeaveEligibility } from '../../services/supabase/gameLeaveEligibilityModel'
+import { GameRulesDisclosure } from '../season/GameRulesDisclosure'
+import {
+  SEASON_GAME_RULES,
+  seasonGameRules,
+  type SeasonRulesGameKey,
+} from '../season/gameRules'
 
 function domesticGameRoute(game: HubGame): DomesticGameRoute | null {
   switch (game.kind) {
@@ -66,11 +73,9 @@ function gamePath(competition: HubCompetition, game: HubGame): string | null {
  */
 function OverviewFixtures({
   tournamentId,
-  timeZone,
   onSeeAll,
 }: {
   tournamentId: string
-  timeZone: string
   onSeeAll: () => void
 }) {
   const gateway = useMemo(
@@ -80,7 +85,7 @@ function OverviewFixtures({
     }),
     [tournamentId],
   )
-  return <SeasonFixturePreview gateway={gateway} timeZone={timeZone} onSeeAll={onSeeAll} />
+  return <SeasonFixturePreview gateway={gateway} onSeeAll={onSeeAll} />
 }
 
 type DashboardState =
@@ -229,6 +234,19 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
       statusStrip={[competition.status]}
       active={mode}
       destinations={destinations}
+      // Overview is the one section with two independent things to show — what
+      // this player owes the week, and what the competition is playing — so on
+      // desktop they sit side by side instead of the football being a scroll
+      // below the actions. The Games list has no second column and takes none.
+      asideLabel={mode === 'overview' ? 'Fixtures and results' : undefined}
+      aside={
+        mode === 'overview' && state.status === 'ready' && state.season ? (
+          <OverviewFixtures
+            tournamentId={state.season.tournamentId}
+            onSeeAll={() => navigate(competitionSectionRoute(competition, 'matches'))}
+          />
+        ) : undefined
+      }
     >
       {state.status === 'failed' ? (
         <Alert variant="warning" title="Couldn’t check your entries">
@@ -257,20 +275,13 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             week={week.week}
             loading={week.loading}
             failed={week.failed}
-            timeZone={week.timeZone}
           />
-          {/* And what the COMPETITION is playing, which the panel above does
-              not say: it reports what each GAME is asking of this player, so a
-              player who has joined nothing here saw an Overview with no
-              football on it at all. Fixtures belong to the competition and are
-              the same for everyone following it, joined or not. */}
-          {state.status === 'ready' && state.season ? (
-            <OverviewFixtures
-              tournamentId={state.season.tournamentId}
-              timeZone={week.timeZone}
-              onSeeAll={() => navigate(competitionSectionRoute(competition, 'matches'))}
-            />
-          ) : null}
+          {/* What the COMPETITION is playing — which the panel above does not
+              say, since it reports what each GAME is asking of this player —
+              is the contextual panel above. It stacks here on a phone, in
+              exactly this position, and moves beside the actions on a wide
+              screen. Fixtures belong to the competition and are the same for
+              everyone following it, joined or not. */}
           <Button
             variant="primary"
             fullWidth
@@ -296,7 +307,11 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
             </div>
 
             <div className={h.gameStack}>
-              {competition.games.map((game) => {
+              {/* Joined first (`UI-F08`). A player opens Games to do something
+                  in a game they are in, and the catalogue's declaration order
+                  put an unjoined game above a joined one whenever it happened
+                  to list it first. */}
+              {gamesJoinedFirst(competition.games).map((game) => {
                 const path = gamePath(competition, game)
                 const headingId = `game-${game.kind}`
                 const served = servedGames.find((entry) => entry.gameKey === game.gameKey)
@@ -309,7 +324,7 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                   : null
                 const busy = served !== undefined && acting === served.id
                 const action = weekActionForGame(week.week, game.gameKey)
-                const when = action ? formatWeekDeadline(action, week.timeZone) : null
+                const when = action ? formatWeekDeadline(action) : null
                 const callToAction = weekActionCallToAction(action)
                 // The action's destination when it has one, else the card's.
                 const destination = (callToAction ? action?.href : null) ?? path
@@ -333,6 +348,18 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
                       )}
                     </div>
                     <span className={h.gameDescription}>{game.description}</span>
+
+                    {/* "How it works", answered here rather than linked away.
+                        The rules come from `domain/season/`, which is what
+                        decides them; a game this build has no rules content for
+                        renders nothing rather than a generic paragraph. */}
+                    <GameRulesDisclosure
+                      rules={
+                        game.gameKey in SEASON_GAME_RULES
+                          ? seasonGameRules(game.gameKey as SeasonRulesGameKey)
+                          : null
+                      }
+                    />
 
                     {/* What this game is asking of the player right now, from
                         the game's OWN read — the same computation Overview's

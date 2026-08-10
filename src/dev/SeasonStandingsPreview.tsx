@@ -46,7 +46,7 @@ export function SeasonStandingsPreview() {
         </p>
       </header>
 
-      <div className={styles.controls}>
+      <div className={styles.controls} data-harness>
         <fieldset className={styles.group}>
           <legend>Scenario</legend>
           {SCENARIOS.map((option) => (

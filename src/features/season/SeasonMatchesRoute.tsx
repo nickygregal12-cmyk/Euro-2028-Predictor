@@ -263,9 +263,11 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
           the next fortnight — because "what is on around now" is the question
           this section answers, and anchoring it to a matchweek is what filed a
           postponed November fixture under a September heading. */}
+      {/* No `timeZone`. Kickoffs resolve in the VIEWER's own zone under the
+          10 August direction; the competition's persisted zone stays with the
+          calendar it belongs to. */}
       <SeasonMatchesPage
         gateway={fixtures}
-        timeZone={context.timeZone}
         readMatchweekCard={readCard}
         football={football}
         predictHref={predictHref}

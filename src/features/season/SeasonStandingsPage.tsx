@@ -1,6 +1,7 @@
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import type { SeasonPeriodStandingsGateway } from './periodStandingsModel'
 import { SeasonPeriodStandings } from './SeasonPeriodStandings'
+import { formatFieldSize, percentileLine } from './rankContext'
 import type { SeasonStandingsGateway, StandingsRow } from './standingsModel'
 import { useSeasonStandings } from './useSeasonStandings'
 import styles from './SeasonStandingsPage.module.css'
@@ -124,8 +125,8 @@ export function SeasonStandingsPage({
     <section className={styles.panel}>
       <h2 className={styles.heading}>{gameName} standings</h2>
       <p className={styles.caption}>
-        {view.totalCount} {view.totalCount === 1 ? 'player' : 'players'}, ranked on points from
-        settled matchweeks.
+        {formatFieldSize(view.totalCount)} {view.totalCount === 1 ? 'player' : 'players'}, ranked on
+        points from settled matchweeks.
       </p>
 
       {/* Where the caller stands, said once and in words. The table already
@@ -135,8 +136,16 @@ export function SeasonStandingsPage({
           matchweek, because there is no position to state. */}
       {you ? (
         <p className={styles.yourStanding}>
-          You are {you.rankLabel.replace('=', 'joint ')} of {view.totalCount} on {you.points}{' '}
-          {you.points === 1 ? 'point' : 'points'}.
+          You are {you.rankLabel.replace('=', 'joint ')} of {formatFieldSize(view.totalCount)} on{' '}
+          {you.points} {you.points === 1 ? 'point' : 'points'}.
+          {/* Context, not movement. Both numbers are the server's and the
+              percentile is arithmetic over them; "up 3 this matchweek" needs
+              history no read exposes and is deliberately absent. */}
+          {percentileLine(you.rank, view.totalCount) ? (
+            <span className={styles.percentile}>
+              {percentileLine(you.rank, view.totalCount)}
+            </span>
+          ) : null}
         </p>
       ) : null}
 

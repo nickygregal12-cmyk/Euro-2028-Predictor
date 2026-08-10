@@ -53,6 +53,36 @@ export function competitionSectionRoute(
   }
 }
 
+/**
+ * One fixture's own Match Centre, at an address of its own.
+ *
+ * WHY THE DAY IS A QUERY. Contract 139's fixture read is windowed by DATE and
+ * caps at 120 days; there is no read addressed by a fixture id. So the route
+ * needs to know roughly WHEN the fixture is in order to load the window that
+ * contains it, and the day is the smallest hint that answers it. Every link the
+ * product generates carries it because every surface that shows a fixture
+ * already knows its day.
+ *
+ * IT DEGRADES RATHER THAN 404s. An absent, unparseable or wrong day falls back
+ * to the server's default window, and a fixture that is not in the window it
+ * loads is reported as out of range with a way to the competition's fixture
+ * list — never as "no such match", which would be false.
+ *
+ * A read addressed by fixture id would remove the query entirely; it is
+ * recorded as `MIG-UI-11` rather than approximated further.
+ */
+export function competitionMatchCentreRoute(
+  ref: CompetitionRouteRef,
+  fixtureId: string,
+  onDay?: string | null,
+): string {
+  const base = `${renderCompetitionPattern(weeklyRoutePatterns.matches, ref)}/${cleanSegment(
+    fixtureId,
+    'fixture',
+  )}`
+  return onDay ? `${base}?on=${encodeURIComponent(onDay)}` : base
+}
+
 export function competitionGameRoute(
   ref: CompetitionRouteRef,
   game: DomesticGameRoute,
@@ -203,6 +233,9 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
     pathname === weeklyRoutes.play ||
     pathname === weeklyRoutes.matches ||
     pathname === weeklyRoutes.leagues ||
+    // Discovery sits under the Hub: it is how a player finds a competition to
+    // play, and it is reached from the Hub and from the rail.
+    pathname === weeklyRoutes.competitions ||
     pathname === weeklyRoutes.more
   ) {
     return { href: weeklyRoutes.hub, label: 'Back to Hub' }
