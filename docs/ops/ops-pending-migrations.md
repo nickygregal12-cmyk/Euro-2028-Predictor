@@ -6,7 +6,37 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (sixteenth entry)
+## Current state — 10 August 2026 (seventeenth entry)
+
+**Repository, Development and Production are all at contract 151.** The six-migration batch the sixteenth entry was accumulating has been promoted, in the order backup → rehearsal → rollout, and verified independently on both hosted targets.
+
+Contract 151 reached Production through guarded rollout run **31420443441** from exact `main` `5017670dfb93cab1ac0ebb2631a081f6967cdf9a`, after its own API check that backup run **31418252958** and rehearsal run **31419966598** had both concluded success. Independent read-only verification afterwards:
+
+```json
+{"migration_count": 151, "latest": "20260810170000_season_player_profile",
+ "new_reads_present": 5, "internal_present": 2, "live_columns": 3,
+ "idle_cadence_default": "1440", "anon_grants_on_new_reads": 0,
+ "auth_users": 1, "profiles": 1, "entries": 2, "match_predictions": 36,
+ "euro_publication_state": "hidden"}
+```
+
+All five new reads and both new `predictor_internal` functions are genuinely present rather than merely having their migration rows recorded; the idle cadence default is the one contract 146 sets; no new read carries a `PUBLIC` or `anon` execute grant; every player-owned count is identical to the pre-apply snapshot; and the Euro publication state is untouched, which a batch of season reads has no business moving.
+
+**The first rehearsal failed, and it failed correctly.** Run **31419607734** stopped before touching anything, on the guard that Development must already hold the target — *Production is never the first hosted environment to see a migration*. The guard read `config/development-hosted-contract.json` on `main`, which still said 145 although hosted Development had been at 151 since fast-lane run 31417611501. The record, not the database, was stale: the automation had already opened #664 with the correct values and it was sitting unmerged. Development was re-verified independently before that record was merged — 151 rows ending `20260810170000_season_player_profile`, five new reads, two new internal functions, three `live_*` columns, zero `anon`/`PUBLIC` grants — and the second rehearsal, run **31419966598**, passed every step. **A stale machine record is not a cosmetic problem when a guard reads it**, which is the transferable point: the follow-up automation's pull request is part of the rollout, not paperwork after it.
+
+**Three inherited comment blocks in the pinned pair named the wrong boundary** and are corrected: a `132 -> 144` header, "the twelve reviewed migrations", a justification naming contract 135, and two step labels reading "contract 144" and "contract 145". The logic reads `SOURCE_CONTRACT` and `TARGET_CONTRACT` and was correct throughout — which is why the run proved a 145 source and a 151 result under a label saying otherwise — but the eleventh entry made this exact point about the previous pair and it is worth not making a third time.
+
+**Production football state changed today, and NOT through this promotion.** Between 17:37 and 17:52 UTC — roughly an hour before this rollout, which applies DDL only — Production received 578 season fixtures across both leagues, 56 teams, 105 provider identity rows and a second, enabled provider poll target. That work is not recorded here because it is not this promotion's; it is noted so a later reader does not attribute it to the schema batch. Its provenance was checked rather than assumed: 578 rows in `provider_fixture_proposals`, and the 12 fixtures that hold a result carry `action = 'confirm'` with `actor_id` null, each tied to a retained `raw_response_id` and a SportMonks status token — contract 135's audited automatic path. **No sign of a Development row copy**, which the contract 132 boundary forbids. Both poll targets carry contract 146's columns with `cadence_minutes` at 1440.
+
+**What this did NOT do.** It did not publish Euro 2028 — the state is still `hidden`. It did not promote the application, which is separately controlled. It opened no season competition: both league seasons are still `draft`, so contract 147 correctly returns nothing on Production. `promotionAuthorised` stays `false`.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **151** | 151 canonical migrations through `20260810170000_season_player_profile.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **151** | Guarded fast-lane run `31417611501`, independently confirmed by a read-only ledger query and by proving the five new reads, two internal functions and three columns present with zero browser grants. | LEVEL |
+| Production Supabase | **151** | Rollout run `31420443441` gated on backup `31418252958` and rehearsal `31419966598`; independently confirmed by a read-only query returning 151 rows ending `20260810170000_season_player_profile` with every player-owned count unchanged. | LEVEL |
+
+## Superseded — 10 August 2026 (sixteenth entry)
 
 **Contracts 146 to 151 are the repository candidate and are applied to neither hosted environment.** They are being accumulated as one batch before rollout, at the owner's direction, rather than promoted one at a time.
 
