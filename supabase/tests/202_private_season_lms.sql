@@ -205,6 +205,13 @@ select is(
   1,
   'and the prediction entry the extracted authority owes it is still written');
 
+-- Resolved as the session role on purpose: whether `authenticated` can see an
+-- UNPUBLISHED season is exactly the sort of thing this assertion must not
+-- depend on. If it could not, the subquery would yield null and the refusal
+-- would be about a malformed argument rather than about the season being draft.
+select set_config('test.pl_draft',
+  (select id::text from public.tournaments where season_key = 'plms-draft'), true);
+
 -- Back to the player: creating a competition reads `auth.uid()`, so this must
 -- refuse for the season being a draft rather than for there being no caller.
 set local role authenticated;
@@ -215,7 +222,7 @@ set local role authenticated;
 
 select throws_ok(
   format($$select public.create_private_season_lms(%L::uuid, 'Too Early')$$,
-         (select id from public.tournaments where season_key = 'plms-draft')),
+         current_setting('test.pl_draft')),
   '55000',
   null,
   'a draft season cannot carry a private competition');
