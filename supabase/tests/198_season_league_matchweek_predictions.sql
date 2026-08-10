@@ -45,12 +45,18 @@ select set_config('test.lp_open',
   (select id::text from public.competition_rounds
     where tournament_id = current_setting('test.lp_season')::uuid and round_key = 'lp-mw2'), true);
 
+-- Both matchweeks start in the FUTURE. `season_predictions` carries
+-- `enforce_season_matchweek_lock` on insert, so a prediction written for a
+-- matchweek that has already locked is refused -- correctly, and it is what
+-- this suite exists to read the other side of. The picks are therefore made
+-- while the matchweek is open, and matchweek 1 is moved into the past further
+-- down, once they exist.
 insert into public.season_fixtures (
   tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
 select current_setting('test.lp_season')::uuid, current_setting('test.lp_locked')::uuid,
        (select id from public.teams where tournament_id = current_setting('test.lp_season')::uuid and name = 'Chelsea FC'),
        (select id from public.teams where tournament_id = current_setting('test.lp_season')::uuid and name = 'Aston Villa FC'),
-       now() - interval '2 hours', 'scheduled';
+       now() + interval '1 day', 'scheduled';
 
 insert into public.season_fixtures (
   tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
@@ -121,6 +127,17 @@ values (current_setting('test.lp_season')::uuid, current_setting('test.lp_owner_
         current_setting('test.lp_locked_fixture')::uuid, 2, 1),
        (current_setting('test.lp_season')::uuid, current_setting('test.lp_rival_entry')::uuid,
         current_setting('test.lp_locked_fixture')::uuid, 0, 0);
+
+-- Now the matchweek locks. Moving the kickoff rather than waiting for one is
+-- the only way to read across a lock inside a transaction, and it is done with
+-- replication role `replica` so the fixture's own triggers do not treat this as
+-- a provider reschedule -- the point under test is the reveal, not contract
+-- 119's rescheduled-fixture lock.
+set local session_replication_role = replica;
+update public.season_fixtures
+   set kickoff_at = now() - interval '2 hours'
+ where competition_round_id = current_setting('test.lp_locked')::uuid;
+set local session_replication_role = origin;
 
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('lp-owner')::uuid, 'role', 'authenticated',
