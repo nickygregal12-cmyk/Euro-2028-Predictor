@@ -6,7 +6,7 @@
 // independently unavailable source, but must never convert failure into a
 // successful empty account or league.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapLeagueMemberPage,
   mapTransferCandidates,
@@ -58,7 +58,7 @@ export type LeagueMemberPageOptions = {
 
 /** Create a league and return its id, name and freshly-minted invite code. */
 export async function createLeague(tournamentId: string, name: string): Promise<CreatedLeague> {
-  const { data, error } = await supabase.rpc('create_league', {
+  const { data, error } = await db.rpc('create_league', {
     p_tournament_id: tournamentId,
     p_name: name,
   })
@@ -70,7 +70,7 @@ export async function createLeague(tournamentId: string, name: string): Promise<
 
 /** Pre-join summary for an invite code, or null if no league matches it. */
 export async function fetchLeaguePreview(code: string): Promise<LeaguePreview | null> {
-  const { data, error } = await supabase.rpc('get_league_preview', { p_code: code })
+  const { data, error } = await db.rpc('get_league_preview', { p_code: code })
   if (error) throw error
   const row = (data ?? [])[0]
   if (!row) return null
@@ -85,7 +85,7 @@ export async function fetchLeaguePreview(code: string): Promise<LeaguePreview | 
 
 /** Join a league by invite code (idempotent). Returns the joined league. */
 export async function joinLeague(code: string): Promise<{ id: string; name: string }> {
-  const { data, error } = await supabase.rpc('join_league', { p_code: code })
+  const { data, error } = await db.rpc('join_league', { p_code: code })
   if (error) throw error
   const row = (data ?? [])[0]
   if (!row) throw new Error('Join returned no league')
@@ -94,7 +94,7 @@ export async function joinLeague(code: string): Promise<{ id: string; name: stri
 
 /** The caller's leagues for a tournament (hub list + activity tie-break). */
 export async function fetchMyLeagues(tournamentId: string): Promise<LeagueSummary[]> {
-  const { data, error } = await supabase.rpc('get_my_leagues', { p_tournament_id: tournamentId })
+  const { data, error } = await db.rpc('get_my_leagues', { p_tournament_id: tournamentId })
   if (error) throw error
   return (data ?? []).map((r: Record<string, unknown>) => ({
     id: r.id as string,
@@ -109,7 +109,7 @@ export async function fetchMyLeagues(tournamentId: string): Promise<LeagueSummar
 
 /** Header details for a league the caller belongs to. */
 export async function fetchLeague(leagueId: string): Promise<LeagueHeader> {
-  const { data, error } = await supabase.rpc('get_league', { p_league_id: leagueId })
+  const { data, error } = await db.rpc('get_league', { p_league_id: leagueId })
   if (error) throw error
   const row = (data ?? [])[0]
   if (!row) throw new Error('League not found')
@@ -129,10 +129,10 @@ export async function fetchLeagueMembersPage(
   leagueId: string,
   options: LeagueMemberPageOptions = {},
 ): Promise<LeagueMemberPage> {
-  const { data, error } = await supabase.rpc('get_league_members', {
+  const { data, error } = await db.rpc('get_league_members', {
     p_league_id: leagueId,
     p_limit: options.limit ?? 50,
-    p_after: options.after ?? null,
+    p_after: options.after ?? undefined,
   })
   if (error) throw error
   return mapLeagueMemberPage(data)
@@ -144,7 +144,7 @@ export async function searchLeagueTransferCandidates(
   query = '',
   limit = 20,
 ): Promise<TransferCandidate[]> {
-  const { data, error } = await supabase.rpc('search_league_transfer_candidates', {
+  const { data, error } = await db.rpc('search_league_transfer_candidates', {
     p_league_id: leagueId,
     p_query: query,
     p_limit: limit,
@@ -155,13 +155,13 @@ export async function searchLeagueTransferCandidates(
 
 /** Leave a league. The server refuses if the caller is the owner. */
 export async function leaveLeague(leagueId: string): Promise<void> {
-  const { error } = await supabase.rpc('leave_league', { p_league_id: leagueId })
+  const { error } = await db.rpc('leave_league', { p_league_id: leagueId })
   if (error) throw error
 }
 
 /** Transfer ownership to another member (owner only). */
 export async function transferOwnership(leagueId: string, newOwnerId: string): Promise<void> {
-  const { error } = await supabase.rpc('transfer_ownership', {
+  const { error } = await db.rpc('transfer_ownership', {
     p_league_id: leagueId,
     p_new_owner: newOwnerId,
   })
@@ -170,6 +170,6 @@ export async function transferOwnership(leagueId: string, newOwnerId: string): P
 
 /** Delete a league (owner only). Cascades to memberships. */
 export async function deleteLeague(leagueId: string): Promise<void> {
-  const { error } = await supabase.rpc('delete_league', { p_league_id: leagueId })
+  const { error } = await db.rpc('delete_league', { p_league_id: leagueId })
   if (error) throw error
 }

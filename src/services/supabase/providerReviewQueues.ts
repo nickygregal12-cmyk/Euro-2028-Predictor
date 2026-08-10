@@ -17,7 +17,7 @@
 // and changes no window. The corrections live in the administrator write paths
 // that already own them, and nothing here shortcuts one.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapProviderReviewQueues,
   type ProviderReviewQueues,
@@ -35,7 +35,7 @@ export async function fetchProviderReviewQueues(
   tournamentId: string,
   limit = 20,
 ): Promise<ProviderReviewQueues> {
-  const { data, error } = await supabase.rpc('get_provider_review_queues', {
+  const { data, error } = await db.rpc('get_provider_review_queues', {
     p_tournament_id: tournamentId,
     p_limit: limit,
   })
@@ -56,10 +56,10 @@ export async function acknowledgeReviewItems(
   ids: readonly string[],
   note?: string | null,
 ): Promise<{ marked: number }> {
-  const { data, error } = await supabase.rpc('acknowledge_provider_review_items', {
+  const { data, error } = await db.rpc('acknowledge_provider_review_items', {
     p_kind: kind,
     p_ids: [...ids],
-    p_note: note?.trim() ? note.trim() : null,
+    p_note: note?.trim() ? note.trim() : undefined,
   })
   if (error) throw error
 

@@ -31,21 +31,26 @@ that is exactly when the file stops describing anything.
 
 Typing the client as `createClient<Database>` was done, measured, and reverted.
 
-**81 errors across 17 service modules.**
+> **Correction, 10 August 2026.** The first version of this document reported
+> **81 errors**. That figure was wrong: `tsc -b` builds several TypeScript
+> projects over the same sources (app, tests, gates), so each error was counted
+> once per project it appeared in. De-duplicated, it is **27 unique errors
+> across 17 modules**. The 81 is left recorded here rather than quietly swapped,
+> because it was the number the AUD-10 split decision was taken on, and the
+> split was still right — 27 across 17 modules needing per-site SQL verification
+> is not one reviewable change either.
 
-| Module | Errors | | Module | Errors |
-| --- | ---: | --- | --- | ---: |
-| `seasonAdmin.ts` | 12 | | `lms.ts` | 3 |
-| `seasonMatchPredictor.ts` | 9 | | `leagues.ts` | 3 |
-| `knockoutPredictions.ts` | 9 | | `leaderboard.ts` | 3 |
-| `seasonFixtureList.ts` | 6 | | `koPredictorStandings.ts` | 3 |
-| `predictions.ts` | 6 | | `cup.ts` | 3 |
-| `adminResults.ts` | 6 | | `bonus.ts` | 3 |
-| `tieResolutions.ts` | 3 | | `seasonClubForm.ts` | 3 |
-| `seasonLeagueStandings.ts` | 3 | | `providerReviewQueues.ts` | 3 |
-| `seasonLeaderboard.ts` | 3 | | | |
+**27 unique errors across 17 service modules**, by shape:
 
-By error code: **66 × TS2322** (assignment) and **15 × TS2345** (argument).
+| Count | Error | Class |
+| ---: | --- | --- |
+| 8 | `string \| null` not assignable to `string \| undefined` | RPC argument (below) |
+| 8 | `number \| null` not assignable to `number` | nullable read as non-null |
+| 3 | insert shape rejected (`RejectExcessProperties`) | trigger-filled column |
+| 3 | `string \| null` not assignable to `string` | nullable read as non-null |
+| 2 | RPC argument object not assignable | nullable RPC argument |
+| 2 | `number \| undefined` not assignable to `number` | optional read as required |
+| 1 | `number \| null` not assignable to `number \| undefined` | nullable read |
 
 ## Read this before fixing any of them
 
@@ -86,16 +91,38 @@ the fix is an explicit narrowing at the boundary with a comment saying why the
 null cannot occur. **Not a cast.** A cast here would restore exactly the
 situation `TYPE-001` describes, with the added insult of looking deliberate.
 
-### Class 3 — `null` versus `undefined`
+### Class 3 — RPC arguments, and the correction this class needed
 
-The largest group by count and the least interesting: roughly 20 sites where the
-schema says `string | null` and the hand-written model says `string | undefined`.
-PostgREST returns `null`; the models chose `undefined`. Neither is wrong, and the
-repository has no stated convention.
+**The first version of this document classified these as response mapping** —
+"the schema says `string | null` and the hand-written model says `string |
+undefined`". That was wrong, and the direction matters.
 
-**This wants a decision, not 20 fixes.** Adopting `null` at the service boundary
-and converting once, or keeping `undefined` and converting in one shared mapper,
-are both defensible; doing it ad hoc per call site is not.
+They are **RPC arguments**, and the mismatch runs the other way: the code passes
+an explicit `null`, and the *generated* type declares the parameter optional
+(`p_after?: string`) because Supabase's generator renders a SQL argument with a
+default as an optional property and does not add `| null` to it.
+
+**The fix is to omit the argument rather than pass `null` — and it is only safe
+where the SQL default is `null`.** That is a per-parameter fact that has to be
+read from the migration, not assumed:
+
+| Function | Parameter | SQL default | Safe to omit |
+| --- | --- | --- | :---: |
+| `get_leaderboard` | `p_after text` | `null` | yes |
+| `get_ko_predictor_standings` | `p_after text` | `null` | yes |
+| `get_league_members` | `p_after text` | `null` | yes |
+| `get_season_leaderboard` | `p_after text` | `null` | yes |
+| `get_season_league_standings` | `p_after text` | `null` | yes |
+| `acknowledge_provider_review_items` | `p_note text` | `null` | yes |
+| `get_season_fixtures` | `p_from`, `p_to timestamptz` | `null` | yes |
+| *(counter-example)* `get_leaderboard` | `p_limit integer` | **`50`** | **no** |
+
+The counter-example is the reason this cannot be a find-and-replace. `p_limit`
+sits on the line above `p_after` in four of these calls; omitting it would send
+50 where the code meant to send a value, or — if a caller ever passed `null` for
+it — send NULL where the function expects an integer. Every one of the eight was
+checked individually and every one was `default null`, so the conversion is
+behaviour-identical. **Closed by AUD-10-b-i.**
 
 ## What was deliberately not done
 
@@ -129,10 +156,33 @@ Two reasons, both worth stating:
 That work is `AUD-10-c` and belongs beside `database-parity.yml`, which already
 builds a local Supabase from every committed migration.
 
+## Progress
+
+| Group | Scope | Status |
+| --- | --- | --- |
+| `AUD-10-a` | Generate the artifact, provenance, staleness guard | **Done** |
+| `AUD-10-b-i` | The typed/untyped seam, and the 8-site RPC-argument cluster | **Done** |
+| `AUD-10-b-ii…` | The remaining 19 errors — nullable reads, trigger-filled inserts, optional reads | Open |
+| `AUD-10-c` | Regenerate-and-diff gate against a local database | Open |
+
+**How the staging works.** `client.ts` exports one client twice: `db` with the
+generated types applied, `supabase` with them erased. Modules move from the
+second to the first in groups. It is not a cast — `SupabaseClient<Database>` is
+assignable to `SupabaseClient`, so the widening is compiler-checked — and there
+is one client instance, so auth, realtime and storage cannot diverge between the
+halves. `tests/services/databaseTypeMigration.test.ts` names the migrated
+modules, refuses to let one move back, and asserts how many remain, so the seam
+cannot go quiet. When that count reaches zero the `supabase` export and that
+test are both deleted.
+
+**39 service modules still import the untyped export.** That is larger than the
+17 with errors, because most modules compile identically either way — they get
+their types the moment they move, without needing a fix first.
+
 ## What this does not close
 
-`TYPE-001` stays **open**. The finding is that hand-written types and casts can
-hide schema drift; a generated file that nothing imports hides nothing and
-prevents nothing. It is closed when the client is typed and the call sites
-consume it — `AUD-10-b` — and the 81 disagreements above are the work that
-closure consists of.
+`TYPE-001` stays **open**. It is reduced, not resolved: seven modules are typed
+and their eight argument defects fixed, and thirty-nine modules are not. The
+finding is that hand-written types and casts can hide schema drift, and they
+still can everywhere the untyped export is used. Closure is the remaining
+groups, ending with the deletion of the `supabase` export.

@@ -15,7 +15,7 @@
 // directly: a browser-side league table would be a second ranking authority,
 // and the first thing it would do is disagree with the season's.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapSeasonLeagueStandingsPage,
   type SeasonLeagueStandingsPage,
@@ -42,10 +42,10 @@ export async function fetchSeasonLeagueStandingsPage(
   leagueId: string,
   options: SeasonLeagueStandingsPageOptions = {},
 ): Promise<SeasonLeagueStandingsPage> {
-  const { data, error } = await supabase.rpc('get_season_league_standings', {
+  const { data, error } = await db.rpc('get_season_league_standings', {
     p_league_id: leagueId,
     p_limit: options.limit ?? 50,
-    p_after: options.after ?? null,
+    p_after: options.after ?? undefined,
   })
   if (error) throw error
   return mapSeasonLeagueStandingsPage(data)

@@ -5,7 +5,7 @@
 // not co-members. This module never selects entries, profiles or matchweek
 // scores directly, and must not grow a fallback that does.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapSeasonLeaderboardPage,
   type SeasonLeaderboardPage,
@@ -27,10 +27,10 @@ export async function fetchSeasonLeaderboardPage(
   tournamentId: string,
   options: SeasonLeaderboardPageOptions = {},
 ): Promise<SeasonLeaderboardPage> {
-  const { data, error } = await supabase.rpc('get_season_leaderboard', {
+  const { data, error } = await db.rpc('get_season_leaderboard', {
     p_tournament_id: tournamentId,
     p_limit: options.limit ?? 50,
-    p_after: options.after ?? null,
+    p_after: options.after ?? undefined,
   })
   if (error) throw error
   return mapSeasonLeaderboardPage(data)

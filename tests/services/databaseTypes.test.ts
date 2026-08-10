@@ -125,20 +125,24 @@ describe('generated database types', () => {
     expect(source).toContain('database.types.meta.json')
   })
 
-  it('is not yet consumed by the client, and says so', () => {
-    // AUD-10-a lands the artifact; AUD-10-b consumes it. Recorded as an
-    // assertion rather than a comment so that when somebody does type the
-    // client, this test fails and sends them here to delete it deliberately —
-    // rather than leaving a stale "not yet used" note in the header for months.
+  it('is consumed by the client', () => {
+    // THIS ASSERTION WAS INVERTED ON 10 AUGUST 2026, and the inversion is the
+    // point of having written it.
     //
-    // Measured at the time of writing: typing the client produces 81 errors
-    // across 17 service modules, and they are NOT all defects — see
-    // docs/quality/database-types-baseline.md.
+    // AUD-10-a landed the artifact and left the client untyped, so this read
+    // `.not.toContain('createClient<Database>')` — a deliberate tripwire, so
+    // that whoever typed the client would be sent to the baseline document
+    // rather than find a stale "not yet used" note in a header. AUD-10-b-i
+    // typed it, the tripwire fired on the first run, and this is that visit.
+    //
+    // It is inverted rather than deleted for the same reason the AUTH-002
+    // before-state assertion was: deleting it would leave nothing that fails if
+    // the client is ever quietly untyped again.
     const client = readFileSync(
       resolve(repositoryRoot, 'src/services/supabase/client.ts'),
       'utf8',
     )
 
-    expect(client).not.toContain('createClient<Database>')
+    expect(client).toContain('createClient<Database>')
   })
 })

@@ -15,7 +15,7 @@
 // player. It carries no prediction, no Joker and no points — the card read
 // still owns all three, and this module must never grow them.
 
-import { supabase } from './client'
+import { db } from './client'
 import { mapSeasonFixtureList, type SeasonFixtureList } from './seasonFixtureListModel'
 
 export type {
@@ -43,10 +43,10 @@ export async function fetchSeasonFixtureList(
   tournamentId: string,
   window: SeasonFixtureWindow = {},
 ): Promise<SeasonFixtureList> {
-  const { data, error } = await supabase.rpc('get_season_fixtures', {
+  const { data, error } = await db.rpc('get_season_fixtures', {
     p_tournament_id: tournamentId,
-    p_from: window.from ?? null,
-    p_to: window.to ?? null,
+    p_from: window.from ?? undefined,
+    p_to: window.to ?? undefined,
   })
   if (error) throw error
   return mapSeasonFixtureList(data)

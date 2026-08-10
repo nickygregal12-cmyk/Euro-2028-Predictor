@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapKoStandingsResponse,
   type KoStandingsRead,
@@ -12,10 +12,10 @@ export async function fetchKoPredictorStandings(
   tournamentId: string,
   after: string | null = null,
 ): Promise<KoStandingsRead> {
-  const { data, error } = await supabase.rpc('get_ko_predictor_standings', {
+  const { data, error } = await db.rpc('get_ko_predictor_standings', {
     p_tournament_id: tournamentId,
     p_limit: 50,
-    p_after: after,
+    p_after: after ?? undefined,
   })
   if (error) throw error
   return mapKoStandingsResponse(data)
