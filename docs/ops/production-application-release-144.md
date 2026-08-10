@@ -1,9 +1,18 @@
 # Production application release — contract 144, behind Team SSO
 
+> **Superseded on 10 August 2026, and never executed.** Production Supabase reached
+> contract **145** later the same day through rollout run `31379974246`, which removed
+> this runbook's central constraint. Its release candidate `d1a0dcd` was the last
+> commit whose declaration read 144; with the database at 145 that commit is now the
+> one that *cannot* ship, and current `main` is the candidate. The successor is
+> [`production-application-release-145.md`](production-application-release-145.md).
+> This document is retained as the record of the decision as it stood at contract 144
+> and must not be followed.
+
 | Field | Value |
 | --- | --- |
-| Authority | Operational runbook |
-| Status | Prepared, not executed |
+| Authority | Superseded operational runbook |
+| Status | Superseded, never executed |
 | Date | 10 August 2026 |
 | Owner decision it serves | Publish a current application artifact to Netlify production and keep Team SSO on; do not expose the site publicly until `AGE-001` exists |
 | Governs | The steps and evidence for one application release |
