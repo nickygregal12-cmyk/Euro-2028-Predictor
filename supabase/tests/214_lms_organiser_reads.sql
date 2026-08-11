@@ -66,10 +66,13 @@ insert into public.season_lms_entrant_state (competition_id, user_id, lives_rema
   (md5('og-priv')::uuid, md5('og-p1')::uuid, 1, 0),
   (md5('og-priv')::uuid, md5('og-p2')::uuid, 0, 0);
 
-insert into public.game_memberships (tournament_id, game_competition_id, user_id, status) values
-  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-own')::uuid, 'active'),
-  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-p1')::uuid, 'active'),
-  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-p2')::uuid, 'active');
+-- `active_since` is required for an ACTIVE membership by
+-- `game_memberships_state_shape`.
+insert into public.game_memberships (
+  tournament_id, game_competition_id, user_id, status, active_since) values
+  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-own')::uuid, 'active', now()),
+  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-p1')::uuid, 'active', now()),
+  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-p2')::uuid, 'active', now());
 
 -- An OPEN round. Olive has picked; Pat has not. The round is deliberately still
 -- open, because that is when the organiser's question and the reveal boundary

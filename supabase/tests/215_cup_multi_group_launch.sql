@@ -105,6 +105,12 @@ select is(
   current_setting('test.mg_result')::jsonb ->> 'roundsNeeded', '13',
   'and the competition runs for as many rounds as its LARGEST group needs');
 
+-- `reset role` before every structural assertion below: `bonus_cup_members`,
+-- `bonus_cup_fixtures`, `bonus_cup_groups` and `bonus_competition_audit` are
+-- all revoked from every browser role, so reading them as `authenticated` is
+-- `permission denied` — the revoke working, not a defect in the draw.
+reset role;
+
 -- THE FIRST ASSERTION THIS FILE EXISTS FOR.
 select is(
   (select count(*)::integer from public.bonus_cup_members
@@ -176,7 +182,13 @@ select is(
   2,
   'and records the full allocation, because a draw nobody can inspect is one nobody can check');
 
--- THE THIRD ASSERTION.
+-- THE THIRD ASSERTION. Back to the administrator, because this one calls the
+-- launcher rather than reading a table.
+select set_config('request.jwt.claims',
+  json_build_object('sub', md5('mg-u1')::uuid, 'role', 'authenticated',
+                    'app_metadata', json_build_object('admin_role', 'super_admin'))::text, true);
+set local role authenticated;
+
 select is(
   public.admin_launch_cup_group_stage(md5('mg-cup')::uuid) ->> 'outcome',
   'already_drawn',

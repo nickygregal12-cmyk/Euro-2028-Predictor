@@ -203,13 +203,19 @@ select is(
 
 reset role;
 
-update public.player_action_items
-   set expires_at = now() - interval '1 minute'
- where competition_id = md5('ac-lms')::uuid;
+-- THE ROUND LOCKS, which is the real path and the reason the sweep exists. An
+-- earlier draft back-dated `expires_at` directly and then called the driver —
+-- but the driver runs the GENERATOR first, and the generator rewrites
+-- `expires_at` from the round's lock, so the item came back unexpired and the
+-- assertion failed. Locking the round removes it from the generator's selection
+-- entirely, which is precisely the state only the sweep can resolve.
+update public.bonus_competition_windows
+   set locks_at = now() - interval '1 minute'
+ where id = md5('ac-w5')::uuid;
 
 select is(
   (public.process_player_action_items() ->> 'actions_invalidated')::integer, 1,
-  'the expiry sweep closes an item whose moment has passed, which no generator could');
+  'the expiry sweep closes an item whose round has locked, which no generator could');
 
 select * from finish();
 

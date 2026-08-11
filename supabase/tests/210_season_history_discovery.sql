@@ -85,9 +85,14 @@ insert into public.entries (id, user_id, tournament_id) values
 -- The 2026/27 Main Predictor membership already exists, created by the entry
 -- trigger, so only the Last Man Standing rows are inserted here. 2027/28 is a
 -- Last Man Standing membership with NO entry: the union's load-bearing case.
-insert into public.game_memberships (tournament_id, game_competition_id, user_id, status, left_at) values
-  (md5('sh-s26')::uuid, md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'left', now() - interval '30 days'),
-  (md5('sh-s27')::uuid, md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active', null);
+-- `active_since` is required for an ACTIVE membership and forbidden alongside
+-- `left_at`: `game_memberships_state_shape` admits exactly one shape per status.
+insert into public.game_memberships (
+  tournament_id, game_competition_id, user_id, status, active_since, left_at) values
+  (md5('sh-s26')::uuid, md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'left',
+   null, now() - interval '30 days'),
+  (md5('sh-s27')::uuid, md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active',
+   now() - interval '30 days', null);
 
 insert into public.bonus_competition_entrants (competition_id, user_id, outcome) values
   (md5('sh-mp26')::uuid, md5('sh-p1')::uuid, 'active'),
@@ -96,8 +101,9 @@ insert into public.bonus_competition_entrants (competition_id, user_id, outcome)
 
 -- Player two played a different season entirely, so the two histories cannot
 -- bleed into one another.
-insert into public.game_memberships (tournament_id, game_competition_id, user_id, status) values
-  (md5('sh-s99')::uuid, md5('sh-mp99')::uuid, md5('sh-p2')::uuid, 'active');
+insert into public.game_memberships (
+  tournament_id, game_competition_id, user_id, status, active_since) values
+  (md5('sh-s99')::uuid, md5('sh-mp99')::uuid, md5('sh-p2')::uuid, 'active', now());
 
 -- A banked Wrapped for 2026/27 only.
 insert into public.season_wrapped (

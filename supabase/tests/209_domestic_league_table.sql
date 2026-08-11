@@ -94,6 +94,15 @@ insert into public.profiles (id, display_name, welcomed_at) values
   (md5('tv-admin')::uuid, 'Table Admin', now()),
   (md5('tv-player')::uuid, 'Table Player', now());
 
+-- The postponed fixture's id, captured BEFORE any role switch. `season_fixtures`
+-- is revoked from every browser role, and a subquery inside `format(...)` is
+-- evaluated in the calling session — so reading it later as `authenticated` is
+-- `permission denied`, which is the revoke working rather than a defect.
+select set_config('test.tv_postponed',
+  (select id::text from public.season_fixtures
+    where tournament_id = current_setting('test.tv_season')::uuid
+      and status = 'postponed'), true);
+
 -- ---------------------------------------------------------------------------
 -- A PLAIN PLAYER READS THE TABLE
 -- ---------------------------------------------------------------------------
@@ -202,9 +211,7 @@ select throws_ok(
 
 select throws_ok(
   format($$select public.admin_award_fixture_outcome(%L::uuid, 3::smallint, 0::smallint, 'not mine to give')$$,
-         (select id from public.season_fixtures
-           where tournament_id = current_setting('test.tv_season')::uuid
-             and status = 'postponed')),
+         current_setting('test.tv_postponed')),
   '42501', null,
   'an ordinary player cannot award a fixture');
 
@@ -273,8 +280,7 @@ select is(
 -- ---------------------------------------------------------------------------
 
 select public.admin_award_fixture_outcome(
-  (select id from public.season_fixtures
-    where tournament_id = current_setting('test.tv_season')::uuid and status = 'postponed'),
+  current_setting('test.tv_postponed')::uuid,
   3::smallint, 0::smallint, 'pgTAP: awarded after a postponement');
 
 select is(

@@ -27,12 +27,14 @@ insert into public.teams (id, tournament_id, name) values
   (md5('ai-t1')::uuid, current_setting('test.ai_season')::uuid, 'AI Rovers'),
   (md5('ai-t2')::uuid, current_setting('test.ai_season')::uuid, 'AI United');
 
--- The custody row's real shape: `raw_body` is TEXT and there is no `payload`
--- column at all. The marker goes in the body, which is precisely what must not
--- reach a client.
+-- The custody row's real shape: `raw_body` is TEXT, there is no `payload`
+-- column at all, and `provider_raw_responses_provider_origin` requires the URL
+-- to match the provider's real API origin — a custody row that cannot say where
+-- it came from is not custody. The marker goes in the body, which is precisely
+-- what must not reach a client.
 insert into predictor_internal.provider_raw_responses (
   id, provider, request_url, request_method, response_status, raw_body, fetched_at)
-values (md5('ai-raw')::uuid, 'sportmonks', 'https://example.test/fixtures', 'GET', 200,
+values (md5('ai-raw')::uuid, 'sportmonks', 'https://api.sportmonks.com/v3/football/fixtures', 'GET', 200,
         '{"marker":"THIS-BODY-MUST-NEVER-REACH-A-CLIENT"}', now())
 on conflict do nothing;
 
