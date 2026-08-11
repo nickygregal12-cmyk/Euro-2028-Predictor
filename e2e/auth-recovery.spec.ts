@@ -35,6 +35,33 @@ async function authUserId(): Promise<string | null> {
   return data.users.find((user) => user.email === EMAIL)?.id ?? null
 }
 
+/**
+ * The invited player joins the game their league ranks.
+ *
+ * THIS JOURNEY USED TO GET THIS BY ACCIDENT. `PredictionsProvider` once called
+ * `getOrCreateEntry` on mount, whose upsert fires the contract-66 membership
+ * trigger — so merely looking at a page enrolled a player in Euro 2028. That
+ * was removed as an `EURO-001` fix ("entry is an act, not a side effect of
+ * looking"), and the membership `join_league` requires went with it. Nothing
+ * about invites changed; an unstated precondition simply stopped being supplied
+ * for free, so it is supplied here on purpose.
+ *
+ * An `entries` row IS the act of joining the Original Predictor: the trigger
+ * turns it into the active `game_memberships` row, which is the same state a
+ * real player reaches by entering the game.
+ */
+async function joinTheLeaguesGame(userId: string | null): Promise<void> {
+  if (!userId) throw new Error(`Auth recovery E2E user ${EMAIL} was not created.`)
+  const tournament = await localTournamentSeason()
+  const { error } = await createLocalAdmin()
+    .from('entries')
+    .upsert(
+      { user_id: userId, tournament_id: tournament.id },
+      { onConflict: 'user_id,tournament_id', ignoreDuplicates: true },
+    )
+  if (error) throw error
+}
+
 /** Which games the caller actually holds, for diagnosing a withheld control. */
 async function gameMembershipsOf(userId: string | null): Promise<string[]> {
   if (!userId) return []
@@ -289,6 +316,13 @@ test.describe('authentication and recovery', () => {
       // used to state: the invited player must hold the league's game. Stated
       // here, with what the caller actually holds, so a failure says which of
       // the two is missing rather than "the button was not there".
+      await joinTheLeaguesGame(await authUserId())
+      // Re-resolved rather than assumed: the preview decided there was no join
+      // control from the answer it had, so it has to ask again now the answer
+      // has changed.
+      await page.reload()
+      await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
+
       const held = await gameMembershipsOf(await authUserId())
       expect(
         await page.getByRole('button', { name: 'Join league', exact: true }).count(),
