@@ -67,7 +67,7 @@ import {
   type OnboardingDraft,
 } from '../features/onboarding/onboardingDraft'
 import { ONBOARDING_GAME_OFFERS, ONBOARDING_TEAMS } from './onboardingFixture'
-import { CreateLeagueJourney } from '../features/leagues/CreateLeagueJourney'
+import { CreatePrivateJourney } from '../features/leagues/CreatePrivateJourney'
 import { presentCreateJourney } from '../features/leagues/createJourneyModel'
 import { GameRulesDisclosure } from '../features/season/GameRulesDisclosure'
 import { seasonGameRules } from '../features/season/gameRules'
@@ -87,7 +87,7 @@ import { rankLeaderboard } from '../domain/tournament/rankLeaderboard'
 import { LeaderboardRow } from '../features/league/LeaderboardRow'
 import { LeagueMemberRow } from '../features/leagues/LeagueMemberRow'
 import { MyLeagueCard } from '../features/leagues/MyLeagueCard'
-import { LeaguePreviewCard } from '../features/leagues/LeaguePreviewCard'
+import { InvitePreviewCard } from '../features/leagues/InvitePreviewCard'
 import { InvitePanel } from '../features/leagues/InvitePanel'
 import { LoginForm } from '../features/auth/LoginForm'
 import { SeasonMatchesPage } from '../features/season/SeasonMatchesPage'
@@ -1667,24 +1667,62 @@ function Gallery() {
         <OnboardingGamesDemo />
       </Section>
 
-      {/* Creating a private league. The gallery is the only place both the
-          offer and the refusals are visible at once — a real player sees one
-          game they can create and two they cannot, and the refusals are the
-          part that is easy to get wrong. */}
-      <Section title="Create a league journey">
-        <CreateLeagueJourney
+      {/* Creating private play, in all three games. The gallery is the only
+          place both the offer and the refusals are visible at once, and the
+          refusals are the part that is easy to get wrong. */}
+      <Section title="Create private play journey">
+        <CreatePrivateJourney
           journey={presentCreateJourney(twentyCompetitionPlayer())}
-          create={async (_id, leagueName) => ({
+          createLeague={async (_id, leagueName) => ({
             id: 'demo',
             name: leagueName,
-            inviteCode: 'ABC234',
+            inviteCode: 'ABC234DEF567',
+          })}
+          createCup={async (_id, competitionName) => ({
+            competitionId: 'demo-cup',
+            name: competitionName,
+            inviteCode: 'CUP234DEF567',
+            windows: 0,
+            outcome: 'created' as const,
+            launched: false,
+          })}
+          createLms={async (_id, competitionName) => ({
+            competitionId: 'demo-lms',
+            name: competitionName,
+            inviteCode: 'LMS234DEF567',
+            windows: 3,
+            outcome: 'opened' as const,
+            launched: false,
+          })}
+          launchCup={async () => ({
+            outcome: 'launched' as const,
+            entrants: 8,
+            leagueRounds: 14,
+            fixtures: 56,
           })}
           onCancel={() => {}}
         />
-        <Label>nothing joined yet — every game refused, with the reason</Label>
-        <CreateLeagueJourney
+        <Label>nothing joined and nothing published — every game refused, with the reason</Label>
+        <CreatePrivateJourney
           journey={presentCreateJourney(null)}
-          create={async () => ({ id: 'demo', name: 'demo', inviteCode: 'ABC234' })}
+          createLeague={async () => ({ id: 'demo', name: 'demo', inviteCode: 'ABC234DEF567' })}
+          createCup={async () => ({
+            competitionId: 'demo-cup',
+            name: 'demo',
+            inviteCode: 'CUP234DEF567',
+            windows: 0,
+            outcome: 'created' as const,
+            launched: false,
+          })}
+          createLms={async () => ({
+            competitionId: 'demo-lms',
+            name: 'demo',
+            inviteCode: 'LMS234DEF567',
+            windows: 0,
+            outcome: 'no_schedulable_round' as const,
+            launched: false,
+          })}
+          launchCup={async () => ({ outcome: 'already_launched' as const })}
           onCancel={() => {}}
         />
       </Section>
@@ -2487,16 +2525,94 @@ function Gallery() {
         <InvitePanel leagueName="The Office Sweepstake" code="ABC234" mode="chip" />
       </Section>
 
-      <Section title="League preview (join / deep link)">
-        <LeaguePreviewCard
-          preview={{ name: 'The Office Sweepstake', isMember: false }}
+      <Section title="Invite preview (join / deep link)">
+        <InvitePreviewCard
+          invite={{
+            found: true,
+            kind: 'league',
+            id: 'lg-1',
+            name: 'The Office Sweepstake',
+            season: 'Premier League 2026/27',
+            game: 'Match Predictor',
+            members: 8,
+            alreadyIn: false,
+            requiresGameEntry: false,
+            joinWith: 'join_league',
+          }}
           onJoin={() => {}}
           onDecline={() => {}}
         />
-        <Label>already a member</Label>
-        <LeaguePreviewCard
-          preview={{ name: 'The Office Sweepstake', isMember: true }}
+        <Label>a league whose game the invitee has not joined — stated, not disabled</Label>
+        <InvitePreviewCard
+          invite={{
+            found: true,
+            kind: 'league',
+            id: 'lg-1',
+            name: 'The Office Sweepstake',
+            season: 'Premier League 2026/27',
+            game: 'Match Predictor',
+            members: 8,
+            alreadyIn: false,
+            requiresGameEntry: true,
+            joinWith: 'join_league',
+          }}
           onJoin={() => {}}
+          onDecline={() => {}}
+        />
+        <Label>a private Last Man Standing — no game to join first</Label>
+        <InvitePreviewCard
+          invite={{
+            found: true,
+            kind: 'competition',
+            id: 'comp-1',
+            name: 'Sunday Survivors',
+            season: 'Premier League 2026/27',
+            game: 'Last Man Standing',
+            gameKey: 'last_man_standing',
+            members: 12,
+            alreadyIn: false,
+            isOwner: false,
+            closed: false,
+            joinWith: 'join_private_competition',
+          }}
+          onJoin={() => {}}
+          onDecline={() => {}}
+        />
+        <Label>a Championship the organiser has already launched</Label>
+        <InvitePreviewCard
+          invite={{
+            found: true,
+            kind: 'competition',
+            id: 'comp-2',
+            name: 'Office Cup',
+            season: 'Premier League 2026/27',
+            game: 'Predictor Championship',
+            gameKey: 'predictor_cup',
+            members: 8,
+            alreadyIn: false,
+            isOwner: false,
+            closed: true,
+            joinWith: 'join_private_competition',
+          }}
+          onJoin={() => {}}
+          onDecline={() => {}}
+        />
+        <Label>already in</Label>
+        <InvitePreviewCard
+          invite={{
+            found: true,
+            kind: 'league',
+            id: 'lg-1',
+            name: 'The Office Sweepstake',
+            season: 'Premier League 2026/27',
+            game: 'Match Predictor',
+            members: 8,
+            alreadyIn: true,
+            requiresGameEntry: false,
+            joinWith: 'join_league',
+          }}
+          onJoin={() => {}}
+          onOpen={() => {}}
           onDecline={() => {}}
         />
       </Section>

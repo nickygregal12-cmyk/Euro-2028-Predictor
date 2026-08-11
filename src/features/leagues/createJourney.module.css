@@ -170,3 +170,45 @@
   flex-wrap: wrap;
   gap: var(--sp-2);
 }
+
+/* ---------------------------------------------------------------------------
+ * The Last Man Standing organiser's rules.
+ *
+ * Chips rather than a select, because each option is a sentence rather than a
+ * word — "a draw eliminates you" against "a draw survives" — and a dropdown
+ * hides the alternative behind an interaction. They wrap, so three long options
+ * on a 360px phone become three rows rather than a horizontal scroll.
+ * ------------------------------------------------------------------------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.chip {
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  cursor: pointer;
+}
+
+.chip:hover {
+  color: var(--tx);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.chipOn {
+  border-color: var(--acc);
+  color: var(--tx);
+  font-weight: 600;
+}

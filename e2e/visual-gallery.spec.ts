@@ -77,7 +77,7 @@ const SECTIONS = [
   'onboarding-choose-competitions',
   'onboarding-favourite-team',
   'onboarding-games-and-review',
-  'create-a-league-journey',
+  'create-private-play-journey',
   'game-rules-disclosure',
   // The contract 149/150/151 surfaces. Each needs a season, a league, a
   // matchweek and a signed-in caller, so no route harness can render one and
@@ -111,7 +111,16 @@ const SECTIONS = [
  * "temporary" exemption from becoming the way new sections are added. The nine
  * UI-finalisation sections passed through it and are gone from it.
  */
-export const AWAITING_BASELINE: readonly string[] = []
+export const AWAITING_BASELINE: readonly string[] = [
+  // `create-a-league-journey` became `create-private-play-journey` when the
+  // journey stopped being Match-Predictor-only (contracts 153 and 154). Its four
+  // images are deleted rather than renamed: the section now photographs three
+  // selectable games, an organiser's Last Man Standing rules and a Championship
+  // launch control, so the old pictures are of a screen that no longer exists
+  // and a renamed stale image is worse than an absent one. A dispatch of Visual
+  // contracts with `update_baselines: true` clears this entry.
+  'create-private-play-journey',
+]
 
 
 const WIDTHS = ['phone', 'desktop'] as const

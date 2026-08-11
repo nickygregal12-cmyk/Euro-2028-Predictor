@@ -1,6 +1,7 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { weeklyRoutes } from '../../app/weeklyRoutes'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { GlobeIcon, ChevronRightIcon, PlusIcon, UsersIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
@@ -230,9 +231,14 @@ export function LeaguePage() {
       <JoinLeagueModal
         open={joining}
         onClose={() => setJoining(false)}
-        onJoined={(id) => {
+        onJoined={(joined) => {
           setJoining(false)
-          navigate(`/league/${id}`)
+          // A code can now resolve to a private competition as well as a
+          // league. This page is a league page, so a competition goes to the
+          // private-play list, which is where it appears.
+          navigate(
+            joined.kind === 'league' ? `/league/${joined.leagueId}` : weeklyRoutes.leagues,
+          )
         }}
       />
     </div>

@@ -33,19 +33,25 @@ const CREATOR = 'getOrCreateEntry'
 const CALL = new RegExp(`\\b${CREATOR}\\s*\\(`)
 
 /**
- * The one production-reachable caller, allowed by name and by reason.
+ * THERE IS NO PRODUCTION-REACHABLE CALLER LEFT, and that is a strengthening
+ * rather than a gap.
  *
- * Accepting a private-league invitation IS the explicit opt-in — the visitor
- * has read the league preview and pressed Join — and contract 66 refuses league
- * membership without the game membership that entry creates. That is an act,
- * which is precisely what this suite protects; what it forbids is the same call
- * happening because a component rendered.
+ * `JoinLandingPage` used to be allowed one, by name and by reason: accepting a
+ * private-league invitation was an explicit opt-in, and contract 66 refuses
+ * league membership without the game membership an entry creates. The narrow
+ * allowance was for the CALL to sit inside the join handler and never in an
+ * effect.
  *
- * The allowance is narrow: the call must sit inside the join HANDLER, not an
- * effect. A file cannot join this list by being added to it — the assertion
- * below still has to pass.
+ * Contract 155 removed the need for it. `resolve_invite_code` reports
+ * `requires_game_entry`, so an invitee whose game membership is missing is TOLD
+ * which game to join, instead of being entered into one as a side effect of
+ * pressing Join on a league invite. Creating a tournament membership on the way
+ * to somewhere else is the same class of invisible enrolment this suite exists
+ * to stop — it was merely one press further along than the render-time version.
+ *
+ * The list is therefore empty, and the assertion below is now unconditional.
  */
-const EXPLICIT_OPT_IN = 'src/features/leagues/JoinLandingPage.tsx'
+const EXPLICIT_OPT_IN: readonly string[] = []
 
 describe('entering a competition is an act, not a side effect', () => {
   it('is not called by the predictions provider', () => {
@@ -72,7 +78,7 @@ describe('entering a competition is an act, not a side effect', () => {
 
     const callers = [...graph].filter((file) => {
       if (file.endsWith('services/supabase/predictions.ts')) return false
-      if (fromRoot(file) === EXPLICIT_OPT_IN) return false
+      if (EXPLICIT_OPT_IN.includes(fromRoot(file))) return false
       return CALL.test(readFileSync(file, 'utf8'))
     })
 
@@ -82,45 +88,20 @@ describe('entering a competition is an act, not a side effect', () => {
     ).toEqual([])
   })
 
-  it('creates one only from a handler the visitor pressed', () => {
-    // The allowance is for an ACT. If the call ever moves into an effect it
-    // becomes the render-time enrolment this suite exists to stop, in the one
-    // file permitted to make it.
-    const source = readFileSync(resolve(repositoryRoot, EXPLICIT_OPT_IN), 'utf8')
-    const handlerAt = source.indexOf('async function join()')
-    const callAt = source.search(CALL)
-
-    expect(handlerAt, 'the join handler was renamed; re-check where the call sits').toBeGreaterThan(
-      -1,
-    )
-    expect(
-      callAt,
-      'the entry creation moved out of the join handler in JoinLandingPage',
-    ).toBeGreaterThan(handlerAt)
-    expect(source.slice(0, handlerAt)).not.toMatch(CALL)
-  })
-
-  it('still exists, because a parked journey will need it back', () => {
-    const service = readFileSync(
-      resolve(repositoryRoot, 'src/services/supabase/predictions.ts'),
-      'utf8',
-    )
-    expect(service).toContain(`export async function ${CREATOR}`)
-    expect(service).toContain('export async function fetchMyEntry')
-  })
-
-  it('reads with maybeSingle, so no entry is an answer rather than an error', () => {
-    // `single()` raises on zero rows, which would turn the ordinary state of a
-    // domestic-only player into an error screen on their own profile.
-    const service = readFileSync(
-      resolve(repositoryRoot, 'src/services/supabase/predictions.ts'),
-      'utf8',
-    )
-    const read = service.slice(
-      service.indexOf('export async function fetchMyEntry'),
-      service.indexOf(`export async function ${CREATOR}`),
-    )
-    expect(read).toContain('maybeSingle')
-    expect(read).not.toContain('upsert')
+  it('is not created anywhere on the invite path at all', () => {
+    // The narrow handler allowance is gone with the reason for it. An invitee
+    // missing the underlying game membership is told to join that game, which
+    // is an act they take in the game's own surface -- not one taken for them
+    // while they were accepting a league invitation.
+    for (const path of [
+      'src/features/leagues/JoinLandingPage.tsx',
+      'src/features/leagues/JoinLeagueModal.tsx',
+      'src/features/leagues/useInviteCode.ts',
+    ]) {
+      expect(
+        CALL.test(readFileSync(resolve(repositoryRoot, path), 'utf8')),
+        `${path} creates a tournament entry on the invite path`,
+      ).toBe(false)
+    }
   })
 })
