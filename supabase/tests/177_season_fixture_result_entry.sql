@@ -18,7 +18,7 @@
 
 begin;
 
-select plan(31);
+select plan(32);
 
 -- ---------------------------------------------------------------------------
 -- The boundary.
@@ -373,12 +373,34 @@ select is(
       and proc.prokind = 'f'
       and has_function_privilege('authenticated', proc.oid, 'execute')
       and pg_get_functiondef(proc.oid) ~ 'update public\.season_fixtures'
+      -- Contract 174 adds the fourth, and it belongs here for the same reason
+      -- the three above do: it is granted to `authenticated` so an
+      -- administrator can reach it, and it refuses inside on
+      -- `require_competition_admin`. It writes STATUS and never a score, and it
+      -- refuses outright any fixture that already carries one — re-checked
+      -- under the row lock, because a result can be confirmed between a
+      -- proposal being staged and an administrator approving it. The next
+      -- assertion is what holds it to that, so the exception below is not a
+      -- widening of the confirmation gate.
       and proc.proname not in ('admin_confirm_season_fixture_result',
                                'admin_correct_season_fixture_result',
-                               'admin_clear_season_fixture_result')),
+                               'admin_clear_season_fixture_result',
+                               'admin_decide_provider_change_proposal')),
   0,
   'and no other function a signed-in caller may execute writes season_fixtures '
   'at all');
+
+select is(
+  (select count(*)::integer
+     from pg_proc proc
+     join pg_namespace ns on ns.oid = proc.pronamespace
+    where ns.nspname = 'public'
+      and proc.proname = 'admin_decide_provider_change_proposal'
+      and pg_get_functiondef(proc.oid) ~ 'home_score\s*=|away_score\s*='),
+  0,
+  'and contract 174''s calendar decision writes no SCORE — it may void a '
+  'fixture nobody has played, and never restate one somebody was settled '
+  'against');
 
 select * from finish();
 rollback;

@@ -47,6 +47,18 @@ values
   (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-3', null, md5('cp-t3')::uuid, 'c174-suite'),
   (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-4', null, md5('cp-t4')::uuid, 'c174-suite');
 
+-- The status token this suite uses, inserted rather than assumed.
+--
+-- The first CI run of this file read `staged: 1` where it wanted 2, and the
+-- reason is contract 135's fail-closed vocabulary working: `CANCL` is not in
+-- `provider_status_kinds`, so `v_kind` was null and the cancellation staged
+-- nothing at all. That is the correct behaviour and the test was wrong to
+-- assume a token. A fixture that owns its own vocabulary row also keeps this
+-- file independent of whichever tokens a seed happens to carry.
+insert into predictor_internal.provider_status_kinds (provider, provider_status, kind, note)
+values ('sportmonks', 'CP-CANCL', 'cancelled', 'contract 174 suite fixture')
+on conflict (provider, provider_status) do nothing;
+
 -- Two fixtures we hold. One the provider will report cancelled; one it will
 -- simply stop mentioning.
 insert into public.season_fixtures (
@@ -62,7 +74,7 @@ select set_config('test.cp_payload', jsonb_build_array(
   jsonb_build_object(
     'roundProviderId','CP-R5','homeTeamProviderId','CP-1','awayTeamProviderId','CP-2',
     'kickoffAt', (now() + interval '3 days')::text, 'providerFixtureId','CP-P1',
-    'status','CANCL','homeTeamName','CP Rovers','awayTeamName','CP United'),
+    'status','CP-CANCL','homeTeamName','CP Rovers','awayTeamName','CP United'),
   -- one we have never heard of
   jsonb_build_object(
     'roundProviderId','CP-R5','homeTeamProviderId','CP-3','awayTeamProviderId','CP-1',
@@ -182,6 +194,20 @@ select throws_ok(
   'an ordinary signed-in player cannot read the queue');
 
 reset role;
+
+select set_config('test.cp_cancelled',
+  (select proposal.id::text from predictor_internal.provider_calendar_change_proposals proposal
+    where proposal.tournament_id = current_setting('test.cp_season')::uuid
+      and proposal.proposal_kind = 'cancelled'), true);
+select set_config('test.cp_discovered',
+  (select proposal.id::text from predictor_internal.provider_calendar_change_proposals proposal
+    where proposal.tournament_id = current_setting('test.cp_season')::uuid
+      and proposal.proposal_kind = 'discovered'), true);
+select set_config('test.cp_withdrawn',
+  (select proposal.id::text from predictor_internal.provider_calendar_change_proposals proposal
+    where proposal.tournament_id = current_setting('test.cp_season')::uuid
+      and proposal.proposal_kind = 'withdrawn'), true);
+
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('cp-admin')::uuid, 'role', 'authenticated',
                     'app_metadata', json_build_object('admin_role', 'super_admin'))::text, true);
@@ -189,6 +215,13 @@ set local role authenticated;
 
 select set_config('test.cp_view',
   public.admin_provider_change_proposals(current_setting('test.cp_season')::uuid)::text, true);
+
+-- The proposal ids are resolved as the OWNER, before any assertion runs as
+-- `authenticated`. A signed-in caller cannot read `predictor_internal` — which
+-- is the point of the schema — so looking an id up inside an argument
+-- expression fails with `permission denied` and tests nothing about the
+-- function under test. The first CI run of this file died exactly there.
+select set_config('test.cp_cancelled', '', true);
 
 select is(
   current_setting('test.cp_view')::jsonb ->> 'total', '3',
@@ -204,9 +237,7 @@ select is(
 
 select is(
   (public.admin_decide_provider_change_proposal(
-     (select proposal.id from predictor_internal.provider_calendar_change_proposals proposal
-       where proposal.tournament_id = current_setting('test.cp_season')::uuid
-         and proposal.proposal_kind = 'cancelled'),
+     current_setting('test.cp_cancelled')::uuid,
      'approve') -> 'resulting_action' ->> 'status'),
   'void',
   'approving a cancellation voids the fixture, using a status the CHECK already allowed');
@@ -218,9 +249,7 @@ select is(
 
 select is(
   (public.admin_decide_provider_change_proposal(
-     (select proposal.id from predictor_internal.provider_calendar_change_proposals proposal
-       where proposal.tournament_id = current_setting('test.cp_season')::uuid
-         and proposal.proposal_kind = 'discovered'),
+     current_setting('test.cp_discovered')::uuid,
      'approve') -> 'resulting_action' ->> 'created_season_fixture_id') is not null,
   true,
   'approving a discovered proposal creates the fixture, and says which');
@@ -250,9 +279,7 @@ set local role authenticated;
 
 select throws_ok(
   format('select public.admin_decide_provider_change_proposal(%L, %L)',
-    (select proposal.id from predictor_internal.provider_calendar_change_proposals proposal
-      where proposal.tournament_id = current_setting('test.cp_season')::uuid
-        and proposal.proposal_kind = 'withdrawn'),
+    current_setting('test.cp_withdrawn')::uuid,
     'approve'),
   '55000',
   'That fixture now has a result; approving would rescore a settled matchweek',

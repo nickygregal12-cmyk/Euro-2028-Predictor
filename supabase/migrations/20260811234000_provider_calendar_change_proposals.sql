@@ -824,7 +824,7 @@ comment on function public.admin_decide_provider_change_proposal(uuid, text, tex
 -- ===========================================================================
 
 create or replace function predictor_internal.consume_provider_responses(
-  p_limit integer default 25,
+  p_limit integer default 20,
   p_now timestamptz default now()
 )
 returns jsonb
@@ -835,8 +835,8 @@ as $consume$
 declare
   v_row record;
   v_tournament_id uuid;
-  v_outcome text;
   v_report jsonb;
+  v_outcome text;
   v_holds_fixtures boolean;
   v_considered integer := 0;
   v_applied integer := 0;
@@ -847,19 +847,21 @@ declare
 begin
   for v_row in
     select processing.id as processing_id,
-           processing.raw_response_id,
+           processing.normalized_payload,
+           raw.id as raw_response_id,
            raw.provider,
-           raw.request_url,
-           processing.normalized_payload
+           raw.request_url
       from predictor_internal.provider_response_processing processing
       join predictor_internal.provider_raw_responses raw
         on raw.id = processing.raw_response_id
-     where processing.decoded
+     where processing.succeeded
+       and processing.normalized_payload is not null
        and not exists (
-         select 1 from predictor_internal.provider_response_consumption consumed
+         select 1
+           from predictor_internal.provider_response_consumption consumed
           where consumed.processing_id = processing.id)
-     order by processing.id
-     limit greatest(coalesce(p_limit, 25), 1)
+     order by processing.processed_at, processing.id
+     limit greatest(coalesce(p_limit, 20), 1)
   loop
     v_considered := v_considered + 1;
     v_report := '{}'::jsonb;
