@@ -389,6 +389,18 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
 
 ## Stage L — Euro 2028
 
+- [x] **The Euro deployment shell, 11 August 2026.** ADR 0026's two sites exist as
+  builds: `VITE_SITE_VARIANT` selects the product, `EuroLandingPage` leads with the
+  tournament and groups the weekly games as Bonus Games, and the whole page is keyed
+  on contract 143's publication state — closed by default, and closed for ever if the
+  read fails. It contains no draw, no team, no fixture and no countdown, because the
+  tournament's own data does not exist and mocking it is the placeholder the design
+  authority forbids. **This does not restart the January 2028 programme**; the rows
+  below are unchanged.
+- [ ] Bind a second Netlify site to the Euro domain with `VITE_SITE_VARIANT=euro`
+  and `VITE_PUBLIC_ORIGIN` set (`SITE-004`), and add both origins to the Supabase
+  Auth redirect allow-list (`SITE-006`). Both are operations tasks and neither is
+  claimed by the build seam.
 - [ ] Return to Part I in January 2028.
 - [ ] Reconcile the parked inventory against the then-current platform.
 - [ ] Complete every open tournament gate before public release.
