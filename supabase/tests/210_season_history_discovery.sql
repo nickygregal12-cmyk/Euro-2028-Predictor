@@ -85,19 +85,35 @@ insert into public.entries (id, user_id, tournament_id) values
 -- The 2026/27 Main Predictor membership already exists, created by the entry
 -- trigger, so only the Last Man Standing rows are inserted here. 2027/28 is a
 -- Last Man Standing membership with NO entry: the union's load-bearing case.
-insert into public.game_memberships (tournament_id, game_competition_id, user_id, status, left_at) values
-  (md5('sh-s26')::uuid, md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'left', now() - interval '30 days'),
-  (md5('sh-s27')::uuid, md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active', null);
+-- Both memberships start ACTIVE, because `prepare_bonus_entrant_membership`
+-- refuses an entrant row without one. `active_since` is required for that
+-- status and `left_at` forbidden alongside it:
+-- `game_memberships_state_shape` admits exactly one column shape per status.
+insert into public.game_memberships (
+  tournament_id, game_competition_id, user_id, status, active_since) values
+  (md5('sh-s26')::uuid, md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'active',
+   now() - interval '400 days'),
+  (md5('sh-s27')::uuid, md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active',
+   now() - interval '30 days');
 
 insert into public.bonus_competition_entrants (competition_id, user_id, outcome) values
   (md5('sh-mp26')::uuid, md5('sh-p1')::uuid, 'active'),
   (md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'eliminated'),
   (md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active');
 
+-- ONLY NOW does the 2026/27 Last Man Standing membership become `left`. Leaving
+-- is a thing that happens to an existing entrant, and the trigger above refuses
+-- to create one for a membership that has already gone.
+update public.game_memberships
+   set status = 'left', active_since = null, left_at = now() - interval '30 days'
+ where game_competition_id = md5('sh-lms26')::uuid
+   and user_id = md5('sh-p1')::uuid;
+
 -- Player two played a different season entirely, so the two histories cannot
 -- bleed into one another.
-insert into public.game_memberships (tournament_id, game_competition_id, user_id, status) values
-  (md5('sh-s99')::uuid, md5('sh-mp99')::uuid, md5('sh-p2')::uuid, 'active');
+insert into public.game_memberships (
+  tournament_id, game_competition_id, user_id, status, active_since) values
+  (md5('sh-s99')::uuid, md5('sh-mp99')::uuid, md5('sh-p2')::uuid, 'active', now());
 
 -- A banked Wrapped for 2026/27 only.
 insert into public.season_wrapped (
@@ -150,11 +166,15 @@ select is(
   2,
   'a season with two games reports both, separately, as ADR 0011 requires');
 
+-- Scoped to the SEASON as well as the game: 2027/28 runs a Last Man Standing
+-- too, so selecting on the game key alone matches two rows across two seasons
+-- and the subquery raises rather than answering.
 select is(
   (select game ->> 'membership_status'
      from jsonb_array_elements(current_setting('test.sh_history')::jsonb -> 'seasons') entry,
           jsonb_array_elements(entry -> 'games') game
-    where game ->> 'game_key' = 'last_man_standing'),
+    where entry ->> 'season_key' = 'sh-2026/27'
+      and game ->> 'game_key' = 'last_man_standing'),
   'left',
   'a game the caller left says so, rather than vanishing');
 
@@ -162,7 +182,8 @@ select is(
   (select game ->> 'outcome'
      from jsonb_array_elements(current_setting('test.sh_history')::jsonb -> 'seasons') entry,
           jsonb_array_elements(entry -> 'games') game
-    where game ->> 'game_key' = 'last_man_standing'),
+    where entry ->> 'season_key' = 'sh-2026/27'
+      and game ->> 'game_key' = 'last_man_standing'),
   'eliminated',
   'and carries the settlement authority''s own word for how it ended');
 

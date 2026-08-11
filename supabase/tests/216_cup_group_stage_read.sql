@@ -37,6 +37,24 @@ select current_setting('test.gs_season')::uuid, md5('gs-r' || n)::uuid,
        now() + (n || ' days')::interval, 'scheduled'
   from generate_series(1, 40) as n;
 
+set local session_replication_role = replica;
+insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+select md5('gs-u' || n)::uuid, format('gs-%s@example.test', n),
+       'authenticated', 'authenticated', '{}'::jsonb, '{}'::jsonb, now(), now()
+  from generate_series(1, 25) as n;
+insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+values (md5('gs-out')::uuid, 'gs-out@example.test', 'authenticated', 'authenticated',
+        '{}'::jsonb, '{}'::jsonb, now(), now());
+set local session_replication_role = origin;
+
+insert into public.profiles (id, display_name, welcomed_at)
+select md5('gs-u' || n)::uuid, 'GS Player ' || n, now() from generate_series(1, 25) as n;
+insert into public.profiles (id, display_name, welcomed_at)
+values (md5('gs-out')::uuid, 'Outsider', now());
+
+-- The accounts exist BEFORE the competitions, because the private Championship
+-- names one as its owner and `bonus_competitions_owner_fk` is a real foreign
+-- key.
 -- PRIVATE, deliberately: a private Championship's membership must not be
 -- readable by anyone holding its id, which is what the entrancy boundary
 -- protects and what a public fixture would not test.
@@ -52,21 +70,6 @@ values (md5('gs-cup')::uuid, current_setting('test.gs_season')::uuid, 'predictor
        (md5('gs-lms')::uuid, current_setting('test.gs_season')::uuid, 'last_man_standing',
         null, true, 'active', false, 'public', now() - interval '30 days',
         null, null);
-
-set local session_replication_role = replica;
-insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
-select md5('gs-u' || n)::uuid, format('gs-%s@example.test', n),
-       'authenticated', 'authenticated', '{}'::jsonb, '{}'::jsonb, now(), now()
-  from generate_series(1, 25) as n;
-insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
-values (md5('gs-out')::uuid, 'gs-out@example.test', 'authenticated', 'authenticated',
-        '{}'::jsonb, '{}'::jsonb, now(), now());
-set local session_replication_role = origin;
-
-insert into public.profiles (id, display_name, welcomed_at)
-select md5('gs-u' || n)::uuid, 'GS Player ' || n, now() from generate_series(1, 25) as n;
-insert into public.profiles (id, display_name, welcomed_at)
-values (md5('gs-out')::uuid, 'Outsider', now());
 
 insert into public.bonus_competition_entrants (competition_id, user_id)
 select md5('gs-cup')::uuid, md5('gs-u' || n)::uuid from generate_series(1, 25) as n;

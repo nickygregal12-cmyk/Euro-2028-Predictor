@@ -13,7 +13,7 @@
 
 begin;
 
-select plan(12);
+select plan(13);
 
 insert into public.tournaments (name, year, competition_id, season_key, kind, display_timezone, status)
 select 'C168 Admin Inspection', 2053, t.competition_id, 'admin-inspect', 'league_season',
@@ -27,12 +27,14 @@ insert into public.teams (id, tournament_id, name) values
   (md5('ai-t1')::uuid, current_setting('test.ai_season')::uuid, 'AI Rovers'),
   (md5('ai-t2')::uuid, current_setting('test.ai_season')::uuid, 'AI United');
 
--- The custody row's real shape: `raw_body` is TEXT and there is no `payload`
--- column at all. The marker goes in the body, which is precisely what must not
--- reach a client.
+-- The custody row's real shape: `raw_body` is TEXT, there is no `payload`
+-- column at all, and `provider_raw_responses_provider_origin` requires the URL
+-- to match the provider's real API origin — a custody row that cannot say where
+-- it came from is not custody. The marker goes in the body, which is precisely
+-- what must not reach a client.
 insert into predictor_internal.provider_raw_responses (
   id, provider, request_url, request_method, response_status, raw_body, fetched_at)
-values (md5('ai-raw')::uuid, 'sportmonks', 'https://example.test/fixtures', 'GET', 200,
+values (md5('ai-raw')::uuid, 'sportmonks', 'https://api.sportmonks.com/v3/football/fixtures', 'GET', 200,
         '{"marker":"THIS-BODY-MUST-NEVER-REACH-A-CLIENT"}', now())
 on conflict do nothing;
 
@@ -172,8 +174,10 @@ reset role;
 insert into public.bonus_competitions (
   id, tournament_id, game_key, name, published, availability_status,
   draw_required, visibility_kind, registration_opens_at)
+-- PUBLIC, so no name, owner or invite code: contract 152's identity constraint
+-- again, and the same mistake this suite's Championship sibling made.
 values (md5('ai-lms')::uuid, current_setting('test.ai_season')::uuid, 'last_man_standing',
-        'Public LMS', true, 'active', false, 'public', now() - interval '10 days');
+        null, true, 'active', false, 'public', now() - interval '10 days');
 
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -190,11 +194,14 @@ insert into public.bonus_competition_entrants (competition_id, user_id, outcome)
   (md5('ai-lms')::uuid, md5('ai-e1')::uuid, 'active'),
   (md5('ai-lms')::uuid, md5('ai-e2')::uuid, 'active');
 
-insert into public.game_memberships (
-  tournament_id, game_competition_id, user_id, status, disqualified_at) values
-  (current_setting('test.ai_season')::uuid, md5('ai-lms')::uuid, md5('ai-e1')::uuid, 'active', null),
-  (current_setting('test.ai_season')::uuid, md5('ai-lms')::uuid, md5('ai-e2')::uuid,
-   'disqualified', now());
+-- `prepare_bonus_entrant_membership` created an ACTIVE membership for each
+-- entrant above. Disqualification is a change to one of those, not a second
+-- row: inserting again collides on the unique key, and inserting without
+-- `active_since` fails `game_memberships_state_shape` besides.
+update public.game_memberships
+   set status = 'disqualified', active_since = null, disqualified_at = now()
+ where game_competition_id = md5('ai-lms')::uuid
+   and user_id = md5('ai-e2')::uuid;
 
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('ai-plain')::uuid, 'role', 'authenticated',

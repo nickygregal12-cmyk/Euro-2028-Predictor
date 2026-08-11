@@ -26,6 +26,17 @@ insert into public.teams (id, tournament_id, name) values
   (md5('og-t1')::uuid, current_setting('test.og_season')::uuid, 'Organiser Rovers'),
   (md5('og-t2')::uuid, current_setting('test.og_season')::uuid, 'Organiser United');
 
+-- Real football under the pick: `assert_bonus_lms_selection_shape` refuses a
+-- club that does not play in the round being picked in.
+insert into public.competition_rounds (id, tournament_id, round_key, ordinal, kind, label)
+values (md5('og-r5')::uuid, current_setting('test.og_season')::uuid,
+        'og-mw5', 5, 'league_matchweek', 'Matchweek 5');
+
+insert into public.season_fixtures (
+  id, tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
+values (md5('og-fx')::uuid, current_setting('test.og_season')::uuid, md5('og-r5')::uuid,
+        md5('og-t1')::uuid, md5('og-t2')::uuid, now() + interval '2 days', 'scheduled');
+
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select md5('og-' || who)::uuid, format('og-%s@example.test', who),
@@ -66,10 +77,10 @@ insert into public.season_lms_entrant_state (competition_id, user_id, lives_rema
   (md5('og-priv')::uuid, md5('og-p1')::uuid, 1, 0),
   (md5('og-priv')::uuid, md5('og-p2')::uuid, 0, 0);
 
-insert into public.game_memberships (tournament_id, game_competition_id, user_id, status) values
-  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-own')::uuid, 'active'),
-  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-p1')::uuid, 'active'),
-  (current_setting('test.og_season')::uuid, md5('og-priv')::uuid, md5('og-p2')::uuid, 'active');
+-- No explicit `game_memberships` rows: `prepare_bonus_entrant_membership`
+-- creates one per entrant above, and inserting them again collides on
+-- `game_memberships_game_user_key`. The membership is the entrant row's
+-- consequence, not its prerequisite to write by hand.
 
 -- An OPEN round. Olive has picked; Pat has not. The round is deliberately still
 -- open, because that is when the organiser's question and the reveal boundary
@@ -77,6 +88,9 @@ insert into public.game_memberships (tournament_id, game_competition_id, user_id
 insert into public.bonus_competition_windows (id, competition_id, sequence, label, opens_at, locks_at)
 values (md5('og-w5')::uuid, md5('og-priv')::uuid, 5, 'Round 5',
         now() - interval '1 day', now() + interval '2 days');
+
+insert into public.season_cup_window_fixtures (window_id, season_fixture_id)
+values (md5('og-w5')::uuid, md5('og-fx')::uuid);
 
 insert into public.bonus_lms_selections (competition_id, user_id, window_id, team_id)
 values (md5('og-priv')::uuid, md5('og-own')::uuid, md5('og-w5')::uuid, md5('og-t1')::uuid);
