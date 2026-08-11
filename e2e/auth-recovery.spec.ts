@@ -214,6 +214,21 @@ test.describe('authentication and recovery', () => {
 
       await page.getByRole('button', { name: 'Finish setup', exact: true }).click()
 
+      // FINISHING MUST NOT FAIL SILENTLY, and this waits for whichever answer
+      // comes first rather than only for the one it hopes for. `finish` either
+      // hands the player onward or leaves them on the page with the reason —
+      // a partial-failure list or an error — and waiting only on the URL would
+      // spend twenty seconds and then report a timeout, which says the journey
+      // did not finish without saying why.
+      await Promise.race([
+        page.waitForURL((url) => url.pathname === `/join/${INVITE_CODE}`, { timeout: 30_000 }),
+        page.getByRole('alert').first().waitFor({ state: 'visible', timeout: 30_000 }),
+      ]).catch(() => undefined)
+      const refusals = await page.getByRole('alert').allInnerTexts()
+      expect(refusals, 'finishing setup reported a problem instead of handing back the invite').toEqual(
+        [],
+      )
+
       // The pending invite survived sign-up AND onboarding. It was captured on
       // arrival at `/welcome` and is consumed only now, so somebody who had
       // abandoned setup halfway would still have had it waiting.
