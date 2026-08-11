@@ -153,5 +153,7 @@ same paragraph existed in seven places at once.
 | 169 | A season Championship group is ranked over **every matchday it has played and settled**, not over the tournament's three; the tournament's own table is unchanged |
 | 170 | A matchweek is an ACTION between its play window opening and its own lock — both from the authorities that already own them |
 | 171 | A private league larger than a read's cap keeps its LEADER at the top, because the cap now keeps the top rows rather than an arbitrary set |
+| 172 | **None.** No competition, game, round, lock or settlement rule moves; three existing jobs acquire a schedule |
+| 173 | A settled matchweek is worth telling a player about for **seven days**, which is contract 162's own stated intention made executable rather than a new rule |
 
-*Current to contract 171.*
+*Current to contract 173.*

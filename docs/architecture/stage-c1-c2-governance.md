@@ -93,7 +93,7 @@ Documentation, architecture and test planning may proceed. **Hosted implementati
 
 Issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) stays open until those conditions are met. An AI-assisted review may inform the design and test planning above; **it does not substitute for the sign-off and no part of this document claims that it does.**
 
-The first external cohort is separately restricted to adults aged 18 or over (`AGE-001`, [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md)). That restriction stands alongside this work rather than being satisfied by it, and it remains until a Children's Code and age-risk assessment supports a different model.
+~~The first external cohort is separately restricted to adults aged 18 or over~~ — **`AGE-001` was rejected on 11 August 2026 by owner decision**, so no age restriction applies and none is to be built. Nothing in Stage C2 changes as a result: it remains blocked on `PRIV-007`. (`AGE-001`, [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md)). That restriction stands alongside this work rather than being satisfied by it, and it remains until a Children's Code and age-risk assessment supports a different model.
 
 Each identifier above is tracked in [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md).
 

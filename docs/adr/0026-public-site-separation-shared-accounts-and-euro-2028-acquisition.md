@@ -67,9 +67,11 @@ ADR 0019 still owns the future umbrella-brand decision. This ADR is orthogonal t
 
 **`EURO-004` — visibility is enforced by the server-owned state plus route guards**, not by catalogue filtering alone.
 
-### The first external cohort is adults only
+### The first external cohort is adults only — ~~decided~~ **reversed, 11 August 2026**
 
-**`AGE-001` — the initial external cohort is restricted to users aged 18 or over.** This remains an enforceable signup requirement, not footer wording.
+**~~`AGE-001` — the initial external cohort is restricted to users aged 18 or over.~~ Amended by owner decision on 11 August 2026: the restriction is withdrawn.** This platform is a free football prediction game and not a betting product, and the owner has decided that no 18+ rule, no age gate and no date-of-birth field apply to it.
+
+The clause is amended in place rather than removed, on the same terms as the ADR 0020 ingestion amendment: an ADR records what was decided, and a decision that was later reversed is part of that record. **Nothing in this repository may implement an age restriction on the strength of the original clause.** The remainder of this ADR — the two-site boundary, the shared account and the Euro publication state — is untouched by the amendment.
 
 ## Implemented position
 
@@ -81,7 +83,7 @@ The Euro publication boundary is now materially implemented.
 
 This is repository and Development implementation truth, not a Production release claim. Production is still Contract 132 and the currently served Netlify production artifact predates the guarded route consumer. The database promotion and application release remain separately controlled.
 
-The rest of this ADR is not thereby implemented. SITE-002–SITE-007, ACCOUNT-001/002 as a two-origin proof, ACCOUNT-004 per-origin proof, ACCOUNT-005 once acquisition metadata exists, and AGE-001 remain future work.
+The rest of this ADR is not thereby implemented. SITE-002–SITE-007, ACCOUNT-001/002 as a two-origin proof, ACCOUNT-004 per-origin proof, and ACCOUNT-005 once acquisition metadata exists remain future work. **AGE-001 does not**: it was rejected by the 11 August 2026 amendment above and is neither future work nor a gap.
 
 ## Remaining work
 
@@ -104,7 +106,7 @@ The next architectural work is not another Euro visibility state. The remaining 
 
 - `SITE-003` and `SITE-007` wait on ADR 0019's brand trigger.
 - `SITE-006` cannot be completed before both domains exist, although its migration procedure is fixed now.
-- `AGE-001` sits alongside the Stage C2 data-protection work but is not automatically satisfied by it.
+- ~~`AGE-001` sits alongside the Stage C2 data-protection work but is not automatically satisfied by it.~~ **Rejected 11 August 2026** — see the amendment above. Stage C2 is unaffected and remains blocked on `PRIV-007`.
 - Production use of the merged route guard depends on the repository-controlled Production database promotion reaching Contract 143 or later first, followed by a compatible application release.
 
 ## Consequences

@@ -938,8 +938,29 @@
  * grant, either membership gate or either reveal boundary, and adds only keys.
  * A seeded league is far below both caps, so both reads answer a seeded user
  * exactly as they did at 170 with `members_truncated` false.
+ *
+ * Contract 172 schedules three `pg_cron` jobs and adds one browser-executable
+ * function. The jobs run `process_player_action_items`,
+ * `process_reminder_schedule` and `reclaim_stalled_reminders`, all of which
+ * were already `service_role`-only and none of which gains a grant here — so
+ * nothing a seeded user CALLS changes. What does change is that a seeded user's
+ * action inbox is no longer necessarily empty, because the generator now runs;
+ * that is an addition to `get_my_actions`, which is already granted, already
+ * caller-scoped and already returns an empty list when there is nothing to
+ * show. It gates no existing read. `admin_reminder_delivery_health` is new and
+ * granted to `authenticated`, and refuses inside on
+ * `require_competition_admin()` — the same gate the seeded admin already
+ * passes for `admin_open_season_competition` — so it adds a surface rather than
+ * a condition on one.
+ *
+ * Contract 173 adds a third generator to that same job and redefines
+ * `process_player_action_items` with one extra call, keeping its name, its
+ * `service_role`-only grant and every existing key of its return. Its generator
+ * is `predictor_internal` and granted to nobody. It creates no relation, policy
+ * or trigger, and writes only `player_action_items` rows of a type the existing
+ * CHECK already permitted, so no seeded read gains a gate.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 171
+export const SEED_REVIEWED_AT_CONTRACT = 173
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

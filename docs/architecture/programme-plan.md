@@ -94,7 +94,7 @@ Run a small invited cohort as a research instrument, not merely a soak test:
 
 **Entry conditions added 6 August 2026 by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md).** These gate the cohort opening, not the metrics above:
 
-- **the cohort is adults only** (`AGE-001`) — a server-side signup rule with matching eligibility wording and test fixtures, standing until a Children's Code and age-risk assessment supports a different model;
+- ~~**the cohort is adults only** (`AGE-001`)~~ — **rejected 11 August 2026 by owner decision**; the clause below is retained struck through so the reversal is visible rather than silent — a server-side signup rule with matching eligibility wording and test fixtures, standing until a Children's Code and age-risk assessment supports a different model;
 - **Euro 2028 is hidden** (`EURO-001`–`EURO-004`) — the first external cohort must not be able to see or reach a competition whose publication state is hidden, by catalogue, navigation, metadata, sitemap, share preview or guessable route;
 - **the operating caps are a deliberate setting, not an inherited one** (`CAP-001`, `CAP-006`) — custom SMTP is live, so email delivery no longer justifies the current public-user cap; whatever the cap is when the cohort opens should be a decision someone made, with the burst-load rehearsal behind it.
 
@@ -233,7 +233,9 @@ nothing to say.
 | 169 | Corrects a defect contract 167 shipped: a season Championship group table ranked thirty-eight matchdays on the tie-breakers of its first three. **No frontend consumer exists for it either** |
 | 170 | The action centre's matchweek generator. **No frontend consumer exists for it** |
 | 171 | Deterministic and self-declaring league prediction caps. **No frontend consumer reads the new keys yet** |
+| 172 | The retention machinery starts running. It moves no phase: nothing sends, and `SITE-007` still blocks the sender on the brand decision |
+| 173 | The settled-matchweek recap. **No frontend consumer**, and the AppBar still carries no notification control |
 
-**This table accounts for every contract up to and including contract 171.** Saying so is
+**This table accounts for every contract up to and including contract 173.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

@@ -283,6 +283,20 @@ document governs:
   hosted, so the bar is the types regeneration rather than the rollout — but the
   Championship generator is deliberately unwritten (`CUP-002`), so the feed is
   still not complete, which is the reason the action centre stays interim.
+- **And the feed stops being empty at all.** The paragraph above is right that the
+  Championship generator is what keeps the action centre interim, but until
+  contract 172 there was a second and larger problem: nothing ever RAN the
+  generators. Measured on hosted Development at contract 171,
+  `player_action_items` held zero rows and `cron.job` named none of the three
+  entry points, so `get_my_actions` answered every player with an empty list
+  however correct contracts 162 and 170 were. Contract 172 schedules them and
+  contract 173 adds the settled-matchweek recap, so the Matchweek Recap gains a
+  feed item rather than only a page. **Neither is consumed.**
+- **An administrator can see whether reminders are working.** Contract 172 adds
+  `admin_reminder_delivery_health` — counts, instants and the three jobs, and no
+  user id, action key, display name or provider error text. `/admin/season`
+  does not consume it. **Nothing sends**: no provider is chosen, the dry run is
+  on by default and `SITE-007` still blocks the sender on the brand decision.
 - **A Championship table now says what it was ranked over.** Contract 169 corrects the
   span the season group table is ranked on — the tournament's three matchdays, for a
   competition that plays thirty-eight — and adds `table_source` to `get_season_cup_phase`

@@ -350,7 +350,7 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
 - [ ] Add both production origins to the Supabase Auth redirect allow-list and verify each with a real confirmation and recovery send (`SITE-006`).
 - [ ] Move the transactional sender to the neutral umbrella brand (`SITE-007`) — **blocked on the brand trigger.** Custom SMTP itself is done and live-verified.
 - [ ] Prove one account and one profile work on both origins, and that signing up on either joins nothing (`ACCOUNT-001`, `ACCOUNT-002`, `ACCOUNT-004`).
-- [ ] Enforce the 18+ first cohort as a server-side signup rule with eligibility wording and fixtures (`AGE-001`). Footer copy does not close this.
+- [x] ~~Enforce the 18+ first cohort as a server-side signup rule with eligibility wording and fixtures (`AGE-001`).~~ **Rejected 11 August 2026 by owner decision** — this is a free football predictor and not a betting product, so the 18+ restriction, the age gate and the date-of-birth field are withdrawn rather than deferred. Ticked as CLOSED, not as built; `docs/quality/accepted-requirements.md`'s `AGE-001` row carries the decision, and no migration implements it.
 - [ ] Keep acquisition source out of every policy, grant and visibility check when it is first recorded (`ACCOUNT-005`).
 
 ### Provider change approval
@@ -435,5 +435,7 @@ same paragraph existed in seven places at once.
 | 169 | The season Championship group table stops ranking thirty-eight matchdays on the first three — a defect contract 167 made browser-reachable an hour after shipping |
 | 170 | The action centre learns about the matchweek card, and its expiry sweep learns the second authority a matchweek's lock lives in |
 | 171 | A cap with no ordering is an arbitrary choice presented as a table — contract 149's, found and closed |
+| 172 | The action centre and the reminder ledger acquire a caller. Three contracts built them and every one ended by recording that nothing ran them |
+| 173 | The action centre's third generator, and the sweep-key trap it had to avoid to exist at all |
 
-*Current to contract 171.*
+*Current to contract 173.*

@@ -75,5 +75,7 @@ same paragraph existed in seven places at once.
 | 169 | **None.** ADR 0014 §5.2's tie-break sequence is carried across unchanged and in the same order; only the SPAN its middle keys are measured over changes, and only for a league season |
 | 170 | **None.** The matchweek action reuses `competition_rounds.window_opens_at` and the derived matchweek lock; no new rule decides when a card is due |
 | 171 | **None.** Both reads keep their reveal boundaries and their caps; only the cap's ORDER and its honesty change |
+| 172 | **None.** It schedules three existing `service_role` entry points and takes no decision any of them defers. It notably does NOT choose a transactional sender, which stays `SITE-007`'s owner decision |
+| 173 | **None.** `MIG-UI-14` names "a matchweek settled" as one of the four feed items, and contract 162's own vocabulary already permitted the type; the recap reports banked totals and decides nothing |
 
-*Current to contract 171.*
+*Current to contract 173.*

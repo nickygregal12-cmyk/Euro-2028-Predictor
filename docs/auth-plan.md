@@ -110,8 +110,8 @@ The transition, when the brand exists — no Supabase compute change is required
 
 ### Age of the first external cohort
 
-**`AGE-001` — the initial external cohort is restricted to users aged 18 or over.** This is a signup rule with server-side effect, matching eligibility wording and test fixtures, not footer copy. It is unimplemented: there is no age field and no gate. `validateSignUp()` and its server-side counterpart are where it belongs, on the pattern the display-name and password rules already use — mirrored on both sides rather than enforced in the browser alone.
+**~~`AGE-001` — the initial external cohort is restricted to users aged 18 or over.~~ Rejected 11 August 2026 by owner decision.** This platform is a free football predictor and not a betting product, and the owner has withdrawn the 18+ restriction, the age gate and the date-of-birth field it would have required. **Do not add an age field, an age gate or a date-of-birth requirement to `validateSignUp()` or to its server-side counterpart.**
 
-The restriction stands until a Children's Code and age-risk assessment supports a different model. It is separate from, and not satisfied by, the Stage C2 data-protection work in [`architecture/stage-c1-c2-governance.md`](architecture/stage-c1-c2-governance.md).
+The paragraph that stood here described the rule as standing until a Children's Code and age-risk assessment supported a different model. It is replaced rather than deleted so that a reader who arrives from an older document can see the reversal; the decision is recorded on `AGE-001` in [`quality/accepted-requirements.md`](quality/accepted-requirements.md). The Stage C2 data-protection work in [`architecture/stage-c1-c2-governance.md`](architecture/stage-c1-c2-governance.md) is untouched by this and remains blocked on `PRIV-007`.
 
 Each identifier is tracked in [`quality/accepted-requirements.md`](quality/accepted-requirements.md).
