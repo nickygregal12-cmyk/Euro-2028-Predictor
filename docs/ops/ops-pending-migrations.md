@@ -24,6 +24,16 @@ This is the operational migration inventory. Machine-readable hosted state is au
 
 The seven that were already there are unchanged and still active. **Nothing sends**: each new command carries an **empty argument list**, so `process_reminder_schedule` keeps its `dry_run = true` default; no job anywhere names `claim_due_reminders`; none passes `false`; and `reminder_deliveries` holds no row whose `dry_run` is anything but true. All of that is read off the installed table rather than inferred from the migration text.
 
+**Measured over the first hour on Production, rather than predicted.** All three jobs ran repeatedly with **zero failures**, and the action centre wrote **two real `lms_pick_due` items** for two live Last Man Standing entries — Production has an open LMS round where Development had none, so it exercised a generator Development could not. Both items are open and, unlike Development's recaps, both **carry a deadline**, so the "no deadline" reason that keeps Development quiet does not apply here.
+
+**`reminder_deliveries` is nevertheless still empty, and three independent things are keeping it that way.** Each alone would suffice:
+
+1. the two deadlines are **9 and 10 days out**, far outside contract 163's twenty-four hour lead, so neither is due for a reminder yet;
+2. `profiles.reminder_emails` is **`false`** for the only account, so contract 163 would skip it regardless;
+3. `process_reminder_schedule` is scheduled with **no arguments**, so `dry_run` stays true, and **`claim_due_reminders` — the function a sender would call — is scheduled nowhere at all.**
+
+Only the third is a property of this contract; the first two are circumstances that will change. **When a deadline does come inside the lead window and an account has opted in, the scheduler will begin writing `reminder_deliveries` rows carrying `dry_run = true`.** That is the designed behaviour and still sends nothing, because nothing claims them — but it is the point at which "the table is empty" stops being the evidence, and `dry_run` plus the absent claim job become the whole of it. `SITE-007` still blocks the sender on the brand decision.
+
 **What is now different about Production, stated plainly.** The action centre generates `player_action_items` on a timer there from now on, and contract 174's detector runs inside the already-scheduled `consume_provider_responses` every five minutes. `provider_calendar_change_proposals` came up with **zero** rows, row-level security on and no grant to any browser role; detection writes **no** fixture, and only `admin_decide_provider_change_proposal` may add or void one, gated on `require_competition_admin` and refusing any fixture that already carries a result.
 
 **And what did not change.** `euro_publication_state()` still returns `hidden`, so contract 143 and `EURO-001` are untouched. 578 season fixtures, 1 auth user and 3 entries are unchanged, and every count captured before the apply was compared after it. No competition was launched, no Championship drawn, no Last Man Standing opened, no provider result confirmed, no fixture added or voided, and no football imported. **The deployed application remains at contract 145**, so nothing in the range is browser-reachable, and `promotionAuthorised` stays `false`.
