@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import {
   seasonLabelFor,
   type SeasonPlayContext,
@@ -51,7 +51,7 @@ function requireShape(payload: unknown): ContextPayload {
 export function createSeasonPlayContextGateway(): SeasonPlayContextGateway {
   return {
     async load(competitionSlug: string, seasonKey: string): Promise<SeasonPlayContext> {
-      const { data, error } = await supabase.rpc('get_season_play_context', {
+      const { data, error } = await db.rpc('get_season_play_context', {
         p_competition_slug: competitionSlug,
         p_season_key: seasonKey,
       })

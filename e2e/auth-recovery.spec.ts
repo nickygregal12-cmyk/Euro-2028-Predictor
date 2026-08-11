@@ -192,11 +192,19 @@ test.describe('authentication and recovery', () => {
         .click()
       await expect(page).toHaveURL((url) => url.pathname === `/join/${INVITE_CODE}`)
       await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
-      await expect(page.getByText('Owner: E2E Tester', { exact: true })).toBeVisible()
+
+      // The owner's name is ABSENT, and that is the assertion rather than the
+      // loss of one. Contract 158 stopped `get_league_preview` returning
+      // `owner_name`, because answering any authenticated guess with a real
+      // person's name is what turned a guessed code into a positively
+      // identified group. The name reappears on the league page after joining,
+      // where a member may see the membership — which the join below still
+      // proves.
+      await expect(page.getByText('Owner: E2E Tester', { exact: true })).toBeHidden()
 
       // The valid-invite preview, which is a different page from the stale
-      // `/join/NOSUCH` state `axe-unauthenticated` scans: a league name, an
-      // owner and a join action rather than a not-found message.
+      // `/join/NOSUCH` state `axe-unauthenticated` scans: a league name and a
+      // join action rather than a not-found message.
       await expectNoSeriousAxeViolations(page, '/join/:code')
       await waitForWelcomeStamp()
 

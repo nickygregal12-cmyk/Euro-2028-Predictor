@@ -3,7 +3,8 @@
 // Keyed per entry by the canonical set-key; the domain layer re-validates each
 // stored order against the currently-tied set, so stale rows are harmless.
 
-import { supabase } from './client'
+import { db } from './client'
+import { preparedInsert } from './preparedInsert'
 import { tieKey } from '../../domain/tournament/tieResolutions'
 
 export type TieResolutionScope = 'group' | 'third'
@@ -15,7 +16,7 @@ export type StoredTieResolution = {
 }
 
 export async function fetchTieResolutions(entryId: string): Promise<StoredTieResolution[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('predicted_tie_resolutions')
     .select('scope, ordered_team_ids')
     .eq('entry_id', entryId)
@@ -37,14 +38,14 @@ export async function upsertTieResolution(
   scope: TieResolutionScope,
   orderedTeamIds: string[],
 ): Promise<void> {
-  const { error } = await supabase.from('predicted_tie_resolutions').upsert(
-    {
+  const { error } = await db.from('predicted_tie_resolutions').upsert(
+    preparedInsert('predicted_tie_resolutions', {
       entry_id: entryId,
       scope,
       tie_key: tieKey(orderedTeamIds),
       ordered_team_ids: orderedTeamIds,
       updated_at: new Date().toISOString(),
-    },
+    }),
     { onConflict: 'entry_id,tie_key' },
   )
   if (error) throw error

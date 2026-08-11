@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ from: vi.fn() }))
 
 vi.mock('../../src/services/supabase/client', () => ({
-  supabase: { from: mocks.from },
+  db: { from: mocks.from },
 }))
 
 import { fetchTournamentData } from '../../src/services/supabase/tournamentData'

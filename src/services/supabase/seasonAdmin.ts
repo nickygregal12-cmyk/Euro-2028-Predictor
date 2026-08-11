@@ -17,7 +17,8 @@
 // `season_lms_setups` are revoked from every browser role; the entry points are
 // the boundary and there is no fallback.
 
-import { supabase } from './client'
+import { db } from './client'
+import { rpcArgs } from './rpcArguments'
 
 /** What `admin_open_season_competition` reports back about one competition. */
 export type SeasonOpenOutcome = {
@@ -91,7 +92,7 @@ function decodeOpenOutcome(value: unknown): SeasonOpenOutcome {
  * than creating a second calendar.
  */
 export async function openSeasonCompetition(competitionId: string): Promise<SeasonOpenOutcome> {
-  const { data, error } = await supabase.rpc('admin_open_season_competition', {
+  const { data, error } = await db.rpc('admin_open_season_competition', {
     p_competition_id: competitionId,
   })
   if (error) throw error
@@ -133,10 +134,13 @@ export async function recordSeasonFixtureResult(input: {
   const reason = input.reason?.trim() ? input.reason.trim() : null
 
   if (input.action === 'clear') {
-    const { data, error } = await supabase.rpc('admin_clear_season_fixture_result', {
-      p_season_fixture_id: input.fixtureId,
-      p_reason: reason,
-    })
+    const { data, error } = await db.rpc(
+      'admin_clear_season_fixture_result',
+      rpcArgs('admin_clear_season_fixture_result', ['p_reason'], {
+        p_season_fixture_id: input.fixtureId,
+        p_reason: reason,
+      }),
+    )
     if (error) throw error
     return decodeResultOutcome(data, 'clear')
   }
@@ -146,12 +150,31 @@ export async function recordSeasonFixtureResult(input: {
       ? 'admin_confirm_season_fixture_result'
       : 'admin_correct_season_fixture_result'
 
-  const { data, error } = await supabase.rpc(rpc, {
-    p_season_fixture_id: input.fixtureId,
-    p_home: input.home,
-    p_away: input.away,
-    p_reason: reason,
-  })
+  // A MISSING SCORE IS SENT AS NULL, NOT DROPPED, AND THE DIFFERENCE IS VISIBLE
+  // TO THE ADMINISTRATOR.
+  //
+  // `SeasonAdminPage` deliberately forwards an absent score rather than
+  // refusing locally — "the server refuses a result with a missing score and
+  // says so; refusing here first would be this page holding an opinion about
+  // the rule". That refusal is real: the shared writer raises `A season result
+  // needs both scores` (errcode 22023) when either arrives null.
+  //
+  // It was not what happened. `p_home: undefined` is dropped by JSON
+  // serialisation, and neither `admin_confirm_season_fixture_result` nor
+  // `admin_correct_season_fixture_result` declares a default for `p_home` or
+  // `p_away`, so the call resolved to no function at all and PostgREST answered
+  // with a schema-cache error instead of the domain refusal the page promised
+  // to show. Sending null keeps the function resolvable and lets its own guard
+  // speak. Typing the client is what surfaced this.
+  const { data, error } = await db.rpc(
+    rpc,
+    rpcArgs(rpc, ['p_home', 'p_away', 'p_reason'], {
+      p_season_fixture_id: input.fixtureId,
+      p_home: input.home ?? null,
+      p_away: input.away ?? null,
+      p_reason: reason,
+    }),
+  )
   if (error) throw error
   return decodeResultOutcome(data, input.action)
 }

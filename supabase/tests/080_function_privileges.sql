@@ -35,6 +35,9 @@ insert into expected_authenticated_functions (signature) values
   ('join_league(text)'),
   ('leave_league(uuid)'),
   ('replace_predicted_progression(uuid,jsonb,jsonb)'),
+  -- Contract 152: owner-only invite-code rotation. The function refuses anyone
+  -- but the league owner internally; the grant is the ordinary browser one.
+  ('rotate_league_invite_code(uuid)'),
   ('search_league_transfer_candidates(uuid,text,integer)'),
   ('submit_entry(uuid)'),
   ('transfer_ownership(uuid,uuid)');

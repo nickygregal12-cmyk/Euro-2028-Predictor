@@ -50,10 +50,7 @@ function renderInvite(code = 'ABC234') {
 }
 
 const preview = {
-  id: '00000000-0000-0000-0000-000000000456',
   name: 'Office League',
-  memberCount: 1,
-  ownerName: 'League Owner',
   isMember: false,
 }
 
@@ -98,7 +95,13 @@ describe('JoinLandingPage pending invite boundary', () => {
       id: '00000000-0000-0000-0000-000000000321',
       submittedAt: null,
     })
-    mocks.joinLeague.mockResolvedValue({ id: preview.id, name: preview.name })
+    // The joined league's id comes from `join_league`, not from the preview:
+    // contract 152 stopped the preview returning one, because a caller who has
+    // only typed a code has not yet been given a handle on the league.
+    mocks.joinLeague.mockResolvedValue({
+      id: '00000000-0000-0000-0000-0000000004aa',
+      name: preview.name,
+    })
 
     renderInvite('ABC234')
     fireEvent.click(await screen.findByRole('button', { name: 'Join league' }))

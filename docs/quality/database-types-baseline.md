@@ -78,18 +78,57 @@ over**: it would duplicate a value the database owns, and it would hand a
 browser caller a competition-scope field that the Stage C1 design deliberately
 keeps server-owned.
 
-### Class 2 — a nullable column read as non-null
+### Class 2 — ~~a nullable column read as non-null~~ — **wrong, corrected 10 August 2026 (AUD-10-b-ii)**
 
-`cup.ts:32`, `knockoutPredictions.ts:39–40, 58`, `lms.ts:26`,
-`predictions.ts:192`, `seasonMatchPredictor.ts:195–197` and others assign a
-`T | null` from the schema into a `T`.
+> **This class does not exist.** It was described as `cup.ts:32`,
+> `knockoutPredictions.ts:39–40, 58`, `lms.ts:26`, `predictions.ts:192` and
+> `seasonMatchPredictor.ts:195–197` assigning a `T | null` **from** the schema
+> **into** a `T`. Every one of those sites is an **RPC argument object going the
+> other way** — a value the code sends *to* the database, not a column it reads
+> *from* one. There is no read-side error in the 19, and there never was.
+>
+> This is the **second** time this document has had the direction of an error
+> backwards; class 3 below records the first. The lesson is the same both times
+> and is worth stating plainly: `Type 'number | null' is not assignable to type
+> 'number'` does not say which way the value is travelling, and the fix for a
+> misread argument is the opposite of the fix for a misread column. **Read the
+> call site, not the error message.**
+>
+> The original wording is preserved above the correction rather than swapped,
+> because it is what the AUD-10-b split was reasoned about. What it got right
+> stands: a genuine nullable read would be either a latent defect or an
+> unexpressed invariant, and the fix would be an explicit narrowing with a
+> stated reason and **never** a cast.
 
-**These are the ones worth looking at properly.** Each is either a real latent
-defect — a null that reaches the UI and renders as `null` or crashes an
-arithmetic — or a genuine invariant the schema does not express, in which case
-the fix is an explicit narrowing at the boundary with a comment saying why the
-null cannot occur. **Not a cast.** A cast here would restore exactly the
-situation `TYPE-001` describes, with the added insult of looking deliberate.
+**What the 19 actually were**, measured at HEAD on 10 August 2026 by typing the
+client and de-duplicating across TypeScript projects:
+
+| Count | Shape | Resolution |
+| ---: | --- | --- |
+| 8 | RPC argument the function branches on as NULL | `rpcArgs`, one named parameter at a time |
+| 5 | RPC argument whose SQL default is `null` | omitted rather than sent |
+| 3 | insert whose scope column a trigger fills | `preparedInsert` |
+| 2 | RPC argument dropped by JSON when `undefined` | **a real defect** — see below |
+| 1 | RPC argument sent as `null` where the comment claimed omission | comment and code reconciled |
+
+### The defect this actually found
+
+`seasonAdmin.ts` sent `p_home: input.home` where `home` is `number | undefined`.
+`SeasonAdminPage` passes an absent score deliberately, under a comment saying
+*"the server refuses a result with a missing score and says so; refusing here
+first would be this page holding an opinion about the rule."*
+
+That refusal is real — the shared writer raises `A season result needs both
+scores` with errcode `22023` — and **it was never reached**. `undefined` is
+dropped by JSON serialisation, and neither `admin_confirm_season_fixture_result`
+nor `admin_correct_season_fixture_result` declares a default for `p_home` or
+`p_away`, so the call resolved to *no function at all* and PostgREST answered
+with a schema-cache error. The administrator saw a shape complaint instead of
+the domain refusal the page had promised to show them. Sending `null` keeps the
+function resolvable and lets its own guard speak.
+
+**This is the payoff.** One real defect, invisible to every test because every
+test mocked the client, surfaced by making the compiler read the schema.
 
 ### Class 3 — RPC arguments, and the correction this class needed
 
@@ -162,7 +201,7 @@ builds a local Supabase from every committed migration.
 | --- | --- | --- |
 | `AUD-10-a` | Generate the artifact, provenance, staleness guard | **Done** |
 | `AUD-10-b-i` | The typed/untyped seam, and the 8-site RPC-argument cluster | **Done** |
-| `AUD-10-b-ii…` | The remaining 19 errors — nullable reads, trigger-filled inserts, optional reads | Open |
+| `AUD-10-b-ii` | The remaining 19 errors, and the deletion of the seam | **Done** |
 | `AUD-10-c` | Regenerate-and-diff gate against a local database | Open |
 
 **How the staging works.** `client.ts` exports one client twice: `db` with the
@@ -175,11 +214,36 @@ modules, refuses to let one move back, and asserts how many remain, so the seam
 cannot go quiet. When that count reaches zero the `supabase` export and that
 test are both deleted.
 
-**39 service modules still import the untyped export.** That is larger than the
-17 with errors, because most modules compile identically either way — they get
-their types the moment they move, without needing a fix first.
+**Superseded 10 August 2026: none do.** All thirty-nine moved in AUD-10-b-ii,
+the `supabase` export was deleted from `client.ts`, and
+`databaseTypeMigration.test.ts` was deleted with it — both exactly as the
+paragraph above and the module's own comment said they should be once the count
+reached zero. `tests/services/typedDatabaseClient.test.ts` replaces it, and
+guards a different property: not *how much is left*, but *that there is no way
+back*.
 
 ## What this does not close
+
+> **Superseded 10 August 2026.** The paragraph below was written when
+> thirty-nine modules were still untyped. `TYPE-001` is now **closed**: all
+> forty-six service modules are on the typed client, the untyped export is
+> deleted, and no service module can reach the database without the generated
+> types. `AUD-10-c` — regenerate-and-diff against a local database — remains
+> open, but it guards the *freshness* of the artifact rather than its
+> application, and `databaseTypes.test.ts` already fails the moment a migration
+> lands without a regeneration.
+>
+> **Two documented exceptions survive**, each spanning a fact SQL knows and
+> TypeScript cannot express, each holding exactly one assertion, each citing the
+> migration that establishes it, and each bound to a single named table or
+> function so it cannot be pointed anywhere else:
+> [`preparedInsert.ts`](../../src/services/supabase/preparedInsert.ts) for the
+> three scope columns a `before insert` trigger fills, and
+> [`rpcArguments.ts`](../../src/services/supabase/rpcArguments.ts) for the
+> arguments a function's own body branches on as NULL. A PostgreSQL signature
+> carries no nullability at all, so the generator can never write `| null` on an
+> argument — that is not the generator guessing wrong, it is a fact the
+> generated file has no room to record.
 
 `TYPE-001` stays **open**. It is reduced, not resolved: seven modules are typed
 and their eight argument defects fixed, and thirty-nine modules are not. The

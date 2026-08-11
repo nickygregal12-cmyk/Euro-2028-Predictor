@@ -11,7 +11,7 @@
 // reported as such — the caller decides how to present an unresolved entry.
 // A failed read throws; it must never be mistaken for "no memberships".
 
-import { supabase } from './client'
+import { db } from './client'
 import { decodeSeasonGames, type SeasonGames } from './competitionGamesModel'
 
 export type HubSeasonStatus = 'draft' | 'scheduled' | 'active' | 'complete' | 'archived'
@@ -46,7 +46,7 @@ export async function fetchHubMembership(
 ): Promise<HubSeasonMembership[]> {
   if (seasonNames.length === 0) return []
 
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('tournaments')
     .select('id, name, status')
     .in('name', [...seasonNames])
@@ -55,7 +55,7 @@ export async function fetchHubMembership(
   const rows = (data ?? []) as SeasonRow[]
   return Promise.all(
     rows.map(async (row) => {
-      const result = await supabase.rpc('get_competition_games', {
+      const result = await db.rpc('get_competition_games', {
         p_tournament_id: row.id,
       })
       if (result.error) throw result.error

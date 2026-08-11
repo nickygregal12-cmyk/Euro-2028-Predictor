@@ -1,7 +1,7 @@
 // Tournament reference-data query wrappers (read-only in v0.1). Returns plain
 // domain-shaped objects; no Supabase types leak past this module.
 
-import { supabase } from './client'
+import { db } from './client'
 
 export type CompetitionKind = 'tournament' | 'league_season'
 export type CompetitionStatus = 'draft' | 'scheduled' | 'active' | 'complete' | 'archived'
@@ -111,7 +111,7 @@ async function fetchTournamentRow(): Promise<TournamentRow> {
   // The existing prediction, match and admin routes still consume tournament
   // groups and knockout fixtures, so a draft domestic league root must never
   // become their implicit current season merely because its year sorts first.
-  let result = await supabase
+  let result = await db
     .from('tournaments')
     .select(columns)
     .eq('kind', 'tournament')
@@ -122,7 +122,7 @@ async function fetchTournamentRow(): Promise<TournamentRow> {
   // service. Contract 64 and earlier have no `kind` column; only that exact
   // compatibility failure may fall back to the historical single-row query.
   if (result.error && isMissingStageCKindColumn(result.error)) {
-    result = await supabase
+    result = await db
       .from('tournaments')
       .select(columns)
       .order('year', { ascending: true })
@@ -142,7 +142,7 @@ async function fetchTournamentRow(): Promise<TournamentRow> {
  */
 async function fetchLockAt(tournamentId: string): Promise<string | null> {
   try {
-    const lockRes = await supabase
+    const lockRes = await db
       .from('tournaments')
       .select('lock_at')
       .eq('id', tournamentId)
@@ -163,7 +163,7 @@ async function fetchLockAt(tournamentId: string): Promise<string | null> {
  */
 async function fetchStageCSeasonMetadata(tournamentId: string): Promise<StageCSeasonMetadata> {
   try {
-    const result = await supabase
+    const result = await db
       .from('tournaments')
       .select('competition_id, season_key, kind, display_timezone, status')
       .eq('id', tournamentId)
@@ -214,8 +214,8 @@ export async function fetchTournamentData(): Promise<TournamentData> {
   const t = await fetchTournamentRow()
 
   const [groupsRes, matchesRes, lockAt, stageCMetadata] = await Promise.all([
-    supabase.from('groups').select('id, letter').eq('tournament_id', t.id).order('letter'),
-    supabase
+    db.from('groups').select('id, letter').eq('tournament_id', t.id).order('letter'),
+    db
       .from('matches')
       .select(
         'id, match_ref, round, group_id, matchday, home_source, away_source, home_team_id, away_team_id, match_date, kickoff_at, venue, home_score, away_score, result_state, result_method, home_score_90, away_score_90, home_score_120, away_score_120, home_penalties, away_penalties, winner_team_id',
@@ -241,7 +241,7 @@ export async function fetchTournamentData(): Promise<TournamentData> {
   // PGRST201 rather than picking one. Naming the single-column key preserves the
   // contract-64 result shape exactly, and is valid against both contracts.
   const groupTeamsRes = groupIds.length
-    ? await supabase
+    ? await db
         .from('group_teams')
         .select('slot, group_id, team:teams!group_teams_team_id_fkey(id, name)')
         .in('group_id', groupIds)

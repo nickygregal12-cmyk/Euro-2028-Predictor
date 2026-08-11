@@ -2,12 +2,12 @@
 // so nothing outside src/services/supabase/ touches the Supabase client.
 
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from './client'
+import { db } from './client'
 
 export async function getCurrentSession(): Promise<Session | null> {
   const {
     data: { session },
-  } = await supabase.auth.getSession()
+  } = await db.auth.getSession()
   return session
 }
 
@@ -15,7 +15,7 @@ export async function getCurrentSession(): Promise<Session | null> {
 export function onAuthChange(callback: (session: Session | null) => void): () => void {
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange((_event, session) => callback(session))
+  } = db.auth.onAuthStateChange((_event, session) => callback(session))
   return () => subscription.unsubscribe()
 }
 
@@ -27,7 +27,7 @@ export async function signInWithPassword(
   // captchaToken is passed only when Turnstile is enabled; Supabase runs
   // siteverify with its configured secret (Option A). Omitted otherwise so a
   // project without CAPTCHA isn't sent an unexpected token.
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await db.auth.signInWithPassword({
     email,
     password,
     ...(captchaToken ? { options: { captchaToken } } : {}),
@@ -53,7 +53,7 @@ export async function signUpWithPassword(params: {
   displayName: string
   captchaToken?: string
 }): Promise<{ needsConfirmation: boolean }> {
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await db.auth.signUp({
     email: params.email,
     password: params.password,
     options: {
@@ -79,7 +79,7 @@ export async function signUpWithPassword(params: {
  * required; omitted otherwise (Option A, mirrors signIn/signUp).
  */
 export async function sendPasswordReset(email: string, captchaToken?: string): Promise<void> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  const { error } = await db.auth.resetPasswordForEmail(email, {
     // Use the current origin so the link resolves on whichever domain the user
     // is on (euro28predictor.com or the netlify.app fallback). Both must be in
     // Supabase Auth → URL Configuration's redirect allow-list.
@@ -96,19 +96,19 @@ export async function sendPasswordReset(email: string, captchaToken?: string): P
  * Throws if there's no session (expired/!invalid link) — the page handles that.
  */
 export async function updatePassword(newPassword: string): Promise<void> {
-  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  const { error } = await db.auth.updateUser({ password: newPassword })
   if (error) throw error
 }
 
 export async function signOut(): Promise<void> {
-  await supabase.auth.signOut()
+  await db.auth.signOut()
 }
 
 export type SessionEmailState = { email: string | null; pendingEmail: string | null }
 
 /** The signed-in address plus any not-yet-confirmed replacement. */
 export async function getSessionEmailState(): Promise<SessionEmailState> {
-  const { data } = await supabase.auth.getSession()
+  const { data } = await db.auth.getSession()
   const user = data.session?.user ?? null
   return {
     email: user?.email ?? null,
@@ -121,6 +121,6 @@ export async function getSessionEmailState(): Promise<SessionEmailState> {
  * the change applies only once that link is clicked.
  */
 export async function updateEmail(newEmail: string): Promise<void> {
-  const { error } = await supabase.auth.updateUser({ email: newEmail })
+  const { error } = await db.auth.updateUser({ email: newEmail })
   if (error) throw error
 }

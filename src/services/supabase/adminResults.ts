@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 
 export type AdminResultMethod = 'regulation' | 'extra_time' | 'penalties'
 export type AdminResultState = 'scheduled' | 'confirmed' | 'corrected'
@@ -80,7 +80,7 @@ function mapResult(row: ResultRow): AdminMatchResult {
 export async function fetchAdminMatchResults(
   tournamentId: string,
 ): Promise<AdminMatchResult[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('matches')
     .select(
       'id, result_state, result_method, home_score_90, away_score_90, home_score_120, away_score_120, home_penalties, away_penalties, winner_team_id, result_version, confirmed_at, corrected_at, last_result_reason',
@@ -91,24 +91,41 @@ export async function fetchAdminMatchResults(
   return ((data ?? []) as ResultRow[]).map(mapResult)
 }
 
+/**
+ * The five optional arguments are omitted when absent rather than sent as
+ * `null`.
+ *
+ * This is behaviour-identical, and it is identical for a checked reason rather
+ * than a general one: every one of the five is declared `default null` in
+ * `20260727075922_admin_result_authorization.sql:32-36` — `p_home_120`,
+ * `p_away_120`, `p_home_penalties`, `p_away_penalties` and `p_reason` — so an
+ * omitted argument and an explicit `null` reach the function as the same value.
+ * A parameter with a non-null default would NOT be safe to drop this way;
+ * `get_leaderboard`'s `p_limit integer default 50` is the counter-example this
+ * repository has already recorded once.
+ *
+ * A match with no extra time and no shoot-out genuinely has nothing to send for
+ * four of these, so unlike the paged reads the omission here is conditional on
+ * the value rather than unconditional.
+ */
 function mutationArgs(input: AdminResultMutation) {
   return {
     p_match_id: input.matchId,
     p_method: input.method,
     p_home_90: input.home90,
     p_away_90: input.away90,
-    p_home_120: input.home120,
-    p_away_120: input.away120,
-    p_home_penalties: input.homePenalties,
-    p_away_penalties: input.awayPenalties,
-    p_reason: input.reason,
+    ...(input.home120 === null ? {} : { p_home_120: input.home120 }),
+    ...(input.away120 === null ? {} : { p_away_120: input.away120 }),
+    ...(input.homePenalties === null ? {} : { p_home_penalties: input.homePenalties }),
+    ...(input.awayPenalties === null ? {} : { p_away_penalties: input.awayPenalties }),
+    ...(input.reason === null ? {} : { p_reason: input.reason }),
   }
 }
 
 export async function confirmAdminMatchResult(
   input: AdminResultMutation,
 ): Promise<void> {
-  const { error } = await supabase.rpc(
+  const { error } = await db.rpc(
     'admin_confirm_match_result',
     mutationArgs(input),
   )
@@ -118,7 +135,7 @@ export async function confirmAdminMatchResult(
 export async function correctAdminMatchResult(
   input: AdminResultMutation,
 ): Promise<void> {
-  const { error } = await supabase.rpc(
+  const { error } = await db.rpc(
     'admin_correct_match_result',
     mutationArgs(input),
   )
@@ -129,7 +146,7 @@ export async function clearAdminMatchResult(
   matchId: string,
   reason: string,
 ): Promise<void> {
-  const { error } = await supabase.rpc('admin_clear_match_result', {
+  const { error } = await db.rpc('admin_clear_match_result', {
     p_match_id: matchId,
     p_reason: reason.trim(),
   })
@@ -148,7 +165,7 @@ type RevisionRow = {
 export async function fetchAdminMatchResultRevisions(
   matchId: string,
 ): Promise<AdminResultRevision[]> {
-  const { data, error } = await supabase.rpc('admin_match_result_revisions', {
+  const { data, error } = await db.rpc('admin_match_result_revisions', {
     p_match_id: matchId,
   })
   if (error) throw error

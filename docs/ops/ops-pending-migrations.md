@@ -6,7 +6,34 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 11 August 2026 (twenty-first entry)
+## Current state — 11 August 2026 (twenty-second entry)
+
+**Contract 158 is the repository candidate and is applied to neither hosted environment.** It is `SEC-001` invite-code hardening, rebased from a concurrent session's branch (#670) that had claimed contract 152 before that number was taken.
+
+**It was renumbered, and the renumber was not cosmetic.** The branch carried `20260810190000_invite_code_hardening.sql` and `supabase/tests/201_invite_code_hardening.sql`; `main` already holds a *different* migration at `20260810190000` and a different suite at `201`. Two branches claiming one contract number is the failure `NOW.md` warns about in its own text, and here it produced a direct filename collision rather than a merge conflict anyone would notice.
+
+**What it changes.**
+
+| | Before | After |
+| --- | --- | --- |
+| `gen_invite_code` | seeded `random()`, six characters, 31^6 | pgcrypto CSPRNG, rejection-sampled, twelve characters |
+| `get_league_preview` | answered any guess with id, member count, owner name | name and season only |
+| Cost of a wrong guess | none — the 5/min budget fires on a SUCCESSFUL join | `league_invite_probe`, charged on preview and join |
+| A leaked code | permanent, escapable only by deleting the league | `rotate_league_invite_code` |
+
+**The compatibility repair is the part worth reading.** The migration was authored when `gen_invite_code()` had exactly one caller. Contracts 152 to 155 landed in between and gave it a second family: `allocate_invite_code` feeds both private-container creators, and the shared registry mirrors the result by trigger. Three places pinned the code to exactly six characters, and each was a live failure rather than a theoretical one — `bonus_competitions_invite_code_shape` would have refused every private competition, `invite_code_registry_shape` would have failed the registering trigger and taken the creating transaction with it, and contract 155's resolver would have answered `found: false` for every code issued after this contract, which reads as a wrong code rather than a broken feature. All three widen to `{6,16}` here, as ALTERs, because 152 to 157 are already applied to both hosted environments.
+
+**It does not use the fast lane.** `check-migration-additive.mjs` refuses it on `drop function`, correctly: `get_league_preview` is dropped and recreated because its return type narrows, which `create or replace` cannot do. So Development takes `stage-c1-development-rollout.yml` with its backup and rehearsal, and Production takes its own pinned 157→158 pair.
+
+**Fifty-six visual baselines were re-rendered, and only one of them is a design change.** The gallery's `LeaguePreviewCard` stops receiving `memberCount` and `ownerName`, which is this contract's disclosure boundary arriving on screen. That section is genuinely a pixel shorter, and because the suite captures each section after `scrollIntoViewIfNeeded()`, the changed height moves later sections' sub-pixel scroll offsets and rounds their captured height by one pixel — so `textinput`, `alert`, `emptystate` and `clubmatchcard` all differed by `1246×224` against `1246×223` without anything about them changing. Ruled out the framer-motion 13 bump as the cause before re-rendering: `chore/dependency-bumps` carries it and its `visual` run passed. The images were produced by `visual-contracts.yml` with `update_baselines` and `commit_baselines`, so they come from the comparison runner rather than a developer machine — an image is only comparable to one rendered by the same toolchain.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **158** | 158 canonical migrations through `20260811000000_invite_code_hardening.sql`. | ONE AHEAD OF BOTH HOSTED |
+| Development Supabase `iouzoutneyjpugbbtdem` | **157** | Fast-lane run `31444748121`, independently confirmed. | ONE BEHIND |
+| Production Supabase | **157** | Project `vkfnsqdyhvtwyqkisxhk`. Rollout run `31446392236` gated on backup `31445515426` and rehearsal `31446161436`, independently confirmed. | ONE BEHIND |
+
+## Superseded — 11 August 2026 (twenty-first entry)
 
 **Repository, Development and Production are level at contract 157.** The twentieth entry recorded Development reaching 157 with Production six behind; this entry records the Production promotion.
 

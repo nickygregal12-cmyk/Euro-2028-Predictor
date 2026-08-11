@@ -9,7 +9,7 @@
 // user exists (CLAUDE.md rule 8). Callers invoke `initDevAuth()` and never touch
 // the dev-user credentials themselves.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   evaluateAutoLoginPolicy,
   AutoLoginProductionError,
@@ -43,7 +43,7 @@ export async function initDevAuth(): Promise<void> {
   // Reuse an existing session (e.g. after an HMR reload) instead of re-signing.
   const {
     data: { session },
-  } = await supabase.auth.getSession()
+  } = await db.auth.getSession()
   if (session) return
 
   // Dev auto-login is headless (no widget), so if you enable Turnstile CAPTCHA on
@@ -51,7 +51,7 @@ export async function initDevAuth(): Promise<void> {
   // secret and set VITE_TURNSTILE_DEV_TOKEN to any dummy string — startup sign-in
   // then still passes. Unset (the default) sends no token.
   const devCaptchaToken = (import.meta.env.VITE_TURNSTILE_DEV_TOKEN as string | undefined) || undefined
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await db.auth.signInWithPassword({
     email: decision.email,
     password: decision.password,
     ...(devCaptchaToken ? { options: { captchaToken: devCaptchaToken } } : {}),

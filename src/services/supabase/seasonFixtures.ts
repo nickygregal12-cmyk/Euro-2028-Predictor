@@ -13,7 +13,7 @@
 // directly — all three are revoked from every browser role — and must not grow
 // a fallback that tries.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapSeasonMatchweekFixtures,
   type SeasonMatchweekFixtures,
@@ -30,7 +30,7 @@ export async function fetchSeasonMatchweekFixtures(
   tournamentId: string,
   matchweek: number,
 ): Promise<SeasonMatchweekFixtures> {
-  const { data, error } = await supabase.rpc('get_season_matchweek_card', {
+  const { data, error } = await db.rpc('get_season_matchweek_card', {
     p_tournament_id: tournamentId,
     p_matchweek: matchweek,
   })

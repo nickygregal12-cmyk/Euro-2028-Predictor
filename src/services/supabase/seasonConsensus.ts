@@ -19,7 +19,7 @@
 // The decoder keeps both distinct. Collapsing them would put "come back after
 // lock" in front of a player who is already past it.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   ConsensusHiddenError,
   mapSeasonConsensus,
@@ -42,7 +42,7 @@ export async function fetchSeasonConsensus(
   tournamentId: string,
   matchweek: number,
 ): Promise<SeasonConsensus> {
-  const { data, error } = await supabase.rpc('get_season_prediction_consensus', {
+  const { data, error } = await db.rpc('get_season_prediction_consensus', {
     p_tournament_id: tournamentId,
     p_matchweek: matchweek,
   })

@@ -4,7 +4,7 @@
 // (post-lock). These wrappers only shape the jsonb payloads; a pre-lock call
 // returns counts only, never picks.
 
-import { supabase } from './client'
+import { db } from './client'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 
 const STAGE_FROM_DB: Record<string, KnockoutStage> = {
@@ -27,7 +27,7 @@ export type LeagueMatchPicks = {
 
 /** League-scoped per-match picks. Throws if the server refuses (not a member). */
 export async function fetchLeagueMatchPicks(leagueId: string, matchId: string): Promise<LeagueMatchPicks> {
-  const { data, error } = await supabase.rpc('get_league_match_picks', {
+  const { data, error } = await db.rpc('get_league_match_picks', {
     p_league_id: leagueId,
     p_match_id: matchId,
   })
@@ -86,7 +86,7 @@ export type MatchDistribution = {
 
 /** Overall anonymous distribution across all submitted entries (post-lock). */
 export async function fetchMatchDistribution(matchId: string): Promise<MatchDistribution> {
-  const { data, error } = await supabase.rpc('get_match_prediction_distribution', {
+  const { data, error } = await db.rpc('get_match_prediction_distribution', {
     p_match_id: matchId,
   })
   if (error) throw error

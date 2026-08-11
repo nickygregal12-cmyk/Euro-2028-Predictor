@@ -84,9 +84,16 @@ select set_config('test.pl_competition',
 select set_config('test.pl_code',
   current_setting('test.pl_created')::jsonb ->> 'invite_code', true);
 
+-- Six to sixteen, not exactly six. Contract 158 replaced `gen_invite_code`
+-- with a rejection-sampled CSPRNG issuing TWELVE characters, and this
+-- assertion is the shared shape rather than a length: what it protects is that
+-- a private competition's code comes from the same generator and fits the same
+-- namespace as a league's, which is contract 152's whole argument for one
+-- registry. Pinning six here would make this suite fail every time the
+-- generator is strengthened, which is the opposite of what it is for.
 select matches(
   current_setting('test.pl_code'),
-  '^[A-Z0-9]{6}$',
+  '^[A-Z0-9]{6,16}$',
   'creating a private competition issues an invite code of the shared shape');
 
 -- The role convention in this file, from here on. What a PLAYER can do is
