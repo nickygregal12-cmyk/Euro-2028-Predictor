@@ -165,6 +165,21 @@ test.describe('authentication and recovery', () => {
     await clearLocalMailbox(EMAIL)
     const inviteLeagueId = await preparePendingInviteLeague()
 
+    // WHICH RPC REFUSED, AND WITH WHAT. The surface deliberately shows a player
+    // one sanitised sentence — `userFacingError` never puts a database message
+    // on screen — which is right for them and useless for a failing suite: this
+    // journey once failed with "We could not finish your setup" and nothing
+    // anywhere said which call had been refused. Every non-2xx RPC is recorded
+    // here and named in the assertion that fails, so the next failure diagnoses
+    // itself instead of costing a round of guessing.
+    const refusedCalls: string[] = []
+    page.on('response', (response) => {
+      const url = new URL(response.url())
+      if (url.pathname.includes('/rest/v1/rpc/') && !response.ok()) {
+        refusedCalls.push(`${response.status()} ${url.pathname.split('/rpc/')[1]}`)
+      }
+    })
+
     try {
       await page.goto(`/join/${INVITE_CODE}`)
       await expect(page).toHaveURL((url) => url.pathname === '/auth/signup')
@@ -225,9 +240,12 @@ test.describe('authentication and recovery', () => {
         page.getByRole('alert').first().waitFor({ state: 'visible', timeout: 30_000 }),
       ]).catch(() => undefined)
       const refusals = await page.getByRole('alert').allInnerTexts()
-      expect(refusals, 'finishing setup reported a problem instead of handing back the invite').toEqual(
-        [],
-      )
+      expect(
+        refusals,
+        `finishing setup reported a problem instead of handing back the invite; refused RPCs: ${
+          refusedCalls.length > 0 ? refusedCalls.join(', ') : 'none'
+        }`,
+      ).toEqual([])
 
       // The pending invite survived sign-up AND onboarding. It was captured on
       // arrival at `/welcome` and is consumed only now, so somebody who had
