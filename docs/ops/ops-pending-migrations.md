@@ -6,7 +6,61 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (nineteenth entry)
+## Current state — 11 August 2026 (twenty-first entry)
+
+**Repository, Development and Production are level at contract 157.** The twentieth entry recorded Development reaching 157 with Production six behind; this entry records the Production promotion.
+
+**The order was backup, rehearsal, rollout, and the rollout checked the first two itself.** It is not enough that a backup was taken — the workflow confirms against the API that the named runs concluded success and are the workflows they claim to be, because "take a backup first" survives exactly as long as the person in a hurry remembers it.
+
+| Step | Run | Result |
+| --- | --- | --- |
+| Encrypted, restore-verified backup | `31445515426` | success, before any write |
+| Pinned 151→157 rehearsal (first attempt) | `31445831137` | **refused** — see below |
+| Pinned 151→157 rehearsal | `31446161436` | success |
+| Guarded rollout | `31446392236` | success, from exact main `9e29c8d` |
+
+**The first rehearsal refused on a defect in the rehearsal, not in the batch.** Its precondition step reads the restored copy BEFORE the apply — deliberately, so contract 152's backfill is compared against a count measured beforehand rather than a number written into the workflow — and it asked for a count over `bonus_competitions.name`, a column contract 152 ADDS. At that instant the copy is contract 151 and the column does not exist. Everything before it had already succeeded: the four-file dump, the restore carrying Production's own privilege shape rather than a fresh stack's defaults, the `season_fixtures` browser-grant check on the restored copy, and the source boundary at exactly 151. Fixed in `9e29c8d`; the backup did not need retaking and Production was read-only throughout.
+
+**Verified independently, not from the rollout's own output.** 157 rows ending `20260810230000_player_preferences`; four new relations carrying **zero** `anon`/`authenticated`/`PUBLIC` table grants; contract 152's backfill covering Production's 1 league invite code with no competition row invented; **zero** private competitions, so the `NOT VALID` identity constraint had nothing to tolerate here — that concession exists for one legacy Development row and Production never needed it; `season_wrapped`, `competition_follows` and `pinned_rivals` all empty; ten new public functions executable by `authenticated` and by no anonymous role; contract 153's narrowed `join_competition_game` refusing a private competition; the Euro publication state still `hidden`.
+
+**Nothing player-owned moved**: 1 auth user, 1 profile, 2 entries, 36 match predictions, 1 league, 10 competitions and 578 season fixtures, all unchanged across the migration.
+
+**What this did NOT do.** It created no private league, Last Man Standing or Championship — it added the authorities a player uses to create one, and every container arrived empty. It did not publish Euro 2028. It did not promote the application: the deployed site remains at contract 145, so **no browser can yet reach any of these ten functions**. It imported no football.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **157** | 157 canonical migrations through `20260810230000_player_preferences.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **157** | Fast-lane run `31444748121`, independently confirmed. | LEVEL |
+| Production Supabase | **157** | Project `vkfnsqdyhvtwyqkisxhk`. Rollout run `31446392236` gated on backup `31445515426` and rehearsal `31446161436`, independently confirmed. | LEVEL |
+
+## Superseded — 11 August 2026 (twentieth entry)
+
+**Development is at contract 157. Production remains at 151.** The nineteenth entry recorded contracts 152 to 157 as a repository candidate applied to neither hosted environment; this entry records what happened when they were applied, and it is not a tidy story.
+
+**The registry outage lifted, and it had been hiding the work.** The nineteenth entry recorded that no local Supabase stack could start, so the pgTAP suites for this batch had never run. When the images became pullable the suites ran for the first time and found **three real defects and seven broken suites**, none of which any repository-level check could have caught.
+
+| What | Where | Why it was invisible |
+| --- | --- | --- |
+| Assertion matched its own comment: `seed` inside "the seeding", and `draw_completed_at` inside a comment | contract 154's DO block | Only runs when the migration is applied |
+| No-write assertion spelled `delete from` literally, so the ADR 0024 additive checker refused the whole batch from the fast lane | contract 155 | Fast lane had never been reached |
+| Private fixtures with no name, owner or invite code — the shape contract 152 now refuses | pgTAP 154, 156, 159, 162, 176, 179, 185 | Only fails against a real database |
+| Revoked tables read while wearing the `authenticated` role | pgTAP 202, 203 | Only fails against a real database |
+
+**The fixtures were changed, not the constraint.** `NOT VALID` was always about tolerating the one ownerless legacy private competition on hosted Development, not about admitting new ones. Suite 179 needed its players created before its competitions because the owner is a foreign key into `auth.users`; suite 154 had no users at all.
+
+**One hazard is recorded and deliberately not fixed, because it is not reachable.** Contract 107's Last Man Standing restart driver builds its successor by copying `visibility_kind` and cannot copy the three identity columns, which did not exist when it was written — so restarting a **private** Last Man Standing would violate contract 152's constraint. Its only caller, contract 109's scheduler, already filters `visibility_kind = 'public'`, matching the driver's own `public_wipeout_restart` audit action, and the driver is granted to no role. What happens to an invite code across a lifecycle transition is a rule decision with its own authority and was not taken inside a UI batch.
+
+**Evidence.** Database parity green across all 131 pgTAP files at repository head `d49541f`; guarded Development fast-lane run **31444748121** from exact main `39fade8`, with the additive checker accepting all six and reporting contract 152's two paired trigger re-creations and contract 156's one as structural rather than destructive. Independently confirmed by read-only query: 157 rows ending `20260810230000_player_preferences`; four new relations with **zero** browser grants; backfill covering 4 of 4 league codes and inventing no competition row; the legacy private competition untouched; `season_wrapped`, `competition_follows` and `pinned_rivals` empty; ten new functions executable by `authenticated` and no anonymous role; `join_competition_game` refusing a private competition; Euro publication state still `hidden`.
+
+**Known open, and not a defect in the contracts.** `database.types.ts` is generated from hosted Development by a script requiring `SUPABASE_ACCESS_TOKEN`, which no workflow holds, so the staleness guard stays red at `expected 151 to be 157` until the owner supplies that secret or an equivalent path. It gates no rollout.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **157** | 157 canonical migrations through `20260810230000_player_preferences.sql`. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **157** | Fast-lane run `31444748121` from main `39fade8`, independently confirmed. | LEVEL |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **151** | Rollout run `31420443441`, independently confirmed. Contracts 152 to 157 pending its own approved promotion. | SIX BEHIND |
+
+## Superseded — 10 August 2026 (nineteenth entry)
 
 **Contracts 152 to 157 are the repository candidate and are applied to neither hosted environment.** They close the six `MIG-UI` items that remained after the contract 146–151 batch, and they are accumulated as one batch at the owner's direction.
 

@@ -76,6 +76,13 @@ select is(
 -- THE FIRST IRREVERSIBLE CASE: nothing is drawn at creation.
 -- ---------------------------------------------------------------------------
 
+-- The role convention in this file. What a PLAYER can do is asserted as
+-- `authenticated`; what the DATABASE now holds is asserted as the session role.
+-- `bonus_cup_groups` and `bonus_competitions` are revoked from every browser
+-- role, so reading them to verify a draw did or did not happen is not a thing a
+-- player does.
+reset role;
+
 select is(
   (select count(*)::integer from public.bonus_cup_groups
     where competition_id = current_setting('test.pc_competition')::uuid),
@@ -140,6 +147,7 @@ select throws_ok(
   null,
   'an entrant cannot launch, because the draw they would fix cannot be undone');
 
+reset role;
 select is(
   (select count(*)::integer from public.bonus_cup_groups
     where competition_id = current_setting('test.pc_competition')::uuid),
@@ -151,6 +159,22 @@ select is(
 -- ---------------------------------------------------------------------------
 
 reset role;
+
+-- Time passes between creating a Championship and launching it. It has to: the
+-- organiser has to share the code and wait for a field, which is the whole
+-- reason contract 154 made these two calls rather than one.
+--
+-- pgTAP cannot let it pass. This file is ONE transaction, so `now()` is frozen
+-- at its start — `create_private_season_cup` stamps `registration_opens_at` and
+-- `launch_private_season_cup` stamps `registration_closes_at` with the SAME
+-- instant, and `bonus_competitions_registration_order` requires closes > opens,
+-- strictly. Backdating the opening is how the test says "a day went by"; in the
+-- real journey the two calls are separate transactions and the instants differ
+-- on their own.
+update public.bonus_competitions
+   set registration_opens_at = now() - interval '1 day'
+ where id = current_setting('test.pc_competition')::uuid;
+
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('pc-user-1')::uuid, 'role', 'authenticated',
                     'app_metadata', json_build_object())::text, true);
@@ -163,6 +187,8 @@ select isnt(
   current_setting('test.pc_launch')::jsonb ->> 'outcome',
   'not_open',
   'a private Championship has no hundred-entrant threshold, so five entrants is a field');
+
+reset role;
 
 select cmp_ok(
   (select count(*)::integer from public.bonus_cup_groups

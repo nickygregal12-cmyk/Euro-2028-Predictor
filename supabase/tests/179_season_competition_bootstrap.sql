@@ -126,19 +126,9 @@ select is(
   3,
   'all three matchweeks have a derived play window');
 
-insert into public.bonus_competitions (
-  id, tournament_id, game_key, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at
-) values
-  (md5('bst-lms')::uuid, current_setting('test.bst_season')::uuid,
-   'last_man_standing', true, 'active', false, 'public', now() - interval '2 days'),
-  (md5('bst-lms-private')::uuid, current_setting('test.bst_season')::uuid,
-   'last_man_standing', true, 'active', false, 'private', now() - interval '2 days'),
-  (md5('bst-mp')::uuid, current_setting('test.bst_season')::uuid,
-   'main_predictor', true, 'active', false, 'public', now() - interval '2 days'),
-  (md5('bst-cup')::uuid, current_setting('test.bst_season')::uuid,
-   'predictor_cup', true, 'active', true, 'public', now() - interval '2 days');
-
+-- The players are created BEFORE the competitions now, because contract 152
+-- gives a private competition an `owner_id` that references `auth.users` — so
+-- the owner has to exist before the row that names them.
 set local session_replication_role = replica;
 insert into auth.users (
   id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at
@@ -151,6 +141,27 @@ set local session_replication_role = origin;
 insert into public.profiles (id, display_name, welcomed_at)
 select md5('bst-user-' || n)::uuid, format('Bst Player %s', n), now()
 from generate_series(1, 2) as n;
+
+-- Contract 152 requires a private competition to carry a name, an owner and an
+-- invite code; a public one must carry none of the three. Both halves of that
+-- rule are exercised here, because this fixture holds one of each.
+insert into public.bonus_competitions (
+  id, tournament_id, game_key, published, availability_status,
+  draw_required, visibility_kind, registration_opens_at,
+  name, owner_id, invite_code
+) values
+  (md5('bst-lms')::uuid, current_setting('test.bst_season')::uuid,
+   'last_man_standing', true, 'active', false, 'public', now() - interval '2 days',
+   null, null, null),
+  (md5('bst-lms-private')::uuid, current_setting('test.bst_season')::uuid,
+   'last_man_standing', true, 'active', false, 'private', now() - interval '2 days',
+   'Bst Private LMS', md5('bst-user-1')::uuid, 'BSTLMS'),
+  (md5('bst-mp')::uuid, current_setting('test.bst_season')::uuid,
+   'main_predictor', true, 'active', false, 'public', now() - interval '2 days',
+   null, null, null),
+  (md5('bst-cup')::uuid, current_setting('test.bst_season')::uuid,
+   'predictor_cup', true, 'active', true, 'public', now() - interval '2 days',
+   null, null, null);
 
 -- ---------------------------------------------------------------------------
 -- The gate, driven rather than inspected.
@@ -388,20 +399,26 @@ select is(
 -- What each generator refuses, so the two calendars cannot compete.
 -- ---------------------------------------------------------------------------
 
+-- A predecessor and its successor, both private, so both carry the contract 152
+-- identity. They hold DIFFERENT invite codes because the shared namespace keys
+-- on the code itself: one code names exactly one container.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status, draw_required,
   visibility_kind, registration_opens_at, completed_at, completion_reason,
-  series_id, series_sequence, predecessor_competition_id
+  series_id, series_sequence, predecessor_competition_id,
+  name, owner_id, invite_code
 ) values (
   md5('bst-pred')::uuid, current_setting('test.bst_season')::uuid,
   'last_man_standing', true, 'active', false, 'private', now() - interval '9 days',
   now() - interval '2 days', 'no_winner_restarted',
-  md5('bst-pred')::uuid, 1, null
+  md5('bst-pred')::uuid, 1, null,
+  'Bst Predecessor', md5('bst-user-1')::uuid, 'BSTPRE'
 ), (
   md5('bst-succ')::uuid, current_setting('test.bst_season')::uuid,
   'last_man_standing', true, 'active', false, 'private', now() - interval '2 days',
   null, null,
-  md5('bst-pred')::uuid, 2, md5('bst-pred')::uuid
+  md5('bst-pred')::uuid, 2, md5('bst-pred')::uuid,
+  'Bst Successor', md5('bst-user-1')::uuid, 'BSTSUC'
 );
 
 select throws_ok(

@@ -89,6 +89,13 @@ select matches(
   '^[A-Z0-9]{6}$',
   'creating a private competition issues an invite code of the shared shape');
 
+-- The role convention in this file, from here on. What a PLAYER can do is
+-- asserted as `authenticated`; what the DATABASE now holds is asserted as the
+-- session role. `bonus_competitions` and `season_lms_setups` are revoked from
+-- every browser role — contract 152 keeps it that way deliberately — so reading
+-- them to verify a write is a job for the session role, not for the player.
+reset role;
+
 select is(
   (select count(*)::integer from public.bonus_competitions
     where id = current_setting('test.pl_competition')::uuid
@@ -135,6 +142,7 @@ select throws_ok(
   null,
   'a private competition CANNOT be joined by its id, which a URL hands out freely');
 
+reset role;
 select is(
   (select count(*)::integer from public.game_memberships
     where game_competition_id = current_setting('test.pl_competition')::uuid
@@ -142,10 +150,12 @@ select is(
   0,
   'and the refusal left no membership behind');
 
+set local role authenticated;
 select lives_ok(
   format($$select public.join_private_competition(%L)$$, current_setting('test.pl_code')),
   'the same player joins with the code');
 
+reset role;
 select is(
   (select count(*)::integer from public.game_memberships
     where game_competition_id = current_setting('test.pl_competition')::uuid
@@ -187,6 +197,7 @@ select lives_ok(
   format($$select public.join_competition_game(%L::uuid)$$, md5('pl-public-mp')::uuid),
   'a PUBLIC competition is still joined by its id exactly as before');
 
+reset role;
 select is(
   (select count(*)::integer from public.entries
     where game_competition_id = md5('pl-public-mp')::uuid
@@ -194,13 +205,24 @@ select is(
   1,
   'and the prediction entry the extracted authority owes it is still written');
 
+-- Resolved as the session role on purpose: whether `authenticated` can see an
+-- UNPUBLISHED season is exactly the sort of thing this assertion must not
+-- depend on. If it could not, the subquery would yield null and the refusal
+-- would be about a malformed argument rather than about the season being draft.
+select set_config('test.pl_draft',
+  (select id::text from public.tournaments where season_key = 'plms-draft'), true);
+
+-- Back to the player: creating a competition reads `auth.uid()`, so this must
+-- refuse for the season being a draft rather than for there being no caller.
+set local role authenticated;
+
 -- ---------------------------------------------------------------------------
 -- A season nobody has published is not a foundation for a competition.
 -- ---------------------------------------------------------------------------
 
 select throws_ok(
   format($$select public.create_private_season_lms(%L::uuid, 'Too Early')$$,
-         (select id from public.tournaments where season_key = 'plms-draft')),
+         current_setting('test.pl_draft')),
   '55000',
   null,
   'a draft season cannot carry a private competition');
