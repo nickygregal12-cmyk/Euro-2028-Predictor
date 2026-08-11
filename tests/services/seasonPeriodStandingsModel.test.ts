@@ -18,10 +18,32 @@ describe('mapSeasonPeriodStandings', () => {
       period: 'form',
       window: 5,
       rows: [
-        { entryId: 'entry-1', rank: 1, points: 30, matchweeksPlayed: 3 },
-        { entryId: 'entry-2', rank: 2, points: 21, matchweeksPlayed: 3 },
+        { entryId: 'entry-1', rank: 1, points: 30, matchweeksPlayed: 3, displayName: null },
+        { entryId: 'entry-2', rank: 2, points: 21, matchweeksPlayed: 3, displayName: null },
       ],
     })
+  })
+
+  it('carries contract 131’s name, and treats a blank one as no name', () => {
+    const parsed = mapSeasonPeriodStandings({
+      period: 'form',
+      window: 5,
+      months: null,
+      rows: [
+        row({ display_name: 'Sam' }),
+        row({ entry_id: 'entry-2', rank: 2, display_name: '   ' }),
+        row({ entry_id: 'entry-3', rank: 3, display_name: null }),
+      ],
+    })
+
+    // A blank name is no name. Contract 131 sends null rather than a
+    // placeholder precisely so a surface can tell the two apart, and a run of
+    // whitespace would defeat that.
+    expect(parsed.period === 'form' && parsed.rows.map((r) => r.displayName)).toEqual([
+      'Sam',
+      null,
+      null,
+    ])
   })
 
   it('reads a month table per calendar month', () => {

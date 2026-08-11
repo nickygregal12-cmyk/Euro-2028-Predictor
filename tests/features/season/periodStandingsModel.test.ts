@@ -3,13 +3,21 @@ import { presentPeriodStandings } from '../../../src/features/season/periodStand
 import type { SeasonPeriodRow } from '../../../src/services/supabase/seasonPeriodStandings'
 
 function row(overrides: Partial<SeasonPeriodRow> = {}): SeasonPeriodRow {
-  return { entryId: 'entry-1', rank: 1, points: 30, matchweeksPlayed: 3, ...overrides }
+  return {
+    entryId: 'entry-1',
+    rank: 1,
+    points: 30,
+    matchweeksPlayed: 3,
+    displayName: null,
+    ...overrides,
+  }
 }
 
 describe('presentPeriodStandings', () => {
-  it('names the caller and nobody else', () => {
-    // Contract 122 returns no profile join, so an opponent is an entrant at a
-    // rank. A raw identifier is not a name and must not reach the interface.
+  it('falls back to "Entrant" when the server sent no name', () => {
+    // Contract 122's shape, which contract 131 made optional rather than
+    // removed: a row with no name is an entrant at a rank. A raw identifier is
+    // not a name and must not reach the interface.
     const view = presentPeriodStandings(
       {
         period: 'form',
@@ -26,6 +34,25 @@ describe('presentPeriodStandings', () => {
     expect(other.key).toBe('theirs')
     expect(other.label).not.toContain('theirs')
     expect(other.accessibleSummary).not.toContain('theirs')
+  })
+
+  it('uses contract 131’s name when the server sends one', () => {
+    const view = presentPeriodStandings(
+      {
+        period: 'form',
+        window: 5,
+        rows: [
+          row({ entryId: 'mine', displayName: 'Sam' }),
+          row({ entryId: 'theirs', rank: 2, points: 21, displayName: 'Alex' }),
+        ],
+      },
+      'mine',
+    )
+
+    // "You" still outranks the caller's own name: a player scanning for
+    // themselves scans for that word, not for their display name.
+    expect(view.tables[0].rows.map((r) => r.label)).toEqual(['You', 'Alex'])
+    expect(view.tables[0].rows[1].accessibleSummary).toContain('Alex')
   })
 
   it('marks nobody when the caller holds no entry', () => {

@@ -302,7 +302,12 @@ function SeasonPeriodStandingsPanel({
       userId
         ? {
             load: (period: 'month' | 'form') =>
-              fetchSeasonPeriodStandings(tournamentId, period),
+              // Contract 131's names, asked for. These tables sit directly
+              // beneath the season leaderboard, which already names every
+              // entrant, so this discloses nothing new — and without it every
+              // row of the monthly table and the form table reads "Entrant",
+              // which is a rank against a word.
+              fetchSeasonPeriodStandings(tournamentId, period, undefined, true),
             myEntryId: () => fetchMyEntryId(userId, tournamentId),
           }
         : undefined,
