@@ -559,12 +559,22 @@ function SeasonChampionshipPlayerRouteBody({
     [tournamentId, competitionId, publicCompetitionId, userId],
   )
 
+  // Contract 167's group stage, bound to this Championship instance.
+  const readGroupStage = useMemo(
+    () => () =>
+      import('../../services/supabase/seasonCupGroupStage').then(
+        ({ fetchSeasonCupGroupStage }) => fetchSeasonCupGroupStage(competitionId),
+      ),
+    [competitionId],
+  )
+
   return (
     <SeasonChampionshipPlayerPage
       gateway={gateway}
       mode={mode}
       registration={registration}
       tableHref={tableHref}
+      readGroupStage={readGroupStage}
     />
   )
 }
