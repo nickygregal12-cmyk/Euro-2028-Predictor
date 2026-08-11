@@ -6,6 +6,7 @@ import {
   presentPredictionDna,
   type PredictionDna,
 } from './predictionDnaModel'
+import { ShareAction } from '../share/ShareAction'
 import styles from './PredictionDnaPanel.module.css'
 
 /**
@@ -34,13 +35,23 @@ import styles from './PredictionDnaPanel.module.css'
 export type PredictionDnaPanelProps = {
   profile: SeasonPlayerProfile
   /**
+   * INNOV-007. Where a share would go, and what competition to name in it.
+   * Supplied only on the player's OWN profile: a share may say what the sharer
+   * did and never what somebody else did.
+   */
+  share?: { competitionName: string; url: string } | null
+  /**
    * The viewing player's own profile, when the page has it and the subject is
    * somebody else. Present, the panel compares; absent, it describes.
    */
   compareWith?: SeasonPlayerProfile | null
 }
 
-export function PredictionDnaPanel({ profile, compareWith = null }: PredictionDnaPanelProps) {
+export function PredictionDnaPanel({
+  profile,
+  compareWith = null,
+  share = null,
+}: PredictionDnaPanelProps) {
   const headingId = useId()
   const dna = presentPredictionDna(profile)
   const mine = compareWith ? presentPredictionDna(compareWith) : null
@@ -111,6 +122,23 @@ export function PredictionDnaPanel({ profile, compareWith = null }: PredictionDn
             Measured from recorded predictions only. It describes how scorelines were picked and
             changes no points, rank or standing.
           </p>
+
+          {/* Own profile only, and the signature never travels without the
+              measurement behind it. */}
+          {share && profile.player.isSelf ? (
+            <p className={styles.shareRow}>
+              <ShareAction
+                label="Share your DNA"
+                url={share.url}
+                subject={{
+                  kind: 'prediction_dna',
+                  competitionName: share.competitionName,
+                  signature: dna.signature,
+                  evidence: `${dna.metrics[0]?.value ?? ''} ${dna.metrics[0]?.label.toLowerCase() ?? ''} over ${dna.predictions} predictions`,
+                }}
+              />
+            </p>
+          ) : null}
         </>
       )}
     </section>

@@ -24,7 +24,7 @@ import { useGlobalPlayInbox } from '../features/hub/useGlobalPlayInbox'
 const ActionCentre = lazy(() =>
   import('./ActionCentre').then((module) => ({ default: module.ActionCentre })),
 )
-import { globalNavTab, isCompetitionModePath } from './shellRoutes'
+import { globalNavTab, isCompetitionModePath, isTvModePath } from './shellRoutes'
 
 function navLabel(
   items: readonly { key: NavKey; label: string }[],
@@ -112,6 +112,21 @@ function SignedInFrame() {
     if (inboxStatus !== 'ready') return
     applyAppBadge(outstanding)
   }, [inboxStatus, outstanding])
+
+  // INNOV-006. The matchday television screen is a competition surface like
+  // every other one — same authentication, same domestic boundary — and the one
+  // thing it must not inherit is this frame. A bar sized for a thumb and a
+  // bottom bar sized for a pocket are wrong on a screen across a room, and the
+  // mode carries no account or admin control by design. The exception lives
+  // HERE rather than as a second route boundary, because a second boundary is
+  // one a future route can be added to the wrong side of in silence.
+  if (isTvModePath(location.pathname)) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    )
+  }
 
   return (
     <PageShell

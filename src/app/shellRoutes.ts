@@ -43,6 +43,13 @@ export const weeklyRoutePatterns = {
   championship: '/competitions/:competitionSlug/:seasonSlug/games/championship',
   championshipWildcard: '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   leagues: '/competitions/:competitionSlug/:seasonSlug/leagues',
+  /**
+   * INNOV-006 — the matchday screen for a television. Registered OUTSIDE the
+   * signed-in shell, deliberately: a frame built for a phone in a pocket is the
+   * wrong frame for a screen on a wall, and the mode carries no navigation of
+   * its own beyond an Exit link.
+   */
+  tv: '/competitions/:competitionSlug/:seasonSlug/tv',
 } as const
 
 /**
@@ -52,6 +59,19 @@ export const weeklyRoutePatterns = {
  */
 export function isCompetitionModePath(pathname: string): boolean {
   return /^\/competitions\/[^/]+\/[^/]+(?:\/|$)/.test(pathname)
+}
+
+/**
+ * The matchday television screen (`INNOV-006`).
+ *
+ * IT IS A PREDICATE RATHER THAN A ROUTE BOUNDARY, and deliberately: the screen
+ * belongs to the competition tree and inherits its deployment boundary, but it
+ * must not inherit the signed-in FRAME. `AppShell` reads this to render the
+ * route bare. Declaring a second route boundary to get the same effect would
+ * make the next route added to the wrong one silent.
+ */
+export function isTvModePath(pathname: string): boolean {
+  return /^\/competitions\/[^/]+\/[^/]+\/tv$/.test(pathname)
 }
 
 /**

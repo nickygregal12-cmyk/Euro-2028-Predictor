@@ -174,7 +174,14 @@ export function SeasonPlayerProfileRoute() {
           {/* INNOV-002, below the season it describes. It measures the
               player's own recorded predictions and changes no points, rank or
               standing. */}
-          <PredictionDnaPanel profile={profile.profile} compareWith={me} />
+          <PredictionDnaPanel
+            profile={profile.profile}
+            compareWith={me}
+            share={{
+              competitionName: context.competitionName,
+              url: `${base}/players/${playerId ?? ''}`,
+            }}
+          />
         </>
       )}
     </SeasonCompetitionShell>

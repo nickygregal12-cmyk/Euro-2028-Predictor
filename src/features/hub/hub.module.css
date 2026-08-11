@@ -543,3 +543,26 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* INNOV-006 — the Matchday TV entry point. Deliberately the quietest control
+   in its section: it is a thing a host opens on matchday, never a destination
+   competing with what the player owes. */
+.tvLink {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  min-height: var(--tap-min);
+  color: var(--tx3);
+  font-size: var(--fs-1);
+  text-decoration: none;
+}
+
+.tvLink:hover {
+  color: var(--tx2);
+  text-decoration: underline;
+}
+
+.tvLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}

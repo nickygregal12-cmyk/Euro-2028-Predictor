@@ -176,3 +176,9 @@
     justify-content: space-between;
   }
 }
+
+/* INNOV-007 — the share control sits under the settled breakdown, quiet and
+   secondary. Sharing is never the primary action on this page. */
+.shareRow {
+  margin: var(--sp-3) 0 0;
+}
