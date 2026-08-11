@@ -13,7 +13,7 @@
 
 begin;
 
-select plan(12);
+select plan(13);
 
 insert into public.tournaments (name, year, competition_id, season_key, kind, display_timezone, status)
 select 'C168 Admin Inspection', 2053, t.competition_id, 'admin-inspect', 'league_season',
