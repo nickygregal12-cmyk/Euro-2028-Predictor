@@ -927,8 +927,14 @@
  * seeded user is in a Predictor Championship group: neither `launch_season_cup`
  * nor `admin_launch_cup_group_stage` is called by the seed, so both reads
  * answer `entered: false` for a seeded user exactly as they did at 168.
+ * Contract 170 adds a generator to a job no browser can call and redefines two
+ * `predictor_internal` functions granted to nobody. `process_player_action_items`
+ * keeps its name, its `service_role`-only grant and its return shape, gaining one
+ * counter. No relation, policy, trigger or browser grant moves, and the seed
+ * never runs the job — so a seeded user's action inbox is empty at 170 exactly
+ * as it was at 169, and no seeded read gains a gate.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 169
+export const SEED_REVIEWED_AT_CONTRACT = 170
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

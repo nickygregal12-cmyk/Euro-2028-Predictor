@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **169** | latest `20260811200000_season_cup_initial_group_table.sql` |
+| Repository | **170** | latest `20260811210000_matchweek_prediction_actions.sql` |
 | Development hosted | **168** | at `20260811190000_season_admin_inspection.sql`, verified `2026-08-11T12:20:00.000Z`, fast-lane run `31489582932` |
 | Production | **158** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 1 — `20260811200000_season_cup_initial_group_table.sql`
+**Pending development migrations:** 2 — `20260811200000_season_cup_initial_group_table.sql`, `20260811210000_matchweek_prediction_actions.sql`
 
-**Next free contract number:** 170. Check open pull requests
+**Next free contract number:** 171. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**46** accepted requirements are outstanding, of which **9** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, DFA 10, INGEST 4, MIG-UI 8, PRIV 5, SITE 7. A further 17 are marked implemented and retained in the register.
+**50** accepted requirements are outstanding, of which **12** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 4, DFA 10, INGEST 4, MIG-UI 8, PRIV 5, SITE 7. A further 17 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

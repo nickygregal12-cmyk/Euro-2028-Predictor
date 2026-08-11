@@ -6,9 +6,30 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirtieth entry)
+
+**The repository is at contract 170. Development is hosted at 168. Production remains at 158.** Contracts 169 and 170 are repository candidates applied to neither, and both are additive.
+
+| Contract | Migration | What it is |
+| --- | --- | --- |
+| 169 | `20260811200000_season_cup_initial_group_table.sql` | A ranking correction: a season Championship group table measured over the season it plays |
+| 170 | `20260811210000_matchweek_prediction_actions.sql` | The action centre's matchweek generator, and an expiry sweep that re-derives a matchweek's lock |
+
+**Neither creates a table and neither schedules a job.** `process_player_action_items` remains `service_role`-only and remains unscheduled by any migration, so applying contract 170 generates no action until something calls it.
+
+**Neither writes anything on apply.** Contract 169 defines functions; contract 170 defines functions. No fixture, prediction, score, lock, settlement or progression moves.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **170** | 170 canonical migrations through `20260811210000_matchweek_prediction_actions.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932`, independently confirmed. Contracts 169 and 170 pending. | TWO BEHIND REPOSITORY |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`. | TWELVE BEHIND REPOSITORY, BY DESIGN |
+
+`218` and `219` are written and **have not been executed**: the authoring environment has no Docker daemon and no Supabase CLI. Database parity on their pull request is what runs them.
+
 ## Current state — 11 August 2026 (twenty-ninth entry)
 
-**The repository is at contract 169. Development is hosted at 168. Production remains at 158.** Contract 169 — `20260811200000_season_cup_initial_group_table.sql` — is a repository candidate applied to neither, and it is additive.
+**The repository stood at contract 169 in this entry. Development is hosted at 168. Production remains at 158.** Contract 169 — `20260811200000_season_cup_initial_group_table.sql` — is a repository candidate applied to neither, and it is additive.
 
 **It is a ranking correction, not a feature.** `predictor_internal.cup_final_group_tables` measures four of its nine ADR 0014 §5.2 keys over `win.sequence between 1 and 3`. Contracts 120 and 167 show that table for a season Predictor Championship whose group stage runs to thirty-eight matchdays. Driven on a disposable PostgreSQL 16 with two players level on table points: **the group winner changes**, and under ADR 0014 the group winner decides qualification and seeding.
 

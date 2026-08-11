@@ -261,6 +261,10 @@ document governs:
   one), and contract 168 supplies the staged-proposal and entrant reads `/admin/season`
   names as absent. Contracts 166 and 167 add the multi-group Championship draw and its
   group-stage view. **None is consumed.**
+- **The action centre has something to show most players.** Contract 170 adds the
+  matchweek generator contract 162 left for later, carrying `predicted` and
+  `fixtures` so the item reads "6 of 10" rather than "incomplete". **Still not
+  consumed**, and the AppBar still carries no notification control.
 - **A Championship table now says what it was ranked over.** Contract 169 corrects the
   span the season group table is ranked on — the tournament's three matchdays, for a
   competition that plays thirty-eight — and adds `table_source` to `get_season_cup_phase`

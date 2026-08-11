@@ -248,5 +248,6 @@ same paragraph existed in seven places at once.
 
 | 159–168 | Backend completion items 1–9 of the 11 August sequence. **Items 8 (Championship knockout, penalty reads, walkover handling), 10 (pagination sweep) and 11 (provider normalisation) remain**, and the organiser COMMAND half of item 7 is not an engineering decision |
 | 169 | **Reorders nothing.** It corrects the ranking span of a table contracts 120 and 167 already show, and adds no surface |
+| 170 | **Reorders nothing.** It completes a generator item 4 left open and registers the Championship qualification decision rather than taking it |
 
-*Current to contract 169.*
+*Current to contract 170.*
