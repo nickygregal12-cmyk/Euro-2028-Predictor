@@ -1,4 +1,5 @@
 import { supabase } from './client'
+import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type { LmsRoundPage, SeasonLmsGateway } from '../../features/season/lmsRoundModel'
 
 /**
@@ -84,7 +85,9 @@ export function createSeasonLmsRpcGateway(options: {
       const used = new Set(round.used_team_ids)
       const club = (team: { team_id: string; name: string }) => ({
         teamId: team.team_id,
-        name: team.name,
+        // A pick list is a column of club names on a phone; the provider's
+        // legal suffix is the part that pushes the name into an ellipsis.
+        name: clubDisplayName(team.name),
         used: used.has(team.team_id),
       })
 

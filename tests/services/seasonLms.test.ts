@@ -42,8 +42,11 @@ function roundPayload(overrides: Record<string, unknown> = {}) {
           status: 'scheduled',
           home_score: null,
           away_score: null,
-          home: { team_id: TEAM_HOME, name: 'Home FC' },
-          away: { team_id: TEAM_AWAY, name: 'Away FC' },
+          // The legal spellings a provider actually supplies, so the
+          // display-name assertion below exercises the real input rather than
+          // a placeholder that happens to end in a token.
+          home: { team_id: TEAM_HOME, name: 'Aston Villa FC' },
+          away: { team_id: TEAM_AWAY, name: 'AFC Bournemouth' },
         },
       ],
     },
@@ -75,10 +78,13 @@ describe('createSeasonLmsRpcGateway — load', () => {
     })
     expect(page.pick).toEqual({ teamId: TEAM_HOME })
     expect(page.fixtures).toHaveLength(1)
+    // The provider's legal suffix does not reach the pick list: a phone
+    // renders these names in a `nowrap`/`ellipsis` column, so 'FC' is what
+    // truncates the club rather than what identifies it.
     expect(page.fixtures[0]).toMatchObject({
       fixtureId: FIXTURE_ID,
-      home: { teamId: TEAM_HOME, name: 'Home FC', used: false },
-      away: { teamId: TEAM_AWAY, name: 'Away FC', used: false },
+      home: { teamId: TEAM_HOME, name: 'Aston Villa', used: false },
+      away: { teamId: TEAM_AWAY, name: 'Bournemouth', used: false },
       score: null,
     })
   })

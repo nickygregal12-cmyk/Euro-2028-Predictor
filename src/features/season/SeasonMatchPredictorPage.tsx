@@ -9,6 +9,7 @@ import { SeasonConsensusPanel } from './SeasonConsensusPanel'
 import type { SeasonConsensus } from '../../services/supabase/seasonConsensusModel'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
 import { useSeasonMatchPredictor } from './useSeasonMatchPredictor'
+import { formatKickoffWithDay } from '../../shared/time/kickoff'
 import styles from './SeasonMatchPredictorPage.module.css'
 
 export type SeasonMatchPredictorPageProps = {
@@ -263,7 +264,15 @@ export function SeasonMatchPredictorPage({
                       : 'locked'
                 }
                 matchweek={page.matchweek.number}
-                kickoff={fixture.kickoffAt}
+                // `ClubMatchCard.kickoff` is a LABEL, not an instant. This page
+                // shipped passing `kickoffAt` straight through, so a player on
+                // the Match Predictor read the raw ISO timestamp in the card's
+                // eyebrow — the one thing the UI direction's § 3 forbids
+                // outright. The card list carries no date heading above it, so
+                // the day travels with the time ("Sat 22 Aug · 17:45"), and an
+                // unformattable instant drops the line rather than printing
+                // anything.
+                kickoff={formatKickoffWithDay(fixture.kickoffAt)}
                 home={{ name: fixture.home.name, tokens: fixture.home.tokens }}
                 away={{ name: fixture.away.name, tokens: fixture.away.tokens }}
                 homeScore={fixture.prediction?.home ?? null}
