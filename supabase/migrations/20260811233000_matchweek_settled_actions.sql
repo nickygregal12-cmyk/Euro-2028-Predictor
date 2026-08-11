@@ -244,14 +244,24 @@ comment on function public.process_player_action_items() is
 -- Prove the shape, in the same transaction.
 -- ---------------------------------------------------------------------------
 
+-- COMMENTS ARE STRIPPED BEFORE ANY OF THESE MATCH. Contract 172's assertion
+-- shipped without doing so and refused its own function, because the comment
+-- explaining why a column is excluded contains that column's name. Every
+-- source check below is about what the code DOES, and a comment is not code —
+-- the same rule `rpcAllowlistParity.test.ts` states in as many words. It also
+-- matters specifically here: this generator's body comment says `round_id` out
+-- loud, in the sentence explaining why it must never write that key.
 do $assertions$
 declare
-  v_generator text := pg_catalog.pg_get_functiondef(
-    to_regprocedure('predictor_internal.generate_matchweek_settled_actions(timestamp with time zone)'));
-  v_driver text := pg_catalog.pg_get_functiondef(
-    to_regprocedure('public.process_player_action_items()'));
-  v_sweep text := pg_catalog.pg_get_functiondef(
-    to_regprocedure('predictor_internal.invalidate_expired_actions(timestamp with time zone)'));
+  v_generator text := pg_catalog.regexp_replace(pg_catalog.pg_get_functiondef(
+    to_regprocedure('predictor_internal.generate_matchweek_settled_actions(timestamp with time zone)')),
+    '--[^\n]*', '', 'g');
+  v_driver text := pg_catalog.regexp_replace(pg_catalog.pg_get_functiondef(
+    to_regprocedure('public.process_player_action_items()')),
+    '--[^\n]*', '', 'g');
+  v_sweep text := pg_catalog.regexp_replace(pg_catalog.pg_get_functiondef(
+    to_regprocedure('predictor_internal.invalidate_expired_actions(timestamp with time zone)')),
+    '--[^\n]*', '', 'g');
 begin
   -- ---- THE COUPLING THE HEADER IS ABOUT --------------------------------
   --

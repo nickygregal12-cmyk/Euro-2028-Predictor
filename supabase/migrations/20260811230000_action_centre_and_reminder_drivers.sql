@@ -99,6 +99,23 @@
 -- runs.
 --
 -- ---------------------------------------------------------------------------
+-- DRIVEN END TO END
+-- ---------------------------------------------------------------------------
+--
+-- On a disposable PostgreSQL 16.13 with `cron.schedule` stood in for and the
+-- three targets present at their real signatures: the whole file applies and
+-- commits, the three jobs land with the schedules below, and the reminder job's
+-- stored command is `select public.process_reminder_schedule();` — no
+-- arguments, so the dry-run default is what applies.
+--
+-- The first Database parity run REFUSED this migration, correctly, and the
+-- reason is recorded in the assertion it fired on: the privacy check read
+-- `pg_get_functiondef`, which returns comments, and the comment explaining why
+-- `last_error` is deliberately not returned contains `last_error`. The check
+-- refused the very function it was written to approve. Comments are stripped
+-- before matching now, and the same treatment is applied in contract 173.
+--
+-- ---------------------------------------------------------------------------
 -- WHAT IT DOES NOT DO
 -- ---------------------------------------------------------------------------
 --
@@ -361,8 +378,23 @@ begin
 
   -- The health read is gated, and gated on the competition-admin authority
   -- rather than on a role name.
-  v_health := pg_catalog.pg_get_functiondef(
-    to_regprocedure('public.admin_reminder_delivery_health()'));
+  --
+  -- COMMENTS ARE STRIPPED FIRST, and that is not tidiness — it is a defect this
+  -- assertion had on its first run. `pg_get_functiondef` returns the comments
+  -- with the code, and the comment explaining why `last_error` is deliberately
+  -- NOT returned contains the string `last_error`. The check below therefore
+  -- refused the very function it was written to approve, and the migration
+  -- failed on a database where nothing was wrong.
+  --
+  -- `rpcAllowlistParity.test.ts` states the general rule: a comment must never
+  -- be able to change what a parser thinks the data is. The same regexp idiom
+  -- is used here. The property is unweakened — `221` asserts the same boundary
+  -- from the RETURNED PAYLOAD, which is the stronger check and cannot be
+  -- fooled by a field spelled differently from its column.
+  v_health := pg_catalog.regexp_replace(
+    pg_catalog.pg_get_functiondef(
+      to_regprocedure('public.admin_reminder_delivery_health()')),
+    '--[^\n]*', '', 'g');
 
   if v_health !~ 'require_competition_admin' then
     raise exception 'The health read does not call require_competition_admin';
