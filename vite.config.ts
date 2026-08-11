@@ -9,7 +9,7 @@ import {
   robotsTxt,
   sitemapXml,
 } from './src/app/site/documentMetadata.js'
-import { siteConfiguration } from './src/app/site/siteConfiguration.js'
+import { sitePublicMetadata } from './src/app/site/sitePublicMetadata.js'
 import { resolveSiteVariant } from './src/app/site/siteVariant.js'
 
 interface DeploymentContract {
@@ -51,7 +51,7 @@ export default defineConfig(({ command, mode }) => {
   // ADR 0026's two deployments, resolved once per build. Fails closed to the
   // Hub: an unset or misspelled variable must never build the Euro site, which
   // `EURO-001` requires stay invisible until an owner publishes it.
-  const site = siteConfiguration(
+  const site = sitePublicMetadata(
     resolveSiteVariant(readEnvironmentValue(env, 'VITE_SITE_VARIANT')),
     {
       publicOrigin: readEnvironmentValue(env, 'VITE_PUBLIC_ORIGIN'),

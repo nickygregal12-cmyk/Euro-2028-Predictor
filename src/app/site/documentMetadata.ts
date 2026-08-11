@@ -1,7 +1,7 @@
 import {
   absoluteUrl,
-  type SiteConfiguration,
-} from './siteConfiguration.js'
+  type SitePublicMetadata,
+} from './sitePublicMetadata.js'
 
 /**
  * The public metadata each deployment publishes: the document head, the
@@ -21,7 +21,9 @@ import {
  * only the other site's domain. A missing canonical tag costs a little SEO; a
  * wrong one sends a product's traffic to a different product.
  *
- * Pure and Node-importable: `vite.config.ts` calls these at build time.
+ * Pure and Node-importable: `vite.config.ts` calls these at build time. They
+ * take `SitePublicMetadata` rather than the runtime `SiteConfiguration`, which
+ * is what keeps this copy out of the entry chunk every visitor downloads.
  */
 
 /** Hexes must match `--bg` in `src/styles/tokens.css`. */
@@ -52,15 +54,15 @@ function tag(html: string): string {
  * The `<title>`, description, canonical, theme colours and social cards for one
  * site, as the lines that replace the managed block in `index.html`.
  */
-export function documentHeadTags(configuration: SiteConfiguration): string[] {
-  const { brand } = configuration
-  const name = escapeAttribute(brand.productName)
+export function documentHeadTags(metadata: SitePublicMetadata): string[] {
+  const { brand } = metadata
+  const name = escapeAttribute(metadata.productName)
   const description = escapeAttribute(brand.description)
-  const canonical = absoluteUrl(configuration, '/')
-  const image = absoluteUrl(configuration, configuration.addressing.openGraphImagePath)
+  const canonical = absoluteUrl(metadata, '/')
+  const image = absoluteUrl(metadata, metadata.openGraphImagePath)
 
   const lines: string[] = [
-    tag(`<title>${escapeAttribute(brand.productName)}</title>`),
+    tag(`<title>${escapeAttribute(metadata.productName)}</title>`),
     tag(`<meta name="description" content="${description}" />`),
   ]
 
@@ -116,7 +118,7 @@ export const HEAD_BLOCK_END = '<!-- /SITE METADATA -->'
  * domain. A failed build is the correct outcome of a template someone edited
  * without noticing what generates it.
  */
-export function applyDocumentHead(html: string, configuration: SiteConfiguration): string {
+export function applyDocumentHead(html: string, metadata: SitePublicMetadata): string {
   const start = html.indexOf(HEAD_BLOCK_START)
   const end = html.indexOf(HEAD_BLOCK_END)
   if (start === -1 || end === -1 || end < start) {
@@ -126,7 +128,7 @@ export function applyDocumentHead(html: string, configuration: SiteConfiguration
     )
   }
 
-  const body = documentHeadTags(configuration).join('\n')
+  const body = documentHeadTags(metadata).join('\n')
   return `${html.slice(0, start + HEAD_BLOCK_START.length)}\n${body}\n${' '.repeat(4)}${html.slice(end)}`
 }
 
@@ -137,12 +139,12 @@ export function applyDocumentHead(html: string, configuration: SiteConfiguration
  * is no honest file to write, so none is emitted. The application is auth-gated,
  * so the canonical root remains the only index-worthy address.
  */
-export function sitemapXml(configuration: SiteConfiguration): string | null {
-  const origin = configuration.addressing.canonicalOrigin
+export function sitemapXml(metadata: SitePublicMetadata): string | null {
+  const origin = metadata.canonicalOrigin
   if (!origin) return null
 
-  const entries = configuration.addressing.sitemapPaths
-    .map((path) => absoluteUrl(configuration, path))
+  const entries = metadata.sitemapPaths
+    .map((path) => absoluteUrl(metadata, path))
     .filter((url): url is string => url !== null)
     .map(
       (url) =>
@@ -159,8 +161,8 @@ export function sitemapXml(configuration: SiteConfiguration): string | null {
  * The `Sitemap:` line is omitted without an origin, for the same reason the
  * canonical tag is: a sitemap reference on the wrong domain is worse than none.
  */
-export function robotsTxt(configuration: SiteConfiguration): string {
-  const sitemap = absoluteUrl(configuration, '/sitemap.xml')
+export function robotsTxt(metadata: SitePublicMetadata): string {
+  const sitemap = absoluteUrl(metadata, '/sitemap.xml')
   const lines = ['User-agent: *', 'Allow: /']
   if (sitemap) lines.push('', `Sitemap: ${sitemap}`)
   return `${lines.join('\n')}\n`

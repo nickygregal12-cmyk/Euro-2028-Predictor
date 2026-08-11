@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { useTheme } from '../../app/providers/ThemeProvider'
 import { useSite } from '../../app/site/SiteProvider'
 import { bonusGames, primaryGames } from '../../app/site/siteGames'
+import { siteBrandCopy } from '../../app/site/sitePublicMetadata'
 import { ChevronRightIcon, MoonIcon, SunIcon } from '../../design-system/icons'
 import {
   fetchEuroPublicationState,
@@ -46,6 +47,9 @@ export function EuroLandingPage({
   readPublicationState?: () => Promise<EuroPublicationSnapshot>
 } = {}): ReactElement {
   const site = useSite()
+  // The descriptive copy lives outside the runtime configuration, so a visitor
+  // to either site downloads it only when a landing page renders.
+  const brand = siteBrandCopy(site.variant)
   const [state, setState] = useState<EuroLandingState>('unknown')
 
   useEffect(() => {
@@ -77,7 +81,7 @@ export function EuroLandingPage({
         <div className={s.headerInner}>
           <span className={s.brand}>
             <span className={s.brandMark} aria-hidden="true">
-              {site.brand.monogram}
+              {brand.monogram}
             </span>
             <span className={s.brandCopy}>
               {site.brand.productName}

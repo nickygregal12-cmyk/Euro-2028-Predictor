@@ -6,7 +6,7 @@ import {
   robotsTxt,
   sitemapXml,
 } from '../../src/app/site/documentMetadata'
-import { siteConfiguration } from '../../src/app/site/siteConfiguration'
+import { sitePublicMetadata } from '../../src/app/site/sitePublicMetadata'
 
 /**
  * What the two Netlify sites actually ship.
@@ -28,7 +28,7 @@ function indexHtml(): string {
 }
 
 function builtDocument(variant: 'hub' | 'euro', publicOrigin?: string): string {
-  return applyDocumentHead(indexHtml(), siteConfiguration(variant, { publicOrigin }))
+  return applyDocumentHead(indexHtml(), sitePublicMetadata(variant, { publicOrigin }))
 }
 
 describe('index.html is a template, not a document', () => {
@@ -72,8 +72,8 @@ describe('the Hub build', () => {
 
   it('has no canonical URL until a domain is configured for it', () => {
     expect(built).not.toContain('rel="canonical"')
-    expect(sitemapXml(siteConfiguration('hub'))).toBeNull()
-    expect(robotsTxt(siteConfiguration('hub'))).not.toContain('Sitemap:')
+    expect(sitemapXml(sitePublicMetadata('hub'))).toBeNull()
+    expect(robotsTxt(sitePublicMetadata('hub'))).not.toContain('Sitemap:')
   })
 
   it('publishes its own domain once one is configured', () => {

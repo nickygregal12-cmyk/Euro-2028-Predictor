@@ -57,38 +57,21 @@ export type SiteNavigation = {
 }
 
 export type SiteBrand = {
-  readonly productName: string
-  /** For a narrow app bar and the collapsed rail. */
-  readonly shortName: string
-  readonly monogram: string
-  readonly tagline: string
-  /** The `<meta name="description">` and the Open Graph description. */
-  readonly description: string
-}
-
-export type SiteAddressing = {
   /**
-   * The absolute origin this site's canonical URL, Open Graph URLs, sitemap and
-   * share links are built on, or null when no domain is configured for it.
+   * The product's name, and the ONLY brand field the running application needs
+   * — `RouteAccessibility` puts it in the document title on every route.
    *
-   * NULL IS A REAL AND EXPECTED VALUE, not a gap to paper over. The Hub's
-   * permanent domain is not purchased, and a build that guessed one — or worse,
-   * fell back to the other site's — would emit a canonical tag pointing at a
-   * different product. Every consumer omits the tag rather than inventing a
-   * URL; `documentMetadata.ts` is where that is carried out.
+   * The descriptive copy (short name, monogram, tagline, description) lives in
+   * `sitePublicMetadata.ts` because nothing reads it before a route renders,
+   * and carrying it here put the entry chunk on its ceiling. See that file.
    */
-  readonly canonicalOrigin: string | null
-  /** Path of the Open Graph image, resolved against `canonicalOrigin`. */
-  readonly openGraphImagePath: string
-  /** Public paths worth listing in this site's sitemap, root first. */
-  readonly sitemapPaths: readonly string[]
+  readonly productName: string
 }
 
 export type SiteConfiguration = {
   readonly variant: SiteVariant
   readonly brand: SiteBrand
   readonly navigation: SiteNavigation
-  readonly addressing: SiteAddressing
   /**
    * Where a signed-in player lands, and where "keep playing" points when this
    * site cannot serve what they came for.
@@ -104,15 +87,29 @@ export type SiteConfiguration = {
     readonly siblingSiteName: string
   }
   /**
-   * Whether this build serves the Euro 2028 tournament's own player routes.
+   * Whether this build serves the Euro 2028 tournament's own PLAYER routes —
+   * `/tournament/profile`, `/league/:id` and `/h2h/:rivalId`.
    *
-   * FALSE ON THE HUB, AND THAT IS `EURO-001`. Euro 2028 must be completely
-   * hidden from the weekly platform until an owner-approved publication state,
-   * and a catalogue that merely omits it is not a control — a guessable URL
-   * still resolves. The Hub build refuses those routes outright; the Euro build
-   * serves them and defers to contract 143's server-owned state for whether the
-   * tournament may be seen at all. Two independent gates, neither replacing the
-   * other.
+   * IT IS TRUE ON BOTH DEPLOYMENTS TODAY, AND THAT IS THE HONEST VALUE RATHER
+   * THAN THE TARGET ONE. ADR 0026 wants the weekly platform to stop serving
+   * them, and `EURO-001` records that it still does. This session set the Hub
+   * to `false` and the browser suite caught what that actually costs: the
+   * preserved Euro journeys — the tournament profile, a tournament league's
+   * pagination and the head-to-head — are covered by specs the repository keeps
+   * deliberately as "Euro 2028 return evidence against the `euro-2028-baseline`
+   * recovery point", and there is no Euro-variant browser configuration for
+   * them to run under. Withdrawing the routes deleted that evidence rather than
+   * moving it.
+   *
+   * SO THE FLIP IS AN OWNER DECISION, NOT A FRONTEND ONE, and it needs two
+   * things this session cannot supply: the Euro deployment actually serving
+   * those journeys, and the browser suite pointed at it. The mechanism and its
+   * refusal are built and proven in `tests/app/TournamentJourney.test.tsx`
+   * against an explicitly-configured site, so the flip is one value here plus
+   * that evidence — not a new control to design.
+   *
+   * The publication gate is unaffected either way: `euro_publication_state()`
+   * still decides whether a served tournament may be SEEN, on both sites.
    */
   readonly servesEuroTournament: boolean
 }
@@ -148,14 +145,7 @@ export function normaliseOrigin(value: string | undefined | null): string | null
 function hubConfiguration(origins: SiteOrigins): SiteConfiguration {
   return {
     variant: 'hub',
-    brand: {
-      productName: 'Football Prediction Hub',
-      shortName: 'Prediction Hub',
-      monogram: 'PH',
-      tagline: 'Three games. Every matchweek. One private league to settle it.',
-      description:
-        'Score predictions, Jokers and private leagues across the Premier League and the Scottish Premiership.',
-    },
+    brand: { productName: 'Football Prediction Hub' },
     navigation: {
       // The 10 August 2026 navigation authority's four, in its order.
       destinations: [
@@ -169,31 +159,22 @@ function hubConfiguration(origins: SiteOrigins): SiteConfiguration {
       // secondary heading would invent a hierarchy the product does not have.
       bonusGamesLabel: null,
     },
-    addressing: {
-      canonicalOrigin: normaliseOrigin(origins.publicOrigin),
-      openGraphImagePath: '/og-image.jpg',
-      sitemapPaths: ['/'],
-    },
     routes: {
       signedInHome: '/',
       siblingSiteOrigin: normaliseOrigin(origins.siblingOrigin),
       siblingSiteName: 'Euro 2028 Predictor',
     },
-    servesEuroTournament: false,
+    // See the field's own note: `false` is the target and it is not today's
+    // truth. The weekly app is still where the tournament is administered and
+    // where its preserved journeys live.
+    servesEuroTournament: true,
   }
 }
 
 function euroConfiguration(origins: SiteOrigins): SiteConfiguration {
   return {
     variant: 'euro',
-    brand: {
-      productName: 'Euro 2028 Predictor',
-      shortName: 'Euro 2028',
-      monogram: 'E28',
-      tagline: 'One tournament. Every match. The league that decides it.',
-      description:
-        'Predict every Euro 2028 match, play the knockout bracket and settle it in a private league with your mates.',
-    },
+    brand: { productName: 'Euro 2028 Predictor' },
     navigation: {
       // Tournament-led order: the tournament's own football comes before the
       // cross-competition inbox, because on this site there is one competition.
@@ -205,11 +186,6 @@ function euroConfiguration(origins: SiteOrigins): SiteConfiguration {
       ],
       competitionsGroupLabel: 'Tournament',
       bonusGamesLabel: 'Bonus Games',
-    },
-    addressing: {
-      canonicalOrigin: normaliseOrigin(origins.publicOrigin),
-      openGraphImagePath: '/og-image.jpg',
-      sitemapPaths: ['/'],
     },
     routes: {
       signedInHome: '/',
@@ -232,21 +208,4 @@ export function siteConfiguration(
   origins: SiteOrigins = {},
 ): SiteConfiguration {
   return variant === 'euro' ? euroConfiguration(origins) : hubConfiguration(origins)
-}
-
-/**
- * Resolve a path against this site's canonical origin.
- *
- * Returns null when no origin is configured. Every caller must treat that as
- * "emit nothing" — never as "use a default" — because the only default
- * available is the other site's domain, and pointing one product's canonical
- * URL at the other is the exact failure this whole seam exists to prevent.
- */
-export function absoluteUrl(
-  configuration: SiteConfiguration,
-  path: string,
-): string | null {
-  const origin = configuration.addressing.canonicalOrigin
-  if (!origin) return null
-  return `${origin}${path.startsWith('/') ? path : `/${path}`}`
 }

@@ -6,7 +6,7 @@ import {
   robotsTxt,
   sitemapXml,
 } from '../../src/app/site/documentMetadata'
-import { siteConfiguration } from '../../src/app/site/siteConfiguration'
+import { sitePublicMetadata } from '../../src/app/site/sitePublicMetadata'
 
 /**
  * Euro 2028 is absent from every public weekly surface (`EURO-003`).
@@ -107,7 +107,7 @@ describe('the public weekly surfaces name no tournament', () => {
 describe('what the Hub deployment actually publishes', () => {
   // Deliberately built with NO configured origin, which is the Hub's state
   // today: its permanent domain is not purchased.
-  const hub = siteConfiguration('hub')
+  const hub = sitePublicMetadata('hub')
 
   it('serves a document head that names no tournament and no tournament domain', () => {
     const document = applyDocumentHead(read('index.html'), hub)

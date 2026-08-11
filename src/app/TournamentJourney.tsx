@@ -44,25 +44,34 @@ export type TournamentJourneyProps = {
  * accidental launch. This is a route control, not a second visibility rule: the
  * state comes from the one server authority and this component only consumes it.
  *
- * `EURO-001` ADDS THE SECOND GATE, AND IT IS THE DEPLOYMENT'S. ADR 0026 puts
- * Euro 2028 on its own domain, so the weekly Prediction Hub build must not
- * serve the tournament's player routes AT ALL — not merely omit them from a
+ * `EURO-001` ADDS A SECOND GATE, AND IT IS THE DEPLOYMENT'S. ADR 0026 puts Euro
+ * 2028 on its own domain, so a build that is not the tournament's site must not
+ * serve the tournament's PLAYER routes at all — not merely omit them from a
  * catalogue, because a catalogue omission is not a control and a guessable URL
- * still resolves. `servesEuroTournament` is false for the Hub, and this
- * refuses before it reads anything.
+ * still resolves. `servesEuroTournament` decides, and this refuses before it
+ * reads anything.
+ *
+ * BOTH DEPLOYMENTS SET IT TRUE TODAY, and that is recorded on the field rather
+ * than hidden here: the weekly app is still where the tournament is
+ * administered and where its preserved journeys live, so withdrawing them now
+ * would delete the `euro-2028-baseline` return evidence instead of moving it.
+ * The refusal is built and proven; turning it on for the Hub is an owner
+ * decision that also needs the browser suite pointed at the Euro build.
  *
  * THE TWO GATES ARE INDEPENDENT AND NEITHER REPLACES THE OTHER. The deployment
  * gate answers "is this the tournament's site"; the publication gate answers
- * "has its owner published it". A build that is the Euro site still waits for
- * the server, and a build that is not never asks — which also means the Hub
+ * "has its owner published it". A build that serves the tournament still waits
+ * for the server, and a build that does not never asks — which also means it
  * pays no round trip for a question whose answer cannot change what it renders.
  *
- * The authorised `/admin/results` preparation path is deliberately exempt from
- * the PUBLICATION gate. A hidden tournament still has to be prepared before its
- * owner can publish it; hiding player routes must not remove the results
- * workspace needed to reach a publishable state. The admin route remains
- * protected independently by `RequireAdmin` in `App.tsx`. It is NOT exempt from
- * the deployment gate: preparing Euro 2028 is done on the Euro site.
+ * THE AUTHORISED `/admin/results` PREPARATION PATH IS EXEMPT FROM BOTH GATES,
+ * and the second exemption is a correction. A hidden tournament still has to be
+ * prepared before its owner can publish it; hiding the tournament must not
+ * remove the results workspace needed to reach a publishable state. This
+ * session first reasoned that "preparing Euro 2028 is done on the Euro site"
+ * and withheld it — there is no separate administration deployment, so that
+ * removed the only Results Centre there is, and the browser suite said so. The
+ * route remains protected independently by `RequireAdmin` in `App.tsx`.
  */
 export function TournamentJourney({
   readPublicationState = fetchEuroPublicationState,
@@ -73,11 +82,11 @@ export function TournamentJourney({
   const [published, setPublished] = useState<boolean | null>(isAdminPreparation ? true : null)
 
   useEffect(() => {
-    if (!site.servesEuroTournament) return
     if (isAdminPreparation) {
       setPublished(true)
       return
     }
+    if (!site.servesEuroTournament) return
 
     let active = true
     setPublished(null)
@@ -95,8 +104,11 @@ export function TournamentJourney({
     }
   }, [isAdminPreparation, readPublicationState, site.servesEuroTournament])
 
-  // The deployment gate, before the publication gate and before any read.
-  if (!site.servesEuroTournament) return <Navigate to={site.routes.signedInHome} replace />
+  // The deployment gate, before the publication gate and before any read —
+  // except for the administration path, which both gates exempt.
+  if (!site.servesEuroTournament && !isAdminPreparation) {
+    return <Navigate to={site.routes.signedInHome} replace />
+  }
   if (published === null) return <AuthSplash />
   if (!published) return <Navigate to="/" replace />
 
