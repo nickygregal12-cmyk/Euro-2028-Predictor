@@ -95,14 +95,14 @@ Those documents are snapshots and must keep saying what was true when they were
 written. The manifest test refuses to let a path be both evidence and an
 authority.
 
-### The sweep rule produced a duplication problem, and there is now a guard for it
+### The sweep rule produced a duplication problem, and it is now closed
 
 Measured 11 August 2026 across the 93 authority documents: **16 long paragraphs
-appear verbatim in more than one of them, 67,204 characters in total.** One
-contract blockquote exists identically in **seven** files at once — `CLAUDE.md`,
+appeared verbatim in more than one of them, 67,204 characters in total.** One
+contract blockquote existed identically in **seven** files at once — `CLAUDE.md`,
 `MASTER-TODO.md`, `docs/roadmap.md`, `docs/adr/README.md`,
 `docs/competition-structure.md`, `docs/design/README.md` and
-`docs/quality/feature-baseline.md`.
+`docs/quality/feature-baseline.md`. **All of it is gone**; how is below.
 
 Those are exactly the seven `sweep: true` documents, and that is not a
 coincidence. **The sweep demands all seven be touched by every contract, and the
@@ -113,17 +113,43 @@ meaningless line to pass the gate"* — and what it actually trained was a
 meaningful-*looking* line, which is harder to spot and more expensive to
 maintain.
 
-`tests/scripts/documentationDuplication.test.ts` now holds the rule that
+`tests/scripts/documentationDuplication.test.ts` holds the rule that
 `DOC-AI-001` could only assert: no long paragraph is carried verbatim by two
-authorities. It runs against a **recorded baseline that may only shrink**, the
-same ratchet as `knip-baseline.md` and `lighthouse-baseline.md` — new
-duplication fails, and a fixed one fails until its baseline line is deleted, so
-the list cannot quietly stop being true. Evidence is out of scope: an audit
-quotes what it audited, and freezing that is what `DOC-AI-006` is for.
+authorities. Evidence is out of scope — an audit quotes what it audited, and
+freezing that is what `DOC-AI-006` is for.
 
-**Working the baseline down means each swept document saying what a contract
-meant FOR IT, in its own words** — which is what the two architecture plans now
-do. That is seven live authorities' worth of editing and has not been done.
+**The baseline is empty, and it is meant to stay empty.** It held 16 entries and
+67,204 characters when it was written; every one is gone. An entry is not a way
+to record duplication, it is a way to permit it.
+
+### How the copies were removed, and what replaced them
+
+Every swept document was already answering its own question about each contract
+— in a single clause bolted to the end of a pasted paragraph. Read together, the
+questions are strikingly distinct:
+
+| Document | The question it asks of a contract |
+| --- | --- |
+| `MASTER-TODO.md` | What does this deliver, and what does it leave outstanding? |
+| `docs/roadmap.md` | Does this reorder the Domestic Frontend Alpha? |
+| `docs/adr/README.md` | Does this introduce an architectural decision? |
+| `docs/competition-structure.md` | Does this change a competition, game, format or membership? |
+| `docs/design/README.md` | Does this move a visual authority? |
+| `docs/quality/feature-baseline.md` | Does this add a feature or move a rule? |
+
+So each now carries a short table of **only** the contracts that had a
+consequence for it, in its own words, and a contract with none is **absent
+rather than restated**. `CLAUDE.md` keeps the narrative, because stating the
+current implementation boundary is the job its manifest entry names.
+
+`docs/adr/README.md` gained something else from this. Nine of its blockquotes
+sat **above its own index**, so the file's actual purpose — which decision has
+which status — began a screen and a half down.
+
+**The sweep still works, and is now satisfied by a true sentence.** Each table
+ends with the contract it is current to. A contract with a consequence adds a
+row; a contract without one advances that line. Both are facts, where the
+pasted paragraph was neither the document's own nor its business to maintain.
 
 ### What the cleanup moved, and the two things it nearly got wrong
 
@@ -255,7 +281,7 @@ These ten safeguards are the written rules. Some are enforceable and enforced; m
 
 | ID | Requirement | Enforcement |
 | --- | --- | --- |
-| `DOC-AI-001` | Every important fact has **one authoritative home**. Supporting files may link to it; they must not restate a moving fact. | `tests/scripts/documentationDuplication.test.ts` enforces the verbatim half, against a shrink-only baseline; restating a fact in different words remains convention |
+| `DOC-AI-001` | Every important fact has **one authoritative home**. Supporting files may link to it; they must not restate a moving fact. | `tests/scripts/documentationDuplication.test.ts` enforces the verbatim half, with an empty baseline; restating a fact in different words remains convention |
 | `DOC-AI-002` | Every active authority declares its authority class, status, scope, exclusions, last verification date, supersession position and implementation evidence — the control block below. | Convention |
 | `DOC-AI-003` | **No planning statement may be described as implemented without merged code, a migration, an executable test or verified hosted evidence**, named. | Convention; `tests/scripts/adrStatusFreshness.test.ts` enforces the ADR-status half |
 | `DOC-AI-004` | **No open pull request or branch is repository truth.** Proposed work is labelled proposed, and concurrent ownership is checked before editing a file. | Convention |

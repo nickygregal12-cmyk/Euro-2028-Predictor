@@ -73,53 +73,50 @@ function fingerprint(block: string): string {
  * `lighthouse-baseline.md`. New duplication fails; removing a listed one fails
  * until its line is deleted, so the list cannot quietly stop being true.
  *
- * **The sweep rule is what produced most of this, and that is worth naming.** A
- * contract must touch all seven `sweep: true` documents, and the cheapest way to
- * satisfy that is to paste the same boundary blockquote into all seven — which
- * is how one paragraph came to exist in `CLAUDE.md`, `MASTER-TODO.md`,
- * `docs/roadmap.md`, `docs/adr/README.md`, `docs/competition-structure.md`,
- * `docs/design/README.md` and `docs/quality/feature-baseline.md` at once. The
- * control against staleness produced the duplication, and
- * `docs/ops/documentation-authorities.md` had already predicted the shape:
- * marking everything "would train people to add a meaningless line to pass the
- * gate". It trained a meaningful-looking one instead, which is harder to spot.
+ * **The sweep rule is what produced it, and that is worth naming.** A contract
+ * must touch all seven `sweep: true` documents, and the cheapest way to satisfy
+ * that is to paste the same boundary blockquote into all seven — which is how one
+ * paragraph came to exist in `CLAUDE.md`, `MASTER-TODO.md`, `docs/roadmap.md`,
+ * `docs/adr/README.md`, `docs/competition-structure.md`, `docs/design/README.md`
+ * and `docs/quality/feature-baseline.md` at once. The control against staleness
+ * produced the duplication, and `docs/ops/documentation-authorities.md` had
+ * already predicted the shape: marking everything "would train people to add a
+ * meaningless line to pass the gate". It trained a meaningful-*looking* one
+ * instead, which is harder to spot.
  *
- * Working the list down means each of those documents saying, in its own words,
- * what the contract meant FOR IT — as the two architecture plans now do — rather
- * than restating what the contract is. That is seven live authorities' worth of
- * editing and is deliberately not done here.
+ * **The baseline is empty, and that is the point.** It held 16 entries and
+ * 67,204 characters on 11 August 2026; every one is gone. Six of the seven
+ * documents now record what a contract meant FOR THEM — the question each one
+ * exists to answer, which each was already answering in a trailing clause bolted
+ * to a copy of the narrative. `CLAUDE.md` keeps the narrative, because stating
+ * the current implementation boundary is the job its manifest entry names.
+ *
+ * An empty ratchet is a rule. Leave it empty: a new entry is not a way to record
+ * duplication, it is a way to permit it, and the reason it drained is that
+ * nobody was allowed to add one.
  */
-const BASELINE = new Set([
-  'c17d183e14c7', // ×7, 1352 chars — contract 147–148 boundary
-  'c47033bc2fe8', // ×7, 1302 chars — contract 151 boundary
-  '5b62dcf65dfb', // ×7, 1293 chars — contract 149 boundary
-  'fc5a72d4b95f', // ×7, 1242 chars — contract 145 boundary
-  '958f47addc74', // ×7, 1131 chars — contract 146 boundary
-  'be44e17515e2', // ×7, 1093 chars — contract 150 boundary
-  '2201f59a5834', // ×7,  802 chars — contract 152–157 boundary
-  '1d6f88e0958b', // ×6, 1464 chars — contract 144 boundary
-  '0f4c7b75dcc3', // ×6, 1160 chars — contract 143 boundary
-  '6523db66f93a', // ×3,  548 chars — contract 142 boundary
-  '65cbce76347b', // ×2,  910 chars — contract 138–139 boundary
-  'dca7b2638223', // ×2,  653 chars — contract 140–141 boundary
-  'b67ca745dc75', // ×2,  603 chars — contract 137 boundary
-  'bd904f0ef915', // ×2,  550 chars — contract 144 repository candidate
-  '4c66cbc289b1', // ×2,  536 chars — contract 143 repository candidate
-  '3d47535a38db', // ×2,  446 chars — Stage C schema object inventory
+const BASELINE = new Set<string>([])
 
-  // Arrived with contract 158 while this branch was open, which is the
-  // mechanism rather than an exception: its pull request pasted both of these
-  // into the same seven `sweep: true` documents, one paste per contract, exactly
-  // as the rows above were produced. They are baselined rather than fixed
-  // because fixing them is the seven-authority edit deferred below.
-  //
-  // The first is also MISNUMBERED: it is headed "Contract 152 boundary" and
-  // describes contract 158's `SEC-001` work, a leftover from that change being
-  // rebased. Contract 152 is the private container's identity. The freshness
-  // rule cannot see it — 152 exists — and it is left for its own author rather
-  // than rewritten here.
-  '7e5a6c2bd89e', // ×7 — "Contract 152 boundary", describing contract 158
-  'c2fad682127c', // ×7 — contract 158 boundary
+/**
+ * Correspondences a STRONGER check already holds, which must therefore stay
+ * identical — the same reasoning the manifest's `structural` kind uses when it
+ * exempts a schema inventory because a real database checks it.
+ *
+ * This is not the baseline wearing a different hat. A baseline entry is
+ * duplication tolerated until someone removes it; an entry here is duplication
+ * REQUIRED, and removing it breaks a passing test.
+ *
+ * The Stage C pair proved the difference the hard way. Deduplicating the
+ * sixteen-function list looked obviously right — two documents, one inventory —
+ * and it failed `stageC1SchemaOverlayCoverage.test.ts`, which asserts that every
+ * function `stage-c-schema-coverage.md` names as reviewed is given a disposition
+ * in `stage-c1-schema-overlay.md`. The list is not a copy of prose; it is a
+ * per-function disposition, and a test keeps the two in step far more tightly
+ * than comparing paragraphs ever could.
+ */
+const ENFORCED_ELSEWHERE = new Set([
+  '3d47535a38db', // ×2, 446 chars — the Stage C reviewed-function inventory,
+                  // held identical by tests/scripts/stageC1SchemaOverlayCoverage.test.ts
 ])
 
 describe('one fact, one home', () => {
@@ -151,7 +148,7 @@ describe('one fact, one home', () => {
 
   it('adds no duplication beyond the recorded baseline', () => {
     const fresh = [...duplicated().entries()]
-      .filter(([key]) => !BASELINE.has(key))
+      .filter(([key]) => !BASELINE.has(key) && !ENFORCED_ELSEWHERE.has(key))
       .map(([key, { carriers, excerpt }]) => `${key}  ${carriers.join(' + ')}\n      "${excerpt}…"`)
 
     expect(
@@ -168,7 +165,7 @@ describe('one fact, one home', () => {
     // Without this the list would become an exemption. A duplication that is
     // fixed must have its line deleted, so the count can only fall.
     const live = duplicated()
-    const stale = [...BASELINE].filter((key) => !live.has(key))
+    const stale = [...BASELINE, ...ENFORCED_ELSEWHERE].filter((key) => !live.has(key))
 
     expect(
       stale,
