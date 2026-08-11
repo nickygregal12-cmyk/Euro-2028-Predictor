@@ -175,6 +175,15 @@ function HeroSection(): ReactElement {
               <a className={`${s.cta} ${s.ctaSecondary}`} href="#experience">
                 See the experience
               </a>
+              {/* The third path the acquisition direction asks for, beside
+                  signing up and signing in: learning how each game works. It is
+                  an in-page anchor rather than a route, because the explainer a
+                  signed-in player reads at `/more/scoring` is behind the auth
+                  gate — sending a visitor to a page that bounces them to login
+                  would be a call to action that does not act. */}
+              <a className={`${s.cta} ${s.ctaQuiet}`} href="#games">
+                How the games work
+              </a>
             </div>
             <ul className={s.trustRow}>
               {['Free to join', 'Nothing predicted for you', 'Private leagues'].map((item) => (
@@ -489,11 +498,11 @@ function GamesSection(): ReactElement {
     <section className={s.section} id="games" aria-labelledby="games-heading">
       <div className={s.shell}>
         <div className={s.sectionHead}>
-          <p className={s.eyebrow}>More than one way to win</p>
-          <h2 id="games-heading">Start with score predictions. Discover the rest later.</h2>
+          <p className={s.eyebrow}>Three games, one season</p>
+          <h2 id="games-heading">Three ways to win the same season.</h2>
           <p className={s.sectionLead}>
-            One simple weekly habit is the whole offer. The other games stay optional, and each one
-            is joined on its own.
+            Each one is its own game with its own table, and each is joined on its own. Play one,
+            play all three, or add another halfway through.
           </p>
         </div>
         <ul className={s.gameList}>
@@ -532,6 +541,9 @@ function FinalSection(): ReactElement {
             <Link className={`${s.cta} ${s.ctaSecondary}`} to="/auth/login">
               Already a member? Sign in
             </Link>
+            <a className={`${s.cta} ${s.ctaQuiet}`} href="#games">
+              How the games work
+            </a>
           </div>
         </div>
       </div>

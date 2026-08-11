@@ -101,7 +101,12 @@ export const HOW_STEPS: readonly HowStep[] = [
   {
     number: '02',
     title: 'Compete your way',
-    body: 'One Match Predictor card feeds the overall table and every private league you join — no duplicate cards and no hidden differences between them.',
+    // The independence claim lives HERE rather than on one game, and that is
+    // deliberate: stating "joined separately" against Last Man Standing alone
+    // made it read as a caveat on the two games the page had already framed as
+    // optional. As a step it applies to all three equally, which is what is
+    // actually true.
+    body: 'Every game is joined separately and scored on its own — one Match Predictor card feeds the overall table and every private league you join, with no duplicate cards and no hidden differences between them.',
   },
   {
     number: '03',
@@ -143,24 +148,42 @@ export type GameSummary = {
  * is a membership fact rather than marketing texture, and nothing here may
  * suggest that joining one enrols you in another.
  */
+/**
+ * The three weekly games, given equal weight.
+ *
+ * WHY THE ORDER AND THE COPY CHANGED. This list used to lead with "the weekly
+ * foundation" and describe the other two as optional extras to "discover
+ * later". That is not what the product is: ADR 0012, 0013 and 0014 make Match
+ * Predictor, Last Man Standing and the Predictor Championship three separate
+ * games, each joined on its own, each with its own rules and its own standings.
+ * A landing page that ranks them teaches a visitor to expect one product with
+ * two add-ons, and then the Hub shows them three games and disagrees with the
+ * page that sold it.
+ *
+ * So each entry now says the same KIND of thing — what you do, how often, and
+ * what you are chasing — and none of them is described relative to another. The
+ * one genuine relationship that remains is the Championship's, which really is
+ * decided by Match Predictor points; that is a fact about the format and is
+ * stated as one rather than as a hierarchy.
+ */
 export const GAMES: readonly GameSummary[] = [
   {
     mark: '3–1',
     name: 'Match Predictor',
-    body: 'Predict every scoreline, score for the right result and more for the exact score, then climb the overall table and your private leagues.',
-    meta: 'The weekly foundation',
+    body: 'Call every scoreline before the matchweek kicks off. Points for the right result, more for the exact score, and a table that runs all season.',
+    meta: 'Every matchweek',
   },
   {
     mark: '1',
     name: 'Last Man Standing',
-    body: 'Pick one winner each round, keep track of the clubs you have already used, and outlast everyone else. Joined separately.',
-    meta: 'Independent game',
+    body: 'Pick one club to win each round. You can never pick the same club twice, so the easy wins run out — and the last player standing takes it.',
+    meta: 'Every round',
   },
   {
     mark: 'Cup',
     name: 'Predictor Championship',
-    body: 'Your Match Predictor points become football-shaped fixtures, tables and ties — without asking you to fill in a second card.',
-    meta: 'Same weekly points',
+    body: 'A head-to-head tie every matchweek, decided by the predictions you have already made. Group tables, then knockouts.',
+    meta: 'Every matchweek',
   },
 ] as const
 

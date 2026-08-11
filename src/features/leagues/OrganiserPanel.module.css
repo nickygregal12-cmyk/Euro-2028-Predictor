@@ -1,0 +1,128 @@
+/* Competitions the player organises.
+ *
+ * A disclosure list: the competitions collapse to a name and a state, and one
+ * opens at a time. An organiser with six competitions should not load six
+ * entrant lists to find the one they came for.
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  overflow: hidden;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--sp-3);
+  border: 0;
+  background: transparent;
+  color: var(--tx);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.summary:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+
+.name {
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.meta,
+.note,
+.counts {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: 0 var(--sp-3) var(--sp-3);
+}
+
+.counts,
+.note {
+  margin: 0;
+}
+
+.entrants {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.entrant {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-top: 1px solid var(--line);
+}
+
+.entrant:first-child {
+  border-top: 0;
+}
+
+.entrantName {
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.entrantState {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  text-align: right;
+}
+
+.commands {
+  margin: 0;
+  padding-left: var(--sp-4);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+}

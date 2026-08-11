@@ -4,8 +4,14 @@ import { SeasonPeriodStandings } from '../../../src/features/season/SeasonPeriod
 import type { SeasonPeriodStandingsGateway } from '../../../src/features/season/periodStandingsModel'
 import type { SeasonPeriodStandings as Payload } from '../../../src/services/supabase/seasonPeriodStandings'
 
-function row(entryId: string, rank: number, points: number, played = 3) {
-  return { entryId, rank, points, matchweeksPlayed: played }
+function row(
+  entryId: string,
+  rank: number,
+  points: number,
+  played = 3,
+  displayName: string | null = null,
+) {
+  return { entryId, rank, points, matchweeksPlayed: played, displayName }
 }
 
 function gatewayFor(
@@ -42,6 +48,25 @@ describe('the season period standings panel', () => {
     render(<SeasonPeriodStandings gateway={gatewayFor({ form: FORM })} />)
 
     expect(await screen.findByText(/You are 1 of 2/)).toBeTruthy()
+  })
+
+  it('renders a rival by name when the server names them, and never by entry id', async () => {
+    render(
+      <SeasonPeriodStandings
+        gateway={gatewayFor({
+          form: {
+            period: 'form',
+            window: 5,
+            rows: [row('mine', 1, 30, 3, 'Sam'), row('theirs', 2, 21, 3, 'Alex')],
+          },
+        })}
+      />,
+    )
+
+    expect(await screen.findByText('Alex')).toBeTruthy()
+    // The caller stays "You" even though the server named them too.
+    expect(screen.queryByText('Sam')).toBeNull()
+    expect(screen.queryByText(/theirs/)).toBeNull()
   })
 
   it('states that neither view decides the season', async () => {

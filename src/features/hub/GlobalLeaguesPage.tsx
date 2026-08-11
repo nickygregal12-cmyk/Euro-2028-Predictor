@@ -2,8 +2,18 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
-import { CreateLeagueJourney } from '../leagues/CreateLeagueJourney'
+import { CreatePrivateJourney } from '../leagues/CreatePrivateJourney'
 import { JoinLeagueModal } from '../leagues/JoinLeagueModal'
+import { OrganiserPanel } from '../leagues/OrganiserPanel'
+import {
+  fetchMyOrganisedCompetition,
+  fetchMyOrganisedCompetitions,
+} from '../../services/supabase/organisedCompetitions'
+import {
+  createPrivateSeasonCup,
+  createPrivateSeasonLms,
+  launchPrivateSeasonCup,
+} from '../../services/supabase/privateCompetitions'
 import { presentCreateJourney } from '../leagues/createJourneyModel'
 import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
@@ -167,9 +177,12 @@ export function GlobalLeaguesPage() {
       ) : null}
 
       {creating ? (
-        <CreateLeagueJourney
+        <CreatePrivateJourney
           journey={presentCreateJourney(player)}
-          create={createGameLeague}
+          createLeague={createGameLeague}
+          createLms={createPrivateSeasonLms}
+          createCup={createPrivateSeasonCup}
+          launchCup={launchPrivateSeasonCup}
           onCancel={() => {
             setCreating(false)
             setReloadKey((value) => value + 1)
@@ -178,13 +191,20 @@ export function GlobalLeaguesPage() {
       ) : (
         <div className={styles.actions}>
           <Button variant="primary" onClick={() => setCreating(true)}>
-            Create a league
+            Create private play
           </Button>
           <Button variant="secondary" onClick={() => setJoining(true)}>
             Join with a code
           </Button>
         </div>
       )}
+
+      {/* Contract 165. Renders nothing at all for a player who organises
+          nothing, which is most of them. */}
+      <OrganiserPanel
+        list={() => fetchMyOrganisedCompetitions()}
+        open={(competitionId) => fetchMyOrganisedCompetition(competitionId)}
+      />
 
       <JoinLeagueModal
         open={joining}

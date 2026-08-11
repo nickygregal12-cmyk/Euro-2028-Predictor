@@ -1,0 +1,140 @@
+/* The Last Man Standing field.
+ *
+ * A list at every width. Each row carries a name, a state sentence and either
+ * the pick or the concealment notice, which is two columns on a phone and two
+ * columns with more room on a desktop — a grid would not add information.
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.retry {
+  margin-top: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  color: var(--tx);
+  font: inherit;
+  cursor: pointer;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.stats {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.entrant {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3) 0;
+  border-top: 1px solid var(--line);
+}
+
+.entrant:first-child {
+  border-top: 0;
+}
+
+/* The caller's own row, marked by weight and a rule rather than by colour
+   alone — it has to survive a monochrome screenshot. */
+.me {
+  padding-left: var(--sp-3);
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.youTag {
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  font-size: var(--fs-1);
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+.state {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  min-width: 0;
+}
+
+.pick {
+  font-size: var(--fs-2);
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.allowances {
+  color: var(--tx2);
+}
+
+/* Not a dash and not a blank: a dash reads as "nothing" and a blank reads as
+   "has not picked", and neither is what the server said. */
+.hidden {
+  color: var(--tx3);
+  font-style: italic;
+}

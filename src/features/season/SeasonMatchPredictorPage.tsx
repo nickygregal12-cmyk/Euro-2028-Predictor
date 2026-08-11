@@ -1,5 +1,6 @@
 import { Link } from 'react-router'
 import { Alert, Button, ClubMatchCard, Skeleton } from '../../design-system'
+import { MatchweekPoints } from '../scoring/MatchweekPoints'
 import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
 import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import { commandRefusal, type MatchPredictorGateway } from './matchPredictorModel'
@@ -356,6 +357,12 @@ export function SeasonMatchPredictorPage({
         </div>
       </section>
 
+      {/* The status strip says "28 pts" and nothing said where it came from.
+          This is the other half of `explainFixtureScore`, which the Match Centre
+          has been using to explain ONE fixture since it shipped: the same
+          authority, for the whole card, once. It renders nothing at all until
+          the matchweek settles. */}
+      <MatchweekPoints card={page} />
     </SeasonCompetitionShell>
   )
 }

@@ -1,103 +1,83 @@
-import { userFacingError } from '../../shared/errors/userFacingError'
 import { useState } from 'react'
 import { Modal, TextInput, Button, Alert } from '../../design-system'
-import { fetchLeaguePreview, joinLeague, type LeaguePreview } from '../../services/supabase/leagues'
-import { LeaguePreviewCard } from './LeaguePreviewCard'
+import { InvitePreviewCard } from './InvitePreviewCard'
+import { useInviteCode, type InviteJoinResult } from './useInviteCode'
 import s from './leagueForms.module.css'
 
 export type JoinLeagueModalProps = {
   open: boolean
   onClose: () => void
-  onJoined: (leagueId: string) => void
+  /** Called with what was actually joined, so the caller can navigate. */
+  onJoined: (joined: InviteJoinResult) => void
 }
 
 /**
- * Code-entry join sheet — the fallback path when someone has a code but not the
- * link (design-system §6, invite links are primary). Enter code → preview →
- * Join. The rich link flow lives on the /join/:code deep-link page; both share
- * LeaguePreviewCard.
+ * Code entry — the fallback path when someone has a code but not the link
+ * (design-system §6: invite links are primary).
+ *
+ * IT IS NO LONGER LEAGUE-ONLY, AND THAT IS THE POINT OF `MIG-UI-07`. Enter a
+ * code → see what it is → join it. What "it" is comes from
+ * `resolve_invite_code`, so one entry point answers for a private league, a
+ * private Last Man Standing and a private Championship without the player
+ * needing to know which they were sent. Before this, a Last Man Standing code
+ * pasted here was answered "that code doesn't match a league", which was both
+ * true and useless.
+ *
+ * THE COPY DOES NOT SAY "LEAGUE" ANY MORE, anywhere a code might not be one.
  */
 export function JoinLeagueModal({ open, onClose, onJoined }: JoinLeagueModalProps) {
   const [code, setCode] = useState('')
-  const [preview, setPreview] = useState<LeaguePreview | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  function reset() {
-    setCode('')
-    setPreview(null)
-    setBusy(false)
-    setError(null)
-  }
+  const { state, joining, resolve, accept, reset } = useInviteCode()
 
   function close() {
+    setCode('')
     reset()
     onClose()
   }
 
-  async function lookUp() {
-    const c = code.trim().toUpperCase()
-    if (c.length < 1) {
-      setError('Enter an invite code.')
-      return
-    }
-    setBusy(true)
-    setError(null)
-    try {
-      const p = await fetchLeaguePreview(c)
-      if (!p) {
-        setError("That code doesn't match a league. Check it and try again.")
-      } else {
-        setPreview(p)
-      }
-    } catch (e) {
-      setError(userFacingError(e, 'Could not look up that code. Please try again.'))
-    } finally {
-      setBusy(false)
-    }
+  async function join() {
+    const joined = await accept(code)
+    if (!joined) return
+    setCode('')
+    reset()
+    onJoined(joined)
   }
 
-  async function join() {
-    if (!preview) return
-    setBusy(true)
-    setError(null)
-    try {
-      const joined = await joinLeague(code.trim().toUpperCase())
-      const id = joined.id
-      reset()
-      onJoined(id)
-    } catch (e) {
-      setBusy(false)
-      setError(userFacingError(e, 'Could not join the league. Please try again.'))
-    }
-  }
+  const message =
+    state.status === 'error'
+      ? state.message
+      : state.status === 'notfound'
+        ? // Identical for unknown, malformed and rotated codes. The server has
+          // made them indistinguishable on purpose; saying which would undo it.
+          'That code doesn’t match anything. Check it and try again.'
+        : null
 
   return (
     <Modal
       open={open}
       onClose={close}
-      title="Join a league"
+      title="Join with a code"
       footer={
-        preview ? undefined : (
+        state.status === 'ready' ? undefined : (
           <>
-            <Button variant="secondary" onClick={close} disabled={busy}>
+            <Button variant="secondary" onClick={close} disabled={state.status === 'looking'}>
               Cancel
             </Button>
-            <Button onClick={lookUp} loading={busy}>
-              Find league
+            <Button onClick={() => void resolve(code)} loading={state.status === 'looking'}>
+              Find it
             </Button>
           </>
         )
       }
     >
-      {preview ? (
-        <LeaguePreviewCard
-          preview={preview}
-          joining={busy}
-          onJoin={join}
+      {state.status === 'ready' ? (
+        <InvitePreviewCard
+          invite={state.invite}
+          joining={joining}
+          onJoin={() => void join()}
           onDecline={() => {
-            setPreview(null)
-            setError(null)
+            setCode('')
+            reset()
           }}
         />
       ) : (
@@ -106,20 +86,20 @@ export function JoinLeagueModal({ open, onClose, onJoined }: JoinLeagueModalProp
           <TextInput
             label="Invite code"
             value={code}
-            placeholder="ABC234"
+            placeholder="ABC234DEF567"
             autoCapitalize="characters"
             autoCorrect="off"
             spellCheck={false}
-            onChange={(e) => setCode(e.target.value.toUpperCase())}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') lookUp()
+            onChange={(event) => setCode(event.target.value.toUpperCase())}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') void resolve(code)
             }}
           />
-          {error && (
-            <Alert variant="error" title="Couldn't find that league">
-              {error}
+          {message ? (
+            <Alert variant="error" title="Couldn’t use that code">
+              {message}
             </Alert>
-          )}
+          ) : null}
         </>
       )}
     </Modal>

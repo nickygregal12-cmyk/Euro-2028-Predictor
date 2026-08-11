@@ -77,7 +77,7 @@ const SECTIONS = [
   'onboarding-choose-competitions',
   'onboarding-favourite-team',
   'onboarding-games-and-review',
-  'create-a-league-journey',
+  'create-private-play-journey',
   'game-rules-disclosure',
   // The contract 149/150/151 surfaces. Each needs a season, a league, a
   // matchweek and a signed-in caller, so no route harness can render one and

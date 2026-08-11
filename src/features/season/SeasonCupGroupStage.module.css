@@ -1,0 +1,172 @@
+/* The Championship group stage.
+ *
+ * Tabs when there is more than one group, and no tab strip at all when there is
+ * one — a tablist of one is a control that decides nothing. Columns drop below
+ * 640px in the same shape the league table uses: rank, player and table points
+ * survive at every width because they are what a group table is for.
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.retry {
+  margin-top: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  color: var(--tx);
+  font: inherit;
+  cursor: pointer;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  cursor: pointer;
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.tabOn {
+  border-color: var(--acc);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.yours {
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  font-size: var(--fs-1);
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+.scroller {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.caption {
+  padding: var(--sp-3);
+  text-align: left;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  caption-side: top;
+}
+
+.table th,
+.table td {
+  padding: var(--sp-2);
+  text-align: right;
+  color: var(--tx);
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.table thead th {
+  border-top: 0;
+  font-size: var(--fs-1);
+  font-weight: 600;
+  color: var(--tx3);
+}
+
+.table abbr {
+  text-decoration: none;
+}
+
+.pos {
+  width: 2.5rem;
+  text-align: center !important;
+  color: var(--tx2) !important;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  text-align: left !important;
+  white-space: normal !important;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.youTag {
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  font-size: var(--fs-1);
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+.pts {
+  font-weight: 700;
+}
+
+.me {
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
+}
+
+.wide {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .wide {
+    display: table-cell;
+  }
+}

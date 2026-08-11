@@ -1,0 +1,141 @@
+/* Followed competitions and the favourite-club picker.
+ *
+ * Mobile first: one full-width row per competition, the action on the right
+ * where the thumb is. From the tablet breakpoint the rows gain room rather than
+ * a new structure — this is a list of choices at every width, and inventing a
+ * grid for it on desktop would be decoration.
+ */
+
+.list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.row:first-child {
+  border-top: 0;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.name {
+  font-weight: 600;
+  color: var(--tx);
+  /* Hostile-length competition names wrap rather than push the action off the
+     row. `min-width: 0` above is what makes the wrap possible inside flex. */
+  overflow-wrap: anywhere;
+}
+
+.season {
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.favourite {
+  margin-top: 6px;
+}
+
+.favouriteToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--card);
+  color: var(--tx2);
+  font: inherit;
+  font-size: var(--fs-2);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.favouriteToggle:hover:not(:disabled) {
+  color: var(--tx);
+  border-color: var(--n-7);
+}
+
+.favouriteToggle:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.favouriteToggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.picker {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--chip);
+}
+
+.clubs {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  /* Two columns on a phone, more as the space appears. `auto-fill` rather than
+     a breakpoint so twenty clubs and forty clubs both lay out sensibly. */
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  background: transparent;
+  color: var(--tx);
+  font: inherit;
+  font-size: var(--fs-2);
+  text-align: left;
+  cursor: pointer;
+}
+
+.club:hover {
+  background: var(--card);
+}
+
+.club:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.club[aria-pressed='true'] {
+  border-color: var(--acc);
+  background: var(--card);
+  font-weight: 600;
+}
+
+.clubName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

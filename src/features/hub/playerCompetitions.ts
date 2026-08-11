@@ -1,6 +1,11 @@
 import type { CompetitionGame, CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
 import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
 import type { HubSeasonMembership } from '../../services/supabase/competitionGames'
+import type { PlayerPreferences } from '../../services/supabase/playerPreferencesModel'
+import {
+  favouriteTeamFor,
+  isFollowing,
+} from '../../services/supabase/playerPreferencesModel'
 import type { HubCompetition } from './competitionCatalogue'
 
 /**
@@ -21,19 +26,25 @@ import type { HubCompetition } from './competitionCatalogue'
  * membership" and `favourite` is not "followed"; collapsing any two would be
  * the exact simplification the authority forbids.
  *
- * FOLLOW IS NOT READ HERE YET, and this model says so rather than inventing an
- * answer. Contract 157 (`MIG-UI-10`) added the persistence on 11 August 2026 and
- * nothing consumes it, so `followed` is `'unknown'` for every competition today
- * and `relevanceSource` reports which question actually answered. The value is
- * `'unknown'` rather than `false` because "we have not asked" and "they have
- * not" would send a player to a different screen.
+ * FOLLOW IS NOW READ (contract 157, `MIG-UI-10`, consumed 11 August 2026).
+ * `get_my_preferences` answers it, so `followed` and `favourite` are booleans
+ * whenever the preference read landed. They stay `'unknown'` — not `false` —
+ * when it did not, because "we have not asked" and "they have not" would send a
+ * player to a different screen, and a rail that silently reported "you follow
+ * nothing" after a failed read would be asserting a choice the player never
+ * made.
  *
- * WHAT THE UI USES IN THE MEANTIME is game membership, which IS a server
- * authority and IS durable: a player who has joined a game in a competition is
- * unarguably relevant to it. That is a **fallback for an absent Follow read**,
- * not a definition of Follow, and it is deliberately narrower — a player who
- * follows a competition without joining a game is invisible to it, which is a
- * missing feature rather than a wrong answer.
+ * A FOLLOWED COMPETITION IS RELEVANT WITHOUT A GAME. That is the whole reason
+ * Follow is a separate field: a player who wants the Premier League's fixtures
+ * and context, and has joined nothing, is in `mine` with an empty
+ * `joinedGames`. Before contract 157 that player was invisible, and the model
+ * recorded it as a missing feature rather than pretending otherwise.
+ *
+ * GAME MEMBERSHIP STILL COUNTS, AND IS NOT SUBORDINATE TO FOLLOW. A player who
+ * joined a game and never pressed Follow is unarguably relevant to that
+ * competition, so membership remains sufficient on its own. The two questions
+ * are unioned, never intersected: neither one may hide a competition the other
+ * one includes.
  *
  * IT IS BUILT FOR TWENTY COMPETITIONS, NOT TWO. The shortcut list is bounded
  * and the remainder is a count, so a platform holding twenty published
@@ -58,15 +69,23 @@ export type CompetitionRelevance = {
   /** The season row id every season read is addressed by, when resolved. */
   tournamentId: string | null
   /**
-   * Whether the player has FOLLOWED this competition.
+   * Whether the player has FOLLOWED this competition (contract 157).
    *
-   * `'unknown'` everywhere today: no persistence authority exists. It is not
-   * `false`, because "we do not know" and "they have not" would send a
-   * different player to a different screen.
+   * `'unknown'` only when the preference read did not land. It is not `false`
+   * there, because "we do not know" and "they have not" would send a different
+   * player to a different screen.
    */
   followed: boolean | 'unknown'
-  /** Presentation prominence only. `'unknown'` for the same reason. */
+  /**
+   * Whether the player named a favourite club in THIS competition.
+   *
+   * Presentation prominence only — never membership, scoring, locks,
+   * permissions, ranking or urgency. A favourite is per competition because the
+   * server constrains it to a team that plays in the competition followed.
+   */
   favourite: boolean | 'unknown'
+  /** The canonical team id, when there is one. Null otherwise. */
+  favouriteTeamId: string | null
   /** The games the player has actually joined here. The server's answer. */
   joinedGames: readonly CompetitionGameKey[]
   /** Every game the competition runs, with its membership row. */
@@ -89,9 +108,10 @@ export type PlayerCompetitions = {
    */
   catalogue: readonly HubCompetition[]
   /**
-   * Which question produced `mine`. `follow` once a Follow authority exists;
-   * `game-membership` while it does not, so a surface can say what it is
-   * showing instead of implying the player chose it.
+   * Which question produced `mine`. `follow` once the preference read has
+   * landed — meaning the list reflects what the player chose as well as what
+   * they joined; `game-membership` when it has not, so a surface can say what
+   * it is showing instead of implying the player chose it.
    */
   relevanceSource: 'follow' | 'game-membership'
   /** True when the player is relevant to nothing — a real state, not a failure. */
@@ -118,8 +138,16 @@ function joinedKeysOf(games: readonly CompetitionGame[]): CompetitionGameKey[] {
  * how the platform happens to list itself.
  *
  * Most joined games first, because a competition a player plays two games in is
- * more theirs than one they play a single game in; then the catalogue's order
- * as a stable tie-break, so the list does not reshuffle between renders.
+ * more theirs than one they play a single game in; then a followed competition
+ * ahead of an unfollowed one on the same number of games, which only ever
+ * separates the zero-game entries Follow itself put in the list; then the
+ * catalogue's order as a stable tie-break, so the list does not reshuffle
+ * between renders.
+ *
+ * A FAVOURITE CLUB IS NOT IN THIS COMPARISON. Favourite is presentation
+ * prominence, and letting it reorder "your competitions" would make it a
+ * ranking input — which the navigation authority forbids in exactly those
+ * words.
  */
 function byRelevance(
   left: CompetitionRelevance,
@@ -129,10 +157,24 @@ function byRelevance(
   if (left.joinedGames.length !== right.joinedGames.length) {
     return right.joinedGames.length - left.joinedGames.length
   }
+  if (left.followed !== right.followed) {
+    if (left.followed === true) return -1
+    if (right.followed === true) return 1
+  }
   return (
     (order.get(left.competition.seasonRowName) ?? 0) -
     (order.get(right.competition.seasonRowName) ?? 0)
   )
+}
+
+export type PresentPlayerCompetitionsOptions = {
+  /**
+   * Contract 157's answer, or null when the read has not landed or failed.
+   * Null is not an empty preference set: it produces `'unknown'` rather than
+   * `false`.
+   */
+  preferences?: PlayerPreferences | null
+  limit?: number
 }
 
 export function presentPlayerCompetitions(
@@ -142,8 +184,9 @@ export function presentPlayerCompetitions(
    */
   catalogue: readonly HubCompetition[],
   seasons: readonly HubSeasonMembership[],
-  limit: number = COMPETITION_SHORTCUT_LIMIT,
+  options: PresentPlayerCompetitionsOptions = {},
 ): PlayerCompetitions {
+  const { preferences = null, limit = COMPETITION_SHORTCUT_LIMIT } = options
   const bySeasonName = new Map(seasons.map((season) => [season.seasonName, season]))
   const order = new Map(catalogue.map((entry, index) => [entry.seasonRowName, index]))
 
@@ -153,15 +196,24 @@ export function presentPlayerCompetitions(
     // A catalogue entry the database did not return is not relevant and is not
     // guessed at. It stays in `catalogue` for exploration.
     if (!season) continue
+
     const joinedGames = joinedKeysOf(season.seasonGames.games)
-    if (joinedGames.length === 0) continue
+    const followed = preferences ? isFollowing(preferences, season.tournamentId) : 'unknown'
+    const favouriteTeamId = preferences
+      ? favouriteTeamFor(preferences, season.tournamentId)
+      : null
+
+    // The union, not the intersection. Either answer alone makes a competition
+    // the player's, and a competition only Follow put here carries an empty
+    // `joinedGames` rather than an invented membership.
+    if (joinedGames.length === 0 && followed !== true) continue
+
     relevance.push({
       competition,
       tournamentId: season.tournamentId,
-      // Not `true`. Holding a membership says the player joined a GAME; it says
-      // nothing about whether they asked to follow the competition's football.
-      followed: 'unknown',
-      favourite: 'unknown',
+      followed,
+      favourite: preferences ? favouriteTeamId !== null : 'unknown',
+      favouriteTeamId,
       joinedGames,
       games: season.seasonGames.games,
     })
@@ -175,7 +227,7 @@ export function presentPlayerCompetitions(
     shortcuts,
     overflow: mine.length - shortcuts.length,
     catalogue,
-    relevanceSource: 'game-membership',
+    relevanceSource: preferences ? 'follow' : 'game-membership',
     empty: mine.length === 0,
   }
 }

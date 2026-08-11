@@ -1,0 +1,203 @@
+/* "Why did I get these points?" for a settled season matchweek. Tokens only. */
+.wrap {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+
+.unbanked {
+  margin: 0;
+  padding: var(--sp-4);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.header {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: var(--tap-min);
+  padding: var(--sp-3) var(--sp-4);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: var(--tx);
+  font: inherit;
+}
+
+.header:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+
+.chev {
+  color: var(--tx3);
+  transition: transform var(--duration-micro) var(--ease-out);
+}
+.chevOpen {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chev {
+    transition: none;
+  }
+}
+
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.headerTitle {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  color: var(--tx);
+}
+
+.headerMeta {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.headerTotal {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-4);
+  color: var(--tx);
+}
+
+.panel {
+  border-top: 1px solid var(--line);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Two columns on a phone (fixture over detail, points right); three from the
+   card breakpoint up, where the detail has room beside the fixture. */
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    'fixture points'
+    'detail  detail';
+  align-items: baseline;
+  gap: 2px var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.fixture {
+  grid-area: fixture;
+  min-width: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+  /* A hostile club name wraps rather than pushing the points column off the
+     card. Nothing here is truncated: the fixture is the row's identity. */
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  grid-area: detail;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.points {
+  grid-area: points;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  color: var(--acc);
+  white-space: nowrap;
+}
+
+.pointsZero {
+  color: var(--tx3);
+}
+
+@media (min-width: 600px) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+    grid-template-areas: 'fixture detail points';
+    align-items: center;
+  }
+
+  .detail {
+    text-align: right;
+  }
+}
+
+.note {
+  margin: var(--sp-3) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.sums {
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-3) 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.sumRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: 2px 0;
+}
+
+.sumRow dt {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.sumRow dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.sumTotal dt,
+.sumTotal dd {
+  color: var(--tx);
+}
+
+.sumTotal dd {
+  font-size: var(--fs-3);
+}
+
+.mismatch {
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--amb);
+  border-radius: var(--radius-input);
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}

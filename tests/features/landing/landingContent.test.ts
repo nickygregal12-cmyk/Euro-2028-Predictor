@@ -74,6 +74,35 @@ describe('the landing page content model', () => {
     expect(prose).toMatch(/separately|independent/i)
   })
 
+  it('gives the three weekly games equal prominence', () => {
+    // The product direction is explicit that Match Predictor, Last Man Standing
+    // and the Predictor Championship carry equal weight, and ADR 0012-0014 make
+    // them three separate games rather than one product with two add-ons. This
+    // copy used to lead with "the weekly foundation" and describe the other two
+    // as things to "discover later", which taught a visitor to expect a
+    // hierarchy the signed-in product does not have.
+    expect(GAMES).toHaveLength(3)
+
+    const prose = GAMES.map((game) => `${game.body} ${game.meta}`).join(' ')
+
+    // No game is ranked against another, and none is described as secondary.
+    expect(prose).not.toMatch(/foundation|optional|extra|add-on|the rest|later/i)
+    expect(prose).not.toMatch(/start with|begin with|first, /i)
+
+    // Each says the same KIND of thing: what you do, and how often.
+    for (const game of GAMES) {
+      expect(game.body.length, `${game.name} has no description`).toBeGreaterThan(40)
+      expect(game.meta, `${game.name} does not say how often it is played`).toMatch(
+        /every/i,
+      )
+    }
+
+    // And they are comparable in weight rather than one being three times the
+    // length of another, which is prominence by another means.
+    const lengths = GAMES.map((game) => game.body.length)
+    expect(Math.max(...lengths) / Math.min(...lengths)).toBeLessThan(1.6)
+  })
+
   it('gives the desktop preview exactly three contextual slots (E.7)', () => {
     // E.7 names the count and the three kinds. A fourth slot is a design
     // decision that has to be taken in the authority first, not in a component.

@@ -302,7 +302,12 @@ function SeasonPeriodStandingsPanel({
       userId
         ? {
             load: (period: 'month' | 'form') =>
-              fetchSeasonPeriodStandings(tournamentId, period),
+              // Contract 131's names, asked for. These tables sit directly
+              // beneath the season leaderboard, which already names every
+              // entrant, so this discloses nothing new — and without it every
+              // row of the monthly table and the form table reads "Entrant",
+              // which is a rank against a word.
+              fetchSeasonPeriodStandings(tournamentId, period, undefined, true),
             myEntryId: () => fetchMyEntryId(userId, tournamentId),
           }
         : undefined,
@@ -369,8 +374,24 @@ function SeasonLmsRouteBody({
     [tournamentId, competitionId, userId],
   )
   const now = useMemo(() => () => new Date(), [])
+  // Contract 164's field. Memoised on the season id alone, so it does not
+  // re-read on every render of the route around it.
+  const readField = useMemo(
+    () => () =>
+      import('../../services/supabase/seasonLmsField').then(({ fetchSeasonLmsField }) =>
+        fetchSeasonLmsField(tournamentId),
+      ),
+    [tournamentId],
+  )
 
-  return <SeasonLmsPage gateway={gateway} now={now} registration={registration} />
+  return (
+    <SeasonLmsPage
+      gateway={gateway}
+      now={now}
+      registration={registration}
+      readField={readField}
+    />
+  )
 }
 
 /**
@@ -543,12 +564,22 @@ function SeasonChampionshipPlayerRouteBody({
     [tournamentId, competitionId, publicCompetitionId, userId],
   )
 
+  // Contract 167's group stage, bound to this Championship instance.
+  const readGroupStage = useMemo(
+    () => () =>
+      import('../../services/supabase/seasonCupGroupStage').then(
+        ({ fetchSeasonCupGroupStage }) => fetchSeasonCupGroupStage(competitionId),
+      ),
+    [competitionId],
+  )
+
   return (
     <SeasonChampionshipPlayerPage
       gateway={gateway}
       mode={mode}
       registration={registration}
       tableHref={tableHref}
+      readGroupStage={readGroupStage}
     />
   )
 }

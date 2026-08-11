@@ -1,2 +1,6 @@
 export { PointsBreakdown } from './PointsBreakdown'
 export type { PointsBreakdownProps } from './PointsBreakdown'
+export { MatchweekPoints } from './MatchweekPoints'
+export type { MatchweekPointsProps } from './MatchweekPoints'
+export { presentMatchweekPoints } from './matchweekPointsModel'
+export type { MatchweekPointsRow, MatchweekPointsView } from './matchweekPointsModel'

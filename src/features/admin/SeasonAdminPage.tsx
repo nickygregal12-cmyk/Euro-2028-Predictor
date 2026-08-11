@@ -14,6 +14,14 @@ import {
   acknowledgeReviewItems,
   fetchProviderReviewQueues,
 } from '../../services/supabase/providerReviewQueues'
+import {
+  approveInitialProviderFixtures,
+  disqualifyEntrant,
+  fetchAdminEntrants,
+  fetchProviderProposals,
+  rejectInitialProviderFixtures,
+} from '../../services/supabase/seasonAdminInspection'
+import { SeasonAdminInspection } from './SeasonAdminInspection'
 import { ProviderReviewPanel } from './ProviderReviewPanel'
 import {
   fetchAdministeredSeasons,
@@ -479,23 +487,31 @@ export function SeasonAdminPage() {
         />
       ) : null}
 
-      <section className={styles.panel} aria-labelledby="season-admin-gaps-heading">
-        <h2 className={styles.heading} id="season-admin-gaps-heading">
-          Not offered here, and why
-        </h2>
-        <p className={styles.caption}>
-          Disqualifying an entrant is permitted by the server and is absent from
-          this page on purpose: no browser read enumerates a competition’s
-          entrants, so the control could not name who it was about to remove. It
-          needs a read before it needs a button.
-        </p>
-        <p className={styles.caption}>
-          Approving or rejecting a staged provider calendar is the same shape and
-          is also absent. The review panel above reports how many fixtures are
-          waiting on that decision, which is a count rather than the list an
-          approval would act on.
-        </p>
-      </section>
+      {/* Both gaps this page used to explain are closed by contract 168. The
+          section that named them is gone with them rather than left standing:
+          a page explaining why it cannot do something it now does is worse than
+          no explanation. */}
+      {tournamentId && membership ? (
+        <SeasonAdminInspection
+          tournamentId={tournamentId}
+          seasonName={selected?.name ?? 'this season'}
+          loadProposals={() => fetchProviderProposals(tournamentId)}
+          approve={(provider, reason) =>
+            approveInitialProviderFixtures(tournamentId, provider, reason)
+          }
+          reject={(provider, reason) =>
+            rejectInitialProviderFixtures(tournamentId, provider, reason)
+          }
+          competitions={membership.seasonGames.games.map((game) => ({
+            id: game.id,
+            name: game.displayName ?? game.gameKey,
+          }))}
+          loadEntrants={(competitionId) => fetchAdminEntrants(competitionId)}
+          disqualify={(competitionId, userId, reason) =>
+            disqualifyEntrant(competitionId, userId, reason)
+          }
+        />
+      ) : null}
     </div>
   )
 }

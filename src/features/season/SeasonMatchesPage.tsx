@@ -3,6 +3,8 @@ import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import type { FixtureListRow } from './fixtureListModel'
 import { SeasonMatchCentre, type SeasonFootballContext } from './SeasonMatchCentre'
+import { SeasonLeagueTable } from './SeasonLeagueTable'
+import type { CompetitionTable } from '../../services/supabase/competitionTableModel'
 import type { SeasonMatchCentreCardReader } from './useSeasonMatchCentre'
 import {
   useSeasonFixtureWindow,
@@ -66,6 +68,16 @@ export type SeasonMatchesPageProps = {
   football?: SeasonFootballContext
   /** Where a fixture's matchweek is predicted; passed through to the panel. */
   predictHref?: (matchweek: number) => string
+  /**
+   * Contract 160's league table for this competition.
+   *
+   * OPTIONAL, AND ITS ABSENCE IS A REAL STATE. The table exists for a league
+   * season and the RPC refuses anything else, so a context with fixtures and no
+   * table — the DEV harness, a competition that is not a league — renders the
+   * fixtures alone rather than a segment that would error. It is not a
+   * fallback: there is no browser-side table to fall back TO.
+   */
+  readTable?: () => Promise<CompetitionTable>
 }
 
 const SKELETON_ROWS = 6
@@ -144,6 +156,7 @@ export function SeasonMatchesPage({
   readMatchweekCard,
   football,
   predictHref,
+  readTable,
 }: SeasonMatchesPageProps) {
   const { status, view, window, stepping, error, previous, next, reload } =
     useSeasonFixtureWindow(gateway, timeZone)
@@ -250,6 +263,10 @@ export function SeasonMatchesPage({
           ))}
         </div>
       )}
+
+      {/* Below the fixtures, because a player opens Matches to see matches. The
+          table is the context for them, not the reason. */}
+      {readTable ? <SeasonLeagueTable read={readTable} /> : null}
     </section>
   )
 }

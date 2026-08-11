@@ -4,6 +4,7 @@ import {
   applyGamesToAll,
   competitionsWithoutGames,
   gamesFor,
+  favouriteFor,
   setFavourite,
   toggleFollowed,
   toggleGame,
@@ -43,19 +44,39 @@ describe('following a competition joins nothing', () => {
   })
 
   it('leaves the favourite untouched by every competition and game choice', () => {
-    let draft = setFavourite(EMPTY_DRAFT, 'team-celtic')
+    let draft = setFavourite(EMPTY_DRAFT, 'A', 'team-celtic')
     draft = toggleFollowed(draft, 'A')
     draft = toggleGame(draft, 'A', 'last_man_standing')
-    expect(draft.favouriteTeamId).toBe('team-celtic')
+    expect(draft.favourites.A).toBe('team-celtic')
 
     // And choosing a favourite follows nothing and joins nothing.
-    const only = setFavourite(EMPTY_DRAFT, 'team-rangers')
+    const only = setFavourite(EMPTY_DRAFT, 'A', 'team-rangers')
     expect(only.followed).toEqual([])
     expect(totalGameChoices(only)).toBe(0)
   })
 
+  it('keeps one favourite per competition, because the server stores it that way', () => {
+    let draft = toggleFollowed(EMPTY_DRAFT, 'A')
+    draft = toggleFollowed(draft, 'B')
+    draft = setFavourite(draft, 'A', 'team-celtic')
+    draft = setFavourite(draft, 'B', 'team-arsenal')
+
+    expect(favouriteFor(draft, 'A')).toBe('team-celtic')
+    expect(favouriteFor(draft, 'B')).toBe('team-arsenal')
+  })
+
+  it('reports no favourite for a competition the player is not following', () => {
+    const draft = setFavourite(EMPTY_DRAFT, 'A', 'team-celtic')
+
+    // Kept in the draft, so re-following restores it; not reported, because
+    // nothing is submitted for an unfollowed competition.
+    expect(draft.favourites.A).toBe('team-celtic')
+    expect(favouriteFor(draft, 'A')).toBeNull()
+  })
+
   it('clears the favourite explicitly, because the step is optional', () => {
-    expect(setFavourite(setFavourite(EMPTY_DRAFT, 't'), null).favouriteTeamId).toBeNull()
+    const draft = setFavourite(setFavourite(EMPTY_DRAFT, 'A', 't'), 'A', null)
+    expect(draft.favourites.A).toBeNull()
   })
 })
 
@@ -110,6 +131,6 @@ describe('the draft never mutates', () => {
     expect(EMPTY_DRAFT.followed).toEqual([])
     expect(first).not.toBe(EMPTY_DRAFT)
     expect(toggleGame(first, 'A', 'main_predictor')).not.toBe(first)
-    expect(setFavourite(first, 't')).not.toBe(first)
+    expect(setFavourite(first, 'A', 't')).not.toBe(first)
   })
 })

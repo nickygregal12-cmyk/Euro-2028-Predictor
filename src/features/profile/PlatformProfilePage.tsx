@@ -4,6 +4,7 @@ import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsPro
 import { useAuth } from '../auth/AuthProvider'
 import { competitionPlayerRoute, competitionRoute, weeklyRoutes } from '../../app/weeklyRoutes'
 import { GAME_PRESENTATION } from '../hub/competitionCatalogue'
+import { SeasonHistorySection } from './SeasonHistorySection'
 import s from '../shared.module.css'
 import styles from './PlatformProfilePage.module.css'
 
@@ -31,9 +32,16 @@ import styles from './PlatformProfilePage.module.css'
  * season's own record is one link away, at the season profile contract 151
  * answers.
  *
- * THE CAREER SHELL IS DELIBERATELY NOT FAKED. Trophies, streaks and permanent
- * season history need `MIG-UI-08`'s Wrapped archive, which does not exist; this
- * page says nothing about them rather than rendering empty furniture.
+ * SEASON HISTORY IS REAL AND IS NO LONGER LIMITED TO WHAT IS PUBLISHED.
+ * Contract 156 (`MIG-UI-08`) writes an immutable Wrapped once a season ends,
+ * and contract 161 (`MIG-UI-17`) lists the seasons this player TOOK PART IN —
+ * which is the question that keeps an archived season findable. The section
+ * used to be built from the published catalogue and had to apologise for the
+ * gap in its own copy; the apology is gone with the gap.
+ *
+ * There is still no trophy case and no streak count, because the archive holds
+ * neither, and the page continues to say nothing about them rather than
+ * rendering empty furniture.
  */
 export function PlatformProfilePage() {
   const { displayName, userId } = useAuth()
@@ -115,6 +123,17 @@ export function PlatformProfilePage() {
         Points and rank belong to a season, not to an account: each competition is scored on its
         own. Open a competition above to see the season you are having in it.
       </p>
+
+      {/* Contract 161: keyed on PARTICIPATION, so it does not depend on the
+          shell's catalogue and is rendered whatever that read did. A season
+          archived and unpublished is still the player's. */}
+      <SeasonHistorySection
+        read={() =>
+          import('../../services/supabase/seasonHistory').then(({ fetchMySeasonHistory }) =>
+            fetchMySeasonHistory(),
+          )
+        }
+      />
     </div>
   )
 }

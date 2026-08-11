@@ -318,3 +318,54 @@
   font-size: var(--fs-2);
   font-weight: 600;
 }
+
+/* ---------------------------------------------------------------------------
+ * The journey shell: the frame the four steps are rendered inside.
+ *
+ * It is a single column at every width. Onboarding asks one question at a time
+ * on purpose, and a two-column desktop version would either split one question
+ * across two places or invent a second one to fill the space. The column simply
+ * gets a comfortable measure and centres.
+ * ------------------------------------------------------------------------- */
+
+.journey {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--sp-5) var(--sp-4) var(--sp-6);
+}
+
+.journeyHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.journeyEyebrow {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  letter-spacing: var(--tracking-wide, 0.04em);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.journeyTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-5);
+  line-height: 1.15;
+  color: var(--tx);
+}
+
+.journeyNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}

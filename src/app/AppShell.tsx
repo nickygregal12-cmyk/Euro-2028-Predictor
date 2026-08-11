@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import { AppBar, PageShell, SideRail, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
@@ -10,6 +10,17 @@ import {
   usePlayerCompetitions,
 } from './providers/PlayerCompetitionsProvider'
 import { useRailCollapsed } from './useRailCollapsed'
+// THE PANEL IS LAZY, THE COUNT IS NOT, and the split is the point. The badge
+// has to be right on first paint or it is worse than absent, so the inbox and
+// `outstandingCount` stay in the entry chunk; the panel's markup and styles are
+// only needed once somebody opens it, and statically importing them put the
+// entry chunk over its compressed budget.
+import { outstandingCount } from './outstandingCount'
+import { useGlobalPlayInbox } from '../features/hub/useGlobalPlayInbox'
+
+const ActionCentre = lazy(() =>
+  import('./ActionCentre').then((module) => ({ default: module.ActionCentre })),
+)
 import { globalNavTab, isCompetitionModePath } from './shellRoutes'
 
 const TAB_CONTEXT: Record<NavKey, string> = {
@@ -68,6 +79,11 @@ function SignedInFrame() {
   const competitionMode = isCompetitionModePath(location.pathname)
   const tab = globalNavTab(location.pathname)
   const groups = useMemo(() => railGroups(player), [player])
+  // ONE inbox read for the shell, shared with the action centre. `/play` mounts
+  // its own; both go through the same hook and the same model, so the two
+  // cannot disagree about what is due.
+  const { status: inboxStatus, inbox } = useGlobalPlayInbox(player)
+  const [actionsOpen, setActionsOpen] = useState(false)
 
   return (
     <PageShell
@@ -87,12 +103,28 @@ function SignedInFrame() {
           onToggleTheme={toggle}
           displayName={displayName}
           onOpenProfile={() => navigate('/profile')}
+          actions={{
+            outstanding: outstandingCount(inbox),
+            onOpen: () => setActionsOpen(true),
+          }}
         />
       }
     >
       <Suspense fallback={<RouteFallback />}>
         <Outlet />
       </Suspense>
+      {/* Mounted only once opened, so the closed shell pays nothing for it and
+          the fallback is never seen on a page that never opens it. */}
+      {actionsOpen ? (
+        <Suspense fallback={null}>
+          <ActionCentre
+            open
+            onClose={() => setActionsOpen(false)}
+            status={inboxStatus === 'ready' ? 'ready' : 'loading'}
+            inbox={inbox}
+          />
+        </Suspense>
+      ) : null}
     </PageShell>
   )
 }

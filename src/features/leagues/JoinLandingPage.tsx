@@ -1,40 +1,49 @@
-import { userFacingError } from '../../shared/errors/userFacingError'
 import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
+import { weeklyRoutes } from '../../app/weeklyRoutes'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthSplash } from '../auth/AuthSplash'
-import { fetchLeaguePreview, joinLeague, type LeaguePreview } from '../../services/supabase/leagues'
-import { getOrCreateEntry } from '../../services/supabase/predictions'
-import { fetchTournamentData } from '../../services/supabase/tournamentData'
-import { LeaguePreviewCard } from './LeaguePreviewCard'
+import { InvitePreviewCard } from './InvitePreviewCard'
+import { useInviteCode, type InviteJoinResult } from './useInviteCode'
 import { clearPendingJoin, setPendingJoin } from './pendingJoin'
 import j from './join.module.css'
 
-// Invite deep-link landing (/join/:code). Lives OUTSIDE the auth gate so it can
-// handle the logged-out case itself: stash the code, send the visitor to
-// sign-up, and the auth gate returns them here once signed in (see
-// RedirectIfAuthed). Signed in, it shows the league preview with Join / Decline.
-type State =
-  | { status: 'loading' }
-  | { status: 'notfound' }
-  | { status: 'error'; message: string }
-  | { status: 'ready'; preview: LeaguePreview }
-
+/**
+ * The invite deep link, `/join/:code`.
+ *
+ * IT RESOLVES ANY CODE NOW, not only a league's (`MIG-UI-07`, contract 155). A
+ * private Last Man Standing or Championship link lands here and works; before
+ * this it was answered "this invite code doesn't match a league", which was
+ * literally true and told the invitee nothing they could act on.
+ *
+ * IT LIVES OUTSIDE THE AUTH GATE, deliberately, so it can handle the signed-out
+ * case itself: stash the code, send the visitor to sign-up, and the auth gate
+ * returns them here once they are in. Onboarding then hands the code back at
+ * the end rather than swallowing it — a first-time visitor who arrived from an
+ * invite still gets where they were going.
+ *
+ * WHAT IT NO LONGER DOES. It used to create an Original Predictor entry before
+ * joining, a compatibility step for the preserved Euro invite that predates
+ * game ids. `resolve_invite_code` states the prerequisite instead —
+ * `requiresGameEntry` — so the invitee is told which game to join rather than
+ * being silently entered into one. Creating a tournament entry as a side effect
+ * of opening a link is exactly the kind of invisible membership the platform's
+ * separation rules exist to prevent.
+ */
 export function JoinLandingPage() {
   const { code } = useParams<{ code: string }>()
   const { userId, loading } = useAuth()
   const navigate = useNavigate()
-  const [state, setState] = useState<State>({ status: 'loading' })
-  const [joining, setJoining] = useState(false)
+  const { state, joining, resolve, accept } = useInviteCode()
   const [storedPendingCode, setStoredPendingCode] = useState<string | null>(null)
 
   const authed = Boolean(userId)
 
   // Storage is an external side effect. Persist the invite only after React has
   // committed the signed-out landing state, then allow the signup redirect.
-  // Tracking the exact code prevents a route-param change from redirecting before
-  // the new value has replaced the old pending invite.
+  // Tracking the exact code prevents a route-param change from redirecting
+  // before the new value has replaced the old pending invite.
   useEffect(() => {
     if (loading || authed || !code) return
     setPendingJoin(code)
@@ -43,95 +52,87 @@ export function JoinLandingPage() {
 
   useEffect(() => {
     if (!authed || !code) return
-    // We've arrived signed in — the pending redirect is consumed.
+    // We have arrived signed in — the pending redirect is consumed.
     clearPendingJoin()
-    let active = true
-    setState({ status: 'loading' })
-    fetchLeaguePreview(code)
-      .then((preview) => {
-        if (!active) return
-        setState(preview ? { status: 'ready', preview } : { status: 'notfound' })
-      })
-      .catch((e) => {
-        if (active)
-          setState({
-            status: 'error',
-            message: userFacingError(e, 'Could not load the invite. Please try again.'),
-          })
-      })
-    return () => {
-      active = false
-    }
-  }, [authed, code])
+    void resolve(code)
+  }, [authed, code, resolve])
 
   if (loading) return <AuthSplash />
 
-  // Signed out: wait until the code has been committed to storage before routing
-  // through sign-up. This avoids render-time mutation and guarantees that the
-  // auth gate can resume the exact deep link after confirmation or login.
+  // Signed out: wait until the code has been committed to storage before
+  // routing through sign-up, so the auth gate can resume the exact deep link.
   if (!authed) {
     if (code && storedPendingCode !== code) return <AuthSplash />
     return <Navigate to="/auth/signup" replace />
   }
 
-  async function join() {
-    if (!code || !userId) return
-    setJoining(true)
-    try {
-      // Contract 66 scopes every private league to its exact Main/Original
-      // Predictor game. The preserved Euro invite preview predates game IDs, so
-      // accepting it is the explicit opt-in that first creates/reuses the
-      // current tournament's Original Predictor entry and canonical membership.
-      // The database still refuses league membership unless that game
-      // membership exists; this compatibility step does not bypass the rule.
-      const { tournament } = await fetchTournamentData()
-      await getOrCreateEntry(userId, tournament.id)
-
-      const joined = await joinLeague(code)
-      navigate(`/league/${joined.id}`, { replace: true })
-    } catch (e) {
-      setJoining(false)
-      setState({
-        status: 'error',
-        message: userFacingError(e, 'Could not join the league. Please try again.'),
-      })
+  function landOn(joined: InviteJoinResult) {
+    if (joined.kind === 'league') {
+      navigate(`/league/${joined.leagueId}`, { replace: true })
+      return
     }
+    // A private competition has no page of its own to open yet; the private
+    // play list is where it appears, and sending the player there is honest.
+    // A dedicated competition route is recorded as remaining work rather than
+    // faked with a link that 404s.
+    navigate(weeklyRoutes.leagues, { replace: true })
   }
 
   return (
     <div className={j.page}>
       <div className={j.card}>
         <p className={j.eyebrow}>Football Prediction Hub</p>
-        {state.status === 'loading' && <Skeleton lines={4} />}
+
+        {(state.status === 'idle' || state.status === 'looking') && <Skeleton lines={4} />}
 
         {state.status === 'notfound' && (
           <>
+            {/* One sentence for unknown, malformed and rotated alike. */}
             <Alert variant="error" title="Invite not found">
-              This invite code doesn't match a league. Ask your friend for a fresh link.
+              This code doesn’t match anything. Ask your friend for a fresh link.
             </Alert>
-            <Button variant="secondary" fullWidth onClick={() => navigate('/league', { replace: true })}>
-              Go to League
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => navigate(weeklyRoutes.leagues, { replace: true })}
+            >
+              Go to private play
             </Button>
           </>
         )}
 
         {state.status === 'error' && (
           <>
-            <Alert variant="error" title="Couldn't load the invite">
+            <Alert variant="error" title="Couldn’t use that invite">
               {state.message}
             </Alert>
-            <Button variant="secondary" fullWidth onClick={() => navigate('/league', { replace: true })}>
-              Go to League
+            <Button
+              variant="secondary"
+              fullWidth
+              onClick={() => navigate(weeklyRoutes.leagues, { replace: true })}
+            >
+              Go to private play
             </Button>
           </>
         )}
 
         {state.status === 'ready' && (
-          <LeaguePreviewCard
-            preview={state.preview}
+          <InvitePreviewCard
+            invite={state.invite}
             joining={joining}
-            onJoin={join}
-            onDecline={() => navigate('/league', { replace: true })}
+            onJoin={() => {
+              void (async () => {
+                const joined = await accept(code ?? '')
+                if (joined) landOn(joined)
+              })()
+            }}
+            // No `onOpen`: contract 159 stopped the resolver returning a
+            // container id, so there is nothing to open BY. A player who is
+            // already in is sent to their private play list, which is where it
+            // is, by the same control that declines.
+
+            onDecline={() => navigate(weeklyRoutes.leagues, { replace: true })}
+            declineLabel={state.invite.alreadyIn ? 'Go to your private play' : undefined}
           />
         )}
       </div>

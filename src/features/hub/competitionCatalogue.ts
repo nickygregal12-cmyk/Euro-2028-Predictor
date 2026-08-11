@@ -26,6 +26,17 @@ export type HubCompetition = {
   competitionSlug: string
   seasonSlug: string
   seasonRowName: string
+  /**
+   * The season row id, straight from contract 147's `season_id`.
+   *
+   * IT IS HERE SO A PREFERENCE CAN NAME A COMPETITION THE PLAYER HAS NOT
+   * JOINED. Every other id in this model came in through a membership row, so
+   * a competition nobody had joined had no addressable identity at all — which
+   * made "follow a competition you do not play in" unimplementable from the
+   * catalogue alone. Following, favouriting and the account controls all take
+   * a `tournaments.id`, and this is where it comes from.
+   */
+  tournamentId: string
   name: string
   seasonLabel: string
   status: 'live' | 'upcoming' | 'parked' | 'ended'
@@ -59,38 +70,55 @@ export type HubCompetition = {
  */
 
 /**
- * One sentence per game format. Presentation copy that genuinely cannot come
- * from the server: `get_competition_games` returns a display name and a
- * lifecycle, not an explanation of how the game is played.
+ * One sentence per game format, plus what playing it actually costs a player.
+ * Presentation copy that genuinely cannot come from the server:
+ * `get_competition_games` returns a display name and a lifecycle, not an
+ * explanation of how the game is played.
+ *
+ * `cadence` and `action` are here rather than in an onboarding fixture because
+ * they are facts about the FORMAT — how often you act, and what the act is —
+ * and are identical in every competition that runs it. Onboarding asks a player
+ * to commit to a game, and "Every matchweek / enter a score for each fixture"
+ * is what makes that an informed commitment rather than a name and a tick box.
  */
 export const GAME_PRESENTATION: Record<
   CompetitionGameKey,
-  { kind: HubGameKind; name: string; description: string }
+  { kind: HubGameKind; name: string; description: string; cadence: string; action: string }
 > = {
   main_predictor: {
     kind: 'league-predictor',
     name: 'Match Predictor',
     description: 'Predict every score before the matchweek locks at its first kickoff.',
+    cadence: 'Every matchweek',
+    action: 'Enter a score for each fixture before the first kickoff',
   },
   last_man_standing: {
     kind: 'last-man-standing',
     name: 'Last Man Standing',
     description: 'Choose one team each round and survive for as long as possible.',
+    cadence: 'Every round',
+    action: 'Choose one club — you cannot pick the same club twice',
   },
   predictor_cup: {
     kind: 'predictor-championship',
     name: 'Predictor Championship',
     description: 'Play a head-to-head fixture every matchweek for three, one or zero points.',
+    cadence: 'Every matchweek',
+    action: 'Nothing extra — your Match Predictor points decide the tie',
   },
   ko_predictor: {
     kind: 'ko-predictor',
     name: 'Knockout Predictor',
     description: 'Predict the knockout bracket from the round of sixteen onwards.',
+    cadence: 'Each knockout round',
+    action: 'Pick who goes through, round by round',
   },
   original_predictor: {
     kind: 'original-predictor',
     name: 'Original Predictor',
     description: 'The original tournament prediction game.',
+    cadence: 'Once, before the tournament',
+    action: 'Predict the whole tournament in one entry',
   },
 }
 
@@ -211,6 +239,7 @@ export function catalogueFromPublishedSeasons(
       competitionSlug: season.competitionSlug,
       seasonSlug: season.seasonKey,
       seasonRowName: season.seasonName,
+      tournamentId: season.seasonId,
       name: season.competitionName,
       seasonLabel: seasonLabelFromKey(season.seasonKey),
       status: statusOf(season.status),

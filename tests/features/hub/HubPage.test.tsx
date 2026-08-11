@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
   fetchSeasonFixtureList: vi.fn(),
   fetchPublishedWeeklySeasons: vi.fn(),
+  fetchPlayerPreferences: vi.fn(),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -39,6 +40,13 @@ vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({
 // does not return does not exist for the shell, which is the property.
 vi.mock('../../../src/services/supabase/weeklyCatalogue', () => ({
   fetchPublishedWeeklySeasons: mocks.fetchPublishedWeeklySeasons,
+}))
+
+// Contract 157's preferences, read alongside membership. The shell fails the
+// whole read if either half fails, so these tests supply an empty-but-successful
+// preference set: this suite is about membership states, not about Follow.
+vi.mock('../../../src/services/supabase/playerPreferences', () => ({
+  fetchPlayerPreferences: mocks.fetchPlayerPreferences,
 }))
 
 // The Matchweek Recap's two contracts (151 and 150) and the league list it
@@ -125,6 +133,11 @@ describe('the Hub is a dashboard, not a catalogue', () => {
       window: { from: '2026-08-01T00:00:00Z', to: '2026-08-20T00:00:00Z' },
       serverNow: null,
       fixtures: [],
+    })
+    mocks.fetchPlayerPreferences.mockResolvedValue({
+      onboarding: { step: null, completedAt: null },
+      follows: [],
+      pinnedRivals: [],
     })
   })
 

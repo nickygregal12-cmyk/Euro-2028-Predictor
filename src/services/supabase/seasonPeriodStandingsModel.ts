@@ -18,10 +18,18 @@
  * and a month in which they appeared four times are not comparable totals — so
  * a row missing the count throws rather than defaulting to zero.
  *
- * ROWS CARRY AN ENTRY ID AND NO NAME, and that is the contract's own choice,
- * recorded in its header: joining profiles would re-sort ties by name and put a
- * second presentation decision inside a read whose boundary is one rule. The
- * identifier exists so the caller can find their own row; it is never rendered.
+ * THE ENTRY ID IS IDENTITY, NEVER A LABEL. It exists so the caller can find
+ * their own row; a raw identifier is not a name and must never reach the
+ * interface.
+ *
+ * THE NAME IS OPTIONAL AND THE SERVER DECIDES WHETHER TO SEND IT. Contract 122
+ * returned no name at all, deliberately, and contract 131 added `display_name`
+ * behind a flag that is off by default. So `displayName` is null in three
+ * different situations that a surface must not tell apart by guessing: the
+ * caller did not ask for names, the entry has no profile, or the profile has no
+ * display name. In every one of them the surface renders its own fallback —
+ * a server-invented name would be indistinguishable from a real one, which is
+ * why contract 131 sends null rather than a placeholder.
  */
 
 export type SeasonPeriodRow = {
@@ -30,6 +38,8 @@ export type SeasonPeriodRow = {
   rank: number
   points: number
   matchweeksPlayed: number
+  /** Contract 131's optional name. Null whenever the server did not supply one. */
+  displayName: string | null
 }
 
 export type SeasonMonthTable = {
@@ -63,7 +73,17 @@ function mapRow(value: unknown): SeasonPeriodRow | null {
     return null
   }
 
-  return { entryId, rank, points, matchweeksPlayed }
+  // A blank name is no name. Trimming to null here keeps the "the server sent
+  // nothing usable" case in one place rather than in every surface.
+  const named = typeof row.display_name === 'string' ? row.display_name.trim() : ''
+
+  return {
+    entryId,
+    rank,
+    points,
+    matchweeksPlayed,
+    displayName: named.length > 0 ? named : null,
+  }
 }
 
 function mapRows(value: unknown): readonly SeasonPeriodRow[] {

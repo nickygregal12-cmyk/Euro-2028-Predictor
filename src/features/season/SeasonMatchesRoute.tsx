@@ -69,6 +69,19 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
   const context = state.kind === 'ready' || state.kind === 'season_over' ? state.context : null
   const tournamentId = context?.tournamentId ?? null
 
+  // Contract 160's table, bound to this season. Memoised on the id alone so the
+  // segment does not re-read on every render of the route around it.
+  const readTable = useMemo(
+    () =>
+      tournamentId === null
+        ? undefined
+        : () =>
+            import('../../services/supabase/competitionTable').then(
+              ({ fetchCompetitionTable }) => fetchCompetitionTable(tournamentId),
+            ),
+    [tournamentId],
+  )
+
   const fixtures = useMemo(
     () =>
       tournamentId === null
@@ -278,12 +291,14 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
         readMatchweekCard={readCard}
         football={football}
         predictHref={predictHref}
+        readTable={readTable}
       />
-      {/* The football half of the Matches section's accepted shape, as far as
-          the data honestly reaches. Contract 141's derivation is explicitly
-          NOT a league table, so this is recent form and says so; the league
-          table itself has no authority and is registered as `MIG-UI-13`
-          rather than approximated under a heading that would lie. */}
+      {/* The football half of the Matches section's accepted shape. Contract
+          141's derivation is explicitly NOT a league table — capped at twenty
+          matches and knowing none of the competition's rules — so it stays
+          Recent form and says so. The TABLE above it is contract 160's, which
+          closed `MIG-UI-13` on 11 August 2026; the two are different reads
+          answering different questions and neither stands in for the other. */}
       {clubForm && formWindow !== null ? (
         <SeasonCompetitionForm clubs={clubForm} matches={formWindow} />
       ) : null}

@@ -4,6 +4,8 @@ import { LMS_REGISTRATION_COPY, type SeasonLmsRegistrationGateway } from './lmsR
 import type { LmsClub, SeasonLmsGateway } from './lmsRoundModel'
 import { formatDeadline } from '../../shared/time/kickoff'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
+import { SeasonLmsField } from './SeasonLmsField'
+import type { SeasonLmsField as SeasonLmsFieldAnswer } from '../../services/supabase/seasonLmsFieldModel'
 import { useSeasonLms } from './useSeasonLms'
 import styles from './SeasonLmsPage.module.css'
 
@@ -48,11 +50,20 @@ export type SeasonLmsPageProps = {
   now: () => Date
   /** Registration for this competition, when the caller can name it. */
   registration?: SeasonLmsRegistrationGateway
+  /**
+   * Contract 164's field, when the caller can name the season.
+   *
+   * OPTIONAL BECAUSE ITS ABSENCE IS A REAL CONTEXT — the DEV harness has a
+   * round and no season id — and not because there is a fallback. There is no
+   * browser-side way to know who is still standing, and inventing one would be
+   * inventing the reveal rule with it.
+   */
+  readField?: () => Promise<SeasonLmsFieldAnswer>
 }
 
 const SKELETON_ROWS = 5
 
-export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps) {
+export function SeasonLmsPage({ gateway, now, registration, readField }: SeasonLmsPageProps) {
   const { status, page, presentation, picking, error, conflict, pick, reload } = useSeasonLms(
     gateway,
     now,
@@ -196,6 +207,10 @@ export function SeasonLmsPage({ gateway, now, registration }: SeasonLmsPageProps
           ))}
         </ul>
       )}
+
+      {/* Below the clubs, because a player opens this round to pick. Who else is
+          left is the context for that decision, not the decision. */}
+      {readField ? <SeasonLmsField read={readField} /> : null}
     </section>
   )
 }

@@ -14,6 +14,8 @@ import {
   type SeasonLmsRegistrationGateway,
 } from './lmsRegistrationModel'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
+import { SeasonCupGroupStage } from './SeasonCupGroupStage'
+import type { SeasonCupGroupStage as SeasonCupGroupStageAnswer } from '../../services/supabase/seasonCupGroupStageModel'
 import { presentChampionshipStanding } from './championshipStandingModel'
 import { Workspace } from '../../design-system'
 import styles from './SeasonChampionshipPages.module.css'
@@ -231,12 +233,20 @@ export function SeasonChampionshipPlayerPage({
   mode,
   registration,
   tableHref,
+  readGroupStage,
 }: {
   gateway: SeasonCupPlayerViewGateway
   mode: ChampionshipPageMode
   registration?: SeasonLmsRegistrationGateway
   /** Where the full group table lives, for the standing panel's one link. */
   tableHref?: string
+  /**
+   * Contract 167's group stage. Optional because a context without a
+   * competition id — the DEV harness — has no stage to read, and NOT because
+   * there is a fallback: which groups exist and who is in them is not
+   * derivable in a browser.
+   */
+  readGroupStage?: () => Promise<SeasonCupGroupStageAnswer>
 }) {
   const { state, reload } = useGateway<ChampionshipPlayerView>(gateway)
 
@@ -291,7 +301,18 @@ export function SeasonChampionshipPlayerPage({
     )
   }
 
-  if (mode === 'table') return <ChampionshipTable view={view} />
+  if (mode === 'table') {
+    return (
+      <>
+        <ChampionshipTable view={view} />
+        {/* Contract 167's multi-group stage, below the caller's own table.
+            Their group is what they came for; the rest of the draw is the
+            context for it, and on a multi-group field it is the only place the
+            other groups are visible at all. */}
+        {readGroupStage ? <SeasonCupGroupStage read={readGroupStage} /> : null}
+      </>
+    )
+  }
   if (mode === 'fixtures') return <ChampionshipFixtures view={view} />
   return <ChampionshipMyFixture view={view} tableHref={tableHref ?? null} />
 }
