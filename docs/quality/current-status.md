@@ -349,7 +349,7 @@ The accepted governance amendment [`../architecture/stage-c1-c2-governance.md`](
 
 One coherent C1 migration exist in PR #317 and pass disposable proof. No hosted schema operation is authorised.
 
-## Signed-in weekly frontend — position at contract 151
+## Signed-in weekly frontend — position at contract 158
 
 Stated here because "the backend authority exists" and "a player can reach it" are different claims, and this file is the one that must not blur them.
 
@@ -365,7 +365,19 @@ Stated here because "the backend authority exists" and "a player can reach it" a
 
 **One defect closed with them.** `/profile` was registered inside the Euro tournament boundary, which refuses every player route while the publication state is `hidden`. The visible Profile controls — the top-bar avatar, More and the desktop rail — therefore sent a domestic player to Home. `/profile` is now the platform profile, outside that boundary and reading no tournament; Euro's own profiles moved to `/tournament/profile` and stayed inside it.
 
-**What no browser can still reach.** Private Last Man Standing and Championship creation/join, the universal invite code, permanent Season Wrapped and history, and Follow / favourite team / onboarding and pinned-rival preferences — which is why the four onboarding steps remain built, tested and deliberately unwired. Their BACKEND landed on 11 August 2026 at contracts 152–157, so these are no longer backend-gated; they are unconsumed, which is the state contracts 147–151 were in the day before. The distinction matters here more than anywhere: this file is the one that must not let "the authority exists" read as "a player can reach it".
+**Contracts 152–157 were consumed on 11 August 2026 as well**, later the same day their backend landed. This paragraph previously listed them as built-and-unreachable — the state contracts 147–151 were in the day before — and that is no longer true:
+
+| Contract | Reached from a browser by |
+| --- | --- |
+| 153 — private Last Man Standing creation, invite and join | `CreatePrivateJourney`, which now offers all three weekly games. The organiser supplies lives, saves, draw treatment and the wipeout answer; the ranges are offered as choices and never re-validated in the browser, and the calendar is not offered at all because it comes from the same generator the public competition uses |
+| 154 — private Predictor Championship creation and launch | The same journey. Creation and launch stay two acts: the created step carries the code and the launch control, and says the draw is fixed at the field size found — and registration closes with it — before the button rather than after |
+| 155 — the universal invite resolver | `/join/:code` and the code-entry sheet, both resolving first and joining second, with the server's `joinWith` deciding which join is called. The member count the resolver returns is deliberately not rendered: contract 158 removed exactly that disclosure from `get_league_preview` under `SEC-001` |
+| 156 — the season Wrapped archive | The platform profile's Season history section, rendering only what the archive stored and recomputing nothing |
+| 157 — follows, favourite club, onboarding progress, pinned rival | The shell's preference read (so `followed` is no longer `'unknown'` anywhere), the four-step `/welcome` journey with server-side resume, Account's followed-competitions card, and the Hub's Rival Watch |
+
+**One consequence worth stating separately.** The invite path no longer creates a tournament entry. `JoinLandingPage` called `getOrCreateEntry` before joining, a compatibility step for the preserved Euro invite; contract 155 reports `requires_game_entry` instead, so an invitee is told which game to join rather than being entered into one on the way to somewhere else. `tests/app/noSilentTournamentEntry.test.ts` had a named allowance for that call and now has none.
+
+**Two backend gaps were opened by the work**, both recorded in the register rather than worked around invisibly: `MIG-UI-16` (a season's clubs with id and identity in one read — the favourite-club picker joins two authoritative reads on the exact club name) and `MIG-UI-17` (a per-player Wrapped index — season history can only ask about seasons the published catalogue still carries).
 
 **No hosted claim is made here.** These are repository facts. The signed-in hosted acceptance is `UI-F19` and remains outstanding.
 
