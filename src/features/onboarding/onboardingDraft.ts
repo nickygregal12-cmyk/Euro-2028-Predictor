@@ -3,12 +3,18 @@ import type { CompetitionGameKey } from '../../services/supabase/competitionGame
 /**
  * The choices a player makes during first sign-in, before anything is saved.
  *
- * IT IS A DRAFT AND SAYS SO IN ITS NAME. Nothing in the repository can persist
- * a followed competition, a favourite team or onboarding progress — the audit
- * is `MIG-UI-10` — so this models the choices in memory and the components
- * built on it are deliberately not wired into the live first-sign-in journey.
- * A flow that collected these and lost them on refresh would be worse than no
- * flow: it would look finished.
+ * IT IS STILL A DRAFT, AND IT IS NOW SUBMITTED. Contract 157 (`MIG-UI-10`)
+ * supplies the persistence, and `OnboardingJourney` writes this draft through
+ * it. The draft remains the in-memory shape for one reason: a player moving
+ * between steps must be able to change their mind without each keystroke
+ * becoming a server write, and the review step has to be able to show what will
+ * happen before it happens.
+ *
+ * A FAVOURITE IS PER COMPETITION, because the server stores it on the follow
+ * row and constrains it to a club that plays in that competition. It was one
+ * optional id when nothing could persist it and there was nothing to be wrong
+ * about; a single id would now mean writing an Arsenal preference against the
+ * Scottish Premiership, which `set_competition_follow` refuses outright.
  *
  * FOLLOW, JOIN GAME AND FAVOURITE ARE THREE FIELDS, NOT ONE. The scalability
  * contract makes that binding, and the shape here enforces it: `followed` is a
@@ -17,11 +23,11 @@ import type { CompetitionGameKey } from '../../services/supabase/competitionGame
  * NOTHING to `games` — the direction's "nothing is silently selected" is a
  * property of this model rather than a promise made by a component.
  *
- * GAME CHOICES SURVIVE UNFOLLOWING AND RETURN WITH IT. A player who
- * unfollows a competition and changes their mind should not have to re-pick
- * their games; the draft keeps the entry and the review only reads games for
- * competitions currently followed. Nothing is submitted for an unfollowed
- * competition.
+ * GAME AND FAVOURITE CHOICES SURVIVE UNFOLLOWING AND RETURN WITH IT. A player
+ * who unfollows a competition and changes their mind should not have to re-pick
+ * their games or their club; the draft keeps both entries and the review only
+ * reads them for competitions currently followed. Nothing is submitted for an
+ * unfollowed competition.
  *
  * PURE. No storage, no clock, no network. Every function returns a new draft.
  */
@@ -31,14 +37,17 @@ export type OnboardingDraft = {
   followed: readonly string[]
   /** Game choices per competition key. Present only where the player has chosen. */
   games: Readonly<Record<string, readonly CompetitionGameKey[]>>
-  /** Canonical team id, or null. Optional by design and skippable. */
-  favouriteTeamId: string | null
+  /**
+   * Canonical team id per competition key, where the player named one.
+   * Optional by design and skippable, competition by competition.
+   */
+  favourites: Readonly<Record<string, string | null>>
 }
 
 export const EMPTY_DRAFT: OnboardingDraft = {
   followed: [],
   games: {},
-  favouriteTeamId: null,
+  favourites: {},
 }
 
 export function toggleFollowed(draft: OnboardingDraft, key: string): OnboardingDraft {
@@ -89,8 +98,17 @@ export function applyGamesToAll(
   return { ...draft, games: next }
 }
 
-export function setFavourite(draft: OnboardingDraft, teamId: string | null): OnboardingDraft {
-  return { ...draft, favouriteTeamId: teamId }
+export function setFavourite(
+  draft: OnboardingDraft,
+  key: string,
+  teamId: string | null,
+): OnboardingDraft {
+  return { ...draft, favourites: { ...draft.favourites, [key]: teamId } }
+}
+
+/** The favourite chosen for a competition the player is actually following. */
+export function favouriteFor(draft: OnboardingDraft, key: string): string | null {
+  return draft.followed.includes(key) ? (draft.favourites[key] ?? null) : null
 }
 
 /** The games chosen for a competition the player is actually following. */

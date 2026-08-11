@@ -107,7 +107,6 @@ import { SignUpForm } from '../features/auth/SignUpForm'
 import { ResetRequestForm } from '../features/auth/ResetRequestForm'
 import { UpdatePasswordForm } from '../features/auth/UpdatePasswordForm'
 import { TurnstileWidget } from '../features/auth/TurnstileWidget'
-import { WelcomeScreen } from '../features/welcome/WelcomeScreen'
 import { ProfileScreen } from '../features/profile/ProfileScreen'
 import { H2HScreen } from '../features/h2h/H2HScreen'
 import { MatchCentreScreen } from '../features/matches/MatchCentreScreen'
@@ -2774,16 +2773,6 @@ function Gallery() {
           leaguesCount={2}
           hasEntry
           lockDateLabel="9 June 2028"
-        />
-      </Section>
-
-      <Section title="/welcome screen">
-        <WelcomeScreen displayName="Alex" onStart={() => {}} onScoring={() => {}} />
-        <Label>hostile long display name (no overflow at 360px)</Label>
-        <WelcomeScreen
-          displayName="Maximilian von Habsburg-Lothringen III"
-          onStart={() => {}}
-          onScoring={() => {}}
         />
       </Section>
 

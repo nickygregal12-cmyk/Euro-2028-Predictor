@@ -16,12 +16,11 @@ import styles from './onboarding.module.css'
  * game is stated as exactly that, not treated as an error: following without
  * playing is a legitimate outcome and the whole reason the two are separate.
  *
- * THE FINISH CONTROL DOES NOT LIE. No authority can persist a follow, a
- * favourite or onboarding progress (`MIG-UI-10`), so the primary action is
- * rendered unavailable with the reason in words rather than as a button that
- * silently drops the draft. When the persistence contract lands, `onFinish`
- * becomes the real submit and the notice goes; nothing else about this step
- * changes.
+ * THE FINISH CONTROL DOES NOT LIE. It appears when `onFinish` is supplied,
+ * which the live journey does now that contract 157 can persist a follow, a
+ * favourite and onboarding progress. Rendered without one — a gallery, a test —
+ * the step still says plainly that nothing will be saved, rather than showing a
+ * button that would silently drop the draft.
  *
  * DRAFT, NOT TRUTH. Everything here is what the player has picked in this
  * session.
@@ -31,12 +30,10 @@ export type OnboardingReviewStepProps = {
   competitions: readonly OnboardingCompetitionOffer[]
   teams: readonly OnboardingTeam[]
   draft: OnboardingDraft
-  /**
-   * The real submit, once persistence exists. Omitted today, and its absence is
-   * what makes the step honest rather than a Finish button that loses the
-   * draft.
-   */
+  /** The real submit. Omitted only where there is nothing to submit to. */
   onFinish?: () => void
+  /** Disabled and relabelled while the submit is in flight. */
+  finishing?: boolean
 }
 
 export function OnboardingReviewStep({
@@ -44,10 +41,16 @@ export function OnboardingReviewStep({
   teams,
   draft,
   onFinish,
+  finishing = false,
 }: OnboardingReviewStepProps) {
   const headingId = useId()
   const followed = competitions.filter((entry) => draft.followed.includes(entry.key))
-  const favourite = teams.find((team) => team.teamId === draft.favouriteTeamId) ?? null
+  const favourites = followed
+    .map((entry) => ({
+      competition: entry.name,
+      team: teams.find((team) => team.teamId === draft.favourites[entry.key]) ?? null,
+    }))
+    .filter((row) => row.team !== null)
   const withoutGames = competitionsWithoutGames(draft)
   const nameOf = (key: string) =>
     competitions.find((entry) => entry.key === key)?.name ?? key
@@ -114,31 +117,37 @@ export function OnboardingReviewStep({
       </div>
 
       <div className={styles.reviewBlock}>
-        <h3 className={styles.reviewTitle}>Favourite team</h3>
+        <h3 className={styles.reviewTitle}>Favourite clubs</h3>
         <p className={styles.reviewNote}>
           Presentation only. It changes nothing you score, join or unlock.
         </p>
-        {favourite ? (
-          <p className={styles.reviewFavourite}>
-            <ClubIdentity name={favourite.name} tokens={favourite.tokens} size="table" />
-            <span>{favourite.name}</span>
-          </p>
-        ) : (
+        {favourites.length === 0 ? (
           <p className={styles.none}>None chosen.</p>
+        ) : (
+          <ul className={styles.reviewList}>
+            {favourites.map((row) => (
+              <li className={styles.reviewRow} key={row.competition}>
+                <span className={styles.reviewWhere}>{row.competition}</span>
+                <span className={styles.reviewFavourite}>
+                  <ClubIdentity name={row.team!.name} tokens={row.team!.tokens} size="table" />
+                  <span>{row.team!.name}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
 
       {onFinish ? (
         <div className={styles.stepActions}>
-          <Button variant="primary" onClick={onFinish}>
-            Finish setup
+          <Button variant="primary" onClick={onFinish} disabled={finishing}>
+            {finishing ? 'Saving…' : 'Finish setup'}
           </Button>
         </div>
       ) : (
-        <Alert variant="info" title="These choices are not saved yet">
-          Onboarding needs somewhere to store followed competitions, a favourite team and its own
-          progress. Until that exists, this review shows what you have picked in this session
-          rather than what the server holds.
+        <Alert variant="info" title="These choices are not saved here">
+          This review is rendered without a submit, so it shows what has been picked rather than
+          what the server holds.
         </Alert>
       )}
     </section>

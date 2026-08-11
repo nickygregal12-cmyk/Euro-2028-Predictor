@@ -187,7 +187,11 @@ describe('the review step', () => {
     let draft = toggleFollowed(EMPTY_DRAFT, ONBOARDING_GAME_OFFERS[0]?.key ?? '')
     draft = toggleGame(draft, ONBOARDING_GAME_OFFERS[0]?.key ?? '', 'main_predictor')
     draft = toggleFollowed(draft, ONBOARDING_GAME_OFFERS[1]?.key ?? '')
-    draft = setFavourite(draft, ONBOARDING_TEAMS[0]?.teamId ?? null)
+    draft = setFavourite(
+      draft,
+      ONBOARDING_GAME_OFFERS[0]?.key ?? '',
+      ONBOARDING_TEAMS[0]?.teamId ?? null,
+    )
 
     render(
       <OnboardingReviewStep
@@ -199,7 +203,7 @@ describe('the review step', () => {
 
     const following = screen.getByRole('heading', { name: 'Following' })
     const games = screen.getByRole('heading', { name: 'Games you will join' })
-    const favourite = screen.getByRole('heading', { name: 'Favourite team' })
+    const favourite = screen.getByRole('heading', { name: 'Favourite clubs' })
     expect([following, games, favourite].every(Boolean)).toBe(true)
 
     // Following without playing is stated as a fact, not flagged as an error.
@@ -207,7 +211,7 @@ describe('the review step', () => {
 
     // No Finish button that would silently drop the draft.
     expect(screen.queryByRole('button', { name: 'Finish setup' })).not.toBeInTheDocument()
-    expect(screen.getByText('These choices are not saved yet')).toBeInTheDocument()
+    expect(screen.getByText('These choices are not saved here')).toBeInTheDocument()
   })
 
   it('offers the real submit once a caller supplies one', () => {
