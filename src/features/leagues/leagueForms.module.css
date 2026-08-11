@@ -95,3 +95,25 @@
 .previewActions > * {
   flex: 1;
 }
+
+/* The invite preview's two non-affirmative lines.
+ *
+ * `.previewNote` is accent-coloured, which is right for "you're already in this
+ * league" and wrong for everything else: the game and season line is metadata,
+ * and "join that game first" is an instruction. Rendering all three in the
+ * success colour made a refusal read as a confirmation.
+ */
+
+.previewMeta {
+  margin: 2px 0 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.previewInfo {
+  margin: 6px 0 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx);
+}

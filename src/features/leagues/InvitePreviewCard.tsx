@@ -58,7 +58,7 @@ export function InvitePreviewCard({
 
       {/* What it is, in the server's own words: the game's display name and the
           season's name, both from the catalogue rather than derived here. */}
-      <p className={s.previewNote}>
+      <p className={s.previewMeta}>
         {[invite.game, invite.season].filter(Boolean).join(' · ')}
       </p>
 
@@ -72,21 +72,21 @@ export function InvitePreviewCard({
         // Closed covers both "the organiser launched it" and "it finished", and
         // the server does not say which. Neither does this, rather than
         // guessing at a reason.
-        <p className={s.previewNote}>
+        <p className={s.previewInfo}>
           This competition is closed to new entrants. Ask the organiser whether another one is
           running.
         </p>
       ) : null}
 
       {needsGame ? (
-        <p className={s.previewNote}>
+        <p className={s.previewInfo}>
           This league ranks {invite.game ?? 'a game'} in {invite.season ?? 'its competition'}. Join
           that game first and the code will work.
         </p>
       ) : null}
 
       {invite.kind === 'competition' && invite.isOwner ? (
-        <p className={s.previewNote}>You created this competition.</p>
+        <p className={s.previewMeta}>You created this competition.</p>
       ) : null}
 
       <div className={s.previewActions}>
