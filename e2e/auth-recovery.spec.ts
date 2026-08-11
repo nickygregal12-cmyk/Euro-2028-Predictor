@@ -35,6 +35,17 @@ async function authUserId(): Promise<string | null> {
   return data.users.find((user) => user.email === EMAIL)?.id ?? null
 }
 
+/** Which games the caller actually holds, for diagnosing a withheld control. */
+async function gameMembershipsOf(userId: string | null): Promise<string[]> {
+  if (!userId) return []
+  const { data, error } = await createLocalAdmin()
+    .from('game_memberships')
+    .select('game_competition_id, status')
+    .eq('user_id', userId)
+  if (error) throw error
+  return (data ?? []).map((row) => `${row.game_competition_id} (${row.status})`)
+}
+
 async function removeExistingUser(): Promise<void> {
   const id = await authUserId()
   if (!id) return
@@ -269,6 +280,22 @@ test.describe('authentication and recovery', () => {
       // join action rather than a not-found message.
       await expectNoSeriousAxeViolations(page, '/join/:code')
       await waitForWelcomeStamp()
+
+      // WHY THE JOIN CONTROL IS OR IS NOT OFFERED. `join_league` refuses a
+      // caller with no ACTIVE `game_memberships` row for the league's game, and
+      // `resolve_invite_code` reports exactly that as `requires_game_entry` —
+      // so the preview withholds the button rather than offering one the server
+      // would refuse. That makes this journey depend on a precondition it never
+      // used to state: the invited player must hold the league's game. Stated
+      // here, with what the caller actually holds, so a failure says which of
+      // the two is missing rather than "the button was not there".
+      const held = await gameMembershipsOf(await authUserId())
+      expect(
+        await page.getByRole('button', { name: 'Join league', exact: true }).count(),
+        `the invite preview offered no join control; the caller holds ${
+          held.length > 0 ? held.join(', ') : 'no game membership'
+        } and the league needs the game it ranks`,
+      ).toBe(1)
 
       await page.getByRole('button', { name: 'Join league', exact: true }).click()
       await expect(page).toHaveURL((url) => url.pathname === `/league/${inviteLeagueId}`, {
