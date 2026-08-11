@@ -68,6 +68,21 @@ select ok((select min(n) from counted) > 40 and (select max(n) from counted) < 1
 select col_has_check('public', 'leagues', 'invite_code',
   'the invite code still carries a character-class constraint');
 
+-- `leagues.owner_id` is `not null`, and the first draft of this suite read
+-- `(select id from auth.users order by created_at limit 1)` — which is null on
+-- a freshly rebuilt database with no users, so all four insert assertions died
+-- on a not-null violation rather than on anything about invite codes. The owner
+-- is created here, in the same form the other suites use.
+insert into auth.users (
+  id, email, aud, role, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at
+) values (
+  '00000000-0000-0000-0000-0000000001c5',
+  'invite-probe-owner@example.test',
+  'authenticated', 'authenticated', '{}'::jsonb, '{}'::jsonb,
+  now(), now()
+);
+
 insert into public.tournaments (name, year, kind, display_timezone, status)
 values ('C152 Invite Probe', 2041, 'tournament', 'UTC', 'active');
 
@@ -79,28 +94,28 @@ select set_config('test.ic_tournament',
 select lives_ok($$
   insert into public.leagues (tournament_id, owner_id, name, invite_code)
   values (current_setting('test.ic_tournament')::uuid,
-          (select id from auth.users order by created_at limit 1),
+          '00000000-0000-0000-0000-0000000001c5'::uuid,
           'Legacy Six', 'ABC234')
 $$, 'a six-character code already issued still satisfies the constraint');
 
 select lives_ok($$
   insert into public.leagues (tournament_id, owner_id, name, invite_code)
   values (current_setting('test.ic_tournament')::uuid,
-          (select id from auth.users order by created_at limit 1),
+          '00000000-0000-0000-0000-0000000001c5'::uuid,
           'Modern Twelve', 'ABCDEFGH2345')
 $$, 'a twelve-character code satisfies the constraint');
 
 select throws_ok($$
   insert into public.leagues (tournament_id, owner_id, name, invite_code)
   values (current_setting('test.ic_tournament')::uuid,
-          (select id from auth.users order by created_at limit 1),
+          '00000000-0000-0000-0000-0000000001c5'::uuid,
           'Too Short', 'ABC23')
 $$, '23514', null, 'a five-character code is still refused');
 
 select throws_ok($$
   insert into public.leagues (tournament_id, owner_id, name, invite_code)
   values (current_setting('test.ic_tournament')::uuid,
-          (select id from auth.users order by created_at limit 1),
+          '00000000-0000-0000-0000-0000000001c5'::uuid,
           'Lower Case', 'abcdefgh2345')
 $$, '23514', null, 'a lower-case code is still refused');
 

@@ -180,9 +180,14 @@ begin
 end;
 $$;
 
--- The drop took the grants with it, so both are restated rather than assumed.
+-- THE DROP TOOK THE GRANTS WITH IT, so both roles are restated. `service_role`
+-- is not an afterthought here: `20260724001500_harden_function_privileges.sql`
+-- grants every league function to `authenticated, service_role`, and an earlier
+-- draft of this migration restated only `authenticated` — which silently
+-- removed a privilege while claiming to add a rate limit.
+-- `080_function_privileges.sql` caught it, which is what that suite is for.
 revoke all on function public.get_league_preview(text) from public;
-grant execute on function public.get_league_preview(text) to authenticated;
+grant execute on function public.get_league_preview(text) to authenticated, service_role;
 
 -- --- join_league: the same charge, before the lookup ------------------------
 -- Redefined because the limiter has to be charged on the path that ACTS on a
@@ -251,8 +256,11 @@ begin
 end;
 $$;
 
+-- `join_league` was replaced rather than dropped, so its grants survived — but
+-- restating only `authenticated` here would have REVOKED `service_role`. Both
+-- are named for the same reason as above.
 revoke all on function public.join_league(text) from public;
-grant execute on function public.join_league(text) to authenticated;
+grant execute on function public.join_league(text) to authenticated, service_role;
 
 -- ===========================================================================
 -- 4. Rotation, so a leaked code is recoverable
@@ -311,4 +319,4 @@ end;
 $$;
 
 revoke all on function public.rotate_league_invite_code(uuid) from public;
-grant execute on function public.rotate_league_invite_code(uuid) to authenticated;
+grant execute on function public.rotate_league_invite_code(uuid) to authenticated, service_role;

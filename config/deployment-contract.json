@@ -80,6 +80,7 @@
     "public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)",
     "public.register_bonus_competition(uuid)",
     "public.replace_predicted_progression(uuid,jsonb,jsonb)",
+    "public.rotate_league_invite_code(uuid)",
     "public.save_knockout_prediction(uuid,smallint,smallint,uuid,integer)",
     "public.save_lms_selection(uuid,uuid,integer)",
     "public.save_season_prediction(uuid,uuid,smallint,smallint,integer)",
