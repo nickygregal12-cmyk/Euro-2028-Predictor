@@ -336,7 +336,7 @@ export function H2HPage() {
           variant="secondary"
           fullWidth
           onClick={() =>
-            navigate(`/profile/${rivalId}`, { state: { returnTo: location.pathname } })
+            navigate(`/tournament/profile/${rivalId}`, { state: { returnTo: location.pathname } })
           }
         >
           View player profile

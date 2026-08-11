@@ -182,6 +182,72 @@ function summarise(fixture: SeasonListFixture, kickoff: string | null, mixed: bo
   return kickoff ? `${who}, kick-off ${kickoff}${round}` : `${who}, kick-off to be confirmed${round}`
 }
 
+/**
+ * One fixture, presented on its own (contract 148).
+ *
+ * IT SHARES THE LIST'S VOCABULARY EXACTLY, by construction: it returns a
+ * `FixtureListRow` built by the same `rowOf` the list uses, so a fixture reached
+ * from a link and the same fixture reached from the calendar cannot describe
+ * themselves differently. That is the whole reason contract 148 returns
+ * contract 139's entry field for field.
+ *
+ * ITS MATCHWEEK IS ALWAYS PRINTED. In a list the label appears only when a day
+ * mixes matchweeks, because repeating it on every row of an ordinary Saturday
+ * is noise. A standalone Match Centre has no day heading and no neighbours to
+ * compare against, so the matchweek is context the reader has nowhere else to
+ * get.
+ */
+export function presentFixture(
+  fixture: SeasonListFixture,
+  timeZone?: Zone,
+): { row: FixtureListRow; dayLabel: string | null } {
+  const when = fixture.kickoffAt ? parts(fixture.kickoffAt, timeZone) : null
+  return {
+    row: rowOf(fixture, true, timeZone),
+    dayLabel: when?.label ?? null,
+  }
+}
+
+/**
+ * One row. Shared by the list and by the single-fixture presentation above so
+ * there is one set of rules about provisional scores, played state and the
+ * accessible summary rather than two.
+ */
+function rowOf(fixture: SeasonListFixture, mixed: boolean, timeZone: Zone): FixtureListRow {
+  const when = fixture.kickoffAt ? parts(fixture.kickoffAt, timeZone) : null
+  const kickoff = when?.time ?? null
+  const provisional =
+    !fixture.result && fixture.live && fixture.live.home !== null && fixture.live.away !== null
+      ? `${fixture.live.home} - ${fixture.live.away}`
+      : null
+
+  return {
+    id: fixture.id,
+    home: fixture.home,
+    away: fixture.away,
+    kickoff,
+    kickoffAt: fixture.kickoffAt,
+    roundLabel: mixed ? fixture.round.label : null,
+    round: { ordinal: fixture.round.ordinal, name: fixture.round.label },
+    score: fixture.result ? `${fixture.result.home} - ${fixture.result.away}` : null,
+    // Only where there is no official score, and only when the provider
+    // sent both numbers. A one-sided provisional score is not a scoreline.
+    provisional,
+    // Said with the score wherever the score is shown at length: "what a
+    // provider reported at 16:42" is checkable, and "2 - 1" on its own
+    // invites being read as the result.
+    provisionalAt:
+      provisional && fixture.live
+        ? (parts(fixture.live.observedAt, timeZone)?.time ?? null)
+        : null,
+    // The status the server settled, never the clock. A fixture is played
+    // because the server said so, which is right every time a match is
+    // delayed or abandoned and a clock comparison is wrong.
+    played: fixture.status === 'played',
+    accessibleSummary: summarise(fixture, kickoff, mixed),
+  }
+}
+
 export function presentFixtureList(
   page: SeasonFixtureList,
   timeZone?: Zone,
@@ -210,41 +276,7 @@ export function presentFixtureList(
     const rounds = new Set(fixtures.map((fixture) => fixture.round.ordinal))
     const mixed = rounds.size > 1
     if (mixed) hasRescheduled = true
-
-    return fixtures.map((fixture) => {
-      const when = fixture.kickoffAt ? parts(fixture.kickoffAt, timeZone) : null
-      const kickoff = when?.time ?? null
-      const provisional =
-        !fixture.result && fixture.live && fixture.live.home !== null && fixture.live.away !== null
-          ? `${fixture.live.home} - ${fixture.live.away}`
-          : null
-
-      return {
-        id: fixture.id,
-        home: fixture.home,
-        away: fixture.away,
-        kickoff,
-        kickoffAt: fixture.kickoffAt,
-        roundLabel: mixed ? fixture.round.label : null,
-        round: { ordinal: fixture.round.ordinal, name: fixture.round.label },
-        score: fixture.result ? `${fixture.result.home} - ${fixture.result.away}` : null,
-        // Only where there is no official score, and only when the provider
-        // sent both numbers. A one-sided provisional score is not a scoreline.
-        provisional,
-        // Said with the score wherever the score is shown at length: "what a
-        // provider reported at 16:42" is checkable, and "2 - 1" on its own
-        // invites being read as the result.
-        provisionalAt:
-          provisional && fixture.live
-            ? (parts(fixture.live.observedAt, timeZone)?.time ?? null)
-            : null,
-        // The status the server settled, never the clock. A fixture is played
-        // because the server said so, which is right every time a match is
-        // delayed or abandoned and a clock comparison is wrong.
-        played: fixture.status === 'played',
-        accessibleSummary: summarise(fixture, kickoff, mixed),
-      }
-    })
+    return fixtures.map((fixture) => rowOf(fixture, mixed, timeZone))
   }
 
   const days: FixtureListDay[] = [...byDay.entries()]

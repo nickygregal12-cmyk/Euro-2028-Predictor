@@ -94,33 +94,6 @@ export function ExploreCompetitionsPage() {
         </section>
       ))}
 
-      {/* Published, and not openable yet. Named rather than hidden: the server
-          holds the competition, and only its route slug is missing — which is
-          the last piece `MIG-UI-12` asks for. */}
-      {view.unroutable.length > 0 ? (
-        <section className={styles.group} aria-labelledby="explore-unroutable">
-          <div className={styles.groupHead}>
-            <h2 className={styles.groupTitle} id="explore-unroutable">
-              Newly published
-            </h2>
-            <span className={styles.count}>{view.unroutable.length}</span>
-          </div>
-          <p className={styles.note}>
-            These are on the platform but cannot be opened from here yet.
-          </p>
-          <ul className={styles.list}>
-            {view.unroutable.map((season) => (
-              <li key={season.key}>
-                <div className={`${styles.card} ${styles.cardInert}`}>
-                  <span className={styles.name}>{season.name}</span>
-                  <span className={styles.state}>{season.status ?? 'unknown state'}</span>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       {view.noMatches ? (
         <p className={styles.none}>No competition matches “{query}”.</p>
       ) : null}

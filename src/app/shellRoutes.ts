@@ -24,7 +24,17 @@ export const weeklyRoutePatterns = {
   competition: '/competitions/:competitionSlug/:seasonSlug',
   play: '/competitions/:competitionSlug/:seasonSlug/play',
   matches: '/competitions/:competitionSlug/:seasonSlug/matches',
+  /**
+   * Self-contained since contract 148: the fixture id alone resolves the
+   * fixture, so the route carries no `?on=` day and no window to search.
+   */
   matchCentre: '/competitions/:competitionSlug/:seasonSlug/matches/:fixtureId',
+  /**
+   * One player's season inside this competition (contract 151). Reachable only
+   * from a surface that already names the player, and refused server-side for a
+   * caller who shares no private league with them — there is no directory.
+   */
+  player: '/competitions/:competitionSlug/:seasonSlug/players/:playerId',
   games: '/competitions/:competitionSlug/:seasonSlug/games',
   matchPredictor: '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   matchPredictorStandings:
@@ -103,7 +113,8 @@ export function globalNavTab(pathname: string): GlobalNavTab {
     pathname === weeklyRoutes.more ||
     pathname.startsWith('/more/') ||
     pathname === '/account' ||
-    pathname.startsWith('/profile')
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/tournament/profile')
   ) {
     return 'more'
   }

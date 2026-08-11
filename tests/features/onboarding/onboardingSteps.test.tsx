@@ -12,7 +12,7 @@ import {
 } from '../../../src/features/onboarding/onboardingDraft'
 import { twentyCompetitionPlayer } from '../../../src/dev/scaleFixture'
 import { presentPlayerCompetitions } from '../../../src/features/hub/playerCompetitions'
-import { HUB_COMPETITIONS } from '../../../src/features/hub/competitionCatalogue'
+import { catalogueFromPublishedSeasons } from '../../../src/features/hub/competitionCatalogue'
 import { ONBOARDING_GAME_OFFERS, ONBOARDING_TEAMS } from '../../../src/dev/onboardingFixture'
 
 /**
@@ -67,25 +67,37 @@ describe('choosing competitions', () => {
     expect(screen.getByText('We could not load the competitions')).toBeInTheDocument()
     failed.unmount()
 
-    const bare = presentPlayerCompetitions([], [], undefined, [])
+    const bare = presentPlayerCompetitions([], [])
     render(<OnboardingCompetitionStep player={bare} draft={EMPTY_DRAFT} onToggle={() => {}} />)
     expect(screen.getByText(/No competitions are published yet/)).toBeInTheDocument()
   })
 
-  it('lists a published competition it cannot open, without offering to select it', () => {
-    const player = presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-      {
-        id: 'x',
-        name: 'Bundesliga 2026/27',
-        seasonKey: '2026-27',
-        status: 'active',
-        timeZone: 'Europe/Berlin',
-      },
-    ])
+  it('offers a newly published competition as an ordinary, selectable choice', () => {
+    // Before contract 147 a published season the frontend had no slug for was
+    // listed under "Newly published" and deliberately not selectable, because
+    // nothing could build its URL. The slug is a server field now, so that
+    // state cannot occur and the competition is simply one of the choices.
+    const player = presentPlayerCompetitions(
+      catalogueFromPublishedSeasons(
+        [
+          {
+            competitionSlug: 'bundesliga',
+            seasonKey: '2026-27',
+            competitionId: 'competition-1',
+            competitionName: 'Bundesliga',
+            seasonId: 'season-1',
+            seasonName: 'Bundesliga 2026/27',
+            status: 'active',
+            timeZone: 'Europe/Berlin',
+          },
+        ],
+        [],
+      ),
+      [],
+    )
     render(<OnboardingCompetitionStep player={player} draft={EMPTY_DRAFT} onToggle={() => {}} />)
 
-    expect(screen.getByText('Bundesliga 2026/27')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Bundesliga/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Bundesliga/ })).toBeInTheDocument()
   })
 })
 

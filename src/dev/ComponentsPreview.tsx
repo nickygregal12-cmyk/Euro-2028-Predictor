@@ -45,6 +45,13 @@ import { InfoIcon } from '../design-system/icons'
 import { railGroups } from '../app/railDestinations'
 import { SeasonLmsFormGuide } from '../features/season/SeasonLmsFormGuide'
 import { SeasonFixtureConsensus } from '../features/season/SeasonFixtureConsensus'
+import { SeasonFixtureLeagues } from '../features/season/SeasonFixtureLeagues'
+import { SeasonLeagueMatchweek } from '../features/season/SeasonLeagueMatchweek'
+import { SeasonPlayerSeason } from '../features/season/SeasonPlayerSeason'
+import { SeasonCompetitionForm } from '../features/season/SeasonCompetitionForm'
+import { mapSeasonLeagueMatchweekPredictions } from '../services/supabase/seasonLeaguePredictionsModel'
+import { mapSeasonLeagueMovement } from '../services/supabase/seasonLeagueMovementModel'
+import { mapSeasonPlayerProfile } from '../services/supabase/seasonPlayerProfileModel'
 import type { LmsFormGuide } from '../features/season/lmsFormGuideModel'
 import type { SeasonConsensus } from '../services/supabase/seasonConsensusModel'
 import { twentyCompetitionPlayer } from './scaleFixture'
@@ -65,7 +72,6 @@ import { presentCreateJourney } from '../features/leagues/createJourneyModel'
 import { GameRulesDisclosure } from '../features/season/GameRulesDisclosure'
 import { seasonGameRules } from '../features/season/gameRules'
 import { presentPlayerCompetitions } from '../features/hub/playerCompetitions'
-import { HUB_COMPETITIONS } from '../features/hub/competitionCatalogue'
 import { PointsBreakdown } from '../features/scoring'
 import type { ScoreEvent } from '../domain/tournament/scoreEvents'
 import {
@@ -702,6 +708,153 @@ const CONSENSUS_SUPPRESSED: SeasonConsensus = {
   fixtures: [],
 }
 
+/**
+ * Contract 149's payload, revealed and hidden. Written here as the READ's own
+ * shape rather than as the presented model, so the gallery exercises the real
+ * decoder and the real presenter — a fixture shaped like the output would
+ * photograph a component that had already been told the answer.
+ */
+const LEAGUE_MATCHWEEK_REVEALED = {
+  league: { id: 'league-1', name: 'The Office' },
+  matchweek: { id: 'round-5', ordinal: 5, label: 'Matchweek 5', locks_at: '2026-08-15T11:30:00Z' },
+  revealed: true,
+  server_now: '2026-08-15T20:00:00Z',
+  fixtures: [
+    {
+      id: 'fx-1',
+      kickoff_at: '2026-08-15T14:00:00Z',
+      status: 'played',
+      home: 'Arsenal',
+      away: 'Chelsea',
+      result: { home: 2, away: 1 },
+    },
+    {
+      id: 'fx-2',
+      kickoff_at: '2026-08-15T16:30:00Z',
+      status: 'scheduled',
+      home: 'Everton',
+      away: 'Fulham',
+      result: null,
+    },
+  ],
+  member_count: 3,
+  predicted_count: 3,
+  members: [
+    {
+      user_id: 'p1',
+      display_name: 'Alex',
+      is_self: true,
+      points: 12,
+      settled_at: '2026-08-15T19:00:00Z',
+      joker_played: true,
+      predictions: { 'fx-1': { home: 2, away: 1 }, 'fx-2': { home: 1, away: 1 } },
+    },
+    {
+      user_id: 'p2',
+      display_name: 'Sam',
+      is_self: false,
+      points: 8,
+      settled_at: '2026-08-15T19:00:00Z',
+      joker_played: false,
+      predictions: { 'fx-1': { home: 1, away: 0 } },
+    },
+    {
+      user_id: 'p3',
+      display_name: 'Robin',
+      is_self: false,
+      points: 3,
+      settled_at: '2026-08-15T19:00:00Z',
+      joker_played: false,
+      predictions: { 'fx-1': { home: 0, away: 2 }, 'fx-2': { home: 2, away: 0 } },
+    },
+  ],
+}
+
+const LEAGUE_MATCHWEEK_HIDDEN = {
+  ...LEAGUE_MATCHWEEK_REVEALED,
+  revealed: false,
+  predicted_count: 0,
+  members: [],
+}
+
+const LEAGUE_MOVEMENT_SETTLED = {
+  league: { id: 'league-1' },
+  matchweek: { id: 'round-5', ordinal: 5, label: 'Matchweek 5' },
+  settled: true,
+  server_now: '2026-08-15T20:00:00Z',
+  members: [
+    {
+      user_id: 'p1',
+      display_name: 'Alex',
+      is_self: true,
+      points_before: 40,
+      points_after: 52,
+      points_this_matchweek: 12,
+      rank_before: 5,
+      rank_after: 3,
+      movement: 2,
+      gap_to_leader_before: 9,
+      gap_to_leader_after: 4,
+    },
+  ],
+}
+
+/** Contract 151's payload for a co-member whose matchweeks have locked. */
+const PLAYER_SEASON = mapSeasonPlayerProfile({
+  player: { user_id: 'p2', display_name: 'Sam', is_self: false },
+  entered: true,
+  server_now: '2026-08-16T09:00:00Z',
+  season: { points: 118, matchweeks_played: 5, rank: 3, field_size: 42 },
+  accuracy: { fixtures_predicted: 50, exact_scores: 7, correct_outcomes: 26 },
+  jokers: { played: 1, points_from_joker_matchweeks: 24 },
+  history: [
+    {
+      matchweek_id: 'round-5',
+      ordinal: 5,
+      label: 'Matchweek 5',
+      points: 24,
+      joker_played: true,
+      predictions: { 'fx-1': { home: 2, away: 1 }, 'fx-2': { home: 1, away: 1 } },
+    },
+    {
+      matchweek_id: 'round-4',
+      ordinal: 4,
+      label: 'Matchweek 4',
+      points: 9,
+      joker_played: false,
+      predictions: { 'fx-9': { home: 0, away: 0 } },
+    },
+  ],
+})
+
+/** Contract 141's derivation, as the competition Matches section renders it. */
+const COMPETITION_FORM = [
+  {
+    teamId: 't1',
+    name: 'Arsenal',
+    tokens: resolveClubIdentity({ externalId: 't1', name: 'Arsenal', tla: 'ARS' }),
+    played: 6,
+    won: 4,
+    drawn: 1,
+    lost: 1,
+    goalsFor: 12,
+    goalsAgainst: 5,
+    form: ['W', 'W', 'D', 'L', 'W', 'W'] as const,
+  },
+  {
+    teamId: 't2',
+    name: 'Chelsea',
+    tokens: resolveClubIdentity({ externalId: 't2', name: 'Chelsea', tla: 'CHE' }),
+    played: 6,
+    won: 2,
+    drawn: 2,
+    lost: 2,
+    goalsFor: 7,
+    goalsAgainst: 8,
+    form: ['L', 'D', 'W', 'D', 'L', 'W'] as const,
+  },
+]
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className={styles.section} data-section={sectionAnchor(title)}>
@@ -840,24 +993,11 @@ function OnboardingDemo() {
       <OnboardingCompetitionStep player={null} failed draft={EMPTY_DRAFT} onToggle={() => {}} />
       <Label>nothing published yet</Label>
       <OnboardingCompetitionStep
-        player={presentPlayerCompetitions([], [], undefined, [])}
+        player={presentPlayerCompetitions([], [])}
         draft={EMPTY_DRAFT}
         onToggle={() => {}}
       />
-      <Label>a published competition this build cannot open (MIG-UI-12)</Label>
-      <OnboardingCompetitionStep
-        player={presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-          {
-            id: 'unroutable-demo',
-            name: 'Bundesliga 2026/27',
-            seasonKey: '2026-27',
-            status: 'active',
-            timeZone: 'Europe/Berlin',
-          },
-        ])}
-        draft={EMPTY_DRAFT}
-        onToggle={() => {}}
-      />
+
     </>
   )
 }
@@ -1428,6 +1568,67 @@ function Gallery() {
         <SeasonLmsFormGuide guide={LMS_FORM_GUIDE} />
         <Label>no settled matches</Label>
         <SeasonLmsFormGuide guide={{ rows: LMS_FORM_GUIDE.rows, empty: true }} />
+      </Section>
+
+      {/* The three contract 149/150/151 surfaces. Each is a composition no
+          route harness can render — they need a season, a league, a matchweek
+          and a signed-in caller — so the gallery is the only place they can be
+          photographed at all, and the properties that matter here are visual
+          ones no assertion holds: that the hidden state shows no names and no
+          count, and that the phone layout is a purpose-built list rather than
+          the matrix scaled down. */}
+      <Section title="League matchweek comparison">
+        <Label>after the matchweek locks</Label>
+        <SeasonLeagueMatchweek
+          leagueId="league-1"
+          leagueName="The Office"
+          competitionRoundId="round-5"
+          load={() =>
+            Promise.resolve(mapSeasonLeagueMatchweekPredictions(LEAGUE_MATCHWEEK_REVEALED))
+          }
+          timeZone="Europe/London"
+        />
+        <Label>before the lock — hidden by rule, and hidden completely</Label>
+        <SeasonLeagueMatchweek
+          leagueId="league-2"
+          leagueName="Old Friends"
+          competitionRoundId="round-5"
+          load={() =>
+            Promise.resolve(mapSeasonLeagueMatchweekPredictions(LEAGUE_MATCHWEEK_HIDDEN))
+          }
+          timeZone="Europe/London"
+        />
+      </Section>
+
+      <Section title="Match centre your leagues">
+        <Label>revealed, with movement over the settled matchweek</Label>
+        <SeasonFixtureLeagues
+          fixtureId="fx-1"
+          competitionRoundId="round-5"
+          leagues={[{ id: 'league-1', name: 'The Office' }]}
+          loadPredictions={() =>
+            Promise.resolve(mapSeasonLeagueMatchweekPredictions(LEAGUE_MATCHWEEK_REVEALED))
+          }
+          loadMovement={() => Promise.resolve(mapSeasonLeagueMovement(LEAGUE_MOVEMENT_SETTLED))}
+        />
+        <Label>before the lock</Label>
+        <SeasonFixtureLeagues
+          fixtureId="fx-1"
+          competitionRoundId="round-5"
+          leagues={[{ id: 'league-2', name: 'Old Friends' }]}
+          loadPredictions={() =>
+            Promise.resolve(mapSeasonLeagueMatchweekPredictions(LEAGUE_MATCHWEEK_HIDDEN))
+          }
+          loadMovement={() => Promise.resolve(mapSeasonLeagueMovement(LEAGUE_MOVEMENT_SETTLED))}
+        />
+      </Section>
+
+      <Section title="Season player profile">
+        <SeasonPlayerSeason profile={PLAYER_SEASON} />
+      </Section>
+
+      <Section title="Competition club form">
+        <SeasonCompetitionForm clubs={COMPETITION_FORM} matches={6} />
       </Section>
 
       <Section title="Fixture consensus panel">

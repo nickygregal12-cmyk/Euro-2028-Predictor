@@ -1,8 +1,12 @@
-import type { HubCompetition } from '../features/hub/competitionCatalogue'
+import {
+  catalogueFromPublishedSeasons,
+  type HubCompetition,
+} from '../features/hub/competitionCatalogue'
 import type {
   HubSeasonMembership,
 } from '../services/supabase/competitionGames'
 import type { CompetitionGame, CompetitionGameKey } from '../services/supabase/competitionGamesModel'
+import type { PublishedWeeklySeason } from '../services/supabase/weeklyCatalogue'
 import {
   presentPlayerCompetitions,
   type PlayerCompetitions,
@@ -20,10 +24,14 @@ import {
  * construction — they all look identical to an unbounded version.
  *
  * IT IS NOT SEED DATA AND NEVER REACHES A DATABASE. It is a presentation
- * fixture: `HubCompetition` values and the membership rows the server read
- * would have produced, fed through the real `presentPlayerCompetitions`. What
- * it proves is a property of the MODEL and the components, which is where the
- * scalability rule can actually be broken.
+ * fixture: the rows contract 147's `get_published_weekly_seasons` and the
+ * membership read would have produced, fed through the REAL
+ * `catalogueFromPublishedSeasons` and `presentPlayerCompetitions`. Since
+ * contract 147 the route slug is a server field, so this fixture supplies one
+ * per season exactly as the server would and the twenty competitions are
+ * routable for the same reason the two real ones are — not because a frontend
+ * array was extended to twenty. What it proves is a property of the MODEL and
+ * the components, which is where the scalability rule can actually be broken.
  *
  * THE THREE JOINED ONES ARE DELIBERATELY NOT THE FIRST THREE. A fixture whose
  * relevant competitions sit at the top of the catalogue would pass a bounded
@@ -36,12 +44,12 @@ const GAMES: readonly CompetitionGameKey[] = [
   'predictor_cup',
 ]
 
-const GAME_COPY: Record<CompetitionGameKey, { kind: HubCompetition['games'][number]['kind']; name: string }> = {
-  main_predictor: { kind: 'league-predictor', name: 'Match Predictor' },
-  last_man_standing: { kind: 'last-man-standing', name: 'Last Man Standing' },
-  predictor_cup: { kind: 'predictor-championship', name: 'Predictor Championship' },
-  ko_predictor: { kind: 'ko-predictor', name: 'Knockout Predictor' },
-  original_predictor: { kind: 'original-predictor', name: 'Original Predictor' },
+const GAME_NAMES: Record<CompetitionGameKey, string> = {
+  main_predictor: 'Match Predictor',
+  last_man_standing: 'Last Man Standing',
+  predictor_cup: 'Predictor Championship',
+  ko_predictor: 'Knockout Predictor',
+  original_predictor: 'Original Predictor',
 }
 
 /** Twenty plausible competition names, so the fixture reads like a catalogue. */
@@ -75,30 +83,30 @@ function slugOf(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-export const TWENTY_COMPETITION_CATALOGUE: readonly HubCompetition[] = NAMES.map((name) => ({
-  competitionSlug: slugOf(name),
-  seasonSlug: '2026-27',
-  seasonRowName: `${name} 2026/27`,
-  name,
-  seasonLabel: '2026/27',
-  status: 'live',
-  summary: 'Weekly score predictions, Last Man Standing and the Predictor Championship.',
-  games: GAMES.map((gameKey) => ({
-    kind: GAME_COPY[gameKey].kind,
-    gameKey,
-    name: GAME_COPY[gameKey].name,
-    description: 'A game in this competition.',
-    joined: false,
-    status: 'available' as const,
-  })),
-}))
+/**
+ * What contract 147 would return for this platform: twenty published league
+ * seasons, each carrying BOTH halves of its address. The slug is the server's
+ * here exactly as it is in production; nothing derives one from a name.
+ */
+export const TWENTY_COMPETITION_SEASONS: readonly PublishedWeeklySeason[] = NAMES.map(
+  (name) => ({
+    competitionSlug: slugOf(name),
+    seasonKey: '2026-27',
+    competitionId: `competition-${slugOf(name)}`,
+    competitionName: name,
+    seasonId: `season-${slugOf(name)}`,
+    seasonName: `${name} 2026/27`,
+    status: 'active' as const,
+    timeZone: 'Europe/London',
+  }),
+)
 
 function gameRow(name: string, gameKey: CompetitionGameKey, joined: boolean): CompetitionGame {
   return {
     id: `${slugOf(name)}-${gameKey}`,
     gameKey,
     active: true,
-    displayName: GAME_COPY[gameKey].name,
+    displayName: GAME_NAMES[gameKey],
     registrationOpensAt: null,
     registrationClosesAt: null,
     completedAt: null,
@@ -120,24 +128,39 @@ function gameRow(name: string, gameKey: CompetitionGameKey, joined: boolean): Co
  * the "most joined games first" ordering has something to order.
  */
 export const TWENTY_COMPETITION_MEMBERSHIP: readonly HubSeasonMembership[] =
-  TWENTY_COMPETITION_CATALOGUE.map((competition) => {
-    const plays = PLAYS_IN.includes(competition.name)
-    const twoGames = competition.name === 'Premier League'
+  TWENTY_COMPETITION_SEASONS.map((season) => {
+    const plays = PLAYS_IN.includes(season.competitionName)
+    const twoGames = season.competitionName === 'Premier League'
+    const name = season.competitionName
     return {
-      seasonName: competition.seasonRowName,
-      tournamentId: `season-${competition.competitionSlug}`,
+      seasonName: season.seasonName,
+      tournamentId: season.seasonId,
       seasonStatus: 'active' as const,
       seasonGames: {
         competitionMember: plays,
         serverNow: '2026-08-10T09:00:00.000Z',
-        games: [
-          gameRow(competition.name, 'main_predictor', plays),
-          gameRow(competition.name, 'last_man_standing', plays && twoGames),
-          gameRow(competition.name, 'predictor_cup', false),
-        ],
+        games: GAMES.map((gameKey) =>
+          gameRow(
+            name,
+            gameKey,
+            gameKey === 'main_predictor'
+              ? plays
+              : gameKey === 'last_man_standing'
+                ? plays && twoGames
+                : false,
+          ),
+        ),
       },
     }
   })
+
+/**
+ * The catalogue the shell would build on that platform — through the real
+ * `catalogueFromPublishedSeasons`, so the fixture exercises the server-driven
+ * route model rather than a hand-written stand-in for it.
+ */
+export const TWENTY_COMPETITION_CATALOGUE: readonly HubCompetition[] =
+  catalogueFromPublishedSeasons(TWENTY_COMPETITION_SEASONS, TWENTY_COMPETITION_MEMBERSHIP)
 
 /** The model as the shell would build it on that platform. */
 export function twentyCompetitionPlayer(): PlayerCompetitions {

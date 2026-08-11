@@ -13,11 +13,20 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
   )
 
   try {
-    await page.goto('/profile')
+    // `/tournament/profile`, not `/profile`. The Euro tournament's own profile
+    // moved under `/tournament/` when `/profile` became the PLATFORM profile —
+    // it had been registered inside the tournament boundary, which refuses
+    // every player route while Euro's publication state is `hidden`, so every
+    // visible Profile control sent a domestic player back to Home. This spec
+    // covers the tournament profile, which is where its league count lives.
+    await page.goto('/tournament/profile')
     await expect(page.getByRole('heading', { name: 'Profile' })).toBeVisible()
     await expect(page.getByText('E2E Tester', { exact: true })).toBeVisible()
     await expect(page.getByText(/\d+ leagues?/, { exact: true })).toBeVisible()
     await expect(page.getByText('Some profile data is unavailable')).toHaveCount(0)
+    // Scanned here rather than deferred: the journey already has the page
+    // open, and a route nothing scans is a route nothing checks.
+    await expectNoSeriousAxeViolations(page, '/tournament/profile')
 
     await page.goto(`/league/${fixture.leagueId}`)
     await expect(page.getByRole('heading', { name: fixture.leagueName })).toBeVisible()
@@ -35,7 +44,9 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
     await expect(page.getByRole('button', { name: 'Head to head', exact: true })).toHaveCount(0)
     await page.getByRole('button', { name: 'Profile', exact: true }).click()
 
-    await expect(page).toHaveURL((url) => url.pathname === `/profile/${fixture.rivalId}`)
+    await expect(page).toHaveURL(
+      (url) => url.pathname === `/tournament/profile/${fixture.rivalId}`,
+    )
     await expect(page.getByRole('heading', { name: 'Player profile' })).toBeVisible()
     await expect(page.getByText(fixture.rivalDisplayName, { exact: true }).first()).toBeVisible()
     await expect(page.getByText(/Predictions and stats are hidden until entries lock/)).toBeVisible()
@@ -72,12 +83,14 @@ test('secure player profiles cross lock on desktop and phone', async ({ page }, 
     await expect(page.getByText('Head-to-head unavailable')).toHaveCount(0)
 
     await page.getByRole('button', { name: 'View player profile', exact: true }).click()
-    await expect(page).toHaveURL((url) => url.pathname === `/profile/${fixture.rivalId}`)
+    await expect(page).toHaveURL(
+      (url) => url.pathname === `/tournament/profile/${fixture.rivalId}`,
+    )
     await expect(page.getByText(String(fixture.rivalPoints), { exact: true }).first()).toBeVisible()
 
     // Scanned after the lock, where the profile shows points, ranks and
     // breakdowns. The pre-lock state a few assertions up hides all of it.
-    await expectNoSeriousAxeViolations(page, '/profile/:playerId')
+    await expectNoSeriousAxeViolations(page, '/tournament/profile/:playerId')
   } finally {
     await clearH2HSurfaceFixture(fixture)
   }

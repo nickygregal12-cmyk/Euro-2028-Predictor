@@ -341,8 +341,15 @@ export function AccountPage() {
         <label className={a.prefRow}>
           <span className={a.detailBody}>
             <span className={a.detailLabel}>Deadline reminder emails</span>
+            {/* MEASURED, NOT ASSUMED. `profiles.reminder_emails` is stored and
+                this control writes it, but nothing in the repository sends a
+                deadline reminder — no job, no Edge Function, no workflow reads
+                the column. The copy used to promise "a nudge before predictions
+                lock", which was a promise the product does not keep. It records
+                the choice and says so; `DFA-012` owns the sending. */}
             <span className={a.detailValue}>
-              A nudge before predictions lock. Off means no reminder emails, ever.
+              Your choice is saved for when deadline reminders start. None are being sent yet, so
+              leaving this on will not email you today.
             </span>
           </span>
           <input

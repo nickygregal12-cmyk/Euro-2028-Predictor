@@ -1,106 +1,138 @@
 import { describe, expect, it } from 'vitest'
-import { HUB_COMPETITIONS } from '../../../src/features/hub/competitionCatalogue'
+import {
+  catalogueFromPublishedSeasons,
+  competitionPath,
+} from '../../../src/features/hub/competitionCatalogue'
 import { presentPlayerCompetitions } from '../../../src/features/hub/playerCompetitions'
 import { presentExplore } from '../../../src/features/hub/exploreModel'
-import type { PublishedSeason } from '../../../src/services/supabase/publishedSeasons'
+import {
+  mapPublishedWeeklySeasons,
+  type PublishedWeeklySeason,
+} from '../../../src/services/supabase/weeklyCatalogueModel'
 
 /**
- * `MIG-UI-12` — which competitions exist is the server's answer, not a frontend
- * array's.
+ * `MIG-UI-12`, closed — which competitions exist AND where each one lives are
+ * both the server's answer (contract 147).
  *
- * THE END STATE THIS PROTECTS. Publishing a new league should need the backend
- * to publish it and nothing else: no edit to global navigation, and no edit to
- * a hard-coded frontend competition array merely to make it exist. Until
- * `MIG-UI-12` exposes a route slug, one frontend edit remains — the slug — and
- * these assertions pin exactly where that boundary is, so it cannot quietly
- * widen back into "the array decides what exists".
+ * WHAT THIS PROTECTS. Publishing a new league must need the backend to publish
+ * it and nothing else: no edit to global navigation, and no edit to a frontend
+ * competition array either to make it EXIST or to make it OPENABLE. Until
+ * contract 147 one frontend edit remained — the route slug, because
+ * `public.competitions.slug` is revoked from every browser role — and the
+ * previous version of this file pinned exactly where that boundary sat. The
+ * boundary is gone, so these assertions now pin its absence: there is no static
+ * competition array left to fall back to, and a season the server publishes is
+ * routable the moment it does.
  *
- * WHAT THE AUDIT ESTABLISHED, in one place:
- *
- * - `public.tournaments` is readable to `authenticated` and carries season id,
- *   name, `season_key`, `kind`, `status` and `display_timezone`.
- * - `kind = 'league_season'` is the canonical weekly-platform discriminator, so
- *   Euro (`kind = 'tournament'`) is excluded by its own stored kind rather than
- *   by an allowlist, and its separate publication boundary is untouched.
- * - `public.competitions` — which holds `slug` — is revoked from
- *   `authenticated`, so the route segment cannot be read in a browser.
- * - `get_competition_games(uuid)` describes a season and cannot enumerate one.
+ * WHY THE `kind` FILTER IS NOT RE-TESTED HERE. It is enforced inside the RPC and
+ * proved by the migration's own guard, which is where an `EURO-001` safety
+ * property belongs. A browser-side re-filter would be a second opinion about
+ * what the weekly platform publishes, and adding one would make it possible for
+ * the two to disagree.
  */
 
-function season(name: string, status: PublishedSeason['status'] = 'active'): PublishedSeason {
+function season(
+  competitionName: string,
+  slug: string,
+  status: PublishedWeeklySeason['status'] = 'active',
+): PublishedWeeklySeason {
   return {
-    id: `id-${name}`,
-    name,
+    competitionSlug: slug,
     seasonKey: '2026-27',
+    competitionId: `competition-${slug}`,
+    competitionName,
+    seasonId: `season-${slug}`,
+    seasonName: `${competitionName} 2026/27`,
     status,
     timeZone: 'Europe/London',
   }
 }
 
 describe('the catalogue is discovered, not declared', () => {
-  it('lists a newly published competition the static catalogue has never heard of', () => {
-    const player = presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-      season('Bundesliga 2026/27'),
-    ])
+  it('routes a newly published competition with no frontend edit at all', () => {
+    const catalogue = catalogueFromPublishedSeasons([season('Bundesliga', 'bundesliga')], [])
+    const player = presentPlayerCompetitions(catalogue, [])
 
-    // It exists, immediately, with no frontend edit.
-    expect(player.unroutable.map((entry) => entry.name)).toEqual(['Bundesliga 2026/27'])
-    const explore = presentExplore(player, '')
-    expect(explore.unroutable.map((entry) => entry.name)).toEqual(['Bundesliga 2026/27'])
-  })
+    // It exists, it is named, and it opens — immediately.
+    expect(player.catalogue.map((entry) => entry.name)).toEqual(['Bundesliga'])
+    expect(competitionPath(player.catalogue[0]!)).toBe('/competitions/bundesliga/2026-27')
 
-  it('never invents a route for a competition whose slug it cannot read', () => {
-    // `public.competitions.slug` is revoked from `authenticated`. A slug guessed
-    // from the stored name would be a client-side invention of a server-owned
-    // identifier, and would 404 the moment the two disagreed.
-    const player = presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-      season('Bundesliga 2026/27'),
-    ])
-    expect(player.catalogue.map((entry) => entry.seasonRowName)).not.toContain(
-      'Bundesliga 2026/27',
-    )
-    // And it is not counted as one of the player's, because they cannot be in
-    // something with no membership row.
+    // And it is not counted as one of the player's, because they hold no
+    // membership row in it.
     expect(player.mine).toHaveLength(0)
+
+    // Explore lists it as an ordinary, openable competition. The
+    // "Newly published, not openable" group this view used to need is gone,
+    // because the state it described cannot occur any more.
+    const explore = presentExplore(player, '')
+    expect(explore.groups.flatMap((group) => group.entries).map((entry) => entry.competition.name))
+      .toEqual(['Bundesliga'])
   })
 
-  it('does not advertise a draft season', () => {
-    // `status` is a lifecycle rather than a publication decision, and this is
-    // the one judgement the model makes with it: nobody has scheduled a draft.
-    const player = presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-      season('Bundesliga 2026/27', 'draft'),
-      season('Serie A 2026/27', 'scheduled'),
-    ])
-    expect(player.unroutable.map((entry) => entry.name)).toEqual(['Serie A 2026/27'])
+  it('never invents a route for a competition, and never derives one from a name', () => {
+    // The slug is a server-owned identifier. A season whose slug disagrees with
+    // its display name proves nothing is derived: a name-derived slug would be
+    // `bundesliga` and would 404.
+    const catalogue = catalogueFromPublishedSeasons(
+      [season('Bundesliga', 'de-bundesliga-1')],
+      [],
+    )
+    expect(competitionPath(catalogue[0]!)).toBe('/competitions/de-bundesliga-1/2026-27')
   })
 
-  it('does not duplicate a season the static catalogue already routes', () => {
-    const known = HUB_COMPETITIONS[0]
-    expect(known).toBeDefined()
-    const player = presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-      season(known?.seasonRowName ?? ''),
-    ])
-    // It is routable, so it belongs to the catalogue and not to the
-    // cannot-open-this list.
-    expect(player.unroutable).toHaveLength(0)
+  it('drops a season the server sent without both halves of its address', () => {
+    // A payload missing `competition_slug` or `season_key` cannot produce a
+    // URL, and a listed competition that cannot be opened is the failure this
+    // contract removed. Dropping it is safer than offering a broken link.
+    const decoded = mapPublishedWeeklySeasons({
+      seasons: [
+        {
+          competition_slug: 'premier-league',
+          season_key: '2026-27',
+          competition_id: 'competition-1',
+          competition_name: 'Premier League',
+          season_id: 'season-1',
+          season_name: 'Premier League 2026/27',
+          status: 'active',
+          time_zone: 'Europe/London',
+        },
+        { competition_name: 'Half a season', season_id: 'season-2' },
+      ],
+    })
+    expect(decoded.map((entry) => entry.competitionSlug)).toEqual(['premier-league'])
   })
 
-  it('searches the unroutable ones too, so a growing catalogue stays findable', () => {
-    const player = presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [
-      season('Bundesliga 2026/27'),
-      season('Serie A 2026/27'),
-    ])
-    expect(presentExplore(player, 'bundes').unroutable).toHaveLength(1)
+  it('does not decide publication in the browser — a draft is the server’s to omit', () => {
+    // The RPC excludes `draft` itself, so nothing here re-filters. A frontend
+    // that also filtered would be a second publication rule, and Production —
+    // where both league seasons are draft — correctly gets an empty catalogue
+    // from the server rather than an empty one from the client.
+    const catalogue = catalogueFromPublishedSeasons(
+      [season('Serie A', 'serie-a', 'scheduled')],
+      [],
+    )
+    expect(catalogue.map((entry) => entry.status)).toEqual(['upcoming'])
+  })
+
+  it('searches the whole published catalogue, so a growing one stays findable', () => {
+    const catalogue = catalogueFromPublishedSeasons(
+      [season('Bundesliga', 'bundesliga'), season('Serie A', 'serie-a')],
+      [],
+    )
+    const player = presentPlayerCompetitions(catalogue, [])
+
+    expect(
+      presentExplore(player, 'bundes').groups.flatMap((group) => group.entries),
+    ).toHaveLength(1)
     expect(presentExplore(player, 'bundes').noMatches).toBe(false)
     expect(presentExplore(player, 'zzzz').noMatches).toBe(true)
   })
 
-  it('keeps the static catalogue as presentation metadata rather than as truth', () => {
-    // With no server answer the frontend still renders what it knows, so a
-    // discovery failure degrades to the previous behaviour rather than to an
-    // empty platform. That is the fallback classification, stated as a test.
-    const player = presentPlayerCompetitions(HUB_COMPETITIONS, [], undefined, [])
-    expect(player.catalogue).toEqual(HUB_COMPETITIONS)
-    expect(player.unroutable).toHaveLength(0)
+  it('has nothing to fall back to, and says so rather than inventing a platform', () => {
+    // A catalogue read that answered nothing produces an empty catalogue —
+    // never a hand-written pair of competitions standing in for the server.
+    const player = presentPlayerCompetitions(catalogueFromPublishedSeasons([], []), [])
+    expect(player.catalogue).toEqual([])
+    expect(player.empty).toBe(true)
   })
 })

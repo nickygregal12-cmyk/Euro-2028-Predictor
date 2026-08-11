@@ -12,7 +12,7 @@ import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPl
 import { fetchSeasonConsensus } from '../../services/supabase/seasonConsensus'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
 import { createSeasonGameRegistrationRpcGateway } from '../../services/supabase/seasonGameRegistration'
-import { findHubCompetition } from '../hub/competitionCatalogue'
+import { useHubCompetition } from '../hub/useHubCompetition'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
 import type { SeasonPlayContextGateway } from './seasonPlayContextModel'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
@@ -91,7 +91,12 @@ export function SeasonMatchPredictorRoute({
     return (matchweek: number) => fetchSeasonConsensus(tournamentId, matchweek)
   }, [context])
 
-  const seasonRowName = findHubCompetition(competitionSlug, seasonSlug)?.seasonRowName ?? null
+  // The season's stored row name, from the server's own catalogue (contract
+  // 147). Null while the catalogue is still being read, which withholds the
+  // registration gateway rather than building one against a guessed name.
+  const catalogueEntry = useHubCompetition(competitionSlug, seasonSlug)
+  const seasonRowName =
+    catalogueEntry.status === 'ready' ? catalogueEntry.competition.seasonRowName : null
   const registration = useMemo(() => {
     if (seasonRowName === null) return undefined
     return createSeasonGameRegistrationRpcGateway({

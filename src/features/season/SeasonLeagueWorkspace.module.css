@@ -1,0 +1,75 @@
+.workspace {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* A segmented control rather than three buttons: the three views are one
+   choice, and a row of equal buttons reads as three separate actions. */
+.tabs {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+}
+
+.tab {
+  flex: 1 1 0;
+  min-height: 40px;
+  padding: var(--sp-2) var(--sp-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--tx2);
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--tx);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.tabActive {
+  background: var(--card);
+  color: var(--tx);
+}
+
+.movement {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.movementRank {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.movementUp {
+  color: var(--acc);
+  font-variant-numeric: var(--numeric);
+}
+
+.movementDown {
+  color: var(--amb);
+  font-variant-numeric: var(--numeric);
+}
+
+.movementLevel {
+  color: var(--tx3);
+}

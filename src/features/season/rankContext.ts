@@ -7,8 +7,10 @@
  * server's, and a percentile is arithmetic over them.
  *
  * THIS IS NOT RANK MOVEMENT AND MUST NOT BE MISTAKEN FOR IT. "↑3 this
- * matchweek" needs the rank the player held before, which is history no browser
- * read exposes (`MIG-UI-03`). Current standing and change in standing are
+ * matchweek" needs the rank the player held before. That history now exists, in
+ * contract 150, but only for a PRIVATE LEAGUE and only over a SETTLED
+ * matchweek — so movement is rendered beside the league it was measured in and
+ * never beside a season-wide rank. Current standing and change in standing are
  * different facts from different sources, and conflating them is how a product
  * starts inventing one from the other.
  *

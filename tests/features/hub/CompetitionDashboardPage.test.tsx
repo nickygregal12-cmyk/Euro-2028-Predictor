@@ -7,6 +7,7 @@ import {
 } from '../../../src/features/hub/CompetitionDashboardPage'
 import type { HubSeasonMembership } from '../../../src/services/supabase/competitionGames'
 import type { CompetitionGame } from '../../../src/services/supabase/competitionGamesModel'
+import { catalogueFromPublishedSeasons } from '../../../src/features/hub/competitionCatalogue'
 
 const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
@@ -20,11 +21,21 @@ const mocks = vi.hoisted(() => ({
   // The week loader asks the play context first and every game read hangs off
   // it, so a hanging context is how the other tests keep the week unassembled.
   loadPlayContext: vi.fn<() => Promise<unknown>>(() => new Promise(() => {})),
+  playerCompetitions: vi.fn(),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
   fetchHubMembership: mocks.fetchHubMembership,
 }))
+
+// The shell's server-driven catalogue (contract 147). These page tests render a
+// route in isolation, so the provider that normally holds it is stubbed with a
+// ready answer for the competition under test — the route resolves its
+// competition from that catalogue and no longer from a frontend array.
+vi.mock('../../../src/app/providers/PlayerCompetitionsProvider', () => ({
+  usePlayerCompetitions: () => mocks.playerCompetitions(),
+}))
+
 
 vi.mock('../../../src/services/supabase/bonusGames', () => ({
   registerBonusCompetition: mocks.registerBonusCompetition,
@@ -133,6 +144,32 @@ describe('competition Overview and Games', () => {
     vi.clearAllMocks()
     mocks.registerBonusCompetition.mockResolvedValue(undefined)
     mocks.withdrawBonusCompetition.mockResolvedValue(undefined)
+    mocks.playerCompetitions.mockReturnValue({
+      status: 'ready',
+      player: {
+        mine: [],
+        shortcuts: [],
+        overflow: 0,
+        catalogue: catalogueFromPublishedSeasons(
+          [
+            {
+              competitionSlug: 'premier-league',
+              seasonKey: '2026-27',
+              competitionId: '60000000-0000-0000-0000-000000000010',
+              competitionName: 'Premier League',
+              seasonId: '60000000-0000-0000-0000-000000000001',
+              seasonName: 'Premier League 2026/27',
+              status: 'active',
+              timeZone: 'Europe/London',
+            },
+          ],
+          [],
+        ),
+        relevanceSource: 'game-membership',
+        empty: true,
+      },
+      reload: () => {},
+    })
   })
 
   it('keeps Overview distinct and sends game discovery to Games', async () => {

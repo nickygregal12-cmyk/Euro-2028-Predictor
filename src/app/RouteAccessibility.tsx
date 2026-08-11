@@ -30,7 +30,8 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/more/points', title: 'Profile' },
   { path: '/account', title: 'Account' },
   { path: weeklyRoutes.more, title: 'More' },
-  { path: '/profile/:playerId', title: 'Player profile' },
+  { path: '/tournament/profile/:playerId', title: 'Player profile' },
+  { path: '/tournament/profile', title: 'Tournament profile' },
   { path: '/profile', title: 'Profile' },
   { path: '/admin/results', title: 'Results Centre' },
   { path: '/admin/users', title: 'Users' },
@@ -71,6 +72,9 @@ const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: s
   // would otherwise never reach it — a fixture route is a longer path, not a
   // different one.
   [weeklyRoutePatterns.matchCentre, 'Match Centre'],
+  // Before the competition overview pattern, for the same reason: a player
+  // route is a longer path, not a different one.
+  [weeklyRoutePatterns.player, 'Player'],
   [weeklyRoutePatterns.matches, 'Matches'],
   [weeklyRoutePatterns.leagues, 'Leagues'],
   [weeklyRoutePatterns.play, 'Play'],

@@ -1,0 +1,255 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+
+  /* A CONTAINER, NOT A VIEWPORT. The two layouts below switch on the width
+     THIS PANEL actually has, not on the width of the window. It matters in the
+     product, not only in the gallery: the panel renders inside a league card,
+     which sits inside a workspace column, so a 1440px viewport does not mean
+     1440px of room — a matrix of ten fixtures in a 320px column would overflow
+     its own container while the media query said "desktop".
+
+     It is also what makes the phone layout PHOTOGRAPHABLE. The component
+     gallery pins each panel's WIDTH in CSS while a viewport media query reads
+     the window, so the runner rendered the matrix into the phone baseline and
+     the purpose-built list was under no baseline at all. That is exactly the
+     loss of coverage `pageshell-bottomnav` hit, found the same way — by
+     reading the image rather than accepting it. */
+  container-type: inline-size;
+}
+
+.caption {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+/* ---------------------------------------------------------------------------
+   Phone: fixture by fixture. Deliberately NOT the matrix at a smaller size —
+   a ten-column grid on a 390px screen is unreadable however it is scaled.
+   --------------------------------------------------------------------------- */
+
+.fixtures {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.fixtureHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+
+.fixtureTeams {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.fixtureMeta {
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx3);
+  white-space: nowrap;
+}
+
+.fixtureScore {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 700;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+  white-space: nowrap;
+}
+
+.picks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Name, prediction, outcome. Names wrap to an ellipsis rather than pushing the
+   two numeric columns off the edge — no horizontal page overflow at any width. */
+.pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5ch auto;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.pickSelf {
+  font-weight: 600;
+}
+
+.pickName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.pickSelf .pickName {
+  color: var(--tx);
+}
+
+.pickLink {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+.pickLink:hover,
+.pickLink:focus-visible {
+  border-bottom-color: currentColor;
+}
+
+.pickValue {
+  text-align: right;
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.outcome {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+  white-space: nowrap;
+}
+
+.outcomeExact {
+  color: var(--acc);
+}
+
+.outcomeCorrect {
+  color: var(--tx2);
+}
+
+/* ---------------------------------------------------------------------------
+   Desktop: the comparison matrix. It scrolls inside its own container — the
+   page body never scrolls sideways.
+   --------------------------------------------------------------------------- */
+
+.matrix {
+  display: none;
+}
+
+.matrixScroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.grid {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--fs-1);
+}
+
+.grid th,
+.grid td {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.grid th[scope='row'] {
+  text-align: left;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+.gridHead {
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-weight: 600;
+  color: var(--tx3);
+}
+
+.gridScore {
+  display: block;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+.gridSelf th[scope='row'],
+.gridSelf td {
+  background: var(--chip);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.gridCell {
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.gridCellExact {
+  color: var(--acc);
+  font-weight: 600;
+}
+
+.gridCellEmpty {
+  color: var(--tx3);
+}
+
+.gridPoints {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+@container (min-width: 900px) {
+  .fixtures {
+    display: none;
+  }
+
+  .matrix {
+    display: block;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

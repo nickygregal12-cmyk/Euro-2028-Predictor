@@ -1,7 +1,6 @@
 import type { CompetitionGame, CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
 import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
 import type { HubSeasonMembership } from '../../services/supabase/competitionGames'
-import type { PublishedSeason } from '../../services/supabase/publishedSeasons'
 import type { HubCompetition } from './competitionCatalogue'
 
 /**
@@ -22,10 +21,12 @@ import type { HubCompetition } from './competitionCatalogue'
  * membership" and `favourite` is not "followed"; collapsing any two would be
  * the exact simplification the authority forbids.
  *
- * FOLLOW HAS NO PERSISTENCE YET, and this model says so rather than inventing
- * one. Nothing in the repository stores a followed competition — the audit is
- * recorded as `MIG-UI-10` — so `followed` is `'unknown'` for every competition
- * today and `relevanceSource` reports which question actually answered.
+ * FOLLOW IS NOT READ HERE YET, and this model says so rather than inventing an
+ * answer. Contract 157 (`MIG-UI-10`) added the persistence on 11 August 2026 and
+ * nothing consumes it, so `followed` is `'unknown'` for every competition today
+ * and `relevanceSource` reports which question actually answered. The value is
+ * `'unknown'` rather than `false` because "we have not asked" and "they have
+ * not" would send a player to a different screen.
  *
  * WHAT THE UI USES IN THE MEANTIME is game membership, which IS a server
  * authority and IS durable: a player who has joined a game in a competition is
@@ -40,15 +41,13 @@ import type { HubCompetition } from './competitionCatalogue'
  * three-competition product. Nothing here indexes, orders or special-cases the
  * two launch competitions.
  *
- * WHICH SEASONS EXIST IS THE SERVER'S ANSWER (`MIG-UI-12`). The catalogue comes
- * from `fetchPublishedSeasons`, which enumerates `tournaments` of
- * `kind = 'league_season'`; `HUB_COMPETITIONS` supplies only a ROUTE SLUG and
- * presentation copy for the seasons it happens to know, and is transitional
- * rather than architectural truth. A season the server holds and the static
- * catalogue does not is reported in `unroutable` — named, with its lifecycle,
- * and honestly unopenable — instead of vanishing, because a competition
- * disappearing because a frontend array was not edited is exactly the failure
- * this replaced.
+ * WHICH SEASONS EXIST IS THE SERVER'S ANSWER, IN FULL (contract 147, closing
+ * `MIG-UI-12`). The catalogue handed in here is built by
+ * `catalogueFromPublishedSeasons` from `get_published_weekly_seasons`, which
+ * returns each season's ROUTE SLUG alongside its identity. There is no static
+ * competition array left and therefore no such thing as a published season the
+ * frontend can see and cannot open: the `unroutable` list this model used to
+ * carry described exactly that gap and has been retired with it.
  *
  * PURE. Catalogue and membership in, presentation model out; no clock, no
  * network, no storage.
@@ -74,23 +73,6 @@ export type CompetitionRelevance = {
   games: readonly CompetitionGame[]
 }
 
-/**
- * A season the server publishes that the frontend cannot open.
- *
- * IT EXISTS BECAUSE THE ROUTE SLUG IS NOT BROWSER-READABLE.
- * `public.competitions.slug` is revoked from `authenticated`, so the only
- * source of a competition's URL segment is the static catalogue. A season
- * outside it is real, is listed, and says it cannot be opened yet — never
- * dropped, and never given a slug guessed from its name.
- */
-export type UnroutableSeason = {
-  key: string
-  seasonId: string
-  /** The stored name, in full: "Bundesliga 2026/27". Not split or guessed at. */
-  name: string
-  status: PublishedSeason['status']
-}
-
 export type PlayerCompetitions = {
   /**
    * The competitions this player is relevant to, most relevant first. Global
@@ -106,12 +88,6 @@ export type PlayerCompetitions = {
    * Never navigation.
    */
   catalogue: readonly HubCompetition[]
-  /**
-   * Published seasons with no route slug in the static catalogue. Listed so a
-   * newly published competition is visible the moment the server holds it, and
-   * marked so nothing offers a link it cannot build.
-   */
-  unroutable: readonly UnroutableSeason[]
   /**
    * Which question produced `mine`. `follow` once a Follow authority exists;
    * `game-membership` while it does not, so a surface can say what it is
@@ -160,31 +136,16 @@ function byRelevance(
 }
 
 export function presentPlayerCompetitions(
+  /**
+   * The published catalogue, built by `catalogueFromPublishedSeasons` from
+   * contract 147's read. Every entry is routable by construction.
+   */
   catalogue: readonly HubCompetition[],
   seasons: readonly HubSeasonMembership[],
   limit: number = COMPETITION_SHORTCUT_LIMIT,
-  /**
-   * Every weekly season the server holds. Omitted by callers that already know
-   * the set — the tests and the scale fixture — in which case the static
-   * catalogue is the only source and nothing is reported unroutable.
-   */
-  published: readonly PublishedSeason[] = [],
 ): PlayerCompetitions {
   const bySeasonName = new Map(seasons.map((season) => [season.seasonName, season]))
   const order = new Map(catalogue.map((entry, index) => [entry.seasonRowName, index]))
-  const known = new Set(catalogue.map((entry) => entry.seasonRowName))
-
-  // Server-held seasons the static catalogue has no route slug for. `draft` is
-  // excluded: a season nobody has scheduled is not a thing to advertise, and
-  // that is the one lifecycle judgement made here.
-  const unroutable: UnroutableSeason[] = published
-    .filter((season) => !known.has(season.name) && season.status !== 'draft')
-    .map((season) => ({
-      key: season.name,
-      seasonId: season.id,
-      name: season.name,
-      status: season.status,
-    }))
 
   const relevance: CompetitionRelevance[] = []
   for (const competition of catalogue) {
@@ -214,7 +175,6 @@ export function presentPlayerCompetitions(
     shortcuts,
     overflow: mine.length - shortcuts.length,
     catalogue,
-    unroutable,
     relevanceSource: 'game-membership',
     empty: mine.length === 0,
   }

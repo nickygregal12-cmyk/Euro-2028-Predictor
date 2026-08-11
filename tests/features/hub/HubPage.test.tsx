@@ -23,7 +23,7 @@ import type { HubSeasonMembership } from '../../../src/services/supabase/competi
 const mocks = vi.hoisted(() => ({
   fetchHubMembership: vi.fn<() => Promise<HubSeasonMembership[]>>(),
   fetchSeasonFixtureList: vi.fn(),
-  fetchPublishedSeasons: vi.fn(),
+  fetchPublishedWeeklySeasons: vi.fn(),
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -34,11 +34,28 @@ vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({
   fetchSeasonFixtureList: mocks.fetchSeasonFixtureList,
 }))
 
-// Which seasons the server holds (MIG-UI-12). Empty here: these assertions are
-// about the shape of the dashboard, and the static catalogue still supplies the
-// route slugs for the competitions the membership mock names.
-vi.mock('../../../src/services/supabase/publishedSeasons', () => ({
-  fetchPublishedSeasons: mocks.fetchPublishedSeasons,
+// Which seasons the server publishes, and where each one lives (contract 147).
+// There is no static catalogue behind this any more: a competition the mock
+// does not return does not exist for the shell, which is the property.
+vi.mock('../../../src/services/supabase/weeklyCatalogue', () => ({
+  fetchPublishedWeeklySeasons: mocks.fetchPublishedWeeklySeasons,
+}))
+
+// The Matchweek Recap's two contracts (151 and 150) and the league list it
+// needs. None is under test here — each has its own model suite — and a player
+// with no settled matchweek renders no recap, which is the state these
+// assertions are about.
+vi.mock('../../../src/services/supabase/seasonPlayerProfile', () => ({
+  fetchSeasonPlayerProfile: vi.fn(() => Promise.reject(new Error('not under test'))),
+}))
+vi.mock('../../../src/services/supabase/seasonLeagueMovement', () => ({
+  fetchSeasonLeagueMovement: vi.fn(() => Promise.reject(new Error('not under test'))),
+}))
+vi.mock('../../../src/services/supabase/gameLeagues', () => ({
+  fetchMyGameLeagues: vi.fn(() => Promise.resolve([])),
+}))
+vi.mock('../../../src/features/auth/AuthProvider', () => ({
+  useAuth: () => ({ userId: 'player-1', displayName: 'Alex' }),
 }))
 
 // The Hub asks each joined game what it needs; none of those reads is under
@@ -91,7 +108,18 @@ function renderPage() {
 describe('the Hub is a dashboard, not a catalogue', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.fetchPublishedSeasons.mockResolvedValue([])
+    mocks.fetchPublishedWeeklySeasons.mockResolvedValue([
+      {
+        competitionSlug: 'premier-league',
+        seasonKey: '2026-27',
+        competitionId: '60000000-0000-0000-0000-000000000010',
+        competitionName: 'Premier League',
+        seasonId: '60000000-0000-0000-0000-000000000001',
+        seasonName: 'Premier League 2026/27',
+        status: 'active',
+        timeZone: 'Europe/London',
+      },
+    ])
     mocks.fetchSeasonFixtureList.mockResolvedValue({
       competition: { id: 'c', name: 'Premier League', seasonKey: '2026-27', timeZone: 'UTC' },
       window: { from: '2026-08-01T00:00:00Z', to: '2026-08-20T00:00:00Z' },
