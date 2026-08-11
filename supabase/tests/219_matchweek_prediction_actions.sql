@@ -34,21 +34,39 @@ insert into public.teams (id, tournament_id, name) values
 
 -- FOUR rounds, each in a different state, so the selection is tested by
 -- contrast rather than by a single positive case:
+--   3 — opened and closed, and holds NO FIXTURE
 --   4 — opened, and already LOCKED
 --   5 — opened, and still open        <- the only actionable one
 --   6 — has NOT opened yet
---   7 — opened, and holds no fixture
+--
+-- The windows ascend with the ordinals and do not touch, because
+-- `assert_round_play_window` refuses a round claiming time another round has
+-- already claimed. An earlier draft overlapped them and the suite refused
+-- itself before testing anything.
+-- `competition_rounds_window_paired` requires both ends of the play window or
+-- neither, so every row carries a close as well as an open.
 insert into public.competition_rounds (
-  id, tournament_id, round_key, ordinal, kind, label, window_opens_at)
+  id, tournament_id, round_key, ordinal, kind, label,
+  window_opens_at, window_closes_at)
 values
+  (md5('ma-r3')::uuid, current_setting('test.ma_season')::uuid, 'ma-mw3', 3,
+   'league_matchweek', 'Matchweek 3',
+   now() - interval '30 days', now() - interval '22 days'),
   (md5('ma-r4')::uuid, current_setting('test.ma_season')::uuid, 'ma-mw4', 4,
-   'league_matchweek', 'Matchweek 4', now() - interval '14 days'),
+   'league_matchweek', 'Matchweek 4',
+   now() - interval '20 days', now() - interval '10 days'),
   (md5('ma-r5')::uuid, current_setting('test.ma_season')::uuid, 'ma-mw5', 5,
-   'league_matchweek', 'Matchweek 5', now() - interval '3 days'),
+   'league_matchweek', 'Matchweek 5',
+   now() - interval '3 days', now() + interval '4 days'),
   (md5('ma-r6')::uuid, current_setting('test.ma_season')::uuid, 'ma-mw6', 6,
-   'league_matchweek', 'Matchweek 6', now() + interval '5 days'),
-  (md5('ma-r7')::uuid, current_setting('test.ma_season')::uuid, 'ma-mw7', 7,
-   'league_matchweek', 'Matchweek 7', now() - interval '1 day');
+   'league_matchweek', 'Matchweek 6',
+   now() + interval '5 days', now() + interval '12 days');
+
+-- FOUR clubs: a club plays at most once per matchweek, so the two fixtures in
+-- matchweek 5 are two separate pairings rather than the same pair twice.
+insert into public.teams (id, tournament_id, name) values
+  (md5('ma-t3')::uuid, current_setting('test.ma_season')::uuid, 'MA City'),
+  (md5('ma-t4')::uuid, current_setting('test.ma_season')::uuid, 'MA Athletic');
 
 insert into public.season_fixtures (
   id, tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
@@ -56,9 +74,9 @@ values
   (md5('ma-f5a')::uuid, current_setting('test.ma_season')::uuid, md5('ma-r5')::uuid,
    md5('ma-t1')::uuid, md5('ma-t2')::uuid, now() + interval '2 days', 'scheduled'),
   (md5('ma-f5b')::uuid, current_setting('test.ma_season')::uuid, md5('ma-r5')::uuid,
-   md5('ma-t2')::uuid, md5('ma-t1')::uuid, now() + interval '3 days', 'scheduled'),
+   md5('ma-t3')::uuid, md5('ma-t4')::uuid, now() + interval '3 days', 'scheduled'),
   (md5('ma-f4a')::uuid, current_setting('test.ma_season')::uuid, md5('ma-r4')::uuid,
-   md5('ma-t1')::uuid, md5('ma-t2')::uuid, now() - interval '4 days', 'played'),
+   md5('ma-t1')::uuid, md5('ma-t2')::uuid, now() - interval '14 days', 'scheduled'),
   (md5('ma-f6a')::uuid, current_setting('test.ma_season')::uuid, md5('ma-r6')::uuid,
    md5('ma-t1')::uuid, md5('ma-t2')::uuid, now() + interval '9 days', 'scheduled');
 
@@ -132,7 +150,7 @@ select is(
       and item.action_type = 'matchweek_predictions_due'
     limit 1),
   '5',
-  'the open one — matchweek 4 has locked, 6 has not opened and 7 holds no fixture');
+  'the open one — matchweek 4 has locked, 6 has not opened and 3 holds no fixture');
 
 select is(
   (public.process_player_action_items() ->> 'matchweek_prediction_actions_written')::integer,

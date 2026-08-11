@@ -31,19 +31,24 @@ insert into public.teams (id, tournament_id, name) values
   (md5('cap-t1')::uuid, current_setting('test.cap_season')::uuid, 'Cap Rovers'),
   (md5('cap-t2')::uuid, current_setting('test.cap_season')::uuid, 'Cap United');
 
+-- `competition_rounds_window_paired` requires both ends or neither.
 insert into public.competition_rounds (
-  id, tournament_id, round_key, ordinal, kind, label, window_opens_at)
+  id, tournament_id, round_key, ordinal, kind, label,
+  window_opens_at, window_closes_at)
 values (md5('cap-r1')::uuid, current_setting('test.cap_season')::uuid, 'cap-mw1', 1,
-        'league_matchweek', 'Matchweek 1', now() - interval '10 days');
+        'league_matchweek', 'Matchweek 1',
+        now() - interval '10 days', now() - interval '2 days');
 
 -- LOCKED, so the read reveals. An unrevealed matchweek returns no members at
 -- all and would pass every assertion below for the wrong reason.
+-- SCHEDULED for now, so the predictions below can be entered. The matchweek is
+-- locked further down, once they are in.
 insert into public.season_fixtures (
   id, tournament_id, competition_round_id, home_team_id, away_team_id,
-  kickoff_at, status, home_score, away_score)
+  kickoff_at, status)
 values (md5('cap-f1')::uuid, current_setting('test.cap_season')::uuid, md5('cap-r1')::uuid,
         md5('cap-t1')::uuid, md5('cap-t2')::uuid,
-        now() - interval '2 days', 'played', 2, 1);
+        now() + interval '2 days', 'scheduled');
 
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -66,6 +71,7 @@ insert into public.entries (id, user_id, tournament_id)
 select md5('cap-e' || n)::uuid, md5('cap-u' || n)::uuid,
        current_setting('test.cap_season')::uuid
   from generate_series(1, 205) as n;
+-- The trigger resolves the season's Main Predictor and the membership itself.
 
 insert into public.leagues (id, tournament_id, name, owner_id, invite_code)
 values (md5('cap-lg')::uuid, current_setting('test.cap_season')::uuid,
@@ -85,12 +91,24 @@ select current_setting('test.cap_season')::uuid, md5('cap-e' || n)::uuid,
 -- of two hundred is most likely to drop. Everyone else scores their own index,
 -- so the ordering is strict and there is exactly one right answer.
 insert into public.season_matchweek_scores (
-  tournament_id, entry_id, competition_round_id, points, settled_at)
+  tournament_id, entry_id, competition_round_id, points, fixtures_scored, settled_at)
 select current_setting('test.cap_season')::uuid, md5('cap-e' || n)::uuid,
        md5('cap-r1')::uuid,
        case when n = 205 then 5000 else n end,
+       1,
        now() - interval '1 day'
   from generate_series(1, 205) as n;
+
+-- NOW the matchweek locks, so the read reveals. Moving the kickoff rather than
+-- waiting for one is the only way to read across a lock inside a transaction,
+-- and it is done with replication role `replica` so the fixture's own triggers
+-- do not treat this as contract 119's provider reschedule.
+set local session_replication_role = replica;
+update public.season_fixtures
+   set kickoff_at = now() - interval '2 hours', status = 'played',
+       home_score = 2, away_score = 1
+ where id = md5('cap-f1')::uuid;
+set local session_replication_role = origin;
 
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('cap-u1')::uuid, 'role', 'authenticated',

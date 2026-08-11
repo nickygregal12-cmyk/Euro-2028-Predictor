@@ -28,7 +28,7 @@
 
 begin;
 
-select plan(14);
+select plan(13);
 
 insert into public.tournaments (name, year, competition_id, season_key, kind, display_timezone, status)
 select 'C169 Initial Table', 2054, t.competition_id, 'initial-table', 'league_season',
@@ -38,9 +38,14 @@ select 'C169 Initial Table', 2054, t.competition_id, 'initial-table', 'league_se
 select set_config('test.it_season',
   (select id::text from public.tournaments where season_key = 'initial-table'), true);
 
+-- FOUR clubs, not two. `assert_season_fixture_shape` enforces that a club
+-- plays at most once per matchweek, so two fixtures in one round need two
+-- separate pairings — which is real football as well as a real constraint.
 insert into public.teams (id, tournament_id, name) values
   (md5('it-t1')::uuid, current_setting('test.it_season')::uuid, 'IT Rovers'),
-  (md5('it-t2')::uuid, current_setting('test.it_season')::uuid, 'IT United');
+  (md5('it-t2')::uuid, current_setting('test.it_season')::uuid, 'IT United'),
+  (md5('it-t3')::uuid, current_setting('test.it_season')::uuid, 'IT City'),
+  (md5('it-t4')::uuid, current_setting('test.it_season')::uuid, 'IT Athletic');
 
 -- SIX matchdays. Three would make the defect invisible by construction, which
 -- is precisely why it survived to contract 167.
@@ -55,8 +60,10 @@ insert into public.season_fixtures (
   id, tournament_id, competition_round_id, home_team_id, away_team_id,
   kickoff_at, status, home_score, away_score)
 select md5('it-fx' || n || '-' || leg)::uuid, current_setting('test.it_season')::uuid,
-       md5('it-r' || n)::uuid, md5('it-t1')::uuid, md5('it-t2')::uuid,
-       now() - ((40 - n) || ' days')::interval, 'played', 2, 1
+       md5('it-r' || n)::uuid,
+       case when leg = 1 then md5('it-t1')::uuid else md5('it-t3')::uuid end,
+       case when leg = 1 then md5('it-t2')::uuid else md5('it-t4')::uuid end,
+       now() + ((n + 1) || ' days')::interval, 'scheduled', null, null
   from generate_series(1, 6) as n, generate_series(1, 2) as leg;
 
 set local session_replication_role = replica;
@@ -70,8 +77,18 @@ insert into public.profiles (id, display_name, welcomed_at)
 select md5('it-' || who)::uuid, upper(who), now()
   from unnest(array['a', 'b', 'c', 'd']) as who;
 
-insert into public.entries (id, user_id, tournament_id)
-select md5('it-e-' || who)::uuid, md5('it-' || who)::uuid, current_setting('test.it_season')::uuid
+-- `assert_entry_game_scope` requires an entry to belong to the season's Main or
+-- Original Predictor, and `c1b` seeded those availability rows only for the two
+-- seasons that existed when it ran.
+insert into public.bonus_competitions (
+  id, tournament_id, game_key, published, availability_status,
+  draw_required, visibility_kind, registration_opens_at)
+values (md5('it-mp')::uuid, current_setting('test.it_season')::uuid, 'main_predictor',
+        true, 'active', false, 'public', now() - interval '60 days');
+
+insert into public.entries (id, user_id, tournament_id, game_competition_id)
+select md5('it-e-' || who)::uuid, md5('it-' || who)::uuid,
+       current_setting('test.it_season')::uuid, md5('it-mp')::uuid
   from unnest(array['a', 'b', 'c', 'd']) as who;
 
 -- The predictions that produce the table above. An exact 2-1 scores 5, a 3-1
@@ -97,6 +114,19 @@ select current_setting('test.it_season')::uuid, md5('it-e-' || who)::uuid,
        case when n <= 3 and leg = 1 then 3 else 0 end, 1
   from generate_series(1, 6) as n, generate_series(1, 2) as leg,
        unnest(array['c', 'd']) as who;
+
+-- The predictions are in. NOW the matchweeks lock and the results land, with
+-- replication role `replica` so the fixture's own reschedule and result
+-- triggers do not treat this as provider activity — contract 119's rescheduled
+-- lock and contract 125's result path are not what this file is testing.
+set local session_replication_role = replica;
+update public.season_fixtures
+   set kickoff_at = now() - ((40 - ordinal) || ' days')::interval,
+       status = 'played', home_score = 2, away_score = 1
+  from public.competition_rounds round
+ where round.id = season_fixtures.competition_round_id
+   and season_fixtures.tournament_id = current_setting('test.it_season')::uuid;
+set local session_replication_role = origin;
 
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
@@ -127,21 +157,23 @@ select md5('it-w' || n)::uuid, md5('it-fx' || n || '-' || leg)::uuid
   from generate_series(1, 6) as n, generate_series(1, 2) as leg;
 
 -- A proper four-player double round robin: three pairings, each played twice.
+-- `bonus_cup_fixtures_group_shape` requires a group fixture to carry both its
+-- group and its matchday, so the matchday is stated rather than inferred.
 insert into public.bonus_cup_fixtures (
-  competition_id, group_id, window_id, stage, home_user_id, away_user_id)
+  competition_id, group_id, window_id, matchday, stage, home_user_id, away_user_id)
 values
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w1')::uuid, 'group', md5('it-a')::uuid, md5('it-b')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w1')::uuid, 'group', md5('it-c')::uuid, md5('it-d')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w2')::uuid, 'group', md5('it-a')::uuid, md5('it-c')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w2')::uuid, 'group', md5('it-b')::uuid, md5('it-d')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w3')::uuid, 'group', md5('it-a')::uuid, md5('it-d')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w3')::uuid, 'group', md5('it-b')::uuid, md5('it-c')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w4')::uuid, 'group', md5('it-b')::uuid, md5('it-a')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w4')::uuid, 'group', md5('it-d')::uuid, md5('it-c')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w5')::uuid, 'group', md5('it-c')::uuid, md5('it-a')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w5')::uuid, 'group', md5('it-d')::uuid, md5('it-b')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w6')::uuid, 'group', md5('it-d')::uuid, md5('it-a')::uuid),
-  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w6')::uuid, 'group', md5('it-c')::uuid, md5('it-b')::uuid);
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w1')::uuid, 1, 'group', md5('it-a')::uuid, md5('it-b')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w1')::uuid, 1, 'group', md5('it-c')::uuid, md5('it-d')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w2')::uuid, 2, 'group', md5('it-a')::uuid, md5('it-c')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w2')::uuid, 2, 'group', md5('it-b')::uuid, md5('it-d')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w3')::uuid, 3, 'group', md5('it-a')::uuid, md5('it-d')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w3')::uuid, 3, 'group', md5('it-b')::uuid, md5('it-c')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w4')::uuid, 4, 'group', md5('it-b')::uuid, md5('it-a')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w4')::uuid, 4, 'group', md5('it-d')::uuid, md5('it-c')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w5')::uuid, 5, 'group', md5('it-c')::uuid, md5('it-a')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w5')::uuid, 5, 'group', md5('it-d')::uuid, md5('it-b')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w6')::uuid, 6, 'group', md5('it-d')::uuid, md5('it-a')::uuid),
+  (md5('it-cup')::uuid, md5('it-g1')::uuid, md5('it-w6')::uuid, 6, 'group', md5('it-c')::uuid, md5('it-b')::uuid);
 
 -- ---------------------------------------------------------------------------
 -- THE FIELD IS AS DESIGNED — asserted, so a later change to the scoring
