@@ -4,7 +4,7 @@
 // here: a pre-lock or non-co-member call throws server-side. This wrapper only
 // shapes the payload.
 
-import { supabase } from './client'
+import { db } from './client'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 import type { EntryPredictions } from '../../domain/tournament/h2h'
 
@@ -28,7 +28,7 @@ const STAGE_FROM_DB: Record<string, KnockoutStage> = {
  * than showing partial data.
  */
 export async function fetchRivalEntry(rivalId: string, tournamentId: string): Promise<RivalEntry> {
-  const { data, error } = await supabase.rpc('get_rival_entry', {
+  const { data, error } = await db.rpc('get_rival_entry', {
     p_rival_id: rivalId,
     p_tournament_id: tournamentId,
   })

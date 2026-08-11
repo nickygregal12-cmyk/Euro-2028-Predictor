@@ -1,6 +1,6 @@
 // Profile query wrappers.
 
-import { supabase } from './client'
+import { db } from './client'
 
 export type Profile = {
   id: string
@@ -9,7 +9,7 @@ export type Profile = {
 
 /** The signed-in user's profile row, or null if it hasn't been created yet. */
 export async function fetchMyProfile(userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('profiles')
     .select('id, display_name')
     .eq('id', userId)
@@ -35,7 +35,7 @@ export type MyAccount = { displayName: string; reminderEmails: boolean }
 
 /** The private Account read: own display name and preferences. */
 export async function fetchMyAccount(userId: string): Promise<MyAccount | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('profiles')
     .select('display_name, reminder_emails')
     .eq('id', userId)
@@ -50,7 +50,7 @@ export async function updateMyDisplayName(
   userId: string,
   displayName: string,
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('profiles')
     .update({ display_name: displayName })
     .eq('id', userId)
@@ -62,7 +62,7 @@ export async function updateReminderEmails(
   userId: string,
   reminderEmails: boolean,
 ): Promise<void> {
-  const { error } = await supabase
+  const { error } = await db
     .from('profiles')
     .update({ reminder_emails: reminderEmails })
     .eq('id', userId)
@@ -71,7 +71,7 @@ export async function updateReminderEmails(
 
 export async function fetchWelcomedAt(userId: string): Promise<{ welcomedAt: string | null }> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('profiles')
       .select('welcomed_at')
       .eq('id', userId)
@@ -94,7 +94,7 @@ const PRE_MIGRATION_SENTINEL = '1970-01-01T00:00:00.000Z'
  */
 export async function markWelcomedNow(userId: string): Promise<void> {
   try {
-    await supabase
+    await db
       .from('profiles')
       .update({ welcomed_at: new Date().toISOString() })
       .eq('id', userId)
@@ -116,7 +116,7 @@ export type LastSeenRead =
  */
 export async function fetchLastSeenRead(userId: string): Promise<LastSeenRead> {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('profiles')
       .select('last_seen_at, last_seen_points')
       .eq('id', userId)
@@ -140,7 +140,7 @@ export async function fetchLastSeenRead(userId: string): Promise<LastSeenRead> {
  */
 export async function updateLastSeen(userId: string, points: number): Promise<void> {
   try {
-    await supabase
+    await db
       .from('profiles')
       .update({ last_seen_at: new Date().toISOString(), last_seen_points: points })
       .eq('id', userId)

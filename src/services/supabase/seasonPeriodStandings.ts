@@ -12,7 +12,7 @@
 // discloses nothing that is not already the caller's own — and it is the same
 // bootstrap `entrySubmissionStatus.ts` already performs.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapSeasonPeriodStandings,
   type SeasonPeriodStandings,
@@ -39,7 +39,7 @@ export async function fetchSeasonPeriodStandings(
    */
   includeNames = false,
 ): Promise<SeasonPeriodStandings> {
-  const { data, error } = await supabase.rpc('get_season_period_standings', {
+  const { data, error } = await db.rpc('get_season_period_standings', {
     p_tournament_id: tournamentId,
     p_period: period,
     p_window: window ?? 5,
@@ -60,7 +60,7 @@ export async function fetchMyEntryId(
   userId: string,
   tournamentId: string,
 ): Promise<string | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('entries')
     .select('id')
     .eq('user_id', userId)

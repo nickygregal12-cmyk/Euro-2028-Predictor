@@ -16,7 +16,7 @@
 // imports it from `leagues.ts` rather than growing a second wrapper for one
 // RPC.
 
-import { supabase } from './client'
+import { db } from './client'
 
 export type GameLeague = {
   id: string
@@ -44,7 +44,7 @@ function mapLeague(row: Record<string, unknown>): GameLeague {
 
 /** The caller's leagues inside one game of one competition. */
 export async function fetchMyGameLeagues(gameCompetitionId: string): Promise<GameLeague[]> {
-  const { data, error } = await supabase.rpc('get_my_game_leagues', {
+  const { data, error } = await db.rpc('get_my_game_leagues', {
     p_game_competition_id: gameCompetitionId,
   })
   if (error) throw error
@@ -59,7 +59,7 @@ export async function createGameLeague(
   gameCompetitionId: string,
   name: string,
 ): Promise<CreatedGameLeague> {
-  const { data, error } = await supabase.rpc('create_game_league', {
+  const { data, error } = await db.rpc('create_game_league', {
     p_game_competition_id: gameCompetitionId,
     p_name: name,
   })

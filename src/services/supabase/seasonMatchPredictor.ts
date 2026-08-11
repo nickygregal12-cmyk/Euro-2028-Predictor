@@ -1,4 +1,5 @@
-import { supabase } from './client'
+import { db } from './client'
+import { rpcArgs } from './rpcArguments'
 import { resolveLockState } from '../../domain/competition/lockState'
 import { mainPredictorLockPolicy } from '../../domain/competition/game'
 import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
@@ -90,7 +91,7 @@ export function createSeasonMatchPredictorRpcGateway(options: {
 
   return {
     async load(matchweek: number): Promise<MatchPredictorPage> {
-      const { data, error } = await supabase.rpc('get_season_matchweek_card', {
+      const { data, error } = await db.rpc('get_season_matchweek_card', {
         p_tournament_id: options.tournamentId,
         p_matchweek: matchweek,
       })
@@ -189,13 +190,20 @@ export function createSeasonMatchPredictorRpcGateway(options: {
     async apply(matchweek: number, command: MatchPredictorCommand): Promise<void> {
       switch (command.kind) {
         case 'setPrediction': {
-          const { data, error } = await supabase.rpc('save_season_prediction', {
-            p_tournament_id: options.tournamentId,
-            p_season_fixture_id: command.fixtureId,
-            p_home: command.prediction?.home ?? null,
-            p_away: command.prediction?.away ?? null,
-            p_version: command.prediction ? (versions.get(command.fixtureId) ?? 0) : null,
-          })
+          const { data, error } = await db.rpc(
+            'save_season_prediction',
+            // Null is how a prediction is CLEARED, not an absent value:
+            // `20260805100000_season_card_rpcs.sql:377` branches on `p_home is
+            // null` to delete, and line 351 refuses one score without the
+            // other. A null version is coalesced to zero at line 385.
+            rpcArgs('save_season_prediction', ['p_home', 'p_away', 'p_version'], {
+              p_tournament_id: options.tournamentId,
+              p_season_fixture_id: command.fixtureId,
+              p_home: command.prediction?.home ?? null,
+              p_away: command.prediction?.away ?? null,
+              p_version: command.prediction ? (versions.get(command.fixtureId) ?? 0) : null,
+            }),
+          )
           if (error) throw error
           const stored = (data as { version?: number } | null)?.version
           if (command.prediction === null) {
@@ -206,7 +214,7 @@ export function createSeasonMatchPredictorRpcGateway(options: {
           return
         }
         case 'setJoker': {
-          const { error } = await supabase.rpc('set_season_matchweek_joker', {
+          const { error } = await db.rpc('set_season_matchweek_joker', {
             p_tournament_id: options.tournamentId,
             p_matchweek: matchweek,
             p_played: command.played,
@@ -215,7 +223,7 @@ export function createSeasonMatchPredictorRpcGateway(options: {
           return
         }
         case 'confirmCard': {
-          const { error } = await supabase.rpc('confirm_season_matchweek_card', {
+          const { error } = await db.rpc('confirm_season_matchweek_card', {
             p_tournament_id: options.tournamentId,
             p_matchweek: matchweek,
           })

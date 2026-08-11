@@ -2,6 +2,12 @@ import fs from 'node:fs'
 
 const repository = JSON.parse(fs.readFileSync('config/deployment-contract.json', 'utf8'))
 const hosted = JSON.parse(fs.readFileSync('config/development-hosted-contract.json', 'utf8'))
+// Production is read from production's own record. It used to be read from a
+// copy in the development record, refreshed only by a development rollout — so
+// after a production rollout this check looked for the OLD production row, and
+// found it, because the inventory keeps its superseded entries. It passed while
+// checking a historical fact.
+const production = JSON.parse(fs.readFileSync('config/production-hosted-contract.json', 'utf8'))
 const inventory = fs.readFileSync('docs/ops/ops-pending-migrations.md', 'utf8')
 
 /** @param {string} message */
@@ -16,8 +22,15 @@ if (hosted.requiredMigrationCount > repository.requiredMigrationCount) {
   )
 }
 
-if (hosted.productionPromotionAuthorised !== false) {
+if (production.promotionAuthorised !== false) {
   fail('Production promotion must remain fail-closed in the hosted contract record.')
+}
+
+if (hosted.productionContract !== undefined || hosted.productionPromotionAuthorised !== undefined) {
+  fail(
+    'The development hosted record must not restate production. ' +
+      'config/production-hosted-contract.json is its only authority.',
+  )
 }
 
 if (!inventory.includes('config/development-hosted-contract.json')) {
@@ -29,7 +42,7 @@ if (!inventory.includes(developmentRow)) {
   fail(`Migration inventory is missing the current development row: ${developmentRow}`)
 }
 
-const productionRow = `| Production Supabase | **${hosted.productionContract}** |`
+const productionRow = `| Production Supabase | **${production.requiredMigrationCount}** |`
 if (!inventory.includes(productionRow)) {
   fail(`Migration inventory is missing the current production row: ${productionRow}`)
 }
@@ -45,5 +58,5 @@ if (!inventory.includes('historic Netlify project `euro28-predictor-dev` is out 
 if (process.exitCode) process.exit(process.exitCode)
 
 console.log(
-  `Hosted migration inventory aligned: repository ${repository.requiredMigrationCount}, development ${hosted.requiredMigrationCount}, production ${hosted.productionContract}.`,
+  `Hosted migration inventory aligned: repository ${repository.requiredMigrationCount}, development ${hosted.requiredMigrationCount}, production ${production.requiredMigrationCount}.`,
 )

@@ -1,4 +1,5 @@
-import { supabase } from './client'
+import { db } from './client'
+import { rpcArgs } from './rpcArguments'
 import {
   mapKnockoutStoreResponse,
   type KnockoutStoreRead,
@@ -8,7 +9,7 @@ import {
 export async function fetchMyKnockoutPredictions(
   tournamentId: string,
 ): Promise<KnockoutStoreRead> {
-  const { data, error } = await supabase.rpc('get_my_knockout_predictions', {
+  const { data, error } = await db.rpc('get_my_knockout_predictions', {
     p_tournament_id: tournamentId,
   })
   if (error) throw error
@@ -32,13 +33,20 @@ export type SaveKnockoutPredictionInput = {
 export async function saveKnockoutPrediction(
   input: SaveKnockoutPredictionInput,
 ): Promise<number> {
-  const { data, error } = await supabase.rpc('save_knockout_prediction', {
-    p_match_id: input.matchId,
-    p_home: input.homeScore,
-    p_away: input.awayScore,
-    p_advancing_team_id: input.advancingTeamId,
-    p_expected_version: input.expectedVersion,
-  })
+  const { data, error } = await db.rpc(
+    'save_knockout_prediction',
+    rpcArgs(
+      'save_knockout_prediction',
+      ['p_advancing_team_id', 'p_expected_version'],
+      {
+        p_match_id: input.matchId,
+        p_home: input.homeScore,
+        p_away: input.awayScore,
+        p_advancing_team_id: input.advancingTeamId,
+        p_expected_version: input.expectedVersion,
+      },
+    ),
+  )
   if (error) throw error
 
   const version = (data as Record<string, unknown> | null)?.version
@@ -53,9 +61,12 @@ export async function deleteKnockoutPrediction(
   matchId: string,
   expectedVersion: number | null,
 ): Promise<void> {
-  const { error } = await supabase.rpc('delete_knockout_prediction', {
-    p_match_id: matchId,
-    p_expected_version: expectedVersion,
-  })
+  const { error } = await db.rpc(
+    'delete_knockout_prediction',
+    rpcArgs('delete_knockout_prediction', ['p_expected_version'], {
+      p_match_id: matchId,
+      p_expected_version: expectedVersion,
+    }),
+  )
   if (error) throw error
 }

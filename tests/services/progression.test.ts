@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/services/supabase/client', () => ({
-  supabase: {
+  db: {
     from: mocks.from,
     rpc: mocks.rpc,
   },
