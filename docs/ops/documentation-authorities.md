@@ -95,6 +95,36 @@ Those documents are snapshots and must keep saying what was true when they were
 written. The manifest test refuses to let a path be both evidence and an
 authority.
 
+### The sweep rule produced a duplication problem, and there is now a guard for it
+
+Measured 11 August 2026 across the 93 authority documents: **16 long paragraphs
+appear verbatim in more than one of them, 67,204 characters in total.** One
+contract blockquote exists identically in **seven** files at once — `CLAUDE.md`,
+`MASTER-TODO.md`, `docs/roadmap.md`, `docs/adr/README.md`,
+`docs/competition-structure.md`, `docs/design/README.md` and
+`docs/quality/feature-baseline.md`.
+
+Those are exactly the seven `sweep: true` documents, and that is not a
+coincidence. **The sweep demands all seven be touched by every contract, and the
+cheapest way to satisfy it is to paste the same paragraph into all seven.** The
+control against staleness produced the duplication. This document had already
+predicted the shape — *"marking everything would train people to add a
+meaningless line to pass the gate"* — and what it actually trained was a
+meaningful-*looking* line, which is harder to spot and more expensive to
+maintain.
+
+`tests/scripts/documentationDuplication.test.ts` now holds the rule that
+`DOC-AI-001` could only assert: no long paragraph is carried verbatim by two
+authorities. It runs against a **recorded baseline that may only shrink**, the
+same ratchet as `knip-baseline.md` and `lighthouse-baseline.md` — new
+duplication fails, and a fixed one fails until its baseline line is deleted, so
+the list cannot quietly stop being true. Evidence is out of scope: an audit
+quotes what it audited, and freezing that is what `DOC-AI-006` is for.
+
+**Working the baseline down means each swept document saying what a contract
+meant FOR IT, in its own words** — which is what the two architecture plans now
+do. That is seven live authorities' worth of editing and has not been done.
+
 ### What the cleanup moved, and the two things it nearly got wrong
 
 The retirement pass of 11 August 2026 proposed six dispositions from reading
@@ -225,7 +255,7 @@ These ten safeguards are the written rules. Some are enforceable and enforced; m
 
 | ID | Requirement | Enforcement |
 | --- | --- | --- |
-| `DOC-AI-001` | Every important fact has **one authoritative home**. Supporting files may link to it; they must not restate a moving fact. | Convention |
+| `DOC-AI-001` | Every important fact has **one authoritative home**. Supporting files may link to it; they must not restate a moving fact. | `tests/scripts/documentationDuplication.test.ts` enforces the verbatim half, against a shrink-only baseline; restating a fact in different words remains convention |
 | `DOC-AI-002` | Every active authority declares its authority class, status, scope, exclusions, last verification date, supersession position and implementation evidence — the control block below. | Convention |
 | `DOC-AI-003` | **No planning statement may be described as implemented without merged code, a migration, an executable test or verified hosted evidence**, named. | Convention; `tests/scripts/adrStatusFreshness.test.ts` enforces the ADR-status half |
 | `DOC-AI-004` | **No open pull request or branch is repository truth.** Proposed work is labelled proposed, and concurrent ownership is checked before editing a file. | Convention |

@@ -125,7 +125,7 @@
       "allow": [
         63
       ],
-      "why": "Delivered-foundations list."
+      "why": "Programme phases, workstreams and failable product gates — content nothing else in the repository holds. It is live because § 7 states which gates remain open, which a contract can falsify. It carried a delivered-foundations list and a contract changelog until 11 August 2026; both restated current-status.md, and nine of its paragraphs were byte-identical to CLAUDE.md and to the child build plan. What survives is a table of what each contract meant for a PHASE, which is the only part a programme plan owns."
     },
     {
       "path": "docs/architecture/multi-competition-hub-build-plan.md",
@@ -134,7 +134,7 @@
       "allow": [
         63
       ],
-      "why": "Carries a dated progress overlay above a frozen planning record."
+      "why": "The Stage A-L engineering sequence, and the child of the programme plan above. It is live because its stage exit evidence moves. Its contract changelog was the same verbatim copy the parent carried, which its own \u00a7 18 already forbade in principle — maintaining the same decision in two documents creates competing authority — and is now a table of what each contract meant for a STAGE."
     },
     {
       "path": "docs/quality/risk-register.md",
