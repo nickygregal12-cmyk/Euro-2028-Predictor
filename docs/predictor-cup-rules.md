@@ -1,5 +1,13 @@
 # EURO 2028 Predictor Cup — Draft Competition Rules (v0.1)
 
+> **PART OF THIS FILE IS LIVE RULE AUTHORITY. Do not retire it on the strength of the version number below.**
+>
+> **§5 is depended on by shipped code.** [`src/domain/season/cupGroupTable.ts`](../src/domain/season/cupGroupTable.ts) names §5's table columns and its eight tie-breakers as its authority, under [ADR 0014](adr/0014-predictor-cup-season-formats.md) as amended by [ADR 0020](adr/0020-football-prediction-hub-product-model.md). Changing §5.1 or §5.2 changes how a season Predictor Championship group is ranked, and needs the evidence a rule change needs.
+>
+> **The rest is the 22 July 2026 concept draft** for the Euro-scoped Cup, retained as the source record the ADRs were drawn from. Where it and an ADR differ, the ADR wins. It is not the authority for the season Predictor Championship — ADR 0014 and [ADR 0022](adr/0022-season-preset-threshold-and-shared-cup-machinery.md) are.
+>
+> *Recorded 11 August 2026, during the documentation cleanup that nearly retired this file to `docs/history/` on the strength of its "Draft v0.1" banner. A grep for inbound references found the domain module first.*
+
 A head-to-head prediction tournament that mirrors football: random groups, qualification, seeding and knockout survival.
 
 **Core idea:** every entrant makes normal EURO 2028 predictions. Those prediction points become a head-to-head score against a scheduled opponent. Group wins earn 3 table points, draws earn 1, defeats earn 0. Qualifiers enter a seeded knockout bracket until one Predictor Cup Champion remains.

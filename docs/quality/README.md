@@ -2,7 +2,7 @@
 
 This directory is the durable quality-control layer for the Euro 2028 Predictor. It preserves the current assurance position, verified risk history, the feature and safeguard baseline, intentionally deferred decisions, workstream reconciliation evidence and immutable audit evidence — without becoming a second roadmap or backlog.
 
-> **Restored 2026-07-24.** This charter was absent from the repository between the `2026-07-23L` reorganisation and the `2026-07-24R` audit, which recorded the gap as `DOC-004`. It has been restored and updated for the `reconciliations/` and `history/` directories that did not exist when it was first written. `audit-prompt.md` § *Repeat-audit and quality-baseline controls* item 1 requires this file to be readable.
+> **Restored 2026-07-24.** This charter was absent from the repository between the `2026-07-23L` reorganisation and the `2026-07-24R` audit, which recorded the gap as `DOC-004`. It has been restored and updated for the `reconciliations/` and `history/` directories that did not exist when it was first written. `instruments/audit-prompt.md` § *Repeat-audit and quality-baseline controls* item 1 requires this file to be readable.
 
 ## Existing authoritative controls
 
@@ -12,7 +12,6 @@ The quality system complements rather than replaces:
 - [`../../CLAUDE.md`](../../CLAUDE.md) — coding-agent session guidance.
 - [`current-status.md`](current-status.md) — the live implementation and operations status document.
 - [`../roadmap.md`](../roadmap.md) — future product sequence.
-- [`../build-todo.md`](../build-todo.md) — compatibility pointer to the status and roadmap; not a separate checklist.
 - [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md) — architecture and tournament-state contract.
 - [`../scoring-rules.md`](../scoring-rules.md) — approved Original Predictor scoring and entry-validity rules.
 - [`../tournament-structure.md`](../tournament-structure.md) — tournament facts and structural rules.
@@ -47,7 +46,8 @@ A historical audit is evidence at one commit and date. It must not become a comp
 | [`risk-register.md`](risk-register.md) | Permanent finding history and current status | No |
 | [`acquisition-risk-register.md`](acquisition-risk-register.md) | Acquisition-audit-derived risk register (`ACQ-R` findings) | No |
 | [`deferred-decisions.md`](deferred-decisions.md) | Intentionally postponed decisions with review triggers | No |
-| [`audit-prompt.md`](audit-prompt.md) | Controlled reusable audit instructions | No |
+| [`instruments/audit-prompt.md`](instruments/audit-prompt.md) | Controlled reusable audit instructions | No |
+| [`instruments/entry-flow-test-script.md`](instruments/entry-flow-test-script.md) | Reusable single-tester usability script | No |
 | [`audits/`](audits/) | Immutable dated audit evidence (the acquisition technical audit lives at `../audits/`) | No |
 | [`investigations/`](investigations/) | Dated investigation evidence | No |
 | [`reconciliations/`](reconciliations/) | Dated workstream closure evidence | No |
@@ -62,6 +62,12 @@ A reconciliation records the closure evidence for one workstream: what changed, 
 ### `history/`
 
 When a live control document is materially restructured, archive the previous version here as `<document>-<audit-designation>.md` before replacing it. Fix relative links when moving a file down a directory level.
+
+### `instruments/`
+
+Added 11 August 2026. A reusable procedure that is **run** rather than read: the controlled audit prompt, and the single-tester entry-flow script that moved here from `docs/test-script.md`. An instrument is not a status document and not dated evidence — it describes how to carry out an exercise, and it is expected to be used again.
+
+Both were previously indistinguishable from a status document by location alone, which is how a 954-line audit instrument came to sit beside the registers it produces. Neither's content changed; the script is guarded by `tests/scripts/markdownDocumentation.test.ts`, which is only worth doing to something that will be run again.
 
 ## Finding workflow
 

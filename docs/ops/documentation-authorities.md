@@ -95,6 +95,39 @@ Those documents are snapshots and must keep saying what was true when they were
 written. The manifest test refuses to let a path be both evidence and an
 authority.
 
+### What the cleanup moved, and the two things it nearly got wrong
+
+The retirement pass of 11 August 2026 proposed six dispositions from reading
+headers. Checking each against inbound references first changed two of them,
+and that order is the lesson: **a document's own banner is the weakest evidence
+about whether it is still load-bearing.**
+
+| Document | Proposed | Done |
+| --- | --- | --- |
+| `docs/build-todo.md` | Delete | Deleted. Its job was discouraging a second checklist; the coverage rule now refuses one outright, so the signpost was redundant |
+| `docs/quality/audit-prompt.md` | Move to `instruments/` | Moved. A 954-line instrument is run, not read, and sat beside the registers it produces |
+| `docs/test-script.md` | Move to history, or re-date | Moved to `instruments/` instead, as `entry-flow-test-script.md`. A test guards it against regressing to obsolete phase language, which is only worth doing to something that will be run again |
+| `docs/roadmap/acquisition-readiness-roadmap.md` | Retire to history | Retired, dated, with `acquisition-risk-register.md` repointed. Its phases were overtaken and it named contract 46 |
+| `docs/visual/higgsfield-concept-review.md` | Move to history, retire the directory | **Left in place.** The directory holds 32 tracked concept and before/after images that the document links to, and splitting a record from its own evidence is worse than the tidier tree. `docs/visual/` is declared an evidence directory instead |
+| `docs/predictor-cup-rules.md` | Supersession header, retire to history | **Left in place, and marked the other way.** Its banner says "Draft Competition Rules (v0.1)" and it reads retired — but `src/domain/season/cupGroupTable.ts` cites its §5 table columns and eight tie-breakers as its authority under ADR 0014. Retiring it would have moved a live scoring rule into an evidence directory. It now says so at the top |
+
+Two smaller corrections came out of the same pass. `docs/design-system.md` was
+listed twice after being promoted from `reference` to `live`; `classify` returns
+the first match, so the second entry was invisible and the manifest was quietly
+ambiguous about what it had decided. A test now refuses a duplicate path. And
+the design set was **not** frozen as the plan proposed: `design/README.md` says
+the modernisation plan is still the answer to what the product should look like
+finished, and `ui-finalisation.md` says its delivery order stands — so both are
+`reference`, and only `ui-finalisation.md` was promoted to `live`.
+
+**Links versus mentions, in dated evidence.** A prose mention of an old path is
+left exactly as written — it records where a file was when the record was made,
+which is the point of a record. A markdown **link** is repointed, because
+`tests/scripts/markdownDocumentation.test.ts` requires links to resolve and a
+path is not a statement. Both halves are visible in this cleanup: the audits
+still say `docs/ops-prod-cutover.md` in prose from an earlier move, and one
+audit's link to the audit prompt was repointed.
+
 ### `docs/ops/` is procedures; `docs/ops/records/` is what happened
 
 Until 11 August 2026 the two lived together, so eleven dated one-off records —

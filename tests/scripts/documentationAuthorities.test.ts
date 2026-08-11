@@ -268,6 +268,19 @@ describe('the manifest itself', () => {
     }
   })
 
+  it('names each path once', () => {
+    // A path listed twice resolves by whichever entry `classify` reaches
+    // first, which makes the second one invisible and the manifest quietly
+    // ambiguous about what it decided. Promoting docs/design-system.md from
+    // reference to live left exactly that.
+    const paths = manifest.authorities.map((entry: { path: string }) => entry.path)
+    expect(paths).toEqual([...new Set(paths)])
+
+    const exempt = manifest.outOfScope.map((entry: { path: string }) => entry.path)
+    expect(exempt).toEqual([...new Set(exempt)])
+    expect(paths.filter((path: string) => exempt.includes(path))).toEqual([])
+  })
+
   it('requires a reason from a directory rule and from an exemption too', () => {
     // A manifest entry without a reason is how a control becomes a ritual, and
     // that applies hardest to the entries that cover many files at once, or

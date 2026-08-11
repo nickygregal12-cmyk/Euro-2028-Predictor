@@ -2,7 +2,7 @@
 
 > **Audit designation:** `2026-07-23R`
 >
-> This is a **repeat audit** under the controls in [`../audit-prompt.md`](../audit-prompt.md) § *Repeat-audit and quality-baseline controls*. It does **not** replace or supersede the baseline [`2026-07-23-full-audit.md`](2026-07-23-full-audit.md), which remains the authoritative evidence record for the original 45 findings. This report adds executed-check evidence that the baseline audit could not obtain, retests every baseline finding, and records two new findings.
+> This is a **repeat audit** under the controls in [`../instruments/audit-prompt.md`](../instruments/audit-prompt.md) § *Repeat-audit and quality-baseline controls*. It does **not** replace or supersede the baseline [`2026-07-23-full-audit.md`](2026-07-23-full-audit.md), which remains the authoritative evidence record for the original 45 findings. This report adds executed-check evidence that the baseline audit could not obtain, retests every baseline finding, and records two new findings.
 >
 > **No code, migration, schema, deployment or configuration change was made during this audit.**
 

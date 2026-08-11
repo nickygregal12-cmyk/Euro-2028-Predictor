@@ -83,6 +83,33 @@
       "why": "Design index; carries the merged-delta table against the plan's snapshot."
     },
     {
+      "path": "docs/design/ui-finalisation.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "The current UI authority for the signed-in weekly product, and the largest live-staleness risk the coverage rule exposed: it names eleven contracts and was governed by nothing. Section 11 states a delivery state per surface and section 12 states which backend rows are closed, both of which a contract falsifies, so it is live rather than a direction. It is swept for the same reason: a contract with nothing to say to it records that it has nothing to say, which is a fact, where silence is indistinguishable from an oversight."
+    },
+    {
+      "path": "docs/design-system.md",
+      "kind": "live",
+      "sweep": false,
+      "why": "Component-level authority for the surfaces that exist, which is a current-state claim. It names no contract today and so is held to nothing yet; classifying it live is what makes naming one later an obligation rather than a new blind spot. Not swept: a contract that adds a database function has nothing to say to a component specification, and marking it would train exactly the meaningless line the sweep exists to avoid."
+    },
+    {
+      "path": "docs/design/hub-architecture-and-modernisation-plan.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "The owner-supplied target design, revision 1.5, added to the repository VERBATIM. It is not superseded — docs/design/README.md calls it the answer to what the product should look like when finished, and ui-finalisation.md opens by saying the target design in it stands. It is reference rather than live precisely because it must not be edited: it names contract 95 because that is what was true on 4 August 2026, and a rule requiring it to name the current contract would require rewriting a document whose value is that nobody has."
+    },
+    {
+      "path": "docs/design/ui-modernisation-execution.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "The delivery sequence beneath the target design, and also not superseded: ui-finalisation.md states that its order stands except where the 10 August amendment says otherwise. Its twenty-three contract references are per-item delivery notes saying what built each step, which is a reference's shape and not a claim that the repository is at 141."
+    },
+    {
       "path": "docs/competition-structure.md",
       "kind": "live",
       "sweep": false,
@@ -158,18 +185,6 @@
       "why": "Sections 1-4 map to shipped auth; section 5 records an accepted and unbuilt two-site model. Classified so the file is watched at all. Splitting the current half from the accepted half is a separate editorial pass, not a classification decision."
     },
     {
-      "path": "docs/build-todo.md",
-      "kind": "reference",
-      "sweep": false,
-      "why": "An eleven-line redirect stub retained for older links. It names no contract and holds no rule; retiring it is a separate decision and needs a link audit first."
-    },
-    {
-      "path": "docs/design-system.md",
-      "kind": "reference",
-      "sweep": false,
-      "why": "Component-level design authority for the surfaces that exist. A contract number in it names what introduced a component and is never a current-state claim."
-    },
-    {
       "path": "docs/ops-production-observability.md",
       "kind": "reference",
       "sweep": false,
@@ -185,7 +200,7 @@
       "path": "docs/predictor-cup-rules.md",
       "kind": "reference",
       "sweep": false,
-      "why": "A dated concept-rules draft for the Euro Predictor Cup. ADR 0014 and ADR 0022 govern the season Championship; this is retained as the source record the ADRs were drawn from."
+      "why": "Its own banner calls it concept rules v0.1 and it reads as a retired draft, but section 5 is LIVE RULE AUTHORITY: src/domain/season/cupGroupTable.ts cites its table columns and eight tie-breakers by name, under ADR 0014 as amended by ADR 0020. It stays where it is for that reason. The heading now says which part the code depends on, so nobody retires a rule by trusting the version number."
     },
     {
       "path": "docs/scoring-rules.md",
@@ -194,28 +209,16 @@
       "why": "Authoritative for the preserved Euro Original Predictor configuration only, and explicitly not a platform default. Its contract references name what changed that configuration."
     },
     {
-      "path": "docs/test-script.md",
+      "path": "docs/quality/instruments/entry-flow-test-script.md",
       "kind": "reference",
       "sweep": false,
-      "why": "A single-tester usability script. It names the contract its environment guidance was written against, which is a fact about that sitting."
+      "why": "A reusable single-tester usability script, not a dated record — tests/scripts/markdownDocumentation.test.ts guards it against regressing to obsolete phase language, which is only worth doing to an instrument that will be run again. It sits beside the audit prompt for that reason. It names the contract its environment guidance was written against, which is a fact about that guidance."
     },
     {
       "path": "docs/tournament-structure.md",
       "kind": "reference",
       "sweep": false,
       "why": "Euro 2028 tournament facts and the third-place allocation table. It names no contract; it is verified against UEFA regulations rather than against the migration chain, and carries its own re-verification banner."
-    },
-    {
-      "path": "docs/roadmap/acquisition-readiness-roadmap.md",
-      "kind": "reference",
-      "sweep": false,
-      "why": "Audit-derived planning order, superseded in practice by docs/roadmap.md. Classified so it is watched; retiring or freezing it is a separate decision."
-    },
-    {
-      "path": "docs/visual/higgsfield-concept-review.md",
-      "kind": "reference",
-      "sweep": false,
-      "why": "Design research whose decision was taken and implemented natively. Retained as the record of how the visual direction was chosen."
     }
   ],
   "authorityDirectories": [
@@ -250,6 +253,7 @@
     "docs/audits/",
     "docs/history/",
     "docs/ops/records/",
+    "docs/visual/",
     "docs/quality/audits/",
     "docs/quality/investigations/",
     "docs/quality/reconciliations/",
