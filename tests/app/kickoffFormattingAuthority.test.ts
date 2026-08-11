@@ -110,6 +110,69 @@ describe('kickoff and date presentation has one authority', () => {
     }
   })
 
+  /**
+   * The assertion above asks "who FORMATS an instant". It cannot see the other
+   * half of the same rule — who fails to.
+   *
+   * IT MISSED A REAL DEFECT, WHICH IS WHY IT EXISTS. `SeasonMatchPredictorPage`
+   * shipped passing `fixture.kickoffAt` straight into `ClubMatchCard`'s
+   * `kickoff` label, so the raw ISO timestamp rendered in every card's eyebrow
+   * on the Match Predictor. The page called no formatter, so it was not an
+   * offender by the rule above; it was an offender by the rule the direction
+   * actually states — "no raw timestamp ever reaches a player".
+   *
+   * So: a value whose NAME says it is an instant may not be handed to a JSX
+   * prop or interpolated into text unless a formatter is in the expression.
+   * Naming is the only signal available without types at this layer, and the
+   * repository's naming is consistent — `kickoffAt`, `locksAt`, `settledAt`.
+   * A value that is genuinely not an instant should not be named as one.
+   */
+  const INSTANT_NAMED = String.raw`(?:kickoff|starts|locks|lock|opens|closes|settled|created|updated|played|reviewed|fetched|changed|confirmed|submitted)At`
+
+  /** `foo={bar.kickoffAt}` and `{bar.kickoffAt}` in text, formatter-free. */
+  const RAW_INSTANT_USES = [
+    // A JSX attribute whose whole value is an instant-named expression.
+    new RegExp(String.raw`\w+=\{[\w.?\[\]]*\b${INSTANT_NAMED}\b\}`, 'g'),
+    // The same value interpolated as visible text or into a template string.
+    new RegExp(String.raw`\{[\w.?\[\]]*\b${INSTANT_NAMED}\b\}(?!\s*[),;])`, 'g'),
+  ]
+
+  /**
+   * Props that carry an instant to something that is not a player-visible
+   * label: a `key`, a machine-readable `dateTime`, a sort or compare input, a
+   * value handed onward to another model.
+   */
+  const NOT_A_LABEL = /^(key|dateTime|value|id|data-[\w-]+|aria-valuetext)=/
+
+  it('does not hand an unformatted instant to a component or to text', () => {
+    const offenders: string[] = []
+
+    for (const file of productionModules()) {
+      if (file === AUTHORITY || !file.endsWith('.tsx')) continue
+      const lines = readFileSync(resolve(repositoryRoot, file), 'utf8').split('\n')
+
+      lines.forEach((line, index) => {
+        for (const pattern of RAW_INSTANT_USES) {
+          for (const match of line.matchAll(pattern)) {
+            const text = match[0]
+            if (NOT_A_LABEL.test(text)) continue
+            // A formatter anywhere in the expression is the whole point of the
+            // rule being satisfied.
+            if (/format|Format|label|Label/.test(text)) continue
+            offenders.push(`${file}:${index + 1}  ${text.trim()}`)
+          }
+        }
+      })
+    }
+
+    expect(
+      offenders,
+      'An instant reached a rendered value without passing through ' +
+        'src/shared/time/kickoff.ts. Format it, or — if it is genuinely not ' +
+        'shown to a player — give it a name that does not claim to be an instant.',
+    ).toEqual([])
+  })
+
   it('leaves number formatting alone', () => {
     // `toLocaleString` on a number is thousands separators, not a date, and the
     // share model uses it correctly. A pattern that caught it would push the

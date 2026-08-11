@@ -1,8 +1,10 @@
 # Euro 2028 Predictor — Scoring Rules (v1)
 
-This is the single source of truth for scoring. The `calculateScore()` domain function must implement exactly this, and nothing should be hardcoded elsewhere.
+This is the single source of truth for **the preserved Euro 2028 Original Predictor configuration, and for nothing else**. The `calculateScore()` domain function must implement exactly this, and nothing should be hardcoded elsewhere.
 
-League-season Predictor scoring and jokers are governed by [ADR 0012](adr/0012-season-predictor-rules.md); season Last Man Standing and Cup scoring contexts are governed by [ADR 0013](adr/0013-last-man-standing-season-rules.md) and [ADR 0014](adr/0014-predictor-cup-season-formats.md).
+**It is not a platform default, and these values must not be carried into another game.** League-season Predictor scoring and jokers are governed by [ADR 0012](adr/0012-season-predictor-rules.md); season Last Man Standing and Predictor Championship scoring by [ADR 0013](adr/0013-last-man-standing-season-rules.md) and [ADR 0014](adr/0014-predictor-cup-season-formats.md). One game's scoring code never imports another's, and one game's scoring document never governs another's.
+
+*The scope now sits in the first sentence rather than the second paragraph, because a reader arriving from a search lands on the opening line and "the single source of truth for scoring" is the one thing this file is not. Reworded 11 August 2026; no value changed.*
 
 ---
 

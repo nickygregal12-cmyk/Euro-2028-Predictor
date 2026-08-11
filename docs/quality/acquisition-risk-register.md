@@ -84,7 +84,7 @@ No separate `ACQ` row covers operating-cap enforcement; its residual peak/concur
 
 - `docs/audits/2026-07-27-acquisition-technical-audit.md`
 - `docs/architecture/acquisition-target-architecture.md`
-- `docs/roadmap/acquisition-readiness-roadmap.md`
+- `docs/history/acquisition-readiness-roadmap-2026-07-27.md` (retired to history 11 August 2026)
 - `docs/quality/current-status.md`
 - `docs/quality/investigations/2026-07-28-stage-3c2-scale-read-recompute-evidence.md`
 - `docs/quality/investigations/2026-07-28-stage-3c2-private-league-evidence.md`

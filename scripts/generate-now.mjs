@@ -108,9 +108,20 @@ function acceptedRequirements(root) {
   if (!existsSync(path)) return null
   const source = readFileSync(path, 'utf8')
 
+  // ANY identifier the register uses, never a list of the ones someone
+  // remembered. The list used to be spelled out — SITE, ACCOUNT, EURO, AGE,
+  // PRIV, INGEST, CAP — and three-digit-only. Measured on 11 August 2026 the
+  // register held 63 rows and this counted 35: every `DFA-0nn` row was missing
+  // because its prefix was never added, and every `MIG-UI-nn` row because its
+  // number is two digits. So a page whose stated design is that it fails closed
+  // when two sources disagree was quietly under-reporting the gap by 28
+  // requirements, in the one number it publishes about them.
+  //
+  // A prefix is uppercase letters and may itself contain a hyphen (`MIG-UI`);
+  // the number is however many digits the section chose.
   const rows = source
     .split('\n')
-    .filter((line) => /^\| `(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP)-\d{3}` \|/.test(line))
+    .filter((line) => /^\| `[A-Z][A-Z-]*-\d+` \|/.test(line))
 
   // The register also carries rows that HAVE shipped — they stay in it, marked,
   // because deleting one destroys the only trace the requirement existed. This
@@ -125,7 +136,7 @@ function acceptedRequirements(root) {
   const prefixes = new Map()
   let blocked = 0
   for (const row of outstanding) {
-    const id = /`([A-Z]+)-\d{3}`/.exec(row)?.[1]
+    const id = /`([A-Z][A-Z-]*)-\d+`/.exec(row)?.[1]
     if (id) prefixes.set(id, (prefixes.get(id) ?? 0) + 1)
     if (/\bblocked\b/i.test(row)) blocked += 1
   }

@@ -10,8 +10,9 @@ name: Development fast-lane rollout
 #     production outright;
 #   - it PROVES the pending migrations are additive by reading them, rather
 #     than trusting the person who dispatched it. Anything destructive is
-#     refused and sent to `stage-c1-development-rollout.yml`, which keeps the
-#     backup and rehearsal;
+#     refused and sent to `development-migration-rollout.yml`, the guarded lane,
+#     which names its boundary by filename and requires a destructive batch to
+#     be acknowledged before it applies anything;
 #   - it takes a lightweight snapshot first, which ADR 0024 requires even here.
 #
 # Production has no fast lane and never will.

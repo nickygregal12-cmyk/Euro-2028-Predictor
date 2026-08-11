@@ -73,6 +73,16 @@ Authority: [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-eur
 | `EURO-004` | Visibility enforced by the server-owned state plus route guards, not client filtering | `EURO-002` | Route guard refusing the route, proven by test rather than by absence from a catalogue constant | **Implemented in the repository** — `TournamentJourney` reads `euro_publication_state()` and refuses hidden or unreadable player routes before tournament data/prediction providers mount; executable tests prove hidden refusal, read-failure refusal, post-publication access and the separately authorised hidden admin preparation exception |
 | `AGE-001` | The initial external cohort is restricted to users aged 18 or over | — | Server-side signup rule, eligibility wording and matching test fixtures | Accepted — unimplemented |
 
+## Auth screen resilience
+
+Authority: [`../design-system.md`](../design-system.md) § 6 Auth screens, amended 22 July 2026 by the interface audit of that date. The requirement was accepted then and its only record since has been an unchecked box in [`../auth-plan.md`](../auth-plan.md) § 3 — which is precisely the gap this register exists to close, and is why it is given an identifier here on 11 August 2026 rather than left where a reader would have to notice a checkbox.
+
+`AUTH-001` and `AUTH-002` are allocated in [`risk-register.md`](risk-register.md) and are not repeated here; this continues that sequence, as `PRIV-003` continues its own.
+
+| ID | Requirement | Depends on | Acceptance evidence | Status |
+| --- | --- | --- | --- | --- |
+| `AUTH-003` | A Turnstile load failure is a designed state, never a dead call to action: the rejection is surfaced with a visible fallback and a reload offer, submit buttons are never disabled-until-valid, validation speaks on submit with per-field errors, and no submit handler returns silently | — | Tests proving a blocked Turnstile script reaches a visible fallback rather than a permanently disabled submit, and that submitting an invalid form produces per-field errors rather than nothing | Accepted — **unimplemented, and measurably so**: `TurnstileWidget.tsx` catches the `loadScript()` rejection with `.catch(() => onTokenRef.current(null))`, folding a blocked script into an ordinary absent token, while `LoginForm.tsx` and `SignUpForm.tsx` disable submit on `turnstileEnabled && !captchaToken`. A visitor whose ad-blocker or corporate network blocks the script therefore sees a permanently dead button and no explanation |
+
 ## Account closure and formal erasure
 
 Authority: [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md) § Stage C2, amended 6 August 2026. Tracked by issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272), which stays open.

@@ -4,8 +4,13 @@
  * lane.
  *
  * The fast lane exists because development data is disposable; it admits
- * additive migrations only, and anything destructive goes back to
- * `stage-c1-development-rollout.yml` with its backup and restore rehearsal.
+ * additive migrations only, and anything destructive goes to
+ * `development-migration-rollout.yml`, the guarded lane.
+ *
+ * This comment and the refusal below used to name `stage-c1-development-rollout.yml`,
+ * which is a SPENT one-shot pinned to contract 65 and refuses everything else.
+ * So for months the refusal pointed at a door that was bricked up, and the gap
+ * was invisible precisely because the message looked like an answer.
  *
  * The first version of this check was an inline `grep -Ei` over the whole
  * migration file. It refused contract 66 on this line:
@@ -274,7 +279,9 @@ if (invokedAs !== '' && import.meta.url.endsWith(invokedAs)) {
 
   if (refused) {
     console.error('Destructive migrations do not use the fast lane.')
-    console.error('Use stage-c1-development-rollout.yml, which keeps the backup and rehearsal.')
+    console.error('Use development-migration-rollout.yml, the guarded lane: it names the')
+    console.error('boundary by filename, proves the live source, and requires the')
+    console.error('destructive batch to be acknowledged before it applies anything.')
     process.exit(1)
   }
 }
