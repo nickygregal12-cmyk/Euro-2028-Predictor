@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { Link, useParams } from 'react-router'
 import { Alert, Skeleton, Workspace } from '../../design-system'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
-import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
+import { fetchSeasonFixture } from '../../services/supabase/seasonFixtureList'
+import { fetchSeasonLeagueMatchweekPredictions } from '../../services/supabase/seasonLeaguePredictions'
+import { fetchSeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovement'
+import { fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
+import { SeasonFixtureLeagues } from './SeasonFixtureLeagues'
+import { useSeasonGameCompetitionId } from '../hub/useSeasonGameCompetitionId'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
 import {
   fetchSeasonClubForm,
@@ -12,12 +17,16 @@ import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEl
 import { fetchSeasonConsensus } from '../../services/supabase/seasonConsensus'
 import { SeasonFixtureConsensus } from './SeasonFixtureConsensus'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
-import { presentFixtureList, type FixtureListRow } from './fixtureListModel'
+import { presentFixture, type FixtureListRow } from './fixtureListModel'
 import { seasonEntryStanding } from './seasonEntryStanding'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonMatchCentre, type SeasonFootballContext } from './SeasonMatchCentre'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
-import { competitionMatchPredictorRoute, competitionSectionRoute } from '../../app/weeklyRoutes'
+import {
+  competitionMatchPredictorRoute,
+  competitionPlayerRoute,
+  competitionSectionRoute,
+} from '../../app/weeklyRoutes'
 import { isNextUi } from '../../app/routeFlags'
 import { useSeasonPlayContext } from './useSeasonPlayContext'
 import styles from './SeasonMatchPredictorRoute.module.css'
@@ -33,18 +42,17 @@ import styles from './SeasonMatchPredictorRoute.module.css'
  * from a result notification, from a shared link, or from anywhere at all — and
  * the 10 August direction requires an addressable journey.
  *
- * HOW IT LOCATES THE FIXTURE WITHOUT A READ ADDRESSED BY ID. Contract 139's
- * read is windowed by date and caps at 120 days, so the route loads the window
- * around the day the link carried (`?on=`) and finds the fixture in it. Every
- * link the product generates carries that day because every surface that shows
- * a fixture already knows it. With no hint it falls back to the server's own
- * default window.
+ * HOW IT LOCATES THE FIXTURE. Contract 148's `get_season_fixture` is addressed
+ * by the fixture id, so the URL is genuinely self-contained: one read, no date
+ * hint, no window.
  *
- * IT IS HONEST WHEN IT CANNOT FIND IT. A fixture outside the window it loaded
- * is reported as out of range, with a way to the competition's fixture list —
- * never as "no such match", which would be false, and never as a blank panel.
- * A read addressed by fixture id would remove the guesswork entirely and is
- * recorded as `MIG-UI-11`.
+ * WHAT THAT REPLACED, AND WHY IT MATTERED. The route used to carry the
+ * fixture's day as `?on=`, load a three-week window around it through contract
+ * 139 and search the result. A link to a match outside that window — a shared
+ * link, an old notification, a fixture postponed into next season's spring —
+ * was answered "that match is not in this window", which was honest about the
+ * read and useless to the reader. `MIG-UI-11` recorded the gap; contract 148
+ * closed it, and the query, the window and that alert are all gone.
  *
  * IT RENDERS THE SAME PANEL AS THE LIST. `SeasonMatchCentre` is unchanged, so
  * the two ways in cannot drift; what this route adds is the resolution, the
@@ -59,24 +67,14 @@ import styles from './SeasonMatchPredictorRoute.module.css'
  * breakpoint it stacks under, in source order, so a phone reads the result and
  * the prediction first.
  *
- * WHAT IS STILL ABSENT IS ABSENT, NOT APPROXIMATED. Named private-league
- * predictions (`MIG-UI-01`) and rank movement (`MIG-UI-03`) have no read; the
- * page shows neither and claims neither.
+ * IT COMPOSES THREE SEPARATE ANSWERS AND KEEPS THEM SEPARATE. **You** — the
+ * player's own prediction and points — is the main column. **Your leagues** is
+ * contracts 149 and 150: named co-member predictions after this matchweek's own
+ * lock, and what the settled matchweek did to each league table. **Everyone**
+ * is contract 130's anonymous consensus with its minimum cohort. A named league
+ * prediction is not a consensus and the page must never let the two read as one
+ * thing.
  */
-
-/** A window wide enough to hold the day, inside the server's 120-day cap. */
-const WINDOW_DAYS = 21
-
-function windowAround(day: string | null): { from?: string; to?: string } {
-  if (!day) return {}
-  const at = new Date(`${day}T12:00:00Z`)
-  if (Number.isNaN(at.getTime())) return {}
-  const from = new Date(at)
-  from.setUTCDate(from.getUTCDate() - WINDOW_DAYS)
-  const to = new Date(at)
-  to.setUTCDate(to.getUTCDate() + WINDOW_DAYS)
-  return { from: from.toISOString(), to: to.toISOString() }
-}
 
 export function SeasonMatchCentreRoute() {
   const { competitionSlug, seasonSlug, fixtureId } = useParams<{
@@ -84,33 +82,76 @@ export function SeasonMatchCentreRoute() {
     seasonSlug: string
     fixtureId: string
   }>()
-  const [search] = useSearchParams()
-  const on = search.get('on')
-
   const gateway = useMemo(() => createSeasonPlayContextGateway(), [])
   const state = useSeasonPlayContext(gateway, competitionSlug, seasonSlug)
   const context = state.kind === 'ready' || state.kind === 'season_over' ? state.context : null
   const tournamentId = context?.tournamentId ?? null
 
+  /**
+   * The fixture itself, and the round it belongs to.
+   *
+   * IT DOES NOT WAIT FOR THE SEASON CONTEXT. Contract 148 needs only the
+   * fixture id, so the read starts as soon as the route is mounted rather than
+   * after a second request has told it which season it is in.
+   */
   const [fixture, setFixture] = useState<FixtureListRow | null | 'missing'>(null)
+  const [roundId, setRoundId] = useState<string | null>(null)
   useEffect(() => {
-    if (tournamentId === null || !fixtureId) return
+    if (!fixtureId) return
     let active = true
     setFixture(null)
-    fetchSeasonFixtureList(tournamentId, windowAround(on))
-      .then((page) => {
+    setRoundId(null)
+    fetchSeasonFixture(fixtureId)
+      .then((answer) => {
         if (!active) return
-        const view = presentFixtureList(page)
-        const found = view.days.flatMap((day) => day.rows).find((row) => row.id === fixtureId)
-        setFixture(found ?? 'missing')
+        if (!answer.fixture) {
+          setFixture('missing')
+          return
+        }
+        setFixture(presentFixture(answer.fixture).row)
+        setRoundId(answer.fixture.round.id)
       })
       .catch(() => {
+        // The server refuses a fixture that does not exist and one that belongs
+        // to the tournament shape. Both are "we cannot open this match", which
+        // is a different sentence from the window message this replaced.
         if (active) setFixture('missing')
       })
     return () => {
       active = false
     }
-  }, [tournamentId, fixtureId, on])
+  }, [fixtureId])
+
+  /**
+   * The caller's private leagues in this season's Match Predictor, from the
+   * membership the shell already read — no extra request, and a player who has
+   * joined no game has no leagues to ask about.
+   */
+  const gameCompetitionId = useSeasonGameCompetitionId(
+    competitionSlug,
+    seasonSlug,
+    'main_predictor',
+  )
+  const [leagues, setLeagues] = useState<readonly { id: string; name: string }[]>([])
+  useEffect(() => {
+    if (!gameCompetitionId) {
+      setLeagues([])
+      return
+    }
+    let active = true
+    fetchMyGameLeagues(gameCompetitionId)
+      .then((rows) => {
+        if (active) setLeagues(rows.map((row) => ({ id: row.id, name: row.name })))
+      })
+      .catch(() => {
+        // A league list that could not be read renders no league section rather
+        // than an error over a section the player may not even use.
+        if (active) setLeagues([])
+      })
+    return () => {
+      active = false
+    }
+  }, [gameCompetitionId])
 
   // The player's own side of the match, and the football beside it. Both are
   // the Matches route's own gateways, unchanged: a second decoder over the card
@@ -174,6 +215,16 @@ export function SeasonMatchCentreRoute() {
     return (matchweek: number) => fetchSeasonConsensus(tournamentId, matchweek)
   }, [tournamentId])
 
+  /**
+   * A co-member's own season profile (contract 151). The server refuses a
+   * caller who shares no private league with them, so this link is only ever
+   * offered where the boundary already holds — from inside a league section.
+   */
+  const playerHref = useMemo(() => {
+    const ref = { competitionSlug: competitionSlug ?? '', seasonSlug: seasonSlug ?? '' }
+    return (playerId: string) => competitionPlayerRoute(ref, playerId)
+  }, [competitionSlug, seasonSlug])
+
   const predictHref = useMemo(() => {
     if (!isNextUi('seasonMatchPredictor')) return undefined
     const ref = { competitionSlug: competitionSlug ?? '', seasonSlug: seasonSlug ?? '' }
@@ -229,24 +280,38 @@ export function SeasonMatchCentreRoute() {
           <Skeleton height={260} radius="card" />
         </div>
       ) : fixture === 'missing' ? (
-        <Alert variant="warning" title="That match is not in this window">
-          A season's fixtures are read a few weeks at a time, so a match far from the linked date
-          cannot be opened directly yet. It is still in the competition's fixture list.
+        <Alert variant="warning" title="This match could not be opened">
+          It may have been removed from the calendar, or it belongs to a different competition.
+          The competition&rsquo;s own fixture list is the place to find it.
           <div style={{ marginTop: 10 }}>
             <Link to={matchesHref}>Open the fixture list</Link>
           </div>
         </Alert>
       ) : (
         <Workspace
-          asideLabel="What everyone predicted"
+          asideLabel="What this match means for you"
           aside={
-            consensusLoad ? (
-              <SeasonFixtureConsensus
-                matchweek={fixture.round.ordinal}
+            <>
+              {/* Your leagues, then Everyone. Named and private above
+                  anonymous and platform-wide: the people a player actually
+                  plays with are the ones they came to compare themselves
+                  against, and the two must never read as one section. */}
+              <SeasonFixtureLeagues
                 fixtureId={fixture.id}
-                load={consensusLoad}
+                competitionRoundId={roundId}
+                leagues={leagues}
+                loadPredictions={fetchSeasonLeagueMatchweekPredictions}
+                loadMovement={fetchSeasonLeagueMovement}
+                playerHref={playerHref}
               />
-            ) : undefined
+              {consensusLoad ? (
+                <SeasonFixtureConsensus
+                  matchweek={fixture.round.ordinal}
+                  fixtureId={fixture.id}
+                  load={consensusLoad}
+                />
+              ) : null}
+            </>
           }
         >
           <h1 className={styles.srOnly}>{fixture.accessibleSummary}</h1>

@@ -1,12 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
-  HUB_COMPETITIONS,
+  catalogueFromPublishedSeasons,
   competitionPath,
   findHubCompetition,
   isJoinedCompetition,
   partitionHubCompetitions,
+  seasonLabelFromKey,
   type HubCompetition,
 } from '../../../src/features/hub/competitionCatalogue'
+import {
+  TWENTY_COMPETITION_CATALOGUE,
+  TWENTY_COMPETITION_MEMBERSHIP,
+  TWENTY_COMPETITION_SEASONS,
+} from '../../../src/dev/scaleFixture'
 
 function competition(overrides: Partial<HubCompetition> = {}): HubCompetition {
   return {
@@ -73,11 +79,11 @@ describe('partitionHubCompetitions', () => {
   })
 
   it('returns every competition exactly once across both sides', () => {
-    const { mine, discover } = partitionHubCompetitions(HUB_COMPETITIONS)
+    const { mine, discover } = partitionHubCompetitions(TWENTY_COMPETITION_CATALOGUE)
 
-    expect(mine.length + discover.length).toBe(HUB_COMPETITIONS.length)
+    expect(mine.length + discover.length).toBe(TWENTY_COMPETITION_CATALOGUE.length)
     expect([...mine, ...discover].map(competitionPath).sort()).toEqual(
-      HUB_COMPETITIONS.map(competitionPath).sort(),
+      TWENTY_COMPETITION_CATALOGUE.map(competitionPath).sort(),
     )
   })
 
@@ -92,37 +98,56 @@ describe('partitionHubCompetitions', () => {
   })
 })
 
-describe('the shipped catalogue', () => {
+describe('the catalogue the server publishes', () => {
+  const catalogue = TWENTY_COMPETITION_CATALOGUE
+
   it('gives every competition a unique route', () => {
-    const paths = HUB_COMPETITIONS.map(competitionPath)
+    const paths = catalogue.map(competitionPath)
     expect(new Set(paths).size).toBe(paths.length)
   })
 
   it('resolves every catalogue entry from its own slugs', () => {
-    for (const entry of HUB_COMPETITIONS) {
-      expect(findHubCompetition(entry.competitionSlug, entry.seasonSlug)).toBe(entry)
+    for (const entry of catalogue) {
+      expect(findHubCompetition(catalogue, entry.competitionSlug, entry.seasonSlug)).toBe(entry)
     }
   })
 
   it('returns null for an unknown competition rather than guessing', () => {
-    expect(findHubCompetition('la-liga', '2026-27')).toBeNull()
-    expect(findHubCompetition(undefined, undefined)).toBeNull()
+    expect(findHubCompetition(catalogue, 'not-a-competition', '2026-27')).toBeNull()
+    expect(findHubCompetition(catalogue, undefined, undefined)).toBeNull()
   })
 
-  it('keeps the joined flag consistent with the joined status', () => {
-    for (const entry of HUB_COMPETITIONS) {
-      for (const game of entry.games) {
-        expect(game.joined).toBe(game.status === 'joined')
-      }
-    }
+  it('takes every route slug from the server and never derives one from a name', () => {
+    // Contract 147 returns `competition_slug`. The proof that nothing is
+    // derived is that a season whose slug disagrees with its name still routes
+    // to the SLUG — a name-derived one would produce "the fa cup" and 404.
+    const built = catalogueFromPublishedSeasons(
+      [
+        {
+          competitionSlug: 'top-flight',
+          seasonKey: '2026-27',
+          competitionId: 'competition-1',
+          competitionName: 'The FA Cup',
+          seasonId: 'season-1',
+          seasonName: 'The FA Cup 2026/27',
+          status: 'active',
+          timeZone: 'Europe/London',
+        },
+      ],
+      [],
+    )
+
+    expect(built).toHaveLength(1)
+    expect(built[0]?.competitionSlug).toBe('top-flight')
+    expect(competitionPath(built[0] as HubCompetition)).toBe('/competitions/top-flight/2026-27')
   })
 
   it('never hard-codes a membership claim — membership is the server’s to state', () => {
-    // The Hub shipped for a while with `joined: true` written into this file,
-    // so the interface disagreed with the player's actual entries. The
-    // catalogue is presentation copy; `applyHubMembership` overlays the real
-    // memberships from the C1b read.
-    for (const entry of HUB_COMPETITIONS) {
+    // The Hub shipped for a while with `joined: true` written into a frontend
+    // array, so the interface disagreed with the player's actual entries.
+    // `catalogueFromPublishedSeasons` builds shape only; `applyHubMembership`
+    // overlays the real memberships from the C1b read.
+    for (const entry of catalogue) {
       for (const game of entry.games) {
         expect(game.joined, `${entry.competitionSlug}/${game.kind}`).toBe(false)
         expect(game.status, `${entry.competitionSlug}/${game.kind}`).not.toBe('joined')
@@ -131,22 +156,47 @@ describe('the shipped catalogue', () => {
   })
 
   it('names a distinct database season row for every entry', () => {
-    const names = HUB_COMPETITIONS.map((entry) => entry.seasonRowName)
+    const names = catalogue.map((entry) => entry.seasonRowName)
     expect(new Set(names).size).toBe(names.length)
     for (const name of names) {
       expect(name.trim().length).toBeGreaterThan(0)
     }
   })
 
-  it('offers the three domestic games in both rehearsal seasons', () => {
-    for (const slug of ['premier-league', 'scottish-premiership']) {
-      const entry = findHubCompetition(slug, '2026-27')
-      expect(entry).not.toBeNull()
-      expect(entry?.games.map((game) => game.kind).sort()).toEqual([
-        'last-man-standing',
-        'league-predictor',
-        'predictor-championship',
-      ])
-    }
+  it('takes whether a season SERVES a game from the server, never from a frontend list', () => {
+    // The three weekly formats are a platform fact (ADR 0012–0014) and are
+    // always listed, so "this competition has not opened Last Man Standing" is
+    // sayable. Whether each is actually OPEN is `get_competition_games`, and a
+    // season the read did not answer for opens none of them — which is the
+    // difference between reporting and inventing.
+    const [first] = catalogue
+    expect(first?.games.map((game) => game.kind)).toEqual([
+      'league-predictor',
+      'last-man-standing',
+      'predictor-championship',
+    ])
+    expect(first?.games.every((game) => game.status === 'available')).toBe(true)
+
+    const unread = catalogueFromPublishedSeasons(TWENTY_COMPETITION_SEASONS.slice(0, 1), [])
+    expect(unread[0]?.games.map((game) => game.status)).toEqual([
+      'coming-soon',
+      'coming-soon',
+      'coming-soon',
+    ])
+    expect(unread[0]?.summary).toContain('No games are open')
+  })
+
+  it('scales to twenty published competitions with no frontend edit', () => {
+    // The whole acceptance property of the scalability contract: twenty
+    // seasons in, twenty routable competitions out, from server rows alone.
+    expect(TWENTY_COMPETITION_SEASONS).toHaveLength(20)
+    expect(catalogueFromPublishedSeasons(TWENTY_COMPETITION_SEASONS, TWENTY_COMPETITION_MEMBERSHIP))
+      .toHaveLength(20)
+  })
+
+  it('formats a season key as football writes it, without inventing an identity', () => {
+    expect(seasonLabelFromKey('2026-27')).toBe('2026/27')
+    // The KEY is what routes and reads are addressed by, and is unchanged.
+    expect(catalogue[0]?.seasonSlug).toBe('2026-27')
   })
 })

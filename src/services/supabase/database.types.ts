@@ -298,6 +298,9 @@ export type Database = {
           draw_required: boolean
           game_key: string
           id: string
+          invite_code: string | null
+          name: string | null
+          owner_id: string | null
           predecessor_competition_id: string | null
           published: boolean
           registration_closes_at: string | null
@@ -317,6 +320,9 @@ export type Database = {
           draw_required?: boolean
           game_key: string
           id?: string
+          invite_code?: string | null
+          name?: string | null
+          owner_id?: string | null
           predecessor_competition_id?: string | null
           published?: boolean
           registration_closes_at?: string | null
@@ -336,6 +342,9 @@ export type Database = {
           draw_required?: boolean
           game_key?: string
           id?: string
+          invite_code?: string | null
+          name?: string | null
+          owner_id?: string | null
           predecessor_competition_id?: string | null
           published?: boolean
           registration_closes_at?: string | null
@@ -1101,6 +1110,42 @@ export type Database = {
           },
         ]
       }
+      competition_follows: {
+        Row: {
+          favourite_team_id: string | null
+          followed_at: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          favourite_team_id?: string | null
+          followed_at?: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          favourite_team_id?: string | null
+          followed_at?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competition_follows_favourite_team_id_fkey"
+            columns: ["favourite_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competition_follows_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competition_lock_events: {
         Row: {
           created_at: string
@@ -1560,6 +1605,42 @@ export type Database = {
           },
         ]
       }
+      invite_code_registry: {
+        Row: {
+          code: string
+          competition_id: string | null
+          created_at: string
+          league_id: string | null
+        }
+        Insert: {
+          code: string
+          competition_id?: string | null
+          created_at?: string
+          league_id?: string | null
+        }
+        Update: {
+          code?: string
+          competition_id?: string | null
+          created_at?: string
+          league_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_code_registry_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invite_code_registry_league_id_fkey"
+            columns: ["league_id"]
+            isOneToOne: false
+            referencedRelation: "leagues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       league_members: {
         Row: {
           joined_at: string
@@ -1943,6 +2024,35 @@ export type Database = {
           },
         ]
       }
+      pinned_rivals: {
+        Row: {
+          pinned_at: string
+          rival_user_id: string
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          pinned_at?: string
+          rival_user_id: string
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          pinned_at?: string
+          rival_user_id?: string
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinned_rivals_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       players: {
         Row: {
           created_at: string
@@ -2197,6 +2307,8 @@ export type Database = {
           id: string
           last_seen_at: string | null
           last_seen_points: number | null
+          onboarding_completed_at: string | null
+          onboarding_step: string | null
           reminder_emails: boolean
           welcomed_at: string | null
         }
@@ -2206,6 +2318,8 @@ export type Database = {
           id: string
           last_seen_at?: string | null
           last_seen_points?: number | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: string | null
           reminder_emails?: boolean
           welcomed_at?: string | null
         }
@@ -2215,6 +2329,8 @@ export type Database = {
           id?: string
           last_seen_at?: string | null
           last_seen_points?: number | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: string | null
           reminder_emails?: boolean
           welcomed_at?: string | null
         }
@@ -2911,6 +3027,79 @@ export type Database = {
           },
         ]
       }
+      season_wrapped: {
+        Row: {
+          best_matchweek_ordinal: number | null
+          best_matchweek_points: number | null
+          correct_outcomes: number
+          entry_id: string
+          exact_scores: number
+          field_size: number
+          final_points: number
+          final_rank: number
+          finalised_at: string
+          fixtures_predicted: number
+          jokers_played: number
+          matchweeks_played: number
+          tournament_id: string
+          user_id: string
+        }
+        Insert: {
+          best_matchweek_ordinal?: number | null
+          best_matchweek_points?: number | null
+          correct_outcomes?: number
+          entry_id: string
+          exact_scores?: number
+          field_size: number
+          final_points: number
+          final_rank: number
+          finalised_at?: string
+          fixtures_predicted?: number
+          jokers_played?: number
+          matchweeks_played: number
+          tournament_id: string
+          user_id: string
+        }
+        Update: {
+          best_matchweek_ordinal?: number | null
+          best_matchweek_points?: number | null
+          correct_outcomes?: number
+          entry_id?: string
+          exact_scores?: number
+          field_size?: number
+          final_points?: number
+          final_rank?: number
+          finalised_at?: string
+          fixtures_predicted?: number
+          jokers_played?: number
+          matchweeks_played?: number
+          tournament_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_wrapped_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "season_wrapped_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "entry_totals"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "season_wrapped_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       teams: {
         Row: {
           created_at: string
@@ -3238,6 +3427,21 @@ export type Database = {
           name: string
         }[]
       }
+      create_private_season_cup: {
+        Args: { p_name: string; p_tournament_id: string }
+        Returns: Json
+      }
+      create_private_season_lms: {
+        Args: {
+          p_draws_rule?: string
+          p_endgame_on_wipeout?: string
+          p_lives?: number
+          p_name: string
+          p_saves?: number
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
       delete_knockout_prediction: {
         Args: { p_expected_version: number; p_match_id: string }
         Returns: boolean
@@ -3353,6 +3557,7 @@ export type Database = {
         }[]
       }
       get_my_lms: { Args: { p_tournament_id: string }; Returns: Json }
+      get_my_preferences: { Args: never; Returns: Json }
       get_my_season_cup_instances: {
         Args: { p_tournament_id: string }
         Returns: Json
@@ -3472,6 +3677,7 @@ export type Database = {
         Args: { p_matchweek: number; p_tournament_id: string }
         Returns: Json
       }
+      get_season_wrapped: { Args: { p_tournament_id: string }; Returns: Json }
       join_competition_game: {
         Args: { p_game_competition_id: string }
         Returns: Json
@@ -3482,6 +3688,11 @@ export type Database = {
           id: string
           name: string
         }[]
+      }
+      join_private_competition: { Args: { p_code: string }; Returns: Json }
+      launch_private_season_cup: {
+        Args: { p_competition_id: string }
+        Returns: Json
       }
       leave_competition_game: {
         Args: { p_game_competition_id: string }
@@ -3528,6 +3739,7 @@ export type Database = {
           version: number
         }[]
       }
+      resolve_invite_code: { Args: { p_code: string }; Returns: Json }
       save_knockout_prediction: {
         Args: {
           p_advancing_team_id: string
@@ -3563,8 +3775,28 @@ export type Database = {
           user_id: string
         }[]
       }
+      set_competition_follow: {
+        Args: {
+          p_favourite_team_id?: string
+          p_following: boolean
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
+      set_onboarding_progress: {
+        Args: { p_completed?: boolean; p_step: string }
+        Returns: Json
+      }
       set_operating_limits: {
         Args: { p_public_user_limit: number; p_total_league_limit: number }
+        Returns: Json
+      }
+      set_pinned_rival: {
+        Args: {
+          p_pinned?: boolean
+          p_rival_user_id: string
+          p_tournament_id: string
+        }
         Returns: Json
       }
       set_season_matchweek_joker: {

@@ -56,31 +56,49 @@ export function competitionSectionRoute(
 /**
  * One fixture's own Match Centre, at an address of its own.
  *
- * WHY THE DAY IS A QUERY. Contract 139's fixture read is windowed by DATE and
- * caps at 120 days; there is no read addressed by a fixture id. So the route
- * needs to know roughly WHEN the fixture is in order to load the window that
- * contains it, and the day is the smallest hint that answers it. Every link the
- * product generates carries it because every surface that shows a fixture
- * already knows its day.
+ * SELF-CONTAINED, AND THAT IS THE POINT. It carries no date hint and needs
+ * none: contract 148's `get_season_fixture` is addressed by the fixture id, so
+ * the route resolves the fixture directly instead of loading a date window and
+ * searching it.
  *
- * IT DEGRADES RATHER THAN 404s. An absent, unparseable or wrong day falls back
- * to the server's default window, and a fixture that is not in the window it
- * loads is reported as out of range with a way to the competition's fixture
- * list — never as "no such match", which would be false.
- *
- * A read addressed by fixture id would remove the query entirely; it is
- * recorded as `MIG-UI-11` rather than approximated further.
+ * WHAT IT REPLACED. The route used to take an `?on=` day, load a three-week
+ * window around it and look for the fixture in the result — which meant a
+ * perfectly valid link to a match outside that window was answered "that match
+ * is not in this window". That workaround existed only because no read was
+ * addressed by fixture id; `MIG-UI-11` recorded the gap and contract 148 closed
+ * it, so nothing generates or consumes the query any more.
  */
 export function competitionMatchCentreRoute(
   ref: CompetitionRouteRef,
   fixtureId: string,
-  onDay?: string | null,
 ): string {
-  const base = `${renderCompetitionPattern(weeklyRoutePatterns.matches, ref)}/${cleanSegment(
+  return `${renderCompetitionPattern(weeklyRoutePatterns.matches, ref)}/${cleanSegment(
     fixtureId,
     'fixture',
   )}`
-  return onDay ? `${base}?on=${encodeURIComponent(onDay)}` : base
+}
+
+/**
+ * One player's season inside a competition — what they scored and, after each
+ * matchweek's own lock, what they predicted (contract 151).
+ *
+ * IT IS A COMPETITION-SCOPED ADDRESS, deliberately. A player's season is a fact
+ * about them IN a competition: points, rank and prediction history are all
+ * per-season, and a platform-level `/profile/:id` would have to pick one season
+ * to show or invent a combined total that no authority computes.
+ *
+ * IT IS NOT A DIRECTORY. The address is reachable only from somewhere that
+ * already names the player — a private-league table, the Match Centre — and the
+ * server refuses a caller who shares no private league with them.
+ */
+export function competitionPlayerRoute(
+  ref: CompetitionRouteRef,
+  playerId: string,
+): string {
+  return `${renderCompetitionPattern(weeklyRoutePatterns.competition, ref)}/players/${cleanSegment(
+    playerId,
+    'player',
+  )}`
 }
 
 export function competitionGameRoute(
@@ -245,7 +263,14 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
     return { href: weeklyRoutes.more, label: 'Back to More' }
   }
 
-  if (/^\/profile\/[^/]+$/.test(pathname) || /^\/h2h\/[^/]+$/.test(pathname)) {
+  // The Euro tournament's own profiles. `/tournament/profile` is the player's
+  // own and belongs under More beside the platform profile it sits next to;
+  // another player's is reached from private play, as the head-to-head is.
+  if (pathname === '/tournament/profile') {
+    return { href: weeklyRoutes.more, label: 'Back to More' }
+  }
+
+  if (/^\/tournament\/profile\/[^/]+$/.test(pathname) || /^\/h2h\/[^/]+$/.test(pathname)) {
     return { href: weeklyRoutes.leagues, label: 'Back to Leagues' }
   }
   if (/^\/league\/[^/]+$/.test(pathname)) {

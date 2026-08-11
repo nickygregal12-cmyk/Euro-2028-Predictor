@@ -16,9 +16,16 @@
 // still owns all three, and this module must never grow them.
 
 import { db } from './client'
-import { mapSeasonFixtureList, type SeasonFixtureList } from './seasonFixtureListModel'
+import {
+  mapSeasonFixture,
+  mapSeasonFixtureList,
+  type SeasonFixtureAnswer,
+  type SeasonFixtureList,
+} from './seasonFixtureListModel'
 
 export type {
+  SeasonFixtureAnswer,
+  SeasonFixtureCompetition,
   SeasonFixtureList,
   SeasonListFixture,
   SeasonFixtureClub,
@@ -50,4 +57,30 @@ export async function fetchSeasonFixtureList(
   })
   if (error) throw error
   return mapSeasonFixtureList(data)
+}
+
+/**
+ * One fixture, by its own id (contract 148).
+ *
+ * WHY THIS IS HERE AND NOT IN A MODULE OF ITS OWN. It is the same fixture
+ * vocabulary as the list — the RPC returns contract 139's entry field for field
+ * — and the whole point of contract 148 is that a fixture looks identical
+ * whichever way it was reached. Two modules would be two chances to decode it
+ * differently.
+ *
+ * IT REPLACES A DATE-WINDOW SEARCH. The addressable Match Centre used to carry
+ * the fixture's day in its URL, load a three-week window around it and look for
+ * the fixture in the result — which could honestly report "not in this window"
+ * for a link that was perfectly valid. Nothing does that any more.
+ *
+ * THE SERVER REFUSES RATHER THAN RETURNS NOTHING for a fixture that does not
+ * exist or belongs to the tournament shape, so an error here is a real answer
+ * and is not swallowed.
+ */
+export async function fetchSeasonFixture(fixtureId: string): Promise<SeasonFixtureAnswer> {
+  const { data, error } = await db.rpc('get_season_fixture', {
+    p_season_fixture_id: fixtureId,
+  })
+  if (error) throw error
+  return mapSeasonFixture(data)
 }

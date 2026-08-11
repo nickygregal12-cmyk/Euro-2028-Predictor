@@ -253,8 +253,8 @@ export function LeagueDetailPage() {
         stats={{ exact: null, correct: null, maxLeft: null }}
         onProfile={
           isYou
-            ? () => navigate('/profile')
-            : () => navigate(`/profile/${member.userId}`)
+            ? () => navigate('/tournament/profile')
+            : () => navigate(`/tournament/profile/${member.userId}`)
         }
         onHeadToHead={isYou ? undefined : () => navigate(`/h2h/${member.userId}`)}
       />

@@ -5,13 +5,15 @@ import type { CombinedFixtureRow } from './combinedFixturesModel'
  * finished while they were away.
  *
  * WHAT IT CLAIMS, AND WHAT IT DELIBERATELY DOES NOT. It says which matches
- * finished. It does NOT say what the player scored, how their rank moved, who
- * overtook them, or whether their Last Man Standing pick survived — every one
- * of which the direction lists, and every one of which needs a read that does
- * not exist yet (`MIG-UI-01`, `MIG-UI-03`). Rather than approximate them in the
- * browser, this surface shows the true half and says nothing about the rest.
- * A retention feature that guesses at a player's points is worse than one that
- * covers less ground.
+ * finished, and nothing else. What those results DID to the player — points,
+ * rank, exact scores, league movement — is the Matchweek Recap's answer, from
+ * contracts 151 and 150, and it is a separate section built from separate
+ * reads. This model must not grow either: one derives from the football, the
+ * other from the player's own banked totals, and merging them would put a
+ * points claim inside a list of results that has no points in it.
+ *
+ * A Last Man Standing survival verdict is still absent: it comes from the
+ * settlement authority per competition and has no cross-competition read.
  *
  * IT IS NOT AN ACTIVITY FEED. Only settled results, only in competitions the
  * player plays in, only since the marker, and capped — the question is "what

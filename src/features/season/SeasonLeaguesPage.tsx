@@ -1,12 +1,17 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton, TextInput } from '../../design-system'
 import { InvitePanel } from '../leagues/InvitePanel'
 import { presentGameLeagues, type SeasonLeaguesGateway } from './gameLeaguesModel'
 import type { SeasonLeagueStandingsGateway } from './leagueStandingsModel'
+import type { SeasonLeagueMatchweekPredictions } from '../../services/supabase/seasonLeaguePredictionsModel'
+import type { SeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovementModel'
+import type { SeasonLeagueStandingsProps } from './SeasonLeagueStandings'
 import {
-  SeasonLeagueStandings,
-  type SeasonLeagueStandingsProps,
-} from './SeasonLeagueStandings'
+  isSeasonLeagueTab,
+  SeasonLeagueWorkspace,
+  type SeasonLeagueTab,
+} from './SeasonLeagueWorkspace'
 import { useSeasonLeagues } from './useSeasonLeagues'
 import styles from './SeasonLeaguesPage.module.css'
 
@@ -18,15 +23,21 @@ import styles from './SeasonLeaguesPage.module.css'
  * has three separate things a private league could mean. A heading reading
  * "Leagues" alone would assert a competition-wide ranking that does not exist.
  *
- * A LEAGUE OPENS INTO ITS TABLE, IN PLACE, AND ONE AT A TIME. This page used
- * to state that no table could be shown, because the only read available
- * ranked by the tournament scoring tables and would have returned zero for
- * every member of a season league; contract 128 supplied the read that
- * genuinely answers, so the note is gone and the table is here. It expands
- * within the card rather than navigating, because a member belongs to several
- * leagues in the same game and comparing two of them should not cost two
- * journeys. Only one is open at a time: two tables of the same players on the
- * same screen invite exactly the cross-league comparison neither of them means.
+ * A LEAGUE OPENS INTO ITS WORKSPACE, IN PLACE, AND ONE AT A TIME. The accepted
+ * destination is **Table · Matchweek · Members**; the previous session shipped
+ * the table alone because contract 149 did not exist, and it does now. It
+ * expands within the card rather than navigating, because a member belongs to
+ * several leagues in the same game and comparing two of them should not cost
+ * two journeys. Only one is open at a time: two tables of the same players on
+ * the same screen invite exactly the cross-league comparison neither means.
+ *
+ * WHICH LEAGUE IS OPEN, AND WHICH TAB, LIVE IN THE URL. Opening a league,
+ * reading its matchweek, following a player into their season and pressing Back
+ * used to land on a collapsed list — the state was React's alone, so the
+ * journey lost its place every time it left the page. `?league=` and `?tab=`
+ * make the workspace addressable, which is what Back and a shared link both
+ * need. Nothing ephemeral is persisted this way: a search box or an open
+ * disclosure stays in component state where it belongs.
  *
  * A REFUSAL IS A SENTENCE, NEVER A DEAD CONTROL. When the caller has not
  * joined the game, the create form is replaced by the reason — not disabled
@@ -55,9 +66,33 @@ export type SeasonLeaguesPageProps = {
   gameName: string
   /** Whether the caller holds an active membership in that game. */
   joinedGame: boolean
+  /**
+   * The matchweek the workspace's Matchweek tab opens at, as a competition
+   * round id. Null when the season has none — the tab says so rather than
+   * loading nothing.
+   */
+  competitionRoundId?: string | null
+  /** Contract 149. Omitted leaves the Matchweek tab unavailable rather than empty. */
+  loadMatchweek?: (
+    leagueId: string,
+    competitionRoundId: string,
+  ) => Promise<SeasonLeagueMatchweekPredictions>
+  /** Contract 150, for the movement line above the tabs. */
+  loadMovement?: (leagueId: string) => Promise<SeasonLeagueMovement>
+  /** Where a member's name links — one player's season (contract 151). */
+  playerHref?: (playerId: string) => string
 }
 
 const SKELETON_CARDS = 2
+
+/**
+ * The Matchweek tab with no reader supplied. It rejects rather than resolving
+ * empty, because "this build cannot load it" and "the league predicted nothing"
+ * are different answers and the panel renders them differently.
+ */
+function unavailableMatchweek(): Promise<never> {
+  return Promise.reject(new Error('No matchweek reader was supplied to this surface.'))
+}
 
 export function SeasonLeaguesPage({
   gateway,
@@ -65,6 +100,10 @@ export function SeasonLeaguesPage({
   gameName,
   joinedGame,
   headToHead,
+  competitionRoundId = null,
+  loadMatchweek,
+  loadMovement,
+  playerHref,
 }: SeasonLeaguesPageProps) {
   const {
     status,
@@ -81,8 +120,28 @@ export function SeasonLeaguesPage({
 
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  // One open table at a time; tapping the open one closes it.
-  const [openLeagueId, setOpenLeagueId] = useState<string | null>(null)
+
+  // One open league at a time, and which one — plus which of its three views —
+  // is navigation state rather than component state, so Back from a player's
+  // season returns to the matchweek the player was reading.
+  const [search, setSearch] = useSearchParams()
+  const openLeagueId = search.get('league')
+  const rawTab = search.get('tab')
+  const tab: SeasonLeagueTab = isSeasonLeagueTab(rawTab) ? rawTab : 'table'
+
+  function openLeague(leagueId: string | null, nextTab: SeasonLeagueTab = 'table') {
+    const next = new URLSearchParams(search)
+    if (leagueId === null) {
+      next.delete('league')
+      next.delete('tab')
+    } else {
+      next.set('league', leagueId)
+      next.set('tab', nextTab)
+    }
+    // Replace rather than push: opening and closing a card is not a step a
+    // player expects to walk back through one press at a time.
+    setSearch(next, { replace: true })
+  }
 
   const view = presentGameLeagues({ gameName, joinedGame, leagues })
 
@@ -161,18 +220,24 @@ export function SeasonLeaguesPage({
                   variant="secondary"
                   aria-expanded={open}
                   aria-controls={open ? tableId : undefined}
-                  onClick={() => setOpenLeagueId(open ? null : league.id)}
+                  onClick={() => openLeague(open ? null : league.id, tab)}
                 >
-                  {open ? `Hide ${league.name} table` : `View ${league.name} table`}
+                  {open ? `Hide ${league.name}` : `Open ${league.name}`}
                 </Button>
 
                 {open ? (
                   <div id={tableId}>
-                    <SeasonLeagueStandings
-                      gateway={standings}
+                    <SeasonLeagueWorkspace
                       leagueId={league.id}
                       leagueName={league.name}
+                      standings={standings}
                       headToHead={headToHead}
+                      competitionRoundId={competitionRoundId}
+                      loadMatchweek={loadMatchweek ?? unavailableMatchweek}
+                      loadMovement={loadMovement}
+                      playerHref={playerHref}
+                      tab={tab}
+                      onTabChange={(next) => openLeague(league.id, next)}
                     />
                   </div>
                 ) : null}

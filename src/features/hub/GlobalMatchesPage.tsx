@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton, Workspace } from '../../design-system'
 import { ClubIdentity } from '../../design-system/ClubIdentity'
 import { fetchSeasonFixtureList } from '../../services/supabase/seasonFixtureList'
@@ -57,6 +57,11 @@ function competitionRefFor(
   }
 }
 
+/** The three views, and the guard that keeps an arbitrary query value out. */
+function isCombinedFixtureView(value: string | null): value is CombinedFixtureView {
+  return value === 'today' || value === 'upcoming' || value === 'results'
+}
+
 const VIEWS: readonly { id: CombinedFixtureView; label: string }[] = [
   { id: 'today', label: 'Today' },
   { id: 'upcoming', label: 'Upcoming' },
@@ -70,8 +75,24 @@ type LoadState =
 export function GlobalMatchesPage() {
   const { status: membership, player, reload } = usePlayerCompetitions()
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
-  const [view, setView] = useState<CombinedFixtureView>('upcoming')
-  const [filter, setFilter] = useState<string>('all')
+
+  /**
+   * WHICH MATCHES, AND WHOSE, LIVE IN THE URL.
+   *
+   * They used to live in React state alone, so Matches → Results → Scottish
+   * Premiership → a Match Centre → Back landed the player on Today / All mine
+   * and lost their place. A player reasonably expects Back and a shared link to
+   * preserve both, which is exactly the test for what belongs in a URL —
+   * nothing ephemeral is put here.
+   *
+   * THE COMPETITION IS NAMED BY ITS SLUG, which is the server's canonical route
+   * identity (contract 147), not by the stored season row name. A URL carrying
+   * "Premier League 2026/27" would be a display string in an address.
+   */
+  const [search, setSearch] = useSearchParams()
+  const view: CombinedFixtureView = isCombinedFixtureView(search.get('view'))
+    ? (search.get('view') as CombinedFixtureView)
+    : 'upcoming'
 
   const key = (player?.mine ?? []).map((entry) => entry.competition.seasonRowName).join('|')
 
@@ -112,6 +133,34 @@ export function GlobalMatchesPage() {
   // The viewer's own today, in the same zone the day keys were resolved in, so
   // "Today" cannot select a day the headings call something else.
   const today = matchDayKey(new Date().toISOString()) ?? ''
+
+  const filters = player?.mine ?? []
+
+  // The slug in the URL resolved back to the season row the model filters on.
+  // A player holding two seasons of one competition is not separable by slug
+  // alone; the first in relevance order wins, which is the same competition
+  // either way and the season the rest of the shell already defaults to.
+  const requestedSlug = search.get('competition')
+  const filter =
+    requestedSlug === null
+      ? 'all'
+      : (filters.find((entry) => entry.competition.competitionSlug === requestedSlug)?.competition
+          .seasonRowName ?? 'all')
+
+  function setNavigationState(next: { view?: CombinedFixtureView; competition?: string | null }) {
+    const params = new URLSearchParams(search)
+    if (next.view !== undefined) {
+      // The default is left out of the URL rather than written into it, so the
+      // plain `/matches` address stays the canonical one.
+      if (next.view === 'upcoming') params.delete('view')
+      else params.set('view', next.view)
+    }
+    if (next.competition !== undefined) {
+      if (next.competition === null) params.delete('competition')
+      else params.set('competition', next.competition)
+    }
+    setSearch(params, { replace: true })
+  }
 
   const combined = useMemo(
     () =>
@@ -163,7 +212,6 @@ export function GlobalMatchesPage() {
     )
   }
 
-  const filters = player?.mine ?? []
 
   return (
     <div className={s.page}>
@@ -182,7 +230,7 @@ export function GlobalMatchesPage() {
               type="button"
               className={`${styles.view} ${selected ? styles.viewOn : ''}`}
               aria-pressed={selected}
-              onClick={() => setView(option.id)}
+              onClick={() => setNavigationState({ view: option.id })}
             >
               {option.label} <span className={styles.count}>{combined.counts[option.id]}</span>
             </button>
@@ -198,7 +246,7 @@ export function GlobalMatchesPage() {
             type="button"
             className={`${styles.filter} ${filter === 'all' ? styles.filterOn : ''}`}
             aria-pressed={filter === 'all'}
-            onClick={() => setFilter('all')}
+            onClick={() => setNavigationState({ competition: null })}
           >
             All mine
           </button>
@@ -210,7 +258,9 @@ export function GlobalMatchesPage() {
                 type="button"
                 className={`${styles.filter} ${selected ? styles.filterOn : ''}`}
                 aria-pressed={selected}
-                onClick={() => setFilter(entry.competition.seasonRowName)}
+                onClick={() =>
+                  setNavigationState({ competition: entry.competition.competitionSlug })
+                }
               >
                 {entry.competition.name}
               </button>

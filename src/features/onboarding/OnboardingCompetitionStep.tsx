@@ -18,11 +18,11 @@ import styles from './onboarding.module.css'
  * ticked six competitions reasonably assumes they have entered six games. The
  * games step is where membership is chosen, and nothing is selected for them.
  *
- * A PUBLISHED COMPETITION WITH NO ROUTE IS SHOWN AND NOT SELECTABLE. The
- * catalogue can hold a season the frontend cannot open — `public.competitions.slug`
- * is not browser-readable, which is `MIG-UI-12` — and pretending it is not
- * there would be the invisible-competition failure again. It is listed, named,
- * and says why it cannot be chosen yet.
+ * EVERY PUBLISHED COMPETITION IS SELECTABLE. This step used to carry a
+ * "Newly published, not openable" group, because `public.competitions.slug`
+ * was not browser-readable and a season could exist with no URL. Contract 147
+ * returns the slug, so that state cannot occur and the group is gone: the
+ * catalogue this step renders is the server's, in full.
  *
  * DRAFT ONLY. Selecting writes nothing: no Follow authority exists
  * (`MIG-UI-10`). The caller owns the draft and this component never claims a
@@ -47,17 +47,14 @@ export function OnboardingCompetitionStep({
   const [query, setQuery] = useState('')
   const headingId = useId()
 
-  const { chosen, rest, unroutable, noMatches } = useMemo(() => {
+  const { chosen, rest, noMatches } = useMemo(() => {
     const needle = query.trim().toLowerCase()
     const matches = (name: string) => needle === '' || name.toLowerCase().includes(needle)
     const catalogue = (player?.catalogue ?? []).filter((entry) => matches(entry.name))
     return {
       chosen: catalogue.filter((entry) => draft.followed.includes(entry.seasonRowName)),
       rest: catalogue.filter((entry) => !draft.followed.includes(entry.seasonRowName)),
-      unroutable: (player?.unroutable ?? []).filter((entry) => matches(entry.name)),
-      noMatches:
-        catalogue.length === 0 &&
-        (player?.unroutable ?? []).filter((entry) => matches(entry.name)).length === 0,
+      noMatches: catalogue.length === 0,
     }
   }, [player, draft.followed, query])
 
@@ -88,7 +85,7 @@ export function OnboardingCompetitionStep({
     )
   }
 
-  const empty = player.catalogue.length === 0 && player.unroutable.length === 0
+  const empty = player.catalogue.length === 0
 
   return (
     <section className={styles.step} aria-labelledby={headingId}>
@@ -149,18 +146,7 @@ export function OnboardingCompetitionStep({
             </Group>
           ) : null}
 
-          {unroutable.length > 0 ? (
-            <Group title="Newly published">
-              {unroutable.map((entry) => (
-                <p className={styles.unroutable} key={entry.key}>
-                  <span className={styles.unroutableName}>{entry.name}</span>
-                  <span className={styles.unroutableNote}>
-                    On the platform, not openable here yet
-                  </span>
-                </p>
-              ))}
-            </Group>
-          ) : null}
+
 
           {noMatches ? (
             <p className={styles.none}>No competition matches “{query}”.</p>

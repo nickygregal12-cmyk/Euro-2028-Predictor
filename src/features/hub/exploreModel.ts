@@ -1,6 +1,6 @@
 import type { CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
 import type { HubCompetition } from './competitionCatalogue'
-import type { PlayerCompetitions, UnroutableSeason } from './playerCompetitions'
+import type { PlayerCompetitions } from './playerCompetitions'
 
 /**
  * The published catalogue, arranged for discovery rather than navigation.
@@ -13,12 +13,11 @@ import type { PlayerCompetitions, UnroutableSeason } from './playerCompetitions'
  * by. It does not carry them today, and inventing a taxonomy from competition
  * names would be a guess rendered as a heading.
  *
- * A NEWLY PUBLISHED COMPETITION APPEARS HERE THE MOMENT THE SERVER HOLDS IT
- * (`MIG-UI-12`), whether or not the static catalogue knows its route slug. One
- * without a slug is listed under its own heading, named and unopenable, rather
- * than omitted — a competition that exists but is invisible because a frontend
- * array was not edited is the failure the server-driven catalogue replaced, and
- * silently dropping it here would reintroduce it one layer down.
+ * A NEWLY PUBLISHED COMPETITION APPEARS HERE THE MOMENT THE SERVER HOLDS IT,
+ * openable, with no frontend edit at all (contract 147, closing `MIG-UI-12`).
+ * The "Newly published but not openable" group this view used to carry existed
+ * only because the route slug was not browser-readable; contract 147 returns
+ * it, so every catalogue entry is a link and that group is gone.
  *
  * MEMBERSHIP IS REPORTED, FOLLOWING IS NOT CLAIMED. `playing` is the games the
  * server says the player has joined here. Nothing in this model says a player
@@ -46,11 +45,6 @@ export type ExploreGroup = {
 
 export type ExploreView = {
   groups: readonly ExploreGroup[]
-  /**
-   * Published seasons the frontend cannot open yet, matching the search.
-   * Rendered as text, never as links.
-   */
-  unroutable: readonly UnroutableSeason[]
   /** True when a search matched nothing — distinct from an empty catalogue. */
   noMatches: boolean
 }
@@ -104,13 +98,8 @@ export function presentExplore(
     })
   }
 
-  const unroutable = (player?.unroutable ?? []).filter(
-    (season) => query.trim() === '' || season.name.toLowerCase().includes(query.trim().toLowerCase()),
-  )
-
   return {
     groups,
-    unroutable,
-    noMatches: visible.length === 0 && unroutable.length === 0 && catalogue.length > 0,
+    noMatches: visible.length === 0 && catalogue.length > 0,
   }
 }

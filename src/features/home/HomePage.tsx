@@ -144,8 +144,8 @@ function DuringLayout({
         bestLeagueRank={m.bestLeague?.rank ?? null}
         hasLeague={m.hasAnyLeague}
         leagueDataAvailable={leagueDataAvailable}
-        onPoints={() => navigate('/profile')}
-        onToday={() => navigate('/profile')}
+        onPoints={() => navigate('/tournament/profile')}
+        onToday={() => navigate('/tournament/profile')}
         onRank={() => navigate('/league/overall')}
         onLeague={() =>
           m.bestLeague ? navigate(`/league/${m.bestLeague.id}`) : navigate('/league')

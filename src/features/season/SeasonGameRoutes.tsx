@@ -4,13 +4,15 @@ import { Alert, Button, Skeleton } from '../../design-system'
 import {
   competitionChampionshipInstanceRoute,
   competitionChampionshipTableRoute,
+  competitionPlayerRoute,
   competitionRoute,
   logicalWeeklyParent,
   weeklyRoutes,
   type DomesticGameRoute,
 } from '../../app/weeklyRoutes'
 import { useAuth } from '../auth/AuthProvider'
-import { findHubCompetition, type HubCompetition } from '../hub/competitionCatalogue'
+import type { HubCompetition } from '../hub/competitionCatalogue'
+import { useHubCompetition } from '../hub/useHubCompetition'
 import { fetchHubMembership } from '../../services/supabase/competitionGames'
 import type {
   CompetitionGame,
@@ -39,6 +41,9 @@ import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompeti
 import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { seasonShellDestinations } from './seasonDestinations'
 import { SeasonLeaguesPage } from './SeasonLeaguesPage'
+import { useSeasonRoundId } from './useSeasonRoundId'
+import { fetchSeasonLeagueMatchweekPredictions } from '../../services/supabase/seasonLeaguePredictions'
+import { fetchSeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovement'
 import { SeasonPlayPage } from './SeasonPlayPage'
 import { SeasonLmsFormGuide } from './SeasonLmsFormGuide'
 import { presentLmsFormGuide, type LmsFormGuide } from './lmsFormGuideModel'
@@ -71,12 +76,25 @@ function useSeasonRoute(): RouteState {
     seasonSlug: string
   }>()
   const [state, setState] = useState<RouteState>({ status: 'loading' })
-  const competition = findHubCompetition(competitionSlug, seasonSlug)
+  // The catalogue is the server's (contract 147) and arrives asynchronously, so
+  // "not yet read" stays a loading state rather than becoming "no such season".
+  const resolved = useHubCompetition(competitionSlug, seasonSlug)
+  const competition = resolved.status === 'ready' ? resolved.competition : null
   const seasonRowName = competition?.seasonRowName ?? null
 
   useEffect(() => {
+    if (resolved.status === 'loading') {
+      setState({ status: 'loading' })
+      return
+    }
     if (!competition || !seasonRowName) {
-      setState({ status: 'failed', message: 'This competition season could not be found.' })
+      setState({
+        status: 'failed',
+        message:
+          resolved.status === 'failed'
+            ? 'The competition list could not be read right now.'
+            : 'This competition season could not be found.',
+      })
       return
     }
     let active = true
@@ -112,7 +130,7 @@ function useSeasonRoute(): RouteState {
     return () => {
       active = false
     }
-  }, [competition, seasonRowName])
+  }, [competition, seasonRowName, resolved.status])
 
   return state
 }
@@ -613,6 +631,23 @@ function SeasonLeaguesRouteBody({
     [],
   )
 
+  // Contracts 149 and 150 are addressed by the ROUND, and contract 121 answers
+  // in matchweek numbers. `useSeasonRoundId` resolves one to the other from the
+  // fixtures, which is the only browser read carrying both.
+  const competitionRoundId = useSeasonRoundId(tournamentId, matchweek)
+
+  const playerHref = useMemo(() => {
+    const ref = { competitionSlug: competitionSlug ?? '', seasonSlug: seasonSlug ?? '' }
+    return (playerId: string) => competitionPlayerRoute(ref, playerId)
+  }, [competitionSlug, seasonSlug])
+
+  const loadMovement = useMemo(
+    // No round named: contract 150 answers for the most recent SETTLED
+    // matchweek, which is the question the league card is really asking.
+    () => (leagueId: string) => fetchSeasonLeagueMovement(leagueId),
+    [],
+  )
+
   return (
     <SeasonLeaguesPage
       gateway={gateway}
@@ -620,6 +655,10 @@ function SeasonLeaguesRouteBody({
       gameName="Match Predictor"
       joinedGame={joinedGame}
       headToHead={headToHead}
+      competitionRoundId={competitionRoundId}
+      loadMatchweek={fetchSeasonLeagueMatchweekPredictions}
+      loadMovement={loadMovement}
+      playerHref={playerHref}
     />
   )
 }

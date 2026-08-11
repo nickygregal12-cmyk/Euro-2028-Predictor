@@ -3,7 +3,7 @@ import type {
   HubSeasonStatus,
 } from '../../services/supabase/competitionGames'
 import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
-import type { HubCompetition, HubGame } from './competitionCatalogue'
+import { hubGamesFromServed, type HubCompetition, type HubGame } from './competitionCatalogue'
 
 /**
  * Overlay the server's membership truth onto the presentation catalogue.
@@ -11,8 +11,14 @@ import type { HubCompetition, HubGame } from './competitionCatalogue'
  * Pure so the rules are testable: given the catalogue and the C1b read's
  * result, produce the competitions the Hub may claim. A catalogue entry whose
  * season row the database did not return keeps its presentation copy and is
- * named in `unresolved` — the caller decides how loudly to say so. A game the
- * server did not list keeps its catalogue status and claims no membership.
+ * named in `unresolved` — the caller decides how loudly to say so.
+ *
+ * THE GAME LIST IS THE SERVER'S, not an intersection with a frontend one. Since
+ * contract 147 the catalogue is built from what the server publishes, and
+ * `get_competition_games` is what says which games a season runs; overlaying
+ * only games a frontend already knew would mean a new game in a season was
+ * invisible until somebody edited the client, which is the same defect the
+ * route slug had.
  */
 export function applyHubMembership(
   catalogue: readonly HubCompetition[],
@@ -31,7 +37,9 @@ export function applyHubMembership(
     return {
       ...entry,
       status: overlayStatus(entry.status, season.seasonStatus),
-      games: entry.games.map((game) => overlayGame(game, season)),
+      games: hubGamesFromServed(season.seasonGames.games).map((game) =>
+        overlayGame(game, season),
+      ),
     }
   })
 

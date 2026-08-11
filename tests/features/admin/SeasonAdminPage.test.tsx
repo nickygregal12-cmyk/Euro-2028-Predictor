@@ -13,6 +13,15 @@ const mocks = vi.hoisted(() => ({
   fetchSeasonMatchweekFixtures: vi.fn<() => Promise<SeasonMatchweekFixtures>>(),
   openSeasonCompetition: vi.fn<() => Promise<SeasonOpenOutcome>>(),
   recordSeasonFixtureResult: vi.fn<() => Promise<SeasonResultOutcome>>(),
+  fetchAdministeredSeasons: vi.fn(),
+}))
+
+// The seasons this page administers come from its OWN read, which includes
+// drafts — deliberately not the published catalogue, because opening a draft is
+// what an administrator is here for and contract 147 excludes drafts from the
+// player-facing one.
+vi.mock('../../../src/services/supabase/administeredSeasons', () => ({
+  fetchAdministeredSeasons: mocks.fetchAdministeredSeasons,
 }))
 
 vi.mock('../../../src/services/supabase/competitionGames', () => ({
@@ -81,6 +90,16 @@ function matchweek(status = 'scheduled'): SeasonMatchweekFixtures {
 }
 
 beforeEach(() => {
+  // A DRAFT season, which is the case that matters: it is absent from the
+  // player-facing catalogue and must still be administrable.
+  mocks.fetchAdministeredSeasons.mockResolvedValue([
+    {
+      id: 'season-1',
+      name: 'Premier League 2026/27',
+      seasonKey: '2026-27',
+      status: 'draft',
+    },
+  ])
   vi.clearAllMocks()
   mocks.fetchHubMembership.mockResolvedValue([membership()])
   mocks.fetchSeasonMatchweekFixtures.mockResolvedValue(matchweek())

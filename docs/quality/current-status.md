@@ -349,6 +349,26 @@ The accepted governance amendment [`../architecture/stage-c1-c2-governance.md`](
 
 One coherent C1 migration exist in PR #317 and pass disposable proof. No hosted schema operation is authorised.
 
+## Signed-in weekly frontend — position at contract 151
+
+Stated here because "the backend authority exists" and "a player can reach it" are different claims, and this file is the one that must not blur them.
+
+**Consumed on 11 August 2026.** Contracts 147–151 were merged on 10 August and had no frontend consumer until the following day. They now do:
+
+| Contract | Reached from a browser by |
+| --- | --- |
+| 147 — published weekly catalogue with route slug | The shell's one catalogue read. `HUB_COMPETITIONS`, the static competition array, is **deleted**; publishing a league on the server is the whole of making it exist and making it openable |
+| 148 — one season fixture by its own id | The addressable Match Centre, which no longer carries a date hint, loads no date window and can no longer report "that match is not in this window" |
+| 149 — a league's matchweek predictions after its lock | The Match Centre's "Your leagues" section, and the private-league workspace's Matchweek tab (desktop matrix, purpose-built phone layout) |
+| 150 — league rank movement over a settled matchweek | Above the league workspace's tabs, in the Match Centre's league section, and in the Hub's Matchweek Recap |
+| 151 — one player's season and predictions | `/competitions/:competitionSlug/:seasonSlug/players/:playerId`, linked from private-league surfaces and the Match Centre |
+
+**One defect closed with them.** `/profile` was registered inside the Euro tournament boundary, which refuses every player route while the publication state is `hidden`. The visible Profile controls — the top-bar avatar, More and the desktop rail — therefore sent a domestic player to Home. `/profile` is now the platform profile, outside that boundary and reading no tournament; Euro's own profiles moved to `/tournament/profile` and stayed inside it.
+
+**What no browser can still reach.** Private Last Man Standing and Championship creation/join, the universal invite code, permanent Season Wrapped and history, and Follow / favourite team / onboarding and pinned-rival preferences — which is why the four onboarding steps remain built, tested and deliberately unwired. Their BACKEND landed on 11 August 2026 at contracts 152–157, so these are no longer backend-gated; they are unconsumed, which is the state contracts 147–151 were in the day before. The distinction matters here more than anywhere: this file is the one that must not let "the authority exists" read as "a player can reach it".
+
+**No hosted claim is made here.** These are repository facts. The signed-in hosted acceptance is `UI-F19` and remains outstanding.
+
 ## Open platform gaps
 
 - Stage C1 migration review, recovery evidence and separately approved hosted rollout;
@@ -360,7 +380,7 @@ One coherent C1 migration exist in PR #317 and pass disposable proof. No hosted 
 - notification/client distribution;
 - manual accessibility, legal, operations, load and public-launch proof;
 - brand selection after Phase 0 discovery and before the closed cohort;
-- the second frontend site, the server-owned Euro publication state and its route guards, and the 18+ signup rule — accepted by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), none implemented. **One is a present defect rather than a gap:** the weekly Hub lists Euro 2028 from its static catalogue while the competition should be hidden, and its routes are reachable (`EURO-001`).
+- the second frontend site and the 18+ signup rule — accepted by [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), neither implemented. **Two lines of this bullet were stale and are corrected here rather than left standing:** the server-owned Euro publication state and its route guards are implemented (contract 143, `EURO-002`/`EURO-004`), and the weekly Hub no longer lists Euro 2028 from a static catalogue — the static catalogue does not exist. Since contract 147 the weekly catalogue is `get_published_weekly_seasons()`, which returns league seasons only, so Euro is excluded by its own stored `kind` inside the RPC rather than by a frontend omission. `EURO-001` remains open only for the Production release gate, and [`accepted-requirements.md`](accepted-requirements.md) is the authority on each row's exact state.
 
 The stable identifier, dependency and acceptance evidence for every accepted-but-unbuilt requirement live in [`accepted-requirements.md`](accepted-requirements.md). This file states what is true now; that register states what was agreed and is still owed.
 

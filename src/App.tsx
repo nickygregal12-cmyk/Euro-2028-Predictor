@@ -79,6 +79,11 @@ const SeasonMatchCentreRoute = lazy(() =>
     default: m.SeasonMatchCentreRoute,
   })),
 )
+const SeasonPlayerProfileRoute = lazy(() =>
+  import('./features/season/SeasonPlayerProfileRoute').then((m) => ({
+    default: m.SeasonPlayerProfileRoute,
+  })),
+)
 const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
@@ -87,7 +92,12 @@ const AccountPage = lazy(() =>
 )
 const ScoringRulesPage = lazy(() => import('./features/more/ScoringRulesPage').then((m) => ({ default: m.ScoringRulesPage })))
 const WelcomePage = lazy(() => import('./features/welcome/WelcomePage').then((m) => ({ default: m.WelcomePage })))
-const ProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
+const PlatformProfilePage = lazy(() =>
+  import('./features/profile/PlatformProfilePage').then((m) => ({
+    default: m.PlatformProfilePage,
+  })),
+)
+const TournamentProfilePage = lazy(() => import('./features/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const OtherPlayerProfilePage = lazy(() => import('./features/profile/OtherPlayerProfilePage').then((m) => ({ default: m.OtherPlayerProfilePage })))
 const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ default: m.H2HPage })))
 const AdminResultsWorkspacePage = lazy(() => import('./features/admin/AdminResultsWorkspacePage').then((m) => ({ default: m.AdminResultsWorkspacePage })))
@@ -254,6 +264,15 @@ export default function App() {
                       path={weeklyRoutePatterns.leagues}
                       element={<SeasonLeaguesRoute />}
                     />
+                    {/* One player's season (contract 151). Competition-scoped
+                        because points, rank and prediction history are facts
+                        about a player IN a season; the server refuses any
+                        caller who shares no private league with them, and
+                        nothing here enumerates players. */}
+                    <Route
+                      path={weeklyRoutePatterns.player}
+                      element={<SeasonPlayerProfileRoute />}
+                    />
 
                     {/* Compatibility only: the old global chooser name remains a
                         redirect, never a second weekly information architecture. */}
@@ -261,6 +280,14 @@ export default function App() {
                     <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
                     <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                     <Route path="/more/scoring" element={<ScoringRulesPage />} />
+                    {/* The PLATFORM profile, outside the tournament boundary
+                        below. It used to be the Euro tournament profile, which
+                        meant every visible Profile control — the top bar, More,
+                        the desktop rail — sent a domestic player into a route
+                        that `EURO-004` refuses while Euro is hidden, and
+                        bounced them back to Home. It reads the account and the
+                        shell's membership and nothing about any tournament. */}
+                    <Route path="/profile" element={<PlatformProfilePage />} />
                     {/* Outside the tournament boundary below, because the
                         account is the platform's rather than a competition's.
                         It stopped printing one competition's points and rank
@@ -276,8 +303,14 @@ export default function App() {
                     <Route element={<TournamentJourney />}>
                       <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
                       <Route path="/h2h/:rivalId" element={<H2HPage />} />
-                      <Route path="/profile" element={<ProfilePage />} />
-                      <Route path="/profile/:playerId" element={<OtherPlayerProfilePage />} />
+                      {/* Euro's own player profiles, kept inside the boundary
+                          and addressed under `/tournament/` so no domestic
+                          surface can link into them by accident. */}
+                      <Route path="/tournament/profile" element={<TournamentProfilePage />} />
+                      <Route
+                        path="/tournament/profile/:playerId"
+                        element={<OtherPlayerProfilePage />}
+                      />
                     </Route>
 
                     <Route element={<RequireAdmin />}>
