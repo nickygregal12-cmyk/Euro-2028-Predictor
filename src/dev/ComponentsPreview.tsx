@@ -2530,11 +2530,9 @@ function Gallery() {
           invite={{
             found: true,
             kind: 'league',
-            id: 'lg-1',
             name: 'The Office Sweepstake',
             season: 'Premier League 2026/27',
             game: 'Match Predictor',
-            members: 8,
             alreadyIn: false,
             requiresGameEntry: false,
             joinWith: 'join_league',
@@ -2547,11 +2545,9 @@ function Gallery() {
           invite={{
             found: true,
             kind: 'league',
-            id: 'lg-1',
             name: 'The Office Sweepstake',
             season: 'Premier League 2026/27',
             game: 'Match Predictor',
-            members: 8,
             alreadyIn: false,
             requiresGameEntry: true,
             joinWith: 'join_league',
@@ -2564,12 +2560,10 @@ function Gallery() {
           invite={{
             found: true,
             kind: 'competition',
-            id: 'comp-1',
             name: 'Sunday Survivors',
             season: 'Premier League 2026/27',
             game: 'Last Man Standing',
             gameKey: 'last_man_standing',
-            members: 12,
             alreadyIn: false,
             isOwner: false,
             closed: false,
@@ -2583,12 +2577,10 @@ function Gallery() {
           invite={{
             found: true,
             kind: 'competition',
-            id: 'comp-2',
             name: 'Office Cup',
             season: 'Premier League 2026/27',
             game: 'Predictor Championship',
             gameKey: 'predictor_cup',
-            members: 8,
             alreadyIn: false,
             isOwner: false,
             closed: true,
@@ -2602,18 +2594,16 @@ function Gallery() {
           invite={{
             found: true,
             kind: 'league',
-            id: 'lg-1',
             name: 'The Office Sweepstake',
             season: 'Premier League 2026/27',
             game: 'Match Predictor',
-            members: 8,
             alreadyIn: true,
             requiresGameEntry: false,
             joinWith: 'join_league',
           }}
           onJoin={() => {}}
-          onOpen={() => {}}
           onDecline={() => {}}
+          declineLabel="Go to your private play"
         />
       </Section>
 

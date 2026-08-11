@@ -15,6 +15,16 @@ import type { CompetitionGameKey } from './competitionGamesModel'
  * copy this decoder's consumers write must not distinguish them either, because
  * "that code used to exist" is a probe result.
  *
+ * THERE IS NO CONTAINER ID AND NO MEMBER COUNT, AND THEIR ABSENCE IS THE
+ * CONTRACT (contract 159). Contract 155's resolver returned both; contract 158
+ * narrowed `get_league_preview` to `(name, is_member)` for exactly the reason
+ * that a member count and an id turn a guessed code into a positively
+ * identified private group, and contract 159 closed the same door on the
+ * resolver — which was the wider and, until then, entirely unmetered one. This
+ * decoder therefore has no `id` field to render or navigate with. A caller who
+ * needs an id gets it from the JOIN, which returns one, and only after the
+ * caller has actually been let in.
+ *
  * WHAT THE SERVER SAYS ABOUT JOINING, THE CLIENT DOES NOT RE-DECIDE.
  * `alreadyIn`, `closed` and `requiresGameEntry` are the server's answers and are
  * carried verbatim. In particular `requiresGameEntry` exists so a league invite
@@ -29,14 +39,11 @@ import type { CompetitionGameKey } from './competitionGamesModel'
 export type ResolvedLeagueInvite = {
   found: true
   kind: 'league'
-  /** The league id, for navigating after a successful join. */
-  id: string
   name: string
   /** The competition season the league is played in, by name. */
   season: string | null
   /** The underlying game's display name, as the catalogue holds it. */
   game: string | null
-  members: number
   alreadyIn: boolean
   /** True when the caller holds no active membership in the league's game. */
   requiresGameEntry: boolean
@@ -46,12 +53,10 @@ export type ResolvedLeagueInvite = {
 export type ResolvedCompetitionInvite = {
   found: true
   kind: 'competition'
-  id: string
   name: string
   season: string | null
   game: string | null
   gameKey: CompetitionGameKey | null
-  members: number
   alreadyIn: boolean
   isOwner: boolean
   /** Finished, or registration closed — including by an organiser launching. */
@@ -84,12 +89,6 @@ function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
-function countOf(value: unknown): number {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0
-    ? Math.trunc(value)
-    : 0
-}
-
 function gameKeyOf(value: unknown): CompetitionGameKey | null {
   return typeof value === 'string' && GAME_KEYS.includes(value)
     ? (value as CompetitionGameKey)
@@ -100,19 +99,17 @@ export function mapResolvedInvite(payload: unknown): ResolvedInvite {
   const root = objectOf(payload)
   if (root.found !== true) return { found: false }
 
-  const id = stringOrNull(root.id)
   const name = stringOrNull(root.name)
-  // A resolved container with no id or no name cannot be presented or joined,
-  // and presenting half of one would show a player an unnamed group to accept.
-  // It degrades to the same answer an unknown code gets.
-  if (!id || !name) return { found: false }
+  // A resolved container with no name cannot be presented: it would show a
+  // player an unnamed group to accept. It degrades to the same answer an
+  // unknown code gets. There is deliberately no id to check for — contract 159
+  // stopped returning one.
+  if (!name) return { found: false }
 
   const shared = {
-    id,
     name,
     season: stringOrNull(root.season),
     game: stringOrNull(root.game),
-    members: countOf(root.members),
     alreadyIn: root.already_in === true,
   }
 

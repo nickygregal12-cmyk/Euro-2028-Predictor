@@ -65,11 +65,9 @@ function renderInvite(code = 'ABC234DEF567') {
 const LEAGUE_INVITE = {
   found: true,
   kind: 'league',
-  id: 'lg-1',
   name: 'Office League',
   season: 'Premier League 2026/27',
   game: 'Match Predictor',
-  members: 8,
   alreadyIn: false,
   requiresGameEntry: false,
   joinWith: 'join_league',
@@ -78,12 +76,10 @@ const LEAGUE_INVITE = {
 const LMS_INVITE = {
   found: true,
   kind: 'competition',
-  id: 'comp-1',
   name: 'Sunday Survivors',
   season: 'Premier League 2026/27',
   game: 'Last Man Standing',
   gameKey: 'last_man_standing',
-  members: 12,
   alreadyIn: false,
   isOwner: false,
   closed: false,
@@ -179,17 +175,28 @@ describe('the invite deep link', () => {
     expect(await screen.findByText(/doesn’t match anything/)).toBeInTheDocument()
   })
 
-  it('never discloses the size of a private group', async () => {
-    // Contract 158 removed the member count from `get_league_preview` because
-    // it turned a guessed code into a positively identified group. The resolver
-    // still returns it; this surface must not render it.
+  it('never discloses the size of a private group, even if a server sends one', async () => {
+    // Contract 159 stopped the resolver returning a member count at all, for
+    // the reason contract 158 gave about `get_league_preview`: it is what turns
+    // a guessed code into a positively identified group. The decoder drops the
+    // field, so a server that regressed and sent one could still not surface it.
     mocks.auth.userId = '00000000-0000-0000-0000-000000000123'
-    mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)
+    mocks.resolveInviteCode.mockResolvedValue({ ...LEAGUE_INVITE, members: 8, id: 'lg-1' })
 
     renderInvite()
     await screen.findByRole('heading', { name: 'Office League' })
 
     expect(screen.queryByText(/8 members/i)).toBeNull()
     expect(screen.queryByText(/\b8\b/)).toBeNull()
+  })
+
+  it('sends a player who is already in to their private play rather than to an id it lacks', async () => {
+    mocks.auth.userId = '00000000-0000-0000-0000-000000000123'
+    mocks.resolveInviteCode.mockResolvedValue({ ...LEAGUE_INVITE, alreadyIn: true })
+
+    renderInvite()
+    fireEvent.click(await screen.findByRole('button', { name: 'Go to your private play' }))
+
+    expect(await screen.findByText('Private play destination')).toBeInTheDocument()
   })
 })

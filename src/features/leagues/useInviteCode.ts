@@ -38,7 +38,8 @@ export type InviteState =
 
 export type InviteJoinResult =
   | { kind: 'league'; leagueId: string }
-  | { kind: 'competition'; competitionId: string }
+  /** Null when the join succeeded and the server named no competition id. */
+  | { kind: 'competition'; competitionId: string | null }
 
 export function useInviteCode() {
   const [state, setState] = useState<InviteState>({ status: 'idle' })
@@ -89,10 +90,10 @@ export function useInviteCode() {
         }
         const { joinPrivateCompetition } = await import('../../services/supabase/inviteCodes')
         const joined = await joinPrivateCompetition(code)
-        return {
-          kind: 'competition',
-          competitionId: joined.gameCompetitionId ?? state.invite.id,
-        }
+        // The id comes from the JOIN and from nowhere else. Contract 159
+        // stopped the resolver returning one, deliberately, so there is no
+        // pre-join fallback to reach for.
+        return { kind: 'competition', competitionId: joined.gameCompetitionId }
       } catch (thrown) {
         setState({
           status: 'error',

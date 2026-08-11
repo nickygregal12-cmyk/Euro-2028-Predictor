@@ -126,14 +126,13 @@ export function JoinLandingPage() {
                 if (joined) landOn(joined)
               })()
             }}
-            onOpen={() =>
-              landOn(
-                state.invite.kind === 'league'
-                  ? { kind: 'league', leagueId: state.invite.id }
-                  : { kind: 'competition', competitionId: state.invite.id },
-              )
-            }
+            // No `onOpen`: contract 159 stopped the resolver returning a
+            // container id, so there is nothing to open BY. A player who is
+            // already in is sent to their private play list, which is where it
+            // is, by the same control that declines.
+
             onDecline={() => navigate(weeklyRoutes.leagues, { replace: true })}
+            declineLabel={state.invite.alreadyIn ? 'Go to your private play' : undefined}
           />
         )}
       </div>

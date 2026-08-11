@@ -7,11 +7,9 @@ import {
 const LEAGUE = {
   found: true,
   kind: 'league',
-  id: 'league-1',
   name: 'The Office',
   season: 'Premier League 2026/27',
   game: 'Match Predictor',
-  members: 8,
   already_in: false,
   requires_game_entry: true,
   join_with: 'join_league',
@@ -20,12 +18,10 @@ const LEAGUE = {
 const COMPETITION = {
   found: true,
   kind: 'competition',
-  id: 'comp-1',
   name: 'Sunday Survivors',
   season: 'Premier League 2026/27',
   game: 'Last Man Standing',
   game_key: 'last_man_standing',
-  members: 12,
   already_in: false,
   is_owner: true,
   closed: false,
@@ -39,11 +35,9 @@ describe('mapResolvedInvite', () => {
     expect(resolved).toEqual({
       found: true,
       kind: 'league',
-      id: 'league-1',
       name: 'The Office',
       season: 'Premier League 2026/27',
       game: 'Match Predictor',
-      members: 8,
       alreadyIn: false,
       requiresGameEntry: true,
       joinWith: 'join_league',
@@ -82,7 +76,16 @@ describe('mapResolvedInvite', () => {
 
   it('degrades a resolved container with no name to not-found rather than showing a blank invite', () => {
     expect(mapResolvedInvite({ ...LEAGUE, name: '' })).toEqual({ found: false })
-    expect(mapResolvedInvite({ ...COMPETITION, id: null })).toEqual({ found: false })
+    expect(mapResolvedInvite({ ...COMPETITION, name: null })).toEqual({ found: false })
+  })
+
+  it('drops an id and a member count even when a server sends them', () => {
+    // Contract 159 removed both, for the reason SEC-001 names. A decoder that
+    // carried them through would let a future surface render them by accident.
+    const resolved = mapResolvedInvite({ ...LEAGUE, id: 'league-1', members: 8 })
+
+    expect(resolved).not.toHaveProperty('id')
+    expect(resolved).not.toHaveProperty('members')
   })
 
   it('refuses a container kind this build does not understand', () => {
@@ -91,10 +94,7 @@ describe('mapResolvedInvite', () => {
     })
   })
 
-  it('reads a missing member count as zero rather than as NaN', () => {
-    expect(mapResolvedInvite({ ...LEAGUE, members: null })).toMatchObject({ members: 0 })
-    expect(mapResolvedInvite({ ...LEAGUE, members: -4 })).toMatchObject({ members: 0 })
-  })
+
 })
 
 describe('normaliseInviteCode', () => {

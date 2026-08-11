@@ -13,13 +13,13 @@ import s from './leagueForms.module.css'
  * underlying game first, a competition does not; a launched Championship is
  * closed — and the differences that do not are hidden.
  *
- * MEMBER COUNT IS DELIBERATELY NOT RENDERED, although `resolve_invite_code`
- * returns it. Contract 158 removed exactly that field from
- * `get_league_preview` because it was the thing that turned a guessed code into
- * a positively identified private group — `SEC-001`. Showing it here would
- * reopen the hole through a second surface. The name is what an invitee needs
- * in order to know what they are being asked to join; the size of the group is
- * not.
+ * THERE IS NO MEMBER COUNT AND NO CONTAINER ID TO RENDER. This card used to
+ * carry a comment explaining that the resolver returned a member count and that
+ * showing it would reopen `SEC-001` through a second surface. Contract 159
+ * removed both fields from the resolver, so the restraint is now the server's
+ * rather than this component's — which is the better place for it. The name is
+ * what an invitee needs in order to know what they are being asked to join; the
+ * size of the group is not, and the id is what would identify it.
  *
  * A REFUSAL IS NEVER A DEAD END. Every state that cannot be joined — already
  * in, closed, needs the game first — offers the action that WOULD work, or says
@@ -33,17 +33,26 @@ export type InvitePreviewCardProps = {
   invite: Extract<ResolvedInvite, { found: true }>
   joining?: boolean
   onJoin: () => void
-  /** Offered when the caller is already in, and has somewhere to send them. */
-  onOpen?: () => void
   onDecline: () => void
+  /**
+   * Overrides the decline control's wording.
+   *
+   * IT EXISTS BECAUSE THERE IS NOTHING TO OPEN. Contract 159 stopped the
+   * resolver returning a container id — a member count and an id are what turn
+   * a guessed code into a positively identified private group — so a player who
+   * is already in cannot be sent to that specific league or competition from
+   * here. The honest control is the one that leaves, relabelled to say where it
+   * goes, rather than an Open button pointing at an id the client does not have.
+   */
+  declineLabel?: string
 }
 
 export function InvitePreviewCard({
   invite,
   joining = false,
   onJoin,
-  onOpen,
   onDecline,
+  declineLabel,
 }: InvitePreviewCardProps) {
   const closed = invite.kind === 'competition' && invite.closed
   const needsGame = invite.kind === 'league' && invite.requiresGameEntry
@@ -91,13 +100,8 @@ export function InvitePreviewCard({
 
       <div className={s.previewActions}>
         <Button variant="secondary" onClick={onDecline} disabled={joining}>
-          {invite.alreadyIn ? 'Not now' : 'Decline'}
+          {declineLabel ?? (invite.alreadyIn ? 'Not now' : 'Decline')}
         </Button>
-        {invite.alreadyIn && onOpen ? (
-          <Button onClick={onOpen} disabled={joining}>
-            {invite.kind === 'league' ? 'Open league' : 'Open competition'}
-          </Button>
-        ) : null}
         {joinable ? (
           <Button onClick={onJoin} loading={joining}>
             {invite.kind === 'league' ? 'Join league' : 'Join competition'}
