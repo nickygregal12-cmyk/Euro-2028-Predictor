@@ -62,15 +62,15 @@ and 168 are consumed, and contract 158's `rotate_league_invite_code` gained its
 browser control. Contract 162 is reachable and **deliberately** not consumed
 until its feed is complete — see item 4.
 
-**Contracts 169, 170 and 171 are not consumed, and the blocker moved during the
-day.** They were unconsumable when the frontend work was done — Development was
-at 168 and none had reached a hosted environment — and both Development and
-Production reached 171 the same day. The remaining step is mechanical:
-`database.types.ts` in the frontend branch was generated at 168, so
-`table_source` (169) and `members_returned`/`members_truncated` (171) are still
-absent from the typed client, and there is no untyped client since `TYPE-001`
-closed. Regenerate against Development at 171 and the two consumers are named
-and waiting.
+**Contracts 169, 170 and 171 are not consumed, and nothing external blocks them.**
+They were unconsumable when the frontend work was done — the functions carrying
+the new fields had reached no hosted environment — and Development and Production
+both reached 171 the same day. The types regeneration recorded here as the next
+step turned out not to be one: these reads are typed `Returns: Json`, so their
+fields are decoded by hand in the model modules and the generated types never
+constrained them. What remains is frontend work with no dependency: extend the
+decoders and render the season Championship table's span label and the league
+prediction lists' "showing 200 of 205".
 
 ## Domestic Frontend Alpha checkpoint — 8 August 2026
 
