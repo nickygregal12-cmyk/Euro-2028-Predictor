@@ -34,7 +34,7 @@ Contracts 159 to 171 were applied to Production as **one boundary**, at the owne
 | --- | ---: | --- | --- |
 | Repository candidate | **171** | 171 canonical migrations through `20260811220000_league_prediction_cap_honesty.sql`. | LEVEL |
 | Development Supabase `iouzoutneyjpugbbtdem` | **171** | Fast-lane run `31499058072` from exact main `dd345ca`. | LEVEL |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **171** | Guarded rollout run `31505763706` from exact main `0f778ff`, gated on backup `31500395326` and rehearsal `31505339791`, independently confirmed by the named-row query above. | LEVEL |
+| Production Supabase | **171** | Project `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31505763706` from exact main `0f778ff`, gated on backup `31500395326` and rehearsal `31505339791`, independently confirmed by the named-row query above. | LEVEL |
 
 **Nothing player-owned moved** across thirteen migrations: 1 auth user, 1 profile, 3 tournaments, 56 teams, 51 matches, 3 entries, 36 match predictions, 1 league, 1 league member, 0 score events, 3 entry totals, 7 game memberships, 10 competitions, 578 season fixtures and 10 season predictions — captured before the apply and compared after.
 
