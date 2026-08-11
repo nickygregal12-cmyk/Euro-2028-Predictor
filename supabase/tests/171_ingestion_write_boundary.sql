@@ -200,7 +200,31 @@ insert into ingestion_functions (name, permitted_writes) values
   -- each provider id means, and names what would block an approval. The
   -- decisions stay with contract 132's two writers.
   ('admin_provider_proposal_detail',
-   'reads staged proposals and the identity map; writes nothing, and returns no raw payload.');
+   'reads staged proposals and the identity map; writes nothing, and returns no raw payload.'),
+  -- Contract 174. Registered here because THIS GUARD CAUGHT IT AGAIN, which is
+  -- the third time it has earned its keep. Four new names match `%provider%`
+  -- and each says what it may write.
+  ('detect_provider_calendar_changes',
+   'staged change proposals only -- a discovered fixture, a postponement, '
+   'abandonment or cancellation, and (only against a caller-declared complete '
+   'span) a withdrawal. It writes NO public relation at all: the assertion in '
+   'its own migration fails if it ever names season_fixtures, because it runs '
+   'unattended every five minutes.'),
+  ('admin_provider_change_proposals',
+   'reads staged change proposals bounded and self-declaring about truncation; '
+   'writes nothing, and returns no raw provider payload.'),
+  ('admin_decide_provider_change_proposal',
+   'contract 174. THE ONLY function in the provider path that may add a fixture '
+   'to a published season or take one out, and it is not automatic: it requires '
+   'require_competition_admin and one explicit decision per proposal. It '
+   'inserts season_fixtures on an approved discovery and updates '
+   'season_fixtures.status on an approved postponement, abandonment, '
+   'cancellation or withdrawal. It writes NO score and cannot: it refuses any '
+   'fixture already carrying one, re-checked under the row lock, so contract '
+   '125''s confirmation gate is untouched.'),
+  ('block_provider_change_proposal_rewrite',
+   'refuses rewrite or deletion of staged change evidence, and refuses a second '
+   'decision on a decided proposal; writes nothing.');
 
 -- ---------------------------------------------------------------------------
 -- 1. Every reviewed function exists.
@@ -313,10 +337,15 @@ select is(
           and p.prokind = 'f'
           and pg_get_functiondef(p.oid) ~* '(insert\s+into|update|delete\s+from)\s+public\.'
      ) writer),
-  '["admin_approve_initial_provider_fixtures", "dispatch_due_provider_polls", "import_provider_fixture_revisions"]'::jsonb,
-  'exactly three reviewed provider-path functions write a public relation: '
-  'contract 132 explicit admin publication, contract 117 kickoff import, and '
-  'the poll dispatcher metadata stamp');
+  '["admin_approve_initial_provider_fixtures", "admin_decide_provider_change_proposal", "dispatch_due_provider_polls", "import_provider_fixture_revisions"]'::jsonb,
+  'exactly four reviewed provider-path functions write a public relation: '
+  'contract 132 explicit admin publication, contract 174 explicit admin '
+  'decision on a staged calendar change, contract 117 kickoff import, and '
+  'the poll dispatcher metadata stamp. The fourth arrived at contract 174 and '
+  'is the same SHAPE as the first: an administrator, deciding one thing at a '
+  'time, with the decision and its effect recorded. What would be a defect is a '
+  'writer that is not one of those -- and detect_provider_calendar_changes, the '
+  'unattended half of that contract, is deliberately absent from this list');
 
 -- ---------------------------------------------------------------------------
 -- 6. And what it writes there is the fixture, not the round.

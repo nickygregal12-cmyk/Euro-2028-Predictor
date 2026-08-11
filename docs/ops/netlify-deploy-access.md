@@ -90,7 +90,7 @@ Two things follow, and neither is softened by the confirmation.
 
 The password is a **convenience perimeter, not a confidentiality control**. It keeps the site out of public view and out of search indexes; it is not a reason to place anything behind it that would matter if the password leaked. Real access control stays where it already is: Supabase row-level security, the bounded RPCs and the server-enforced reveal rules. Production holds one auth user and 36 match predictions today, and that data is protected by the database, not by Netlify.
 
-The perimeter is **not** `AGE-001`. ADR 0026's 18+ restriction on the initial external cohort is accepted and unimplemented, and a shared password is not a substitute for it. This remains not a public launch.
+The perimeter is **not** an age control, and after 11 August 2026 there is no age control to be absent: `AGE-001` was **rejected by owner decision** — a free football predictor is not a betting product, so no 18+ rule, age gate or date-of-birth field applies. The sentence that stood here said the restriction was accepted and unimplemented and that a shared password was no substitute for it; it is corrected rather than deleted, because the reasoning it supported (the password is a convenience control) is unchanged. **This remains not a public launch.**
 
 ### Sharing the password
 

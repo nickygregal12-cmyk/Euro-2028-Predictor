@@ -217,6 +217,24 @@ insert into expected_authenticated_functions (signature) values
   ('admin_provider_proposal_detail(uuid,text,integer,integer)'),
   ('admin_competition_entrants(uuid,integer,integer)');
 
+-- Contract 172. Granted to `authenticated` and refusing inside on
+-- `require_competition_admin()`, on the same terms as the four rows above: the
+-- grant is the reachable surface and the function decides. It reports counts,
+-- instants and the three jobs — no user id, action key, display name, address
+-- or provider error text — so an ordinary caller reaching it and being refused
+-- discloses nothing either way.
+insert into expected_authenticated_functions (signature) values
+  ('admin_reminder_delivery_health()');
+
+-- Contract 174. Both are granted to `authenticated` and both refuse inside on
+-- `require_competition_admin()`, on the same terms as contract 132's approval
+-- pair: the grant is the reachable surface and the function decides. The read
+-- returns the decoded proposal and never the raw provider response; the writer
+-- is the only function in that contract that may change a fixture.
+insert into expected_authenticated_functions (signature) values
+  ('admin_provider_change_proposals(uuid,text,integer,integer)'),
+  ('admin_decide_provider_change_proposal(uuid,text,text)');
+
 insert into expected_authenticated_functions (signature) values
   ('get_competition_table(uuid)'),
   ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),

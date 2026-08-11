@@ -128,6 +128,9 @@ describe('account deletion — declared foreign-key semantics', () => {
       '20260811130000_action_centre.sql player_action_items.user_id → cascade',
       '20260811130000_action_centre.sql player_action_state.user_id → cascade',
       '20260811140000_reminder_delivery.sql reminder_deliveries.user_id → cascade',
+      // Contract 174, on contract 138's terms: the decision and the calendar
+      // change it caused outlive the account that took it.
+      '20260811234000_provider_calendar_change_proposals.sql provider_calendar_change_proposals.decided_by → set null',
     ])
   })
 
@@ -195,6 +198,7 @@ describe('account deletion — consequences', () => {
       'euro_publication_transitions.actor_id',
       'game_membership_events.actor_id',
       'match_result_revisions.actor_id',
+      'provider_calendar_change_proposals.decided_by',
       'provider_review_acknowledgements.actor_id',
       'season_fixture_awards.decided_by',
       'season_fixture_result_revisions.actor_id',

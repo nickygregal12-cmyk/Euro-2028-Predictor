@@ -166,6 +166,64 @@ read-only query. Nobody typed the wrong number, and no gate was skipped.
   no hosted claim of its own and asserts production's contract only by reading the
   record the owner's rollout wrote.
 
+## Correction record — 11 August 2026, phase 7 measurement
+
+Four of phase 7's items were measured rather than acted on, and one was closed.
+Nothing here changes production, and only the closed item ships code.
+
+- **`DB-002` is CLOSED for its most-warned-about hole, by an executable guard rather
+  than a migration.** `AGENTS.md` and `20260804163000_lms_auto_assignment.sql` both
+  state at length that `current_user` inside a `SECURITY DEFINER` function is the
+  function OWNER for every caller, so a predicate on it is always true — a control
+  that reads in review exactly like a security narrowing and is not one. Measured:
+  **no definer uses it today**, and the four legitimate `current_user = 'postgres'`
+  predicates are all on `security invoker` trigger functions, which is now a
+  positive control rather than a coincidence.
+  `tests/database-parity/securityDefinerCallerGuards.test.ts` makes both executable,
+  over the committed migration text rather than over `pg_proc` — a function
+  redefined twice in one migration shows only its last definition to the live
+  database, which is the exact case `stageC1LockFunctionConsistency` exists for.
+  Writing a second, independent parser also found that `search_path` is pinned in
+  **two spellings** — `= ''` as authors type it, `TO ''` as `pg_get_functiondef`
+  emits it — so a guard matching only one would silently have exempted every
+  round-tripped definer from the check. **What remains open under `DB-002`** is the
+  mutation testing of individual caller guards, which needs a live database and a
+  non-owner role per function, not a source read.
+
+- **`DB-003` is measured and deliberately not acted on.** Read-only against hosted
+  Development: **40+ single-column foreign keys have no index able to serve them**,
+  across `public` and `predictor_internal`. The task's own instruction is the reason
+  nothing was added — *add only indexes supported by joins, deletion checks,
+  settlement or ingestion paths; do not index every advisor warning blindly* — and
+  the evidence to tell those apart does not exist yet: Development holds one auth
+  user and 578 season fixtures, so every plan is a sequential scan on merit and no
+  measurement taken there would generalise. **The trigger for acting** is the first
+  of: a realistic-volume rehearsal, a closed cohort with real rows, or the
+  `PRIV-003` account-closure path becoming live — that last one matters most,
+  because an unindexed referencing table is scanned once per delete, and account
+  closure is the deletion this schema has the most of.
+
+- **`DATA-007` is re-measured and stays open, reduced.** Contract 145 closed the
+  atomicity half and contracts 158/159 charged the invite-probe budget on all three
+  doors. Measured after contract 171: the expensive league and leaderboard reads are
+  bounded, and both league prediction reads now declare their truncation — so the
+  "expensive read RPCs are unbounded" clause of its closure is **no longer true and
+  is corrected here**. Still open, unchanged: invalid operations consume no limit,
+  and there are no edge/IP controls or alerting. PostgreSQL cannot see a trustworthy
+  client IP through the Data API, so that half is an edge-layer change and is not a
+  migration anybody should write.
+
+- **`DATA-008` remains blocked on a rule, and the rule is not an engineering
+  decision.** A score constraint needs an accepted practical maximum, and the
+  tournament path's extra-time and penalty representations must survive it. No
+  authority states one. Recorded rather than guessed, for the same reason as
+  `CUP-001`: a CHECK is where a product decision would become invisible.
+
+- **`DB-004` re-verified, unchanged.** The source guard forbidding a browser-callable
+  wrapper around `net.*` still holds, and contract 115's finding stands: `pg_net`'s
+  grants belong to whoever owns the extension, and where the platform owns it the
+  project role can neither revoke them nor pretend to.
+
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
 
 The 6 August audit record above says `DATA-007` was "deliberately not acted on" because it requires a migration, and the 9 August record above says it stayed open when `DB-005` was fixed in the same limiter. Contract 145 is the migration, and it takes **one** of the four things `DATA-007`'s closure asks for. The earlier records are left exactly as written; this one says what changed and what did not.

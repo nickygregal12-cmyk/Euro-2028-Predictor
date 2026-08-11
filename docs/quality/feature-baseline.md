@@ -274,5 +274,8 @@ same paragraph existed in seven places at once.
 | 169 | The season Championship initial group table, measured over the matchdays actually played rather than the tournament's three |
 | 170 | The matchweek prediction action, completing on the card rather than on a prediction existing |
 | 171 | Deterministic, self-declaring caps on the two league prediction reads |
+| 172 | The `pg_cron` schedule for action generation, reminder scheduling and stall reclamation, plus a competition-administrator health read. **Scheduling only — nothing sends** |
+| 173 | The settled-matchweek recap action, expiring seven days after settlement and carrying no deadline, so it never becomes a reminder |
+| 174 | Staged provider calendar changes — discovered, postponed, abandoned, cancelled, withdrawn — with an administrator decision that is the only thing able to change a fixture |
 
-*Current to contract 171.*
+*Current to contract 174.*

@@ -938,8 +938,40 @@
  * grant, either membership gate or either reveal boundary, and adds only keys.
  * A seeded league is far below both caps, so both reads answer a seeded user
  * exactly as they did at 170 with `members_truncated` false.
+ *
+ * Contract 172 schedules three `pg_cron` jobs and adds one browser-executable
+ * function. The jobs run `process_player_action_items`,
+ * `process_reminder_schedule` and `reclaim_stalled_reminders`, all of which
+ * were already `service_role`-only and none of which gains a grant here — so
+ * nothing a seeded user CALLS changes. What does change is that a seeded user's
+ * action inbox is no longer necessarily empty, because the generator now runs;
+ * that is an addition to `get_my_actions`, which is already granted, already
+ * caller-scoped and already returns an empty list when there is nothing to
+ * show. It gates no existing read. `admin_reminder_delivery_health` is new and
+ * granted to `authenticated`, and refuses inside on
+ * `require_competition_admin()` — the same gate the seeded admin already
+ * passes for `admin_open_season_competition` — so it adds a surface rather than
+ * a condition on one.
+ *
+ * Contract 173 adds a third generator to that same job and redefines
+ * `process_player_action_items` with one extra call, keeping its name, its
+ * `service_role`-only grant and every existing key of its return. Its generator
+ * is `predictor_internal` and granted to nobody. It creates no relation, policy
+ * or trigger, and writes only `player_action_items` rows of a type the existing
+ * CHECK already permitted, so no seeded read gains a gate.
+ *
+ * Contract 174 creates one relation in `predictor_internal`, with row-level
+ * security on and no grant to any browser role, so no seeded read can reach it
+ * at all. Its two new functions are granted to `authenticated` and both refuse
+ * inside on `require_competition_admin()` — the gate the seeded admin already
+ * passes for `admin_open_season_competition`, and the gate an ordinary seeded
+ * player already fails elsewhere. It redefines
+ * `predictor_internal.consume_provider_responses`, which no browser role may
+ * execute and which the seed never runs. **No existing relation, policy,
+ * trigger or grant moves**, and the one behaviour change reachable from a
+ * seeded session is that an administrator has a second queue to read.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 171
+export const SEED_REVIEWED_AT_CONTRACT = 174
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

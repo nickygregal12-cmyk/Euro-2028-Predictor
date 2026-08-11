@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **171** | latest `20260811220000_league_prediction_cap_honesty.sql` |
+| Repository | **174** | latest `20260811234000_provider_calendar_change_proposals.sql` |
 | Development hosted | **171** | at `20260811220000_league_prediction_cap_honesty.sql`, verified `2026-08-11T14:26:00.000Z`, fast-lane run `31499058072` |
 | Production | **171** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 3 — `20260811230000_action_centre_and_reminder_drivers.sql`, `20260811233000_matchweek_settled_actions.sql`, `20260811234000_provider_calendar_change_proposals.sql`
 
-**Next free contract number:** 172. Check open pull requests
+**Next free contract number:** 175. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**47** accepted requirements are outstanding, of which **12** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 4, DFA 10, INGEST 4, MIG-UI 6, PRIV 5, SITE 6. A further 24 are marked implemented and retained in the register.
+**47** accepted requirements are outstanding, of which **16** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 5, DFA 10, INGEST 1, LMS 1, MIG-UI 6, PRIV 5, SITE 6, TABLE 1. A further 27 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

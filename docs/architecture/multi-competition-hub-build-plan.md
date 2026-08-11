@@ -239,7 +239,7 @@ Two sites, Euro visibility and the first cohort — added 6 August 2026 under [A
 - build the second frontend deployment from this codebase and bind each site to its domain (`SITE-002`, `SITE-004`); the weekly platform's domain waits on ADR 0019's brand trigger (`SITE-003`);
 - carry both production origins in the Auth redirect allow-list, verified per origin by a real confirmation and recovery send (`SITE-006`);
 - implement the server-owned competition publication state and the route guards over it (`EURO-002`, `EURO-004`), then remove Euro 2028 from every weekly surface while it is hidden (`EURO-001`, `EURO-003`) — **the landing half is one atomic change across Appendix E, the prototype, its contract test and `src/features/landing/`**;
-- enforce the 18+ first cohort server-side, with eligibility wording and fixtures (`AGE-001`);
+- ~~enforce the 18+ first cohort server-side, with eligibility wording and fixtures (`AGE-001`)~~ — **rejected 11 August 2026 by owner decision**: a free football predictor is not a betting product, so no age gate, no 18+ rule and no date of birth;
 - build the provider proposal-and-approval queue for change classes that are not automatic kickoff revisions (`INGEST-002`, `INGEST-003`, `INGEST-005`);
 - decide and apply the operating caps deliberately rather than inheriting them (`CAP-001`, `CAP-006`, `CAP-007`).
 
@@ -322,7 +322,10 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 169 | Corrects the **Stage G** Championship table's ranking span for a league season, which contracts 120 and 167 both showed a browser |
 | 170 | Completes the **Stage I** action centre's generator half for the Match Predictor; the Championship's own action waits on `CUP-002` |
 | 171 | Closes issue #129 as measured: there was no unbounded read, but one cap chose arbitrarily and both capped silently |
+| 172 | Makes the **Stage L** retention surfaces reachable at all by scheduling their generators, and supplies **Stage I** with an operational health read |
+| 173 | Completes the **Stage L** action generator set for the Match Predictor; the Championship's own action still waits on `CUP-002` |
+| 174 | Closes the **Stage D** ingestion gap named by `INGEST-002`, `INGEST-003` and `INGEST-005`, and gives **Stage I** administration a second queue to review |
 
-**This table accounts for every contract up to and including contract 171.** Saying so is
+**This table accounts for every contract up to and including contract 174.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.
