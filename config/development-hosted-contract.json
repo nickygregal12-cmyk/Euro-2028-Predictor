@@ -1,12 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 157,
-  "latestMigrationVersion": "20260810230000",
-  "latestMigrationName": "player_preferences",
-  "verifiedAt": "2026-08-11T00:06:48.797Z",
+  "requiredMigrationCount": 158,
+  "latestMigrationVersion": "20260811000000",
+  "latestMigrationName": "invite_code_hardening",
+  "verifiedAt": "2026-08-11T08:36:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout",
-    "workflowRunId": 31444748121,
-    "repositoryHead": "39fade8f4533dc43388e32e20212c2e93a687218"
+    "source": "Development 157 to 158 rollout, confirmed by separate read-only query",
+    "workflowRunId": 31473692593,
+    "repositoryHead": "4d4b86070ee18d50fb4ad552ce7561c194ee00a6"
   }
 }

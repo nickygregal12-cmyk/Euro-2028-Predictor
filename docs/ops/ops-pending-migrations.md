@@ -6,7 +6,27 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 11 August 2026 (twenty-second entry)
+## Current state — 11 August 2026 (twenty-third entry)
+
+**Development is at contract 158. Production remains at 157.** The twenty-second entry recorded contract 158 as a repository candidate applied to neither hosted environment; this entry records Development receiving it, and one correction that entry needs.
+
+**The correction: `stage-c1-development-rollout.yml` could not carry it.** The twenty-second entry said Development would take that workflow "with its backup and rehearsal", repeating what `check-migration-additive.mjs` prints when it refuses a destructive migration. Both were wrong, and the same wrong. That workflow is a **spent one-shot pinned to contract 65** — it refuses everything else by name, which is exactly what it did on run `31472268116`. Its name reads general and it is not, so a destructive development migration has had **no runnable lane at all**, and the checker's refusal has been pointing at a door that is bricked up.
+
+`development-157-to-158-rollout.yml` is that boundary's lane, in the same pinned per-boundary shape the Production promotions use: main only, clean checkout, confirmation phrase, Production refused by name, repository row 158 pinned by filename, the live source proven to be exactly 157, everything above the target held back, and a dry run required to equal exactly one migration before anything is applied. It carries **no encrypted backup**, deliberately: ADR 0024's premise is that Development data is disposable, and what the fast lane's refusal actually protects is applying something destructive *without noticing* — so the lane keeps every part of the noticing and drops the ceremony that exists for Production's irreplaceable rows.
+
+The generalisation — one guarded development lane taking a boundary as input — is the better answer and was deliberately not attempted here. Inventing a general-purpose destructive lane while landing a security contract is two risks where one will do.
+
+**Verified by separate read-only query, not from the job's own output** — the lane applies and deliberately does not verify, because a job reporting on its own write is not independent evidence. Confirmed on `iouzoutneyjpugbbtdem`: 158 rows ending `20260811000000_invite_code_hardening`; `gen_invite_code()` returning **twelve** characters; `bonus_competitions_invite_code_shape` and `invite_code_registry_shape` both `^[A-Z0-9]{6,16}$` and `resolve_invite_code` widened with them; `get_league_preview` narrowed to `TABLE(name text, is_member boolean)` with the id, member count and owner name gone; the `league_invite_probe` limiter charged **before** the lookup in both the preview and `join_league`; that function's game-membership gate still present, which an earlier draft of the migration had silently dropped; `rotate_league_invite_code` executable by `authenticated` and by no anonymous role; `gen_invite_code` reachable by no anonymous role.
+
+**Nothing was rewritten.** All 4 Development leagues still hold a code, all 4 are still six characters, and the shared registry still holds 4 rows. Existing invite links keep working; twelve characters is what the generator issues **next**, and shortening an existing code's life is an owner act through `rotate_league_invite_code`, taken per league.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **158** | 158 canonical migrations through `20260811000000_invite_code_hardening.sql`. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **158** | Pinned 157→158 rollout run `31473692593` from exact main `4d4b860`, independently confirmed. | LEVEL |
+| Production Supabase | **157** | Project `vkfnsqdyhvtwyqkisxhk`. Rollout run `31446392236` gated on backup `31445515426` and rehearsal `31446161436`, independently confirmed. | ONE BEHIND |
+
+## Superseded — 11 August 2026 (twenty-second entry)
 
 **Contract 158 is the repository candidate and is applied to neither hosted environment.** It is `SEC-001` invite-code hardening, rebased from a concurrent session's branch (#670) that had claimed contract 152 before that number was taken.
 
