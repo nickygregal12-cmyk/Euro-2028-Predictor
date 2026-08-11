@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **158** | latest `20260811000000_invite_code_hardening.sql` |
 | Development hosted | **158** | at `20260811000000_invite_code_hardening.sql`, verified `2026-08-11T08:36:00.000Z`, fast-lane run `31473692593` |
-| Production | **157** | promotion **not authorised** |
+| Production | **158** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or

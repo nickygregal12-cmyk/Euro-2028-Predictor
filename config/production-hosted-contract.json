@@ -1,13 +1,13 @@
 {
   "projectRef": "vkfnsqdyhvtwyqkisxhk",
-  "requiredMigrationCount": 157,
-  "latestMigrationVersion": "20260810230000",
-  "latestMigrationName": "player_preferences",
-  "verifiedAt": "2026-08-11T00:34:09.916Z",
+  "requiredMigrationCount": 158,
+  "latestMigrationVersion": "20260811000000",
+  "latestMigrationName": "invite_code_hardening",
+  "verifiedAt": "2026-08-11T09:02:30.000Z",
   "evidence": {
-    "source": "Guarded Production rollout run 31446392236 applied contracts 152 to 157 from exact main 9e29c8d3f793851b8a92e602b96ebd05c65589ee, after its own API check that backup run 31445515426 and rehearsal run 31446161436 had both concluded success, and after its dry run matched the six approved migrations exactly with nothing above the pinned target. An independent read-only query then confirmed 157 rows ending 20260810230000_player_preferences; all four new relations present carrying ZERO anon/authenticated/PUBLIC table grants; contract 152's invite-code backfill covering Production's 1 league code with no competition row invented; zero private competitions, so the NOT VALID identity constraint had nothing to tolerate here; season_wrapped, competition_follows and pinned_rivals all empty, so the batch arrived inert; all ten new public functions executable by authenticated and by no anonymous role; contract 153's narrowed join_competition_game refusing a private competition; the Euro publication state still hidden; and every player-owned count unchanged across the migration (1 auth user, 1 profile, 2 entries, 36 match predictions, 1 league, 10 competitions, 578 season fixtures). Application promotion remains separately controlled and is NOT claimed by this record.",
-    "repositoryHead": "9e29c8d3f793851b8a92e602b96ebd05c65589ee",
-    "workflowRunId": 31446392236
+    "source": "Guarded Production rollout run 31475806882 applied contract 158 from exact main fd109e49d8d34526ec6e28576a4c031191fcd2c4, after its own API check that backup run 31473742437 and rehearsal run 31475471473 had both concluded success, and after its dry run matched exactly one migration with nothing above the pinned target. Contract 158 is DESTRUCTIVE by check-migration-additive.mjs — get_league_preview is dropped and recreated because its return type narrows, which create or replace cannot do — so the checker ran as a report rather than a gate, and the backup-and-rehearsal pair stands in its place. An independent read-only query then confirmed 158 rows ending 20260811000000_invite_code_hardening; gen_invite_code() returning TWELVE characters from the rejection-sampled CSPRNG; bonus_competitions_invite_code_shape and invite_code_registry_shape both reading ^[A-Z0-9]{6,16}$ and resolve_invite_code widened with them, without which every private competition creation would raise check_violation and every newly issued code would read as unknown; get_league_preview narrowed to TABLE(name text, is_member boolean) with the id, member count and owner name gone, which is the confirmation oracle SEC-001 named; the league_invite_probe limit charged BEFORE the lookup in both the preview and join_league; that function's game-membership gate still present, which an earlier draft of the migration had silently dropped; rotate_league_invite_code executable by authenticated and by no anonymous role; and the Euro publication state still hidden. Nothing player-owned moved across the migration and no invite code was rewritten: 1 auth user, 1 profile, 3 tournaments, 56 teams, 51 matches, 36 match predictions, 1 league, 1 league member, 10 competitions, 578 season fixtures, 1 league invite code still six characters and 1 shared-registry row, all unchanged. Application promotion remains separately controlled and is NOT claimed by this record.",
+    "repositoryHead": "fd109e49d8d34526ec6e28576a4c031191fcd2c4",
+    "workflowRunId": 31475806882
   },
   "promotionAuthorised": false
 }
