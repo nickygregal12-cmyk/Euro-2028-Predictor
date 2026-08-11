@@ -1,6 +1,5 @@
 import { useId, useState } from 'react'
 import { Alert, Button } from '../../design-system'
-import { rotateLeagueInviteCode } from '../../services/supabase/leagues'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import s from './InvitePanel.module.css'
 
@@ -11,8 +10,16 @@ export type RotateInviteCodeControlProps = {
   currentCode: string
   /** Told the new code so the surrounding surface can show it without a refetch. */
   onRotated: (newCode: string) => void
-  /** Injectable, so the confirm/failure/refusal states are provable without a network. */
-  rotate?: (leagueId: string) => Promise<string>
+  /**
+   * The rotate command, supplied by the route.
+   *
+   * REQUIRED, AND DELIBERATELY NOT DEFAULTED to the real service. A default
+   * import would put the Supabase client in the module graph of every surface
+   * that renders this — which is what `SeasonLeaguesPage` and its unit tests
+   * spent effort staying out of. The route already injects every other gateway
+   * this way; this is one more.
+   */
+  rotate: (leagueId: string) => Promise<string>
 }
 
 type Phase = 'idle' | 'confirming' | 'working' | 'failed'
@@ -42,7 +49,7 @@ export function RotateInviteCodeControl({
   leagueName,
   currentCode,
   onRotated,
-  rotate = rotateLeagueInviteCode,
+  rotate,
 }: RotateInviteCodeControlProps) {
   const [phase, setPhase] = useState<Phase>('idle')
   const [error, setError] = useState<string | null>(null)

@@ -68,6 +68,12 @@ export type SeasonLeaguesPageProps = {
   /** Whether the caller holds an active membership in that game. */
   joinedGame: boolean
   /**
+   * Contract 158's owner-only invite-code rotation. Optional: omitted, an owner
+   * sees no rotate control at all, which is the honest state for a surface
+   * whose route has not wired the command — never a control that cannot work.
+   */
+  rotateInviteCode?: (leagueId: string) => Promise<string>
+  /**
    * The matchweek the workspace's Matchweek tab opens at, as a competition
    * round id. Null when the season has none — the tab says so rather than
    * loading nothing.
@@ -100,6 +106,7 @@ export function SeasonLeaguesPage({
   standings,
   gameName,
   joinedGame,
+  rotateInviteCode,
   headToHead,
   competitionRoundId = null,
   loadMatchweek,
@@ -225,11 +232,12 @@ export function SeasonLeaguesPage({
                 {/* Owner-only presentation over an owner-only command. The
                     server refuses anyone else, so this hides a control that
                     would not work rather than standing in for the check. */}
-                {league.isOwner ? (
+                {league.isOwner && rotateInviteCode ? (
                   <RotateInviteCodeControl
                     leagueId={league.id}
                     leagueName={league.name}
                     currentCode={rotatedCodes[league.id] ?? league.inviteCode}
+                    rotate={rotateInviteCode}
                     onRotated={(next) =>
                       setRotatedCodes((codes) => ({ ...codes, [league.id]: next }))
                     }

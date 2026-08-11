@@ -35,19 +35,50 @@ function loadScript(): Promise<void> {
   })
 }
 
+/**
+ * Whether the verification widget is usable.
+ *
+ * `'failed'` IS DISTINCT FROM "NO TOKEN YET", and telling them apart is the
+ * whole reason this exists. The script is third-party and cross-origin, so it
+ * is blocked by content blockers, corporate proxies and offline devices
+ * routinely — and when it was, `onToken(null)` was the only signal. The forms
+ * gate submit on having a token, so the button simply stayed disabled for ever
+ * with nothing on screen to explain it or to try again. A visitor could not
+ * create an account and had no way to find out why.
+ *
+ * The distinction never weakens verification: `'failed'` still produces no
+ * token and submit is still refused. What it buys is an explanation and a
+ * retry.
+ */
+export type TurnstileStatus = 'loading' | 'ready' | 'failed'
+
 export type TurnstileWidgetProps = {
   siteKey: string
   // Called with the token on success, or null on expiry/error. Remount the
   // widget (change its React key) to force a fresh token after a failed submit.
   onToken: (token: string | null) => void
+  /**
+   * Called as the widget loads, renders, or fails to do either. A widget that
+   * renders and then reports an `error-callback` stays `'ready'` — that is a
+   * challenge that did not pass, which the widget itself explains, not a
+   * verification service the visitor cannot reach.
+   */
+  onStatusChange?: (status: TurnstileStatus) => void
   // Optional class on the container (e.g. to centre the fixed-width widget).
   className?: string
 }
 
-export function TurnstileWidget({ siteKey, onToken, className }: TurnstileWidgetProps) {
+export function TurnstileWidget({
+  siteKey,
+  onToken,
+  onStatusChange,
+  className,
+}: TurnstileWidgetProps) {
   const container = useRef<HTMLDivElement>(null)
   const onTokenRef = useRef(onToken)
   onTokenRef.current = onToken
+  const onStatusRef = useRef(onStatusChange)
+  onStatusRef.current = onStatusChange
   // Tracks the one live widget for this container. A ref (not a local) so the
   // render guard and cleanup see the same value across React's StrictMode
   // double-invoke of this effect, guaranteeing exactly one widget per container.
@@ -55,9 +86,17 @@ export function TurnstileWidget({ siteKey, onToken, className }: TurnstileWidget
 
   useEffect(() => {
     let cancelled = false
+    onStatusRef.current?.('loading')
     loadScript()
       .then(() => {
-        if (cancelled || !container.current || !window.turnstile) return
+        if (cancelled) return
+        // The script loaded but never defined its API, or the container went
+        // away. Either way there is nothing to challenge with, which is a
+        // failure rather than a wait.
+        if (!container.current || !window.turnstile) {
+          onStatusRef.current?.('failed')
+          return
+        }
         // Never call render() twice into the same container — a second render
         // (StrictMode remount, or any re-render) would collide with the live
         // widget and error. Cleanup nulls this back out.
@@ -69,8 +108,13 @@ export function TurnstileWidget({ siteKey, onToken, className }: TurnstileWidget
           'error-callback': () => onTokenRef.current(null),
           'expired-callback': () => onTokenRef.current(null),
         })
+        onStatusRef.current?.('ready')
       })
-      .catch(() => onTokenRef.current(null))
+      .catch(() => {
+        if (cancelled) return
+        onTokenRef.current(null)
+        onStatusRef.current?.('failed')
+      })
     return () => {
       cancelled = true
       if (widgetId.current !== null && window.turnstile) {

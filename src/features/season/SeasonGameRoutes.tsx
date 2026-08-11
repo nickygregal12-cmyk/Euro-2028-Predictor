@@ -41,6 +41,7 @@ import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompeti
 import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { seasonShellDestinations } from './seasonDestinations'
 import { SeasonLeaguesPage } from './SeasonLeaguesPage'
+import { rotateLeagueInviteCode } from '../../services/supabase/leagues'
 import { useSeasonRoundId } from './useSeasonRoundId'
 import { fetchSeasonLeagueMatchweekPredictions } from '../../services/supabase/seasonLeaguePredictions'
 import { fetchSeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovement'
@@ -685,6 +686,7 @@ function SeasonLeaguesRouteBody({
       standings={standings}
       gameName="Match Predictor"
       joinedGame={joinedGame}
+      rotateInviteCode={rotateLeagueInviteCode}
       headToHead={headToHead}
       competitionRoundId={competitionRoundId}
       loadMatchweek={fetchSeasonLeagueMatchweekPredictions}
