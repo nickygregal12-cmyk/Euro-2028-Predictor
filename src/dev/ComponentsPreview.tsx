@@ -43,6 +43,10 @@ import {
 } from '../design-system'
 import { InfoIcon } from '../design-system/icons'
 import { railGroups } from '../app/railDestinations'
+import { siteConfiguration } from '../app/site/siteConfiguration'
+
+/** The weekly platform, which is also what an unset site variant resolves to. */
+const HUB_SITE = siteConfiguration('hub')
 import { SeasonLmsFormGuide } from '../features/season/SeasonLmsFormGuide'
 import { SeasonFixtureConsensus } from '../features/season/SeasonFixtureConsensus'
 import { SeasonFixtureLeagues } from '../features/season/SeasonFixtureLeagues'
@@ -943,13 +947,13 @@ function SideRailDemo() {
   return (
     <div className={styles.railFrame}>
       <SideRail
-        groups={railGroups(player)}
+        groups={railGroups(player, HUB_SITE)}
         pathname="/competitions/premier-league/2026-27/games/lms"
         collapsed={collapsed}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />
       <SideRail
-        groups={railGroups(player)}
+        groups={railGroups(player, HUB_SITE)}
         pathname="/"
         collapsed
         onToggleCollapsed={() => {}}

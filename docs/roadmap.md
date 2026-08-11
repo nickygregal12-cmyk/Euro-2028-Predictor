@@ -49,6 +49,7 @@ than when it happens.
 | 11 | Provider normalisation beyond contracts 112/135/144 | **Audit first.** Do not recreate what 112, 117, 132, 135 and 144 already hold |
 | 12 | Bounded personal-data export | **Blocked** by issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) / `PRIV-007` |
 | 13 | Product analytics | **Not to be started.** `MIG-UI-15` needs an ADR before any migration |
+| 14 | ADR 0026's two deployments (`SITE-002`, `SITE-004`, `SITE-006`) | **Delivered in the repository, 11 August 2026** — `VITE_SITE_VARIANT` and one typed `SiteConfiguration` produce two genuinely different builds from one commit, with per-deployment head, sitemap and `robots.txt` and the Hub refusing the Euro tournament's routes. **What remains is operations, not engineering:** a second Netlify site bound to the Euro domain, and both origins in the Supabase Auth redirect allow-list |
 
 Three of these are deliberately not engineering decisions. Organiser powers over
 a managed entrant (7) appear in no accepted authority, so inventing them in a
@@ -56,7 +57,20 @@ migration would be a product decision taken by a schema. Erasure (12) is blocked
 by `PRIV-007`. Analytics (13) is a data-processing decision and needs its ADR
 first.
 
-**No frontend consumer exists for any of contracts 159 to 168.**
+**Frontend consumption, as at 11 August 2026.** Contracts 160, 161, 164, 165, 167
+and 168 are consumed, and contract 158's `rotate_league_invite_code` gained its
+browser control. Contract 162 is reachable and **deliberately** not consumed
+until its feed is complete — see item 4.
+
+**Contracts 169, 170 and 171 are not consumed, and the blocker moved during the
+day.** They were unconsumable when the frontend work was done — Development was
+at 168 and none had reached a hosted environment — and both Development and
+Production reached 171 the same day. The remaining step is mechanical:
+`database.types.ts` in the frontend branch was generated at 168, so
+`table_source` (169) and `members_returned`/`members_truncated` (171) are still
+absent from the typed client, and there is no untyped client since `TYPE-001`
+closed. Regenerate against Development at 171 and the two consumers are named
+and waiting.
 
 ## Domestic Frontend Alpha checkpoint — 8 August 2026
 

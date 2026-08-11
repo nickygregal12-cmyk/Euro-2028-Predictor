@@ -108,3 +108,48 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* The verification step, and the recoverable failure beneath it. The wrapper is
+   a column so the widget keeps its own fixed width while the failure message
+   uses the form's. */
+.turnstileField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.turnstileFailureBody {
+  margin: 0 0 var(--sp-2);
+}
+
+.turnstileFailureActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+}
+
+/* Both recovery actions look the same because they are the same kind of thing:
+   one retries, one asks a person. `min-height` keeps them at a comfortable
+   phone tap target, which a bare inline link is not. */
+.turnstileFailureAction {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--acc);
+  cursor: pointer;
+}
+
+.turnstileFailureAction:hover {
+  text-decoration: underline;
+}
+
+.turnstileFailureAction:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

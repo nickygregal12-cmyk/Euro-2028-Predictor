@@ -4,6 +4,10 @@ import { describe, expect, it } from 'vitest'
 import { PageShell } from '../../src/design-system/PageShell'
 import { SideRail } from '../../src/design-system/SideRail'
 import { railGroups } from '../../src/app/railDestinations'
+import { siteConfiguration } from '../../src/app/site/siteConfiguration'
+
+/** The weekly platform, which is also what an unset site variant resolves to. */
+const HUB_SITE = siteConfiguration('hub')
 import { globalNavTab } from '../../src/app/shellRoutes'
 import { twentyCompetitionPlayer } from '../../src/dev/scaleFixture'
 import {
@@ -42,7 +46,7 @@ function rail(pathname: string, player: typeof PLAYER | null = PLAYER) {
   return (
     <MemoryRouter initialEntries={[pathname]}>
       <SideRail
-        groups={railGroups(player)}
+        groups={railGroups(player, HUB_SITE)}
         pathname={pathname}
         collapsed={false}
         onToggleCollapsed={() => {}}
@@ -175,7 +179,7 @@ describe('the rail collapses without losing its names', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <SideRail
-          groups={railGroups(PLAYER)}
+          groups={railGroups(PLAYER, HUB_SITE)}
           pathname="/"
           collapsed
           onToggleCollapsed={() => {}}
@@ -218,7 +222,7 @@ describe('the shell renders both navigations', () => {
           active={globalNavTab(pathname)}
           rail={
             <SideRail
-              groups={railGroups(PLAYER)}
+              groups={railGroups(PLAYER, HUB_SITE)}
               pathname={pathname}
               collapsed={false}
               onToggleCollapsed={() => {}}

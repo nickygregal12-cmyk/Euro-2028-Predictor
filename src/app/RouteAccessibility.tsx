@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { matchPath, useLocation } from 'react-router'
 import { weeklyRoutePatterns, weeklyRoutes } from './shellRoutes'
+import { useSite } from './site/SiteProvider'
 
-const APP_NAME = 'Football Prediction Hub'
 const SIGNED_OUT_ROOT_TITLE = 'Home'
 
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
@@ -115,9 +115,17 @@ export function RouteAccessibility({ signedOut = false }: { signedOut?: boolean 
   const { pathname } = useLocation()
   const isFirstRender = useRef(true)
   const routeTitle = getRouteTitle(pathname, { signedOut })
+  // THE PRODUCT'S OWN NAME, NOT A CONSTANT. This was hard-coded to the weekly
+  // platform's name, so every tab on the Euro deployment would have read
+  // "Home | Football Prediction Hub" — the browser tab and every bookmark
+  // naming the other product. The document head's `<title>` is generated per
+  // deployment; this is the same fact at runtime and must come from the same
+  // place. It still resolves to the weekly name on the Hub and when the variant
+  // is unset, so nothing about that deployment's titles moves.
+  const appName = useSite().brand.productName
 
   useEffect(() => {
-    document.title = `${routeTitle} | ${APP_NAME}`
+    document.title = `${routeTitle} | ${appName}`
 
     if (isFirstRender.current) {
       isFirstRender.current = false
@@ -133,7 +141,7 @@ export function RouteAccessibility({ signedOut = false }: { signedOut?: boolean 
     return () => {
       cancelled = true
     }
-  }, [pathname, routeTitle])
+  }, [appName, pathname, routeTitle])
 
   return (
     <p className="sr-only" aria-live="polite" aria-atomic="true">

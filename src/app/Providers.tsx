@@ -6,11 +6,21 @@ import { getPendingJoin } from '../features/leagues/pendingJoin'
 import { RouteAccessibility } from './RouteAccessibility'
 import { RouteFallback } from './RouteFallback'
 import { isNextUi } from './routeFlags'
+import { useSite } from './site/SiteProvider'
 
 // Lazy, so the marketing page is never in a signed-in player's bundle. It is
 // the one route a returning player never sees.
+//
+// TWO PAGES, ONE URL, AND ONLY ONE OF THEM IS EVER FETCHED. The two deployments
+// have genuinely different front doors — three equal weekly games across two
+// domestic competitions, or one tournament with the weekly games beneath it —
+// and the variant is fixed at build time, so a Hub visitor never downloads the
+// tournament page and a Euro visitor never downloads the weekly one.
 const LandingPage = lazy(() =>
   import('../features/landing/LandingPage').then((m) => ({ default: m.LandingPage })),
+)
+const EuroLandingPage = lazy(() =>
+  import('../features/landing/EuroLandingPage').then((m) => ({ default: m.EuroLandingPage })),
 )
 
 // Session-aware app composition. AuthProvider sits at the top so both the auth
@@ -81,10 +91,11 @@ export function RequireAuth() {
  * exactly what happened before this page existed.
  */
 function SignedOutDestination({ pathname }: { pathname: string }) {
+  const site = useSite()
   if (pathname === '/' && isNextUi('publicLanding')) {
     return (
       <Suspense fallback={<RouteFallback />}>
-        <LandingPage />
+        {site.variant === 'euro' ? <EuroLandingPage /> : <LandingPage />}
       </Suspense>
     )
   }

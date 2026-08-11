@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Button, TextInput } from '../../design-system'
-import { TurnstileWidget } from './TurnstileWidget'
-import { TURNSTILE_SITE_KEY, turnstileEnabled } from './turnstileConfig'
+import { TurnstileField } from './TurnstileField'
+import { turnstileEnabled } from './turnstileConfig'
 import s from './auth.module.css'
 
 export type LoginFormProps = {
@@ -84,14 +84,14 @@ export function LoginForm({
             </button>
           </div>
         ) : null}
-        {turnstileEnabled && TURNSTILE_SITE_KEY && (
-          <TurnstileWidget
-            key={captchaKey}
-            siteKey={TURNSTILE_SITE_KEY}
-            onToken={setCaptchaToken}
-            className={s.turnstile}
-          />
-        )}
+        {/* Renders nothing when Turnstile is off, and — when it is on but
+            cannot load — explains that and offers a retry rather than
+            leaving submit disabled with nothing on screen. */}
+        <TurnstileField
+          resetKey={captchaKey}
+          onToken={setCaptchaToken}
+          className={s.turnstile}
+        />
         <Button
           type="submit"
           variant="primary"

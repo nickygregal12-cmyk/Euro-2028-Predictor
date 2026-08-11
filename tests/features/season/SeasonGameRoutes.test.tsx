@@ -77,6 +77,10 @@ vi.mock('../../../src/services/supabase/gameLeagues', () => ({
 }))
 vi.mock('../../../src/services/supabase/leagues', () => ({
   joinLeague: mocks.joinLeague,
+  // The Leagues route hands contract 158's owner-only rotation to the page.
+  // This suite is about route resolution; the control's own confirm, refusal
+  // and retry behaviour is proven in `tests/features/leagues/`.
+  rotateLeagueInviteCode: vi.fn(),
 }))
 // The Leagues route resolves which matchweek a head-to-head compares through
 // contract 121's play context, and reads the comparison itself through contract

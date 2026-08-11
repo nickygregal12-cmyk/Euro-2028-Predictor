@@ -201,7 +201,8 @@ A surface is not complete because it renders. It must be immediately understanda
 | `UI-F17` | Account, preferences, onboarding | **Delivered** — the four steps are the live `/welcome` journey: progress written as the player moves, both step and choices resumed from contract 157, every step after the first skippable, a pending invite handed back at the end, and a failed catalogue read never a trap. Account gains follow/unfollow for any published competition and a favourite club per competition, and every write reloads the shell so the Hub, rail, switcher and Match Centre agree immediately |
 | `UI-F18` | Final design pass: spacing, typography, hover/focus, motion, skeletons, all states, both themes, density | **Partial** — a measured responsive sweep at 390 / 768 / 1023 / 1024 / 1280 / 1440 / 1800 in both themes found no horizontal overflow anywhere and no undersized tap target on a shipping season surface; the three it did find were in the parked tournament Match Centre and were fixed anyway. See § 13 |
 | `UI-F19` | Full signed-in acceptance: phone + desktop, light + dark | Outstanding |
-| `UI-F20` | Public acquisition landing page | Outstanding, and deliberately last (`DFA-011`) |
+| `UI-F20` | Public acquisition landing page | **Partial, and now two pages.** ADR 0026's deployment seam landed on 11 August 2026, so the weekly landing page has a tournament-led sibling: `EuroLandingPage` leads with Euro Predictor and groups the three weekly games beneath it as Bonus Games, keyed on contract 143's publication state and closed by default. Both keep the production design system. What remains of `UI-F20` is the acquisition polish the row was written for — the isolated presentation states, the pause controls, and the desktop composition pass — on both variants |
+| `UI-F21` | Two deployments from one commit: variant-selected brand, navigation, landing, metadata, sitemap and route visibility | **Delivered for brand, navigation, landing and metadata.** `VITE_SITE_VARIANT` and one typed `SiteConfiguration` (`src/app/site/`), failing closed to the Hub. The document head, sitemap and `robots.txt` are generated per deployment; an unconfigured origin emits none of them rather than falling back to the other site's domain. **Route visibility is built and not turned on:** the deployment gate refusing the tournament's player routes exists and is proven, and both deployments still serve them, because withdrawing them from the weekly app deletes the `euro-2028-baseline` browser evidence rather than moving it. That flip is an owner decision plus a browser-suite move |
 
 ## 12. The backend boundary
 
@@ -237,49 +238,65 @@ here rather than left to be discovered:
   those two fields, so nothing is broken — but a future "who else is in here?" line on the
   join screen is a disclosure decision, not a missing read, and must not be added back
   from another source.
-- **A leaked code is recoverable** through `rotate_league_invite_code`, owner-only. No
-  browser control calls it yet, so a league owner cannot rotate a code from the interface.
+- **A leaked code is recoverable** through `rotate_league_invite_code`, owner-only, and
+  since 11 August 2026 a league owner can rotate one from the interface. The control is
+  offered only to an owner, which is presentation rather than the authorisation: the
+  server is owner-only inside, and a refusal reaching a stale page is shown.
 
 **Contracts 159 to 168 land the backend for two of the three gaps below, and close
 the door contract 158 left open.** Recorded here because each bears on a surface this
 document governs:
 
-- **`MIG-UI-13` is built** — contract 160's `get_competition_table` supplies the Table
-  segment the Matches section has had no authority for, including a competition's own
-  points values, ordered tie-breaks, promotion/playoff/relegation boundaries, points
-  deductions and awarded outcomes. **Not yet consumed**, so Matches still ships Recent
-  form and no Table control.
+- **`MIG-UI-13` is built and consumed.** Contract 160's `get_competition_table` supplies
+  the Table segment the Matches section had no authority for, including a competition's
+  own points values, ordered tie-breaks, promotion/playoff/relegation boundaries, points
+  deductions and awarded outcomes — and `SeasonMatchesRoute` renders it. *(This paragraph
+  said "not yet consumed" until 11 August 2026; the consumption landed the same day and
+  the claim was stale rather than wrong.)*
 - **`MIG-UI-14` is built** — contract 162 stores exactly what the audit found missing: a
   stable per-action identity and per-player seen/dismissed state, so a bell would neither
   shout for ever nor forget on a second device. **Not yet consumed**, so the AppBar still
   carries no notification control, and only Last Man Standing picks generate an item.
 - **`MIG-UI-15` remains deliberately unstarted**, and contract 163 does not touch it:
   the reminder ledger records delivery, never behaviour, and names no processor.
-- **Two organiser and administration surfaces are now backed** — contract 165 supplies a
-  private Last Man Standing organiser's entrant list and chase count (disclosing no
-  selection, and offering no organiser command, because no accepted authority grants
-  one), and contract 168 supplies the staged-proposal and entrant reads `/admin/season`
-  names as absent. Contracts 166 and 167 add the multi-group Championship draw and its
-  group-stage view. **None is consumed.**
+- **Two organiser and administration surfaces are now backed, and all four are consumed.**
+  Contract 165 supplies a private Last Man Standing organiser's entrant list and chase
+  count (disclosing no selection, and offering no organiser command, because no accepted
+  authority grants one) and is read by `GlobalLeaguesPage`; contract 168 supplies the
+  staged-proposal and entrant reads `/admin/season` named as absent, and `SeasonAdminPage`
+  reads both; contract 167's group-stage view is read by `SeasonGameRoutes`. *(This
+  paragraph said "None is consumed" until 11 August 2026 and was stale the same day.)*
 - **A league prediction list can say how much of the league it is showing.**
   Contract 171 adds `members_returned`/`members_truncated` and the tournament
   equivalents, so "showing 200 of 205" replaces a truncated list presented as the
   whole league. It also fixes which 200: contract 149's cap had no ordering, so
-  the league leader could be absent from the league's own table. **Not consumed.**
+  the league leader could be absent from the league's own table. **Not consumed.** It was not
+  consumable when this work was done — Development was at 168 — and both
+  Development and Production reached 171 the same day. What remains is
+  regenerating `database.types.ts` against Development at 171, after which the
+  fields exist in the typed client and the two league prediction lists can say
+  "showing 200 of 205".
 - **The action centre has something to show most players.** Contract 170 adds the
   matchweek generator contract 162 left for later, carrying `predicted` and
   `fixtures` so the item reads "6 of 10" rather than "incomplete". **Still not
-  consumed**, and the AppBar still carries no notification control.
+  consumed**, and the AppBar still carries no notification control. 170 is now
+  hosted, so the bar is the types regeneration rather than the rollout — but the
+  Championship generator is deliberately unwritten (`CUP-002`), so the feed is
+  still not complete, which is the reason the action centre stays interim.
 - **A Championship table now says what it was ranked over.** Contract 169 corrects the
   span the season group table is ranked on — the tournament's three matchdays, for a
   competition that plays thirty-eight — and adds `table_source` to `get_season_cup_phase`
   so a surface can label the table honestly instead of inferring the span from the
-  competition's kind. It adds no surface and changes no layout.
-- **The rotate control § 7 says nobody can reach is still unreachable.** Contract 159
-  narrowed `resolve_invite_code` the way 158 narrowed the preview — the member count and
-  the target id are gone, and a wrong guess now costs a limit slot — so the same rule
-  applies to the universal code entry point: a "who else is in here?" line must not be
-  added back from it either.
+  competition's kind. It adds no surface and changes no layout. **The label is not
+  rendered**: `table_source` is not in this branch's generated types, which were
+  produced at 168. Regenerating against Development at 171 makes it readable.
+- **The rotate control § 7 said nobody could reach is now reachable.** An owner rotates a
+  league's invite code from the season Leagues surface, behind a confirmation that names
+  the code about to break rather than asking "are you sure?". Contract 159 narrowed
+  `resolve_invite_code` the way 158 narrowed the preview — the member count and the target
+  id are gone, and a wrong guess now costs a limit slot — so the same rule still applies
+  to the universal code entry point: a "who else is in here?" line must not be added back
+  from it either.
 
 **Three gaps were newly found on 11 August and registered rather than approximated:**
 

@@ -134,3 +134,31 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* Rotating a league's invite code (contract 158). It sits beneath the invite
+   affordance rather than beside it: the confirmation is a paragraph naming what
+   breaks, and a warning that wraps to two lines inside a chip row reads as a
+   layout accident rather than as a consequence. */
+.rotate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.rotateWarning {
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-1);
+  line-height: 1.5;
+}
+
+.rotateWarning strong {
+  color: var(--tx);
+}
+
+.rotateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}

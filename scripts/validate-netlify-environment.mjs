@@ -98,7 +98,55 @@ function verifySupabaseKey(key, expectedProjectRef, context) {
   )
 }
 
+/**
+ * ADR 0026's site variant and the origin it publishes.
+ *
+ * This runs on every build, Netlify or not, because both failures it catches
+ * are silent: a variant of `Euro` or `hub ` resolves to the Hub (fail-closed,
+ * and correct — but not what the operator asked for, and nothing would say so),
+ * and an unparseable `VITE_PUBLIC_ORIGIN` simply drops the canonical tag, the
+ * Open Graph URLs and the whole sitemap with no error anywhere.
+ *
+ * It refuses the build rather than warning. A site that quietly deploys as the
+ * other product, or with no canonical URL, is worse than one that does not
+ * deploy — and both are trivially fixed by correcting an environment variable.
+ *
+ * @param {Record<string, string | undefined>} env
+ * @returns {'hub' | 'euro'}
+ */
+function validateSiteVariant(env) {
+  const rawVariant = (env.VITE_SITE_VARIANT ?? '').trim()
+  if (rawVariant !== '' && rawVariant !== 'hub' && rawVariant !== 'euro') {
+    throw new Error(
+      `VITE_SITE_VARIANT is "${rawVariant}", which is neither "hub" nor ` +
+        '"euro". The build would fail closed to the Hub, so the Euro site ' +
+        'would silently deploy as the weekly platform.',
+    )
+  }
+
+  for (const name of ['VITE_PUBLIC_ORIGIN', 'VITE_SIBLING_SITE_ORIGIN']) {
+    const raw = (env[name] ?? '').trim()
+    if (!raw) continue
+    let parsed
+    try {
+      parsed = new URL(raw)
+    } catch {
+      throw new Error(
+        `${name} is "${raw}", which is not an absolute URL. It would be ` +
+          'discarded and the metadata that depends on it silently omitted.',
+      )
+    }
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      throw new Error(`${name} must be an http(s) origin; got "${raw}".`)
+    }
+  }
+
+  return rawVariant === '' ? 'hub' : rawVariant
+}
+
 export function validateNetlifyEnvironment(env = process.env) {
+  const siteVariant = validateSiteVariant(env)
+
   const isNetlify = env.NETLIFY === 'true'
   const context = env.CONTEXT?.trim()
 
@@ -106,7 +154,10 @@ export function validateNetlifyEnvironment(env = process.env) {
   if (!isNetlify && !context) {
     return {
       checked: false,
-      message: 'Not a Netlify build; environment isolation check skipped.',
+      siteVariant,
+      message:
+        `Not a Netlify build; environment isolation check skipped. Site ` +
+        `variant "${siteVariant}".`,
     }
   }
 
@@ -144,6 +195,7 @@ export function validateNetlifyEnvironment(env = process.env) {
       context,
       expectedProjectRef: PRODUCTION_PROJECT_REF,
       keyFormat: key.format,
+      siteVariant,
     }
   }
 
@@ -167,6 +219,7 @@ export function validateNetlifyEnvironment(env = process.env) {
       context,
       expectedProjectRef: DEVELOPMENT_PROJECT_REF,
       keyFormat: key.format,
+      siteVariant,
     }
   }
 
@@ -175,7 +228,11 @@ export function validateNetlifyEnvironment(env = process.env) {
 
 try {
   const result = validateNetlifyEnvironment()
-  console.log(result.message ?? `Netlify ${result.context} environment verified.`)
+  console.log(
+    result.message ??
+      `Netlify ${result.context} environment verified; site variant ` +
+        `"${result.siteVariant}".`,
+  )
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error)
   console.error(`Netlify environment verification failed: ${message}`)

@@ -1,6 +1,8 @@
 import type { ReactElement } from 'react'
 import { Link } from 'react-router'
 import { useTheme } from '../../app/providers/ThemeProvider'
+import { useSite } from '../../app/site/SiteProvider'
+import { siteBrandCopy } from '../../app/site/sitePublicMetadata'
 import {
   CheckIcon,
   ChevronDownIcon,
@@ -84,16 +86,22 @@ export function LandingPage(): ReactElement {
 
 function LandingHeader(): ReactElement {
   const { theme, toggle } = useTheme()
+  // The product's own name, from the one configuration that decides it. Both
+  // deployments render this component's siblings; only one renders this page,
+  // but a hard-coded name here is how the two products start disagreeing about
+  // what they are called.
+  const site = useSite()
+  const brand = siteBrandCopy(site.variant)
 
   return (
     <header className={s.header}>
       <div className={s.headerInner}>
         <span className={s.brand}>
           <span className={s.brandMark} aria-hidden="true">
-            FP
+            {brand.monogram}
           </span>
           <span className={s.brandCopy}>
-            Football Prediction Hub
+            {site.brand.productName}
             <small>Weekly prediction games</small>
           </span>
         </span>
