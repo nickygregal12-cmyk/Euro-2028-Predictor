@@ -31,26 +31,6 @@ import { type SiteVariant } from './siteVariant.js'
  * satisfies both. Removing them to match the rest of `src/` fails the build.
  */
 
-/**
- * A game as this site presents it.
- *
- * `rank` is presentation weight and nothing else. It never decides entry,
- * eligibility or scoring: a Bonus Game is the same game with the same server
- * authorities, shown in a secondary group because the tournament is what its
- * site is about.
- */
-export type SiteGameRank = 'primary' | 'equal' | 'bonus'
-
-export type SiteGameKey = 'euroPredictor' | 'matchPredictor' | 'lms' | 'championship'
-
-export type SiteGamePresentation = {
-  readonly key: SiteGameKey
-  readonly name: string
-  /** One sentence describing the FORMAT, identical in every competition running it. */
-  readonly summary: string
-  readonly rank: SiteGameRank
-}
-
 /** A global destination, in the order this site's navigation offers it. */
 export type SiteDestination = {
   readonly key: string
@@ -109,7 +89,6 @@ export type SiteConfiguration = {
   readonly brand: SiteBrand
   readonly navigation: SiteNavigation
   readonly addressing: SiteAddressing
-  readonly games: readonly SiteGamePresentation[]
   /**
    * Where a signed-in player lands, and where "keep playing" points when this
    * site cannot serve what they came for.
@@ -166,32 +145,6 @@ export function normaliseOrigin(value: string | undefined | null): string | null
   }
 }
 
-const WEEKLY_GAME_SUMMARIES: Record<Exclude<SiteGameKey, 'euroPredictor'>, string> = {
-  matchPredictor:
-    'Predict every scoreline in the matchweek, play a Joker when you fancy it, and bank points as the results land.',
-  lms: 'Pick one club to win each round. Get it right and you go through; get it wrong and you are out.',
-  championship:
-    'Drawn into a group and playing a fixture a matchweek — your prediction points decide the result.',
-}
-
-function weeklyGames(rank: SiteGameRank): readonly SiteGamePresentation[] {
-  return [
-    {
-      key: 'matchPredictor',
-      name: 'Match Predictor',
-      summary: WEEKLY_GAME_SUMMARIES.matchPredictor,
-      rank,
-    },
-    { key: 'lms', name: 'Last Man Standing', summary: WEEKLY_GAME_SUMMARIES.lms, rank },
-    {
-      key: 'championship',
-      name: 'Predictor Championship',
-      summary: WEEKLY_GAME_SUMMARIES.championship,
-      rank,
-    },
-  ]
-}
-
 function hubConfiguration(origins: SiteOrigins): SiteConfiguration {
   return {
     variant: 'hub',
@@ -221,7 +174,6 @@ function hubConfiguration(origins: SiteOrigins): SiteConfiguration {
       openGraphImagePath: '/og-image.jpg',
       sitemapPaths: ['/'],
     },
-    games: weeklyGames('equal'),
     routes: {
       signedInHome: '/',
       siblingSiteOrigin: normaliseOrigin(origins.siblingOrigin),
@@ -259,16 +211,6 @@ function euroConfiguration(origins: SiteOrigins): SiteConfiguration {
       openGraphImagePath: '/og-image.jpg',
       sitemapPaths: ['/'],
     },
-    games: [
-      {
-        key: 'euroPredictor',
-        name: 'Euro Predictor',
-        summary:
-          'Predict every Euro 2028 scoreline from the group stage to the final, and call the bracket before a ball is kicked.',
-        rank: 'primary',
-      },
-      ...weeklyGames('bonus'),
-    ],
     routes: {
       signedInHome: '/',
       siblingSiteOrigin: normaliseOrigin(origins.siblingOrigin),
@@ -290,20 +232,6 @@ export function siteConfiguration(
   origins: SiteOrigins = {},
 ): SiteConfiguration {
   return variant === 'euro' ? euroConfiguration(origins) : hubConfiguration(origins)
-}
-
-/** The games this site presents above the fold, in its own order. */
-export function primaryGames(
-  configuration: SiteConfiguration,
-): readonly SiteGamePresentation[] {
-  return configuration.games.filter((game) => game.rank !== 'bonus')
-}
-
-/** The games grouped under `navigation.bonusGamesLabel`, if any. */
-export function bonusGames(
-  configuration: SiteConfiguration,
-): readonly SiteGamePresentation[] {
-  return configuration.games.filter((game) => game.rank === 'bonus')
 }
 
 /**

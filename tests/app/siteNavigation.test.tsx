@@ -5,6 +5,7 @@ import { BottomNav, SideRail } from '../../src/design-system'
 import { railGroups } from '../../src/app/railDestinations'
 import { globalNavItems } from '../../src/app/site/navigation'
 import { siteConfiguration } from '../../src/app/site/siteConfiguration'
+import { siteGames } from '../../src/app/site/siteGames'
 
 /**
  * Both deployments' navigation, rendered in one process.
@@ -69,7 +70,12 @@ describe('the desktop rail', () => {
   function renderRail(site: typeof HUB) {
     return render(
       <MemoryRouter>
-        <SideRail groups={railGroups(null, site)} pathname="/" collapsed={false} />
+        <SideRail
+          groups={railGroups(null, site)}
+          pathname="/"
+          collapsed={false}
+          onToggleCollapsed={() => undefined}
+        />
       </MemoryRouter>,
     )
   }
@@ -98,15 +104,15 @@ describe('the desktop rail', () => {
 
 describe('the games each deployment leads with', () => {
   it('is three equal weekly games on the Hub', () => {
-    expect(HUB.games.filter((game) => game.rank === 'equal')).toHaveLength(3)
-    expect(HUB.games.some((game) => game.key === 'euroPredictor')).toBe(false)
+    expect(siteGames('hub').filter((game) => game.rank === 'equal')).toHaveLength(3)
+    expect(siteGames('hub').some((game) => game.key === 'euroPredictor')).toBe(false)
   })
 
   it('is the tournament first and the three weekly games as Bonus Games on Euro', () => {
-    expect(EURO.games[0]?.key).toBe('euroPredictor')
-    expect(EURO.games[0]?.rank).toBe('primary')
-    expect(EURO.games.slice(1).every((game) => game.rank === 'bonus')).toBe(true)
+    expect(siteGames('euro')[0]?.key).toBe('euroPredictor')
+    expect(siteGames('euro')[0]?.rank).toBe('primary')
+    expect(siteGames('euro').slice(1).every((game) => game.rank === 'bonus')).toBe(true)
     // Present, not removed — a Bonus Game is the same game, ranked lower.
-    expect(EURO.games).toHaveLength(4)
+    expect(siteGames('euro')).toHaveLength(4)
   })
 })

@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   absoluteUrl,
-  bonusGames,
   normaliseOrigin,
-  primaryGames,
   siteConfiguration,
 } from '../../src/app/site/siteConfiguration'
+import { bonusGames, primaryGames, siteGames } from '../../src/app/site/siteGames'
 import {
   DEFAULT_SITE_VARIANT,
   isSiteVariant,
@@ -57,16 +56,16 @@ describe('the two products differ where they are meant to', () => {
   })
 
   it('ranks the three weekly games equally on the Hub and as bonus games on Euro', () => {
-    expect(primaryGames(hub).map((game) => game.key)).toEqual([
+    expect(primaryGames('hub').map((game) => game.key)).toEqual([
       'matchPredictor',
       'lms',
       'championship',
     ])
-    expect(bonusGames(hub)).toEqual([])
+    expect(bonusGames('hub')).toEqual([])
     expect(hub.navigation.bonusGamesLabel).toBeNull()
 
-    expect(primaryGames(euro).map((game) => game.key)).toEqual(['euroPredictor'])
-    expect(bonusGames(euro).map((game) => game.key)).toEqual([
+    expect(primaryGames('euro').map((game) => game.key)).toEqual(['euroPredictor'])
+    expect(bonusGames('euro').map((game) => game.key)).toEqual([
       'matchPredictor',
       'lms',
       'championship',
@@ -77,8 +76,8 @@ describe('the two products differ where they are meant to', () => {
   it('describes each weekly game identically on both sites', () => {
     // The game FORMAT is the same game in both products. Only its rank moves.
     for (const key of ['matchPredictor', 'lms', 'championship'] as const) {
-      const onHub = hub.games.find((game) => game.key === key)
-      const onEuro = euro.games.find((game) => game.key === key)
+      const onHub = siteGames('hub').find((game) => game.key === key)
+      const onEuro = siteGames('euro').find((game) => game.key === key)
       expect(onHub?.summary).toBe(onEuro?.summary)
       expect(onHub?.name).toBe(onEuro?.name)
       expect(onHub?.rank).not.toBe(onEuro?.rank)

@@ -70,9 +70,28 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // kilobytes above the measured 300.3, which is the same headroom-to-measurement
 // shape the entry ceiling uses, so it still refuses a careless import while not
 // refusing the features this pass was asked to build.
+//
+// RAISED FROM 312 TO 322 ON 11 AUGUST 2026, AND THE REASON IS THAT THIS NUMBER
+// NOW MEASURES TWO PRODUCTS. ADR 0026's site-variant seam landed, so `dist`
+// carries the route chunks of BOTH deployments — the weekly Prediction Hub's
+// landing page and the Euro tournament's, and every surface each of them
+// reaches. No visitor downloads both: the variant is fixed at build time and
+// the two landing pages are separately lazy, so a Hub visitor never fetches a
+// byte of the tournament page. The total crossed 312 by 1.0 KB.
+//
+// THE ENTRY CHUNK IS STILL THE TIGHT ONE, and it was reduced rather than
+// excused: the site configuration first put the entry chunk 0.2 KB OVER 76, and
+// the fix was to move the per-game copy into `siteGames.ts`, which only the
+// lazily-routed games and landing surfaces import. That is recorded in that
+// file, because it is a measured reason and not a stylistic one.
+//
+// 322 sits about ten kilobytes above the measured 313.0, the same
+// headroom-to-measurement shape as before. If this number is raised again
+// without the entry chunk holding, the thing to check first is whether one
+// deployment's code has leaked into the other's critical path.
 const BUDGETS = {
   entryChunkKb: 76,
-  totalJsKb: 312,
+  totalJsKb: 322,
   totalCssKb: 34,
 }
 
