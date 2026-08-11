@@ -6,6 +6,40 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-seventh entry)
+
+**Production promotion 171 → 174 is authorised and its guarded pair is built.** The owner authorised this Production migration on 11 August 2026, in reply to a message that named this exact boundary, by instructing that the migrations be rolled out to Production. `production-171-to-174-rehearsal.yml` and `production-171-to-174-rollout.yml` are one-shot files for this boundary and no other. **This entry does not claim the rollout has run**; it records the authorisation, the pair and what was measured before either was dispatched.
+
+**The measurement that changed how this pair is written.** Two live authorities stated that Production holds **zero** `cron` jobs — the contract 170 note and the 158→171 boundary note, the latter as "0 cron jobs before and after". Read directly from `cron.job` on `vkfnsqdyhvtwyqkisxhk` on 11 August 2026, Production holds **seven active jobs**, the same seven Development holds:
+
+| Job | Schedule |
+| --- | --- |
+| `euro28-auto-submit-due-entries` | `* * * * *` |
+| `season-process-due-matchweek-submissions` | `* * * * *` |
+| `season-settle-due-lms-rounds` | `0 * * * *` |
+| `season-settle-due-matchweek-scores` | `30 * * * *` |
+| `season-restart-due-lms-competitions` | `15 * * * *` |
+| `provider-poll-dispatch-due-targets` | `*/5 * * * *` |
+| `provider-consume-decoded-responses` | `2-59/5 * * * *` |
+
+The narrower claim those notes were reaching for — that the 159→171 boundary scheduled no **new** job — is true. The figure was not, and it is corrected in place in both authorities rather than deleted. **It mattered rather than being a typo:** it is precisely what would lead a reader to conclude that contract 174's detector is inert on Production, when in fact it runs inside `consume_provider_responses`, which is scheduled and active there.
+
+**So two things about this boundary are different from every previous production rollout.**
+
+**It is the first that schedules a job.** Contract 172's whole subject is installing the caller contracts 162, 163 and 170 each ended by recording as absent. Production will go from seven jobs to ten, and the action centre will begin writing `player_action_items` for real people. The rollout therefore asserts the safety properties against the **installed** `cron.job` table rather than against the migration text — a source assertion proves what was written, and only the table proves what is installed: no job names `claim_due_reminders`, none passes `false`, and each new job's command carries an empty argument list, so `process_reminder_schedule` keeps its `dry_run = true` default. **Nothing sends.**
+
+**And contract 174's detector starts working immediately.** It stages append-only proposals every five minutes and writes **no** fixture; only `admin_decide_provider_change_proposal` may, gated on `require_competition_admin`, refusing any fixture that already carries a result and re-checking under the row lock. The rollout asserts the consumer calls the detector exactly once and passes **no** coverage window, because a declared span is what would let withdrawal detection propose voiding real fixtures off a partial poll. Production holds **no** decoded-unconsumed response, so it begins from new data rather than sweeping a backlog.
+
+**One thing the rehearsal had to solve.** Contract 172 calls `cron.schedule` unconditionally, and `supabase db dump` does not carry managed extension state — so a disposable target restored from Production's dump can lack the `cron` schema entirely, and the rehearsal would have died inside `db push` with an error that says nothing about Production. The 158→171 rehearsal's own `cron.job` probe (`to_regclass(...) is null then -1`) half-anticipated this. The new rehearsal installs `pg_cron` on the disposable target explicitly, as restored fidelity with the environment being rehearsed, and compares job counts as a **delta of exactly three** rather than as an absolute, because that target does not inherit Production's seven.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **174** | 174 canonical migrations through `20260811234000_provider_calendar_change_proposals.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`; see the thirty-sixth entry. | LEVEL WITH REPOSITORY |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **171** | Guarded rollout run `31505763706`; see the thirty-third entry. Promotion to 174 authorised, pair built, **not yet run**. | THREE BEHIND REPOSITORY |
+
+**The application is not part of this.** The deployed site remains at contract 145, so nothing in the 172–174 range becomes browser-reachable on Production by this promotion. Application promotion is a separate, separately approved milestone.
+
 ## Current state — 11 August 2026 (thirty-sixth entry)
 
 **The repository is at contract 174. Development is now hosted at 174. Production remains hosted at 171.** Contracts 172, 173 and 174 reached Development through the ADR 0024 additive fast lane, run [31525963941](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31525963941), from exact `main` `09214df`. The lane derived the pending set itself and `check-migration-additive.mjs` accepted all three as a **gate**, which is what admits them to this lane at all.

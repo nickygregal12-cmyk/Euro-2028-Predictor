@@ -1,0 +1,654 @@
+name: Production 171 to 174 rollout
+
+# One-shot guarded promotion of the Production contract boundary 171 -> 174.
+#
+# The owner authorised this Production migration on 11 August 2026, in reply to
+# a message that named this exact boundary, by instructing that the migrations
+# be rolled out to Production. That authorisation is what this file records; it
+# is not a licence the workflow grants itself, and it does not extend to any
+# other boundary.
+#
+# All three of contracts 172, 173 and 174 are ADDITIVE, so the additive checker
+# runs here as a GATE rather than as the report the destructive 157 -> 158
+# promotion needed. A future reader finding it softened back to a report should
+# stop: the boundary has changed and this file no longer describes it.
+#
+# ---------------------------------------------------------------------------
+# THIS IS THE FIRST PRODUCTION ROLLOUT THAT SCHEDULES A JOB. READ THIS PART.
+# ---------------------------------------------------------------------------
+#
+# Every previous production rollout could truthfully close by saying it
+# scheduled no job. Contract 172 is precisely the opposite: its entire subject
+# is installing the `pg_cron` caller that contracts 162, 163 and 170 each ended
+# by recording as absent. After this boundary Production RUNS three more jobs,
+# and the action-centre generator begins writing `player_action_items` for real
+# people.
+#
+# What must remain true, and is asserted post-apply against the INSTALLED
+# `cron.job` table rather than against the migration text:
+#
+#   - `process_reminder_schedule` is scheduled with an EMPTY argument list, so
+#     its `dry_run = true` default applies and NOTHING SENDS;
+#   - `claim_due_reminders` — the function a sender would call — is scheduled
+#     nowhere;
+#   - no scheduled command anywhere in the table passes `false`.
+#
+# A source assertion inside the migration proves what was written. Only the
+# table proves what is installed, and those are different claims.
+#
+# ---------------------------------------------------------------------------
+# AND CONTRACT 174'S DETECTOR IS NOT INERT HERE
+# ---------------------------------------------------------------------------
+#
+# The repository recorded, in two places, that Production holds zero cron jobs.
+# Measured on 11 August 2026 before this boundary was written, it holds SEVEN,
+# including `provider-consume-decoded-responses` at `2-59/5`. Contract 174 adds
+# its detector inside that function, so the detector will run on Production
+# every five minutes from the moment this applies.
+#
+# That is safe and it is not nothing. It stages append-only proposals and
+# writes NO fixture; only `admin_decide_provider_change_proposal` may, gated on
+# `require_competition_admin` and refusing any fixture that already carries a
+# result. Withdrawal additionally needs a caller-declared complete span, and the
+# automatic consumer passes none — asserted below, because a poll is not a
+# complete view of anything. Production also holds no decoded-unconsumed
+# response, so it starts from new data rather than sweeping a backlog.
+#
+# THE DRY RUN ASSERTS EXACTLY THE THREE FILES BY NAME. "At least the ones I
+# expected" would pass while promoting something nobody approved.
+#
+# Remove this one-shot workflow after the hosted contract/evidence record has
+# been reconciled.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type APPLY-PRODUCTION-171-TO-174 to proceed
+        required: true
+      backup_run_id:
+        description: Run id of the successful Production backup
+        required: true
+      rehearsal_run_id:
+        description: Run id of the successful 171-to-174 rehearsal
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: APPLY-PRODUCTION-171-TO-174
+  SOURCE_CONTRACT: '171'
+  SOURCE_VERSION: '20260811220000'
+  SOURCE_NAME: league_prediction_cap_honesty
+  TARGET_CONTRACT: '174'
+  TARGET_VERSION: '20260811234000'
+  TARGET_NAME: provider_calendar_change_proposals
+  WORK_DIR: /tmp/production-171-to-174
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || {
+            echo "ERROR: confirmation phrase does not match ${CONFIRMATION_PHRASE}."
+            exit 1
+          }
+          if [ "${INPUT_PROJECT_REF}" = "${FORBIDDEN_DEVELOPMENT_REF}" ]; then
+            echo 'ERROR: that is the Development project.'
+            exit 1
+          fi
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || {
+            echo 'ERROR: project ref confirmation does not name the Production project.'
+            exit 1
+          }
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || {
+            echo 'ERROR: Production rollout runs only from refs/heads/main.'
+            exit 1
+          }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || {
+            echo 'ERROR: checked-out HEAD is not exact origin/main.'
+            exit 1
+          }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || {
+            echo 'ERROR: checkout is not clean.'
+            exit 1
+          }
+          mkdir -p "${WORK_DIR}"
+
+      - name: Prove a successful backup and rehearsal exist
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+          REHEARSAL_RUN_ID: ${{ inputs.rehearsal_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Checked against the API rather than asserted by whoever dispatched
+          # this. "Take a backup first" is a rule that survives exactly as long
+          # as the person in a hurry remembers it; every other guard here is
+          # mechanical, so these two are as well.
+          check_run() {
+            local run_id="$1" want_workflow="$2" label="$3"
+            local json conclusion path
+            json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}")"
+            conclusion="$(printf '%s' "${json}" | jq -r '.conclusion')"
+            path="$(printf '%s' "${json}" | jq -r '.path')"
+            [ "${conclusion}" = 'success' ] || {
+              echo "ERROR: ${label} run ${run_id} concluded '${conclusion}', not success."
+              exit 1
+            }
+            [ "${path}" = "${want_workflow}" ] || {
+              echo "ERROR: ${label} run ${run_id} is ${path}, not ${want_workflow}."
+              exit 1
+            }
+            echo "${label} run ${run_id} verified: success, ${path}."
+          }
+          check_run "${BACKUP_RUN_ID}" \
+            '.github/workflows/production-backup.yml' 'Backup'
+          check_run "${REHEARSAL_RUN_ID}" \
+            '.github/workflows/production-171-to-174-rehearsal.yml' 'Rehearsal'
+
+      - name: Prove the repository still holds exactly the approved contract 174
+        shell: bash
+        run: |
+          set -euo pipefail
+          committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          [ "${committed}" = "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: repository holds ${committed} migrations, expected ${TARGET_CONTRACT}."
+            exit 1
+          }
+          declared="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          [ "${declared}" = "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: deployment contract declares ${declared}, expected ${TARGET_CONTRACT}."
+            exit 1
+          }
+          newest="$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)"
+          [ "$(basename "${newest}")" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || {
+            echo "ERROR: newest migration is $(basename "${newest}"), expected ${TARGET_VERSION}_${TARGET_NAME}.sql."
+            exit 1
+          }
+          echo "Repository is exactly contract ${TARGET_CONTRACT}."
+
+      - name: Prove every migration in the range is additive, as a GATE
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The 157 -> 158 rollout ran this as a REPORT, because contract 158
+          # was destructive and the checker would have refused it. All three
+          # here are additive, so it is a GATE. A future reader finding this
+          # softened back to a report should stop: the boundary has changed.
+          files=''
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            version="$(basename "${file}")"
+            version="${version:0:14}"
+            if [[ "${version}" > "${SOURCE_VERSION}" && ! "${version}" > "${TARGET_VERSION}" ]]; then
+              files="${files} ${file}"
+            fi
+          done
+          count="$(printf '%s\n' ${files} | grep -c . || true)"
+          [ "${count}" = "3" ] || {
+            echo "ERROR: the range holds ${count} migrations, expected 3."
+            printf '%s\n' ${files}
+            exit 1
+          }
+          echo 'The three migrations being promoted:'
+          printf '  %s\n' ${files}
+          node scripts/check-migration-additive.mjs ${files}
+          echo 'All three are additive.'
+
+      # Pinned to the same versions the proven 157 -> 158 rollout used. Both
+      # files in this pair originally omitted them; the rehearsal caught it on
+      # its own runner, before this one could have reached Production without a
+      # `supabase` binary.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install PostgreSQL 17 client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Preflight the Production secret without printing it
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*)
+              echo 'ERROR: Production secret resolves to Development.'
+              exit 1
+              ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *)
+              echo 'ERROR: Production secret does not name the expected Production project.'
+              exit 1
+              ;;
+          esac
+
+      - name: Capture the exact pre-apply Production state
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Every column read here exists at contract 171. A pre-apply probe that
+          # reads a post-apply column is how the 151-to-157 rehearsal failed on
+          # run 31445831137, and the fix was to stop asking early rather than to
+          # relax the check.
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+              'auth_users', (select count(*) from auth.users),
+              'profiles', (select count(*) from public.profiles),
+              'tournaments', (select count(*) from public.tournaments),
+              'teams', (select count(*) from public.teams),
+              'matches', (select count(*) from public.matches),
+              'entries', (select count(*) from public.entries),
+              'match_predictions', (select count(*) from public.match_predictions),
+              'leagues', (select count(*) from public.leagues),
+              'league_members', (select count(*) from public.league_members),
+              'score_events', (select count(*) from public.score_events),
+              'entry_totals', (select count(*) from public.entry_totals),
+              'game_memberships', (select count(*) from public.game_memberships),
+              'bonus_competitions', (select count(*) from public.bonus_competitions),
+              'season_fixtures', (select count(*) from public.season_fixtures),
+              'season_predictions', (select count(*) from public.season_predictions),
+              'leagues_with_code', (select count(*) from public.leagues where invite_code is not null),
+              'six_char_codes', (
+                select count(*) from public.leagues
+                 where invite_code is not null and length(invite_code) = 6
+              ),
+              'registry_rows', (select count(*) from public.invite_code_registry),
+              -- Recorded because contract 172 ADDS jobs and the after-check
+              -- must prove it added exactly three. The repository claimed
+              -- Production held zero; it holds seven, so this is measured
+              -- rather than assumed on either side of the apply.
+              'cron_jobs', (select count(*) from cron.job),
+              'jobs_naming_claim', (select count(*) from cron.job
+                 where command ilike '%claim_due_reminders%')
+            )
+          " > "${WORK_DIR}/before.json"
+          cat "${WORK_DIR}/before.json"
+
+          BEFORE_FILE="${WORK_DIR}/before.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const before = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
+          const expected = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+            // Seven, measured 11 August 2026. If Production ever presents a
+            // different number here, something scheduled or unscheduled a job
+            // outside this process and the after-check's "ten" is meaningless.
+            cron_jobs: 7,
+            jobs_naming_claim: 0,
+          }
+          for (const [key, want] of Object.entries(expected)) {
+            if (String(before[key]) !== String(want)) {
+              console.error(`ERROR: live Production ${key} is ${before[key]}, expected ${want}.`)
+              console.error('Production is not the boundary this rollout was rehearsed against.')
+              process.exit(1)
+            }
+          }
+          console.log('Live Production is exactly the rehearsed contract-171 source boundary.')
+          NODE
+
+      - name: Dry run, and refuse anything that is not exactly contracts 172 to 174
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Anything ABOVE the pinned target is held back, so the dry run
+          # describes what will actually be applied. Restored by the step after
+          # the apply, whatever happens.
+          mkdir -p "${WORK_DIR}/later-migrations"
+          : > "${WORK_DIR}/moved-files.txt"
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            filename="$(basename "${file}")"
+            version="${filename:0:14}"
+            if [[ "${version}" > "${TARGET_VERSION}" ]]; then
+              mv "${file}" "${WORK_DIR}/later-migrations/${filename}"
+              printf '%s\n' "${file}" >> "${WORK_DIR}/moved-files.txt"
+            fi
+          done
+          if [ -s "${WORK_DIR}/moved-files.txt" ]; then
+            echo 'Held back as ABOVE the pinned target:'
+            cat "${WORK_DIR}/moved-files.txt"
+          fi
+
+          supabase migration list --db-url "${SUPABASE_PROD_DB_URL}" \
+            | tail -20
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" --dry-run \
+            > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" \
+            | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
+
+          printf '%s\n' \
+            '20260811230000_action_centre_and_reminder_drivers.sql' \
+            '20260811233000_matchweek_settled_actions.sql' \
+            '20260811234000_provider_calendar_change_proposals.sql' \
+            > "${WORK_DIR}/expected.txt"
+          sort -o "${WORK_DIR}/expected.txt" "${WORK_DIR}/expected.txt"
+
+          if ! diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt"; then
+            echo 'ERROR: the Production dry run is not exactly contracts 172 to 174.'
+            exit 1
+          fi
+          echo 'Dry run is exactly the three approved migrations.'
+
+      - name: Apply exactly contracts 172 to 174
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" \
+            2>&1 | tee "${WORK_DIR}/apply.txt"
+
+      - name: Restore the repository migration tree in the runner
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Runs even when the apply failed. The verification below reads the
+          # database rather than the tree.
+          if [ -f "${WORK_DIR}/moved-files.txt" ]; then
+            while IFS= read -r file; do
+              [ -n "${file}" ] || continue
+              filename="$(basename "${file}")"
+              if [ -e "${WORK_DIR}/later-migrations/${filename}" ]; then
+                mv "${WORK_DIR}/later-migrations/${filename}" "${file}"
+              fi
+            done < "${WORK_DIR}/moved-files.txt"
+          fi
+
+      - name: Verify exact contract-174 Production state and that nothing was lost
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # NAMED ROWS, not a count. On 11 August 2026 a `select count(*)` against
+          # the Development ledger returned a stale value for twenty-five minutes
+          # after an apply had succeeded, while a row-level query on the same
+          # table in the same session returned the truth immediately. A count is
+          # the shape that looks most like proof and is the one that went stale.
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+              'range_rows_present', (
+                select count(*) from supabase_migrations.schema_migrations
+                 where version in ('20260811230000','20260811233000','20260811234000')),
+
+              -- CONTRACT 172. The installed cron table, not the migration text.
+              -- Production held SEVEN jobs before this boundary, so the count
+              -- is ten and the three are additionally named one by one: a count
+              -- alone would pass on three jobs nobody approved.
+              'cron_jobs', (select count(*) from cron.job),
+              'generate_job', (select count(*) from cron.job
+                 where jobname = 'player-action-centre-generate'),
+              'schedule_job', (select count(*) from cron.job
+                 where jobname = 'player-reminder-schedule'),
+              'reclaim_job', (select count(*) from cron.job
+                 where jobname = 'player-reminder-reclaim-stalled'),
+
+              -- THE SAFETY PROPERTY, AND THE REASON THIS FILE IS CAREFUL.
+              -- Claiming is what a sender does. If either of these is ever
+              -- non-zero, Production is one step from sending real email.
+              'jobs_naming_claim', (select count(*) from cron.job
+                 where command ilike '%claim_due_reminders%'),
+              'jobs_passing_false', (select count(*) from cron.job
+                 where command ilike '%false%'),
+              -- Each new job must call with an EMPTY argument list, so
+              -- process_reminder_schedule runs on its dry_run = true default.
+              'new_jobs_with_arguments', (select count(*) from cron.job
+                 where jobname in ('player-action-centre-generate',
+                                   'player-reminder-schedule',
+                                   'player-reminder-reclaim-stalled')
+                   and command !~ '\\(\\s*\\)'),
+
+              -- CONTRACT 173. The trap: contract 170's sweep invalidates an
+              -- open item whose context names a LOCKED round under `round_id`,
+              -- and a settled matchweek's round is locked by definition. The
+              -- generator must record it under a name of its own.
+              'recap_uses_settled_round_id', (
+                select pg_get_functiondef(p.oid) like '%settled_round_id%'
+                  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'predictor_internal'
+                   and p.proname = 'generate_matchweek_settled_actions'),
+
+              -- CONTRACT 174. The table exists, is protected, and the detector
+              -- is wired into the consumer exactly once with NO coverage
+              -- window: a poll is not a complete view of anything, and a
+              -- declared span is what would let withdrawal void real fixtures.
+              'proposals_table', (select count(*) from pg_tables
+                 where schemaname = 'predictor_internal'
+                   and tablename = 'provider_calendar_change_proposals'),
+              'proposals_rls', (select relrowsecurity from pg_class
+                 where oid = 'predictor_internal.provider_calendar_change_proposals'::regclass),
+              'proposals_granted_to_browser', (
+                select count(*) from information_schema.role_table_grants
+                 where table_schema = 'predictor_internal'
+                   and table_name = 'provider_calendar_change_proposals'
+                   and grantee in ('anon','authenticated')),
+              'consumer_calls_detector_once', (
+                select (length(pg_get_functiondef(p.oid))
+                        - length(replace(pg_get_functiondef(p.oid),
+                                         'detect_provider_calendar_changes', '')))
+                       / length('detect_provider_calendar_changes')
+                  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'predictor_internal' and p.proname = 'consume_provider_responses'),
+              'consumer_declares_no_span', (
+                select pg_get_functiondef(p.oid) not like '%p_covers%'
+                  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'predictor_internal' and p.proname = 'consume_provider_responses'),
+              -- The decision writer may add or void a fixture and must never
+              -- touch a score; the confirmation gate is what keeps a settled
+              -- matchweek from being rescored.
+              'decider_writes_no_score', (
+                select pg_get_functiondef(p.oid) !~ 'home_score\\s*=|away_score\\s*='
+                  from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'public' and p.proname = 'admin_decide_provider_change_proposal'),
+
+              -- Privileges. The three admin reads are authenticated-only; the
+              -- internal ones reach no browser role at all.
+              'admin_reads_anon_reachable', (
+                select count(*) from information_schema.role_routine_grants
+                 where routine_schema = 'public'
+                   and routine_name in ('admin_reminder_delivery_health',
+                                        'admin_provider_change_proposals',
+                                        'admin_decide_provider_change_proposal')
+                   and grantee in ('anon','PUBLIC')),
+              'internal_functions_browser_reachable', (
+                select count(*) from information_schema.role_routine_grants
+                 where routine_schema = 'predictor_internal'
+                   and routine_name in ('generate_matchweek_settled_actions',
+                                        'detect_provider_calendar_changes',
+                                        'reminder_job_status')
+                   and grantee in ('anon','authenticated','PUBLIC')),
+              'action_driver_browser_reachable', (
+                select count(*) from information_schema.role_routine_grants
+                 where routine_schema = 'public' and routine_name = 'process_player_action_items'
+                   and grantee in ('anon','authenticated','PUBLIC')),
+
+              -- Nothing here publishes Euro 2028 or sends anything.
+              'euro_state', (select state from public.euro_publication_state()),
+              'reminders_not_dry_run', (
+                select count(*) from public.reminder_deliveries where dry_run is not true),
+
+              'auth_users', (select count(*) from auth.users),
+              'profiles', (select count(*) from public.profiles),
+              'tournaments', (select count(*) from public.tournaments),
+              'teams', (select count(*) from public.teams),
+              'matches', (select count(*) from public.matches),
+              'entries', (select count(*) from public.entries),
+              'match_predictions', (select count(*) from public.match_predictions),
+              'leagues', (select count(*) from public.leagues),
+              'league_members', (select count(*) from public.league_members),
+              'score_events', (select count(*) from public.score_events),
+              'entry_totals', (select count(*) from public.entry_totals),
+              'game_memberships', (select count(*) from public.game_memberships),
+              'bonus_competitions', (select count(*) from public.bonus_competitions),
+              'season_fixtures', (select count(*) from public.season_fixtures),
+              'season_predictions', (select count(*) from public.season_predictions)
+            )
+          " > "${WORK_DIR}/after.json"
+          cat "${WORK_DIR}/after.json"
+
+          AFTER_FILE="${WORK_DIR}/after.json" BEFORE_FILE="${WORK_DIR}/before.json" \
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const after = JSON.parse(fs.readFileSync(process.env.AFTER_FILE, 'utf8'))
+          const before = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
+
+          const expected = {
+            migration_count: Number(process.env.TARGET_CONTRACT),
+            latest_version: process.env.TARGET_VERSION,
+            latest_name: process.env.TARGET_NAME,
+            // The three, named. A count alone would pass on the wrong three.
+            range_rows_present: 3,
+
+            // Contract 172. Production held SEVEN jobs before this boundary --
+            // the repository said zero, in two places, and that was measured
+            // false on 11 August 2026. Seven plus three is ten.
+            cron_jobs: 10,
+            generate_job: 1,
+            schedule_job: 1,
+            reclaim_job: 1,
+
+            // The properties that keep this from becoming a sender. If either
+            // of the first two is ever non-zero on Production, stop.
+            jobs_naming_claim: 0,
+            jobs_passing_false: 0,
+            new_jobs_with_arguments: 0,
+
+            // Contract 173's trap, checked on the installed function.
+            recap_uses_settled_round_id: true,
+
+            // Contract 174.
+            proposals_table: 1,
+            proposals_rls: true,
+            proposals_granted_to_browser: 0,
+            consumer_calls_detector_once: 1,
+            // The automatic path must never declare a payload complete.
+            consumer_declares_no_span: true,
+            decider_writes_no_score: true,
+
+            admin_reads_anon_reachable: 0,
+            internal_functions_browser_reachable: 0,
+            action_driver_browser_reachable: 0,
+
+            // Publication is an owner act and is not part of this boundary.
+            euro_state: 'hidden',
+            reminders_not_dry_run: 0,
+          }
+          for (const [key, want] of Object.entries(expected)) {
+            if (String(after[key]) !== String(want)) {
+              console.error(`ERROR: Production ${key} is ${after[key]}, expected ${want}.`)
+              process.exit(1)
+            }
+          }
+
+          // Every count the pre-apply step captured, compared. Additive by the
+          // checker is a claim about the SQL; this is the claim about the data.
+          const counted = ['auth_users','profiles','tournaments','teams','matches','entries',
+                           'match_predictions','leagues','league_members','score_events',
+                           'entry_totals','game_memberships','bonus_competitions',
+                           'season_fixtures','season_predictions']
+          for (const key of counted) {
+            if (String(before[key]) !== String(after[key])) {
+              console.error(`ERROR: ${key} moved ${before[key]} -> ${after[key]}; this range rewrites no row.`)
+              process.exit(1)
+            }
+          }
+
+          console.log(`Production is at contract ${after.migration_count}, all three rows named and present.`)
+          console.log(`cron.job holds ${after.cron_jobs}: the seven that were already there plus the three new.`)
+          console.log('None names claim_due_reminders, none passes false, and each new job calls with no arguments.')
+          console.log('So the scheduler runs on its dry_run default and NOTHING SENDS.')
+          for (const key of counted) console.log(`  ${key}: ${after[key]} (unchanged)`)
+          NODE
+
+      - name: Say plainly what remains gated
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## Production is at contract 174'
+            echo
+            echo 'This rollout DID schedule jobs, and that is the first time a production'
+            echo 'rollout has. `cron.job` now holds ten: the seven that were already there'
+            echo 'plus `player-action-centre-generate`, `player-reminder-schedule` and'
+            echo '`player-reminder-reclaim-stalled`. The action centre will begin writing'
+            echo '`player_action_items` on the next tick.'
+            echo
+            echo 'NOTHING SENDS, and that was verified on the installed table rather than'
+            echo 'inferred from the migration: every new job calls with an empty argument'
+            echo 'list so `process_reminder_schedule` keeps its `dry_run = true` default,'
+            echo 'no job names `claim_due_reminders`, and none passes `false`.'
+            echo
+            echo 'Contract 174 also begins staging provider change proposals inside the'
+            echo 'already-scheduled `consume_provider_responses`. It writes no fixture, and'
+            echo 'the queue waits for a competition administrator.'
+            echo
+            echo 'It did NOT:'
+            echo
+            echo '- publish Euro 2028 — contract 143 stays `hidden` and publication is an owner act;'
+            echo '- launch any competition, draw any Championship or open any Last Man Standing;'
+            echo '- send any reminder, or name any provider or credential for sending;'
+            echo '- confirm any provider result, or add/void any fixture — only an administrator may;'
+            echo '- promote the application — the deployed site remains at contract 145, so no'
+            echo '  browser can reach any of this; that is a separate, separately approved step;'
+            echo '- import any football, and copying Development football rows into Production'
+            echo '  remains forbidden by the contract 132 boundary.'
+            echo
+            echo 'Reconcile `config/production-hosted-contract.json` from an independent read-only'
+            echo 'ledger query that NAMES the expected rows rather than counting them, and read'
+            echo '`cron.job` in full while you are there.'
+          } >> "${GITHUB_STEP_SUMMARY}"
