@@ -72,6 +72,7 @@ export type CupLaunchResult =
       leagueRounds: number
       fixtures: number
     }
+  /** Also contract 166's `already_drawn`: it has run, and running it again is refused. */
   | { outcome: 'already_launched' }
   /** The field is too small, or too little calendar remains, for any format. */
   | { outcome: 'no_viable_format'; entrants: number; reason: string | null }
@@ -134,6 +135,11 @@ export function mapCupLaunchResult(payload: unknown): CupLaunchResult {
         fixtures: countOf(row.fixtures),
       }
     case 'already_launched':
+    // Contract 166's multi-group draw says `already_drawn` for the same state:
+    // it has run, it refuses to run again, and it has NOT reshuffled anybody.
+    // Mapped together rather than given a second outcome, because two names for
+    // one state is how two surfaces start describing it differently.
+    case 'already_drawn':
       return { outcome: 'already_launched' }
     case 'no_viable_format':
     // `not_open` is the PUBLIC Championship's threshold and contract 154 skips

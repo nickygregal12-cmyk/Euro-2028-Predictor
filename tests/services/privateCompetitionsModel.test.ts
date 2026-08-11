@@ -79,6 +79,15 @@ describe('mapCupLaunchResult', () => {
     })
   })
 
+  it('reads contract 166’s already_drawn as the same state, not as unknown', () => {
+    // Two names for one fact -- it has run and refuses to run again, and it has
+    // not reshuffled anybody. Falling through to `unknown` would have made a
+    // second press look like a failure.
+    expect(mapCupLaunchResult({ outcome: 'already_drawn', groups: 4 })).toEqual({
+      outcome: 'already_launched',
+    })
+  })
+
   it('decodes a field too small or a calendar too short as no viable format', () => {
     expect(
       mapCupLaunchResult({
