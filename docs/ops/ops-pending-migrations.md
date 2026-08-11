@@ -25,6 +25,8 @@ This is the operational migration inventory. Machine-readable hosted state is au
 
 **It does not use the fast lane.** `check-migration-additive.mjs` refuses it on `drop function`, correctly: `get_league_preview` is dropped and recreated because its return type narrows, which `create or replace` cannot do. So Development takes `stage-c1-development-rollout.yml` with its backup and rehearsal, and Production takes its own pinned 157→158 pair.
 
+**Fifty-six visual baselines were re-rendered, and only one of them is a design change.** The gallery's `LeaguePreviewCard` stops receiving `memberCount` and `ownerName`, which is this contract's disclosure boundary arriving on screen. That section is genuinely a pixel shorter, and because the suite captures each section after `scrollIntoViewIfNeeded()`, the changed height moves later sections' sub-pixel scroll offsets and rounds their captured height by one pixel — so `textinput`, `alert`, `emptystate` and `clubmatchcard` all differed by `1246×224` against `1246×223` without anything about them changing. Ruled out the framer-motion 13 bump as the cause before re-rendering: `chore/dependency-bumps` carries it and its `visual` run passed. The images were produced by `visual-contracts.yml` with `update_baselines` and `commit_baselines`, so they come from the comparison runner rather than a developer machine — an image is only comparable to one rendered by the same toolchain.
+
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository candidate | **158** | 158 canonical migrations through `20260811000000_invite_code_hardening.sql`. | ONE AHEAD OF BOTH HOSTED |
