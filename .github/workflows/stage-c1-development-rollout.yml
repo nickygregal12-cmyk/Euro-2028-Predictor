@@ -1,3 +1,16 @@
+# SPENT ONE-SHOT. This workflow is pinned to CONTRACT 65 and refuses anything
+# else by name — which is what it did on run 31472268116, when contract 158
+# needed a guarded lane. Its name reads general and it is not.
+#
+# That mismatch cost real time. `check-migration-additive.mjs` sent every
+# destructive development migration here, so the refusal looked like an answer
+# while pointing at a door that was bricked up. The general lane it should have
+# been naming is `development-migration-rollout.yml`.
+#
+# Kept rather than deleted because it is the executable record of how contract
+# 65 reached development, and its pgTAP-shaped preparation/apply split is worth
+# reading. Do not reach for it for new work.
+
 name: Stage C1 development rollout
 
 on:
