@@ -5,6 +5,8 @@ import { RouteFallback } from './RouteFallback'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useTheme } from './providers/ThemeProvider'
 import { railGroups } from './railDestinations'
+import { useSite } from './site/SiteProvider'
+import { globalNavItems } from './site/navigation'
 import {
   PlayerCompetitionsProvider,
   usePlayerCompetitions,
@@ -23,6 +25,14 @@ const ActionCentre = lazy(() =>
 )
 import { globalNavTab, isCompetitionModePath } from './shellRoutes'
 
+function navLabel(
+  items: readonly { key: NavKey; label: string }[],
+  tab: NavKey,
+): string | undefined {
+  return items.find((item) => item.key === tab)?.label
+}
+
+/** Fallback wording, used only for a tab this deployment does not offer. */
 const TAB_CONTEXT: Record<NavKey, string> = {
   home: 'Home',
   predict: 'Play',
@@ -78,7 +88,13 @@ function SignedInFrame() {
   const { player } = usePlayerCompetitions()
   const competitionMode = isCompetitionModePath(location.pathname)
   const tab = globalNavTab(location.pathname)
-  const groups = useMemo(() => railGroups(player), [player])
+  // WHICH PRODUCT THIS BUILD IS. The two deployments share every route and
+  // differ in what the destinations are called and in what order they lead —
+  // so the bar and the rail both read from one configuration rather than each
+  // carrying a list that could disagree with the other.
+  const site = useSite()
+  const navItems = useMemo(() => globalNavItems(site), [site])
+  const groups = useMemo(() => railGroups(player, site), [player, site])
   // ONE inbox read for the shell, shared with the action centre. `/play` mounts
   // its own; both go through the same hook and the same model, so the two
   // cannot disagree about what is due.
@@ -88,6 +104,7 @@ function SignedInFrame() {
   return (
     <PageShell
       active={tab}
+      navItems={navItems}
       rail={
         <SideRail
           groups={groups}
@@ -98,7 +115,9 @@ function SignedInFrame() {
       }
       topBar={
         <AppBar
-          context={competitionMode ? 'Competition' : TAB_CONTEXT[tab]}
+          context={
+            competitionMode ? 'Competition' : (navLabel(navItems, tab) ?? TAB_CONTEXT[tab])
+          }
           theme={theme}
           onToggleTheme={toggle}
           displayName={displayName}

@@ -11,6 +11,8 @@ import {
 } from '../design-system/icons'
 import { competitionPath } from '../features/hub/competitionCatalogue'
 import type { PlayerCompetitions } from '../features/hub/playerCompetitions'
+import { globalNavItems } from './site/navigation'
+import type { SiteConfiguration } from './site/siteConfiguration'
 import { weeklyRoutes } from './weeklyRoutes'
 
 /**
@@ -69,24 +71,48 @@ export function monogramOf(name: string): string {
     .toUpperCase()
 }
 
-function mainGroup(): RailGroup {
+const RAIL_ICONS = {
+  home: HomeIcon,
+  predict: BallIcon,
+  matches: CalendarIcon,
+  league: TrophyIcon,
+} as const
+
+/**
+ * The rail's first group: this deployment's global destinations in its order.
+ *
+ * "Leagues", not "Leagues & Competitions". The label was widened on desktop and
+ * the authority narrowed it back: the page itself explains the difference
+ * between a private league and a private LMS or Championship competition, and a
+ * two-word navigation label is a worse place to teach it than the page that
+ * lists them. The wording now comes from the site configuration, so the Euro
+ * deployment can lead with "Predict" without a second list existing here.
+ *
+ * `More` is deliberately absent: its three entries are the rail's own third
+ * group, which is the reach the desktop width pays for.
+ */
+function mainGroup(site: SiteConfiguration): RailGroup {
   return {
     key: 'main',
-    links: [
-      { key: 'home', label: 'Home', href: weeklyRoutes.hub, Icon: HomeIcon },
-      { key: 'play', label: 'Play', href: weeklyRoutes.play, Icon: BallIcon },
-      { key: 'matches', label: 'Matches', href: weeklyRoutes.matches, Icon: CalendarIcon },
-      // "Leagues", not "Leagues & Competitions". The label was widened on
-      // desktop and the authority narrowed it back: the page itself explains
-      // the difference between a private league and a private LMS or
-      // Championship competition, and a two-word navigation label is a worse
-      // place to teach it than the page that lists them.
-      { key: 'leagues', label: 'Leagues', href: weeklyRoutes.leagues, Icon: TrophyIcon },
-    ],
+    links: globalNavItems(site).flatMap((item) =>
+      item.key === 'more'
+        ? []
+        : [
+            {
+              key: item.key,
+              label: item.label,
+              href: item.to,
+              Icon: RAIL_ICONS[item.key],
+            },
+          ],
+    ),
   }
 }
 
-function competitionsGroup(player: PlayerCompetitions | null): RailGroup {
+function competitionsGroup(
+  player: PlayerCompetitions | null,
+  site: SiteConfiguration,
+): RailGroup {
   const links: RailLink[] = []
 
   for (const entry of player?.shortcuts ?? []) {
@@ -110,7 +136,7 @@ function competitionsGroup(player: PlayerCompetitions | null): RailGroup {
     Icon: GlobeIcon,
   })
 
-  return { key: 'competitions', title: 'My competitions', links }
+  return { key: 'competitions', title: site.navigation.competitionsGroupLabel, links }
 }
 
 function moreGroup(): RailGroup {
@@ -125,6 +151,9 @@ function moreGroup(): RailGroup {
   }
 }
 
-export function railGroups(player: PlayerCompetitions | null): RailGroup[] {
-  return [mainGroup(), competitionsGroup(player), moreGroup()]
+export function railGroups(
+  player: PlayerCompetitions | null,
+  site: SiteConfiguration,
+): RailGroup[] {
+  return [mainGroup(site), competitionsGroup(player, site), moreGroup()]
 }

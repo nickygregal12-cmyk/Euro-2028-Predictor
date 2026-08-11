@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import styles from './PageShell.module.css'
-import { BottomNav, type NavKey } from './BottomNav'
+import { BottomNav, type BottomNavItem, type NavKey } from './BottomNav'
 
 export type PageShellProps = {
   // Slim bar rendered above the content region (the AppBar). Page titles stay
@@ -8,6 +8,11 @@ export type PageShellProps = {
   // (design-system §6, one title system).
   topBar?: ReactNode
   active: NavKey
+  /**
+   * This deployment's global destinations. Passed straight to `BottomNav`;
+   * omitted, both fall back to the weekly platform's five.
+   */
+  navItems?: readonly BottomNavItem[]
   /** Dev/demo-only override. Production navigation should omit this. */
   onNavigate?: (key: NavKey) => void
   /**
@@ -37,7 +42,14 @@ export type PageShellProps = {
  * destinations in the same order, so this is a change of presentation and not
  * the destination swap the design authority forbids.
  */
-export function PageShell({ topBar, active, onNavigate, rail, children }: PageShellProps) {
+export function PageShell({
+  topBar,
+  active,
+  navItems,
+  onNavigate,
+  rail,
+  children,
+}: PageShellProps) {
   return (
     <div className={styles.shell}>
       <a className={styles.skipLink} href="#main-content">
@@ -53,7 +65,7 @@ export function PageShell({ topBar, active, onNavigate, rail, children }: PageSh
           <div className={styles.measure}>{children}</div>
         </main>
       </div>
-      <BottomNav active={active} onNavigate={onNavigate} />
+      <BottomNav active={active} items={navItems} onNavigate={onNavigate} />
     </div>
   )
 }

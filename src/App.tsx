@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
+import { SiteProvider } from './app/site/SiteProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
@@ -162,188 +163,194 @@ function SessionlessChrome() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <BrowserRouter>
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route element={<SessionlessChrome />}>
-              {import.meta.env.DEV && ComponentsPreview ? (
-                <Route path="/dev/components" element={<ComponentsPreview />} />
-              ) : null}
-              {import.meta.env.DEV && MatchCentreScenarioPreview ? (
-                <Route path="/dev/match-centre/:scenario" element={<MatchCentreScenarioPreview />} />
-              ) : null}
-              {import.meta.env.DEV && SeasonPreview ? (
-                <Route path="/dev/season" element={<SeasonPreview />} />
-              ) : null}
-              {import.meta.env.DEV && SeasonLeaderboardPreview ? (
-                <Route path="/dev/season-leaderboard" element={<SeasonLeaderboardPreview />} />
-              ) : null}
-              {import.meta.env.DEV && SeasonMatchPredictorPreview ? (
-                <Route path="/dev/season-predictor" element={<SeasonMatchPredictorPreview />} />
-              ) : null}
-              {import.meta.env.DEV && SeasonStandingsPreview ? (
-                <Route path="/dev/season-standings" element={<SeasonStandingsPreview />} />
-              ) : null}
-              {import.meta.env.DEV && SeasonLmsPreview ? (
-                <Route path="/dev/season-lms" element={<SeasonLmsPreview />} />
-              ) : null}
-              {import.meta.env.DEV && SeasonCupPreview ? (
-                <Route path="/dev/season-cup" element={<SeasonCupPreview />} />
-              ) : null}
+    // ADR 0026's deployment identity, and it sits above everything because it
+    // decides what product this build is: the navigation's wording and order,
+    // the public metadata, and whether the Euro tournament's routes are served
+    // at all. Fails closed to the weekly platform.
+    <SiteProvider>
+      <ThemeProvider>
+        <BrowserRouter>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route element={<SessionlessChrome />}>
+                {import.meta.env.DEV && ComponentsPreview ? (
+                  <Route path="/dev/components" element={<ComponentsPreview />} />
+                ) : null}
+                {import.meta.env.DEV && MatchCentreScenarioPreview ? (
+                  <Route path="/dev/match-centre/:scenario" element={<MatchCentreScenarioPreview />} />
+                ) : null}
+                {import.meta.env.DEV && SeasonPreview ? (
+                  <Route path="/dev/season" element={<SeasonPreview />} />
+                ) : null}
+                {import.meta.env.DEV && SeasonLeaderboardPreview ? (
+                  <Route path="/dev/season-leaderboard" element={<SeasonLeaderboardPreview />} />
+                ) : null}
+                {import.meta.env.DEV && SeasonMatchPredictorPreview ? (
+                  <Route path="/dev/season-predictor" element={<SeasonMatchPredictorPreview />} />
+                ) : null}
+                {import.meta.env.DEV && SeasonStandingsPreview ? (
+                  <Route path="/dev/season-standings" element={<SeasonStandingsPreview />} />
+                ) : null}
+                {import.meta.env.DEV && SeasonLmsPreview ? (
+                  <Route path="/dev/season-lms" element={<SeasonLmsPreview />} />
+                ) : null}
+                {import.meta.env.DEV && SeasonCupPreview ? (
+                  <Route path="/dev/season-cup" element={<SeasonCupPreview />} />
+                ) : null}
 
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-
-            <Route element={<AuthLayout />}>
-              <Route element={<RedirectIfAuthed />}>
-                <Route path="/auth/login" element={<LoginPage />} />
-                <Route path="/auth/signup" element={<SignUpPage />} />
-                <Route path="/auth/reset" element={<ResetRequestPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Route>
 
-              <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
-              <Route path="/join/:code" element={<JoinLandingPage />} />
+              <Route element={<AuthLayout />}>
+                <Route element={<RedirectIfAuthed />}>
+                  <Route path="/auth/login" element={<LoginPage />} />
+                  <Route path="/auth/signup" element={<SignUpPage />} />
+                  <Route path="/auth/reset" element={<ResetRequestPage />} />
+                </Route>
 
-              <Route element={<RequireAuth />}>
-                <Route path="/welcome" element={<WelcomePage />} />
+                <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
+                <Route path="/join/:code" element={<JoinLandingPage />} />
 
-                <Route element={<RequireWelcome />}>
-                  <Route element={<AppShell />}>
-                    <Route path={weeklyRoutes.hub} element={<HubPage />} />
-                    {/* The three global destinations are destinations in
-                        their own right, not competition choosers: an action
-                        inbox, one combined football calendar and all the
-                        player's private play. The chooser they replaced asked
-                        which competition before answering anything, which got
-                        worse with every competition the platform adds. */}
-                    <Route path={weeklyRoutes.play} element={<GlobalPlayPage />} />
-                    <Route path={weeklyRoutes.matches} element={<GlobalMatchesPage />} />
-                    <Route path={weeklyRoutes.leagues} element={<GlobalLeaguesPage />} />
-                    {/* The catalogue, as deliberate discovery. Not a tab. */}
-                    <Route path={weeklyRoutes.competitions} element={<ExploreCompetitionsPage />} />
-                    <Route path={weeklyRoutes.more} element={<MorePage />} />
+                <Route element={<RequireAuth />}>
+                  <Route path="/welcome" element={<WelcomePage />} />
 
-                    <Route
-                      path={weeklyRoutePatterns.competition}
-                      element={<CompetitionDashboardPage />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.play}
-                      element={<SeasonPlayRoute />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.matches}
-                      element={<SeasonMatchesRoute />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.matchCentre}
-                      element={<SeasonMatchCentreRoute />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.games}
-                      element={<CompetitionGamesPage />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.matchPredictor}
-                      element={<SeasonMatchPredictorRoute />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.matchPredictorStandings}
-                      element={<SeasonStandingsRoute />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.lms}
-                      element={<SeasonLmsRoute />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.championshipWildcard}
-                      element={<SeasonChampionshipRouter />}
-                    />
-                    <Route
-                      path={weeklyRoutePatterns.leagues}
-                      element={<SeasonLeaguesRoute />}
-                    />
-                    {/* One player's season (contract 151). Competition-scoped
-                        because points, rank and prediction history are facts
-                        about a player IN a season; the server refuses any
-                        caller who shares no private league with them, and
-                        nothing here enumerates players. */}
-                    <Route
-                      path={weeklyRoutePatterns.player}
-                      element={<SeasonPlayerProfileRoute />}
-                    />
+                  <Route element={<RequireWelcome />}>
+                    <Route element={<AppShell />}>
+                      <Route path={weeklyRoutes.hub} element={<HubPage />} />
+                      {/* The three global destinations are destinations in
+                          their own right, not competition choosers: an action
+                          inbox, one combined football calendar and all the
+                          player's private play. The chooser they replaced asked
+                          which competition before answering anything, which got
+                          worse with every competition the platform adds. */}
+                      <Route path={weeklyRoutes.play} element={<GlobalPlayPage />} />
+                      <Route path={weeklyRoutes.matches} element={<GlobalMatchesPage />} />
+                      <Route path={weeklyRoutes.leagues} element={<GlobalLeaguesPage />} />
+                      {/* The catalogue, as deliberate discovery. Not a tab. */}
+                      <Route path={weeklyRoutes.competitions} element={<ExploreCompetitionsPage />} />
+                      <Route path={weeklyRoutes.more} element={<MorePage />} />
 
-                    {/* Compatibility only: the old global chooser name remains a
-                        redirect, never a second weekly information architecture. */}
-                    <Route path="/fixtures" element={<Navigate to={weeklyRoutes.matches} replace />} />
-                    <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
-                    <Route path="/more/points" element={<Navigate to="/profile" replace />} />
-                    <Route path="/more/scoring" element={<ScoringRulesPage />} />
-                    {/* The PLATFORM profile, outside the tournament boundary
-                        below. It used to be the Euro tournament profile, which
-                        meant every visible Profile control — the top bar, More,
-                        the desktop rail — sent a domestic player into a route
-                        that `EURO-004` refuses while Euro is hidden, and
-                        bounced them back to Home. It reads the account and the
-                        shell's membership and nothing about any tournament. */}
-                    <Route path="/profile" element={<PlatformProfilePage />} />
-                    {/* Outside the tournament boundary below, because the
-                        account is the platform's rather than a competition's.
-                        It stopped printing one competition's points and rank
-                        under a player's name, and with that gone it reads
-                        nothing from the tournament at all. */}
-                    <Route path="/account" element={<AccountPage />} />
-
-                    {/* Everything below answers for the Euro tournament and only
-                        for it, so the tournament data and predictions providers
-                        mount here rather than above the whole shell. A domestic
-                        player never pays for a dataset they cannot reach.
-                        See src/app/TournamentJourney.tsx. */}
-                    <Route element={<TournamentJourney />}>
-                      <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
-                      <Route path="/h2h/:rivalId" element={<H2HPage />} />
-                      {/* Euro's own player profiles, kept inside the boundary
-                          and addressed under `/tournament/` so no domestic
-                          surface can link into them by accident. */}
-                      <Route path="/tournament/profile" element={<TournamentProfilePage />} />
                       <Route
-                        path="/tournament/profile/:playerId"
-                        element={<OtherPlayerProfilePage />}
+                        path={weeklyRoutePatterns.competition}
+                        element={<CompetitionDashboardPage />}
                       />
-                    </Route>
+                      <Route
+                        path={weeklyRoutePatterns.play}
+                        element={<SeasonPlayRoute />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.matches}
+                        element={<SeasonMatchesRoute />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.matchCentre}
+                        element={<SeasonMatchCentreRoute />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.games}
+                        element={<CompetitionGamesPage />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.matchPredictor}
+                        element={<SeasonMatchPredictorRoute />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.matchPredictorStandings}
+                        element={<SeasonStandingsRoute />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.lms}
+                        element={<SeasonLmsRoute />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.championshipWildcard}
+                        element={<SeasonChampionshipRouter />}
+                      />
+                      <Route
+                        path={weeklyRoutePatterns.leagues}
+                        element={<SeasonLeaguesRoute />}
+                      />
+                      {/* One player's season (contract 151). Competition-scoped
+                          because points, rank and prediction history are facts
+                          about a player IN a season; the server refuses any
+                          caller who shares no private league with them, and
+                          nothing here enumerates players. */}
+                      <Route
+                        path={weeklyRoutePatterns.player}
+                        element={<SeasonPlayerProfileRoute />}
+                      />
 
-                    <Route element={<RequireAdmin />}>
-                      <Route path="/admin" element={<Navigate to="/admin/results" replace />} />
-                      <Route element={<AdminLayout />}>
-                        {/* The Results Centre confirms Euro match results and
-                            reads the tournament to do it. Users administration
-                            does not, and wrapping the whole admin tree would
-                            have made every visit to it load the tournament. */}
-                        <Route element={<TournamentJourney />}>
-                          <Route path="/admin/results" element={<AdminResultsWorkspacePage />} />
+                      {/* Compatibility only: the old global chooser name remains a
+                          redirect, never a second weekly information architecture. */}
+                      <Route path="/fixtures" element={<Navigate to={weeklyRoutes.matches} replace />} />
+                      <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
+                      <Route path="/more/points" element={<Navigate to="/profile" replace />} />
+                      <Route path="/more/scoring" element={<ScoringRulesPage />} />
+                      {/* The PLATFORM profile, outside the tournament boundary
+                          below. It used to be the Euro tournament profile, which
+                          meant every visible Profile control — the top bar, More,
+                          the desktop rail — sent a domestic player into a route
+                          that `EURO-004` refuses while Euro is hidden, and
+                          bounced them back to Home. It reads the account and the
+                          shell's membership and nothing about any tournament. */}
+                      <Route path="/profile" element={<PlatformProfilePage />} />
+                      {/* Outside the tournament boundary below, because the
+                          account is the platform's rather than a competition's.
+                          It stopped printing one competition's points and rank
+                          under a player's name, and with that gone it reads
+                          nothing from the tournament at all. */}
+                      <Route path="/account" element={<AccountPage />} />
+
+                      {/* Everything below answers for the Euro tournament and only
+                          for it, so the tournament data and predictions providers
+                          mount here rather than above the whole shell. A domestic
+                          player never pays for a dataset they cannot reach.
+                          See src/app/TournamentJourney.tsx. */}
+                      <Route element={<TournamentJourney />}>
+                        <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
+                        <Route path="/h2h/:rivalId" element={<H2HPage />} />
+                        {/* Euro's own player profiles, kept inside the boundary
+                            and addressed under `/tournament/` so no domestic
+                            surface can link into them by accident. */}
+                        <Route path="/tournament/profile" element={<TournamentProfilePage />} />
+                        <Route
+                          path="/tournament/profile/:playerId"
+                          element={<OtherPlayerProfilePage />}
+                        />
+                      </Route>
+
+                      <Route element={<RequireAdmin />}>
+                        <Route path="/admin" element={<Navigate to="/admin/results" replace />} />
+                        <Route element={<AdminLayout />}>
+                          {/* The Results Centre confirms Euro match results and
+                              reads the tournament to do it. Users administration
+                              does not, and wrapping the whole admin tree would
+                              have made every visit to it load the tournament. */}
+                          <Route element={<TournamentJourney />}>
+                            <Route path="/admin/results" element={<AdminResultsWorkspacePage />} />
+                          </Route>
+                          <Route path="/admin/users" element={<AdminUsersPage />} />
+                          {/* Season administration reads and writes only season
+                              authorities, so it sits outside the tournament
+                              boundary above rather than inside it. */}
+                          <Route path="/admin/season" element={<SeasonAdminPage />} />
+                          {/* Euro publication reads and writes only the Contract
+                              143 publication authority. It is deliberately
+                              OUTSIDE the tournament boundary above: publishing a
+                              tournament must not require loading it, and while
+                              the state is hidden that load is exactly what the
+                              route guard refuses. */}
+                          <Route path="/admin/euro" element={<EuroPublicationPage />} />
                         </Route>
-                        <Route path="/admin/users" element={<AdminUsersPage />} />
-                        {/* Season administration reads and writes only season
-                            authorities, so it sits outside the tournament
-                            boundary above rather than inside it. */}
-                        <Route path="/admin/season" element={<SeasonAdminPage />} />
-                        {/* Euro publication reads and writes only the Contract
-                            143 publication authority. It is deliberately
-                            OUTSIDE the tournament boundary above: publishing a
-                            tournament must not require loading it, and while
-                            the state is hidden that load is exactly what the
-                            route guard refuses. */}
-                        <Route path="/admin/euro" element={<EuroPublicationPage />} />
                       </Route>
                     </Route>
                   </Route>
                 </Route>
               </Route>
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </ThemeProvider>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </ThemeProvider>
+    </SiteProvider>
   )
 }

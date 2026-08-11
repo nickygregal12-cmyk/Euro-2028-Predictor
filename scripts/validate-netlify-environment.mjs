@@ -110,10 +110,13 @@ function verifySupabaseKey(key, expectedProjectRef, context) {
  * It refuses the build rather than warning. A site that quietly deploys as the
  * other product, or with no canonical URL, is worse than one that does not
  * deploy — and both are trivially fixed by correcting an environment variable.
+ *
+ * @param {Record<string, string | undefined>} env
+ * @returns {'hub' | 'euro'}
  */
 function validateSiteVariant(env) {
   const rawVariant = (env.VITE_SITE_VARIANT ?? '').trim()
-  if (rawVariant && rawVariant !== 'hub' && rawVariant !== 'euro') {
+  if (rawVariant !== '' && rawVariant !== 'hub' && rawVariant !== 'euro') {
     throw new Error(
       `VITE_SITE_VARIANT is "${rawVariant}", which is neither "hub" nor ` +
         '"euro". The build would fail closed to the Hub, so the Euro site ' +
@@ -138,7 +141,7 @@ function validateSiteVariant(env) {
     }
   }
 
-  return rawVariant || 'hub'
+  return rawVariant === '' ? 'hub' : rawVariant
 }
 
 export function validateNetlifyEnvironment(env = process.env) {

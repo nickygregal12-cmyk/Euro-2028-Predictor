@@ -49,7 +49,7 @@ export { StatusBadge } from './StatusBadge'
 export type { StatusBadgeProps, StatusBadgeVariant } from './StatusBadge'
 
 export { BottomNav } from './BottomNav'
-export type { BottomNavProps, NavKey } from './BottomNav'
+export type { BottomNavItem, BottomNavProps, NavKey } from './BottomNav'
 
 export { SideRail } from './SideRail'
 export type { SideRailProps, RailGroup, RailLink } from './SideRail'
