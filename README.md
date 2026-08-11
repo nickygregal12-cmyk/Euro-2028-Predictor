@@ -222,6 +222,7 @@ enforced in CI. Dated audits, investigations, reconciliations and automation run
 | What was accepted and is **not** built | [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md) |
 | What happens next, in order | [`docs/roadmap.md`](docs/roadmap.md) |
 | The detailed task inventory | [`MASTER-TODO.md`](MASTER-TODO.md) |
+| Experimental product opportunities / differentiators | [`docs/product/innovation-lab.md`](docs/product/innovation-lab.md) |
 | Current risks and findings | [`docs/quality/risk-register.md`](docs/quality/risk-register.md) |
 | How to contribute, and the rules an agent follows | [`AGENTS.md`](AGENTS.md) · [`CLAUDE.md`](CLAUDE.md) |
 | Design system as built | [`docs/design-system.md`](docs/design-system.md) |
