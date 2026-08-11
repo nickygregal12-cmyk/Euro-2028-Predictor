@@ -50,25 +50,86 @@ contract, say so in it. A one-line "no change for this contract" is a fact worth
 recording; silence is indistinguishable from an oversight, which is the whole
 problem.
 
-## The three classifications
+### Coverage
+
+Added 11 August 2026. **Every tracked markdown file must be an authority, dated
+evidence, or explicitly out of scope with a reason. There is no fourth state.**
+
+The two rules above were sound and were working. They only ever applied to the
+documents somebody had thought to list. Measured across the whole repository:
+
+| | Files |
+| --- | ---: |
+| Declared authorities | 15 |
+| Declared evidence | 122 |
+| **Governed by nothing** | **101** |
+
+Fifty-one of those 101 named contract numbers and nothing checked them; the
+oldest named **35** while the repository was at 157. That is not a gap in the
+rules — it is a gap in what the rules were pointed at, and it is the more
+dangerous shape, because **an unlisted document looks exactly like a governed
+one to a reader.** A control that covers the files someone remembered is a
+control that decays as the repository grows, which is the failure the
+per-contract guards had.
+
+The rule paid for itself on its first run. It reached
+`docs/quality/audit-2026-08-10-remediation.md`, which nothing had been watching,
+and found a branch name ending in an eleven-digit workflow run id being read as
+a contract numbered **314** — `\d{2,3}` taking the first three digits of the run
+id and stopping. The extractor now anchors the end of a number: a contract
+number is a whole number or it is not one.
+
+## The four classifications
 
 | Kind | Rule | Why |
 | --- | --- | --- |
 | `live` | newest named contract must be the current one | It describes current state, so being overtaken makes it wrong |
 | `dispositions` | may name any contract that exists; must not name one that does not | A risk or decision register names the contract that resolved an entry. It has nothing to say about a contract that closed nothing, and forcing it to name one would make it lie |
+| `reference` | the same rule as `dispositions` | An ADR, a procedure, a subsystem reference or the design system names what **built** the thing it describes, where a register names what **resolved** an entry. Neither claims where the repository is now; both are wrong on their face if they cite a contract that has never existed |
 | `structural` | exempt here | Held in step by a stronger check against a real database — see `tests/database-parity/stageCTriggerBindingCoverage.test.ts` |
 
 Dated evidence — audits, investigations, reconciliations, automation runs,
-nightly reports — is exempt **by classification, in `evidenceDirectories`**,
-rather than by being forgotten. Those documents are snapshots and must keep
-saying what was true when they were written. The manifest test refuses to let a
-path be both evidence and an authority.
+nightly reports, and the operator records in `docs/ops/records/` — is exempt
+**by classification, in `evidenceDirectories`**, rather than by being forgotten.
+Those documents are snapshots and must keep saying what was true when they were
+written. The manifest test refuses to let a path be both evidence and an
+authority.
+
+### `docs/ops/` is procedures; `docs/ops/records/` is what happened
+
+Until 11 August 2026 the two lived together, so eleven dated one-off records —
+the contract 65 rollout recovery, releases 144 and 145, the production cutover,
+the contract 63 object baseline — sat beside reusable runbooks and read as
+current instructions because of where they were. They now sit in
+`docs/ops/records/`, which is an evidence directory. **Not one word of them
+changed**; only the path did. The inbound references from other *evidence* were
+deliberately left alone, matching how an earlier move of the same file was
+handled: a dated record cites the path that was true when it was written.
 
 ## Adding a document
 
-Add it to `authorities` with a `kind`, a `sweep` flag and a `why`. The `why` is
-required and tested for: a manifest entry without a reason is how a control
-becomes a ritual.
+Give it a classification, or the coverage rule will refuse it — which is the
+point.
+
+- One file: add it to `authorities` with a `kind`, a `sweep` flag and a `why`.
+- A whole directory of the same kind of thing: add a prefix to
+  `authorityDirectories` with a `kind` and a `why`. This is what keeps the
+  manifest affordable — an ADR is a decision record whether or not anyone lists
+  it individually.
+- Dated evidence: put it under an `evidenceDirectories` prefix.
+- Genuinely nothing the rules can say anything about: `outOfScope`, with the
+  reason it cannot go stale. That list is the one state with no check behind it,
+  so its length is the measure of how much is taken on trust, and a test caps it.
+
+The `why` is required and tested for on all three, a manifest entry without a
+reason being how a control becomes a ritual.
+
+**Precedence is one rule, not a table of special cases.** An exact path always
+wins, because naming a file is the most specific thing the manifest can do.
+Otherwise the **longest matching directory prefix** wins, whichever list it came
+from. That is what lets `docs/ops/` be procedures while `docs/ops/records/`
+inside it is evidence, and `docs/quality/` be governance while its four dated
+subdirectories are evidence — with neither nesting written down as an exception.
 
 Set `sweep: true` only if the document genuinely needs revisiting on **every**
 contract. Marking everything would train people to add a meaningless line to
@@ -77,8 +138,8 @@ pass the gate, which is worse than not having it.
 ## Running it
 
 ```bash
-npm run check:documentation-authorities                 # freshness only
-node scripts/check-documentation-authorities.mjs A B    # freshness and sweep
+npm run check:documentation-authorities                 # coverage and freshness
+node scripts/check-documentation-authorities.mjs A B    # and the sweep
 ```
 
 CI runs the first form on pushes and the second on pull requests.
