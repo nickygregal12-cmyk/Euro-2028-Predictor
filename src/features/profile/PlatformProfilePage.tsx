@@ -32,14 +32,16 @@ import styles from './PlatformProfilePage.module.css'
  * season's own record is one link away, at the season profile contract 151
  * answers.
  *
- * SEASON HISTORY IS REAL NOW, AND ONLY AS FAR AS THE ARCHIVE GOES. Contract 156
- * (`MIG-UI-08`) writes a Wrapped once a season has ended, immutably, and
- * `SeasonHistorySection` renders exactly what it stored. There is still no
- * trophy case and no streak count, because the archive holds neither; the page
- * continues to say nothing about them rather than rendering empty furniture.
- * What it also cannot do is FIND a Wrapped for a season nobody publishes any
- * more — `get_season_wrapped` is addressed by one season id and nothing lists
- * which ones a player has — so the section says that in words. `MIG-UI-17`.
+ * SEASON HISTORY IS REAL AND IS NO LONGER LIMITED TO WHAT IS PUBLISHED.
+ * Contract 156 (`MIG-UI-08`) writes an immutable Wrapped once a season ends,
+ * and contract 161 (`MIG-UI-17`) lists the seasons this player TOOK PART IN —
+ * which is the question that keeps an archived season findable. The section
+ * used to be built from the published catalogue and had to apologise for the
+ * gap in its own copy; the apology is gone with the gap.
+ *
+ * There is still no trophy case and no streak count, because the archive holds
+ * neither, and the page continues to say nothing about them rather than
+ * rendering empty furniture.
  */
 export function PlatformProfilePage() {
   const { displayName, userId } = useAuth()
@@ -122,9 +124,16 @@ export function PlatformProfilePage() {
         own. Open a competition above to see the season you are having in it.
       </p>
 
-      {status === 'ready' && player !== null ? (
-        <SeasonHistorySection competitions={player.mine} />
-      ) : null}
+      {/* Contract 161: keyed on PARTICIPATION, so it does not depend on the
+          shell's catalogue and is rendered whatever that read did. A season
+          archived and unpublished is still the player's. */}
+      <SeasonHistorySection
+        read={() =>
+          import('../../services/supabase/seasonHistory').then(({ fetchMySeasonHistory }) =>
+            fetchMySeasonHistory(),
+          )
+        }
+      />
     </div>
   )
 }

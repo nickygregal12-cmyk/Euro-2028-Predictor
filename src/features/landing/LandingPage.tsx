@@ -175,6 +175,15 @@ function HeroSection(): ReactElement {
               <a className={`${s.cta} ${s.ctaSecondary}`} href="#experience">
                 See the experience
               </a>
+              {/* The third path the acquisition direction asks for, beside
+                  signing up and signing in: learning how each game works. It is
+                  an in-page anchor rather than a route, because the explainer a
+                  signed-in player reads at `/more/scoring` is behind the auth
+                  gate — sending a visitor to a page that bounces them to login
+                  would be a call to action that does not act. */}
+              <a className={`${s.cta} ${s.ctaQuiet}`} href="#games">
+                How the games work
+              </a>
             </div>
             <ul className={s.trustRow}>
               {['Free to join', 'Nothing predicted for you', 'Private leagues'].map((item) => (
@@ -532,6 +541,9 @@ function FinalSection(): ReactElement {
             <Link className={`${s.cta} ${s.ctaSecondary}`} to="/auth/login">
               Already a member? Sign in
             </Link>
+            <a className={`${s.cta} ${s.ctaQuiet}`} href="#games">
+              How the games work
+            </a>
           </div>
         </div>
       </div>

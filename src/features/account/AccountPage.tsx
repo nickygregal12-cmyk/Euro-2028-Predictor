@@ -342,15 +342,19 @@ export function AccountPage() {
         <label className={a.prefRow}>
           <span className={a.detailBody}>
             <span className={a.detailLabel}>Deadline reminder emails</span>
-            {/* MEASURED, NOT ASSUMED. `profiles.reminder_emails` is stored and
-                this control writes it, but nothing in the repository sends a
-                deadline reminder — no job, no Edge Function, no workflow reads
-                the column. The copy used to promise "a nudge before predictions
-                lock", which was a promise the product does not keep. It records
-                the choice and says so; `DFA-012` owns the sending. */}
+            {/* MEASURED, NOT ASSUMED, AND RE-MEASURED ON 11 AUGUST 2026. This
+                used to say nothing in the repository read `reminder_emails`.
+                Contract 163 does: it schedules reminders, claims them and
+                records a delivery result, and it honours this flag. What it
+                deliberately does NOT do is choose a sender — `SITE-007` blocks
+                the transactional provider on the brand decision, and the
+                contract's `dry_run` defaults to true for exactly that reason.
+                So the machinery exists and nothing leaves the building, and the
+                copy says which of those two facts is which rather than
+                collapsing them into a promise or into "coming soon". */}
             <span className={a.detailValue}>
-              Your choice is saved for when deadline reminders start. None are being sent yet, so
-              leaving this on will not email you today.
+              Your choice is saved and the reminder schedule is built. No email provider has been
+              chosen yet, so nothing is actually sent — leaving this on will not email you today.
             </span>
           </span>
           <input

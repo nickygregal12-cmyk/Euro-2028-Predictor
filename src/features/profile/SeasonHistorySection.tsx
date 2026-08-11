@@ -1,88 +1,84 @@
 import { useEffect, useState } from 'react'
 import { Alert, Skeleton, StatCard } from '../../design-system'
-import type { CompetitionRelevance } from '../hub/playerCompetitions'
-import {
-  correctOutcomeRate,
-  exactScoreRate,
-  type SeasonWrapped,
-} from '../../services/supabase/seasonWrappedModel'
+import type {
+  SeasonHistoryEntry,
+  SeasonHistoryPage,
+} from '../../services/supabase/seasonHistoryModel'
 import styles from './SeasonHistorySection.module.css'
 
 /**
- * Season history — the seasons this player has finished, as the archive
- * recorded them (contract 156, `MIG-UI-08`).
+ * Season history — every season this player has taken part in (contract 161,
+ * `MIG-UI-17`), with contract 156's stored Wrapped where one exists.
  *
- * IT READS A SNAPSHOT AND RECOMPUTES NOTHING. `season_wrapped` is written once,
- * when the season has ended, is immutable by trigger and stores facts rather
- * than presentation. Every number below is one it stored. There is no derived
- * percentile here, no combined career total and no trophy count: a percentile
- * computed in the browser from rank and field size would be a number the archive
- * never agreed to, and a career total would be the cross-competition figure
- * ADR 0011 says no authority computes.
+ * IT IS KEYED ON PARTICIPATION, NOT PUBLICATION, AND THAT IS THE FIX. This
+ * section used to ask `get_season_wrapped` once per competition in the
+ * PUBLISHED catalogue, which meant a season stopped being findable the day it
+ * stopped being published — a player's 2026/27 would vanish from their own
+ * history when it was archived, and the surface had to say so in its own copy.
+ * `get_my_season_history` asks the other question: which seasons did YOU play
+ * in. The apology is gone with the gap.
  *
- * A SEASON WITH NO WRAPPED IS SIMPLY NOT LISTED. `{ finalised: false }` is the
- * common case — every season still being played answers it — and it is a real
- * answer rather than an error. It is never rendered as a season of zeros, which
- * would be a lie about a season the player is currently winning.
+ * IT IS ONE READ, NOT N. The previous shape issued one request per competition
+ * and reported each failure separately. One paginated read replaces them, so a
+ * player with twenty seasons costs one round trip rather than twenty.
  *
- * WHAT IT CANNOT SEE, STATED RATHER THAN HIDDEN. `get_season_wrapped` is
- * addressed by one `tournament_id`, and nothing lists which seasons a player
- * HAS a Wrapped for. So this can only ask about the seasons the shell already
- * knows about — the currently published catalogue — and a season archived and
- * unpublished years ago is invisible to it. That is `MIG-UI-17` in the accepted
- * requirements, and the section says so in words rather than implying the
- * archive is empty.
+ * NOTHING IS RECOMPUTED. `final` is contract 156's immutable snapshot, present
+ * only where a Wrapped was finalised. There is no derived percentile — one
+ * computed here from rank and field size would be a number the archive never
+ * agreed to — and no career total, because ADR 0011 says no authority computes
+ * one.
  *
- * EVERY SEASON IS ASKED IN PARALLEL AND FAILURES ARE PER SEASON. One unreadable
- * season must not blank the others; a season that failed is reported as
- * unreadable rather than dropped, because "we could not read it" and "you never
- * finished one" are different sentences.
+ * A SEASON STILL BEING PLAYED IS LISTED AND SAYS SO. It is part of a player's
+ * history the moment they enter it; what it does not have is a final, and
+ * printing zeros for one would be a lie about a season they might be winning.
+ *
+ * A SEASON THE CATALOGUE NO LONGER PUBLISHES IS LISTED AND IS NOT A LINK.
+ * `inPublishedCatalogue` is the server's answer about routability, and an
+ * archived season is named rather than given a link that goes nowhere.
  */
 
 export type SeasonHistorySectionProps = {
-  competitions: readonly CompetitionRelevance[]
+  /**
+   * Contract 161's read. Injected so the section is testable without a client,
+   * and defaulted by the page that mounts it.
+   */
+  read: () => Promise<SeasonHistoryPage>
 }
 
-type Entry = {
-  name: string
-  seasonLabel: string
-  wrapped: SeasonWrapped | 'failed'
-}
-
-export function SeasonHistorySection({ competitions }: SeasonHistorySectionProps) {
-  const [entries, setEntries] = useState<readonly Entry[] | null>(null)
+export function SeasonHistorySection({ read }: SeasonHistorySectionProps) {
+  const [page, setPage] = useState<SeasonHistoryPage | null>(null)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let active = true
-    const targets = competitions.filter((entry) => entry.tournamentId !== null)
-    if (targets.length === 0) {
-      setEntries([])
-      return
-    }
-    setEntries(null)
-    void (async () => {
-      const { fetchSeasonWrapped } = await import('../../services/supabase/seasonWrapped')
-      const loaded = await Promise.all(
-        targets.map(async (entry): Promise<Entry> => {
-          const base = {
-            name: entry.competition.name,
-            seasonLabel: entry.competition.seasonLabel,
-          }
-          try {
-            return { ...base, wrapped: await fetchSeasonWrapped(entry.tournamentId as string) }
-          } catch {
-            return { ...base, wrapped: 'failed' }
-          }
-        }),
-      )
-      if (active) setEntries(loaded)
-    })()
+    setPage(null)
+    setFailed(false)
+    read()
+      .then((next) => {
+        if (active) setPage(next)
+      })
+      .catch(() => {
+        if (active) setFailed(true)
+      })
     return () => {
       active = false
     }
-  }, [competitions])
+  }, [read])
 
-  if (entries === null) {
+  if (failed) {
+    return (
+      <section className={styles.section}>
+        <h2 className={styles.title}>Season history</h2>
+        {/* A failed read is a failure. "You have played nothing" is a claim
+            about the player and this read never made it. */}
+        <Alert variant="warning" title="We could not load your season history">
+          This is a failed read, not an empty history.
+        </Alert>
+      </section>
+    )
+  }
+
+  if (page === null) {
     return (
       <section className={styles.section} aria-busy="true">
         <h2 className={styles.title}>Season history</h2>
@@ -91,110 +87,88 @@ export function SeasonHistorySection({ competitions }: SeasonHistorySectionProps
     )
   }
 
-  const finalised = entries.filter(
-    (entry): entry is Entry & { wrapped: Extract<SeasonWrapped, { finalised: true }> } =>
-      entry.wrapped !== 'failed' && entry.wrapped.finalised,
-  )
-  const failed = entries.filter((entry) => entry.wrapped === 'failed')
+  if (page.seasons.length === 0) {
+    return (
+      <section className={styles.section}>
+        <h2 className={styles.title}>Season history</h2>
+        <p className={styles.empty}>
+          You have not played a season yet. Join a game in a competition and it will appear here —
+          and it will stay here afterwards, whether or not the competition is still running.
+        </p>
+      </section>
+    )
+  }
 
   return (
     <section className={styles.section}>
       <h2 className={styles.title}>Season history</h2>
-
-      {finalised.length === 0 ? (
-        <p className={styles.empty}>
-          No season you play in has finished yet. When one does, its Wrapped is written once and
-          kept — final points, where you finished, your best matchweek and how often you called it
-          exactly.
+      <ul className={styles.list}>
+        {page.seasons.map((entry) => (
+          <SeasonCard key={entry.tournamentId} entry={entry} />
+        ))}
+      </ul>
+      {page.hasMore ? (
+        // The bound, stated. A page nobody knows is a page reads as a complete
+        // history.
+        <p className={styles.note}>
+          Showing {page.seasons.length} of {page.total} seasons.
         </p>
-      ) : (
-        <ul className={styles.list}>
-          {finalised.map((entry) => (
-            <WrappedCard key={`${entry.name}-${entry.seasonLabel}`} entry={entry} />
-          ))}
-        </ul>
-      )}
-
-      {failed.length > 0 ? (
-        <Alert variant="warning" title="Some seasons could not be read">
-          {failed.map((entry) => `${entry.name} ${entry.seasonLabel}`).join(', ')} could not be
-          checked just now.
-        </Alert>
       ) : null}
-
-      {/* Said once, plainly, rather than leaving a player to conclude the
-          archive lost their old seasons. */}
-      <p className={styles.note}>
-        This lists the seasons in competitions currently published. A finished season that is no
-        longer listed cannot be looked up yet.
-      </p>
     </section>
   )
 }
 
-function WrappedCard({
-  entry,
-}: {
-  entry: Entry & { wrapped: Extract<SeasonWrapped, { finalised: true }> }
-}) {
-  const { season, accuracy, bestMatchweek, jokersPlayed } = entry.wrapped
-  const exact = exactScoreRate(accuracy)
-  const outcomes = correctOutcomeRate(accuracy)
+function SeasonCard({ entry }: { entry: SeasonHistoryEntry }) {
+  const games = entry.games
+    .map((game) => game.gameName ?? game.gameKey)
+    .filter((name): name is string => Boolean(name))
 
   return (
     <li className={styles.card}>
       <header className={styles.cardHead}>
-        <span className={styles.cardName}>{entry.name}</span>
-        <span className={styles.cardSeason}>{entry.seasonLabel}</span>
+        <span className={styles.cardName}>{entry.competitionName ?? entry.seasonName}</span>
+        <span className={styles.cardSeason}>{entry.seasonKey ?? ''}</span>
+        {/* Named rather than linked. The server says whether the catalogue
+            still publishes it, and an archived season given a link would be a
+            link that goes nowhere. */}
+        {!entry.inPublishedCatalogue ? (
+          <span className={styles.cardSeason}>Archived</span>
+        ) : null}
       </header>
 
-      <div className={styles.stats}>
-        <StatCard label="Points" value={String(season.points)} />
-        <StatCard
-          label="Finished"
-          // Rank and field size are printed together or not at all: "7th" with
-          // no field is a different claim from "7th of 1,204".
-          value={
-            season.rank !== null && season.fieldSize !== null
-              ? `${season.rank} of ${season.fieldSize}`
-              : season.rank !== null
-                ? String(season.rank)
-                : '—'
-          }
-        />
-        <StatCard label="Matchweeks played" value={String(season.matchweeksPlayed)} />
-        {bestMatchweek ? (
-          <StatCard
-            label={`Best matchweek (${bestMatchweek.ordinal})`}
-            value={String(bestMatchweek.points)}
-          />
-        ) : null}
-      </div>
+      {entry.final ? (
+        <>
+          <div className={styles.stats}>
+            <StatCard label="Points" value={String(entry.final.points)} />
+            <StatCard
+              label="Finished"
+              value={
+                entry.final.rank !== null && entry.final.fieldSize !== null
+                  ? `${entry.final.rank} of ${entry.final.fieldSize}`
+                  : entry.final.rank !== null
+                    ? String(entry.final.rank)
+                    : '—'
+              }
+            />
+            <StatCard label="Matchweeks played" value={String(entry.final.matchweeksPlayed)} />
+          </div>
+        </>
+      ) : (
+        <p className={styles.note}>
+          {entry.complete
+            ? 'This season has finished. Its Wrapped has not been written yet.'
+            : 'Still being played — its final record is written when the season ends.'}
+        </p>
+      )}
 
-      <dl className={styles.detail}>
-        <div className={styles.detailRow}>
-          <dt>Fixtures predicted</dt>
-          <dd>{accuracy.fixturesPredicted}</dd>
-        </div>
-        <div className={styles.detailRow}>
-          <dt>Exact scores</dt>
-          <dd>
-            {accuracy.exactScores}
-            {exact !== null ? ` (${Math.round(exact * 100)}%)` : ''}
-          </dd>
-        </div>
-        <div className={styles.detailRow}>
-          <dt>Correct outcomes</dt>
-          <dd>
-            {accuracy.correctOutcomes}
-            {outcomes !== null ? ` (${Math.round(outcomes * 100)}%)` : ''}
-          </dd>
-        </div>
-        <div className={styles.detailRow}>
-          <dt>Jokers played</dt>
-          <dd>{jokersPlayed}</dd>
-        </div>
-      </dl>
+      {games.length > 0 ? (
+        <dl className={styles.detail}>
+          <div className={styles.detailRow}>
+            <dt>Games</dt>
+            <dd>{games.join(', ')}</dd>
+          </div>
+        </dl>
+      ) : null}
     </li>
   )
 }

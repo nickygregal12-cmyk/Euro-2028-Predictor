@@ -9,6 +9,7 @@ import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsPro
 import {
   favouriteTeamFor,
   isFollowing,
+  pinnedRivalsFor,
 } from '../../services/supabase/playerPreferencesModel'
 import type { SeasonClub } from '../../services/supabase/seasonClubs'
 import { userFacingError } from '../../shared/errors/userFacingError'
@@ -35,6 +36,15 @@ import f from './followedCompetitions.module.css'
  * THE CLUB LIST IS LOADED ON DEMAND, one competition at a time, and only when
  * the player opens the picker. Loading every competition's clubs to render a
  * list of competitions would be twenty reads to show twenty rows.
+ *
+ * RIVALS ARE REPORTED HERE AND CHANGED WHERE THE NAMES ARE. Contract 157
+ * stores a pinned rival as a competition and a user id and nothing else, so an
+ * Account card built on it alone could only offer to unpin an anonymous
+ * identifier — and "remove 8f3a…" is not a setting anybody can use safely. The
+ * names live in a private league table, which is also exactly the boundary
+ * `set_pinned_rival` enforces, so this reports the count and sends the player
+ * to the surface that can name them. That is a smaller control than a picker
+ * and a truthful one.
  *
  * EVERY WRITE IS FOLLOWED BY A RELOAD OF THE SHELL, not by an optimistic local
  * edit. The shell's model is what the Hub, the rail, the switcher and the
@@ -121,6 +131,12 @@ export function FollowedCompetitionsCard() {
                 <span className={f.name}>{competition.name}</span>
                 <span className={f.season}>{competition.seasonLabel}</span>
                 {following ? (
+                  <RivalNote
+                    count={pinnedRivalsFor(preferences, tournamentId).length}
+                    competitionName={competition.name}
+                  />
+                ) : null}
+                {following ? (
                   <FavouriteControl
                     tournamentId={tournamentId}
                     competitionName={competition.name}
@@ -157,6 +173,22 @@ export function FollowedCompetitionsCard() {
         <p className={a.detailValue}>No competitions have been published yet.</p>
       ) : null}
     </div>
+  )
+}
+
+function RivalNote({
+  count,
+  competitionName,
+}: {
+  count: number
+  competitionName: string
+}) {
+  return (
+    <span className={f.season}>
+      {count === 0
+        ? `No pinned rival in ${competitionName}. Pin one from a private league table on your Hub.`
+        : `${count} pinned ${count === 1 ? 'rival' : 'rivals'} in ${competitionName}. Change them from your Hub's Rival Watch.`}
+    </span>
   )
 }
 

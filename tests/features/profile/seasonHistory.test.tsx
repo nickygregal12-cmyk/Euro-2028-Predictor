@@ -1,133 +1,148 @@
 import { render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { SeasonHistorySection } from '../../../src/features/profile/SeasonHistorySection'
-import type { CompetitionRelevance } from '../../../src/features/hub/playerCompetitions'
+import { mapSeasonHistoryPage } from '../../../src/services/supabase/seasonHistoryModel'
 
 /**
- * Season history, over contract 156's archive (`MIG-UI-08`).
+ * Season history, over contract 161 (`MIG-UI-17`) and contract 156's archive.
  *
- * THE PROPERTIES THAT MATTER, and each of them is a way this could have lied:
+ * WHAT THESE ASSERTIONS USED TO PROTECT, and why they changed. The section was
+ * built on `get_season_wrapped`, asked once per competition in the PUBLISHED
+ * catalogue. That worked and was honest, and it had one hole the surface had to
+ * apologise for in its own copy: a season stopped being findable the day it
+ * stopped being published, so a player's 2026/27 would vanish from their own
+ * history when it was archived. Contract 161 asks the other question — which
+ * seasons did YOU play in — so the apology is gone and this test asserts its
+ * absence.
  *
- *   1. a season still being played is NOT listed, and is never rendered as a
- *      season of zeros -- which would be a lie about a season the player is
- *      currently winning;
- *   2. nothing is recomputed. The numbers on screen are the ones the archive
- *      stored, and there is no derived percentile or career total anywhere;
- *   3. one unreadable season does not blank the others, and is reported as
- *      unreadable rather than dropped;
- *   4. the limit of what can be found is stated, because `get_season_wrapped`
- *      is addressed by one season id and nothing lists which ones a player has.
+ * WHAT STILL HOLDS. Nothing is recomputed; a season still being played is
+ * listed and says so rather than being rendered as zeros; and a failed read is
+ * a failure rather than an empty history.
  */
 
-const mocks = vi.hoisted(() => ({ fetchSeasonWrapped: vi.fn() }))
-
-vi.mock('../../../src/services/supabase/seasonWrapped', () => ({
-  fetchSeasonWrapped: mocks.fetchSeasonWrapped,
-}))
-
-function competition(name: string, tournamentId: string): CompetitionRelevance {
+function season(overrides: Record<string, unknown> = {}) {
   return {
-    competition: {
-      competitionSlug: name.toLowerCase().replace(/\s+/g, '-'),
-      seasonSlug: '2026-27',
-      seasonRowName: `${name} 2026/27`,
-      tournamentId,
-      name,
-      seasonLabel: '2026/27',
-      status: 'ended',
-      summary: '',
-      games: [],
+    tournament_id: 's1',
+    season_name: 'Premier League 2026/27',
+    season_key: '2026/27',
+    kind: 'league_season',
+    status: 'complete',
+    competition_id: 'c1',
+    competition_name: 'Premier League',
+    competition_slug: 'premier-league',
+    in_published_catalogue: true,
+    complete: true,
+    wrapped_available: true,
+    final: {
+      points: 412,
+      rank: 7,
+      field_size: 1204,
+      matchweeks_played: 38,
+      finalised_at: '2027-05-25T18:00:00Z',
     },
-    tournamentId,
-    followed: true,
-    favourite: false,
-    favouriteTeamId: null,
-    joinedGames: [],
-    games: [],
+    games: [{ game_key: 'main_predictor', game_name: 'Match Predictor' }],
+    ...overrides,
   }
 }
 
-const FINALISED = {
-  finalised: true,
-  season: { points: 412, rank: 7, fieldSize: 1204, matchweeksPlayed: 38 },
-  bestMatchweek: { ordinal: 21, points: 24 },
-  accuracy: { fixturesPredicted: 200, exactScores: 40, correctOutcomes: 120 },
-  jokersPlayed: 5,
-  finalisedAt: '2027-05-25T18:00:00Z',
+function renderHistory(payload: Record<string, unknown>) {
+  const read = vi.fn(async () => mapSeasonHistoryPage(payload))
+  render(<SeasonHistorySection read={read} />)
+  return read
 }
 
 describe('season history', () => {
-  beforeEach(() => vi.clearAllMocks())
-
   it('shows a finished season exactly as the archive stored it', async () => {
-    mocks.fetchSeasonWrapped.mockResolvedValue(FINALISED)
-
-    render(<SeasonHistorySection competitions={[competition('Premier League', 'season-1')]} />)
+    renderHistory({ total: 1, seasons: [season()] })
 
     expect(await screen.findByText('412')).toBeInTheDocument()
     expect(screen.getByText('7 of 1204')).toBeInTheDocument()
     expect(screen.getByText('38')).toBeInTheDocument()
-    // Percentages are the two stored counts divided, and nothing else.
-    expect(screen.getByText('40 (20%)')).toBeInTheDocument()
-    expect(screen.getByText('120 (60%)')).toBeInTheDocument()
+    expect(screen.getByText('Premier League')).toBeInTheDocument()
   })
 
-  it('does not list a season that has not finished, and shows no zeros for it', async () => {
-    mocks.fetchSeasonWrapped.mockResolvedValue({ finalised: false })
-
-    render(<SeasonHistorySection competitions={[competition('Premier League', 'season-1')]} />)
-
-    expect(await screen.findByText(/No season you play in has finished yet/)).toBeInTheDocument()
-    expect(screen.queryByText('Premier League')).toBeNull()
-  })
-
-  it('keeps a readable season when another one fails', async () => {
-    mocks.fetchSeasonWrapped.mockImplementation(async (id: string) => {
-      if (id === 'season-2') throw new Error('network')
-      return FINALISED
+  it('keeps a season the catalogue no longer publishes, and marks it archived', async () => {
+    // The whole point of MIG-UI-17. Before contract 161 this season was
+    // invisible to the player who played it.
+    renderHistory({
+      total: 1,
+      seasons: [season({ in_published_catalogue: false, status: 'archived' })],
     })
 
-    render(
-      <SeasonHistorySection
-        competitions={[
-          competition('Premier League', 'season-1'),
-          competition('Scottish Premiership', 'season-2'),
-        ]}
-      />,
-    )
-
-    expect(await screen.findByText('412')).toBeInTheDocument()
-    // Reported, not silently dropped: "could not read" and "never finished" are
-    // different sentences.
-    expect(screen.getByText(/Scottish Premiership 2026\/27 could not be/)).toBeInTheDocument()
+    expect(await screen.findByText('Premier League')).toBeInTheDocument()
+    expect(screen.getByText('Archived')).toBeInTheDocument()
   })
 
-  it('states that an unpublished season cannot be looked up', async () => {
-    mocks.fetchSeasonWrapped.mockResolvedValue({ finalised: false })
+  it('no longer apologises for a limit it does not have', async () => {
+    renderHistory({ total: 1, seasons: [season()] })
+    await screen.findByText('412')
 
-    render(<SeasonHistorySection competitions={[competition('Premier League', 'season-1')]} />)
-
-    expect(
-      await screen.findByText(/no longer listed cannot be looked up yet/),
-    ).toBeInTheDocument()
+    expect(screen.queryByText(/no longer listed cannot be looked up/)).toBeNull()
+    expect(screen.queryByText(/competitions currently published/)).toBeNull()
   })
 
-  it('asks for nothing when the player is in no competition', () => {
-    render(<SeasonHistorySection competitions={[]} />)
+  it('lists a season still being played, and never as zeros', async () => {
+    renderHistory({
+      total: 1,
+      seasons: [season({ status: 'active', complete: false, wrapped_available: false, final: null })],
+    })
 
-    expect(mocks.fetchSeasonWrapped).not.toHaveBeenCalled()
-    expect(screen.getByText(/No season you play in has finished yet/)).toBeInTheDocument()
+    expect(await screen.findByText(/Still being played/)).toBeInTheDocument()
+    expect(screen.queryByText('Points')).toBeNull()
+  })
+
+  it('distinguishes a finished season with no Wrapped from one still running', async () => {
+    renderHistory({
+      total: 1,
+      seasons: [season({ complete: true, wrapped_available: false, final: null })],
+    })
+
+    expect(await screen.findByText(/has finished. Its Wrapped has not been written yet/)).toBeInTheDocument()
   })
 
   it('prints a rank without a field size rather than inventing one', async () => {
-    mocks.fetchSeasonWrapped.mockResolvedValue({
-      ...FINALISED,
-      season: { points: 12, rank: 3, fieldSize: null, matchweeksPlayed: 2 },
+    renderHistory({
+      total: 1,
+      seasons: [
+        season({
+          final: { points: 12, rank: 3, field_size: null, matchweeks_played: 2 },
+        }),
+      ],
     })
-
-    render(<SeasonHistorySection competitions={[competition('Premier League', 'season-1')]} />)
 
     expect(await screen.findByText('3')).toBeInTheDocument()
     expect(screen.queryByText(/of null/)).toBeNull()
+  })
+
+  it('states the page bound rather than reading as a complete history', async () => {
+    renderHistory({
+      total: 12,
+      limit: 1,
+      offset: 0,
+      has_more: true,
+      seasons: [season()],
+    })
+
+    expect(await screen.findByText(/Showing 1 of 12 seasons/)).toBeInTheDocument()
+  })
+
+  it('says a player has played nothing yet, and that it will persist afterwards', async () => {
+    renderHistory({ total: 0, seasons: [] })
+
+    expect(await screen.findByText(/You have not played a season yet/)).toBeInTheDocument()
+    expect(screen.getByText(/stay here afterwards/)).toBeInTheDocument()
+  })
+
+  it('reports a failed read as a failure, never as an empty history', async () => {
+    render(
+      <SeasonHistorySection
+        read={vi.fn(async () => {
+          throw new Error('network')
+        })}
+      />,
+    )
+
+    expect(await screen.findByText(/could not load your season history/i)).toBeInTheDocument()
+    expect(screen.queryByText(/not played a season yet/)).toBeNull()
   })
 })
