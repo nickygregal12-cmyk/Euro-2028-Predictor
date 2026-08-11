@@ -80,9 +80,23 @@ describe('the desktop rail', () => {
     )
   }
 
-  it('titles the competitions group per deployment', () => {
+  it('titles the competitions group on the deployment that has one', () => {
     expect(renderRail(HUB).container.textContent).toContain('My competitions')
-    expect(renderRail(EURO).container.textContent).toContain('Tournament')
+  })
+
+  it('offers no domestic competition list on the Euro deployment', () => {
+    // The group lists the player's DOMESTIC seasons and ends in the weekly
+    // catalogue. Rendering it under a heading reading "Tournament" gave the
+    // tournament's own site a permanent, mislabelled index of the other
+    // product, every row of which led out of this one.
+    const euro = renderRail(EURO).container.textContent ?? ''
+    expect(euro).not.toContain('All competitions')
+    expect(railGroups(null, EURO).map((group) => group.key)).toEqual(['main', 'more'])
+    expect(railGroups(null, HUB).map((group) => group.key)).toEqual([
+      'main',
+      'competitions',
+      'more',
+    ])
   })
 
   it('carries the deployment’s own wording in its first group', () => {
@@ -108,12 +122,23 @@ describe('the games each deployment leads with', () => {
     expect(siteGames('hub').some((game) => game.key === 'euroPredictor')).toBe(false)
   })
 
-  it('is the tournament first and the three weekly games as Bonus Games on Euro', () => {
+  it('is the tournament first, with the two attachable games beneath it on Euro', () => {
     expect(siteGames('euro')[0]?.key).toBe('euroPredictor')
     expect(siteGames('euro')[0]?.rank).toBe('primary')
-    expect(siteGames('euro').slice(1).every((game) => game.rank === 'bonus')).toBe(true)
-    // Present, not removed — a Bonus Game is the same game, ranked lower.
+    // Present, not removed — a Bonus Game is the same game, ranked lower — and
+    // domestic Match Predictor is present too, ranked `elsewhere` because it is
+    // a competition season played on the Hub rather than a game attached to
+    // this tournament.
     expect(siteGames('euro')).toHaveLength(4)
+    expect(
+      siteGames('euro')
+        .slice(1)
+        .map((game) => `${game.key}:${game.rank}`),
+    ).toEqual([
+      'matchPredictor:elsewhere',
+      'lms:bonus',
+      'championship:bonus',
+    ])
   })
 })
 

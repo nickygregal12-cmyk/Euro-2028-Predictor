@@ -153,3 +153,50 @@
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* `EURO-003`'s route refusal: what `/auth/signup` renders on the Euro
+   deployment while the server says registration is closed. It shares the auth
+   screens' surrounding layout, so it needs only its own panel. */
+.closedPanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  max-width: 34rem;
+}
+
+.closedEyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tx3);
+}
+
+.closedHeading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-4);
+  color: var(--tx);
+}
+
+.closedBody {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  line-height: 1.5;
+  color: var(--tx2);
+}
+
+.closedLink {
+  font-weight: 600;
+  color: var(--acc);
+  text-decoration: underline;
+}
+
+.closedLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

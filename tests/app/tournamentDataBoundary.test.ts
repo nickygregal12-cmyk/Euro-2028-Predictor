@@ -28,13 +28,39 @@ const PROVIDER_MODULES = [
   'src/app/providers/PredictionsProvider.tsx',
 ] as const
 
-/** `const HubPage = lazy(() => import('./features/hub/HubPage')…` */
-function lazyRouteModules(source: string): Map<string, string> {
+/**
+ * Every route element `App.tsx` can name, paired with the module it comes from.
+ *
+ * TWO FORMS, AND THE SECOND ONE IS WHY THIS COMMENT EXISTS. Almost every page is
+ * `const HubPage = lazy(() => import('./features/hub/HubPage')…`, and for a long
+ * time that was the only form. ADR 0026's variant destinations are statically
+ * imported instead — deliberately, because making the dispatcher lazy would put a
+ * second sequential dynamic import on the critical path of the signed-in home —
+ * and a parser that only understood the lazy form dropped `/` out of this guard's
+ * analysis entirely. It did not fail; it silently stopped checking the home page,
+ * which is the one route the assertions below name explicitly.
+ *
+ * So both forms are read. Over-reading is safe here: an element name that is not
+ * a route element resolves to a module nobody asks about.
+ */
+function routeElementModules(source: string): Map<string, string> {
   const modules = new Map<string, string>()
+
   for (const match of source.matchAll(/const (\w+) = lazy\(\(\) =>\s*\n?\s*import\('([^']+)'\)/g)) {
     const [, name, specifier] = match
     if (name && specifier) modules.set(name, specifier)
   }
+
+  // `import { HomeDestination, PlayDestination } from './app/destinations/…'`
+  for (const match of source.matchAll(/import\s*\{([^}]+)\}\s*from\s*'(\.[^']+)'/g)) {
+    const [, names, specifier] = match
+    if (!names || !specifier) continue
+    for (const raw of names.split(',')) {
+      const name = raw.trim().replace(/^type\s+/, '').split(/\s+as\s+/).pop()?.trim()
+      if (name) modules.set(name, specifier)
+    }
+  }
+
   return modules
 }
 
@@ -139,7 +165,7 @@ function reachesTournamentData(entry: string): boolean {
   return targets.some((target) => graph.has(target))
 }
 
-const modules = lazyRouteModules(appSource)
+const modules = routeElementModules(appSource)
 const routes = routesByBoundary(appSource)
 
 const analysed = routes
@@ -160,6 +186,9 @@ describe('the tournament-data boundary', () => {
     expect(analysed.length).toBeGreaterThan(15)
     expect(analysed.some((route) => route.inside)).toBe(true)
     expect(analysed.some((route) => !route.inside)).toBe(true)
+    // Named, because the home page is the route the domestic assertion below
+    // depends on and the one a parser gap dropped once already.
+    expect(analysed.map((route) => route.path)).toContain('/')
   })
 
   it('mounts the providers in exactly one place', () => {

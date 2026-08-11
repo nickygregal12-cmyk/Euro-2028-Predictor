@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { Link } from 'react-router'
 import { useTheme } from '../../app/providers/ThemeProvider'
 import { useSite } from '../../app/site/SiteProvider'
-import { bonusGames, primaryGames } from '../../app/site/siteGames'
+import { bonusGames, gamesPlayedElsewhere, primaryGames } from '../../app/site/siteGames'
 import { siteBrandCopy } from '../../app/site/sitePublicMetadata'
 import { ChevronRightIcon, MoonIcon, SunIcon } from '../../design-system/icons'
 import {
@@ -174,6 +174,32 @@ export function EuroLandingPage({
                   ))}
                 </ul>
               </>
+            ) : null}
+
+            {/* NAMED, AND NOT OFFERED. Domestic Match Predictor used to be
+                listed above as a Euro Bonus Game, which promised a weekly
+                domestic game on a tournament site and had nowhere to send
+                anyone who wanted it: it is not a game you attach to a
+                competition, it IS a competition season. It is named here so a
+                player looking for it is told where it is rather than concluding
+                it does not exist — and only when this deployment knows the
+                Hub's address, because naming a product with no way to reach it
+                is worse than the omission. */}
+            {sibling && gamesPlayedElsewhere(site.variant).length > 0 ? (
+              <div className={`${s.sectionHead} ${s.sectionTight}`}>
+                <h3>Played on {site.routes.siblingSiteName}</h3>
+                <p className={s.sectionLead}>
+                  {gamesPlayedElsewhere(site.variant)
+                    .map((game) => game.name)
+                    .join(', ')}{' '}
+                  runs every matchweek of the Premier League and the Scottish
+                  Premiership, on the same account —{' '}
+                  <a href={sibling} rel="noreferrer">
+                    play it on {site.routes.siblingSiteName}
+                  </a>
+                  .
+                </p>
+              </div>
             ) : null}
           </div>
         </section>
