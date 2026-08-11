@@ -89,8 +89,32 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // headroom-to-measurement shape as before. If this number is raised again
 // without the entry chunk holding, the thing to check first is whether one
 // deployment's code has leaked into the other's critical path.
+//
+// THE ENTRY CHUNK WAS RAISED 11 AUGUST 2026, FROM 76 TO 77, AND THE TWO
+// CHEAPER FIXES WERE MEASURED FIRST RATHER THAN ASSUMED. ADR 0026's variant
+// destinations put the route ownership of BOTH products in the shell: the four
+// shared addresses now resolve through a dispatcher rather than straight to the
+// Hub's pages, which is the whole of what stops a signed-in Euro visitor being
+// handed the domestic product. Measured from 75.8:
+//
+//   • the dispatcher static, both candidate pages lazy      76.4 KB gz
+//   • the dispatcher itself ALSO lazy                       90.2 KB gz
+//   • the Euro signup gate statically imported beside it    77.5 KB gz
+//
+// The second is the same hoisting effect recorded above and is far worse — the
+// modules the four destinations share with the rest of the shell get pulled up
+// while the total JavaScript barely moves. The third WAS reduced rather than
+// excused: making `EuroSignupGate` lazy took 1.1 KB back out, because it drags
+// contract 143's publication read and its lifecycle presentation table behind
+// it to guard one route most visitors never open. That leaves 76.4 against a
+// ceiling of 76.
+//
+// 77 leaves roughly half a kilobyte over the measurement, which is tighter than
+// this ceiling has been. That is deliberate: it still refuses the lazy-
+// dispatcher shape by a wide margin, and it keeps the number that decides what a
+// first paint costs under pressure now that one shell serves two products.
 const BUDGETS = {
-  entryChunkKb: 76,
+  entryChunkKb: 77,
   totalJsKb: 322,
   totalCssKb: 34,
 }

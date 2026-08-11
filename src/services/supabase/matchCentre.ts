@@ -21,6 +21,18 @@ export type LeagueMatchPicks = {
   locked: boolean
   totalMembers: number
   predictedCount: number
+  /**
+   * CONTRACT 171. How many pick rows this payload carried, and whether that was
+   * all of them. `get_league_match_picks` caps at 250 rows in display-name order
+   * and, until contract 171, said nothing about having done so — so a league of
+   * 300 returned 250 rows beside a total of 300 and this surface could not tell
+   * truncation from members who had not predicted.
+   *
+   * They are decoded rather than derived: `picksReturned < totalMembers` is the
+   * ORDINARY case for a group match, because only members who predicted appear.
+   */
+  picksReturned: number
+  picksTruncated: boolean
   groupPicks: { displayName: string; isYou: boolean; homeScore: number; awayScore: number; joker: boolean }[]
   koPicks: { displayName: string; isYou: boolean; homeStage: KnockoutStage | null; awayStage: KnockoutStage | null }[]
 }
@@ -37,6 +49,8 @@ export async function fetchLeagueMatchPicks(leagueId: string, matchId: string): 
     locked: boolean
     total_members: number
     predicted_count: number
+    picks_returned?: number
+    picks_truncated?: boolean
     picks: {
       display_name: string
       is_you: boolean
@@ -52,6 +66,11 @@ export async function fetchLeagueMatchPicks(leagueId: string, matchId: string): 
     locked: d.locked,
     totalMembers: d.total_members,
     predictedCount: d.predicted_count,
+    // A server that predates contract 171 sends neither key. The row count it
+    // actually sent is still a fact, and "not truncated" is the safe reading:
+    // it adds no notice rather than asserting a loss nobody reported.
+    picksReturned: typeof d.picks_returned === 'number' ? d.picks_returned : d.picks.length,
+    picksTruncated: d.picks_truncated === true,
     groupPicks:
       d.kind === 'group'
         ? d.picks.map((p) => ({

@@ -1172,3 +1172,19 @@
     padding: calc(var(--sp-1) * 16) calc(var(--sp-1) * 8);
   }
 }
+
+/* An inline link inside body copy on either landing page. The Euro page's
+   "played on the Hub" sentence had a bare anchor, which the browser rendered in
+   its own default blue on a dark surface — the one place on either page that was
+   not the design system. */
+.textLink {
+  color: var(--acc);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.textLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: var(--radius-input);
+}

@@ -5,6 +5,8 @@ import { clearPendingJoin, getPendingJoin } from '../leagues/pendingJoin'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthSplash } from '../auth/AuthSplash'
 import { OnboardingJourney } from '../onboarding/OnboardingJourney'
+import { EuroWelcome } from '../euro/EuroWelcome'
+import { useSite } from '../../app/site/SiteProvider'
 
 /**
  * First sign-in.
@@ -33,9 +35,18 @@ import { OnboardingJourney } from '../onboarding/OnboardingJourney'
  * arrival, before anything can clear it, and consumed only when setup finishes.
  * Somebody who followed an invite link came to join something; onboarding is
  * the interruption, and it must hand them back to where they were going.
+ *
+ * WHICH JOURNEY RUNS IS THE DEPLOYMENT'S. `OnboardingJourney` is four DOMESTIC
+ * steps — follow weekly competitions, favourite one of their clubs, join their
+ * games, review — and running it on the Euro deployment walked a first-time
+ * tournament visitor through the weekly platform's setup at the tournament's own
+ * address. This page still owns the three things above, unchanged and identical
+ * on both builds; only the journey between them differs. See
+ * `src/features/euro/EuroWelcome.tsx`.
  */
 export function WelcomePage() {
   const navigate = useNavigate()
+  const site = useSite()
   const { displayName, welcomeStatus, markWelcomed } = useAuth()
 
   // Captured before our own markWelcomed() flips the status, and before the
@@ -73,5 +84,9 @@ export function WelcomePage() {
   if (neededOnArrival.current === null) return <AuthSplash />
   if (neededOnArrival.current === false) return <Navigate to={weeklyRoutes.hub} replace />
 
-  return <OnboardingJourney displayName={displayName} onFinished={finish} />
+  return site.variant === 'euro' ? (
+    <EuroWelcome displayName={displayName} onFinished={finish} />
+  ) : (
+    <OnboardingJourney displayName={displayName} onFinished={finish} />
+  )
 }

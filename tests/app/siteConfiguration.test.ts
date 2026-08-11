@@ -5,7 +5,12 @@ import {
   siteBrandCopy,
   sitePublicMetadata,
 } from '../../src/app/site/sitePublicMetadata'
-import { bonusGames, primaryGames, siteGames } from '../../src/app/site/siteGames'
+import {
+  bonusGames,
+  gamesPlayedElsewhere,
+  primaryGames,
+  siteGames,
+} from '../../src/app/site/siteGames'
 import {
   DEFAULT_SITE_VARIANT,
   isSiteVariant,
@@ -56,22 +61,47 @@ describe('the two products differ where they are meant to', () => {
     expect(siteBrandCopy('hub').description).not.toBe(siteBrandCopy('euro').description)
   })
 
-  it('ranks the three weekly games equally on the Hub and as bonus games on Euro', () => {
+  it('ranks the three weekly games equally on the Hub', () => {
     expect(primaryGames('hub').map((game) => game.key)).toEqual([
       'matchPredictor',
       'lms',
       'championship',
     ])
     expect(bonusGames('hub')).toEqual([])
+    expect(gamesPlayedElsewhere('hub')).toEqual([])
     expect(hub.navigation.bonusGamesLabel).toBeNull()
+  })
 
+  it('leads with the tournament on Euro and offers only the two attachable games', () => {
     expect(primaryGames('euro').map((game) => game.key)).toEqual(['euroPredictor'])
-    expect(bonusGames('euro').map((game) => game.key)).toEqual([
-      'matchPredictor',
-      'lms',
-      'championship',
-    ])
+    // Last Man Standing and the Predictor Championship attach to whatever
+    // competition you enter them in, so offering them beside a tournament is
+    // coherent.
+    expect(bonusGames('euro').map((game) => game.key)).toEqual(['lms', 'championship'])
     expect(euro.navigation.bonusGamesLabel).toBe('Bonus Games')
+  })
+
+  it('does not present domestic Match Predictor as a Euro Bonus Game', () => {
+    // It is not a game you attach to something — it IS a competition season,
+    // and the seasons it runs over are the Premier League and the Scottish
+    // Premiership. Under Euro 2028 it promised a weekly domestic game on a
+    // tournament site with nowhere to send anyone who wanted it.
+    expect(bonusGames('euro').map((game) => game.key)).not.toContain('matchPredictor')
+    expect(gamesPlayedElsewhere('euro').map((game) => game.key)).toEqual(['matchPredictor'])
+  })
+
+  it('accounts for every weekly game on the Euro site, one way or the other', () => {
+    // A fourth weekly game must be classified deliberately rather than become a
+    // Bonus Game by omission or vanish by omission.
+    const euroWeekly = [
+      ...bonusGames('euro'),
+      ...gamesPlayedElsewhere('euro'),
+    ].map((game) => game.key)
+    expect([...euroWeekly].sort()).toEqual(
+      primaryGames('hub')
+        .map((game) => game.key)
+        .sort(),
+    )
   })
 
   it('describes each weekly game identically on both sites', () => {
@@ -81,6 +111,7 @@ describe('the two products differ where they are meant to', () => {
       const onEuro = siteGames('euro').find((game) => game.key === key)
       expect(onHub?.summary).toBe(onEuro?.summary)
       expect(onHub?.name).toBe(onEuro?.name)
+      // The rank moves; nothing else about the game does.
       expect(onHub?.rank).not.toBe(onEuro?.rank)
     }
   })

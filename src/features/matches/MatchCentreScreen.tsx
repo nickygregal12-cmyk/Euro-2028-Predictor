@@ -17,6 +17,11 @@ import type {
 import { MatchCentreDataNotice } from './MatchCentreDataNotice'
 import { MatchCentreLifecyclePanel } from './MatchCentreLifecyclePanel'
 import { MatchCentreScopeChoice } from './MatchCentreScopeChoice'
+import {
+  coverageNotice,
+  LEAGUE_MEMBER_NOUN,
+  type ListCoverage,
+} from '../shared/listCoverage'
 import s from './MatchCentre.module.css'
 
 export type MatchScope =
@@ -33,13 +38,20 @@ export type MatchSaid =
       awayName: string
       split: KoSplit
     }
-  | { revealed: true; kind: 'league-group'; rows: LeagueGroupPickRow[] }
+  | {
+      revealed: true
+      kind: 'league-group'
+      rows: LeagueGroupPickRow[]
+      /** Contract 171. Absent for a server that predates it. */
+      coverage?: ListCoverage
+    }
   | {
       revealed: true
       kind: 'league-ko'
       homeName: string
       awayName: string
       rows: LeagueKoPickRow[]
+      coverage?: ListCoverage
     }
 
 export type MatchCentreScreenProps = {
@@ -112,20 +124,38 @@ function MemberRow({
 
 function CollapsibleList({
   count,
+  coverage,
   children,
 }: {
   count: number
+  /** Contract 171: what the server carried, when it said. */
+  coverage?: ListCoverage
   children: React.ReactNode[]
 }) {
   const [open, setOpen] = useState(false)
   const LIMIT = 6
   const shown = open ? children : children.slice(0, LIMIT)
+  const notice = coverage ? coverageNotice(coverage, LEAGUE_MEMBER_NOUN) : null
   return (
     <>
+      {/* Above the list rather than below it, because it changes how every row
+          below should be read. `role="status"` so a reader who reveals the
+          picks after a scope change is told the list is partial. */}
+      {notice ? (
+        <p className={s.stakeMuted} role="status">
+          {notice}
+        </p>
+      ) : null}
       <ul className={s.memberList}>{shown}</ul>
       {count > LIMIT ? (
         <button type="button" className={s.showAll} onClick={() => setOpen((value) => !value)}>
-          {open ? 'Show fewer' : `Show all ${count} members`}
+          {open
+            ? 'Show fewer'
+            : notice
+              ? // "Show all 250 members" would restate the untruth the notice
+                // above has just corrected: 250 is what arrived, not the league.
+                `Show all ${count} listed`
+              : `Show all ${count} members`}
         </button>
       ) : null}
     </>
@@ -396,7 +426,7 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
                 awayName={props.said.awayName}
               />
             ) : props.said.kind === 'league-group' ? (
-              <CollapsibleList count={props.said.rows.length}>
+              <CollapsibleList count={props.said.rows.length} coverage={props.said.coverage}>
                 {props.said.rows.map((row) => (
                   <MemberRow
                     key={row.displayName + (row.isYou ? '-you' : '')}
@@ -418,7 +448,7 @@ export function MatchCentreScreen(props: MatchCentreScreenProps) {
                 ))}
               </CollapsibleList>
             ) : (
-              <CollapsibleList count={props.said.rows.length}>
+              <CollapsibleList count={props.said.rows.length} coverage={props.said.coverage}>
                 {props.said.rows.map((row) => {
                   const said = props.said as Extract<MatchSaid, { kind: 'league-ko' }>
                   const team =

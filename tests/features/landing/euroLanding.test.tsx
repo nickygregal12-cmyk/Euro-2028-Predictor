@@ -145,13 +145,31 @@ describe('each published state', () => {
 })
 
 describe('the tournament page presents the weekly games as Bonus Games', () => {
-  it('names all three, and does not remove them', async () => {
+  it('offers the two games that attach to a competition', async () => {
     renderPage('prelaunch')
     await screen.findByRole('heading', { level: 1 })
     expect(screen.getByRole('heading', { name: 'Bonus Games' })).toBeInTheDocument()
-    for (const name of ['Match Predictor', 'Last Man Standing', 'Predictor Championship']) {
+    for (const name of ['Last Man Standing', 'Predictor Championship']) {
       expect(screen.getByText(name)).toBeInTheDocument()
     }
+  })
+
+  it('does not offer domestic Match Predictor as one of them', async () => {
+    renderPage('prelaunch')
+    await screen.findByRole('heading', { level: 1 })
+
+    // Named — a player looking for it must not conclude it does not exist —
+    // but under the Hub's heading and pointing at the Hub, because it is a
+    // competition season rather than a game attached to this tournament.
+    const elsewhere = screen.getByRole('heading', {
+      name: /Played on Football Prediction Hub/,
+    })
+    expect(elsewhere).toBeInTheDocument()
+    const body = document.body.textContent ?? ''
+    expect(body.indexOf('Match Predictor')).toBeGreaterThan(body.indexOf('Bonus Games'))
+    expect(
+      screen.getByRole('link', { name: /play it on Football Prediction Hub/i }),
+    ).toHaveAttribute('href', HUB_ORIGIN)
   })
 
   it('leads with the tournament game above them', async () => {

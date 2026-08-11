@@ -107,7 +107,18 @@ export function SeasonCupPhasePage({ gateway, registration }: SeasonCupPhasePage
         ) : null}
         <h2 className={styles.heading}>Predictor Championship</h2>
         {presentation.groupLine ? (
-          <p className={styles.caption}>{presentation.groupLine}</p>
+          <p className={styles.caption}>
+            {presentation.groupLine}
+            {/* Contract 169: which authority ranked this table. It is here
+                rather than absent because the two initial-phase authorities
+                measure different spans, and a player comparing their group to
+                someone else's is entitled to know they are reading the same
+                kind of table. It says the source and stops — the span and any
+                qualification consequence belong to the server. */}
+            {presentation.tableSourceLine ? (
+              <> {presentation.tableSourceLine}</>
+            ) : null}
+          </p>
         ) : null}
       </header>
 

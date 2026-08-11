@@ -23,6 +23,23 @@
 
 export type CupPhaseKind = 'initial' | 'split'
 
+/**
+ * Which server authority produced the table (contract 169's `table_source`).
+ *
+ * IT IS READ, NEVER DERIVED. Contract 169 exists because one table was being
+ * ranked over the wrong span: `cup_final_group_tables` measures four of ADR
+ * 0014's nine keys over the tournament's three group matchdays, and contracts
+ * 120 and 167 were showing it for a season group stage running to thirty-eight.
+ * The fix put a second authority beside it and made the server say which one
+ * answered. A browser that inferred the source back from the competition's kind
+ * would be re-deriving exactly the fact the server was changed to state, so this
+ * is decoded from the payload and nothing else.
+ *
+ * An unrecognised token decodes to `null` and the surface says nothing, rather
+ * than guessing a span it has no authority for.
+ */
+export type CupTableSource = 'split' | 'season_initial' | 'tournament_initial'
+
 export type CupTableRow = {
   /** Identity for keys and self-matching only. Never rendered. */
   userId: string
@@ -41,6 +58,8 @@ export type CupPhasePage = {
   competitionId: string
   entered: boolean
   phaseKind: CupPhaseKind | null
+  /** Contract 169. Null for a non-entrant, and null for an unknown token. */
+  tableSource: CupTableSource | null
   group: {
     id: string
     ordinal: number
@@ -75,7 +94,20 @@ export type CupPhasePresentation = {
   phaseExplanation: string | null
   /** One sentence sizing the group, for the table caption. */
   groupLine: string | null
+  /**
+   * Contract 169. Names the authority that produced this table, and nothing
+   * else — no span, no qualification consequence. Null when the server named a
+   * source this build does not recognise, because a table whose provenance is
+   * unknown is better left unlabelled than labelled with a guess.
+   */
+  tableSourceLine: string | null
   rows: readonly CupPresentedRow[]
+}
+
+const TABLE_SOURCE_LINES: Record<CupTableSource, string> = {
+  season_initial: 'Ranked by the season group table.',
+  tournament_initial: 'Ranked by the tournament group table.',
+  split: 'Ranked by the split group table.',
 }
 
 function summarise(row: CupTableRow, tied: boolean): string {
@@ -89,7 +121,13 @@ function summarise(row: CupTableRow, tied: boolean): string {
 
 export function presentCupPhase(page: CupPhasePage): CupPhasePresentation {
   if (!page.entered || !page.group) {
-    return { phaseLine: null, phaseExplanation: null, groupLine: null, rows: [] }
+    return {
+      phaseLine: null,
+      phaseExplanation: null,
+      groupLine: null,
+      tableSourceLine: null,
+      rows: [],
+    }
   }
 
   const split = page.phaseKind === 'split'
@@ -103,7 +141,12 @@ export function presentCupPhase(page: CupPhasePage): CupPhasePresentation {
     phaseExplanation: split
       ? 'The competition continues with a narrower field. Points carry through from the league phase — nobody is eliminated.'
       : null,
-    groupLine: `Group of ${page.group.size}, ranked from settled rounds.`,
+    // The size, and no span claim. This line used to end "ranked from settled
+    // rounds", which is a statement about the span the server measures over —
+    // and contract 169 exists precisely because that span differs by authority.
+    // The span belongs to the source, and the source is now named beside it.
+    groupLine: `Group of ${page.group.size}.`,
+    tableSourceLine: page.tableSource ? TABLE_SOURCE_LINES[page.tableSource] : null,
     rows: page.table.map((row) => {
       const tied = (rankCounts.get(row.groupRank) ?? 0) > 1
       return {

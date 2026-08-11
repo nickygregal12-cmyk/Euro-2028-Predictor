@@ -23,6 +23,7 @@ function phasePayload(overrides: Record<string, unknown> = {}) {
     competition_id: COMPETITION_ID,
     entered: true,
     phase_kind: 'initial',
+    table_source: 'season_initial',
     group: {
       id: GROUP_ID,
       ordinal: 1,
@@ -130,8 +131,54 @@ describe('createSeasonCupRpcGateway — load', () => {
 
     expect(page.entered).toBe(false)
     expect(page.phaseKind).toBeNull()
+    expect(page.tableSource).toBeNull()
     expect(page.group).toBeNull()
     expect(page.table).toEqual([])
+  })
+
+  // Contract 169 added `table_source` because the two initial-phase authorities
+  // measure different spans and the browser must not work out which answered.
+  it('carries the table source the server named', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: phasePayload(), error: null })
+    expect((await gateway().load()).tableSource).toBe('season_initial')
+
+    mocks.rpc.mockResolvedValueOnce({
+      data: phasePayload({ table_source: 'tournament_initial' }),
+      error: null,
+    })
+    expect((await gateway().load()).tableSource).toBe('tournament_initial')
+
+    mocks.rpc.mockResolvedValueOnce({
+      data: phasePayload({ table_source: 'split' }),
+      error: null,
+    })
+    expect((await gateway().load()).tableSource).toBe('split')
+  })
+
+  it('drops a source it does not recognise rather than passing it through', async () => {
+    // A build that renders an unknown token, or maps it to the nearest known
+    // one, states a provenance nobody verified. Null is the honest answer and
+    // the presentation shows no label for it.
+    for (const unknown of ['knockout_initial', '', 42, null, undefined]) {
+      mocks.rpc.mockResolvedValueOnce({
+        data: phasePayload({ table_source: unknown }),
+        error: null,
+      })
+      expect((await gateway().load()).tableSource).toBeNull()
+    }
+  })
+
+  it('still maps a payload from a server that predates contract 169', async () => {
+    // Development is hosted at 171 and Production's application is older. A
+    // missing key must not make the table unreadable — it makes it unlabelled.
+    const { table_source: _omitted, ...withoutSource } = phasePayload()
+    mocks.rpc.mockResolvedValueOnce({ data: withoutSource, error: null })
+
+    const page = await gateway().load()
+
+    expect(page.entered).toBe(true)
+    expect(page.table).toHaveLength(2)
+    expect(page.tableSource).toBeNull()
   })
 
   it('keeps an empty table an empty table, not a failure', async () => {

@@ -263,6 +263,14 @@ export function MatchCentrePage() {
               revealed: true,
               kind: 'league-group',
               rows: orderLeagueGroupPicks(picks.groupPicks, result),
+              // Contract 171. Passed straight through: whether the server
+              // truncated is the server's answer, and the total beside it is the
+              // league's real size rather than the number of rows that arrived.
+              coverage: {
+                returned: picks.picksReturned,
+                total: picks.totalMembers,
+                truncated: picks.picksTruncated,
+              },
             })
           } else {
             const rows = orderLeagueKoPicks(
@@ -276,6 +284,11 @@ export function MatchCentrePage() {
               homeName: teamsById.get(match.homeTeamId ?? '')?.name ?? 'TBC',
               awayName: teamsById.get(match.awayTeamId ?? '')?.name ?? 'TBC',
               rows,
+              coverage: {
+                returned: picks.picksReturned,
+                total: picks.totalMembers,
+                truncated: picks.picksTruncated,
+              },
             })
             if (actualWinner) setConsequence(koLeagueCasualties(rows, true))
           }

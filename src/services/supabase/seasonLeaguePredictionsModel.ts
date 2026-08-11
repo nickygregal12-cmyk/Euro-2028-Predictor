@@ -64,6 +64,19 @@ export type SeasonLeagueMatchweekPredictions = {
   memberCount: number
   /** How many members predicted this matchweek. Zero while hidden, by design. */
   predictedCount: number
+  /**
+   * CONTRACT 171. How many member rows this payload carried, and whether that
+   * was all of them. The read caps at 200 rows — since contract 171 in the same
+   * total order the aggregate ranks by, so the cap keeps the TOP rows rather
+   * than an accident of the query plan — and `memberCount` above is the
+   * league's REAL size. Without these two, 200 rows beside a count of 300 is
+   * indistinguishable from a hundred members who did not predict.
+   *
+   * Decoded, never derived: `membersReturned < memberCount` is also the
+   * ordinary shape of a hidden matchweek, which carries no rows at all.
+   */
+  membersReturned: number
+  membersTruncated: boolean
   /** Empty while hidden. */
   members: readonly SeasonLeaguePredictionMember[]
 }
@@ -157,6 +170,12 @@ export function mapSeasonLeagueMatchweekPredictions(
   const rawFixtures = Array.isArray(payload.fixtures) ? payload.fixtures : []
   const rawMembers = Array.isArray(payload.members) ? payload.members : []
 
+  const members = revealed
+    ? rawMembers
+        .map(mapMember)
+        .filter((member): member is SeasonLeaguePredictionMember => member !== null)
+    : []
+
   return {
     league: { id: leagueId, name: stringOrNull(league.name) },
     matchweek: {
@@ -172,12 +191,23 @@ export function mapSeasonLeagueMatchweekPredictions(
       .filter((fixture): fixture is SeasonLeaguePredictionFixture => fixture !== null),
     memberCount: integerOrNull(payload.member_count) ?? 0,
     predictedCount: integerOrNull(payload.predicted_count) ?? 0,
+    // Contract 171.
+    //
+    // `membersReturned` is the rows this decoder KEPT rather than the server's
+    // own `members_returned`, and deliberately: the two agree in every ordinary
+    // case, and where they disagree it is because a malformed row was dropped
+    // here — in which case the smaller number is the one that matches what a
+    // reader can actually see. It also means a server that predates contract
+    // 171 needs no fallback.
+    //
+    // `membersTruncated` is the server's answer and is never derived. Comparing
+    // the two counts in the browser would be wrong in both directions: a hidden
+    // matchweek carries no rows at all, and a list exactly at the cap may or may
+    // not have lost one.
+    membersReturned: members.length,
+    membersTruncated: payload.members_truncated === true,
     // Belt and braces with the server: an un-revealed payload carries no
     // members, and if one ever did this would still not show them.
-    members: revealed
-      ? rawMembers
-          .map(mapMember)
-          .filter((member): member is SeasonLeaguePredictionMember => member !== null)
-      : [],
+    members,
   }
 }

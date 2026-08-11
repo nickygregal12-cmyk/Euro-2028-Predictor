@@ -14,7 +14,10 @@ describe('the Predictor Championship phase page', () => {
     render(<SeasonCupPhasePage gateway={createDevSeasonCupGateway('initial')} />)
 
     await waitFor(() => expect(screen.getByText('League phase')).toBeTruthy())
-    expect(screen.getByText('Group of 6, ranked from settled rounds.')).toBeTruthy()
+    // Contract 169: the size, and the authority the server said ranked it.
+    expect(
+      screen.getByText(/Group of 6\.\s*Ranked by the season group table\./),
+    ).toBeTruthy()
     // The label and the tag both print "You" on the caller's row.
     expect(screen.getAllByText('You').length).toBeGreaterThan(0)
     // The raw identifier is a key, never rendered text.

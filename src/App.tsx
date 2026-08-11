@@ -14,14 +14,32 @@ import { RouteFallback } from './app/RouteFallback'
 // at runtime, not the download.
 import { TournamentJourney } from './app/TournamentJourney'
 import { weeklyRoutePatterns, weeklyRoutes } from './app/shellRoutes'
+// ADR 0026's four shared global destinations, resolved to this build's own
+// product. Static rather than lazy, and both candidate pages lazy inside it, so
+// neither deployment pays a second sequential dynamic import on the critical
+// path of its own home. See src/app/destinations/VariantDestinations.tsx.
+import {
+  HomeDestination,
+  LeaguesDestination,
+  MatchesDestination,
+  PlayDestination,
+} from './app/destinations/VariantDestinations'
+import { DomesticCompetitions } from './app/DomesticCompetitions'
 import { RequireAdmin } from './features/admin/RequireAdmin'
 import { AdminLayout } from './features/admin/AdminLayout'
 
 const LoginPage = lazy(() => import('./features/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
+// LAZY, AND MEASURED. Statically importing the gate put contract 143's
+// publication read, its lifecycle presentation table and the auth splash into
+// the entry chunk that every visitor downloads before anything renders — 1.7 KB
+// gz, which took it over its ceiling — to guard one route that most visitors
+// never open. It loads with the signup screen it wraps.
+const EuroSignupGate = lazy(() =>
+  import('./features/auth/EuroSignupGate').then((m) => ({ default: m.EuroSignupGate })),
+)
 const SignUpPage = lazy(() => import('./features/auth/SignUpPage').then((m) => ({ default: m.SignUpPage })))
 const ResetRequestPage = lazy(() => import('./features/auth/ResetRequestPage').then((m) => ({ default: m.ResetRequestPage })))
 const UpdatePasswordPage = lazy(() => import('./features/auth/UpdatePasswordPage').then((m) => ({ default: m.UpdatePasswordPage })))
-const HubPage = lazy(() => import('./features/hub/HubPage').then((m) => ({ default: m.HubPage })))
 const CompetitionDashboardPage = lazy(() =>
   import('./features/hub/CompetitionDashboardPage').then((m) => ({
     default: m.CompetitionDashboardPage,
@@ -55,15 +73,6 @@ const SeasonLeaguesRoute = lazy(() =>
   import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonLeaguesRoute,
   })),
-)
-const GlobalPlayPage = lazy(() =>
-  import('./features/hub/GlobalPlayPage').then((m) => ({ default: m.GlobalPlayPage })),
-)
-const GlobalMatchesPage = lazy(() =>
-  import('./features/hub/GlobalMatchesPage').then((m) => ({ default: m.GlobalMatchesPage })),
-)
-const GlobalLeaguesPage = lazy(() =>
-  import('./features/hub/GlobalLeaguesPage').then((m) => ({ default: m.GlobalLeaguesPage })),
 )
 const ExploreCompetitionsPage = lazy(() =>
   import('./features/hub/ExploreCompetitionsPage').then((m) => ({
@@ -204,7 +213,20 @@ export default function App() {
               <Route element={<AuthLayout />}>
                 <Route element={<RedirectIfAuthed />}>
                   <Route path="/auth/login" element={<LoginPage />} />
-                  <Route path="/auth/signup" element={<SignUpPage />} />
+                  {/* `EURO-003` AT THE ROUTE, NOT ON A BUTTON. Hiding the Euro
+                      landing page's "Create account" control while the server
+                      says registration is closed left `/auth/signup` directly
+                      reachable and fully working — by bookmark, by a link shared
+                      before the state changed, by typing it. The gate reads
+                      contract 143's publication state and fails closed on
+                      anything that is not an open state, including a failed
+                      read. It is a no-op on the Hub build, whose signup is open
+                      and must stay open: one Supabase project serves both
+                      deployments, so closing signup there would close the Hub
+                      to close Euro. Log in is deliberately outside it. */}
+                  <Route element={<EuroSignupGate />}>
+                    <Route path="/auth/signup" element={<SignUpPage />} />
+                  </Route>
                   <Route path="/auth/reset" element={<ResetRequestPage />} />
                 </Route>
 
@@ -216,69 +238,89 @@ export default function App() {
 
                   <Route element={<RequireWelcome />}>
                     <Route element={<AppShell />}>
-                      <Route path={weeklyRoutes.hub} element={<HubPage />} />
-                      {/* The three global destinations are destinations in
-                          their own right, not competition choosers: an action
-                          inbox, one combined football calendar and all the
-                          player's private play. The chooser they replaced asked
-                          which competition before answering anything, which got
-                          worse with every competition the platform adds. */}
-                      <Route path={weeklyRoutes.play} element={<GlobalPlayPage />} />
-                      <Route path={weeklyRoutes.matches} element={<GlobalMatchesPage />} />
-                      <Route path={weeklyRoutes.leagues} element={<GlobalLeaguesPage />} />
-                      {/* The catalogue, as deliberate discovery. Not a tab. */}
-                      <Route path={weeklyRoutes.competitions} element={<ExploreCompetitionsPage />} />
+                      {/* THE FOUR SHARED DESTINATIONS, AND WHOSE THEY ARE.
+                          Both deployments serve these four addresses and mean
+                          different products by them, so each resolves through
+                          the variant route authority rather than through a
+                          branch here. On the Hub they are what they have always
+                          been: an action inbox, one combined football calendar
+                          and all the player's private play — destinations in
+                          their own right rather than competition choosers,
+                          because the chooser they replaced got worse with every
+                          competition the platform adds. On the Euro deployment
+                          they are the tournament's own, which until PR #702's
+                          successor landed were literally the Hub's pages with
+                          Euro labels on the navigation above them. */}
+                      <Route path={weeklyRoutes.hub} element={<HomeDestination />} />
+                      <Route path={weeklyRoutes.play} element={<PlayDestination />} />
+                      <Route path={weeklyRoutes.matches} element={<MatchesDestination />} />
+                      <Route path={weeklyRoutes.leagues} element={<LeaguesDestination />} />
                       <Route path={weeklyRoutes.more} element={<MorePage />} />
 
-                      <Route
-                        path={weeklyRoutePatterns.competition}
-                        element={<CompetitionDashboardPage />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.play}
-                        element={<SeasonPlayRoute />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.matches}
-                        element={<SeasonMatchesRoute />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.matchCentre}
-                        element={<SeasonMatchCentreRoute />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.games}
-                        element={<CompetitionGamesPage />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.matchPredictor}
-                        element={<SeasonMatchPredictorRoute />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.matchPredictorStandings}
-                        element={<SeasonStandingsRoute />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.lms}
-                        element={<SeasonLmsRoute />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.championshipWildcard}
-                        element={<SeasonChampionshipRouter />}
-                      />
-                      <Route
-                        path={weeklyRoutePatterns.leagues}
-                        element={<SeasonLeaguesRoute />}
-                      />
-                      {/* One player's season (contract 151). Competition-scoped
-                          because points, rank and prediction history are facts
-                          about a player IN a season; the server refuses any
-                          caller who shares no private league with them, and
-                          nothing here enumerates players. */}
-                      <Route
-                        path={weeklyRoutePatterns.player}
-                        element={<SeasonPlayerProfileRoute />}
-                      />
+                      {/* THE DOMESTIC WEEKLY TREE, AND WHOSE IT IS. The
+                          catalogue and every `/competitions/:c/:s/**` surface
+                          are the Prediction Hub's product. The Euro deployment
+                          was serving all of them, so a visitor to the
+                          tournament's domain could reach a domestic season's
+                          Match Predictor under navigation reading "Tournament".
+                          A catalogue omission is not a control — a guessable
+                          URL still resolves — so the boundary is the route. */}
+                      <Route element={<DomesticCompetitions />}>
+                        {/* The catalogue, as deliberate discovery. Not a tab. */}
+                        <Route
+                          path={weeklyRoutes.competitions}
+                          element={<ExploreCompetitionsPage />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.competition}
+                          element={<CompetitionDashboardPage />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.play}
+                          element={<SeasonPlayRoute />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.matches}
+                          element={<SeasonMatchesRoute />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.matchCentre}
+                          element={<SeasonMatchCentreRoute />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.games}
+                          element={<CompetitionGamesPage />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.matchPredictor}
+                          element={<SeasonMatchPredictorRoute />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.matchPredictorStandings}
+                          element={<SeasonStandingsRoute />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.lms}
+                          element={<SeasonLmsRoute />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.championshipWildcard}
+                          element={<SeasonChampionshipRouter />}
+                        />
+                        <Route
+                          path={weeklyRoutePatterns.leagues}
+                          element={<SeasonLeaguesRoute />}
+                        />
+                        {/* One player's season (contract 151). Competition-scoped
+                            because points, rank and prediction history are facts
+                            about a player IN a season; the server refuses any
+                            caller who shares no private league with them, and
+                            nothing here enumerates players. */}
+                        <Route
+                          path={weeklyRoutePatterns.player}
+                          element={<SeasonPlayerProfileRoute />}
+                        />
+                      </Route>
 
                       {/* Compatibility only: the old global chooser name remains a
                           redirect, never a second weekly information architecture. */}

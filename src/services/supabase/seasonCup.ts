@@ -2,6 +2,7 @@ import { db } from './client'
 import type {
   CupPhaseKind,
   CupPhasePage,
+  CupTableSource,
   SeasonCupGateway,
 } from '../../features/season/cupPhaseModel'
 
@@ -15,11 +16,22 @@ import type {
  * from. Re-deciding it here would put a second answer in the browser, so the
  * caller passes the competition it already holds, exactly as the RPC does.
  *
- * WHICH AUTHORITY PRODUCED THE TABLE IS NOT VISIBLE HERE, DELIBERATELY. The
- * server reads the phase and answers from the authority that owns it; this
- * module maps one payload shape regardless. A gateway that branched on phase
- * would be re-implementing the lookup the RPC exists to own.
+ * WHICH AUTHORITY PRODUCED THE TABLE IS NOW STATED BY THE SERVER, AND ONLY
+ * DECODED HERE. Contract 169 added `table_source` for the reason it was written
+ * at all: the tournament's table measures four ADR 0014 keys over three group
+ * matchdays, and showing it for a season group stage of thirty-eight changed who
+ * won the group. This module still branches on nothing — it reads the token the
+ * server sent and refuses to recognise anything else, so a source this build has
+ * never heard of arrives as `null` rather than as a confident wrong label.
  */
+
+const TABLE_SOURCES: readonly CupTableSource[] = ['split', 'season_initial', 'tournament_initial']
+
+function tableSource(value: unknown): CupTableSource | null {
+  return typeof value === 'string' && (TABLE_SOURCES as readonly string[]).includes(value)
+    ? (value as CupTableSource)
+    : null
+}
 
 type TableRowPayload = {
   user_id: string
@@ -38,6 +50,7 @@ type PhasePayload = {
   competition_id: string
   entered: boolean
   phase_kind?: CupPhaseKind
+  table_source?: unknown
   group?: {
     id: string
     ordinal: number
@@ -83,6 +96,7 @@ export function createSeasonCupRpcGateway(options: {
           competitionId: phase.competition_id,
           entered: false,
           phaseKind: null,
+          tableSource: null,
           group: null,
           table: [],
         }
@@ -93,6 +107,7 @@ export function createSeasonCupRpcGateway(options: {
         competitionId: phase.competition_id,
         entered: true,
         phaseKind: phase.phase_kind ?? group.phase_kind,
+        tableSource: tableSource(phase.table_source),
         group: {
           id: group.id,
           ordinal: group.ordinal,

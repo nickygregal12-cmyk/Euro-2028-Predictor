@@ -155,5 +155,16 @@ export function railGroups(
   player: PlayerCompetitions | null,
   site: SiteConfiguration,
 ): RailGroup[] {
-  return [mainGroup(site), competitionsGroup(player, site), moreGroup()]
+  return [
+    mainGroup(site),
+    // THE COMPETITIONS GROUP IS THE HUB'S. It lists the player's DOMESTIC
+    // seasons and ends in the weekly catalogue, and the Euro deployment was
+    // rendering all of it under a heading reading "Tournament" — every shortcut
+    // leading out of the tournament and into the weekly platform, and the last
+    // row offering to browse it. A deployment that does not serve the weekly
+    // tree must not offer a permanent list of it; the sibling-site link is how
+    // a player gets there, and it says where it goes.
+    ...(site.servesDomesticCompetitions ? [competitionsGroup(player, site)] : []),
+    moreGroup(),
+  ]
 }
