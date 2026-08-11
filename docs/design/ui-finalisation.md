@@ -261,6 +261,20 @@ document governs:
   one), and contract 168 supplies the staged-proposal and entrant reads `/admin/season`
   names as absent. Contracts 166 and 167 add the multi-group Championship draw and its
   group-stage view. **None is consumed.**
+- **A league prediction list can say how much of the league it is showing.**
+  Contract 171 adds `members_returned`/`members_truncated` and the tournament
+  equivalents, so "showing 200 of 205" replaces a truncated list presented as the
+  whole league. It also fixes which 200: contract 149's cap had no ordering, so
+  the league leader could be absent from the league's own table. **Not consumed.**
+- **The action centre has something to show most players.** Contract 170 adds the
+  matchweek generator contract 162 left for later, carrying `predicted` and
+  `fixtures` so the item reads "6 of 10" rather than "incomplete". **Still not
+  consumed**, and the AppBar still carries no notification control.
+- **A Championship table now says what it was ranked over.** Contract 169 corrects the
+  span the season group table is ranked on — the tournament's three matchdays, for a
+  competition that plays thirty-eight — and adds `table_source` to `get_season_cup_phase`
+  so a surface can label the table honestly instead of inferring the span from the
+  competition's kind. It adds no surface and changes no layout.
 - **The rotate control § 7 says nobody can reach is still unreachable.** Contract 159
   narrowed `resolve_invite_code` the way 158 narrowed the preview — the member count and
   the target id are gone, and a wrong guess now costs a limit slot — so the same rule

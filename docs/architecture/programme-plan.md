@@ -230,7 +230,10 @@ nothing to say.
 | 158 | Closes the first three items `SEC-001` names: the invite-code keyspace, the confirmation oracle in `get_league_preview`, and probe rate-limiting on a wrong guess. Security hardening; no phase moves. It is **destructive** and takes the guarded rollout lane rather than the additive fast lane |
 
 | 159–168 | The backend-completion batch. 159 closes the last `SEC-001` door; 160 closes `MIG-UI-13`; 161–164 close season history, `MIG-UI-14`, `DFA-012`'s delivery half and LMS social; 165–168 close organiser reads, the multi-group Championship draw and its reader, and the administration inspection `DFA-009` records as absent. **No frontend consumer exists for any of them** |
+| 169 | Corrects a defect contract 167 shipped: a season Championship group table ranked thirty-eight matchdays on the tie-breakers of its first three. **No frontend consumer exists for it either** |
+| 170 | The action centre's matchweek generator. **No frontend consumer exists for it** |
+| 171 | Deterministic and self-declaring league prediction caps. **No frontend consumer reads the new keys yet** |
 
-**This table accounts for every contract up to and including contract 168.** Saying so is
+**This table accounts for every contract up to and including contract 171.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

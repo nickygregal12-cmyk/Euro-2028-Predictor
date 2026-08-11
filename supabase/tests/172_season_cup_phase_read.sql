@@ -76,11 +76,21 @@ select is(
   true,
   'the split branch calls contract 105''s continuing-table authority');
 
+-- CONTRACT 169 MOVED THIS, deliberately. The initial branch called
+-- `cup_final_group_tables` directly, which measures four of its nine ADR 0014
+-- keys over the TOURNAMENT's three matchdays — wrong for a season playing
+-- thirty-eight, and wrong in a way that changes the group winner. It now calls
+-- the dispatcher, which picks the season table for a league season and the
+-- tournament table for a tournament.
+--
+-- This assertion is updated rather than deleted: what it was protecting — that
+-- the initial branch reaches an initial-table authority rather than deriving a
+-- table itself — is still worth pinning.
 select is(
   (select pg_get_functiondef(to_regprocedure('public.get_season_cup_phase(uuid)')::oid)
-     ilike '%cup_final_group_tables%'),
+     ilike '%cup_initial_group_tables%'),
   true,
-  'and the initial branch calls the initial-table authority');
+  'and the initial branch calls the initial-table authority, through contract 169''s dispatcher');
 
 -- ---------------------------------------------------------------------------
 -- Behaviour reachable without a phase driver.

@@ -6,9 +6,97 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-first entry)
+
+**The repository is at contract 171. Development is hosted at 168. Production remains at 158.** Contracts 169, 170 and 171 are repository candidates applied to neither, and all three are additive.
+
+| Contract | Migration | What it is |
+| --- | --- | --- |
+| 169 | `20260811200000_season_cup_initial_group_table.sql` | A season Championship group table measured over the season it plays |
+| 170 | `20260811210000_matchweek_prediction_actions.sql` | The action centre's matchweek generator, and a sweep that re-derives a matchweek's lock |
+| 171 | `20260811220000_league_prediction_cap_honesty.sql` | A deterministic, self-declaring cap on the two league prediction reads |
+
+**None creates a table, schedules a job, or writes anything on apply.** All three define functions only. `process_player_action_items` remains `service_role`-only and unscheduled by any migration.
+
+**Contract 171 changes no signature**, so nothing a browser calls today breaks. Both keys it adds are additive: every key either read emitted before, it still emits.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **171** | 171 canonical migrations through `20260811220000_league_prediction_cap_honesty.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932`, independently confirmed. Contracts 169 to 171 pending. | THREE BEHIND REPOSITORY |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`. | THIRTEEN BEHIND REPOSITORY, BY DESIGN |
+
+`218`, `219` and `220` are written and **have not been executed**: the authoring environment has no Docker daemon and no Supabase CLI. Database parity on their pull request is what runs them.
+
+## Current state — 11 August 2026 (thirtieth entry)
+
+**The repository stood at contract 170 in this entry. Development is hosted at 168. Production remains at 158.** Contracts 169 and 170 are repository candidates applied to neither, and both are additive.
+
+| Contract | Migration | What it is |
+| --- | --- | --- |
+| 169 | `20260811200000_season_cup_initial_group_table.sql` | A ranking correction: a season Championship group table measured over the season it plays |
+| 170 | `20260811210000_matchweek_prediction_actions.sql` | The action centre's matchweek generator, and an expiry sweep that re-derives a matchweek's lock |
+
+**Neither creates a table and neither schedules a job.** `process_player_action_items` remains `service_role`-only and remains unscheduled by any migration, so applying contract 170 generates no action until something calls it.
+
+**Neither writes anything on apply.** Contract 169 defines functions; contract 170 defines functions. No fixture, prediction, score, lock, settlement or progression moves.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **170** | 170 canonical migrations through `20260811210000_matchweek_prediction_actions.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932`, independently confirmed. Contracts 169 and 170 pending. | TWO BEHIND REPOSITORY |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`. | TWELVE BEHIND REPOSITORY, BY DESIGN |
+
+`218` and `219` are written and **have not been executed**: the authoring environment has no Docker daemon and no Supabase CLI. Database parity on their pull request is what runs them.
+
+## Current state — 11 August 2026 (twenty-ninth entry)
+
+**The repository stood at contract 169 in this entry. Development is hosted at 168. Production remains at 158.** Contract 169 — `20260811200000_season_cup_initial_group_table.sql` — is a repository candidate applied to neither, and it is additive.
+
+**It is a ranking correction, not a feature.** `predictor_internal.cup_final_group_tables` measures four of its nine ADR 0014 §5.2 keys over `win.sequence between 1 and 3`. Contracts 120 and 167 show that table for a season Predictor Championship whose group stage runs to thirty-eight matchdays. Driven on a disposable PostgreSQL 16 with two players level on table points: **the group winner changes**, and under ADR 0014 the group winner decides qualification and seeding.
+
+**Nothing on either hosted environment is wrong today because of it**, because no season Championship group stage exists on either: contract 166's draw and contract 127's launcher have never been called. The defect is latent, and this is the migration that closes it before it is not.
+
+**What it does not do.** It does not touch `cup_final_group_tables` — a source assertion in the migration fails if that function loses its bound — and it does not touch `admin_finalise_predictor_cup_groups`, which still gates qualification on the same three windows and still demands exactly three settled ones. **A season group stage therefore still cannot qualify anyone.** That is roadmap item 8 and is not claimed here.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **169** | 169 canonical migrations through `20260811200000_season_cup_initial_group_table.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932`, independently confirmed. Contract 169 pending. | ONE BEHIND REPOSITORY |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`. | ELEVEN BEHIND REPOSITORY, BY DESIGN |
+
+`218_season_cup_initial_group_table.sql` is written and **has not been executed**: the authoring environment has no Docker daemon and no Supabase CLI. Database parity on its pull request is what runs it.
+
+## Current state — 11 August 2026 (twenty-eighth entry)
+
+**The repository stood at contract 168 in this entry, Development reached 168 here, and Production remained at 158.**
+
+Contracts 159 to 168 merged as PR #691 at `2be5c8f682fb12200c63a36d6504889c1554c045` and were applied to Development through `development-fast-lane-rollout.yml`, run [31489582932](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31489582932), dispatched from `main` with `project_ref=iouzoutneyjpugbbtdem`. The lane proved all ten additive by reading them, took its pre-apply snapshot, applied, and confirmed nothing pending.
+
+**The claim is not the workflow's.** Taken afterwards and independently:
+
+| Query | Development | Production |
+| --- | --- | --- |
+| `count(*)` of `supabase_migrations.schema_migrations` | **168** | **158** |
+| `max(version)` | `20260811190000` | `20260811000000` |
+
+The fourteen browser- and administrator-reachable functions the batch adds are named in `pg_proc` on Development. Production was queried **after** the Development rollout and is unchanged, so contracts 159 to 168 are **not** production-hosted and no production promotion is claimed or implied.
+
+**Database parity executed pgTAP suites `208` to `217` on the merged head and all pass.** The twenty-seventh entry below recorded them as unrun, which was true when written.
+
+**One operational note for the next reader.** The GitHub Actions API served step statuses for this run up to ten minutes stale — it reported the snapshot step still running for several minutes after the job had in fact completed successfully. Read the hosted database, not the workflow's step list, when deciding whether a rollout landed.
+
+**What this did NOT do.** It published no Euro 2028 (contract 143 stays `hidden`), launched no competition (contract 166 draws only when an administrator calls it, and nobody has), scheduled no reminder job, sent nothing, imported no football, and promoted no application — the deployed site remains at contract 145, so **no browser can yet reach any of this**. Production was not touched.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **168** | 168 canonical migrations through `20260811190000_season_admin_inspection.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932` from exact main `2be5c8f`, independently confirmed by a read-only ledger query (168 rows, latest `20260811190000`) and by naming the batch's fourteen new functions in `pg_proc`. | LEVEL |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`; re-queried after the Development rollout and still 158 with latest `20260811000000`. | TEN BEHIND REPOSITORY, BY DESIGN |
+
 ## Current state — 11 August 2026 (twenty-seventh entry)
 
-**The repository is at contract 168. Development and Production both remain at 158.** Contracts 159 to 168 are repository candidates and **no rollout is claimed for any of them**. All ten are additive.
+**The repository was at contract 168 in this entry. Development and Production both remained at 158.** Contracts 159 to 168 are repository candidates and **no rollout is claimed for any of them**. All ten are additive.
 
 | Contract | Migration |
 | --- | --- |

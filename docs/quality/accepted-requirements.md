@@ -124,6 +124,23 @@ Authority: [ADR 0023](../adr/0023-hub-information-architecture.md) § Private co
 | `CAP-006` | Raising the public-user cap to 250 is the next recommended controlled test stage | Owner approval | An approved, executed change with hosted evidence | **Recommendation — not approved, not a current production change** |
 | `CAP-007` | The global league ceiling should count active leagues rather than lifetime rows; 1,000 active leagues is a recommendation | Owner approval | Approved figures, an additive migration, pgTAP coverage and hosted verification | **Recommendation — not approved, not implemented** |
 
+## Predictor Championship season qualification
+
+Authority: [ADR 0014](../adr/0014-predictor-cup-season-formats.md) and [`../predictor-cup-rules.md`](../predictor-cup-rules.md) § 6–7.
+
+Contract 166 draws a multi-group season Championship and contract 167 reads it, so a hundred-entrant field can now start. It cannot finish. `admin_finalise_predictor_cup_groups` is the only qualification, seeding and bracket authority, and it is tournament-shaped in ways that are not incidental: it requires exactly three settled windows, and § 6.2's automatic/wildcard table covers **group sizes 3 and 4 only**. ADR 0014 caps a season group at **twenty** and says "then qualification, seeded playoff and knockout" without saying how many of those twenty go through.
+
+**This is a product decision and a migration is the wrong place to take it.** § 6.2's two rows are consistent with several incompatible generalisations — top half automatic, a fixed two per group, a proportion tuned to the § 6.1 two-thirds target — and they give materially different competitions. Picking one silently would set a Championship's shape by implementation accident, which is the failure ADR 0014's own "letting the creator choose the structure" rejection exists to avoid.
+
+Everything else in the path is already determined for any group size and is **not** blocked by this row: § 6.1's target, § 6.3's per-game wildcard ranking, § 7.1's seeding bands, § 7.2's playoff/bye arithmetic and § 7.3's same-group avoidance.
+
+| ID | Requirement | Depends on | Acceptance evidence | Status |
+| --- | --- | --- | --- | --- |
+| `CUP-001` | An accepted rule for how many entrants qualify automatically from a season Championship group of 5 to 20, and which ranks form the wildcard pool | An owner decision amending [`../predictor-cup-rules.md`](../predictor-cup-rules.md) § 6.2, or an ADR 0014 amendment | The amended § 6.2 table covering every group size ADR 0014 permits, with the § 6.1 target reconciled against it at the field sizes ADR 0014 names | **Accepted — blocked on an owner decision.** Recorded 11 August 2026 rather than guessed |
+| `CUP-002` | A season qualification, seeding and bracket driver: the § 6.1 target, § 6.3 per-game wildcard ranking, § 7.1 bands, § 7.2 arithmetic and § 7.3 avoidance, gated on the group stage the competition actually plays rather than on three windows, and reading contract 169's season table rather than the tournament's | `CUP-001`; contract 169's `cup_season_group_tables`; contracts 166 and 167 | A driver plus pgTAP proving a season group stage of N matchdays qualifies, seeds and brackets, and that the tournament path is untouched | **Accepted — unimplemented**, and blocked only on `CUP-001`'s automatic-places rule. The knockout windows must also exist beyond the group stage rather than at the tournament's fixed sequences 4 upward |
+| `CUP-003` | A read for the guaranteed Penalty Number decider and the bracket a season entrant is in | `CUP-002` | A granted, bounded read plus pgTAP, reusing `submit_cup_penalty_number`'s existing write | **Accepted — unimplemented.** `submit_cup_penalty_number` has existed since the tournament Cup; nothing reads a season bracket |
+| `CUP-004` | Walkover, withdrawal and disqualification handling for a Championship tie | An accepted rule; none exists | The rule, then a driver and its pgTAP | **Accepted — blocked**, on the same class of decision as `CUP-001` |
+
 ## UI finalisation backend queue
 
 Authority: [owner UI finalisation direction, 10 August 2026](../design/ui-finalisation.md), § 12. Detailed presentation intent for each consumer is in that document.

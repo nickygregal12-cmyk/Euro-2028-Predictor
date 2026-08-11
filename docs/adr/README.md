@@ -72,5 +72,8 @@ same paragraph existed in seven places at once.
 | 165 | **None, and one deliberately not taken.** No accepted authority grants an organiser power over another entrant, so the reads land and the command does not |
 | 166–167 | Implements ADR 0014's multi-group shape, which `launch_season_cup` refused by name. The draw is **deterministic and unseeded** — an unseeded draw cannot be re-derived, and seeding on Match Predictor points would import one game's standings into another's structure, which ADR 0011 forbids. Who reaches a bracket stays ADR 0014's rule and is **not** decided here |
 | 168 | **None.** It supplies the inspection `DFA-009` records as absent; the decisions stay with contract 132 |
+| 169 | **None.** ADR 0014 §5.2's tie-break sequence is carried across unchanged and in the same order; only the SPAN its middle keys are measured over changes, and only for a league season |
+| 170 | **None.** The matchweek action reuses `competition_rounds.window_opens_at` and the derived matchweek lock; no new rule decides when a card is due |
+| 171 | **None.** Both reads keep their reveal boundaries and their caps; only the cap's ORDER and its honesty change |
 
-*Current to contract 168.*
+*Current to contract 171.*
