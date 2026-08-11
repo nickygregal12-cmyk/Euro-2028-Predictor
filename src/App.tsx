@@ -24,12 +24,19 @@ import {
   MatchesDestination,
   PlayDestination,
 } from './app/destinations/VariantDestinations'
-import { EuroSignupGate } from './features/auth/EuroSignupGate'
 import { DomesticCompetitions } from './app/DomesticCompetitions'
 import { RequireAdmin } from './features/admin/RequireAdmin'
 import { AdminLayout } from './features/admin/AdminLayout'
 
 const LoginPage = lazy(() => import('./features/auth/LoginPage').then((m) => ({ default: m.LoginPage })))
+// LAZY, AND MEASURED. Statically importing the gate put contract 143's
+// publication read, its lifecycle presentation table and the auth splash into
+// the entry chunk that every visitor downloads before anything renders — 1.7 KB
+// gz, which took it over its ceiling — to guard one route that most visitors
+// never open. It loads with the signup screen it wraps.
+const EuroSignupGate = lazy(() =>
+  import('./features/auth/EuroSignupGate').then((m) => ({ default: m.EuroSignupGate })),
+)
 const SignUpPage = lazy(() => import('./features/auth/SignUpPage').then((m) => ({ default: m.SignUpPage })))
 const ResetRequestPage = lazy(() => import('./features/auth/ResetRequestPage').then((m) => ({ default: m.ResetRequestPage })))
 const UpdatePasswordPage = lazy(() => import('./features/auth/UpdatePasswordPage').then((m) => ({ default: m.UpdatePasswordPage })))
