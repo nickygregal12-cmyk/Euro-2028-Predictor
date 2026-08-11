@@ -267,6 +267,14 @@ writes nothing.
 
 - `get_season_lms_field`
 
+Contract 168 adds one more taking `p_tournament_id`: `admin_provider_proposal_detail`
+reads that season's own staged provider calendar behind
+`require_competition_admin`, gated before any row is read. It decides nothing,
+writes nothing and returns no raw provider payload — only the archived
+response's id as provenance.
+
+- `admin_provider_proposal_detail`
+
 Contracts 129 and 130 add two more with the same season-scoped disposition.
 Both take `p_tournament_id` and a matchweek ordinal, resolve the round through
 contract 114's `season_card_context`, and read only that season's own fixtures,

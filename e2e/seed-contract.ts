@@ -894,13 +894,22 @@
  * defaults to true, and neither of its jobs is scheduled by the migration. A
  * seeded user gains no queued mail by applying it.
  *
+ * Contracts 165 to 168 add NO relation at all — they are functions only, and
+ * every one of the six is a new name called by nothing that exists today. No
+ * existing relation, policy, trigger, grant or function is altered, so no path
+ * a seeded journey takes can have moved.
+ *
+ * Contract 166 is the only one that writes, and only when an administrator
+ * explicitly calls it: applying the migration draws no Championship. A seeded
+ * user's competitions are untouched by the apply.
+ *
  * THIS MARKER IS RAISED ON CI EVIDENCE, not on local execution. The authoring
  * environment has no seeded database, so no seeded user was driven here. Exact-
  * head Browser E2E is what proves it, and it must be green on the pull request
  * that carries this line — which is the same standard contracts 67, 68 and 69
  * were held to, stated rather than assumed.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 164
+export const SEED_REVIEWED_AT_CONTRACT = 168
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

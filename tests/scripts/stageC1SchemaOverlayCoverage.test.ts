@@ -76,7 +76,7 @@ describe('Stage C1 schema overlay coverage', () => {
     // competition-administration writes, and 79 → 80 by contract 164's Last Man
     // Standing field read.
     // competition-administration writes.
-    expect(reviewedFunctions).toHaveLength(80)
+    expect(reviewedFunctions).toHaveLength(81)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

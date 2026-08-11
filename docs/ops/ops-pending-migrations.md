@@ -6,9 +6,28 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (twenty-seventh entry)
+
+**The repository is at contract 168. Development and Production both remain at 158.** Contracts 159 to 168 are repository candidates and **no rollout is claimed for any of them**. All ten are additive.
+
+| Contract | Migration |
+| --- | --- |
+| 165 | `20260811160000_lms_organiser_reads.sql` |
+| 166 | `20260811170000_cup_multi_group_launch.sql` |
+| 167 | `20260811180000_cup_group_stage_read.sql` |
+| 168 | `20260811190000_season_admin_inspection.sql` |
+
+**Contract 159 should still be sequenced first** — it is the security fix, and until it is applied both hosted environments hold an unrated invite-probe path that `SEC-001` is otherwise closed on.
+
+**Nothing in 165 to 168 creates a table.** All four are functions only: two organiser reads, one Championship draw driver with its administrator entry point, one group-stage read, and two administrator inspection reads. No existing relation, policy, trigger or grant moves.
+
+**Contract 166 is the only one that writes anything at all**, and only when an administrator explicitly calls it: it inserts groups, members and fixtures for one competition, refuses if that competition is already drawn, and takes a transaction-scoped advisory lock so two administrators pressing the button together cannot both draw. Applying the migration draws nothing.
+
+**Executed before commit** against a disposable PostgreSQL 16, with the real Cup authorities (`select_season_cup_format`, `cup_league_schedule`) extracted from the repository rather than stubbed. The 100-entrant case produced 5 groups of 20 and 950 fixtures with every pairing occurring exactly once; a 25-entrant field produced groups of 13 and 12 with the smaller group correctly holding no fixture in the last two rounds. That is **not** the Database parity job: it proves the SQL applies and behaves, not that it composes with the full 168-migration chain. pgTAP suites `208` to `217` have **not** been run.
+
 ## Current state — 11 August 2026 (twenty-sixth entry)
 
-**The repository is at contract 164. Development and Production both remain at 158.** Contracts 159 to 164 are repository candidates and **no rollout is claimed for any of them**.
+**The repository stood at contract 164 in this entry. Development and Production both remain at 158.** Contracts 159 to 164 are repository candidates and **no rollout is claimed for any of them**.
 
 | Contract | Migration | Additive? |
 | --- | --- | --- |

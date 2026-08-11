@@ -191,6 +191,7 @@ These names may remain but their semantics must support both kinds safely:
 - `admin_actual_third_place_tie_status`
 - `admin_approve_initial_provider_fixtures`
 - `admin_clear_actual_third_place_tie`
+- `admin_provider_proposal_detail`
 - `admin_record_table_adjustment`
 - `admin_set_competition_table_rules`
 - `get_competition_table`

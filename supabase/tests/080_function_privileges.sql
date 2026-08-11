@@ -200,6 +200,23 @@ insert into expected_service_functions (signature) values
   ('record_reminder_result(uuid,boolean,text,text,text)'),
   ('reclaim_stalled_reminders(interval)');
 
+-- Contract 165: an organiser's own private container. Contract 166: the
+-- multi-group Championship draw. Contract 167: its group stage. Contract 168:
+-- the two inspection reads the administrator commands assume.
+--
+-- All six are `authenticated` and gate INSIDE — on ownership (165), on
+-- competition administration (166, 168), or on the caller's own entry (167).
+-- That is the established shape here: the grant admits a signed-in caller and
+-- the function decides. `080` asserts the grant; `214` to `217` assert the
+-- refusals.
+insert into expected_authenticated_functions (signature) values
+  ('get_my_organised_competition(uuid)'),
+  ('get_my_organised_competitions(integer,integer)'),
+  ('admin_launch_cup_group_stage(uuid)'),
+  ('get_season_cup_group_stage(uuid,integer)'),
+  ('admin_provider_proposal_detail(uuid,text,integer,integer)'),
+  ('admin_competition_entrants(uuid,integer,integer)');
+
 insert into expected_authenticated_functions (signature) values
   ('get_competition_table(uuid)'),
   ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),
