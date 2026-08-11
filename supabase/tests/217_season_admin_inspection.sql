@@ -27,10 +27,13 @@ insert into public.teams (id, tournament_id, name) values
   (md5('ai-t1')::uuid, current_setting('test.ai_season')::uuid, 'AI Rovers'),
   (md5('ai-t2')::uuid, current_setting('test.ai_season')::uuid, 'AI United');
 
+-- The custody row's real shape: `raw_body` is TEXT and there is no `payload`
+-- column at all. The marker goes in the body, which is precisely what must not
+-- reach a client.
 insert into predictor_internal.provider_raw_responses (
-  id, provider, endpoint, request_path, status_code, payload, fetched_at)
-values (md5('ai-raw')::uuid, 'sportmonks', 'fixtures', '/fixtures', 200,
-        '{"marker":"THIS-BODY-MUST-NEVER-REACH-A-CLIENT"}'::jsonb, now())
+  id, provider, request_url, request_method, response_status, raw_body, fetched_at)
+values (md5('ai-raw')::uuid, 'sportmonks', 'https://example.test/fixtures', 'GET', 200,
+        '{"marker":"THIS-BODY-MUST-NEVER-REACH-A-CLIENT"}', now())
 on conflict do nothing;
 
 -- Two clubs mapped, one provider id deliberately left unmapped.

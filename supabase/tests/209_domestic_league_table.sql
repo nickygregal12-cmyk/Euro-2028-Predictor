@@ -286,6 +286,12 @@ select is(
   'an awarded outcome counts towards the table');
 
 -- THE OTHER HALF OF THE SAME DECISION, and the reason the award is not a status.
+--
+-- `reset role` first: `season_fixtures` is revoked from every browser role, so
+-- reading it as `authenticated` is `permission denied` — which is the revoke
+-- working, and was this suite's own bug rather than the contract's.
+reset role;
+
 select is(
   (select status || '/' || coalesce(home_score::text, 'null')
      from public.season_fixtures
@@ -293,8 +299,6 @@ select is(
       and competition_round_id = md5('tv-mw10')::uuid),
   'postponed/null',
   'and the fixture keeps the result predictions were settled against, unwritten');
-
-reset role;
 
 select * from finish();
 

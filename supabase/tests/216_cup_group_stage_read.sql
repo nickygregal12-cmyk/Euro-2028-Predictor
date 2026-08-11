@@ -42,11 +42,16 @@ select current_setting('test.gs_season')::uuid, md5('gs-r' || n)::uuid,
 -- protects and what a public fixture would not test.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, name, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at)
+  draw_required, visibility_kind, registration_opens_at, owner_id, invite_code)
+-- The PRIVATE Championship carries all three identity fields and the PUBLIC
+-- Last Man Standing carries none, because `bonus_competitions_private_identity`
+-- (contract 152) requires exactly that of each.
 values (md5('gs-cup')::uuid, current_setting('test.gs_season')::uuid, 'predictor_cup',
-        'Grouped Championship', true, 'active', true, 'private', now() - interval '30 days'),
+        'Grouped Championship', true, 'active', true, 'private', now() - interval '30 days',
+        md5('gs-u1')::uuid, 'GSCODE123456'),
        (md5('gs-lms')::uuid, current_setting('test.gs_season')::uuid, 'last_man_standing',
-        'Not a Championship', true, 'active', false, 'public', now() - interval '30 days');
+        null, true, 'active', false, 'public', now() - interval '30 days',
+        null, null);
 
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)

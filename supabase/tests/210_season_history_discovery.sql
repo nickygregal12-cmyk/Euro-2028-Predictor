@@ -6,10 +6,17 @@
 -- which is the failure this read exists to prevent, and the one a test written
 -- against a live season would never see.
 --
--- The second is that participation includes a season a player only ENTERED,
--- with no game membership at all. An implementation joining the three
--- participation sources rather than unioning them would drop exactly that
+-- The second is that participation includes a season the player joined a GAME
+-- in and never made a predictor entry for. An implementation joining the three
+-- sources on `entries` rather than unioning them would drop exactly that
 -- player, and every other assertion here would still pass.
+--
+-- The first draft of this suite tested the OPPOSITE case — an entry with no
+-- membership — and the schema disproved it: `prepare_entry_game_membership` is
+-- a BEFORE trigger on `entries` that creates the Main Predictor membership when
+-- none exists, so an entry always implies one. That case cannot arise, and
+-- contract 161's header was corrected to say so rather than left claiming a
+-- protection it does not provide.
 
 begin;
 
@@ -39,11 +46,17 @@ insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
   draw_required, visibility_kind, registration_opens_at)
 values
+  -- Every season carrying an `entries` row needs its Main Predictor, because
+  -- the entry trigger resolves one and refuses when there is none.
+  (md5('sh-mp25')::uuid, md5('sh-s25')::uuid, 'main_predictor', true, 'active',
+   false, 'public', now() - interval '800 days'),
   (md5('sh-mp26')::uuid, md5('sh-s26')::uuid, 'main_predictor', true, 'active',
    false, 'public', now() - interval '400 days'),
   (md5('sh-lms26')::uuid, md5('sh-s26')::uuid, 'last_man_standing', true, 'active',
    false, 'public', now() - interval '400 days'),
-  (md5('sh-mp27')::uuid, md5('sh-s27')::uuid, 'main_predictor', true, 'active',
+  -- 2027/28 runs a Last Man Standing and NO predictor entry, which is the
+  -- union's load-bearing case.
+  (md5('sh-lms27')::uuid, md5('sh-s27')::uuid, 'last_man_standing', true, 'active',
    false, 'public', now() - interval '30 days'),
   (md5('sh-mp99')::uuid, md5('sh-s99')::uuid, 'main_predictor', true, 'active',
    false, 'public', now() - interval '1 day');
@@ -60,22 +73,26 @@ insert into public.profiles (id, display_name, welcomed_at) values
   (md5('sh-p1')::uuid, 'History One', now()),
   (md5('sh-p2')::uuid, 'History Two', now());
 
--- Player one: 2025/26 by ENTRY ONLY — no membership anywhere. This is the row
--- an implementation that joined rather than unioned would lose.
+-- Player one entered the predictor in 2025/26 and 2026/27. The entry trigger
+-- creates the Main Predictor membership for each, which is why neither is the
+-- union's load-bearing case.
 insert into public.entries (id, user_id, tournament_id) values
   (md5('sh-e25')::uuid, md5('sh-p1')::uuid, md5('sh-s25')::uuid),
   (md5('sh-e26')::uuid, md5('sh-p1')::uuid, md5('sh-s26')::uuid);
 
 -- 2026/27 by both games, and they LEFT the Last Man Standing. A season a player
 -- left is still a season they played.
+-- The 2026/27 Main Predictor membership already exists, created by the entry
+-- trigger, so only the Last Man Standing rows are inserted here. 2027/28 is a
+-- Last Man Standing membership with NO entry: the union's load-bearing case.
 insert into public.game_memberships (tournament_id, game_competition_id, user_id, status, left_at) values
-  (md5('sh-s26')::uuid, md5('sh-mp26')::uuid, md5('sh-p1')::uuid, 'active', null),
   (md5('sh-s26')::uuid, md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'left', now() - interval '30 days'),
-  (md5('sh-s27')::uuid, md5('sh-mp27')::uuid, md5('sh-p1')::uuid, 'active', null);
+  (md5('sh-s27')::uuid, md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active', null);
 
 insert into public.bonus_competition_entrants (competition_id, user_id, outcome) values
   (md5('sh-mp26')::uuid, md5('sh-p1')::uuid, 'active'),
-  (md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'eliminated');
+  (md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'eliminated'),
+  (md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active');
 
 -- Player two played a different season entirely, so the two histories cannot
 -- bleed into one another.
@@ -108,19 +125,23 @@ select is(
   'sh-2025/26',
   'an ARCHIVED season stays discoverable, and is marked as gone from the catalogue');
 
--- The second one: participation by entry alone.
+-- THE SECOND ASSERTION THIS FILE EXISTS FOR: the union's load-bearing case.
+-- 2027/28 holds a Last Man Standing membership and entrant row and NO `entries`
+-- row at all, because neither that game nor the Championship requires one. A
+-- join on `entries` would drop the season entirely.
 select ok(
   exists (select 1
             from jsonb_array_elements(current_setting('test.sh_history')::jsonb -> 'seasons') entry
-           where entry ->> 'season_key' = 'sh-2025/26'),
-  'a season the caller only ENTERED counts as participation, with no membership anywhere');
+           where entry ->> 'season_key' = 'sh-2027/28'),
+  'a season the caller joined a GAME in, with no predictor entry, is still their season');
 
 select is(
-  (select jsonb_array_length(entry -> 'games')
-     from jsonb_array_elements(current_setting('test.sh_history')::jsonb -> 'seasons') entry
-    where entry ->> 'season_key' = 'sh-2025/26'),
-  0,
-  'and it correctly reports no games, rather than being dropped for having none');
+  (select game ->> 'game_key'
+     from jsonb_array_elements(current_setting('test.sh_history')::jsonb -> 'seasons') entry,
+          jsonb_array_elements(entry -> 'games') game
+    where entry ->> 'season_key' = 'sh-2027/28'),
+  'last_man_standing',
+  'and it reports the game they actually joined, and no predictor they never entered');
 
 select is(
   (select jsonb_array_length(entry -> 'games')

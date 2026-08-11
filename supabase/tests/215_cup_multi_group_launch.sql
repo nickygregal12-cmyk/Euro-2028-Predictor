@@ -46,8 +46,12 @@ select current_setting('test.mg_season')::uuid, md5('mg-r' || n)::uuid,
 insert into public.bonus_competitions (
   id, tournament_id, game_key, name, published, availability_status,
   draw_required, visibility_kind, registration_opens_at)
+-- PUBLIC, so name, owner and invite code are all NULL:
+-- `bonus_competitions_private_identity` (contract 152) requires a private
+-- competition to have all three and a public one to have none. A public
+-- competition belongs to the platform and is not anybody's to name.
 values (md5('mg-cup')::uuid, current_setting('test.mg_season')::uuid, 'predictor_cup',
-        'Big Championship', true, 'active', true, 'public', now() - interval '30 days');
+        null, true, 'active', true, 'public', now() - interval '30 days');
 
 -- TWENTY-FIVE entrants, chosen deliberately over a round number: it produces
 -- groups of 13 and 12, so the draw's remainder handling and the different

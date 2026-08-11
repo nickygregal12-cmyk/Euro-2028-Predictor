@@ -29,6 +29,18 @@ insert into public.teams (id, tournament_id, name) values
   (md5('ac-t1')::uuid, current_setting('test.ac_season')::uuid, 'Action Rovers'),
   (md5('ac-t2')::uuid, current_setting('test.ac_season')::uuid, 'Action United');
 
+-- A round, a fixture in it, and the window link. `assert_bonus_lms_selection_shape`
+-- refuses a pick whose club does not play in that round, so the selection below
+-- needs real football underneath it rather than two bare club rows.
+insert into public.competition_rounds (id, tournament_id, round_key, ordinal, kind, label)
+values (md5('ac-r5')::uuid, current_setting('test.ac_season')::uuid,
+        'ac-mw5', 5, 'league_matchweek', 'Matchweek 5');
+
+insert into public.season_fixtures (
+  id, tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
+values (md5('ac-fx')::uuid, current_setting('test.ac_season')::uuid, md5('ac-r5')::uuid,
+        md5('ac-t1')::uuid, md5('ac-t2')::uuid, now() + interval '2 days', 'scheduled');
+
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
   draw_required, visibility_kind, registration_opens_at)
@@ -61,6 +73,9 @@ insert into public.bonus_competition_windows (id, competition_id, sequence, labe
 -- Player two has already picked in the open round, so their item is generated
 -- already complete rather than never generated — completion is a server verdict
 -- and has to be visible as one.
+insert into public.season_cup_window_fixtures (window_id, season_fixture_id)
+values (md5('ac-w5')::uuid, md5('ac-fx')::uuid);
+
 insert into public.bonus_lms_selections (competition_id, user_id, window_id, team_id)
 values (md5('ac-lms')::uuid, md5('ac-p2')::uuid, md5('ac-w5')::uuid, md5('ac-t1')::uuid);
 

@@ -741,8 +741,13 @@ begin
 end;
 $read$;
 
-revoke all on function public.get_competition_table(uuid) from public, anon;
-grant execute on function public.get_competition_table(uuid) to authenticated, service_role;
+-- `authenticated` ONLY, and not `service_role`. An earlier draft granted both,
+-- which `080_function_privileges.sql` refused: `service_role` may execute only
+-- what its own allow-list names, and no job calls this. The dual grant belongs
+-- to the league functions `20260724001500_harden_function_privileges.sql`
+-- covers, and this is not one of them.
+revoke all on function public.get_competition_table(uuid) from public, anon, service_role;
+grant execute on function public.get_competition_table(uuid) to authenticated;
 
 -- ===========================================================================
 -- 6. Administrator writes for the two facts a competition publishes

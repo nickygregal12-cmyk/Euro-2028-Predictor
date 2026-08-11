@@ -51,7 +51,10 @@ values
 
 insert into public.season_lms_setups (
   competition_id, lives, saves, draws_rule, endgame_scope, endgame_on_wipeout)
-values (md5('og-priv')::uuid, 1, 1, 'eliminate', 'private', 'restart');
+-- `reset`, not `restart`: `season_lms_setups_wipeout_allowed` admits exactly
+-- `play_on`, `shared_win` and `reset`. A private scope MUST name one, which is
+-- what `season_lms_setups_wipeout_matches_scope` enforces.
+values (md5('og-priv')::uuid, 1, 1, 'eliminate', 'private', 'reset');
 
 insert into public.bonus_competition_entrants (competition_id, user_id, outcome) values
   (md5('og-priv')::uuid, md5('og-own')::uuid, 'active'),
@@ -120,7 +123,7 @@ select is(
   'the organiser sees their own invite code, which is theirs to re-share');
 
 select is(
-  current_setting('test.og_view')::jsonb -> 'setup' ->> 'endgame_on_wipeout', 'restart',
+  current_setting('test.og_view')::jsonb -> 'setup' ->> 'endgame_on_wipeout', 'reset',
   'and the setup they fixed at creation');
 
 select is(

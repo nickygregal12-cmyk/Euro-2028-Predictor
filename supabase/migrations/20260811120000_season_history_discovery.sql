@@ -44,6 +44,19 @@
 --      because a season a player left is still a season they played;
 --   3. a `bonus_competition_entrants` row — the game-level entry.
 --
+-- THEY ARE UNIONED RATHER THAN JOINED, and the load-bearing direction is worth
+-- stating correctly rather than plausibly. An earlier draft of this header said
+-- the union protects "a player who entered the predictor and no game" — that
+-- case cannot arise: `prepare_entry_game_membership` is a BEFORE trigger on
+-- `entries` that creates the Main Predictor membership if none exists, so an
+-- entry always implies a membership. Corrected here because the pgTAP suite
+-- built on the false premise failed against the real schema.
+--
+-- The direction that IS load-bearing is the other one: a player may hold a Last
+-- Man Standing or Championship membership and entrant row and never make a
+-- predictor entry at all, because neither game requires one. A join on
+-- `entries` would drop that player's season entirely.
+--
 -- IT IS NOT A DIRECTORY AND CANNOT BECOME ONE. It answers only for
 -- `auth.uid()`; it takes no player argument; every row it returns is the
 -- caller's own. Nothing here discloses another player's participation, which is

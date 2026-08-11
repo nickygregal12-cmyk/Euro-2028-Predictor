@@ -45,8 +45,14 @@ insert into public.bonus_competitions (
 values (md5('lf-lms')::uuid, current_setting('test.lf_season')::uuid,
         'last_man_standing', true, 'active', false, 'public', now() - interval '30 days');
 
+-- A PUBLIC setup must be Classic and only Classic:
+-- `season_lms_setups_public_is_classic` refuses any other public row, and
+-- `season_lms_setups_wipeout_matches_scope` refuses a public row that names a
+-- wipeout outcome. Zero lives and zero saves are therefore not a simplification
+-- here — they are the only public setup the table accepts, which is ADR 0022's
+-- rule made unavoidable by the schema.
 insert into public.season_lms_setups (competition_id, lives, saves, draws_rule, endgame_scope)
-values (md5('lf-lms')::uuid, 1, 1, 'eliminate', 'public');
+values (md5('lf-lms')::uuid, 0, 0, 'eliminate', 'public');
 
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -68,10 +74,15 @@ insert into public.bonus_competition_entrants (competition_id, user_id, outcome)
   (md5('lf-lms')::uuid, md5('lf-cyd')::uuid, 'active'),
   (md5('lf-lms')::uuid, md5('lf-out')::uuid, 'eliminated');
 
+-- The allowance a Classic setup grants is zero, and
+-- `assert_lms_entrant_allowance` refuses an entrant holding more than the setup
+-- gave. So every entrant state is zero here, and the reveal assertions below
+-- test PRESENCE versus ABSENCE of the field rather than its value — which is
+-- the boundary in question anyway.
 insert into public.season_lms_entrant_state (competition_id, user_id, lives_remaining, saves_remaining) values
-  (md5('lf-lms')::uuid, md5('lf-ada')::uuid, 1, 1),
-  (md5('lf-lms')::uuid, md5('lf-bo')::uuid, 1, 0),
-  (md5('lf-lms')::uuid, md5('lf-cyd')::uuid, 0, 1),
+  (md5('lf-lms')::uuid, md5('lf-ada')::uuid, 0, 0),
+  (md5('lf-lms')::uuid, md5('lf-bo')::uuid, 0, 0),
+  (md5('lf-lms')::uuid, md5('lf-cyd')::uuid, 0, 0),
   (md5('lf-lms')::uuid, md5('lf-out')::uuid, 0, 0);
 
 -- OPEN: opened two days ago, locks in two days.
@@ -158,7 +169,7 @@ select is(
   (select entry ->> 'saves_remaining'
      from jsonb_array_elements(current_setting('test.lf_before')::jsonb -> 'entrants') entry
     where (entry ->> 'is_me')::boolean),
-  '1',
+  '0',
   'the caller''s own counts are always visible, because those are their own');
 
 -- ---------------------------------------------------------------------------

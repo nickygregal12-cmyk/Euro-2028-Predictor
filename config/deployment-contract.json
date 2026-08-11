@@ -22,7 +22,7 @@
     "public.admin_match_result_revisions(uuid)",
     "public.admin_open_season_competition(uuid)",
     "public.admin_provider_proposal_detail(uuid,text,integer,integer)",
-    "public.admin_record_table_adjustment(uuid,uuid,integer,text,timestamptz)",
+    "public.admin_record_table_adjustment(uuid,uuid,integer,text,timestamp with time zone)",
     "public.admin_reject_initial_provider_fixtures(uuid,text,text)",
     "public.admin_resolve_actual_third_place_tie(uuid,uuid[],text)",
     "public.admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)",

@@ -220,7 +220,7 @@ insert into expected_authenticated_functions (signature) values
 insert into expected_authenticated_functions (signature) values
   ('get_competition_table(uuid)'),
   ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),
-  ('admin_record_table_adjustment(uuid,uuid,integer,text,timestamptz)'),
+  ('admin_record_table_adjustment(uuid,uuid,integer,text,timestamp with time zone)'),
   ('admin_award_fixture_outcome(uuid,smallint,smallint,text)');
 
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
