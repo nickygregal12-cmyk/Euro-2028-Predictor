@@ -363,7 +363,7 @@ The accepted governance amendment [`../architecture/stage-c1-c2-governance.md`](
 
 One coherent C1 migration exist in PR #317 and pass disposable proof. No hosted schema operation is authorised.
 
-## Signed-in weekly frontend — position at contract 158
+## Signed-in weekly frontend — position at repository contract 168
 
 Stated here because "the backend authority exists" and "a player can reach it" are different claims, and this file is the one that must not blur them.
 
@@ -392,6 +392,12 @@ Stated here because "the backend authority exists" and "a player can reach it" a
 **One consequence worth stating separately.** The invite path no longer creates a tournament entry. `JoinLandingPage` called `getOrCreateEntry` before joining, a compatibility step for the preserved Euro invite; contract 155 reports `requires_game_entry` instead, so an invitee is told which game to join rather than being entered into one on the way to somewhere else. `tests/app/noSilentTournamentEntry.test.ts` had a named allowance for that call and now has none.
 
 **Two backend gaps were opened by the work**, both recorded in the register rather than worked around invisibly: `MIG-UI-16` (a season's clubs with id and identity in one read — the favourite-club picker joins two authoritative reads on the exact club name) and `MIG-UI-17` (a per-player Wrapped index — season history can only ask about seasons the published catalogue still carries).
+
+**Contracts 159–168 are NOT consumable from a browser yet, and the reason is a deliberate control rather than an omission.** Their migrations are in the repository; hosted Development is at **158**; `database.types.ts` was generated at **157**. `databaseTypes.test.ts` states the ordering in as many words: *"every service module is on the typed client, so repository code cannot call a function the generated types do not know about — a browser read for a not-yet-applied migration fails `tsc` rather than failing a user. That ordering is a feature: the RPC has to exist on Development before a browser can be written against it."*
+
+Measured on 11 August 2026: a `db.rpc('get_competition_table', …)` written against contract 160 fails `tsc -b` with the function absent from the generated union. There are exactly three ways past it and all three are forbidden — hand-editing a file whose header says `GENERATED FILE — DO NOT EDIT BY HAND`, casting around the typed client (the `TYPE-001` defect that was closed), or regenerating from a schema that does not hold these migrations. Local generation from the committed migrations is the right answer, is recorded as `AUD-10-c`, and needs a Docker daemon; there is none in the authoring environment.
+
+**So the sequence for the browser half of items 7–11 is: merge the backend batch → apply it to Development through the guarded rollout → `npm run generate:types` → consume.** The frontend work that does NOT depend on those types has been done and is listed above. A session that finds this paragraph should check the three numbers before believing it.
 
 **No hosted claim is made here.** These are repository facts. The signed-in hosted acceptance is `UI-F19` and remains outstanding.
 

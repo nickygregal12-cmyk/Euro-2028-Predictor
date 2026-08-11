@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { competitionGameRoute, competitionMatchPredictorRoute } from '../../app/weeklyRoutes'
 import { isNextUi } from '../../app/routeFlags'
 import type { PlayerCompetitions } from './playerCompetitions'
-import { loadCompetitionWeek } from './loadCompetitionWeek'
 import { presentPlayInbox, type PlayInbox, type PlayInboxEntry } from './playInboxModel'
 
 /**
@@ -52,6 +51,7 @@ export function useGlobalPlayInbox(player: PlayerCompetitions | null): GlobalPla
             lms: competitionGameRoute(ref, 'lms'),
             championship: competitionGameRoute(ref, 'championship'),
           }
+          const { loadCompetitionWeek } = await import('./loadCompetitionWeek')
           const loaded = await loadCompetitionWeek(
             ref.competitionSlug,
             ref.seasonSlug,

@@ -489,11 +489,11 @@ function GamesSection(): ReactElement {
     <section className={s.section} id="games" aria-labelledby="games-heading">
       <div className={s.shell}>
         <div className={s.sectionHead}>
-          <p className={s.eyebrow}>More than one way to win</p>
-          <h2 id="games-heading">Start with score predictions. Discover the rest later.</h2>
+          <p className={s.eyebrow}>Three games, one season</p>
+          <h2 id="games-heading">Three ways to win the same season.</h2>
           <p className={s.sectionLead}>
-            One simple weekly habit is the whole offer. The other games stay optional, and each one
-            is joined on its own.
+            Each one is its own game with its own table, and each is joined on its own. Play one,
+            play all three, or add another halfway through.
           </p>
         </div>
         <ul className={s.gameList}>

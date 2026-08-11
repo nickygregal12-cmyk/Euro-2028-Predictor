@@ -67,3 +67,18 @@
   font-size: var(--fs-1);
   line-height: 1;
 }
+
+/* The action-centre count.
+ *
+ * A number rather than a badge over an icon: the count IS the control, so it
+ * gets the whole 44px target instead of decorating one. `·` when there is
+ * nothing outstanding, which keeps the bar's rhythm without claiming a zero —
+ * and tabular numerals so a two-digit count does not shift the bar.
+ */
+.todo {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

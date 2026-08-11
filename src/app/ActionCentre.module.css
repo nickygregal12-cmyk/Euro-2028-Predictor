@@ -1,0 +1,195 @@
+/* The action centre: a bottom sheet on a phone, a docked side panel on a
+ * desktop, one component and one list.
+ *
+ * The scrim is the click-away target and the panel stops propagation, so a
+ * press outside closes and a press inside does not. Reduced motion removes the
+ * entrance transform rather than shortening it: a panel that still slides, only
+ * faster, is not what the preference asks for.
+ */
+
+.root {
+  position: fixed;
+  inset: 0;
+  /* The action centre is a modal surface: it covers navigation and takes focus,
+     so it sits on the modal layer rather than inventing a number above it. */
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: var(--scrim);
+  cursor: pointer;
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 100%;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: var(--sp-4);
+  background: var(--bg);
+  border-top-left-radius: var(--radius-card);
+  border-top-right-radius: var(--radius-card);
+  border-top: 1px solid var(--line);
+  animation: rise 180ms ease-out;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}
+
+/* Desktop: dock right, full height. The list is identical; only the frame
+   changes, which is what keeps one component honest at both widths. */
+@media (min-width: 900px) {
+  .root {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .panel {
+    width: min(420px, 100%);
+    max-height: none;
+    border-radius: 0;
+    border-top: 0;
+    border-left: 1px solid var(--line);
+    padding: var(--sp-5);
+  }
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.close {
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  color: var(--tx);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  cursor: pointer;
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.note,
+.clear {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.groupTitle {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open, 0.06em);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.item,
+.itemUrgent {
+  border-radius: var(--radius-input);
+  background: var(--chip);
+}
+
+/* Urgency is a left rule rather than a colour fill: it has to read in both
+   themes and must not compete with the accent the primary action uses. */
+.itemUrgent {
+  border-left: var(--bar-w) solid var(--amb);
+}
+
+.action {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--tap-min);
+  padding: var(--sp-3);
+  color: var(--tx);
+  text-decoration: none;
+}
+
+a.action:hover {
+  background: var(--card);
+}
+
+a.action:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -2px;
+}
+
+.actionTitle {
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.actionWhere {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
+}
+
+.all {
+  align-self: flex-start;
+  min-height: var(--tap-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--acc);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+}
