@@ -195,6 +195,13 @@ select throws_ok(
 
 reset role;
 
+-- The proposal ids are resolved as the OWNER, before any assertion runs as
+-- `authenticated`. A signed-in caller cannot read `predictor_internal` — which
+-- is the point of the schema — so looking an id up inside an argument
+-- expression fails with `permission denied` and tests nothing about the
+-- function under test. The first CI run of this file died exactly there, and
+-- the second died on a leftover that blanked one of these settings after it
+-- had been filled.
 select set_config('test.cp_cancelled',
   (select proposal.id::text from predictor_internal.provider_calendar_change_proposals proposal
     where proposal.tournament_id = current_setting('test.cp_season')::uuid
@@ -216,13 +223,6 @@ set local role authenticated;
 select set_config('test.cp_view',
   public.admin_provider_change_proposals(current_setting('test.cp_season')::uuid)::text, true);
 
--- The proposal ids are resolved as the OWNER, before any assertion runs as
--- `authenticated`. A signed-in caller cannot read `predictor_internal` — which
--- is the point of the schema — so looking an id up inside an argument
--- expression fails with `permission denied` and tests nothing about the
--- function under test. The first CI run of this file died exactly there.
-select set_config('test.cp_cancelled', '', true);
-
 select is(
   current_setting('test.cp_view')::jsonb ->> 'total', '3',
   'the administrator sees all three staged changes');
@@ -233,12 +233,27 @@ select is(
 
 -- ---------------------------------------------------------------------------
 -- APPROVAL IS THE ONLY THING THAT MAY CHANGE A FIXTURE
+--
+-- ONLY THE CALLS RUN AS `authenticated`; every table read is taken back as the
+-- owner. `public.season_fixtures` is revoked from every browser role — that is
+-- contract 68's design and contract 114's whole point — so a fixture read while
+-- impersonating a signed-in caller fails with `permission denied` and proves
+-- nothing about the function under test. Two earlier drafts of this file did
+-- exactly that, in two different places.
 -- ---------------------------------------------------------------------------
 
+select set_config('test.cp_cancel_action',
+  public.admin_decide_provider_change_proposal(
+    current_setting('test.cp_cancelled')::uuid, 'approve')::text, true);
+
+select set_config('test.cp_discover_action',
+  public.admin_decide_provider_change_proposal(
+    current_setting('test.cp_discovered')::uuid, 'approve')::text, true);
+
+reset role;
+
 select is(
-  (public.admin_decide_provider_change_proposal(
-     current_setting('test.cp_cancelled')::uuid,
-     'approve') -> 'resulting_action' ->> 'status'),
+  current_setting('test.cp_cancel_action')::jsonb -> 'resulting_action' ->> 'status',
   'void',
   'approving a cancellation voids the fixture, using a status the CHECK already allowed');
 
@@ -247,11 +262,9 @@ select is(
   'void',
   'and the fixture actually moves');
 
-select is(
-  (public.admin_decide_provider_change_proposal(
-     current_setting('test.cp_discovered')::uuid,
-     'approve') -> 'resulting_action' ->> 'created_season_fixture_id') is not null,
-  true,
+select isnt(
+  current_setting('test.cp_discover_action')::jsonb -> 'resulting_action' ->> 'created_season_fixture_id',
+  null,
   'approving a discovered proposal creates the fixture, and says which');
 
 select is(
@@ -267,14 +280,10 @@ select is(
 -- detection, because a result can be confirmed between the two.
 -- ---------------------------------------------------------------------------
 
-reset role;
 update public.season_fixtures
    set status = 'played', home_score = 2, away_score = 1
  where id = md5('cp-f2')::uuid;
 
-select set_config('request.jwt.claims',
-  json_build_object('sub', md5('cp-admin')::uuid, 'role', 'authenticated',
-                    'app_metadata', json_build_object('admin_role', 'super_admin'))::text, true);
 set local role authenticated;
 
 select throws_ok(
@@ -284,6 +293,8 @@ select throws_ok(
   '55000',
   'That fixture now has a result; approving would rescore a settled matchweek',
   'a fixture that has gained a result since detection cannot be voided');
+
+reset role;
 
 select is(
   (select fixture.status || ' ' || fixture.home_score::text
