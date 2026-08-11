@@ -3,10 +3,10 @@
   "requiredMigrationCount": 168,
   "latestMigrationVersion": "20260811190000",
   "latestMigrationName": "season_admin_inspection",
-  "verifiedAt": "2026-08-11T00:00:00.000Z",
+  "verifiedAt": "2026-08-11T12:20:00.000Z",
   "evidence": {
-    "source": "Read-only migration-ledger query against the Development project after the contracts 159-168 rollout, listing 168 rows ending 20260811190000_season_admin_inspection",
-    "method": "supabase list_migrations, read-only; no DDL and no DML issued by this session",
-    "repositoryHead": "merge of main 2be5c8f into claude/predictor-website-frontend-ydweub"
+    "source": "Development fast-lane rollout of contracts 159 to 168, confirmed by separate read-only query against supabase_migrations.schema_migrations (168 rows, latest 20260811190000) and by naming the fourteen new functions in pg_proc",
+    "workflowRunId": 31489582932,
+    "repositoryHead": "2be5c8f682fb12200c63a36d6504889c1554c045"
   }
 }
