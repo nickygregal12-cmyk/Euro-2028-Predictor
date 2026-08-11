@@ -397,6 +397,18 @@ Accepted 6 August 2026 by [ADR 0026](docs/adr/0026-public-site-separation-shared
   tournament's own data does not exist and mocking it is the placeholder the design
   authority forbids. **This does not restart the January 2028 programme**; the rows
   below are unchanged.
+- [x] **The Euro deployment's signed-in half, 11 August 2026.** The seam above
+  separated everything a signed-out visitor sees and nothing a signed-in one does:
+  `/`, `/play`, `/matches` and `/leagues` all served the domestic Prediction Hub
+  under Euro navigation labels. The four shared addresses now resolve through a
+  typed variant table; each Euro destination reads contract 143's publication state
+  and says what will be there rather than drawing an empty version of it;
+  `/auth/signup` is refused at the route rather than by a hidden control; the
+  domestic weekly tree and the rail's competition list are withdrawn from the Euro
+  build; first sign-in no longer runs domestic onboarding there; and domestic Match
+  Predictor is no longer offered as a Euro Bonus Game. **This still does not restart
+  the January 2028 programme** — the tournament's own journeys stay parked, and
+  `servesEuroTournament` is unchanged on both builds.
 - [ ] Bind a second Netlify site to the Euro domain with `VITE_SITE_VARIANT=euro`
   and `VITE_PUBLIC_ORIGIN` set (`SITE-004`), and add both origins to the Supabase
   Auth redirect allow-list (`SITE-006`). Both are operations tasks and neither is

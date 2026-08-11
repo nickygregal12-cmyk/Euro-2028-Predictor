@@ -62,15 +62,23 @@ and 168 are consumed, and contract 158's `rotate_league_invite_code` gained its
 browser control. Contract 162 is reachable and **deliberately** not consumed
 until its feed is complete — see item 4.
 
-**Contracts 169, 170 and 171 are not consumed, and the blocker moved during the
-day.** They were unconsumable when the frontend work was done — Development was
-at 168 and none had reached a hosted environment — and both Development and
-Production reached 171 the same day. The remaining step is mechanical:
-`database.types.ts` in the frontend branch was generated at 168, so
-`table_source` (169) and `members_returned`/`members_truncated` (171) are still
-absent from the typed client, and there is no untyped client since `TYPE-001`
-closed. Regenerate against Development at 171 and the two consumers are named
-and waiting.
+**Contracts 169 and 171 are consumed as of 11 August 2026, and the blocker this
+paragraph used to record was not real.** It said the two were waiting on a
+regenerated `database.types.ts`, on the reasoning that `table_source` (169) and
+`members_returned`/`members_truncated` (171) were absent from the typed client.
+Measured on the live branch instead of assumed: all three functions —
+`get_season_cup_phase`, `get_league_match_picks` and
+`get_season_league_matchweek_predictions` — are generated as `Returns: Json`,
+because they return `jsonb`. A field inside a `jsonb` payload never appears in a
+generated RPC type, at 168 or at 171, so regenerating could not have unblocked
+anything and its absence never blocked anything. Every one of these payloads is
+decoded by hand in `src/services/supabase/`, which is where the new fields were
+added. Regenerating the types at 171 remains worth doing on its own merits and is
+open as PR #704; it is not a dependency of this consumption.
+
+**Contract 170 is still not consumed**, and deliberately: its action-centre feed
+is incomplete and unhosted — Production holds zero cron jobs, so its driver has
+no caller there — which is the same reason item 4 withholds contract 162.
 
 ## Domestic Frontend Alpha checkpoint — 8 August 2026
 
