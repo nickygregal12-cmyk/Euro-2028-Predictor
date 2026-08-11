@@ -13,8 +13,8 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **168** | latest `20260811190000_season_admin_inspection.sql` |
-| Development hosted | **168** | at `20260811190000_season_admin_inspection.sql`, verified `2026-08-11T00:00:00.000Z` |
+| Repository | **171** | latest `20260811220000_league_prediction_cap_honesty.sql` |
+| Development hosted | **168** | at `20260811190000_season_admin_inspection.sql`, verified `2026-08-11T12:20:00.000Z`, fast-lane run `31489582932` |
 | Production | **158** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 3 — `20260811200000_season_cup_initial_group_table.sql`, `20260811210000_matchweek_prediction_actions.sql`, `20260811220000_league_prediction_cap_honesty.sql`
 
-**Next free contract number:** 169. Check open pull requests
+**Next free contract number:** 172. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**44** accepted requirements are outstanding, of which **8** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, DFA 10, INGEST 4, MIG-UI 6, PRIV 5, SITE 7. A further 23 are marked implemented and retained in the register.
+**48** accepted requirements are outstanding, of which **11** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 4, DFA 10, INGEST 4, MIG-UI 6, PRIV 5, SITE 7. A further 23 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

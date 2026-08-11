@@ -271,5 +271,8 @@ same paragraph existed in seven places at once.
 | 160 | Adds the **domestic league table** — competition rules, deductions and awarded outcomes — which contract 141's form derivation explicitly was not |
 | 161–164 | Season history discovery, the action centre's read state, the provider-neutral reminder ledger, and the Last Man Standing field behind its round's own lock |
 | 165–168 | Organiser reads that disclose no selection; the multi-group Championship draw and its reader; the administration inspection reads |
+| 169 | The season Championship initial group table, measured over the matchdays actually played rather than the tournament's three |
+| 170 | The matchweek prediction action, completing on the card rather than on a prediction existing |
+| 171 | Deterministic, self-declaring caps on the two league prediction reads |
 
-*Current to contract 168.*
+*Current to contract 171.*

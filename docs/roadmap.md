@@ -43,9 +43,9 @@ than when it happens.
 | 5 | Reminder delivery ledger (`DFA-012`) | **Delivered — contract 163.** No provider chosen, no job scheduled, nothing sends |
 | 6 | Last Man Standing post-lock social reads | **Delivered — contract 164** |
 | 7 | Last Man Standing organiser reads | **Delivered — contract 165** (reads only). The COMMAND half is **not an engineering decision**: no accepted authority grants an organiser power over another entrant |
-| 8 | Predictor Championship lifecycle | **Partially delivered** — 166 draws the multi-group field the launcher refused, 167 reads it. **Knockout progression, penalty-number reads, walkover/withdrawal handling and tie-settlement orchestration remain** |
+| 8 | Predictor Championship lifecycle | **Partially delivered** — 166 draws the multi-group field the launcher refused, 167 reads it, 169 corrects the span its table is ranked over. **Knockout progression, penalty-number reads, walkover/withdrawal handling and tie-settlement orchestration remain**, and `admin_finalise_predictor_cup_groups` still gates qualification on `sequence between 1 and 3`, so a season group stage cannot qualify anyone yet |
 | 9 | Season administration inspection reads | **Delivered — contract 168** |
-| 10 | Keyset pagination sweep (issue [#129](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/129)) | **Partially delivered.** Every read added in 159–168 clamps its own page size; the older leaderboard, league and comparison reads do not |
+| 10 | Keyset pagination sweep (issue [#129](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/129)) | **Closed as measured, and it was not what this line said.** `get_leaderboard` and both `get_league_members` have had keyset pagination since `20260729122200`; `get_league_match_picks` caps at 250 in display-name order and `get_season_league_matchweek_predictions` caps at 200. **There is no unbounded read.** The real defect was that contract 149's cap had NO ordering, so which 200 members were ranked was arbitrary and the league leader could be dropped — closed by contract 171, which also makes both reads state that they truncated. A page ARGUMENT remains unbuilt on purpose: it needs the functions dropped and recreated, and the rollout caps of fifty users and twenty leagues mean it would page nothing |
 | 11 | Provider normalisation beyond contracts 112/135/144 | **Audit first.** Do not recreate what 112, 117, 132, 135 and 144 already hold |
 | 12 | Bounded personal-data export | **Blocked** by issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) / `PRIV-007` |
 | 13 | Product analytics | **Not to be started.** `MIG-UI-15` needs an ADR before any migration |
@@ -247,5 +247,8 @@ same paragraph existed in seven places at once.
 | 140–141 | **Neither reorders the Alpha** |
 
 | 159–168 | Backend completion items 1–9 of the 11 August sequence. **Items 8 (Championship knockout, penalty reads, walkover handling), 10 (pagination sweep) and 11 (provider normalisation) remain**, and the organiser COMMAND half of item 7 is not an engineering decision |
+| 169 | **Reorders nothing.** It corrects the ranking span of a table contracts 120 and 167 already show, and adds no surface |
+| 170 | **Reorders nothing.** It completes a generator item 4 left open and registers the Championship qualification decision rather than taking it |
+| 171 | **Reorders nothing.** It closes item 10 against measurement and records that the item's own description was wrong |
 
-*Current to contract 168.*
+*Current to contract 171.*

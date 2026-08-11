@@ -204,5 +204,8 @@ same paragraph existed in seven places at once.
 | 159–160 | **None.** Contract 160 supplies the Table surface the Matches section has had no data for |
 | 161–164 | Contract 162 supplies the read state the AppBar's absent notification control was waiting on; 161 supplies season history; 164 supplies the Last Man Standing field view |
 | 165–168 | Contracts 165 and 168 supply the organiser and administration panels; 167 supplies the Championship group-stage view |
+| 169 | No new surface. The Championship group-stage view and the phase view now rank a season over the season, and `table_source` lets a surface say which authority ranked it |
+| 170 | The action centre finally has something to show most players: the matchweek card, with `predicted` and `fixtures` so the item reads "6 of 10" |
+| 171 | A league prediction list can now say "showing 200 of 205" instead of presenting a truncated list as the whole league |
 
-*Current to contract 168.*
+*Current to contract 171.*

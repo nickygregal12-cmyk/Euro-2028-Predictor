@@ -908,8 +908,38 @@
  * head Browser E2E is what proves it, and it must be green on the pull request
  * that carries this line — which is the same standard contracts 67, 68 and 69
  * were held to, stated rather than assumed.
+ *
+ * Contract 169 REDEFINES two existing reads rather than adding any, and this is
+ * the case where the guard has to be reasoned about rather than waved through.
+ * `get_season_cup_phase` and `get_season_cup_group_stage` keep their exact
+ * signatures, their `authenticated`-only grants, their entrancy gates and their
+ * non-entrant shapes; the stage read is byte-identical to contract 167's apart
+ * from one substituted internal call, asserted by diff in
+ * `tests/database-parity/seasonCupInitialTableParity.test.ts`. The three new
+ * `predictor_internal` functions are granted to nobody, so no browser role
+ * gains or loses a path.
+ *
+ * The one payload change is ADDITIVE: `get_season_cup_phase` gains a
+ * `table_source` key. A seeded journey reading that payload sees every key it
+ * saw before.
+ *
+ * A seeded user is also unaffected in fact as well as in shape, because no
+ * seeded user is in a Predictor Championship group: neither `launch_season_cup`
+ * nor `admin_launch_cup_group_stage` is called by the seed, so both reads
+ * answer `entered: false` for a seeded user exactly as they did at 168.
+ * Contract 170 adds a generator to a job no browser can call and redefines two
+ * `predictor_internal` functions granted to nobody. `process_player_action_items`
+ * keeps its name, its `service_role`-only grant and its return shape, gaining one
+ * counter. No relation, policy, trigger or browser grant moves, and the seed
+ * never runs the job — so a seeded user's action inbox is empty at 170 exactly
+ * as it was at 169, and no seeded read gains a gate.
+ *
+ * Contract 171 redefines two reads without changing either signature, either
+ * grant, either membership gate or either reveal boundary, and adds only keys.
+ * A seeded league is far below both caps, so both reads answer a seeded user
+ * exactly as they did at 170 with `members_truncated` false.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 168
+export const SEED_REVIEWED_AT_CONTRACT = 171
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
