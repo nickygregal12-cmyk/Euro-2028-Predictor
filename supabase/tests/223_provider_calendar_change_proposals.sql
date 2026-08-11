@@ -34,7 +34,15 @@ insert into public.teams (id, tournament_id, name) values
   (md5('cp-t1')::uuid, current_setting('test.cp_season')::uuid, 'CP Rovers'),
   (md5('cp-t2')::uuid, current_setting('test.cp_season')::uuid, 'CP United'),
   (md5('cp-t3')::uuid, current_setting('test.cp_season')::uuid, 'CP City'),
-  (md5('cp-t4')::uuid, current_setting('test.cp_season')::uuid, 'CP Athletic');
+  (md5('cp-t4')::uuid, current_setting('test.cp_season')::uuid, 'CP Athletic'),
+  -- Two clubs that play NOTHING in matchweek 5. The discovered fixture is
+  -- between them, because `assert_season_fixture_shape` refuses a club playing
+  -- twice in one matchweek and an earlier draft of this file used a club that
+  -- was already booked. That refusal is correct and is the trigger owning the
+  -- rule, exactly as contract 174's approval path intends — but it made this
+  -- suite assert against its own bad fixture instead of against the feature.
+  (md5('cp-t5')::uuid, current_setting('test.cp_season')::uuid, 'CP Wanderers'),
+  (md5('cp-t6')::uuid, current_setting('test.cp_season')::uuid, 'CP Albion');
 
 -- The provider identity map, so the mapping-gap gate is satisfied by real rows
 -- rather than by the test asserting against its own stub.
@@ -45,7 +53,9 @@ values
   (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-1', null, md5('cp-t1')::uuid, 'c174-suite'),
   (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-2', null, md5('cp-t2')::uuid, 'c174-suite'),
   (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-3', null, md5('cp-t3')::uuid, 'c174-suite'),
-  (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-4', null, md5('cp-t4')::uuid, 'c174-suite');
+  (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-4', null, md5('cp-t4')::uuid, 'c174-suite'),
+  (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-5', null, md5('cp-t5')::uuid, 'c174-suite'),
+  (current_setting('test.cp_season')::uuid, 'sportmonks', 'team', 'CP-6', null, md5('cp-t6')::uuid, 'c174-suite');
 
 -- The status token this suite uses, inserted rather than assumed.
 --
@@ -77,9 +87,9 @@ select set_config('test.cp_payload', jsonb_build_array(
     'status','CP-CANCL','homeTeamName','CP Rovers','awayTeamName','CP United'),
   -- one we have never heard of
   jsonb_build_object(
-    'roundProviderId','CP-R5','homeTeamProviderId','CP-3','awayTeamProviderId','CP-1',
+    'roundProviderId','CP-R5','homeTeamProviderId','CP-5','awayTeamProviderId','CP-6',
     'kickoffAt', (now() + interval '5 days')::text, 'providerFixtureId','CP-P9',
-    'status','NS','homeTeamName','CP City','awayTeamName','CP Rovers')
+    'status','NS','homeTeamName','CP Wanderers','awayTeamName','CP Albion')
 )::text, true);
 
 -- ---------------------------------------------------------------------------
