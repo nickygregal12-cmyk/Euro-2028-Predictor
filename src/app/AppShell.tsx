@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import { AppBar, PageShell, SideRail, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
@@ -18,6 +18,7 @@ import { useRailCollapsed } from './useRailCollapsed'
 // only needed once somebody opens it, and statically importing them put the
 // entry chunk over its compressed budget.
 import { outstandingCount } from './outstandingCount'
+import { applyAppBadge } from './appBadge'
 import { useGlobalPlayInbox } from '../features/hub/useGlobalPlayInbox'
 
 const ActionCentre = lazy(() =>
@@ -101,6 +102,17 @@ function SignedInFrame() {
   const { status: inboxStatus, inbox } = useGlobalPlayInbox(player)
   const [actionsOpen, setActionsOpen] = useState(false)
 
+  // INNOV-023. The installed app's icon carries the SAME number the AppBar
+  // shows, from the same inbox — never a second count — and does nothing at all
+  // where the platform has no Badging API. It is deliberately not applied while
+  // the inbox is still loading: badging zero and then three reads as work
+  // appearing out of nowhere.
+  const outstanding = outstandingCount(inbox)
+  useEffect(() => {
+    if (inboxStatus !== 'ready') return
+    applyAppBadge(outstanding)
+  }, [inboxStatus, outstanding])
+
   return (
     <PageShell
       active={tab}
@@ -123,7 +135,7 @@ function SignedInFrame() {
           displayName={displayName}
           onOpenProfile={() => navigate('/profile')}
           actions={{
-            outstanding: outstandingCount(inbox),
+            outstanding,
             onOpen: () => setActionsOpen(true),
           }}
         />

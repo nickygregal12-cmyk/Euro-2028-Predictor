@@ -122,3 +122,34 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* INNOV-011 — where the player sits in the distribution above. Banded by a
+   word as well as an accent, so the strongest state is not colour alone. */
+.divergence {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: var(--bar-w) solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--surface-sunken);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.divergence[data-band='against_the_field'] {
+  border-left-color: var(--acc);
+}
+
+.divergenceTag {
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.divergenceDetail {
+  color: var(--tx3);
+}

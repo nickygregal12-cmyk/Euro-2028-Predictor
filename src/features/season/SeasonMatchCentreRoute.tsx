@@ -17,10 +17,23 @@ import { fetchSeasonLeaveEligibility } from '../../services/supabase/gameLeaveEl
 import { fetchSeasonConsensus } from '../../services/supabase/seasonConsensus'
 import { SeasonFixtureConsensus } from './SeasonFixtureConsensus'
 import { createSeasonLmsRpcGateway } from '../../services/supabase/seasonLms'
+import { fetchSeasonLeagueStandingsPage } from '../../services/supabase/seasonLeagueStandings'
+import type { SeasonConsensus } from '../../services/supabase/seasonConsensusModel'
+import type { SeasonListFixture } from '../../services/supabase/seasonFixtureListModel'
 import { presentFixture, type FixtureListRow } from './fixtureListModel'
 import { seasonEntryStanding } from './seasonEntryStanding'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
-import { SeasonMatchCentre, type SeasonFootballContext } from './SeasonMatchCentre'
+import { SeasonMatchCentreView, type SeasonFootballContext } from './SeasonMatchCentre'
+import { SeasonMatchWhatIf } from './SeasonMatchWhatIf'
+import type { WhatIfInput } from './whatIfModel'
+import {
+  useSeasonLeagueMatchweekPages,
+  type SeasonLeagueMatchweekPages,
+} from './useSeasonLeagueMatchweek'
+import {
+  useSeasonMatchCentre,
+  type SeasonMatchCentreCardReader,
+} from './useSeasonMatchCentre'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
 import {
   competitionMatchPredictorRoute,
@@ -96,11 +109,21 @@ export function SeasonMatchCentreRoute() {
    */
   const [fixture, setFixture] = useState<FixtureListRow | null | 'missing'>(null)
   const [roundId, setRoundId] = useState<string | null>(null)
+  /**
+   * The fixture as the server sent it, kept beside the presented row.
+   *
+   * WHY BOTH. `FixtureListRow` formats a provisional score as "1 - 1" for
+   * display, and the `INNOV-001` projection needs the goals as numbers to score
+   * the branch after the next one. Re-parsing the string would be a second
+   * decoder over data this component already has.
+   */
+  const [rawFixture, setRawFixture] = useState<SeasonListFixture | null>(null)
   useEffect(() => {
     if (!fixtureId) return
     let active = true
     setFixture(null)
     setRoundId(null)
+    setRawFixture(null)
     fetchSeasonFixture(fixtureId)
       .then((answer) => {
         if (!active) return
@@ -109,13 +132,17 @@ export function SeasonMatchCentreRoute() {
           return
         }
         setFixture(presentFixture(answer.fixture).row)
+        setRawFixture(answer.fixture)
         setRoundId(answer.fixture.round.id)
       })
       .catch(() => {
         // The server refuses a fixture that does not exist and one that belongs
         // to the tournament shape. Both are "we cannot open this match", which
         // is a different sentence from the window message this replaced.
-        if (active) setFixture('missing')
+        if (active) {
+          setFixture('missing')
+          setRawFixture(null)
+        }
       })
     return () => {
       active = false
@@ -287,42 +314,206 @@ export function SeasonMatchCentreRoute() {
             <Link to={matchesHref}>Open the fixture list</Link>
           </div>
         </Alert>
+      ) : readCard === null ? (
+        <div aria-busy="true">
+          <Skeleton height={260} radius="card" />
+        </div>
       ) : (
-        <Workspace
-          asideLabel="What this match means for you"
-          aside={
-            <>
-              {/* Your leagues, then Everyone. Named and private above
-                  anonymous and platform-wide: the people a player actually
-                  plays with are the ones they came to compare themselves
-                  against, and the two must never read as one section. */}
-              <SeasonFixtureLeagues
-                fixtureId={fixture.id}
-                competitionRoundId={roundId}
-                leagues={leagues}
-                loadPredictions={fetchSeasonLeagueMatchweekPredictions}
-                loadMovement={fetchSeasonLeagueMovement}
-                playerHref={playerHref}
-              />
-              {consensusLoad ? (
-                <SeasonFixtureConsensus
-                  matchweek={fixture.round.ordinal}
-                  fixtureId={fixture.id}
-                  load={consensusLoad}
-                />
-              ) : null}
-            </>
-          }
-        >
-          <h1 className={styles.srOnly}>{fixture.accessibleSummary}</h1>
-          <SeasonMatchCentre
-            fixture={fixture}
-            read={readCard as NonNullable<typeof readCard>}
-            football={football}
-            predictHref={predictHref}
-          />
-        </Workspace>
+        <MatchCentreComposition
+          fixture={fixture}
+          rawFixture={rawFixture}
+          roundId={roundId}
+          readCard={readCard}
+          football={football}
+          leagues={leagues}
+          consensusLoad={consensusLoad}
+          playerHref={playerHref}
+          predictHref={predictHref}
+        />
       )}
     </SeasonCompetitionShell>
   )
+}
+
+/**
+ * The page's own composition, once the fixture and the card reader exist.
+ *
+ * WHY IT IS A COMPONENT AND NOT MORE OF THE ROUTE. Three surfaces on this page
+ * need the player's own prediction as numbers — the panel, the `INNOV-001`
+ * projection and the `INNOV-011` divergence line — and hooks cannot be called
+ * conditionally, so the read has to happen where the fixture is known to exist.
+ * Splitting here means ONE card read and one league-predictions read serving all
+ * of them, rather than each surface asking again.
+ */
+function MatchCentreComposition({
+  fixture,
+  rawFixture,
+  roundId,
+  readCard,
+  football,
+  leagues,
+  consensusLoad,
+  playerHref,
+  predictHref,
+}: {
+  fixture: FixtureListRow
+  rawFixture: SeasonListFixture | null
+  roundId: string | null
+  readCard: SeasonMatchCentreCardReader
+  football: SeasonFootballContext | undefined
+  leagues: readonly { id: string; name: string }[]
+  consensusLoad: ((matchweek: number) => Promise<SeasonConsensus>) | null
+  playerHref: (playerId: string) => string
+  predictHref?: (matchweek: number) => string
+}) {
+  const card = useSeasonMatchCentre(readCard, fixture)
+  const pages = useSeasonLeagueMatchweekPages(
+    leagues,
+    roundId,
+    fetchSeasonLeagueMatchweekPredictions,
+  )
+
+  // The player's own prediction, as numbers. Absent while the card is loading,
+  // for a non-entrant, and for a fixture they left blank — all three are
+  // ordinary, and every consumer below treats them the same way.
+  const prediction =
+    card.status === 'ready'
+      ? (card.card.fixtures.find((entry) => entry.fixtureId === fixture.id)?.prediction ?? null)
+      : null
+
+  const whatIf = useSeasonWhatIfInput({ fixture, rawFixture, prediction, leagues, pages })
+
+  return (
+    <Workspace
+      asideLabel="What this match means for you"
+      aside={
+        <>
+          {/* Your leagues, then Everyone. Named and private above anonymous and
+              platform-wide: the people a player actually plays with are the ones
+              they came to compare themselves against, and the two must never
+              read as one section. */}
+          <SeasonFixtureLeagues
+            fixtureId={fixture.id}
+            competitionRoundId={roundId}
+            leagues={leagues}
+            pages={pages}
+            loadMovement={fetchSeasonLeagueMovement}
+            playerHref={playerHref}
+          />
+          {consensusLoad ? (
+            <SeasonFixtureConsensus
+              matchweek={fixture.round.ordinal}
+              fixtureId={fixture.id}
+              load={consensusLoad}
+              prediction={prediction}
+            />
+          ) : null}
+        </>
+      }
+    >
+      <h1 className={styles.srOnly}>{fixture.accessibleSummary}</h1>
+      <SeasonMatchCentreView
+        fixture={fixture}
+        state={card}
+        football={football}
+        predictHref={predictHref}
+      />
+      {/* INNOV-001, below the player's own confirmed side of the match and
+          never above it. A projection must not be the first number on a page
+          that also carries real ones; it renders nothing at all unless the
+          fixture is unsettled and a provider is reporting a score. */}
+      {whatIf ? <SeasonMatchWhatIf input={whatIf} /> : null}
+    </Workspace>
+  )
+}
+
+/**
+ * The projection's input, assembled from what this page already read.
+ *
+ * IT ADDS ONE REQUEST AND ONLY WHEN IT WOULD CHANGE THE ANSWER: the league
+ * table (contract 128) is fetched for the FIRST league only, and only once a
+ * live, unsettled fixture with a revealed matchweek actually exists. Without it
+ * the projection still runs and reports matchweek points; it just cannot place
+ * the player in a table, and says so rather than guessing.
+ */
+function useSeasonWhatIfInput({
+  fixture,
+  rawFixture,
+  prediction,
+  leagues,
+  pages,
+}: {
+  fixture: FixtureListRow
+  rawFixture: SeasonListFixture | null
+  prediction: { home: number; away: number } | null
+  leagues: readonly { id: string; name: string }[]
+  pages: SeasonLeagueMatchweekPages
+}): WhatIfInput | null {
+  const live =
+    rawFixture?.live && rawFixture.live.home !== null && rawFixture.live.away !== null
+      ? { home: rawFixture.live.home, away: rawFixture.live.away }
+      : null
+  const result = rawFixture?.result ?? null
+  const projectable = result === null && live !== null
+
+  // The first league only. A player in five leagues must not make one live
+  // fixture issue five table reads, and the projection answers the same
+  // question in each of them.
+  const first = leagues[0] ?? null
+  const firstPage = first ? pages[first.id] : undefined
+  const revealed =
+    firstPage?.kind === 'ready' && firstPage.page.revealed ? firstPage.page : null
+  const settled = revealed?.members.some((member) => member.points !== null) ?? false
+  const leagueId = projectable && revealed && !settled ? (first?.id ?? null) : null
+
+  const [banked, setBanked] = useState<Record<string, number> | null>(null)
+  useEffect(() => {
+    if (!leagueId) {
+      setBanked(null)
+      return
+    }
+    let active = true
+    fetchSeasonLeagueStandingsPage(leagueId).then(
+      (page) => {
+        if (!active) return
+        setBanked(Object.fromEntries(page.rows.map((row) => [row.userId, row.points])))
+      },
+      () => {
+        // Absent rather than zero. A member missing from this map projects a
+        // matchweek figure and no rank, which is the honest smaller answer.
+        if (active) setBanked(null)
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [leagueId])
+
+  if (!projectable || !live) return null
+
+  return {
+    fixtureId: fixture.id,
+    homeName: fixture.home.name,
+    awayName: fixture.away.name,
+    prediction,
+    result,
+    live,
+    league:
+      revealed && !settled && first
+        ? {
+            leagueName: first.name,
+            memberCount: revealed.memberCount,
+            members: revealed.members.map((member) => ({
+              userId: member.userId,
+              displayName: member.displayName,
+              isSelf: member.isSelf,
+              jokerPlayed: member.jokerPlayed,
+              predictions: member.predictions,
+              points: member.points,
+            })),
+            fixtures: revealed.fixtures.map((entry) => ({ id: entry.id, result: entry.result })),
+            ...(banked ? { seasonPointsBefore: banked } : {}),
+          }
+        : null,
+  }
 }

@@ -4,6 +4,7 @@ import { Skeleton } from '../../design-system'
 import { ordinal } from '../league/ordinal'
 import type { SeasonLeagueMatchweekPredictions } from '../../services/supabase/seasonLeaguePredictions'
 import type { SeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovement'
+import type { SeasonLeagueMatchweekPages } from './useSeasonLeagueMatchweek'
 import {
   presentLeagueFixture,
   presentLeagueMovement,
@@ -51,13 +52,32 @@ export type SeasonFixtureLeaguesLeague = {
   name: string
 }
 
+/**
+ * Neither `pages` nor `loadPredictions` was given. A caller must supply one;
+ * failing here renders this league's "could not be loaded" state rather than
+ * silently showing an empty league, which would read as "nobody predicted".
+ */
+function rejectMissingReader(): Promise<never> {
+  return Promise.reject(new Error('SeasonFixtureLeagues needs pages or loadPredictions.'))
+}
+
 export type SeasonFixtureLeaguesProps = {
   fixtureId: string
   /** The matchweek this fixture belongs to, as a competition round id. */
   competitionRoundId: string | null
   /** The caller's private leagues in this season's Match Predictor. */
   leagues: readonly SeasonFixtureLeaguesLeague[]
-  loadPredictions: (
+  /**
+   * Contract 149's payload per league, already read by the page.
+   *
+   * SUPPLIED RATHER THAN FETCHED because the `INNOV-001` projection needs the
+   * same payload, and two components reading it separately would issue the same
+   * RPC twice per league and could disagree about the reveal if one failed.
+   * Omitted, this component reads for itself — which is what the component
+   * gallery does, and what the panel did before the projection existed.
+   */
+  pages?: SeasonLeagueMatchweekPages
+  loadPredictions?: (
     leagueId: string,
     competitionRoundId: string,
   ) => Promise<SeasonLeagueMatchweekPredictions>
@@ -78,6 +98,7 @@ export function SeasonFixtureLeagues({
   fixtureId,
   competitionRoundId,
   leagues,
+  pages,
   loadPredictions,
   loadMovement,
   playerHref,
@@ -95,7 +116,15 @@ export function SeasonFixtureLeagues({
         try {
           // Each league fails alone. One unreadable league must not take the
           // section down for the others.
-          const page = await loadPredictions(league.id, competitionRoundId)
+          const supplied = pages?.[league.id]
+          if (supplied && supplied.kind !== 'ready') {
+            if (!active) return
+            setStates((current) => ({ ...current, [league.id]: supplied }))
+            return
+          }
+          const page = supplied
+            ? supplied.page
+            : await (loadPredictions ?? rejectMissingReader)(league.id, competitionRoundId)
           // Movement is asked for only once the predictions have revealed:
           // before the lock there is nothing settled to have moved, and asking
           // is a request that can only answer "no".
@@ -121,7 +150,7 @@ export function SeasonFixtureLeagues({
     return () => {
       active = false
     }
-  }, [fixtureId, competitionRoundId, leagues, loadPredictions, loadMovement])
+  }, [fixtureId, competitionRoundId, leagues, pages, loadPredictions, loadMovement])
 
   // A player in no private league has no league section, rather than an empty
   // one telling them about a feature they have not used.

@@ -19,6 +19,7 @@ import type { LmsRoundPage } from './lmsRoundModel'
 import {
   useSeasonMatchCentre,
   type SeasonMatchCentreCardReader,
+  type SeasonMatchCentreState,
 } from './useSeasonMatchCentre'
 import styles from './SeasonMatchCentre.module.css'
 
@@ -172,6 +173,37 @@ export function SeasonMatchCentre({
   predictHref,
 }: SeasonMatchCentreProps) {
   const state = useSeasonMatchCentre(read, fixture)
+  return (
+    <SeasonMatchCentreView
+      fixture={fixture}
+      state={state}
+      football={football}
+      predictHref={predictHref}
+    />
+  )
+}
+
+/**
+ * The same panel, rendered from a state the caller already holds.
+ *
+ * WHY IT IS SEPARATE. The Match Centre PAGE needs the card for more than this
+ * panel — the `INNOV-001` projection and the `INNOV-011` divergence line both
+ * compare the player's own prediction with something else on the page — so the
+ * page reads it once and renders this. The fixture LIST still uses the loading
+ * component above, because there the card is genuinely per-opened-fixture.
+ *
+ * One panel, two ways in, and no second read.
+ */
+export type SeasonMatchCentreViewProps = Omit<SeasonMatchCentreProps, 'read'> & {
+  state: SeasonMatchCentreState & { reload: () => void }
+}
+
+export function SeasonMatchCentreView({
+  fixture,
+  state,
+  football,
+  predictHref,
+}: SeasonMatchCentreViewProps) {
   const homeForm = summariseClubForm(football?.formFor?.(fixture.home.name) ?? null)
   const awayForm = summariseClubForm(football?.formFor?.(fixture.away.name) ?? null)
   const headToHead = useHeadToHead(football, fixture.home.name, fixture.away.name)

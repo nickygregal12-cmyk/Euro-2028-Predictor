@@ -16,6 +16,8 @@ import {
   type CombinedFixtureSource,
 } from './combinedFixturesModel'
 import { presentSinceLastVisit } from './sinceLastVisitModel'
+import { BriefingPanel } from './BriefingPanel'
+import type { BriefingInput, BriefingStanding } from './briefingModel'
 import { useMatchweekRecap } from './useMatchweekRecap'
 import { useRivalWatch } from './useRivalWatch'
 import { RivalWatchCard } from './RivalWatchCard'
@@ -102,7 +104,10 @@ function FixtureRow({ row, href }: { row: CombinedFixtureRow; href: string | nul
     </>
   )
   return href ? (
-    <Link className={h.fixture} to={href}>
+    // INNOV-024: a fixture card opening into its Match Centre is one of the four
+    // transitions the direction names. Opt-in per link, never page-wide, and
+    // suppressed entirely under prefers-reduced-motion.
+    <Link className={h.fixture} to={href} viewTransition>
       {body}
     </Link>
   ) : (
@@ -244,6 +249,51 @@ export function HubPage() {
   const primary = outstanding[0] ?? null
   const secondary = outstanding.slice(1, 3)
 
+  /**
+   * INNOV-016. Assembled from what this page has already read — the action
+   * inbox, today's fixtures and whichever standing is available — and adding no
+   * request of its own. Where the two standings disagree in scope the LEAGUE one
+   * wins: it is the table a player checks, and it carries a named rival.
+   */
+  const rival = rivalWatch.watch?.pinned[0] ?? null
+  const firstRecap = recap.recaps[0] ?? null
+  const briefingStanding: BriefingStanding | null =
+    rival && rivalWatch.leagueName
+      ? {
+          where: rivalWatch.leagueName,
+          position: rival.yourRank,
+          // A league comparison carries no field size, and inventing one from
+          // the season's would name a different table.
+          fieldSize: null,
+          rivalName: rival.displayName,
+          // Only when they are actually ahead. "0 points behind" for somebody
+          // the player leads is a sentence that reads as bad news.
+          pointsBehind: rival.pointsDifference < 0 ? Math.abs(rival.pointsDifference) : null,
+        }
+      : firstRecap && firstRecap.seasonRank !== null && firstRecap.fieldSize !== null
+        ? {
+            where: firstRecap.competitionName,
+            position: firstRecap.seasonRank,
+            fieldSize: firstRecap.fieldSize,
+            rivalName: null,
+            pointsBehind: null,
+          }
+        : null
+
+  const todayRows = football?.days.flatMap((day) => day.rows) ?? []
+  const briefing: BriefingInput = {
+    now: new Date(),
+    fixturesToday: todayRows.length,
+    competitionsWithFixturesToday: new Set(todayRows.map((row) => row.competitionKey)).size,
+    outstanding: outstanding.map((action) => ({
+      competitionName: action.competitionName,
+      gameName: action.gameName,
+      title: action.title,
+      locksAt: action.locksAt,
+    })),
+    standing: briefingStanding,
+  }
+
   const aside = (
     <>
       <section className={h.panel} aria-labelledby="hub-today">
@@ -301,6 +351,11 @@ export function HubPage() {
     <div className={s.page}>
       <Workspace aside={aside} asideLabel="Football and competitions">
         <h1 className={s.title}>Home</h1>
+
+        {/* INNOV-016, above everything and replacing nothing: the sentence that
+            tells a player whether they need to read the rest. It renders
+            nothing at all on a quiet day. */}
+        <BriefingPanel input={briefing} />
 
         <section className={h.section} aria-labelledby="hub-next">
           <h2 className={h.sectionTitle} id="hub-next">
