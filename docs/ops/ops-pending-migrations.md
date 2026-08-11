@@ -6,6 +6,41 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (twenty-eighth entry)
+
+**Development is at contract 168. Production remains at 158.**
+
+**This entry records an OBSERVATION, not a rollout this session ran.** The twenty-seventh entry
+below said Development and Production both remained at 158 with no rollout claimed for contracts
+159 to 168, which was true when it was written. A read-only migration-ledger query against
+`iouzoutneyjpugbbtdem`, taken while consuming those contracts from the frontend, returned **168
+rows ending `20260811190000_season_admin_inspection`** — so all ten are applied to Development.
+Whoever ran that rollout did not update the machine record, and this session found the disagreement
+by checking the target rather than the file.
+
+| Fact | Value |
+| --- | --- |
+| Method | `list_migrations`, read-only. No DDL and no DML was issued by this session. |
+| Observed | 168 rows, ending `20260811190000_season_admin_inspection`. |
+| Machine record before | `config/development-hosted-contract.json` said 158. Corrected in the same change. |
+| Production | Unchanged at 158. Nothing here reads or writes it. |
+
+**What is NOT verified, stated because the ledger is the weakest evidence this inventory accepts.**
+Earlier entries for 152 to 158 confirm a rollout by *driving the contract on the target* — grants
+asserted, refusals exercised, function shapes read back. None of that was done for 159 to 168. The
+migrations are present; whether each new function carries the grants and refusals its migration
+intends is **unconfirmed**, and the per-contract verification those entries model is still owed.
+
+`database.types.ts` was regenerated from this Development schema in the same change, which is what
+lets the browser call the new reads at all — the typed client refuses a function the generated
+types do not carry, and that ordering is deliberate.
+
+| Target | Contract | Evidence | Position |
+| --- | --- | --- | --- |
+| Repository candidate | **168** | 168 canonical migrations through `20260811190000_season_admin_inspection.sql`. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Read-only migration-ledger query returning 168 rows ending `20260811190000_season_admin_inspection`. Ledger only; the contract was not driven on the target. | LEVEL |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged; contracts 159 to 168 are not promoted and no promotion is claimed. | TEN BEHIND |
+
 ## Current state — 11 August 2026 (twenty-seventh entry)
 
 **The repository is at contract 168. Development and Production both remain at 158.** Contracts 159 to 168 are repository candidates and **no rollout is claimed for any of them**. All ten are additive.

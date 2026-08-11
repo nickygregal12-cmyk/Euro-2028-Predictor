@@ -2053,6 +2053,93 @@ export type Database = {
           },
         ]
       }
+      player_action_items: {
+        Row: {
+          action_key: string
+          action_type: string
+          competition_id: string | null
+          completed_at: string | null
+          context: Json
+          deadline_at: string | null
+          expires_at: string | null
+          generated_at: string
+          invalidated_at: string | null
+          priority: number
+          tournament_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_key: string
+          action_type: string
+          competition_id?: string | null
+          completed_at?: string | null
+          context?: Json
+          deadline_at?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          invalidated_at?: string | null
+          priority: number
+          tournament_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_key?: string
+          action_type?: string
+          competition_id?: string | null
+          completed_at?: string | null
+          context?: Json
+          deadline_at?: string | null
+          expires_at?: string | null
+          generated_at?: string
+          invalidated_at?: string | null
+          priority?: number
+          tournament_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_action_items_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "bonus_competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "player_action_items_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      player_action_state: {
+        Row: {
+          action_key: string
+          dismissed_at: string | null
+          seen_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_key: string
+          dismissed_at?: string | null
+          seen_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_key?: string
+          dismissed_at?: string | null
+          seen_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       players: {
         Row: {
           created_at: string
@@ -2512,6 +2599,63 @@ export type Database = {
         }
         Relationships: []
       }
+      reminder_deliveries: {
+        Row: {
+          action_key: string
+          attempts: number
+          created_at: string
+          deadline_at: string
+          dry_run: boolean
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          next_attempt_at: string | null
+          provider: string | null
+          provider_message_id: string | null
+          reminder_kind: string
+          scheduled_for: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_key: string
+          attempts?: number
+          created_at?: string
+          deadline_at: string
+          dry_run?: boolean
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          next_attempt_at?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          reminder_kind?: string
+          scheduled_for: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_key?: string
+          attempts?: number
+          created_at?: string
+          deadline_at?: string
+          dry_run?: boolean
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          next_attempt_at?: string | null
+          provider?: string | null
+          provider_message_id?: string | null
+          reminder_kind?: string
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       score_events: {
         Row: {
           calculation_version: number
@@ -2633,6 +2777,51 @@ export type Database = {
             columns: ["window_id"]
             isOneToOne: false
             referencedRelation: "bonus_competition_windows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      season_fixture_awards: {
+        Row: {
+          away_goals: number
+          decided_by: string | null
+          home_goals: number
+          reason: string
+          recorded_at: string
+          season_fixture_id: string
+          tournament_id: string
+        }
+        Insert: {
+          away_goals: number
+          decided_by?: string | null
+          home_goals: number
+          reason: string
+          recorded_at?: string
+          season_fixture_id: string
+          tournament_id: string
+        }
+        Update: {
+          away_goals?: number
+          decided_by?: string | null
+          home_goals?: number
+          reason?: string
+          recorded_at?: string
+          season_fixture_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_fixture_awards_season_fixture_id_fkey"
+            columns: ["season_fixture_id"]
+            isOneToOne: true
+            referencedRelation: "season_fixtures"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "season_fixture_awards_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: false
+            referencedRelation: "tournaments"
             referencedColumns: ["id"]
           },
         ]
@@ -3027,6 +3216,91 @@ export type Database = {
           },
         ]
       }
+      season_table_adjustments: {
+        Row: {
+          decided_by: string | null
+          effective_from: string
+          id: string
+          points_delta: number
+          reason: string
+          recorded_at: string
+          team_id: string
+          tournament_id: string
+        }
+        Insert: {
+          decided_by?: string | null
+          effective_from?: string
+          id?: string
+          points_delta: number
+          reason: string
+          recorded_at?: string
+          team_id: string
+          tournament_id: string
+        }
+        Update: {
+          decided_by?: string | null
+          effective_from?: string
+          id?: string
+          points_delta?: number
+          reason?: string
+          recorded_at?: string
+          team_id?: string
+          tournament_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_table_adjustments_team_fkey"
+            columns: ["tournament_id", "team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["tournament_id", "id"]
+          },
+        ]
+      }
+      season_table_rules: {
+        Row: {
+          playoff_places: number
+          points_draw: number
+          points_loss: number
+          points_win: number
+          promotion_places: number
+          relegation_places: number
+          tie_breakers: string[]
+          tournament_id: string
+          updated_at: string
+        }
+        Insert: {
+          playoff_places?: number
+          points_draw?: number
+          points_loss?: number
+          points_win?: number
+          promotion_places?: number
+          relegation_places?: number
+          tie_breakers?: string[]
+          tournament_id: string
+          updated_at?: string
+        }
+        Update: {
+          playoff_places?: number
+          points_draw?: number
+          points_loss?: number
+          points_win?: number
+          promotion_places?: number
+          relegation_places?: number
+          tie_breakers?: string[]
+          tournament_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "season_table_rules_tournament_id_fkey"
+            columns: ["tournament_id"]
+            isOneToOne: true
+            referencedRelation: "tournaments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       season_wrapped: {
         Row: {
           best_matchweek_ordinal: number | null
@@ -3241,6 +3515,15 @@ export type Database = {
         Args: { p_provider: string; p_reason: string; p_tournament_id: string }
         Returns: Json
       }
+      admin_award_fixture_outcome: {
+        Args: {
+          p_away_goals: number
+          p_home_goals: number
+          p_reason: string
+          p_season_fixture_id: string
+        }
+        Returns: Json
+      }
       admin_clear_actual_third_place_tie: {
         Args: { p_reason: string; p_tournament_id: string }
         Returns: Json
@@ -3251,6 +3534,10 @@ export type Database = {
       }
       admin_clear_season_fixture_result: {
         Args: { p_reason: string; p_season_fixture_id: string }
+        Returns: Json
+      }
+      admin_competition_entrants: {
+        Args: { p_competition_id: string; p_limit?: number; p_offset?: number }
         Returns: Json
       }
       admin_confirm_match_result: {
@@ -3315,6 +3602,10 @@ export type Database = {
         Args: { p_competition_id: string }
         Returns: Json
       }
+      admin_launch_cup_group_stage: {
+        Args: { p_competition_id: string }
+        Returns: Json
+      }
       admin_match_result_revisions: {
         Args: { p_match_id: string }
         Returns: {
@@ -3331,6 +3622,25 @@ export type Database = {
         Args: { p_competition_id: string }
         Returns: Json
       }
+      admin_provider_proposal_detail: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_provider?: string
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
+      admin_record_table_adjustment: {
+        Args: {
+          p_effective_from?: string
+          p_points_delta: number
+          p_reason: string
+          p_team_id: string
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
       admin_reject_initial_provider_fixtures: {
         Args: { p_provider: string; p_reason: string; p_tournament_id: string }
         Returns: Json
@@ -3339,6 +3649,19 @@ export type Database = {
         Args: {
           p_ordered_team_ids: string[]
           p_reason: string
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
+      admin_set_competition_table_rules: {
+        Args: {
+          p_playoff_places: number
+          p_points_draw: number
+          p_points_loss: number
+          p_points_win: number
+          p_promotion_places: number
+          p_relegation_places: number
+          p_tie_breakers: string[]
           p_tournament_id: string
         }
         Returns: Json
@@ -3373,6 +3696,19 @@ export type Database = {
       capture_rank_history: {
         Args: { p_tournament_id: string }
         Returns: undefined
+      }
+      claim_due_reminders: {
+        Args: { p_dry_run?: boolean; p_limit?: number }
+        Returns: {
+          action_key: string
+          attempts: number
+          deadline_at: string
+          dry_run: boolean
+          email: string
+          id: string
+          reminder_kind: string
+          user_id: string
+        }[]
       }
       clear_match_result: {
         Args: { p_match_id: string; p_reason: string }
@@ -3455,6 +3791,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      dismiss_action: { Args: { p_action_key: string }; Returns: Json }
       dispatch_due_provider_polls: { Args: { p_now?: string }; Returns: Json }
       enforce_rate_limit: {
         Args: { p_action: string; p_max_per_min: number }
@@ -3470,6 +3807,10 @@ export type Database = {
       gen_invite_code: { Args: never; Returns: string }
       get_bonus_games: { Args: { p_tournament_id: string }; Returns: Json }
       get_competition_games: {
+        Args: { p_tournament_id: string }
+        Returns: Json
+      }
+      get_competition_table: {
         Args: { p_tournament_id: string }
         Returns: Json
       }
@@ -3516,15 +3857,16 @@ export type Database = {
       get_league_preview: {
         Args: { p_code: string }
         Returns: {
-          id: string
           is_member: boolean
-          member_count: number
           name: string
-          owner_name: string
         }[]
       }
       get_match_prediction_distribution: {
         Args: { p_match_id: string }
+        Returns: Json
+      }
+      get_my_actions: {
+        Args: { p_include_dismissed?: boolean; p_limit?: number }
         Returns: Json
       }
       get_my_cup: { Args: { p_tournament_id: string }; Returns: Json }
@@ -3557,9 +3899,21 @@ export type Database = {
         }[]
       }
       get_my_lms: { Args: { p_tournament_id: string }; Returns: Json }
+      get_my_organised_competition: {
+        Args: { p_competition_id: string }
+        Returns: Json
+      }
+      get_my_organised_competitions: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       get_my_preferences: { Args: never; Returns: Json }
       get_my_season_cup_instances: {
         Args: { p_tournament_id: string }
+        Returns: Json
+      }
+      get_my_season_history: {
+        Args: { p_limit?: number; p_offset?: number }
         Returns: Json
       }
       get_player_profile: {
@@ -3602,6 +3956,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_season_cup_group_stage: {
+        Args: { p_competition_id: string; p_group_ordinal?: number }
+        Returns: Json
+      }
       get_season_cup_phase: {
         Args: { p_competition_id: string }
         Returns: Json
@@ -3640,6 +3998,10 @@ export type Database = {
       }
       get_season_league_standings: {
         Args: { p_after?: string; p_league_id: string; p_limit?: number }
+        Returns: Json
+      }
+      get_season_lms_field: {
+        Args: { p_tournament_id: string; p_window_sequence?: number }
         Returns: Json
       }
       get_season_lms_round: { Args: { p_tournament_id: string }; Returns: Json }
@@ -3699,6 +4061,7 @@ export type Database = {
         Returns: Json
       }
       leave_league: { Args: { p_league_id: string }; Returns: undefined }
+      mark_actions_seen: { Args: { p_action_keys: string[] }; Returns: Json }
       process_due_entry_submissions: { Args: { p_now?: string }; Returns: Json }
       process_due_lms_restarts: { Args: { p_now?: string }; Returns: Json }
       process_due_season_lms_settlements: {
@@ -3708,6 +4071,15 @@ export type Database = {
       process_due_season_matchweek_scores: { Args: never; Returns: Json }
       process_due_season_matchweek_submissions: {
         Args: { p_now?: string }
+        Returns: Json
+      }
+      process_player_action_items: { Args: never; Returns: Json }
+      process_reminder_schedule: {
+        Args: { p_dry_run?: boolean; p_lead?: string }
+        Returns: Json
+      }
+      reclaim_stalled_reminders: {
+        Args: { p_stale_after?: string }
         Returns: Json
       }
       recompute_all_scores: { Args: never; Returns: undefined }
@@ -3727,6 +4099,16 @@ export type Database = {
         }
         Returns: string
       }
+      record_reminder_result: {
+        Args: {
+          p_error?: string
+          p_id: string
+          p_provider?: string
+          p_provider_message_id?: string
+          p_sent: boolean
+        }
+        Returns: Json
+      }
       register_bonus_competition: {
         Args: { p_competition_id: string }
         Returns: Json
@@ -3740,6 +4122,10 @@ export type Database = {
         }[]
       }
       resolve_invite_code: { Args: { p_code: string }; Returns: Json }
+      rotate_league_invite_code: {
+        Args: { p_league_id: string }
+        Returns: string
+      }
       save_knockout_prediction: {
         Args: {
           p_advancing_team_id: string
