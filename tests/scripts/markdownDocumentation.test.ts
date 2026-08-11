@@ -83,7 +83,7 @@ describe('Markdown documentation integrity', () => {
   })
 
   it('does not restore obsolete entry-test phase and batch references', () => {
-    const testScript = readFileSync(resolve(repositoryRoot, 'docs/test-script.md'), 'utf8')
+    const testScript = readFileSync(resolve(repositoryRoot, 'docs/quality/instruments/entry-flow-test-script.md'), 'utf8')
     const obsoleteReferences = [
       'Phase 2 exit gate',
       'UI/CRO audit follow-ups',

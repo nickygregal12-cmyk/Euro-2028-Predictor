@@ -3,11 +3,14 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import {
+  checkCoverage,
   checkFreshness,
   checkSweep,
+  classify,
   currentContract,
   loadManifest,
   namedContracts,
+  trackedMarkdown,
 } from '../../scripts/check-documentation-authorities.mjs'
 
 /**
@@ -54,6 +57,19 @@ describe('contract mentions are read the way they are written', () => {
   it('does not invent contracts from ordinary numbers', () => {
     expect(namedContracts('227 rows, 4014 characters, 30 minutes')).toEqual([])
     expect(namedContracts('ADR 0025 decision 1')).toEqual([])
+  })
+
+  it('does not read the front of a longer number as a contract', () => {
+    // Found by the coverage rule on its first run, in a document nothing was
+    // watching: a workflow run id inside a branch name read as "contract 314".
+    // A contract number is a whole number or it is not one.
+    expect(
+      namedContracts('branch automation/development-hosted-contract-31417611501 is ahead'),
+    ).toEqual([])
+    expect(namedContracts('contract 1570 does not exist')).toEqual([])
+    // And the ordinary forms still read exactly as before.
+    expect(namedContracts('contract-157 landed')).toEqual([157])
+    expect(namedContracts('Contracts 147–151 landed')).toEqual([147, 151])
   })
 })
 
@@ -152,15 +168,137 @@ describe('the sweep gate', () => {
   })
 })
 
+/**
+ * The coverage rule, added 11 August 2026.
+ *
+ * The freshness and sweep rules were sound and were working. They only ever
+ * applied to the documents someone had thought to list. Measured across the
+ * whole repository at contract 157: 238 tracked markdown files, 15 declared
+ * authorities, 122 declared evidence — and 101 governed by nothing, of which 51
+ * named contract numbers and the oldest named 35.
+ *
+ * An unlisted document looks exactly like a governed one to a reader, which is
+ * why the gap mattered more than its size suggests, and why the fix is a
+ * property rather than a longer list: there is no fourth state.
+ */
+describe('coverage', () => {
+  const files = trackedMarkdown()
+
+  it('leaves no tracked document governed by nothing', () => {
+    expect(checkCoverage(manifest, files)).toEqual([])
+  })
+
+  it('actually looked at the repository', () => {
+    // Guard the guard. If `git ls-files` stopped returning documents, the
+    // assertion above would pass by finding nothing at all.
+    expect(files.length).toBeGreaterThan(200)
+    expect(files).toContain('README.md')
+    expect(files).toContain('docs/adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md')
+  })
+
+  it('reports an unclassified file rather than ignoring it', () => {
+    const problems = checkCoverage(manifest, ['docs/something-nobody-listed.md'])
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('docs/something-nobody-listed.md')
+    expect(problems[0]).toContain('governed by nothing')
+  })
+
+  it('names a file over any directory it sits in', () => {
+    // docs/adr/ is a reference directory; the index inside it is separately
+    // live because each of its rows carries an implementation status.
+    expect(classify(manifest, 'docs/adr/README.md')).toMatchObject({
+      state: 'authority',
+      kind: 'live',
+    })
+    expect(classify(manifest, 'docs/adr/0011-multi-competition-platform.md')).toMatchObject({
+      state: 'authority',
+      kind: 'reference',
+    })
+  })
+
+  it('resolves a nested directory by the longer prefix, whichever list it came from', () => {
+    // This single precedence rule is what lets docs/ops/ be procedures while
+    // docs/ops/records/ inside it is evidence, with neither nesting written
+    // down as an exception.
+    expect(classify(manifest, 'docs/ops/ops-admin-bootstrap.md')).toMatchObject({
+      state: 'authority',
+      by: 'docs/ops/',
+    })
+    expect(classify(manifest, 'docs/ops/records/ops-prod-cutover.md')).toMatchObject({
+      state: 'evidence',
+      by: 'docs/ops/records/',
+    })
+    expect(classify(manifest, 'docs/quality/knip-baseline.md')).toMatchObject({
+      state: 'authority',
+      by: 'docs/quality/',
+    })
+    expect(classify(manifest, 'docs/quality/audits/2026-07-23-full-audit.md')).toMatchObject({
+      state: 'evidence',
+      by: 'docs/quality/audits/',
+    })
+  })
+
+  it('holds a reference document to the rule that cannot be innocent', () => {
+    // A reference names what BUILT the thing it describes, so it is never
+    // required to name the current contract — but citing one that has never
+    // existed is wrong on its face.
+    const one = { authorities: [{ path: 'docs/scoring-rules.md', kind: 'reference' }] }
+    expect(checkFreshness(one, currentContract())).toEqual([])
+    const problems = checkFreshness(one, 1)
+    expect(problems).toHaveLength(1)
+    expect(problems[0]).toContain('does not exist')
+  })
+
+  it('checks the documents that only a directory rule classifies', () => {
+    // Without the file list, freshness saw only what was listed individually —
+    // which is how a directory-classified document could name contract 999 and
+    // pass.
+    expect(checkFreshness(manifest, currentContract(), process.cwd(), files)).toEqual([])
+  })
+})
+
 describe('the manifest itself', () => {
   it('classifies every document that is allowed to name a contract', () => {
     for (const entry of manifest.authorities) {
-      expect(['live', 'dispositions', 'structural']).toContain(entry.kind)
+      expect(['live', 'dispositions', 'structural', 'reference']).toContain(entry.kind)
       expect(entry.why, `${entry.path} needs a reason`).toBeTruthy()
       expect(
         readFileSync(resolve(process.cwd(), entry.path), 'utf8').length,
       ).toBeGreaterThan(0)
     }
+  })
+
+  it('names each path once', () => {
+    // A path listed twice resolves by whichever entry `classify` reaches
+    // first, which makes the second one invisible and the manifest quietly
+    // ambiguous about what it decided. Promoting docs/design-system.md from
+    // reference to live left exactly that.
+    const paths = manifest.authorities.map((entry: { path: string }) => entry.path)
+    expect(paths).toEqual([...new Set(paths)])
+
+    const exempt = manifest.outOfScope.map((entry: { path: string }) => entry.path)
+    expect(exempt).toEqual([...new Set(exempt)])
+    expect(paths.filter((path: string) => exempt.includes(path))).toEqual([])
+  })
+
+  it('requires a reason from a directory rule and from an exemption too', () => {
+    // A manifest entry without a reason is how a control becomes a ritual, and
+    // that applies hardest to the entries that cover many files at once, or
+    // that take a file out of the system altogether.
+    for (const entry of manifest.authorityDirectories) {
+      expect(['live', 'dispositions', 'structural', 'reference']).toContain(entry.kind)
+      expect(entry.prefix.endsWith('/'), `${entry.prefix} must be a directory`).toBe(true)
+      expect(entry.why, `${entry.prefix} needs a reason`).toBeTruthy()
+    }
+    for (const entry of manifest.outOfScope) {
+      expect(entry.why, `${entry.path} needs a reason`).toBeTruthy()
+    }
+  })
+
+  it('keeps the exemptions few enough to read', () => {
+    // Out-of-scope is the one state with no check behind it, so its size is
+    // the measure of how much of the repository is taken on trust.
+    expect(manifest.outOfScope.length).toBeLessThanOrEqual(8)
   })
 
   it('keeps dated evidence out of the freshness rules by classification', () => {

@@ -1,5 +1,5 @@
 {
-  "$comment": "Which documents may name a contract number, and what naming one obliges them to. See scripts/check-documentation-authorities.mjs for the rules and docs/ops/documentation-authorities.md for why this exists.",
+  "$comment": "Which documents may name a contract number, and what naming one obliges them to. Every tracked markdown file must resolve to exactly one of three states: an authority (here or under authorityDirectories), evidence (evidenceDirectories), or explicitly out of scope with a reason. A fourth state — classified by nothing — is where staleness lived: measured on 11 August 2026, 101 of 238 files were in it and 51 of those named contract numbers, the oldest naming 35 while the repository was at 157. See scripts/check-documentation-authorities.mjs for the rules and docs/ops/documentation-authorities.md for why this exists.",
   "authorities": [
     {
       "path": "AGENTS.md",
@@ -83,6 +83,33 @@
       "why": "Design index; carries the merged-delta table against the plan's snapshot."
     },
     {
+      "path": "docs/design/ui-finalisation.md",
+      "kind": "live",
+      "sweep": true,
+      "allow": [
+        63
+      ],
+      "why": "The current UI authority for the signed-in weekly product, and the largest live-staleness risk the coverage rule exposed: it names eleven contracts and was governed by nothing. Section 11 states a delivery state per surface and section 12 states which backend rows are closed, both of which a contract falsifies, so it is live rather than a direction. It is swept for the same reason: a contract with nothing to say to it records that it has nothing to say, which is a fact, where silence is indistinguishable from an oversight."
+    },
+    {
+      "path": "docs/design-system.md",
+      "kind": "live",
+      "sweep": false,
+      "why": "Component-level authority for the surfaces that exist, which is a current-state claim. It names no contract today and so is held to nothing yet; classifying it live is what makes naming one later an obligation rather than a new blind spot. Not swept: a contract that adds a database function has nothing to say to a component specification, and marking it would train exactly the meaningless line the sweep exists to avoid."
+    },
+    {
+      "path": "docs/design/hub-architecture-and-modernisation-plan.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "The owner-supplied target design, revision 1.5, added to the repository VERBATIM. It is not superseded — docs/design/README.md calls it the answer to what the product should look like when finished, and ui-finalisation.md opens by saying the target design in it stands. It is reference rather than live precisely because it must not be edited: it names contract 95 because that is what was true on 4 August 2026, and a rule requiring it to name the current contract would require rewriting a document whose value is that nobody has."
+    },
+    {
+      "path": "docs/design/ui-modernisation-execution.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "The delivery sequence beneath the target design, and also not superseded: ui-finalisation.md states that its order stands except where the 10 August amendment says otherwise. Its twenty-three contract references are per-item delivery notes saying what built each step, which is a reference's shape and not a claim that the repository is at 141."
+    },
+    {
       "path": "docs/competition-structure.md",
       "kind": "live",
       "sweep": false,
@@ -98,7 +125,7 @@
       "allow": [
         63
       ],
-      "why": "Delivered-foundations list."
+      "why": "Programme phases, workstreams and failable product gates — content nothing else in the repository holds. It is live because § 7 states which gates remain open, which a contract can falsify. It carried a delivered-foundations list and a contract changelog until 11 August 2026; both restated current-status.md, and nine of its paragraphs were byte-identical to CLAUDE.md and to the child build plan. What survives is a table of what each contract meant for a PHASE, which is the only part a programme plan owns."
     },
     {
       "path": "docs/architecture/multi-competition-hub-build-plan.md",
@@ -107,7 +134,7 @@
       "allow": [
         63
       ],
-      "why": "Carries a dated progress overlay above a frozen planning record."
+      "why": "The Stage A-L engineering sequence, and the child of the programme plan above. It is live because its stage exit evidence moves. Its contract changelog was the same verbatim copy the parent carried, which its own \u00a7 18 already forbade in principle — maintaining the same decision in two documents creates competing authority — and is now a table of what each contract meant for a STAGE."
     },
     {
       "path": "docs/quality/risk-register.md",
@@ -132,14 +159,123 @@
       "kind": "structural",
       "sweep": false,
       "why": "An inventory of what the schema currently binds. It is held in step by tests/database-parity/stageCTriggerBindingCoverage.test.ts against a real database, which is a stronger check than counting contract numbers in prose."
+    },
+    {
+      "path": "README.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Describes what the project is and how to run it. It deliberately names no contract, hosted status or release claim — NOW.md carries those — so classifying it costs nothing and stops it drifting back into a status document."
+    },
+    {
+      "path": "SECURITY.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Vulnerability reporting policy. It holds no contract-scoped fact and is classified so the coverage rule has no exception it did not decide."
+    },
+    {
+      "path": "docs/architecture-and-tournament-states.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "The competition-context and match-state contract. Where it names a contract it is naming what implemented a layer, not claiming a current hosted position — docs/quality/current-status.md owns that."
+    },
+    {
+      "path": "docs/auth-plan.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Sections 1-4 map to shipped auth; section 5 records an accepted and unbuilt two-site model. Classified so the file is watched at all. Splitting the current half from the accepted half is a separate editorial pass, not a classification decision."
+    },
+    {
+      "path": "docs/ops-production-observability.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Production observability procedure. It cites the contract its baseline was taken at, which is a fact about the baseline."
+    },
+    {
+      "path": "docs/ops-sentry.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Sentry operational procedure; the same shape as the observability runbook beside it."
+    },
+    {
+      "path": "docs/predictor-cup-rules.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Its own banner calls it concept rules v0.1 and it reads as a retired draft, but section 5 is LIVE RULE AUTHORITY: src/domain/season/cupGroupTable.ts cites its table columns and eight tie-breakers by name, under ADR 0014 as amended by ADR 0020. It stays where it is for that reason. The heading now says which part the code depends on, so nobody retires a rule by trusting the version number."
+    },
+    {
+      "path": "docs/scoring-rules.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Authoritative for the preserved Euro Original Predictor configuration only, and explicitly not a platform default. Its contract references name what changed that configuration."
+    },
+    {
+      "path": "docs/quality/instruments/entry-flow-test-script.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "A reusable single-tester usability script, not a dated record — tests/scripts/markdownDocumentation.test.ts guards it against regressing to obsolete phase language, which is only worth doing to an instrument that will be run again. It sits beside the audit prompt for that reason. It names the contract its environment guidance was written against, which is a fact about that guidance."
+    },
+    {
+      "path": "docs/tournament-structure.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Euro 2028 tournament facts and the third-place allocation table. It names no contract; it is verified against UEFA regulations rather than against the migration chain, and carries its own re-verification banner."
+    }
+  ],
+  "authorityDirectories": [
+    {
+      "prefix": "docs/adr/",
+      "kind": "reference",
+      "why": "Architecture and product decision records. An ADR names the contract that implemented it, which is a fact about the decision rather than a claim about current state. docs/adr/README.md is listed separately as live, because its index carries an implementation status per row and a per-file entry wins over this rule."
+    },
+    {
+      "prefix": "docs/architecture/",
+      "kind": "reference",
+      "why": "Subsystem and programme references, each naming the contracts that built the thing it describes. Three are listed separately and override this rule: two programme plans as live because they carry progress overlays, and the trigger-binding inventory as structural."
+    },
+    {
+      "prefix": "docs/ops/",
+      "kind": "reference",
+      "why": "Repeatable operational procedures. A procedure cites the contract it was introduced for. ops-pending-migrations.md is listed separately as live because it is the migration inventory; dated operator records live in docs/ops/records/ and resolve as evidence by the longer prefix."
+    },
+    {
+      "prefix": "docs/quality/",
+      "kind": "reference",
+      "why": "Quality governance, registers, baselines and reusable instruments. Four files are listed separately as live or dispositions. The dated audit, investigation, reconciliation and history subdirectories are evidence and win by the longer prefix."
+    },
+    {
+      "prefix": "docs/design/",
+      "kind": "reference",
+      "why": "Design authorities and the planning history beneath them. README.md is listed separately as live. Promoting ui-finalisation.md to live, and freezing the two superseded plans, are editorial decisions rather than classification ones and are deliberately left open."
     }
   ],
   "evidenceDirectories": [
     "docs/automation-runs/",
+    "docs/audits/",
+    "docs/history/",
+    "docs/ops/records/",
+    "docs/visual/",
     "docs/quality/audits/",
     "docs/quality/investigations/",
     "docs/quality/reconciliations/",
     "docs/quality/history/",
     "claude/nightly/"
+  ],
+  "outOfScope": [
+    {
+      "path": "NOW.md",
+      "why": "Generated by scripts/generate-now.mjs and held to an exact regeneration check by `npm run check:now`, which is strictly stronger than the freshness rule. Marking it swept would force a manual touch on a file whose whole point is that nobody types into it. This exclusion is the one already recorded in docs/ops/documentation-authorities.md, now stated where the checker can see it."
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "why": "A form for the body of a pull request. It states no project fact and so cannot go stale about one."
+    },
+    {
+      "path": "scripts/benchmarks/README.md",
+      "why": "Describes how to run the scripts in the directory it sits in. It is documented by the code beside it and states no project-wide fact."
+    },
+    {
+      "path": "scripts/seed-dev/README.md",
+      "why": "Describes how to run the seed scripts in the directory it sits in. Same reason as the benchmarks README beside it."
+    }
   ]
 }

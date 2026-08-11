@@ -16,7 +16,7 @@
 | Date | 10 August 2026 |
 | Owner decision it serves | Publish a current application artifact to Netlify production and keep Team SSO on; do not expose the site publicly until `AGE-001` exists |
 | Governs | The steps and evidence for one application release |
-| Does not govern | Database promotion ([`ops-pending-migrations.md`](ops-pending-migrations.md)); public exposure, which is explicitly out of scope here |
+| Does not govern | Database promotion ([`ops-pending-migrations.md`](../ops-pending-migrations.md)); public exposure, which is explicitly out of scope here |
 
 ## Why this document exists
 
@@ -53,7 +53,7 @@ never waved through — deliberately, and the surrounding comment says so.
 **145** (`20260810010000_rate_limit_atomicity`) and Production Supabase is at
 **144**. Publishing `main` would require declaring 145, which would make the
 declaration LEAD its database — the one direction
-[`ops-pending-migrations.md`](ops-pending-migrations.md) forbids.
+[`ops-pending-migrations.md`](../ops-pending-migrations.md) forbids.
 
 ## The release candidate
 

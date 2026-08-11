@@ -1,6 +1,8 @@
 # Football Prediction Hub — Design System
 
-Source of truth for all visual and interaction design **of what is currently built**. Components implement exactly this. If code and this doc disagree, the doc wins — fix the code or consciously update the doc first.
+Source of truth for all visual and interaction design **of what is currently built**. Components implement exactly this.
+
+**Where this document and the code disagree, one of them is a defect — and which one is a decision somebody takes, not a race the document wins by default.** This line used to read "the doc wins". That was true of its intent and false of its wording: `AGENTS.md`, `CLAUDE.md`, the README and `DOC-AI-003` all say that code, tests and verified hosted evidence decide what is *implemented*, and a document cannot outrank them on that question. What this document does outrank them on is what the interface is *supposed to do* — so a disagreement is resolved by fixing the component or by consciously amending this file first, and never by leaving the two in silent conflict. *(Reworded 11 August 2026; the rule is unchanged, the overreach is gone.)*
 
 > **Where the target design lives (added 4 August 2026).** This document describes the product that exists. It does not describe the product being built towards — that is
 > [`design/hub-architecture-and-modernisation-plan.md`](design/hub-architecture-and-modernisation-plan.md) (revision 1.5), indexed at [`design/README.md`](design/README.md).

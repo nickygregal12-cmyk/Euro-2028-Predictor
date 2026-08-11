@@ -2,7 +2,7 @@
 
 This register records decisions deliberately postponed because of timing, missing authoritative information or unresolved architecture. It is not a general backlog.
 
-Normal defects belong in [`risk-register.md`](risk-register.md) and GitHub Issues. Planned implementation remains in [`../roadmap.md`](../roadmap.md) and [`../build-todo.md`](../build-todo.md).
+Normal defects belong in [`risk-register.md`](risk-register.md) and GitHub Issues. Planned implementation remains in [`../roadmap.md`](../roadmap.md) and [`../../MASTER-TODO.md`](../../MASTER-TODO.md).
 
 The recoverable `euro-2028-baseline` tag contains contracts through 63. Moving repository, hosted-database and publication facts belong in [`current-status.md`](current-status.md) and the machine contract records rather than this decision register.
 

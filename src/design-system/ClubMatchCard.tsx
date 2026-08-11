@@ -23,7 +23,15 @@ export type ClubMatchCardProps = {
   state: ClubMatchCardState
   // eyebrow
   matchweek: number
-  kickoff: string
+  /**
+   * An ALREADY-FORMATTED kickoff label — "Sat 22 Aug · 17:45" or "17:45" where
+   * a date heading sits above the list. Never an instant: this component is
+   * presentational and does no zone resolution, and `src/shared/time/kickoff.ts`
+   * is the one authority that turns an instant into a label. `null` when the
+   * instant could not be formatted, in which case the line is dropped rather
+   * than printed empty.
+   */
+  kickoff: string | null
   venue?: string
   // clubs
   home: MatchClub
@@ -98,7 +106,7 @@ export function ClubMatchCard(props: ClubMatchCardProps) {
       <div className={styles.eyebrow}>
         <span>Matchweek {matchweek}</span>
         <span className={styles.eyebrowRight}>
-          <span>{kickoff}</span>
+          {kickoff ? <span>{kickoff}</span> : null}
           {locked ? (
             <LockIcon size={13} title="Predictions locked" />
           ) : venue ? (

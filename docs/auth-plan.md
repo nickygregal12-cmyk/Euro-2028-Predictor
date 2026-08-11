@@ -1,8 +1,10 @@
-# Authentication Plan (implemented — one polish item open)
+# Authentication — approach and reference
 
-Auth is built and live: every Phase 1 and Phase 2 item below is shipped except the final auth-resilience polish batch (§3, last checkbox). The doc is retained because its checklists map directly to the shipped code and its dev-approach section still describes the active dev auto-login mechanism. The core principle held: **defer the UI, not the plumbing.**
+**What this file is.** The design of the authentication plumbing, and the checklists that record how it was built. It is a reference, not a status page: [`quality/current-status.md`](quality/current-status.md) owns what is implemented, and the one accepted requirement still outstanding has an identifier of its own — `AUTH-003` in [`quality/accepted-requirements.md`](quality/accepted-requirements.md).
 
-**§ 1–4 describe shipped auth. § 5 does not** — it records the two-site redirect/session model, sender-domain transition and 18+ cohort rule accepted on 6 August 2026, none of which is implemented.
+**Its section numbers are cited from code.** `src/services/supabase/autoLoginPolicy.ts`, `devAutoLogin.ts`, `vite.config.ts`, `.env.example`, `src/vite-env.d.ts`, `src/features/auth/authErrors.ts` and three test files name § 1, § 3 and § 4 by number, and two ADRs plus two register rows name § 5. **Do not renumber the sections**, and do not split this file without repointing all of them.
+
+**§ 1–4 describe shipped auth. § 5 does not** — it records the two-site redirect/session model, sender-domain transition and 18+ cohort rule accepted on 6 August 2026, none of which is implemented. The core principle held: **defer the UI, not the plumbing.**
 
 ---
 
@@ -65,7 +67,7 @@ re-signs-in), and the fail-closed production check still holds (runtime policy +
 - [x] Cloudflare Turnstile on sign up / log in — **shipped + verified live in production** (Option A, Supabase built-in CAPTCHA; widget on both forms, token threaded to auth calls; double-render bug fixed 2026-07-20; secret held by Supabase, never the repo). Detail in build-todo/roadmap Auth hardening. *(This list previously still showed it open — synced 2026-07-22.)*
 - [x] Password reset flow — **shipped**: `/auth/reset` (neutral, enumeration-safe) + `/auth/update-password` (recovery-session grace window, expired-link fallback); reset request carries a Turnstile token. *(Synced 2026-07-22 — was stale here.)*
 - [x] Custom SMTP for auth emails — **shipped**: Resend + verified `euro28predictor.com` domain, configured in Supabase Auth, live-verified by a real recovery send (key rotated at the 2026-07-22 prod cutover). *(Synced 2026-07-22 — was stale here.)*
-- [ ] **Auth resilience (2026-07-22 interface audit — UI/CRO Batch C, build-todo):** submit buttons never disabled-until-valid — validation *speaks* on submit (per-field errors; a visible "still verifying you're human" line when the Turnstile token is missing); **Turnstile load failure is a designed state** (script blocked by ad-blockers/corporate networks → visible fallback + reload offer, never a permanently dead CTA — surface the `loadScript()` rejection, don't fold it into a null token); no silent `return` in any submit handler; password placeholder/hint de-duplicated. Spec: design-system §6 → Auth screens (amended 2026-07-22). *Rationale: a silently-broken CAPTCHA converts to a 100% loss for that visitor — nobody debugs a stranger's form.*
+- [ ] **Auth resilience — now `AUTH-003` in [`quality/accepted-requirements.md`](quality/accepted-requirements.md), which is where its status lives.** *(2026-07-22 interface audit — UI/CRO Batch C.)* submit buttons never disabled-until-valid — validation *speaks* on submit (per-field errors; a visible "still verifying you're human" line when the Turnstile token is missing); **Turnstile load failure is a designed state** (script blocked by ad-blockers/corporate networks → visible fallback + reload offer, never a permanently dead CTA — surface the `loadScript()` rejection, don't fold it into a null token); no silent `return` in any submit handler; password placeholder/hint de-duplicated. Spec: design-system §6 → Auth screens (amended 2026-07-22). *Rationale: a silently-broken CAPTCHA converts to a 100% loss for that visitor — nobody debugs a stranger's form.*
 
 **Explicitly not planned unless demanded later:** social logins, magic links, MFA.
 
