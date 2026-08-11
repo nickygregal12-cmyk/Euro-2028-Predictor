@@ -45,7 +45,7 @@ The annotated `euro-2028-baseline` tag resolves to `1fb8ffd36ad113079181829a8bcc
 
 Read current hosted values from [`docs/quality/current-status.md`](docs/quality/current-status.md), and the repository contract from `config/deployment-contract.json`. This section used to restate both, and drifted two contracts behind the sentence further down this same file — one document giving two answers is worse than one document giving none.
 
-- the repository is at contract 168 and **both hosted environments remain at 158**: contracts 159 to 168 are repository-only and no rollout is claimed for any of them. Development Supabase is hosted at contract 158 after the pinned Development 157→158 rollout run 31473692593, confirmed by a separate read-only query; Production Supabase is independently hosted at contract 158 after guarded rollout run 31475806882, while the last published application remains at contract 145;
+- the repository is at contract 168. **Development is hosted at 168; Production remains at 158.** Contracts 159 to 168 merged as PR #691 at `2be5c8f` and reached Development through the ADR 0024 fast lane, run 31489582932, confirmed by a separate read-only query returning 168 applied rows with `20260811190000` latest. Production Supabase is independently hosted at contract 158 after guarded rollout run 31475806882 — verified unchanged by the same query shape after the Development rollout — while the last published application remains at contract 145;
 - production Netlify deploys are paused by the contract gate by design;
 - no agent may promote production merely to equalise contract numbers.
 

@@ -6,9 +6,36 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (twenty-eighth entry)
+
+**The repository is at contract 168. Development is now hosted at 168. Production remains at 158.**
+
+Contracts 159 to 168 merged as PR #691 at `2be5c8f682fb12200c63a36d6504889c1554c045` and were applied to Development through `development-fast-lane-rollout.yml`, run [31489582932](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31489582932), dispatched from `main` with `project_ref=iouzoutneyjpugbbtdem`. The lane proved all ten additive by reading them, took its pre-apply snapshot, applied, and confirmed nothing pending.
+
+**The claim is not the workflow's.** Taken afterwards and independently:
+
+| Query | Development | Production |
+| --- | --- | --- |
+| `count(*)` of `supabase_migrations.schema_migrations` | **168** | **158** |
+| `max(version)` | `20260811190000` | `20260811000000` |
+
+The fourteen browser- and administrator-reachable functions the batch adds are named in `pg_proc` on Development. Production was queried **after** the Development rollout and is unchanged, so contracts 159 to 168 are **not** production-hosted and no production promotion is claimed or implied.
+
+**Database parity executed pgTAP suites `208` to `217` on the merged head and all pass.** The twenty-seventh entry below recorded them as unrun, which was true when written.
+
+**One operational note for the next reader.** The GitHub Actions API served step statuses for this run up to ten minutes stale — it reported the snapshot step still running for several minutes after the job had in fact completed successfully. Read the hosted database, not the workflow's step list, when deciding whether a rollout landed.
+
+**What this did NOT do.** It published no Euro 2028 (contract 143 stays `hidden`), launched no competition (contract 166 draws only when an administrator calls it, and nobody has), scheduled no reminder job, sent nothing, imported no football, and promoted no application — the deployed site remains at contract 145, so **no browser can yet reach any of this**. Production was not touched.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **168** | 168 canonical migrations through `20260811190000_season_admin_inspection.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932` from exact main `2be5c8f`, independently confirmed by a read-only ledger query (168 rows, latest `20260811190000`) and by naming the batch's fourteen new functions in `pg_proc`. | LEVEL |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`; re-queried after the Development rollout and still 158 with latest `20260811000000`. | TEN BEHIND REPOSITORY, BY DESIGN |
+
 ## Current state — 11 August 2026 (twenty-seventh entry)
 
-**The repository is at contract 168. Development and Production both remain at 158.** Contracts 159 to 168 are repository candidates and **no rollout is claimed for any of them**. All ten are additive.
+**The repository was at contract 168 in this entry. Development and Production both remained at 158.** Contracts 159 to 168 are repository candidates and **no rollout is claimed for any of them**. All ten are additive.
 
 | Contract | Migration |
 | --- | --- |
