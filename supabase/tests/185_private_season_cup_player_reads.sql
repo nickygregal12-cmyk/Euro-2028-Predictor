@@ -138,13 +138,19 @@ select
   now() - interval '2 hours', now() + interval '1 day', true, 'public'
 from c133_probe probe;
 
+-- Contract 152 requires a private competition to carry a name, an owner and an
+-- invite code. The reads under test here are contract 133's and do not consult
+-- any of the three; they are stated so the fixture is a legal private
+-- competition rather than the ownerless legacy shape that predates the rule.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, availability_status,
-  registration_opens_at, registration_closes_at, draw_required, visibility_kind
+  registration_opens_at, registration_closes_at, draw_required, visibility_kind,
+  name, owner_id, invite_code
 )
 select
   md5('c133-private')::uuid, probe.season_id, 'predictor_cup', false, 'active',
-  now() - interval '2 hours', now() - interval '1 hour', true, 'private'
+  now() - interval '2 hours', now() - interval '1 hour', true, 'private',
+  'C133 Private Cup', md5('c133-user-1')::uuid, 'C133PV'
 from c133_probe probe;
 
 insert into public.bonus_competition_entrants (competition_id, user_id, joined_at)

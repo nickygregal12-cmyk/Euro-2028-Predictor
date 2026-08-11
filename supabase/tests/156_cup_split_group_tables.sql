@@ -77,14 +77,19 @@ select md5('c5-entry-' || n)::uuid, md5('c5-user-' || n)::uuid,
   current_setting('test.c5_tournament_id')::uuid, now()
 from generate_series(1, 7) as n;
 
+-- Contract 152 requires a private competition to carry a name, an owner and an
+-- invite code, so this fixture now states them. Nothing about the split under
+-- test depends on them; they are the identity that makes the row legal.
 insert into public.bonus_competitions (
   id, tournament_id, game_key, published, registration_opens_at,
-  registration_closes_at, draw_required, visibility_kind
+  registration_closes_at, draw_required, visibility_kind,
+  name, owner_id, invite_code
 ) values (
   md5('c5-comp')::uuid,
   current_setting('test.c5_tournament_id')::uuid,
   'predictor_cup', true,
-  now() - interval '3 hours', now() - interval '1 hour', true, 'private'
+  now() - interval '3 hours', now() - interval '1 hour', true, 'private',
+  'C5 Split Probe', md5('c5-user-1')::uuid, 'C5SPLT'
 );
 
 insert into public.bonus_competition_entrants (competition_id, user_id, joined_at)
