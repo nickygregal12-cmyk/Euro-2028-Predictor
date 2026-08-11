@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**48** accepted requirements are outstanding, of which **16** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 5, DFA 10, INGEST 1, LMS 1, MIG-UI 7, PRIV 5, SITE 6, TABLE 1. A further 27 are marked implemented and retained in the register.
+**58** accepted requirements are outstanding, of which **17** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 5, DFA 10, INGEST 1, INNOV 10, LMS 1, MIG-UI 7, PRIV 5, SITE 6, TABLE 1. A further 27 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

@@ -4,6 +4,7 @@ import { MatchweekPoints } from '../scoring/MatchweekPoints'
 import { presentMatchweekPoints } from '../scoring/matchweekPointsModel'
 import { ShareAction } from '../share/ShareAction'
 import { SeasonClosestMisses } from './SeasonClosestMisses'
+import { SubmissionReceipt } from './SubmissionReceipt'
 import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
 import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import { commandRefusal, type MatchPredictorGateway } from './matchPredictorModel'
@@ -360,6 +361,12 @@ export function SeasonMatchPredictorPage({
               </Button>
             )
           ) : null}
+
+          {/* INNOV-017. What has actually been submitted, in the player's
+              terms, claiming only what the card read said. No reference number
+              and no submitted-at instant, because the server returns neither
+              and inventing one here would be a receipt for nothing. */}
+          <SubmissionReceipt card={page} />
         </div>
       </section>
 

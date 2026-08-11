@@ -493,6 +493,22 @@ Three properties are worth stating exactly, because each is a thing the seam is 
 
 **No hosted claim is made here.** These are repository facts. The signed-in hosted acceptance is `UI-F19` and remains outstanding.
 
+## Innovation Lab UI pass — 11 August 2026
+
+The owner promoted the **UI-facing** portions of [`../product/innovation-lab.md`](../product/innovation-lab.md) into implementation. Twelve `INNOV-*` rows now have surfaces; twelve do not, each for a stated reason. The register's own delivery record carries the full table and is not restated here.
+
+**No hosted environment, database, provider configuration or Edge Function was touched.** No migration was written. The repository contract is unchanged by this work, and no hosted claim is made for it. Everything below is a repository fact and none of it has been published.
+
+**No authority was added, widened or duplicated.** Nothing in the pass scores, ranks, settles, locks, or decides membership or reveal. Where a surface derives a number — a projected fixture score, an exact-score count, a goals error, a projected league position — it is a fact about predictions computed with `src/domain/season/scoring.ts`, which is the authority the database is parity-checked against. The one derivation worth naming is the What-If projection: it applies the Joker through `scoreMatchweek` rather than doubling anything itself, so a projection cannot disagree with the settlement it anticipates.
+
+**Two reveal-sensitive surfaces were added and neither can outrun the server.** `INNOV-011`'s divergence line and `INNOV-012`'s side honours both read contract 149's and contract 130's payloads, which carry no member rows and no consensus at all before the matchweek's own lock. They have nothing early to show, which is a stronger property than a check they could have got wrong.
+
+**One structural change worth stating.** The Match Centre route previously let each of its sections fetch for itself; the card read and the league-predictions read are now issued once per page and shared, because the projection needs the same two payloads the panel and the league section already had. Two components asking the same RPC would have been an identical query repeated and two answers that could disagree about the reveal if one failed.
+
+**One governance control did its job during the session and is worth recording.** `tests/app/domesticCompetitions.test.tsx` requires exactly one `<DomesticCompetitions />` declaration in `src/App.tsx`, on the stated reasoning that a second boundary is one a future route can be added to the wrong side of in silence. The Matchday TV screen was first registered behind a second one, and the test refused it. The screen is now inside the single boundary and `AppShell` renders that path without the bar, the bottom navigation and the rail — the frame exception lives in one predicate rather than in the route table.
+
+**What was deliberately not built, and is not disguised.** `INNOV-015`'s confidence control was not shipped as a disabled input, `INNOV-003`'s analyst was not shipped as an empty chat, `INNOV-009`'s and `INNOV-022`'s settings were not shipped as dead controls, and `INNOV-017`'s receipt states no reference number and no timestamp because the server returns neither. `INNOV-020`, offline drafting, is buildable with today's authorities and was deferred rather than blocked: a partial offline path is the one item on the list where "half-done" actively breaks a rule — a draft that reads as submitted — and it needs its own change with its own test suite.
+
 ## Open platform gaps
 
 - Stage C1 migration review, recovery evidence and separately approved hosted rollout;
