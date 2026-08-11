@@ -194,11 +194,14 @@ insert into public.bonus_competition_entrants (competition_id, user_id, outcome)
   (md5('ai-lms')::uuid, md5('ai-e1')::uuid, 'active'),
   (md5('ai-lms')::uuid, md5('ai-e2')::uuid, 'active');
 
-insert into public.game_memberships (
-  tournament_id, game_competition_id, user_id, status, disqualified_at) values
-  (current_setting('test.ai_season')::uuid, md5('ai-lms')::uuid, md5('ai-e1')::uuid, 'active', null),
-  (current_setting('test.ai_season')::uuid, md5('ai-lms')::uuid, md5('ai-e2')::uuid,
-   'disqualified', now());
+-- `prepare_bonus_entrant_membership` created an ACTIVE membership for each
+-- entrant above. Disqualification is a change to one of those, not a second
+-- row: inserting again collides on the unique key, and inserting without
+-- `active_since` fails `game_memberships_state_shape` besides.
+update public.game_memberships
+   set status = 'disqualified', active_since = null, disqualified_at = now()
+ where game_competition_id = md5('ai-lms')::uuid
+   and user_id = md5('ai-e2')::uuid;
 
 select set_config('request.jwt.claims',
   json_build_object('sub', md5('ai-plain')::uuid, 'role', 'authenticated',

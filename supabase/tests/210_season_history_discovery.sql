@@ -166,11 +166,15 @@ select is(
   2,
   'a season with two games reports both, separately, as ADR 0011 requires');
 
+-- Scoped to the SEASON as well as the game: 2027/28 runs a Last Man Standing
+-- too, so selecting on the game key alone matches two rows across two seasons
+-- and the subquery raises rather than answering.
 select is(
   (select game ->> 'membership_status'
      from jsonb_array_elements(current_setting('test.sh_history')::jsonb -> 'seasons') entry,
           jsonb_array_elements(entry -> 'games') game
-    where game ->> 'game_key' = 'last_man_standing'),
+    where entry ->> 'season_key' = 'sh-2026/27'
+      and game ->> 'game_key' = 'last_man_standing'),
   'left',
   'a game the caller left says so, rather than vanishing');
 
@@ -178,7 +182,8 @@ select is(
   (select game ->> 'outcome'
      from jsonb_array_elements(current_setting('test.sh_history')::jsonb -> 'seasons') entry,
           jsonb_array_elements(entry -> 'games') game
-    where game ->> 'game_key' = 'last_man_standing'),
+    where entry ->> 'season_key' = 'sh-2026/27'
+      and game ->> 'game_key' = 'last_man_standing'),
   'eliminated',
   'and carries the settlement authority''s own word for how it ended');
 
