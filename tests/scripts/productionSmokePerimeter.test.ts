@@ -137,11 +137,43 @@ describe('the checked routes are derived, not restated', () => {
   })
 })
 
-describe('the dual-brand allowance is retired', () => {
-  it('accepts only the current brand now that production is past contract 63', () => {
-    expect(smoke).toContain("assertIncludes(root.body, 'Football Prediction Hub', 'application title')")
-    // The legacy title may still be named in the comment that records the
-    // retirement; it must not survive as an accepted alternative.
-    expect(smoke).not.toMatch(/!root\.body\.includes\('Euro 2028 Predictor'\)/)
+describe('each production origin must serve its own product', () => {
+  /*
+   * This block used to be called "the dual-brand allowance is retired" and
+   * pinned one hard-coded assertion: the body must contain
+   * `Football Prediction Hub`, and `Euro 2028 Predictor` must not survive as an
+   * accepted ALTERNATIVE. That intent — no origin may pass on either brand —
+   * is preserved below and strengthened; only the mechanism changed.
+   *
+   * It had to change because ADR 0026's site-variant seam made
+   * `Euro 2028 Predictor` the CURRENT title of the Euro deployment, which is
+   * the same string the contract-63 cleanup had just retired as legacy. The
+   * hard-coded check then asserted the Hub's brand against the Euro site and
+   * failed the first time anyone ran it, on 11 August 2026.
+   */
+
+  it('derives the expected product from the origin rather than hard-coding one', () => {
+    expect(smoke).toContain("['euro28predictor.com', 'Euro 2028 Predictor']")
+    expect(smoke).toContain("['predictorhub.netlify.app', 'Football Prediction Hub']")
+    expect(smoke).toContain('assertServesItsOwnProduct(root.body)')
+  })
+
+  it('still refuses to accept either brand on one origin', () => {
+    // The original hazard: a disjunction that lets a Hub build pass on the Euro
+    // domain, or the reverse. Neither brand may appear as an alternative.
+    expect(smoke).not.toMatch(/includes\('Football Prediction Hub'\)\s*\|\|/)
+    expect(smoke).not.toMatch(/includes\('Euro 2028 Predictor'\)\s*\|\|/)
+  })
+
+  it('fails when an origin serves the other deployment as well as its own', () => {
+    // The assertion that catches an unset VITE_SITE_VARIANT, which fails closed
+    // to the Hub and would otherwise publish the weekly platform on the Euro
+    // domain with every other check in this smoke still passing.
+    expect(smoke).toContain('served ${JSON.stringify(other)} as well as')
+    expect(smoke).toContain('an unset value fails closed to the Hub.')
+  })
+
+  it('refuses an origin whose product nothing declares', () => {
+    expect(smoke).toContain('no expected product is declared for ${host}')
   })
 })

@@ -35,6 +35,41 @@ const TRANSPORT_RETRY_DELAY_MS = 2_000
  */
 const ROUTE_PROBE = 'PRODUCTION-READ-ONLY-PROBE'
 
+/**
+ * Which product each production origin must serve, and — just as importantly —
+ * which one it must NOT.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THIS IS A MAP AND NOT A CONSTANT, AND WHY THE ABSENCE HALF MATTERS
+ * ---------------------------------------------------------------------------
+ *
+ * This assertion used to be one hard-coded string, `Football Prediction Hub`,
+ * with a comment retiring a "dual-brand allowance" that had accepted
+ * `Euro 2028 Predictor` as a LEGACY title from the contract-63 era. That was
+ * correct when both Netlify projects shipped the same product.
+ *
+ * ADR 0026's site-variant seam then made `Euro 2028 Predictor` the CURRENT and
+ * correct title of the Euro deployment — resurrecting the very string the
+ * comment had just declared obsolete, for an entirely different reason. From
+ * that moment the smoke asserted the Hub's brand against the Euro site, and it
+ * had been failing for anyone who ran it. Nobody did: the release that
+ * introduced the seam was never smoked, and this workflow is dispatched by
+ * hand rather than after a deploy.
+ *
+ * So the expectation is now derived from the origin under test. The **absence**
+ * check is the part worth having: `validate-netlify-environment.mjs` refuses a
+ * VITE_SITE_VARIANT that is neither `hub` nor `euro`, but an ABSENT value fails
+ * closed to the Hub — so a wiped variable would silently publish the weekly
+ * platform onto euro28predictor.com and every other check here would pass. This
+ * is the assertion that catches it.
+ */
+const PRODUCT_BY_HOST = new Map([
+  ['euro28predictor.com', 'Euro 2028 Predictor'],
+  ['predictorhub.netlify.app', 'Football Prediction Hub'],
+])
+
+const EVERY_PRODUCT = [...new Set(PRODUCT_BY_HOST.values())]
+
 const origin = normaliseOrigin(
   process.env.EURO28_SMOKE_ORIGIN || PRODUCTION_ORIGIN,
 )
@@ -76,13 +111,7 @@ console.log(`Checking ${origin}${siteCookie ? ' with a site session' : ' anonymo
 
 const root = await fetchText('/')
 assertIncludes(root.body, '<div id="root"></div>', 'React root')
-// The dual-brand allowance that stood here has been retired. It existed because
-// production was paused on a pre-rename, contract-63-era bundle and accepted the
-// legacy "Euro 2028 Predictor" title alongside the current one, with its own
-// comment saying to drop the legacy form once production moved past contract 63.
-// Production reached contract 145 on 10 August 2026, so the condition it set
-// itself is met and only the current brand is accepted.
-assertIncludes(root.body, 'Football Prediction Hub', 'application title')
+assertServesItsOwnProduct(root.body)
 verifySecurityHeaders(root.headers)
 
 const releaseResponse = await fetchText('/release.json')
@@ -450,6 +479,42 @@ function assertNotEqual(actual, unwanted, label) {
 function assertIncludes(value, expected, label) {
   if (!value.includes(expected)) {
     stop(`${label} is missing ${JSON.stringify(expected)}.`)
+  }
+}
+
+/**
+ * The served document must name the product this origin is for, and must not
+ * name the other one.
+ *
+ * An unknown host is refused rather than waved through: this smoke exists to
+ * check a named production origin, and quietly skipping the strongest
+ * variant assertion for an origin nobody listed is how it would rot again.
+ *
+ * @param {string} body
+ */
+function assertServesItsOwnProduct(body) {
+  const host = new URL(origin).hostname
+  const expected = PRODUCT_BY_HOST.get(host)
+
+  if (!expected) {
+    stop(
+      `no expected product is declared for ${host}. Add it to PRODUCT_BY_HOST ` +
+        'rather than smoking an origin whose variant nothing checks.',
+    )
+  }
+
+  assertIncludes(body, expected, `application title for ${host}`)
+
+  for (const other of EVERY_PRODUCT) {
+    if (other === expected) continue
+    if (body.includes(other)) {
+      stop(
+        `${host} served ${JSON.stringify(other)} as well as ` +
+          `${JSON.stringify(expected)}. The deployments must be separate ` +
+          'products; check VITE_SITE_VARIANT on this Netlify project, because ' +
+          'an unset value fails closed to the Hub.',
+      )
+    }
   }
 }
 
