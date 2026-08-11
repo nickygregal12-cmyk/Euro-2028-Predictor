@@ -1,12 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, ClubIdentity, Skeleton } from '../../design-system'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
+// THE PURE HELPERS COME FROM THE MODEL, THE WRITES ARE IMPORTED LAZILY. Naming
+// `services/supabase/playerPreferences` at module scope pulls `client.ts` into
+// the graph of anything that renders this card, and that module throws at load
+// without configuration — which is what turned this component into one no test
+// could mount. The provider does the same thing for the same reason.
 import {
   favouriteTeamFor,
   isFollowing,
-  setCompetitionFollow,
-} from '../../services/supabase/playerPreferences'
-import { fetchSeasonClubs, type SeasonClub } from '../../services/supabase/seasonClubs'
+} from '../../services/supabase/playerPreferencesModel'
+import type { SeasonClub } from '../../services/supabase/seasonClubs'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import s from '../shared.module.css'
 import a from './account.module.css'
@@ -49,6 +53,9 @@ export function FollowedCompetitionsCard() {
       setBusy(tournamentId)
       setError(null)
       try {
+        const { setCompetitionFollow } = await import(
+          '../../services/supabase/playerPreferences'
+        )
         await setCompetitionFollow(tournamentId, following, favouriteTeamId)
         reload()
       } catch (caught) {
@@ -187,13 +194,15 @@ function FavouriteControl({
     if (!open || clubs) return
     let active = true
     setLoadFailed(false)
-    fetchSeasonClubs(tournamentId)
-      .then((loaded) => {
+    void (async () => {
+      try {
+        const { fetchSeasonClubs } = await import('../../services/supabase/seasonClubs')
+        const loaded = await fetchSeasonClubs(tournamentId)
         if (active) setClubs(loaded)
-      })
-      .catch(() => {
+      } catch {
         if (active) setLoadFailed(true)
-      })
+      }
+    })()
     return () => {
       active = false
     }
