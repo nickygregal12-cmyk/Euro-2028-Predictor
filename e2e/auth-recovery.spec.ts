@@ -180,17 +180,46 @@ test.describe('authentication and recovery', () => {
       const confirmationLink = await waitForAuthLink(EMAIL, 'signup')
       await page.goto(confirmationLink)
       await expect(page).toHaveURL((url) => url.pathname === '/welcome', { timeout: 20_000 })
-      await expect(page.getByRole('heading', { name: `Welcome, ${DISPLAY_NAME}` })).toBeVisible()
+
+      // `/welcome` USED TO BE ONE STATIC SCREEN with a Continue button, and
+      // this assertion used to read `heading "Welcome, <name>"`. It is now the
+      // four-step onboarding journey contract 157 made storable, so the page's
+      // own h1 names what the page is FOR and the greeting sits above it as an
+      // eyebrow. Promoting the greeting back to a heading would give the page
+      // two h1s to satisfy a test, which is the wrong way round — so the test
+      // moved to the markup rather than the markup to the test.
+      await expect(page.getByRole('heading', { name: 'Set up your season' })).toBeVisible({
+        timeout: 15_000,
+      })
+      await expect(page.getByText(`Welcome, ${DISPLAY_NAME}`, { exact: true })).toBeVisible()
+      await expect(page.getByText('Step 1 of 4')).toBeVisible()
 
       // `/welcome` was deferred for needing "a fixture user who has not
       // completed it". This journey creates exactly that user and is standing
       // on the page — the blocker named a fixture the suite already had.
       await expectNoSeriousAxeViolations(page, '/welcome')
 
-      await page
-        .getByRole('button', { name: 'Continue to league invite →', exact: true })
-        .click()
-      await expect(page).toHaveURL((url) => url.pathname === `/join/${INVITE_CODE}`)
+      // Walk the journey without answering anything. EVERY STEP IS SKIPPABLE by
+      // design, so a player who wants to get to their invite can, and that is
+      // exactly what this fixture user is doing — they arrived from an invite
+      // link and setup is the interruption. The advance control is located by
+      // its position in the step navigation rather than by its label, because
+      // the label is deliberately "Skip for now" or "Continue" depending on
+      // whether the step in front of the player has been answered.
+      const advance = page.getByRole('navigation', { name: 'Setup steps' }).getByRole('button').last()
+      for (const step of ['Step 2 of 4', 'Step 3 of 4', 'Step 4 of 4']) {
+        await advance.click()
+        await expect(page.getByText(step)).toBeVisible()
+      }
+
+      await page.getByRole('button', { name: 'Finish setup', exact: true }).click()
+
+      // The pending invite survived sign-up AND onboarding. It was captured on
+      // arrival at `/welcome` and is consumed only now, so somebody who had
+      // abandoned setup halfway would still have had it waiting.
+      await expect(page).toHaveURL((url) => url.pathname === `/join/${INVITE_CODE}`, {
+        timeout: 20_000,
+      })
       await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
 
       // The owner's name is ABSENT, and that is the assertion rather than the
