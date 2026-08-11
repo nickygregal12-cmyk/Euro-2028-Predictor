@@ -44,6 +44,14 @@ const hostedContract = JSON.parse(read('config/development-hosted-contract.json'
 }
 const now = read('NOW.md')
 
+/**
+ * A requirement row in the register: any uppercase prefix, which may itself
+ * carry a hyphen (`MIG-UI`), and however many digits its section chose. It
+ * deliberately does not enumerate the prefixes — enumerating them is the defect
+ * this shape replaced.
+ */
+const REGISTER_ROW = /^\| `[A-Z][A-Z-]*-\d+` \|/
+
 /** Run the generator against a tree, returning stdout or throwing with stderr. */
 function generate(root: string, args: string[] = ['--stdout']): string {
   return execFileSync('node', [scriptPath, '--root', root, ...args], {
@@ -229,13 +237,40 @@ describe('the requirement register is linked, not copied', () => {
     // A requirement's own prose must not appear. If a row were copied, the
     // register and this page would need keeping in step — a second list.
     const register = read('docs/quality/accepted-requirements.md')
-    const rows = register
-      .split('\n')
-      .filter((line) => /^\| `(?:SITE|ACCOUNT|EURO|AGE|PRIV|INGEST|CAP)-\d{3}` \|/.test(line))
+    const rows = register.split('\n').filter((line) => REGISTER_ROW.test(line))
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
       expect(now).not.toContain(row)
     }
+  })
+
+  it('counts every identifier the register uses, not a list of remembered ones', () => {
+    // The counter and this test both spelled out the prefixes they knew about —
+    // SITE, ACCOUNT, EURO, AGE, PRIV, INGEST, CAP — and matched three digits
+    // only. Measured on 11 August 2026 the register held 63 rows and the page
+    // counted 35: every `DFA-0nn` row missing because nobody added its prefix,
+    // and every `MIG-UI-nn` row because its number is two digits. The page's
+    // stated design is that it fails closed when two sources disagree, and it
+    // was under-reporting the gap by 28 requirements in the one number it
+    // publishes about them.
+    //
+    // So the property is coverage, not a longer list: every prefix that appears
+    // in the register appears in the page's breakdown, or is fully implemented.
+    const register = read('docs/quality/accepted-requirements.md')
+    const rows = register.split('\n').filter((line) => REGISTER_ROW.test(line))
+
+    const outstanding = rows.filter((row) => !/\*\*Implemented/.test(row))
+    const prefixes = new Set(
+      outstanding.map((row) => /`([A-Z][A-Z-]*)-\d+`/.exec(row)?.[1]).filter(Boolean),
+    )
+
+    expect(prefixes.size).toBeGreaterThan(6)
+    for (const prefix of prefixes) {
+      expect(now, `${prefix} has outstanding rows but does not appear in NOW.md`).toContain(
+        `${prefix} `,
+      )
+    }
+    expect(now).toContain(`**${outstanding.length}** accepted requirements are outstanding`)
   })
 
   it('counts only what is outstanding, excluding rows marked implemented', () => {

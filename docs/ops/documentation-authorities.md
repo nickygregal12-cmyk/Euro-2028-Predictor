@@ -190,6 +190,17 @@ document to name the current contract as its newest; an exact regeneration
 check is stronger than that, and marking it `sweep` would force a manual touch
 on a file whose whole point is that nobody types into it.
 
+**Its requirement count was wrong, and the cause was the same one.** Measured
+11 August 2026: the register held **63** rows and the page counted **35**. The
+counter spelled out the prefixes it knew — SITE, ACCOUNT, EURO, AGE, PRIV,
+INGEST, CAP — and matched three digits only, so every `DFA-0nn` row was invisible
+because nobody had added its prefix, and every `MIG-UI-nn` row because its number
+has two digits. The headline moved from 27 outstanding to **48**. A page whose
+stated design is that it fails closed when two sources disagree was
+under-reporting the gap by 28 requirements, in the one number it publishes about
+them. It now matches any identifier the register uses, and a test asserts that
+every prefix with outstanding rows appears in the page.
+
 Three properties are held by `tests/scripts/generatedNowSurface.test.ts` rather
 than by convention:
 
