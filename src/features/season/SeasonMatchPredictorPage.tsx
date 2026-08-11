@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { Alert, Button, ClubMatchCard, Skeleton } from '../../design-system'
 import { MatchweekPoints } from '../scoring/MatchweekPoints'
+import { SeasonClosestMisses } from './SeasonClosestMisses'
 import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
 import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import { commandRefusal, type MatchPredictorGateway } from './matchPredictorModel'
@@ -363,6 +364,12 @@ export function SeasonMatchPredictorPage({
           authority, for the whole card, once. It renders nothing at all until
           the matchweek settles. */}
       <MatchweekPoints card={page} />
+
+      {/* INNOV-014, below the official breakdown and visibly separate from it:
+          what the near misses WOULD have been worth. It renders nothing unless
+          a settled fixture came within two goals of exact, and it changes no
+          total. */}
+      <SeasonClosestMisses fixtures={page.fixtures} />
     </SeasonCompetitionShell>
   )
 }

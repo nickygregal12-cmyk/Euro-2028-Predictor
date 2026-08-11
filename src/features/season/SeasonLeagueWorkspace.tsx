@@ -79,13 +79,21 @@ export function SeasonLeagueWorkspace({
   onTabChange,
 }: SeasonLeagueWorkspaceProps) {
   const [movement, setMovement] = useState<LeagueMovementLine | null>(null)
+  /**
+   * The same answer, kept whole. The line above is the caller's own row; the
+   * `INNOV-012` honours need every member's climb, and re-reading contract 150
+   * for that would be the same request twice.
+   */
+  const [movementPage, setMovementPage] = useState<SeasonLeagueMovement | null>(null)
 
   useEffect(() => {
     if (!loadMovement) return
     let active = true
     setMovement(null)
+    setMovementPage(null)
     loadMovement(leagueId)
       .then((answer) => {
+        if (active) setMovementPage(answer)
         // `presentLeagueMovement` returns null unless the matchweek settled and
         // the caller has a row, so an unsettled league renders nothing rather
         // than an empty line where a climb should be.
@@ -94,7 +102,10 @@ export function SeasonLeagueWorkspace({
       .catch(() => {
         // Movement is context, never the point of the page. A failed read
         // withholds the line instead of putting an error over the table.
-        if (active) setMovement(null)
+        if (active) {
+          setMovement(null)
+          setMovementPage(null)
+        }
       })
     return () => {
       active = false
@@ -141,6 +152,7 @@ export function SeasonLeagueWorkspace({
             competitionRoundId={competitionRoundId}
             load={loadMatchweek}
             playerHref={playerHref}
+            movement={movementPage}
           />
         ) : (
           <SeasonLeagueMembers
