@@ -406,11 +406,15 @@ begin
       'findings_truncated', false);
   end if;
 
-  select coalesce(jsonb_agg(row order by severity, ordinal, entry_id), '[]'::jsonb)
+  -- Most severe first. Ordered by a RANK rather than by the token, because
+  -- 'advisory' sorts before 'critical' alphabetically and a report that opens
+  -- with the advisory findings buries the one that means the league table is
+  -- wrong.
+  select coalesce(jsonb_agg(row order by severity_rank, ordinal, entry_id), '[]'::jsonb)
     into v_findings
     from (
       select
-        mismatch.severity,
+        case when mismatch.severity = 'critical' then 0 else 1 end as severity_rank,
         round.ordinal,
         mismatch.entry_id,
         jsonb_build_object(
@@ -425,7 +429,8 @@ begin
       from predictor_internal.shadow_scoring_mismatches mismatch
       join public.competition_rounds round on round.id = mismatch.competition_round_id
       where mismatch.run_id = v_run.id
-      order by mismatch.severity, round.ordinal, mismatch.entry_id
+      order by case when mismatch.severity = 'critical' then 0 else 1 end,
+               round.ordinal, mismatch.entry_id
       limit v_limit) page;
 
   return jsonb_build_object(

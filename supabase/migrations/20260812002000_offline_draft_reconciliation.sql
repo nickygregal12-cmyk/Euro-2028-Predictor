@@ -128,9 +128,13 @@ begin
   end if;
 
   -- Two drafts for one fixture: refuse the call rather than pick one.
+  -- Nulls are excluded: two drafts naming no fixture at all are two malformed
+  -- drafts, and each gets the per-item `invalid` this contract promises rather
+  -- than being reported as a collision between things that name nothing.
   if exists (
     select 1
       from jsonb_array_elements(p_drafts) draft
+     where draft ->> 'fixture_id' is not null
      group by draft ->> 'fixture_id'
     having count(*) > 1
   ) then
