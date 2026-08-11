@@ -27,6 +27,7 @@ function entry(overrides: Partial<HubCompetition> = {}): HubCompetition {
     competitionSlug: 'premier-league',
     seasonSlug: '2026-27',
     seasonRowName: 'Premier League 2026/27',
+    tournamentId: 'season-premier-league',
     name: 'Premier League',
     seasonLabel: '2026/27',
     status: 'upcoming',

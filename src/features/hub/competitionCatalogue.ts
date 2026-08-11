@@ -26,6 +26,17 @@ export type HubCompetition = {
   competitionSlug: string
   seasonSlug: string
   seasonRowName: string
+  /**
+   * The season row id, straight from contract 147's `season_id`.
+   *
+   * IT IS HERE SO A PREFERENCE CAN NAME A COMPETITION THE PLAYER HAS NOT
+   * JOINED. Every other id in this model came in through a membership row, so
+   * a competition nobody had joined had no addressable identity at all — which
+   * made "follow a competition you do not play in" unimplementable from the
+   * catalogue alone. Following, favouriting and the account controls all take
+   * a `tournaments.id`, and this is where it comes from.
+   */
+  tournamentId: string
   name: string
   seasonLabel: string
   status: 'live' | 'upcoming' | 'parked' | 'ended'
@@ -211,6 +222,7 @@ export function catalogueFromPublishedSeasons(
       competitionSlug: season.competitionSlug,
       seasonSlug: season.seasonKey,
       seasonRowName: season.seasonName,
+      tournamentId: season.seasonId,
       name: season.competitionName,
       seasonLabel: seasonLabelFromKey(season.seasonKey),
       status: statusOf(season.status),

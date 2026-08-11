@@ -24,6 +24,7 @@ import {
 } from '../../services/supabase/profile'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { AccountPrivacySupport } from './AccountPrivacySupport'
+import { FollowedCompetitionsCard } from './FollowedCompetitionsCard'
 import s from '../shared.module.css'
 import a from './account.module.css'
 
@@ -362,6 +363,13 @@ export function AccountPage() {
         </label>
         {prefError ? <p role="alert" className={a.fieldError}>{prefError}</p> : null}
       </div>
+
+      {/* Contract 157's preferences, edited where a player looks for a setting.
+          They are a card of their own rather than rows in Preferences above,
+          because Follow is a list that grows with the platform while a reminder
+          toggle is one switch — and because unfollowing needs room to say that
+          it removes nobody from a game. */}
+      <FollowedCompetitionsCard />
 
       <AccountPrivacySupport
         supportEmail={import.meta.env.VITE_SUPPORT_EMAIL}

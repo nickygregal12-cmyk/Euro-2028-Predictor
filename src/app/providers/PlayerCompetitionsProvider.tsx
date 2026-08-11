@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { catalogueFromPublishedSeasons } from '../../features/hub/competitionCatalogue'
+import type { PlayerPreferences } from '../../services/supabase/playerPreferencesModel'
 import {
   presentPlayerCompetitions,
   type PlayerCompetitions,
@@ -45,6 +46,16 @@ export type PlayerCompetitionsState = {
    * for an unknown one.
    */
   player: PlayerCompetitions | null
+  /**
+   * Contract 157's preferences, or null when that read has not landed.
+   *
+   * IT IS HELD BESIDE `player` RATHER THAN INSIDE IT because the two answer
+   * different questions: `player` is the presentation model for a catalogue,
+   * while surfaces that change a preference — Account, onboarding, the rival
+   * picker — need the raw follows and pins, including for competitions the
+   * catalogue does not carry.
+   */
+  preferences: PlayerPreferences | null
   reload: () => void
 }
 
@@ -53,6 +64,7 @@ const PlayerCompetitionsContext = createContext<PlayerCompetitionsState | null>(
 export function PlayerCompetitionsProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<'loading' | 'ready' | 'failed'>('loading')
   const [player, setPlayer] = useState<PlayerCompetitions | null>(null)
+  const [preferences, setPreferences] = useState<PlayerPreferences | null>(null)
   const [nonce, setNonce] = useState(0)
 
   useEffect(() => {
@@ -60,21 +72,33 @@ export function PlayerCompetitionsProvider({ children }: { children: ReactNode }
     setStatus('loading')
     void (async () => {
       try {
-        const [{ fetchHubMembership }, { fetchPublishedWeeklySeasons }] = await Promise.all([
-          import('../../services/supabase/competitionGames'),
-          import('../../services/supabase/weeklyCatalogue'),
-        ])
+        const [{ fetchHubMembership }, { fetchPublishedWeeklySeasons }, { fetchPlayerPreferences }] =
+          await Promise.all([
+            import('../../services/supabase/competitionGames'),
+            import('../../services/supabase/weeklyCatalogue'),
+            import('../../services/supabase/playerPreferences'),
+          ])
         // WHICH SEASONS EXIST, AND WHERE EACH ONE LIVES, both come from the
         // server (contract 147, closing `MIG-UI-12`). There is no static
         // competition array left to merge in: publishing a league on the server
         // is the whole of making it exist and making it routable.
         const published = await fetchPublishedWeeklySeasons()
-        const seasons = await fetchHubMembership(published.map((season) => season.seasonName))
+        // MEMBERSHIP AND PREFERENCES ARE FETCHED TOGETHER, and a failure of
+        // EITHER fails the whole read. Letting preferences fail quietly would
+        // silently downgrade every surface to `'unknown'` follows without
+        // saying so, which is the class of plausible-emptiness defect this
+        // provider's own history is made of.
+        const [seasons, prefs] = await Promise.all([
+          fetchHubMembership(published.map((season) => season.seasonName)),
+          fetchPlayerPreferences(),
+        ])
         if (!active) return
+        setPreferences(prefs)
         setPlayer(
           presentPlayerCompetitions(
             catalogueFromPublishedSeasons(published, seasons),
             seasons,
+            { preferences: prefs },
           ),
         )
         setStatus('ready')
@@ -84,6 +108,7 @@ export function PlayerCompetitionsProvider({ children }: { children: ReactNode }
         // that keeps showing a competition after the read that proved it failed
         // is asserting membership nothing confirmed.
         setPlayer(null)
+        setPreferences(null)
         setStatus('failed')
       }
     })()
@@ -94,8 +119,8 @@ export function PlayerCompetitionsProvider({ children }: { children: ReactNode }
 
   const reload = useCallback(() => setNonce((value) => value + 1), [])
   const value = useMemo<PlayerCompetitionsState>(
-    () => ({ status, player, reload }),
-    [status, player, reload],
+    () => ({ status, player, preferences, reload }),
+    [status, player, preferences, reload],
   )
 
   return (
@@ -118,6 +143,7 @@ export function usePlayerCompetitions(): PlayerCompetitionsState {
     useContext(PlayerCompetitionsContext) ?? {
       status: 'loading',
       player: null,
+      preferences: null,
       reload: () => {},
     }
   )
