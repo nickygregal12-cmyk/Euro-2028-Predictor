@@ -8,7 +8,5 @@
     "source": "Development fast-lane rollout",
     "workflowRunId": 31444748121,
     "repositoryHead": "39fade8f4533dc43388e32e20212c2e93a687218"
-  },
-  "productionContract": 157,
-  "productionPromotionAuthorised": false
+  }
 }

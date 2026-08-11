@@ -320,3 +320,199 @@ $$;
 
 revoke all on function public.rotate_league_invite_code(uuid) from public;
 grant execute on function public.rotate_league_invite_code(uuid) to authenticated, service_role;
+
+-- ===========================================================================
+-- 5. The private containers, which learned about codes after this was written
+-- ===========================================================================
+-- THIS SECTION EXISTS BECAUSE THIS CONTRACT WOULD OTHERWISE BREAK PRODUCTION,
+-- and the break is silent until somebody tries to create a private
+-- competition.
+--
+-- This migration was authored against a repository where `gen_invite_code()`
+-- had exactly one caller: the league path. Contracts 152 to 155 landed in
+-- between and gave it a second family of callers —
+-- `predictor_internal.allocate_invite_code()` feeds
+-- `create_private_season_lms` and `create_private_season_cup`, and both write
+-- the result into `bonus_competitions.invite_code`, which the shared
+-- `invite_code_registry` then mirrors by trigger.
+--
+-- Section 1 widens the generator to twelve characters. Section 2 widened the
+-- LEAGUE constraint to match. The private side was pinned to exactly six in
+-- three places, and each is a real failure rather than a theoretical one:
+--
+--   1. `bonus_competitions_invite_code_shape` — creating any private
+--      competition raises check_violation, so the feature is simply dead.
+--   2. `invite_code_registry_shape` — even were the first widened, the
+--      registering trigger fails and takes the creating transaction with it.
+--   3. `resolve_invite_code` rejects anything that is not exactly six
+--      characters BEFORE it looks anything up, and answers `found: false`. So
+--      every code issued after this contract would read as an unknown code —
+--      the failure that looks like a wrong code rather than a broken one, and
+--      therefore the one nobody would report as a bug.
+--
+-- The same widening, for the same reason: six so that every code already
+-- issued keeps working, sixteen so the twelve the generator now produces fits
+-- with room left. Contracts 152 to 157 are already applied to both hosted
+-- environments, so these arrive as ALTERs here rather than as edits there.
+
+alter table public.bonus_competitions
+  drop constraint if exists bonus_competitions_invite_code_shape;
+
+alter table public.bonus_competitions
+  add constraint bonus_competitions_invite_code_shape
+  check (invite_code is null or invite_code ~ '^[A-Z0-9]{6,16}$');
+
+alter table public.invite_code_registry
+  drop constraint if exists invite_code_registry_shape;
+
+alter table public.invite_code_registry
+  add constraint invite_code_registry_shape
+  check (code ~ '^[A-Z0-9]{6,16}$');
+
+-- Only the accepted shape moves. Every other line is contract 155's, verbatim:
+-- the disclosure boundary, the identical answer for an unknown and an
+-- unusable code, and the single primary-key lookup over the shared namespace
+-- are unchanged.
+create or replace function public.resolve_invite_code(p_code text)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $resolve$
+declare
+  v_uid uuid := (select auth.uid());
+  v_code text := upper(btrim(coalesce(p_code, '')));
+  v_registry record;
+  v_league record;
+  v_competition record;
+begin
+  if v_uid is null then
+    raise exception 'Not authenticated' using errcode = 'insufficient_privilege';
+  end if;
+
+  -- Six to sixteen, matching the generator and both container constraints. A
+  -- malformed code is still not found rather than invalid, for the reason
+  -- contract 155 gave: both answers must look identical from outside.
+  if v_code !~ '^[A-Z0-9]{6,16}$' then
+    return jsonb_build_object('found', false);
+  end if;
+
+  select registry.league_id, registry.competition_id
+    into v_registry
+    from public.invite_code_registry registry
+    where registry.code = v_code;
+
+  if v_registry is null then
+    return jsonb_build_object('found', false);
+  end if;
+
+  if v_registry.league_id is not null then
+    select league.id, league.name, league.game_competition_id,
+           season.name as season_name, season.kind as season_kind,
+           definition.display_name as game_name,
+           (select count(*) from public.league_members member
+             where member.league_id = league.id) as members,
+           exists (select 1 from public.league_members mine
+                    where mine.league_id = league.id and mine.user_id = v_uid) as is_member,
+           exists (select 1 from public.game_memberships membership
+                    where membership.game_competition_id = league.game_competition_id
+                      and membership.user_id = v_uid
+                      and membership.status = 'active') as holds_game
+      into v_league
+      from public.leagues league
+      join public.tournaments season on season.id = league.tournament_id
+      left join public.bonus_competitions competition on competition.id = league.game_competition_id
+      left join public.game_definitions definition on definition.game_key = competition.game_key
+      where league.id = v_registry.league_id;
+
+    return jsonb_build_object(
+      'found', true,
+      'kind', 'league',
+      'id', v_league.id,
+      'name', v_league.name,
+      'season', v_league.season_name,
+      'game', v_league.game_name,
+      'members', v_league.members,
+      'already_in', v_league.is_member,
+      'requires_game_entry', not v_league.holds_game,
+      'join_with', 'join_league');
+  end if;
+
+  select competition.id, competition.name, competition.game_key,
+         competition.registration_closes_at, competition.completed_at,
+         competition.owner_id,
+         season.name as season_name,
+         definition.display_name as game_name,
+         (select count(*) from public.game_memberships membership
+           where membership.game_competition_id = competition.id
+             and membership.status = 'active') as members,
+         exists (select 1 from public.game_memberships mine
+                  where mine.game_competition_id = competition.id
+                    and mine.user_id = v_uid
+                    and mine.status = 'active') as is_member
+    into v_competition
+    from public.bonus_competitions competition
+    join public.tournaments season on season.id = competition.tournament_id
+    join public.game_definitions definition on definition.game_key = competition.game_key
+    where competition.id = v_registry.competition_id;
+
+  return jsonb_build_object(
+    'found', true,
+    'kind', 'competition',
+    'id', v_competition.id,
+    'name', v_competition.name,
+    'season', v_competition.season_name,
+    'game', v_competition.game_name,
+    'game_key', v_competition.game_key,
+    'members', v_competition.members,
+    'already_in', v_competition.is_member,
+    'is_owner', v_competition.owner_id = v_uid,
+    'closed', v_competition.completed_at is not null
+              or (v_competition.registration_closes_at is not null
+                  and now() >= v_competition.registration_closes_at),
+    'join_with', 'join_private_competition');
+end;
+$resolve$;
+
+revoke all on function public.resolve_invite_code(text) from public, anon;
+grant execute on function public.resolve_invite_code(text) to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Prove the private path survives this contract, in the same transaction.
+-- ---------------------------------------------------------------------------
+
+do $$
+declare
+  v_code text;
+begin
+  -- The generator's own output must satisfy every constraint that now receives
+  -- it. Asserted against a real generated code rather than against the pattern,
+  -- because the pattern is what was wrong.
+  v_code := public.gen_invite_code();
+
+  if v_code !~ '^[A-Z0-9]{6,16}$' then
+    raise exception 'gen_invite_code produced % which no container will accept', v_code;
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'bonus_competitions_invite_code_shape'
+       and pg_get_constraintdef(oid) like '%6,16%'
+  ) then
+    raise exception 'The private competition code constraint was not widened';
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'invite_code_registry_shape'
+       and pg_get_constraintdef(oid) like '%6,16%'
+  ) then
+    raise exception 'The shared registry code constraint was not widened';
+  end if;
+
+  if pg_get_functiondef('public.resolve_invite_code(text)'::regprocedure) !~ '6,16' then
+    raise exception 'The resolver still refuses every code this contract issues';
+  end if;
+end;
+$$;
