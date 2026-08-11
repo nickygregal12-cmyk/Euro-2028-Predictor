@@ -324,19 +324,21 @@ jobs:
           set -euo pipefail
           # Contract 152 backfills every league invite code into the new shared
           # namespace and REFUSES the migration if it covered fewer leagues than
-          # exist. Contract 152's identity constraint is NOT VALID because
-          # Development holds one ownerless private competition; Production is
-          # believed to hold none. Both facts are read from the restored copy
-          # BEFORE the apply, so the verification below compares against
-          # measurement rather than against belief.
+          # exist. That count is read from the restored copy BEFORE the apply, so
+          # the verification below compares against measurement rather than
+          # against a number written into this file.
+          #
+          # This step asks ONLY what the contract-151 schema can answer. Its
+          # first version also counted private competitions with a null `name` —
+          # and `name` is a column contract 152 ADDS, so the query failed with
+          # `column "name" does not exist` on run 31445831137, before the apply
+          # that would have created it. A pre-apply probe cannot read post-apply
+          # columns; how many private competitions exist is the question that
+          # matters here, and it is answerable at 151.
           psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
             select json_build_object(
               'leagues_with_code', (select count(*) from public.leagues where invite_code is not null),
-              'private_competitions', (select count(*) from public.bonus_competitions where visibility_kind = 'private'),
-              'ownerless_private_competitions', (
-                select count(*) from public.bonus_competitions
-                 where visibility_kind = 'private' and name is null
-              )
+              'private_competitions', (select count(*) from public.bonus_competitions where visibility_kind = 'private')
             )
           " > "${WORK_DIR}/preconditions.json"
           cat "${WORK_DIR}/preconditions.json"
