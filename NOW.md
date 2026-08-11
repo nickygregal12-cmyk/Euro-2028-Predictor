@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **171** | latest `20260811220000_league_prediction_cap_honesty.sql` |
 | Development hosted | **171** | at `20260811220000_league_prediction_cap_honesty.sql`, verified `2026-08-11T14:26:00.000Z`, fast-lane run `31499058072` |
-| Production | **158** | promotion **not authorised** |
+| Production | **171** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or

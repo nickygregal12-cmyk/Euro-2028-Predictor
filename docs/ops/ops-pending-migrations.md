@@ -6,6 +6,42 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-third entry)
+
+**The repository is at contract 171. Development remains at 171. Production is now hosted at 171. All three are level.**
+
+Contracts 159 to 171 were applied to Production as **one boundary**, at the owner's direction, through `production-158-to-171-rollout.yml`, run [31505763706](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31505763706), from exact `main` `0f778ffbde7825228379ea24624cc90a92c2fe0c`.
+
+**The three gates, in order.** Backup run `31500395326` (succeeded). Rehearsal run [31505339791](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31505339791) (succeeded). The rollout's own API check that both had concluded `success` before it would proceed.
+
+**Why thirteen at once was defensible.** Every migration in the range is additive by `check-migration-additive.mjs`, so it ran as a **gate**. That is the material difference from the 157 → 158 promotion, which was destructive — `get_league_preview` was dropped and recreated because its return type narrowed — and so had to run the checker as a report with the backup-and-rehearsal pair standing in its place. **If a later rollout softens that gate back to a report, the boundary has changed.** The dry run asserted the thirteen files **by name** using `diff`; a count would pass on the wrong thirteen.
+
+**The rehearsal was not a formality.** Its first dispatch, run [31504557398](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31504557398), failed at the Production dump with `supabase: command not found`. Both workflows had been derived from the proven 157 → 158 pair and dropped its `actions/setup-node` and `supabase/setup-cli` steps. It failed on its own runner rather than part-way through a Production apply. Everything upstream had already passed on that run, including the read-only confirmation that the live source was exactly contract 158 at `20260811000000`.
+
+| Query, taken after the rollout and independently of it | Production |
+| --- | --- |
+| The thirteen versions `20260811100000` … `20260811220000`, **named individually** | all thirteen present |
+| `count(*)` of `supabase_migrations.schema_migrations` | **171** |
+| `max(version)` | `20260811220000` |
+| `cup_final_group_tables` still carries `sequence between 1 and 3` | **true** |
+| `cup_season_group_tables` carries any matchday bound | **false** |
+| The six new relations exist | 6 of 6 |
+| …granted to `anon` or `authenticated` | **0** |
+| `process_player_action_items` reachable by a browser role or `PUBLIC` | **0** |
+| `cron.job` rows | **0** |
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **171** | 171 canonical migrations through `20260811220000_league_prediction_cap_honesty.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **171** | Fast-lane run `31499058072` from exact main `dd345ca`. | LEVEL |
+| Production Supabase | **171** | Project `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31505763706` from exact main `0f778ff`, gated on backup `31500395326` and rehearsal `31505339791`, independently confirmed by the named-row query above. | LEVEL |
+
+**Nothing player-owned moved** across thirteen migrations: 1 auth user, 1 profile, 3 tournaments, 56 teams, 51 matches, 3 entries, 36 match predictions, 1 league, 1 league member, 0 score events, 3 entry totals, 7 game memberships, 10 competitions, 578 season fixtures and 10 season predictions — captured before the apply and compared after.
+
+**What this did NOT do.** It is **schema only**. It published no Euro 2028 — contract 143's state stays `hidden`, publication is an owner act, and `EURO-001` remains a recorded defect. It launched no competition, drew no Championship and opened no Last Man Standing; contracts 166 and 127 write only when an administrator calls them. It scheduled no job, so contract 170's generator has still produced nothing in Production and contract 163 has sent nothing. It imported no football, and copying Development football rows into Production remains forbidden by the contract 132 boundary. **The deployed application remains at contract 145**, so no browser can reach any of this; promotion is separately controlled and `promotionAuthorised` stays `false`.
+
+**The previous entry's warning was applied here.** Verification names the thirteen expected ledger rows rather than counting them, in both the workflow and the independent check — because a `count(*)` against a hosted ledger went stale for twenty-five minutes after a successful apply on this same day, and a count is exactly the shape that looks most like proof.
+
 ## Current state — 11 August 2026 (thirty-second entry)
 
 **The repository is at contract 171. Development is now hosted at 171. Production remains at 158.**
