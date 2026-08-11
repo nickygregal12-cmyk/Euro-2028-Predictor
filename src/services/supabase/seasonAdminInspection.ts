@@ -54,3 +54,65 @@ export async function fetchAdminEntrants(
   if (error) throw error
   return mapAdminEntrantsPage(data)
 }
+
+/**
+ * The two decision writers, beside the reads that show what they act on.
+ *
+ * APPROVAL IS WHOLE-CALENDAR, NOT PER PROPOSAL, and a surface must say so.
+ * `admin_approve_initial_provider_fixtures` takes a season and a PROVIDER and
+ * decides the whole staged calendar for it; there is no per-proposal accept.
+ * Contract 168's read shows each proposal and its blockers so an administrator
+ * can see what they are approving — which is a different thing from approving
+ * them one at a time, and offering a per-row button would misrepresent what the
+ * server does.
+ *
+ * A REASON IS REQUIRED BY BOTH, and neither wrapper supplies a default. A
+ * decision with no recorded reason is one nobody can review afterwards.
+ */
+export async function approveInitialProviderFixtures(
+  tournamentId: string,
+  provider: string,
+  reason: string,
+): Promise<void> {
+  const { error } = await db.rpc('admin_approve_initial_provider_fixtures', {
+    p_tournament_id: tournamentId,
+    p_provider: provider,
+    p_reason: reason,
+  })
+  if (error) throw error
+}
+
+export async function rejectInitialProviderFixtures(
+  tournamentId: string,
+  provider: string,
+  reason: string,
+): Promise<void> {
+  const { error } = await db.rpc('admin_reject_initial_provider_fixtures', {
+    p_tournament_id: tournamentId,
+    p_provider: provider,
+    p_reason: reason,
+  })
+  if (error) throw error
+}
+
+/**
+ * Disqualify one entrant from one competition.
+ *
+ * CONSEQUENTIAL AND IRREVERSIBLE FROM THE PLAYER'S SIDE: a disqualified entry
+ * can never be rejoined, which the membership authority enforces. Every caller
+ * must confirm first and must name the person, because the whole reason
+ * contract 168's entrant read exists is that this control previously could not
+ * say who it was about to remove.
+ */
+export async function disqualifyEntrant(
+  gameCompetitionId: string,
+  userId: string,
+  reason: string,
+): Promise<void> {
+  const { error } = await db.rpc('admin_disqualify_competition_game_entry', {
+    p_game_competition_id: gameCompetitionId,
+    p_user_id: userId,
+    p_reason: reason,
+  })
+  if (error) throw error
+}

@@ -39,6 +39,18 @@ vi.mock('../../../src/services/supabase/providerReviewQueues', () => ({
   acknowledgeReviewItems: vi.fn(),
 }))
 
+// Contract 168's inspection reads and the two decision writers beside them.
+// Left in flight, as the review queues are: this suite is about the page's own
+// season selection and fixtures, not about the inspection panels, which have
+// their own.
+vi.mock('../../../src/services/supabase/seasonAdminInspection', () => ({
+  fetchProviderProposals: () => new Promise(() => {}),
+  fetchAdminEntrants: () => new Promise(() => {}),
+  approveInitialProviderFixtures: vi.fn(),
+  rejectInitialProviderFixtures: vi.fn(),
+  disqualifyEntrant: vi.fn(),
+}))
+
 vi.mock('../../../src/services/supabase/seasonAdmin', () => ({
   openSeasonCompetition: mocks.openSeasonCompetition,
   recordSeasonFixtureResult: mocks.recordSeasonFixtureResult,
@@ -180,19 +192,24 @@ describe('the competition administration surface', () => {
     await waitFor(() => expect(screen.getByText(/Nothing was changed/)).toBeTruthy())
   })
 
-  it('states what it deliberately does not offer, and why', async () => {
-    // An operator who cannot see a capability assumes it does not exist. Both
-    // remaining absences are granted server-side and missing here because no
-    // browser read exposes what they would act on.
+  it('no longer explains two absences it has stopped having', async () => {
+    // This assertion used to REQUIRE the "Not offered here, and why" section,
+    // and it was right to: an operator who cannot see a capability assumes it
+    // does not exist, and both controls were genuinely missing because no
+    // browser read exposed what they would act on -- a count is not the list an
+    // approval acts on, and a disqualification could not name who it was about
+    // to remove.
     //
-    // Provider REVIEW used to be on this list and is not any more: contract 138
-    // gave the five ingestion queues a read, so the panel above shows them. What
-    // is still absent is the approve/reject decision over a staged calendar,
-    // whose list nobody can inspect.
+    // Contract 168 is those two reads. The section is gone with the reason for
+    // it, and the assertion is inverted rather than deleted: a page that still
+    // explained why it cannot do something it now does would be worse than one
+    // that never explained anything.
     render(<SeasonAdminPage />)
-    await waitFor(() => expect(screen.getByText(/Not offered here/)).toBeTruthy())
-    expect(screen.getByText(/enumerates a competition’s entrants/)).toBeTruthy()
-    expect(screen.getByText(/staged provider calendar/)).toBeTruthy()
+
+    await waitFor(() => expect(screen.getByText(/Staged provider fixtures/)).toBeTruthy())
+    expect(screen.getByText(/Entrants/)).toBeTruthy()
+    expect(screen.queryByText(/Not offered here/)).toBeNull()
+    expect(screen.queryByText(/enumerates a competition’s entrants/)).toBeNull()
   })
 
   it('says there is no season rather than spinning for ever', async () => {

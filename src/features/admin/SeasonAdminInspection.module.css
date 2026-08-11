@@ -1,0 +1,149 @@
+/* The staged-proposal and entrant inspection panels.
+ *
+ * Lists, not tables: each proposal carries a variable number of named blockers
+ * beneath it, which a table row cannot hold without either truncating them or
+ * making every row the height of the worst one.
+ */
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.stateChip {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+}
+
+.proposals,
+.entrants {
+  list-style: none;
+  margin: var(--sp-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.proposal,
+.blocked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+}
+
+/* Blocked is a left rule and a named list, never colour alone: the reason is
+   the actionable part and it has to read without it. */
+.blocked {
+  box-shadow: inset var(--bar-w) 0 0 var(--amb);
+}
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clubs {
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
+}
+
+.blockers {
+  margin: 0;
+  padding-left: var(--sp-4);
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--amb);
+}
+
+.decide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.chip {
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx2);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  cursor: pointer;
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.chipOn {
+  border-color: var(--acc);
+  color: var(--tx);
+  font-weight: 600;
+}
+
+.entrant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+}
+
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
