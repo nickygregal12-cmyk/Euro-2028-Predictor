@@ -134,7 +134,7 @@
       "allow": [
         63
       ],
-      "why": "The Stage A-L engineering sequence, and the child of the programme plan above. It is live because its stage exit evidence moves. Its contract changelog was the same verbatim copy the parent carried, which its own \u00a7 18 already forbade in principle — maintaining the same decision in two documents creates competing authority — and is now a table of what each contract meant for a STAGE."
+      "why": "The Stage A-L engineering sequence, and the child of the programme plan above. It is live because its stage exit evidence moves. Its contract changelog was the same verbatim copy the parent carried, which its own § 18 already forbade in principle — maintaining the same decision in two documents creates competing authority — and is now a table of what each contract meant for a STAGE."
     },
     {
       "path": "docs/quality/risk-register.md",
@@ -159,6 +159,12 @@
       "kind": "structural",
       "sweep": false,
       "why": "An inventory of what the schema currently binds. It is held in step by tests/database-parity/stageCTriggerBindingCoverage.test.ts against a real database, which is a stronger check than counting contract numbers in prose."
+    },
+    {
+      "path": "docs/product/innovation-lab.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Governed candidate register for unaccepted product differentiators. It is deliberately outside current truth, the accepted-requirements register and the execution roadmap; INNOV-* entries become implementation scope only after explicit owner acceptance and promotion through the existing authorities."
     },
     {
       "path": "README.md",
