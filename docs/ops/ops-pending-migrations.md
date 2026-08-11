@@ -6,7 +6,34 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 10 August 2026 (nineteenth entry)
+## Current state — 11 August 2026 (twentieth entry)
+
+**Development is at contract 157. Production remains at 151.** The nineteenth entry recorded contracts 152 to 157 as a repository candidate applied to neither hosted environment; this entry records what happened when they were applied, and it is not a tidy story.
+
+**The registry outage lifted, and it had been hiding the work.** The nineteenth entry recorded that no local Supabase stack could start, so the pgTAP suites for this batch had never run. When the images became pullable the suites ran for the first time and found **three real defects and seven broken suites**, none of which any repository-level check could have caught.
+
+| What | Where | Why it was invisible |
+| --- | --- | --- |
+| Assertion matched its own comment: `seed` inside "the seeding", and `draw_completed_at` inside a comment | contract 154's DO block | Only runs when the migration is applied |
+| No-write assertion spelled `delete from` literally, so the ADR 0024 additive checker refused the whole batch from the fast lane | contract 155 | Fast lane had never been reached |
+| Private fixtures with no name, owner or invite code — the shape contract 152 now refuses | pgTAP 154, 156, 159, 162, 176, 179, 185 | Only fails against a real database |
+| Revoked tables read while wearing the `authenticated` role | pgTAP 202, 203 | Only fails against a real database |
+
+**The fixtures were changed, not the constraint.** `NOT VALID` was always about tolerating the one ownerless legacy private competition on hosted Development, not about admitting new ones. Suite 179 needed its players created before its competitions because the owner is a foreign key into `auth.users`; suite 154 had no users at all.
+
+**One hazard is recorded and deliberately not fixed, because it is not reachable.** Contract 107's Last Man Standing restart driver builds its successor by copying `visibility_kind` and cannot copy the three identity columns, which did not exist when it was written — so restarting a **private** Last Man Standing would violate contract 152's constraint. Its only caller, contract 109's scheduler, already filters `visibility_kind = 'public'`, matching the driver's own `public_wipeout_restart` audit action, and the driver is granted to no role. What happens to an invite code across a lifecycle transition is a rule decision with its own authority and was not taken inside a UI batch.
+
+**Evidence.** Database parity green across all 131 pgTAP files at repository head `d49541f`; guarded Development fast-lane run **31444748121** from exact main `39fade8`, with the additive checker accepting all six and reporting contract 152's two paired trigger re-creations and contract 156's one as structural rather than destructive. Independently confirmed by read-only query: 157 rows ending `20260810230000_player_preferences`; four new relations with **zero** browser grants; backfill covering 4 of 4 league codes and inventing no competition row; the legacy private competition untouched; `season_wrapped`, `competition_follows` and `pinned_rivals` empty; ten new functions executable by `authenticated` and no anonymous role; `join_competition_game` refusing a private competition; Euro publication state still `hidden`.
+
+**Known open, and not a defect in the contracts.** `database.types.ts` is generated from hosted Development by a script requiring `SUPABASE_ACCESS_TOKEN`, which no workflow holds, so the staleness guard stays red at `expected 151 to be 157` until the owner supplies that secret or an equivalent path. It gates no rollout.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **157** | 157 canonical migrations through `20260810230000_player_preferences.sql`. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **157** | Fast-lane run `31444748121` from main `39fade8`, independently confirmed. | LEVEL |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **151** | Rollout run `31420443441`, independently confirmed. Contracts 152 to 157 pending its own approved promotion. | SIX BEHIND |
+
+## Superseded — 10 August 2026 (nineteenth entry)
 
 **Contracts 152 to 157 are the repository candidate and are applied to neither hosted environment.** They close the six `MIG-UI` items that remained after the contract 146–151 batch, and they are accumulated as one batch at the owner's direction.
 
