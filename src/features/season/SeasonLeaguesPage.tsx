@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton, TextInput } from '../../design-system'
 import { InvitePanel } from '../leagues/InvitePanel'
+import { RotateInviteCodeControl } from '../leagues/RotateInviteCodeControl'
 import { presentGameLeagues, type SeasonLeaguesGateway } from './gameLeaguesModel'
 import type { SeasonLeagueStandingsGateway } from './leagueStandingsModel'
 import type { SeasonLeagueMatchweekPredictions } from '../../services/supabase/seasonLeaguePredictionsModel'
@@ -120,6 +121,14 @@ export function SeasonLeaguesPage({
 
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  // A rotated code, held per league until the next load replaces it.
+  //
+  // THE SERVER'S ANSWER IS SHOWN IMMEDIATELY RATHER THAN REFETCHED. The new
+  // code is what `rotate_league_invite_code` returned, so it is already the
+  // authority — refetching the whole list to learn a value already in hand
+  // would leave the owner looking at the OLD code for as long as the round trip
+  // takes, which is exactly the moment they are about to send it to somebody.
+  const [rotatedCodes, setRotatedCodes] = useState<Record<string, string>>({})
 
   // One open league at a time, and which one — plus which of its three views —
   // is navigation state rather than component state, so Back from a player's
@@ -207,7 +216,25 @@ export function SeasonLeaguesPage({
                 <p className={styles.cardMeta}>
                   {league.memberLine} · {league.ownerLine}
                 </p>
-                <InvitePanel leagueName={league.name} code={league.inviteCode} mode="chip" />
+                <InvitePanel
+                  leagueName={league.name}
+                  code={rotatedCodes[league.id] ?? league.inviteCode}
+                  mode="chip"
+                />
+
+                {/* Owner-only presentation over an owner-only command. The
+                    server refuses anyone else, so this hides a control that
+                    would not work rather than standing in for the check. */}
+                {league.isOwner ? (
+                  <RotateInviteCodeControl
+                    leagueId={league.id}
+                    leagueName={league.name}
+                    currentCode={rotatedCodes[league.id] ?? league.inviteCode}
+                    onRotated={(next) =>
+                      setRotatedCodes((codes) => ({ ...codes, [league.id]: next }))
+                    }
+                  />
+                ) : null}
 
                 {/* The control names the league it opens, so a screen-reader
                     user moving between cards is never left with a list of

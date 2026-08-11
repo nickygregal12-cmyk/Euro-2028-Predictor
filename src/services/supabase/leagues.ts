@@ -84,20 +84,36 @@ export async function fetchLeaguePreview(code: string): Promise<LeaguePreview | 
   return { name: row.name, isMember: row.is_member }
 }
 
-// NO BROWSER CALL FOR `rotate_league_invite_code` YET, AND THAT IS THE TYPED
-// CLIENT WORKING RATHER THAN AN OMISSION.
-//
-// Contract 152 creates the function; hosted Development does not hold contract
-// 152 until its rollout runs, so `database.types.ts` — generated from
-// Development — does not name it, so calling it through the typed client is a
-// compile error today. Since `TYPE-001` closed there is no untyped client
-// to reach for, which means repository code cannot call an RPC the database has
-// not been given.
-//
-// That ordering is worth keeping: a browser control whose function does not
-// exist yet is a button that returns a schema-cache error to a real person. The
-// control belongs in the pull request that follows the rollout, when the
-// regenerated types make it expressible.
+/**
+ * Issue this league a new invite code, invalidating the old one.
+ *
+ * THIS IS WHAT MAKES A LEAKED CODE RECOVERABLE WITHOUT DELETING THE LEAGUE, and
+ * it is the third thing contract 158 added for `SEC-001`. Until Development
+ * reached contract 158 the function could not be called through the typed
+ * client at all — `database.types.ts` is generated from Development, and since
+ * `TYPE-001` closed there is no untyped client to reach for — so the note that
+ * stood here recorded a deliberate ordering rather than an omission. That
+ * ordering has now been satisfied: Development is at 168 and the types name it.
+ *
+ * WHO MAY DO IT IS THE SERVER'S DECISION AND ONLY THE SERVER'S. The function is
+ * owner-only inside; this sends the league id and nothing else, adds no check
+ * of its own, and hands back whatever came out. A caller who is not the owner
+ * receives the server's refusal, which is what the interface shows.
+ *
+ * THE OLD CODE STOPS WORKING THE INSTANT THIS RETURNS. That is the point, and
+ * it is why the control that calls this must confirm first: every invite
+ * already sent, pasted into a group chat or written down becomes a wrong code.
+ */
+export async function rotateLeagueInviteCode(leagueId: string): Promise<string> {
+  const { data, error } = await db.rpc('rotate_league_invite_code', {
+    p_league_id: leagueId,
+  })
+  if (error) throw error
+  if (typeof data !== 'string' || data.length === 0) {
+    throw new Error('Rotating the invite code returned no new code.')
+  }
+  return data
+}
 
 /** Join a league by invite code (idempotent). Returns the joined league. */
 export async function joinLeague(code: string): Promise<{ id: string; name: string }> {
