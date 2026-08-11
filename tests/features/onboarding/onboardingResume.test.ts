@@ -8,7 +8,10 @@ import {
   ONBOARDING_STEPS,
 } from '../../../src/features/onboarding/onboardingResume'
 import { EMPTY_DRAFT } from '../../../src/features/onboarding/onboardingDraft'
-import { mapPlayerPreferences } from '../../../src/services/supabase/playerPreferencesModel'
+import {
+  mapPlayerPreferences,
+  storedOnboardingStep,
+} from '../../../src/services/supabase/playerPreferencesModel'
 import type { HubCompetition } from '../../../src/features/hub/competitionCatalogue'
 
 /**
@@ -41,10 +44,28 @@ const CATALOGUE = [
 ]
 
 describe('resumeStep', () => {
-  it('resumes at the step the server recorded', () => {
+  it('resumes at the step the server recorded, through the stored vocabulary', () => {
+    // THE ASSERTION THIS REPLACES FED THE JOURNEY'S OWN NAMES STRAIGHT INTO THE
+    // DECODER, which is the mistake that shipped: `profiles.onboarding_step`
+    // accepts four values and the journey names its steps differently, so three
+    // of every four writes were a CHECK violation the server answered 400 and
+    // the surface swallowed. A test that supplies journey names as stored
+    // values can never catch it, because it agrees with the bug. These are the
+    // values the column actually holds.
     for (const step of ONBOARDING_STEPS) {
-      expect(resumeStep(mapPlayerPreferences({ onboarding: { step } }))).toBe(step)
+      const stored = storedOnboardingStep(step)
+      expect(stored, `no stored value for the "${step}" step`).not.toBeNull()
+      expect(resumeStep(mapPlayerPreferences({ onboarding: { step: stored } }))).toBe(step)
     }
+  })
+
+  it('maps every journey step onto a value the column accepts, and no two onto one', () => {
+    const stored = ONBOARDING_STEPS.map((step) => storedOnboardingStep(step))
+    // The four the contract 157 CHECK constraint allows, verbatim.
+    expect(new Set(stored)).toEqual(new Set(['competition', 'games', 'identity', 'done']))
+    expect(new Set(stored).size, 'two steps share a stored value and cannot round-trip').toBe(
+      ONBOARDING_STEPS.length,
+    )
   })
 
   it('starts at the beginning for a player the server has never seen', () => {
@@ -53,9 +74,9 @@ describe('resumeStep', () => {
   })
 
   it('starts at the beginning for a step this build no longer has', () => {
-    // `onboarding_step` is free text server-side: it stores whatever a client
-    // sent. A removed step must not leave every player who stopped on it
-    // looking at nothing.
+    // A stored value the map does not know reads as "never started", which is
+    // the only safe reading: a removed step must not leave every player who
+    // stopped on it looking at nothing.
     expect(resumeStep(mapPlayerPreferences({ onboarding: { step: 'favourite-colour' } }))).toBe(
       'competitions',
     )

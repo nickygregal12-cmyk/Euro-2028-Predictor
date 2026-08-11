@@ -39,8 +39,9 @@ export type PinnedRival = {
 
 export type OnboardingProgress = {
   /**
-   * The step the player last reached, verbatim from the server. Null when they
-   * have never started — which is different from having finished.
+   * The step the player last reached, in the journey's own vocabulary. Null
+   * when they have never started — which is different from having finished, and
+   * also what an unrecognised stored value becomes.
    */
   step: string | null
   /** Set once, the first time onboarding completed. Never rewritten. */
@@ -81,6 +82,51 @@ function stringOrNull(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
 }
 
+/**
+ * The journey's steps, and what `profiles.onboarding_step` is allowed to hold.
+ *
+ * WHY A TRANSLATION EXISTS AT ALL. Contract 157 constrains the column to four
+ * values — `competition`, `games`, `identity`, `done` — and the journey names
+ * its four steps for what the player is doing on them. Only `games` happens to
+ * coincide, so writing the journey's own names sent three of every four writes
+ * into a CHECK violation: the server answered 400, the step writes are
+ * deliberately silent, and Finish surfaced "We could not finish your setup"
+ * with no way to tell which call had been refused. Onboarding progress was
+ * therefore never saved except on one step, and setup could never complete.
+ *
+ * IT IS A TRANSLATION, NOT A RENAME. The stored vocabulary is a server rule
+ * this session may not change, and the journey's names are the better names for
+ * what its steps ARE — so the mapping lives here, at the boundary that already
+ * exists to convert between the two, rather than either side bending to the
+ * other. `identity` is the accepted value closest to choosing a favourite club.
+ *
+ * IT ROUND-TRIPS. Every step maps to exactly one stored value and back, so a
+ * player who leaves halfway resumes on the step they left rather than one
+ * either side of it. An unrecognised stored value reads as null, and the
+ * journey starts from the beginning — the same as never having started, which
+ * is the only safe reading of a value this map does not know.
+ */
+const STORED_ONBOARDING_STEP: Readonly<Record<string, string>> = {
+  competitions: 'competition',
+  clubs: 'identity',
+  games: 'games',
+  review: 'done',
+}
+
+const JOURNEY_ONBOARDING_STEP: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.entries(STORED_ONBOARDING_STEP).map(([journey, stored]) => [stored, journey]),
+)
+
+/** A journey step as the column accepts it. Null for anything it does not. */
+export function storedOnboardingStep(step: string): string | null {
+  return STORED_ONBOARDING_STEP[step] ?? null
+}
+
+/** A stored value as the journey names it. Null for anything unrecognised. */
+export function journeyOnboardingStep(stored: string | null): string | null {
+  return stored === null ? null : (JOURNEY_ONBOARDING_STEP[stored] ?? null)
+}
+
 function mapFollow(value: unknown): FollowedCompetition | null {
   const row = objectOf(value)
   const tournamentId = stringOrNull(row.tournament_id)
@@ -109,7 +155,7 @@ export function mapPlayerPreferences(payload: unknown): PlayerPreferences {
 
   return {
     onboarding: {
-      step: stringOrNull(onboarding.step),
+      step: journeyOnboardingStep(stringOrNull(onboarding.step)),
       completedAt: stringOrNull(onboarding.completed_at),
     },
     follows: arrayOf(root.follows)

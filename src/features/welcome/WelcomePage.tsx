@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { Navigate, useNavigate } from 'react-router'
 import { weeklyRoutes } from '../../app/weeklyRoutes'
 import { clearPendingJoin, getPendingJoin } from '../leagues/pendingJoin'
@@ -46,8 +46,17 @@ export function WelcomePage() {
   if (neededOnArrival.current === null && welcomeStatus !== 'loading') {
     neededOnArrival.current = welcomeStatus === 'needed'
     pendingJoinOnArrival.current = getPendingJoin()
-    if (welcomeStatus === 'needed') markWelcomed()
   }
+
+  // THE STAMP IS AN EFFECT, NOT PART OF THE RENDER. Reading the two refs above
+  // during render is fine — it touches nothing outside this component — but
+  // `markWelcomed` sets state in the auth provider, and doing that while a
+  // different component is rendering is the one thing React asks you never to
+  // do. This page shipped it inline and the version before it did not; putting
+  // it back in an effect restores the rule rather than inventing one.
+  useEffect(() => {
+    if (neededOnArrival.current) markWelcomed()
+  }, [markWelcomed, welcomeStatus])
 
   const finish = useCallback(() => {
     const pending = pendingJoinOnArrival.current

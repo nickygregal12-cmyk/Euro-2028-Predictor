@@ -1,6 +1,10 @@
 import { db } from './client'
 import { rpcArgs } from './rpcArguments'
-import { mapPlayerPreferences, type PlayerPreferences } from './playerPreferencesModel'
+import {
+  mapPlayerPreferences,
+  storedOnboardingStep,
+  type PlayerPreferences,
+} from './playerPreferencesModel'
 
 /**
  * Query wrappers for contract 157's preference authority.
@@ -68,13 +72,24 @@ export async function setCompetitionFollow(
  * abandoned at step three resumes at step three. `completed` is the server's
  * one-way stamp: passing it again later never rewrites when they first
  * finished.
+ *
+ * THE STEP IS TRANSLATED, because `profiles.onboarding_step` accepts four
+ * values and the journey names its steps differently — see
+ * `storedOnboardingStep` for why the mapping lives at this boundary. A step the
+ * column would reject is refused HERE, by name, rather than sent and answered
+ * with a bare 400: a CHECK violation reaches the browser as an unexplained
+ * failure, and this is the layer that knows what went wrong.
  */
 export async function setOnboardingProgress(
   step: string,
   completed = false,
 ): Promise<void> {
+  const stored = storedOnboardingStep(step)
+  if (stored === null) {
+    throw new Error(`Onboarding step "${step}" is not one the server stores.`)
+  }
   const { error } = await db.rpc('set_onboarding_progress', {
-    p_step: step,
+    p_step: stored,
     p_completed: completed,
   })
   if (error) throw error
