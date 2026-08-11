@@ -157,7 +157,71 @@ if (!generated.includes('export type Database')) {
   process.exit(1)
 }
 
-writeFileSync(resolve(root, TYPES_PATH), HEADER + generated)
+/*
+ * CARRY `__InternalSupabase` ACROSS THE DB-URL PATH, and the reason is not
+ * cosmetic.
+ *
+ * `supabase gen types --project-id` emits
+ *
+ *     __InternalSupabase: { PostgrestVersion: "14.5" }
+ *
+ * and `--db-url` does not. That is not a bug in either: PostgREST's version is
+ * a fact about the platform serving the database, and a direct connection to
+ * the database cannot observe it. This file's own header has always named
+ * `__InternalSupabase.PostgrestVersion` as the known difference between
+ * generators.
+ *
+ * It matters because that block is what lets `createClient<Database>` pick its
+ * overloads without being told the version by hand, so silently dropping it
+ * changes how every typed call resolves. Measured on run 31465398594: the
+ * db-url output was byte-identical to the management-API output except for
+ * losing exactly these five lines.
+ *
+ * So when the generator omits it and the committed file has it, it is carried
+ * forward verbatim. A platform fact that the schema cannot change is precisely
+ * the kind of thing that should survive a schema regeneration. When there is
+ * nothing to carry, the run says so rather than quietly producing a thinner
+ * file than the one it replaced.
+ */
+/*
+ * The BLOCK, not the bare identifier. `type DatabaseWithoutInternals =
+ * Omit<Database, "__InternalSupabase">` appears near the end of every generated
+ * file whether or not the block itself is present, so testing for the name
+ * would report the block as present in exactly the output that lacks it — and
+ * the carry below would be skipped in the only case it exists for.
+ */
+const INTERNAL_BLOCK = /\n(\s*\/\/[^\n]*\n)*\s*__InternalSupabase:\s*\{[^}]*\}\n/
+let output = generated
+
+if (!INTERNAL_BLOCK.test(generated)) {
+  let existing = ''
+  try {
+    existing = readFileSync(resolve(root, TYPES_PATH), 'utf8')
+  } catch {
+    existing = ''
+  }
+
+  const carried = INTERNAL_BLOCK.exec(existing)
+  if (carried) {
+    output = generated.replace(/export type Database = \{\n/, `export type Database = {${carried[0]}`)
+    if (!INTERNAL_BLOCK.test(output)) {
+      console.error(
+        'Could not carry the __InternalSupabase block into the generated types.\n' +
+          'Refusing to write a file that silently drops it.',
+      )
+      process.exit(1)
+    }
+    console.log('Carried the __InternalSupabase block forward; the database cannot report it.')
+  } else {
+    console.warn(
+      'WARNING: the generated types carry no __InternalSupabase block and the\n' +
+        'committed file had none to carry. `createClient<Database>` will not infer\n' +
+        'its PostgREST version. Generate with SUPABASE_ACCESS_TOKEN to restore it.',
+    )
+  }
+}
+
+writeFileSync(resolve(root, TYPES_PATH), HEADER + output)
 
 // The contract the types describe. Recorded rather than inferred later, because
 // after the write there is nothing in the file itself that says which schema it
