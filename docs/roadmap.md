@@ -62,14 +62,15 @@ and 168 are consumed, and contract 158's `rotate_league_invite_code` gained its
 browser control. Contract 162 is reachable and **deliberately** not consumed
 until its feed is complete — see item 4.
 
-**Contracts 169, 170 and 171 cannot be consumed yet, and the reason is rollout
-order rather than a decision.** Development is hosted at 168 and none of the
-three has reached a hosted environment; `database.types.ts` is generated from
-Development and there is no untyped client since `TYPE-001` closed, so
-`table_source` (169) and `members_returned`/`members_truncated` (171) are not
-expressible from a browser at all. That ordering is the right one — a control
-whose field does not exist yet reports `undefined` to a real person — and the
-next step for all three is the Development rollout, not frontend work.
+**Contracts 169, 170 and 171 are not consumed, and the blocker moved during the
+day.** They were unconsumable when the frontend work was done — Development was
+at 168 and none had reached a hosted environment — and both Development and
+Production reached 171 the same day. The remaining step is mechanical:
+`database.types.ts` in the frontend branch was generated at 168, so
+`table_source` (169) and `members_returned`/`members_truncated` (171) are still
+absent from the typed client, and there is no untyped client since `TYPE-001`
+closed. Regenerate against Development at 171 and the two consumers are named
+and waiting.
 
 ## Domestic Frontend Alpha checkpoint — 8 August 2026
 

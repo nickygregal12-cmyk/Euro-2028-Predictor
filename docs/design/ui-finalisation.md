@@ -270,24 +270,26 @@ document governs:
   Contract 171 adds `members_returned`/`members_truncated` and the tournament
   equivalents, so "showing 200 of 205" replaces a truncated list presented as the
   whole league. It also fixes which 200: contract 149's cap had no ordering, so
-  the league leader could be absent from the league's own table. **Not consumed, and
-  not consumable yet.** Contract 171 has reached no hosted environment, Development
-  is at 168, and `database.types.ts` is generated from Development — so the new
-  fields are not expressible from a browser at all. This waits on the Development
-  rollout, not on a frontend decision.
+  the league leader could be absent from the league's own table. **Not consumed.** It was not
+  consumable when this work was done — Development was at 168 — and both
+  Development and Production reached 171 the same day. What remains is
+  regenerating `database.types.ts` against Development at 171, after which the
+  fields exist in the typed client and the two league prediction lists can say
+  "showing 200 of 205".
 - **The action centre has something to show most players.** Contract 170 adds the
   matchweek generator contract 162 left for later, carrying `predicted` and
   `fixtures` so the item reads "6 of 10" rather than "incomplete". **Still not
-  consumed**, and the AppBar still carries no notification control — and the same
-  hosted-rollout bar applies as to 171. The Championship generator is deliberately
-  unwritten (`CUP-002`), so the feed is still not complete even once 170 is hosted.
+  consumed**, and the AppBar still carries no notification control. 170 is now
+  hosted, so the bar is the types regeneration rather than the rollout — but the
+  Championship generator is deliberately unwritten (`CUP-002`), so the feed is
+  still not complete, which is the reason the action centre stays interim.
 - **A Championship table now says what it was ranked over.** Contract 169 corrects the
   span the season group table is ranked on — the tournament's three matchdays, for a
   competition that plays thirty-eight — and adds `table_source` to `get_season_cup_phase`
   so a surface can label the table honestly instead of inferring the span from the
   competition's kind. It adds no surface and changes no layout. **The label is not
-  rendered**, for the hosted-rollout reason above: `table_source` is not in the generated
-  types, so the browser cannot read it.
+  rendered**: `table_source` is not in this branch's generated types, which were
+  produced at 168. Regenerating against Development at 171 makes it readable.
 - **The rotate control § 7 said nobody could reach is now reachable.** An owner rotates a
   league's invite code from the season Leagues surface, behind a confirmation that names
   the code about to break rather than asking "are you sure?". Contract 159 narrowed
