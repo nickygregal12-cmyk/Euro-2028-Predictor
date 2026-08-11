@@ -864,13 +864,52 @@
  *     seeded fixture can start failing on one.
  *   - `rotate_league_invite_code` is a new name called by nothing.
  *
+ * Contract 159 narrows `resolve_invite_code` — it stops returning the target's
+ * `id` and the member count, and starts charging the same 20/min
+ * `league_invite_probe` limit contract 158 gave the other two doors. Measured
+ * rather than assumed: `grep -rn resolve_invite_code src/ e2e/ tests/` finds
+ * exactly ONE hit, the generated `database.types.ts` entry, whose return type is
+ * `Json` and therefore does not narrow. No seeded journey calls it, no fixture
+ * reads either removed field, and the limit is far above what a journey spends.
+ *
+ * Contract 160 adds `season_table_rules`, `season_table_adjustments` and
+ * `season_fixture_awards` — all three created EMPTY and revoked from every
+ * browser role — plus `get_competition_table` and three administrator writes,
+ * all new names called by nothing. It alters no existing relation, redefines no
+ * existing function and adds no trigger to an existing table, so nothing a
+ * seeded journey reads can have moved. Its one trigger fires only on
+ * `season_fixture_awards`, which no seed writes.
+ *
+ * Contracts 161 to 164 add five relations — `player_action_items`,
+ * `player_action_state`, `reminder_deliveries` and contract 160's three — all
+ * created EMPTY and revoked from every browser role, plus eleven new function
+ * names called by nothing that exists today. Measured rather than assumed:
+ * none of the four alters an existing relation, redefines an existing function,
+ * or adds a trigger to an existing table, so no path a seeded journey takes can
+ * have moved.
+ *
+ * Contract 163 is the one worth stating separately, because a delivery contract
+ * sounds like something that could act on a seeded account. It applies INERT:
+ * it names no provider, holds no credential, makes no outbound call, `dry_run`
+ * defaults to true, and neither of its jobs is scheduled by the migration. A
+ * seeded user gains no queued mail by applying it.
+ *
+ * Contracts 165 to 168 add NO relation at all — they are functions only, and
+ * every one of the six is a new name called by nothing that exists today. No
+ * existing relation, policy, trigger, grant or function is altered, so no path
+ * a seeded journey takes can have moved.
+ *
+ * Contract 166 is the only one that writes, and only when an administrator
+ * explicitly calls it: applying the migration draws no Championship. A seeded
+ * user's competitions are untouched by the apply.
+ *
  * THIS MARKER IS RAISED ON CI EVIDENCE, not on local execution. The authoring
  * environment has no seeded database, so no seeded user was driven here. Exact-
  * head Browser E2E is what proves it, and it must be green on the pull request
  * that carries this line — which is the same standard contracts 67, 68 and 69
  * were held to, stated rather than assumed.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 158
+export const SEED_REVIEWED_AT_CONTRACT = 168
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

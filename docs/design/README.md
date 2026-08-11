@@ -201,4 +201,8 @@ same paragraph existed in seven places at once.
 | 140–141 | **None.** Contract 141 is the data behind form and head-to-head context |
 | 142 | **None** |
 
-*Current to contract 158.*
+| 159–160 | **None.** Contract 160 supplies the Table surface the Matches section has had no data for |
+| 161–164 | Contract 162 supplies the read state the AppBar's absent notification control was waiting on; 161 supplies season history; 164 supplies the Last Man Standing field view |
+| 165–168 | Contracts 165 and 168 supply the organiser and administration panels; 167 supplies the Championship group-stage view |
+
+*Current to contract 168.*

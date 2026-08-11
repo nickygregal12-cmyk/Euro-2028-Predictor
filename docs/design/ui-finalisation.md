@@ -240,6 +240,33 @@ here rather than left to be discovered:
 - **A leaked code is recoverable** through `rotate_league_invite_code`, owner-only. No
   browser control calls it yet, so a league owner cannot rotate a code from the interface.
 
+**Contracts 159 to 168 land the backend for two of the three gaps below, and close
+the door contract 158 left open.** Recorded here because each bears on a surface this
+document governs:
+
+- **`MIG-UI-13` is built** — contract 160's `get_competition_table` supplies the Table
+  segment the Matches section has had no authority for, including a competition's own
+  points values, ordered tie-breaks, promotion/playoff/relegation boundaries, points
+  deductions and awarded outcomes. **Not yet consumed**, so Matches still ships Recent
+  form and no Table control.
+- **`MIG-UI-14` is built** — contract 162 stores exactly what the audit found missing: a
+  stable per-action identity and per-player seen/dismissed state, so a bell would neither
+  shout for ever nor forget on a second device. **Not yet consumed**, so the AppBar still
+  carries no notification control, and only Last Man Standing picks generate an item.
+- **`MIG-UI-15` remains deliberately unstarted**, and contract 163 does not touch it:
+  the reminder ledger records delivery, never behaviour, and names no processor.
+- **Two organiser and administration surfaces are now backed** — contract 165 supplies a
+  private Last Man Standing organiser's entrant list and chase count (disclosing no
+  selection, and offering no organiser command, because no accepted authority grants
+  one), and contract 168 supplies the staged-proposal and entrant reads `/admin/season`
+  names as absent. Contracts 166 and 167 add the multi-group Championship draw and its
+  group-stage view. **None is consumed.**
+- **The rotate control § 7 says nobody can reach is still unreachable.** Contract 159
+  narrowed `resolve_invite_code` the way 158 narrowed the preview — the member count and
+  the target id are gone, and a wrong guess now costs a limit slot — so the same rule
+  applies to the universal code entry point: a "who else is in here?" line must not be
+  added back from it either.
+
 **Three gaps were newly found on 11 August and registered rather than approximated:**
 
 - `MIG-UI-13` — a domestic **league table**. The Matches section's accepted shape is Fixtures · Results · Table · Stats, and Table has no authority: contract 141's derivation is explicitly not a league table, because a table carries competition rules — deductions, tie-break order, promotion boundaries — that belong to the competition, and its read caps at twenty matches. So the section ships **Recent form** from that read, labelled as form, and **no Table control at all**. A dead segment is worse than a missing one.

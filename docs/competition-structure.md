@@ -148,4 +148,7 @@ same paragraph existed in seven places at once.
 | 140–141 | **Neither changes a competition, game, format or membership** |
 | 142 | **None** |
 
-*Current to contract 158.*
+| 160 | A competition season may now publish its **own table rules** — points values, ordered tie-breaks, promotion/playoff/relegation boundaries — per season rather than per competition, so a historic table keeps the rules it was played under |
+| 166–167 | A Predictor Championship may run as **multiple parallel groups** for a field one group cannot seat, with every group's round-robin over the same windows; a smaller group simply has no fixture in the last rounds |
+
+*Current to contract 168.*

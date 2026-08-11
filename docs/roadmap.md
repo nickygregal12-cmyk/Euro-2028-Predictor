@@ -28,6 +28,36 @@ What is durable enough to state here:
 - Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. The Stage C1 migration is merged (PRs #317, #349) with hosted rollout tooling and a guarded GitHub workflow (PRs #350, #351); the hosted development apply **completed and was postflight-verified 2–3 August 2026** (PRs #359–#368 hardened the tooling en route). No production write is authorised;
 - lock policy is **game-owned** (ADR 0020, PR #353): the competition supplies identity, calendar and structure; each game supplies its own explicit lock policy, failing closed when missing or incompatible.
 
+## Backend completion sequence — 11 August 2026
+
+The remaining backend workstream, in dependency order. Contracts 159 to 168 are
+delivered in the repository; everything still open says what it waits on rather
+than when it happens.
+
+| # | Work | State |
+| --- | --- | --- |
+| 1 | Invite security: the resolver's probe limit and disclosure | **Delivered — contract 159** |
+| 2 | Authoritative domestic standings (`MIG-UI-13`) | **Delivered — contract 160** |
+| 3 | Season archive discovery | **Delivered — contract 161** |
+| 4 | Action-centre persistence (`MIG-UI-14`) | **Delivered — contract 162.** Only the Last Man Standing generator is written; matchweek and Championship actions remain |
+| 5 | Reminder delivery ledger (`DFA-012`) | **Delivered — contract 163.** No provider chosen, no job scheduled, nothing sends |
+| 6 | Last Man Standing post-lock social reads | **Delivered — contract 164** |
+| 7 | Last Man Standing organiser reads | **Delivered — contract 165** (reads only). The COMMAND half is **not an engineering decision**: no accepted authority grants an organiser power over another entrant |
+| 8 | Predictor Championship lifecycle | **Partially delivered** — 166 draws the multi-group field the launcher refused, 167 reads it. **Knockout progression, penalty-number reads, walkover/withdrawal handling and tie-settlement orchestration remain** |
+| 9 | Season administration inspection reads | **Delivered — contract 168** |
+| 10 | Keyset pagination sweep (issue [#129](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/129)) | **Partially delivered.** Every read added in 159–168 clamps its own page size; the older leaderboard, league and comparison reads do not |
+| 11 | Provider normalisation beyond contracts 112/135/144 | **Audit first.** Do not recreate what 112, 117, 132, 135 and 144 already hold |
+| 12 | Bounded personal-data export | **Blocked** by issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) / `PRIV-007` |
+| 13 | Product analytics | **Not to be started.** `MIG-UI-15` needs an ADR before any migration |
+
+Three of these are deliberately not engineering decisions. Organiser powers over
+a managed entrant (7) appear in no accepted authority, so inventing them in a
+migration would be a product decision taken by a schema. Erasure (12) is blocked
+by `PRIV-007`. Analytics (13) is a data-processing decision and needs its ADR
+first.
+
+**No frontend consumer exists for any of contracts 159 to 168.**
+
 ## Domestic Frontend Alpha checkpoint — 8 August 2026
 
 The accepted sequence in the UI execution authority still governs, but its first items are no longer all open:
@@ -216,4 +246,6 @@ same paragraph existed in seven places at once.
 | 138–139 | **Neither changes a rule**; both close a built-but-unreachable gap |
 | 140–141 | **Neither reorders the Alpha** |
 
-*Current to contract 158.*
+| 159–168 | Backend completion items 1–9 of the 11 August sequence. **Items 8 (Championship knockout, penalty reads, walkover handling), 10 (pagination sweep) and 11 (provider normalisation) remain**, and the organiser COMMAND half of item 7 is not an engineering decision |
+
+*Current to contract 168.*

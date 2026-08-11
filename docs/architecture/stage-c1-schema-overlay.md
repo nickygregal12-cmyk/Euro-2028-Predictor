@@ -246,6 +246,35 @@ it, and neither confers game entry.
 - `set_competition_follow`
 - `set_pinned_rival`
 
+Contract 160 adds three more taking `p_tournament_id`, with the same
+season-scoped disposition and one thing worth stating beyond it: none of them
+touches a player. `get_competition_table` derives a CLUB table from that
+season's settled fixtures and refuses any competition that is not a league
+season; `admin_set_competition_table_rules` and `admin_record_table_adjustment`
+write that season's own published rules and sanctions behind
+`require_competition_admin`. None reads an entry, a prediction or a score
+event, and none changes auth ownership.
+
+- `get_competition_table`
+- `admin_set_competition_table_rules`
+- `admin_record_table_adjustment`
+
+Contract 164 adds one more taking `p_tournament_id`, season-scoped like the
+rest and with its own disposition: `get_season_lms_field` reads one season's
+Last Man Standing entrants, and every other entrant's selection is withheld
+until that round's own stored lock has passed. It changes no auth ownership and
+writes nothing.
+
+- `get_season_lms_field`
+
+Contract 168 adds one more taking `p_tournament_id`: `admin_provider_proposal_detail`
+reads that season's own staged provider calendar behind
+`require_competition_admin`, gated before any row is read. It decides nothing,
+writes nothing and returns no raw provider payload — only the archived
+response's id as provenance.
+
+- `admin_provider_proposal_detail`
+
 Contracts 129 and 130 add two more with the same season-scoped disposition.
 Both take `p_tournament_id` and a matchweek ordinal, resolve the round through
 contract 114's `season_card_context`, and read only that season's own fixtures,

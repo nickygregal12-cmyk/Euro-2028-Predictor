@@ -164,6 +164,65 @@ insert into expected_authenticated_functions (signature) values
   ('get_season_club_form(uuid,integer)'),
   ('get_season_club_head_to_head(uuid,uuid,uuid)');
 
+-- Contract 160: the competition's own league table, and the three competition
+-- administration writes that configure it.
+--
+-- All four are `authenticated` rather than `anon`, including the READ. A league
+-- table is public football and could defensibly be anonymous, but making a
+-- function anonymously executable is a publication decision — the one contracts
+-- 147 and 148 also declined to take — and this is not where it gets taken.
+--
+-- The three writers are `authenticated` and gate INSIDE on
+-- `require_competition_admin`, which is the same shape as every other
+-- administrator write here: the grant admits a signed-in caller and the function
+-- decides. `080` asserts the grant; `209` asserts the refusal.
+-- Contract 161: the caller's own season history. Contract 162's two browser
+-- commands and its read. Contract 164's Last Man Standing field.
+--
+-- Every one is `authenticated` and answers only for `auth.uid()`. None takes a
+-- player argument, which is what stops any of them becoming a directory — the
+-- boundary contract 151 set and this batch keeps.
+insert into expected_authenticated_functions (signature) values
+  ('get_my_season_history(integer,integer)'),
+  ('get_my_actions(integer,boolean)'),
+  ('mark_actions_seen(text[])'),
+  ('dismiss_action(text)'),
+  ('get_season_lms_field(uuid,integer)');
+
+-- Contract 162's driver and all four of contract 163's delivery jobs are
+-- SERVICE-ROLE ONLY and deliberately not listed above. An action item carries a
+-- deadline and a completion verdict, and a reminder job sends mail: a browser
+-- role that could run either could manufacture a deadline or a send.
+insert into expected_service_functions (signature) values
+  ('process_player_action_items()'),
+  ('process_reminder_schedule(interval,boolean)'),
+  ('claim_due_reminders(integer,boolean)'),
+  ('record_reminder_result(uuid,boolean,text,text,text)'),
+  ('reclaim_stalled_reminders(interval)');
+
+-- Contract 165: an organiser's own private container. Contract 166: the
+-- multi-group Championship draw. Contract 167: its group stage. Contract 168:
+-- the two inspection reads the administrator commands assume.
+--
+-- All six are `authenticated` and gate INSIDE — on ownership (165), on
+-- competition administration (166, 168), or on the caller's own entry (167).
+-- That is the established shape here: the grant admits a signed-in caller and
+-- the function decides. `080` asserts the grant; `214` to `217` assert the
+-- refusals.
+insert into expected_authenticated_functions (signature) values
+  ('get_my_organised_competition(uuid)'),
+  ('get_my_organised_competitions(integer,integer)'),
+  ('admin_launch_cup_group_stage(uuid)'),
+  ('get_season_cup_group_stage(uuid,integer)'),
+  ('admin_provider_proposal_detail(uuid,text,integer,integer)'),
+  ('admin_competition_entrants(uuid,integer,integer)');
+
+insert into expected_authenticated_functions (signature) values
+  ('get_competition_table(uuid)'),
+  ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),
+  ('admin_record_table_adjustment(uuid,uuid,integer,text,timestamp with time zone)'),
+  ('admin_award_fixture_outcome(uuid,smallint,smallint,text)');
+
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
 -- Contract 66: generic game catalogue/membership and game-scoped leagues.
 insert into expected_authenticated_functions (signature) values
