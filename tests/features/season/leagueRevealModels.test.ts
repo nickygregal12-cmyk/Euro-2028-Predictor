@@ -40,6 +40,9 @@ function payload(options: {
   revealed: boolean
   result?: { home: number; away: number } | null
   settledAt?: string | null
+  /** Contract 171's two keys, absent unless a case is about them. */
+  membersTruncated?: boolean
+  memberCount?: number
 }) {
   return {
     league: { id: 'league-1', name: 'The Office' },
@@ -69,8 +72,10 @@ function payload(options: {
         result: null,
       },
     ],
-    member_count: 3,
+    member_count: options.memberCount ?? 3,
     predicted_count: options.revealed ? 2 : 0,
+    members_returned: options.revealed ? 3 : 0,
+    members_truncated: options.membersTruncated ?? false,
     members: options.revealed
       ? [
           {
@@ -207,6 +212,76 @@ describe('the matchweek grid and its phone layout', () => {
     expect(view.revealed).toBe(false)
     expect(view.members).toEqual([])
     expect(view.fixtures.every((fixture) => fixture.rows.length === 0)).toBe(true)
+  })
+
+  // ---------------------------------------------------------------------
+  // Contract 171.
+  // ---------------------------------------------------------------------
+
+  it('carries what the read actually returned against the league’s real size', () => {
+    const view = presentLeagueMatchweek(
+      mapSeasonLeagueMatchweekPredictions(
+        payload({ revealed: true, membersTruncated: true, memberCount: 300 }),
+      ),
+      'UTC',
+    )
+
+    expect(view.coverage).toEqual({ returned: 3, total: 300, truncated: true })
+    // The caption's own two numbers are whole-league counts the server takes
+    // across every member, so truncation does not make them wrong.
+    expect(view.memberCount).toBe(300)
+    expect(view.predictedCount).toBe(2)
+  })
+
+  it('reports no truncation when the server reported none', () => {
+    const view = presentLeagueMatchweek(
+      mapSeasonLeagueMatchweekPredictions(payload({ revealed: true })),
+      'UTC',
+    )
+
+    expect(view.coverage).toEqual({ returned: 3, total: 3, truncated: false })
+  })
+
+  it('never claims truncation of a hidden matchweek, which carries no rows by rule', () => {
+    const view = presentLeagueMatchweek(
+      mapSeasonLeagueMatchweekPredictions(
+        payload({ revealed: false, memberCount: 300 }),
+      ),
+      'UTC',
+    )
+
+    // Zero rows out of three hundred, and NOT truncated: the emptiness is the
+    // reveal boundary, and a "showing 0 of 300" line would describe a cap that
+    // did not happen.
+    expect(view.coverage).toEqual({ returned: 0, total: 300, truncated: false })
+  })
+
+  it('counts the rows it kept, not the rows it was sent', () => {
+    // A member row this decoder discards as malformed is also a member the
+    // surface is not showing, and the coverage line is what admits that.
+    const base = payload({ revealed: true, membersTruncated: true, memberCount: 300 })
+    const withRubbish = {
+      ...base,
+      members: [...base.members, { display_name: 'No identity' }, null],
+    }
+
+    const view = presentLeagueMatchweek(
+      mapSeasonLeagueMatchweekPredictions(withRubbish),
+      'UTC',
+    )
+
+    expect(view.members).toHaveLength(3)
+    expect(view.coverage.returned).toBe(3)
+  })
+
+  it('reads a server that predates contract 171 as untruncated rather than unknown', () => {
+    const { members_returned: _r, members_truncated: _t, ...older } = payload({
+      revealed: true,
+    })
+
+    const view = presentLeagueMatchweek(mapSeasonLeagueMatchweekPredictions(older), 'UTC')
+
+    expect(view.coverage).toEqual({ returned: 3, total: 3, truncated: false })
   })
 })
 

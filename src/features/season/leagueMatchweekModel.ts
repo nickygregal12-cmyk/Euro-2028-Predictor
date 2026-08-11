@@ -2,6 +2,7 @@ import type {
   SeasonLeagueMatchweekPredictions,
 } from '../../services/supabase/seasonLeaguePredictions'
 import { formatKickoffTime } from '../../shared/time/kickoff'
+import type { ListCoverage } from '../shared/listCoverage'
 
 /**
  * One private league's matchweek: who predicted what, for every fixture in it
@@ -75,6 +76,16 @@ export type LeagueMatchweekView = {
   fixtures: readonly LeagueMatchweekFixture[]
   /** Empty while hidden. Server order, which is points-descending once settled. */
   members: readonly LeagueMatchweekMember[]
+  /**
+   * CONTRACT 171. What the read actually carried against the league's real size.
+   *
+   * `memberCount` and `predictedCount` above stay whole-league facts — the
+   * server counts both across every member, not across the rows it sent — so the
+   * caption remains true under truncation. The LIST is what goes short, and this
+   * is what lets the surface say so instead of leaving a hundred people looking
+   * like non-predictors.
+   */
+  coverage: ListCoverage
 }
 
 function outcomeOf(
@@ -159,5 +170,10 @@ export function presentLeagueMatchweek(
     settled: page.members.some((member) => member.settledAt !== null),
     fixtures,
     members,
+    coverage: {
+      returned: page.membersReturned,
+      total: page.memberCount,
+      truncated: page.membersTruncated,
+    },
   }
 }

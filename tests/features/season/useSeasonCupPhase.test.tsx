@@ -13,6 +13,7 @@ function pageFixture(): CupPhasePage {
     competitionId: 'competition-1',
     entered: true,
     phaseKind: 'initial',
+    tableSource: 'season_initial',
     group: {
       id: 'group-1',
       ordinal: 1,

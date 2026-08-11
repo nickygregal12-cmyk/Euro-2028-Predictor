@@ -7,6 +7,11 @@ import {
   type LeagueMatchweekFixture,
   type LeagueMatchweekView,
 } from './leagueMatchweekModel'
+import {
+  coverageNotice,
+  LEAGUE_MEMBER_NOUN,
+  type ListCoverage,
+} from '../shared/listCoverage'
 import styles from './SeasonLeagueMatchweek.module.css'
 
 /**
@@ -131,6 +136,12 @@ export function SeasonLeagueMatchweek({
         {view.settled ? ' · settled' : ''}
       </p>
 
+      {/* Contract 171. The caption above stays true under truncation — both its
+          numbers are whole-league counts the server takes across every member —
+          but the two layouts below are short, and without this line the members
+          the cap dropped are indistinguishable from members who did not play. */}
+      <CoverageNotice coverage={view.coverage} />
+
       {/* Phone: fixture by fixture, the caller's own row first in each. */}
       <ul className={styles.fixtures}>
         {view.fixtures.map((fixture) => (
@@ -195,6 +206,17 @@ export function SeasonLeagueMatchweek({
         </div>
       </div>
     </div>
+  )
+}
+
+/** Contract 171's truncation line, or nothing when the read carried everything. */
+function CoverageNotice({ coverage }: { coverage: ListCoverage }) {
+  const notice = coverageNotice(coverage, LEAGUE_MEMBER_NOUN)
+  if (!notice) return null
+  return (
+    <p className={styles.note} role="status">
+      {notice}
+    </p>
   )
 }
 

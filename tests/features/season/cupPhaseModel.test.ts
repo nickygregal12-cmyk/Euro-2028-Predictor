@@ -31,6 +31,7 @@ function page(overrides: Partial<CupPhasePage> = {}): CupPhasePage {
     competitionId: 'competition-1',
     entered: true,
     phaseKind: 'initial',
+    tableSource: 'season_initial',
     group: {
       id: 'group-1',
       ordinal: 1,
@@ -56,12 +57,13 @@ function page(overrides: Partial<CupPhasePage> = {}): CupPhasePage {
 describe('presentCupPhase', () => {
   it('presents nothing for a non-entrant', () => {
     const presentation = presentCupPhase(
-      page({ entered: false, phaseKind: null, group: null, table: [] }),
+      page({ entered: false, phaseKind: null, tableSource: null, group: null, table: [] }),
     )
 
     expect(presentation.phaseLine).toBeNull()
     expect(presentation.phaseExplanation).toBeNull()
     expect(presentation.groupLine).toBeNull()
+    expect(presentation.tableSourceLine).toBeNull()
     expect(presentation.rows).toEqual([])
   })
 
@@ -70,7 +72,48 @@ describe('presentCupPhase', () => {
 
     expect(presentation.phaseLine).toBe('League phase')
     expect(presentation.phaseExplanation).toBeNull()
-    expect(presentation.groupLine).toBe('Group of 6, ranked from settled rounds.')
+    expect(presentation.groupLine).toBe('Group of 6.')
+  })
+
+  // Contract 169. The two initial-phase authorities measure different spans,
+  // which is the whole reason the second one was written, so the surface names
+  // the one that answered rather than leaving a reader to assume.
+  it('names the authority the server said produced the table', () => {
+    expect(presentCupPhase(page()).tableSourceLine).toBe(
+      'Ranked by the season group table.',
+    )
+    expect(
+      presentCupPhase(page({ tableSource: 'tournament_initial' })).tableSourceLine,
+    ).toBe('Ranked by the tournament group table.')
+    expect(
+      presentCupPhase(
+        page({
+          phaseKind: 'split',
+          tableSource: 'split',
+          group: {
+            id: 'group-2',
+            ordinal: 1,
+            size: 3,
+            phaseKind: 'split',
+            parentGroupId: 'group-1',
+          },
+        }),
+      ).tableSourceLine,
+    ).toBe('Ranked by the split group table.')
+  })
+
+  it('says nothing at all when the source is one this build does not know', () => {
+    // A label is a claim about provenance. An unrecognised token means the
+    // server has an authority this build has never heard of, and guessing which
+    // of the known ones it resembles is exactly the inference contract 169
+    // removed from the browser.
+    expect(presentCupPhase(page({ tableSource: null })).tableSourceLine).toBeNull()
+  })
+
+  it('makes no span claim of its own in the group line', () => {
+    // It used to end "ranked from settled rounds", which is a statement about
+    // the span — and the span is the thing that differs between authorities.
+    expect(presentCupPhase(page()).groupLine).not.toMatch(/settled|round|matchday/i)
   })
 
   it('explains the split as a continuation, never an elimination', () => {

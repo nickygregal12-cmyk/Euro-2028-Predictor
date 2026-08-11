@@ -58,6 +58,7 @@ export function createDevSeasonCupGateway(
         competitionId: COMPETITION_ID,
         entered: false,
         phaseKind: null,
+        tableSource: null,
         group: null,
         table: [],
       }
@@ -95,6 +96,12 @@ export function createDevSeasonCupGateway(
       competitionId: COMPETITION_ID,
       entered: true,
       phaseKind: split ? 'split' : 'initial',
+      // Contract 169. A season Championship is what this harness stands for, so
+      // the initial phase is the SEASON authority — the one contract 169 added.
+      // The tournament label is exercised by the model's own suite rather than
+      // by inventing a tournament scenario here, because this gateway describes
+      // a season competition and a tournament one would be a different fixture.
+      tableSource: split ? 'split' : 'season_initial',
       group: {
         id: GROUP_ID,
         ordinal: 1,
