@@ -12,6 +12,7 @@ function read(path: string): string {
 const defaultConfig = read('playwright.config.ts')
 const authConfig = read('playwright.auth.config.ts')
 const visualConfig = read('playwright.visual.config.ts')
+const euroConfig = read('playwright.euro.config.ts')
 
 const specFiles = readdirSync(resolve(root, 'e2e'))
   .filter((entry) => entry.endsWith('.spec.ts'))
@@ -30,13 +31,16 @@ function projectNames(config: string): string[] {
 
 const authMatch = specList(authConfig, 'testMatch')
 const visualMatch = specList(visualConfig, 'testMatch')
+const euroMatch = specList(euroConfig, 'testMatch')
 const defaultIgnore = specList(defaultConfig, 'testIgnore')
 
 const defaultProjects = projectNames(defaultConfig)
 const authProjects = projectNames(authConfig)
+const euroProjects = projectNames(euroConfig)
 
 const authSpecs = specFiles.filter((spec) => authMatch.includes(spec))
 const visualSpecs = specFiles.filter((spec) => visualMatch.includes(spec))
+const euroSpecs = specFiles.filter((spec) => euroMatch.includes(spec))
 const defaultSpecs = specFiles.filter((spec) => !defaultIgnore.includes(spec))
 
 function projectGates(source: string): string[] {
@@ -54,6 +58,57 @@ describe('browser E2E project gating', () => {
     expect(defaultIgnore.length).toBeGreaterThan(0)
     expect(defaultProjects).toEqual(['desktop-chromium', 'mobile-chromium'])
     expect(authProjects).toEqual(['auth-desktop-chromium', 'auth-mobile-chromium'])
+    expect(euroMatch.length).toBeGreaterThan(0)
+  })
+
+  it('gives every parked Euro journey exactly one home', () => {
+    // Parked used to mean "runs nowhere", which was honest while there was no
+    // Euro-variant harness and is the state `EURO-001` records as blocking the
+    // route half of its own requirement. It now means "runs under the Euro
+    // config and no weekly one". A spec dropped from either list is a journey
+    // that silently stops being evidence of anything.
+    expect(
+      [...euroMatch].sort(),
+      'playwright.euro.config.ts must collect exactly the parked Euro set',
+    ).toEqual(parkedEuroSpecs)
+    expect(
+      parkedEuroSpecs.filter((spec) => !euroSpecs.includes(spec)),
+      'parked Euro journeys named by no config on disk',
+    ).toEqual([])
+  })
+
+  it('declares the project names the parked specs actually gate on', () => {
+    /**
+     * THE TRAP THIS EXISTS FOR. Eleven of the fourteen parked specs open with
+     * `test.skip(testInfo.project.name !== 'desktop-chromium', ...)`, and
+     * `admin-results.spec.ts` gates on `'mobile-chromium'` too. Naming the Euro
+     * config's projects `euro-desktop-chromium`/`euro-mobile-chromium` — the
+     * obvious spelling, and the one that reads better in a report — makes every
+     * one of those gates true, so all fourteen SKIP and the suite reports green
+     * having run nothing.
+     *
+     * Derived from the specs' own gates rather than from a copy of the config's
+     * list, so a spec that grows a new gate tomorrow is checked against what the
+     * config declares instead of against what this test remembers.
+     */
+    const gated = [
+      ...new Set(parkedEuroSpecs.flatMap((spec) => gatesBySpec.get(spec) ?? [])),
+    ].sort()
+
+    expect(gated.length, 'the parked specs carry no project gates to check').toBeGreaterThan(0)
+    expect(
+      gated.filter((gate) => !euroProjects.includes(gate)),
+      `playwright.euro.config.ts declares ${euroProjects.join(', ')}, so these ` +
+        `parked-spec gates would skip every test: ${gated.join(', ')}`,
+    ).toEqual([])
+  })
+
+  it('builds the Euro product rather than failing closed to the Hub', () => {
+    // `resolveSiteVariant` fails closed to 'hub' on anything unrecognised, which
+    // is right everywhere else and silent here: an unset variable builds the Hub,
+    // the tournament routes are absent for a second unrelated reason, and the
+    // failure reads as broken journeys rather than as the wrong product.
+    expect(euroConfig).toContain('VITE_SITE_VARIANT=euro')
   })
 
   it('runs every active spec under exactly one config', () => {
@@ -84,17 +139,27 @@ describe('browser E2E project gating', () => {
   })
 
   it('keeps ignore and match lists free of names that no longer exist', () => {
-    const stale = [...authMatch, ...defaultIgnore].filter((spec) => !specFiles.includes(spec))
+    const stale = [...authMatch, ...euroMatch, ...defaultIgnore].filter(
+      (spec) => !specFiles.includes(spec),
+    )
     expect(stale, 'config entries naming specs that are not on disk').toEqual([])
   })
 
-  it('gates every active spec on a project its owning config declares', () => {
+  it('gates every spec on a project its owning config declares', () => {
     const wrong: string[] = []
 
     for (const [spec, gates] of gatesBySpec) {
-      if (parkedEuroSpecs.includes(spec)) continue
-      const declared = authSpecs.includes(spec) ? authProjects : defaultProjects
-      const config = authSpecs.includes(spec) ? 'playwright.auth.config.ts' : 'playwright.config.ts'
+      // Parked specs are no longer skipped here. They have an owning config now,
+      // so "gates on a project its config declares" is a question with an answer
+      // for them too — and it is the question that decides whether the Euro
+      // suite runs anything at all.
+      const parked = parkedEuroSpecs.includes(spec)
+      const owner = parked
+        ? { projects: euroProjects, config: 'playwright.euro.config.ts' }
+        : authSpecs.includes(spec)
+          ? { projects: authProjects, config: 'playwright.auth.config.ts' }
+          : { projects: defaultProjects, config: 'playwright.config.ts' }
+      const { projects: declared, config } = owner
 
       for (const gate of gates) {
         if (!declared.includes(gate)) {

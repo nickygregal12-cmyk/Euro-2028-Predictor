@@ -101,6 +101,16 @@
   font-weight: 600;
 }
 
+/* The stated absence where a container has no page of its own. Deliberately
+   `--tx3` and not `--acc`: it occupies the slot the "Open in" link occupies on
+   a Match Predictor card, and giving it the accent colour would read as a link
+   that does not respond to a tap. */
+.pending {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
 .open {
   margin-top: var(--sp-2);
   color: var(--acc);

@@ -20,6 +20,7 @@
     "test:fixtures": "node scripts/check-fixtures.mjs",
     "test:e2e": "playwright test",
     "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
+    "test:e2e:euro": "playwright test --config=playwright.euro.config.ts",
     "test:e2e:install": "playwright install --with-deps chromium",
     "smoke:production": "node scripts/production-smoke.mjs",
     "reset:development": "node scripts/reset-development-seed.mjs",
