@@ -136,6 +136,11 @@ describe('deployment contract and database privilege allow-list parity', () => {
       'reclaim_stalled_reminders(interval)',
       'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',
       'record_reminder_result(uuid,boolean,text,text,text)',
+      // Contract 178's verification run. A job rather than an action: it
+      // writes integrity evidence, and a browser session that could start one
+      // could also flood the ledger. The administrator reads the result
+      // through `admin_shadow_scoring_report`, which is browser-reachable.
+      'run_shadow_scoring_verification(uuid,integer)',
       'set_operating_limits(integer,integer)',
     ])
   })

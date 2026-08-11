@@ -302,6 +302,19 @@ document governs:
   the repository that can add a fixture to a published season or take one out.
   `/admin/season` already names the staged-calendar gap for contract 132's
   queue; this is the second one it will need to show. **Not consumed.**
+- **Four reads and a write exist for surfaces nobody has built.** Contract 175
+  supplies the What-If projection a live Match Centre would need, contract 176
+  the Prediction DNA a player profile would need, contract 177 the batch
+  submission an offline drafting surface would need, and contract 178 the
+  scoring-verification report `/admin/season` would need (all under ADR 0027).
+  Three points matter for the interface rather than the schema. **The projection labels its own basis** — `official`,
+  `provisional` or `none` per fixture — so a surface never has to decide whether
+  a score is a provider opinion, and branches appear only for a fixture actually
+  in play. **Every DNA metric arrives with its denominator and a `sufficient`
+  flag**, so a component renders "2 of 3" or a stated small sample rather than a
+  confident-looking 67%. **A batch conflict arrives with both scores**, the
+  stored one and the drafted one, because that is precisely the choice a
+  reconciliation surface has to put in front of the player. **None is consumed.**
 - **An administrator can see whether reminders are working.** Contract 172 adds
   `admin_reminder_delivery_health` — counts, instants and the three jobs, and no
   user id, action key, display name or provider error text. `/admin/season`

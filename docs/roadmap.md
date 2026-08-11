@@ -277,5 +277,6 @@ same paragraph existed in seven places at once.
 | 172 | **Advances items 4 and 5 and reorders nothing else.** It gives three existing entry points a schedule. It does **not** take the `SITE-007` sender decision, and Production is untouched |
 | 173 | **Advances item 4 and reorders nothing.** The Championship's own action still waits on `CUP-002`, and `CUP-002` still waits on `CUP-001` |
 | 174 | **Advances item 11 and reorders nothing else.** It closes the three `INGEST` rows and adds no provider-to-official-result authority: detection writes no fixture, and the tournament path is untouched |
+| 175–178 | **Reorders nothing, and deliberately.** ADR 0027 promoted four Innovation Lab candidates whose backends are safe and well defined; the Domestic Frontend Alpha order is untouched, and none of the four is a dependency of any item in it. Contract 178 is the one with a sequencing consequence: its verifier has no scheduled caller, so scheduling it belongs to the same rollout decision that would apply the batch |
 
-*Current to contract 174.*
+*Current to contract 178.*

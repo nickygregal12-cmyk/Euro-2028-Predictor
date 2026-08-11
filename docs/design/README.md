@@ -210,5 +210,9 @@ same paragraph existed in seven places at once.
 | 172 | The action centre's inbox stops being permanently empty, so the AppBar's absent notification control finally has something behind it. It also adds an administrator health panel's data |
 | 173 | The Matchweek Recap gains a feed item of its own, carrying the banked points, the fixtures scored and whether the Joker was played |
 | 174 | `/admin/season` gains a second queue to show: staged calendar changes, each with a decoded proposal, what we hold, named warnings and blockers, and a decidable flag. **Not consumed** |
+| 175 | A live Match Centre may show what the current score is worth and what the next goal would do, labelled as a projection and never as points. The read states per fixture whether its basis is official or provisional, so the surface never has to guess. **Not consumed** |
+| 176 | A player profile may show how somebody predicts, with every denominator supplied so the surface never invents one. Metrics below the sample minimum arrive flagged rather than hidden. **Not consumed** |
+| 177 | An offline draft surface can submit a batch and render a per-fixture answer — accepted, locked, conflicted — instead of one exception. A conflict arrives with both the stored and the drafted score, which is exactly the choice such a surface has to offer. **Not consumed** |
+| 178 | `/admin/season` gains a third thing it could show: the latest scoring verification and any disagreement it found. **Not consumed** |
 
-*Current to contract 174.*
+*Current to contract 178.*

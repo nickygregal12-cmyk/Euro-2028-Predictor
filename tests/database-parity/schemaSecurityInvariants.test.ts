@@ -157,6 +157,14 @@ describe('row-level security', () => {
       // no grant to any browser role, reached only through the two
       // administrator functions.
       { schema: 'predictor_internal', name: 'provider_calendar_change_proposals' },
+      // Contract 178. The shadow scoring verifier's own evidence: what it
+      // checked, and every banked total it disagreed with. Internal because it
+      // is an integrity operations record rather than anything a player reads,
+      // and because a browser able to write it could manufacture a mismatch —
+      // or erase one. The administrator's view is the bounded
+      // `admin_shadow_scoring_report`, which names entries and never people.
+      { schema: 'predictor_internal', name: 'shadow_scoring_runs' },
+      { schema: 'predictor_internal', name: 'shadow_scoring_mismatches' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

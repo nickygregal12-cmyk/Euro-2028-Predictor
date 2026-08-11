@@ -246,6 +246,22 @@ it, and neither confers game entry.
 - `set_competition_follow`
 - `set_pinned_rival`
 
+Contracts 175 to 178 add five more taking `p_tournament_id`, and their
+disposition is the same season-scoped one with one distinction worth recording.
+Three are ordinary season-scoped reads or writes: the projection and the DNA
+read resolve a caller boundary inside the named season and write nothing, and
+the batch write reaches only the caller's own entry in it, through
+`save_season_prediction`. The remaining two are **operational rather than
+competitive**: they read a season's settled totals and write only the verifier's
+own `predictor_internal` evidence, so neither touches auth ownership, an entry,
+a membership or a banked total.
+
+- `get_season_matchweek_projection`
+- `get_season_prediction_dna`
+- `save_season_predictions_batch`
+- `run_shadow_scoring_verification`
+- `admin_shadow_scoring_report`
+
 Contract 160 adds three more taking `p_tournament_id`, with the same
 season-scoped disposition and one thing worth stating beyond it: none of them
 touches a player. `get_competition_table` derives a CLUB table from that

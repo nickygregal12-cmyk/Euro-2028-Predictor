@@ -78,5 +78,6 @@ same paragraph existed in seven places at once.
 | 172 | **None.** It schedules three existing `service_role` entry points and takes no decision any of them defers. It notably does NOT choose a transactional sender, which stays `SITE-007`'s owner decision |
 | 173 | **None.** `MIG-UI-14` names "a matchweek settled" as one of the four feed items, and contract 162's own vocabulary already permitted the type; the recap reports banked totals and decides nothing |
 | 174 | **None, and one boundary reaffirmed.** ADR 0020's ingestion clause and `INGEST-006` are unchanged: a provider still cannot create, remove or reclassify a fixture, and the 9 August amendment that let a measured final status write a league-season RESULT is untouched and not widened |
+| 175–178 | **[ADR 0027](0027-innovation-lab-backend-foundations.md), and it is mostly a record of what was NOT decided.** The four contracts add no rule: projections reuse ADR 0012's scoring, the disclosure boundary is contract 151's, the reveal boundary is contract 149's and the verifier has no authority over anything. What the ADR decides is that the public-visibility family is **one** decision rather than four, that prediction confidence needs its calibrated outcome defined **before** a column exists, and that no AI provider is chosen — the same shape of refusal `SITE-007` records for the transactional sender |
 
-*Current to contract 174.*
+*Current to contract 178.*

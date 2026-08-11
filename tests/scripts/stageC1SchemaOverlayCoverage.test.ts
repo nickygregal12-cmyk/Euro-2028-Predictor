@@ -81,7 +81,11 @@ describe('Stage C1 schema overlay coverage', () => {
     // `admin_decide_provider_change_proposal` is keyed on a proposal id rather
     // than on a season, so it is not in the `p_tournament_id` inventory the
     // overlay manifest tracks.
-    expect(reviewedFunctions).toHaveLength(82)
+    // Raised 82 → 87 by contracts 175 to 178 (ADR 0027): the projection, the
+    // DNA read, the batch write, the verification run and its report. All five
+    // take `p_tournament_id`; the two verifier functions are operational rather
+    // than competitive and write only `predictor_internal` evidence.
+    expect(reviewedFunctions).toHaveLength(87)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

@@ -325,7 +325,8 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 172 | Makes the **Stage L** retention surfaces reachable at all by scheduling their generators, and supplies **Stage I** with an operational health read |
 | 173 | Completes the **Stage L** action generator set for the Match Predictor; the Championship's own action still waits on `CUP-002` |
 | 174 | Closes the **Stage D** ingestion gap named by `INGEST-002`, `INGEST-003` and `INGEST-005`, and gives **Stage I** administration a second queue to review |
+| 175–178 | Sit alongside **Stage E** season surfaces and **Stage I** administration without moving either: three bounded reads/writes a season surface may call, and one integrity control an administrator may read. **Stage D is untouched** — nothing here reads or writes provider data |
 
-**This table accounts for every contract up to and including contract 174.** Saying so is
+**This table accounts for every contract up to and including contract 178.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.
