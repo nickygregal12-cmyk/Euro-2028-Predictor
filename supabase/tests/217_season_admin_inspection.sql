@@ -174,8 +174,10 @@ reset role;
 insert into public.bonus_competitions (
   id, tournament_id, game_key, name, published, availability_status,
   draw_required, visibility_kind, registration_opens_at)
+-- PUBLIC, so no name, owner or invite code: contract 152's identity constraint
+-- again, and the same mistake this suite's Championship sibling made.
 values (md5('ai-lms')::uuid, current_setting('test.ai_season')::uuid, 'last_man_standing',
-        'Public LMS', true, 'active', false, 'public', now() - interval '10 days');
+        null, true, 'active', false, 'public', now() - interval '10 days');
 
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)

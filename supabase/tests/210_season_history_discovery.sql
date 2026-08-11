@@ -85,19 +85,29 @@ insert into public.entries (id, user_id, tournament_id) values
 -- The 2026/27 Main Predictor membership already exists, created by the entry
 -- trigger, so only the Last Man Standing rows are inserted here. 2027/28 is a
 -- Last Man Standing membership with NO entry: the union's load-bearing case.
--- `active_since` is required for an ACTIVE membership and forbidden alongside
--- `left_at`: `game_memberships_state_shape` admits exactly one shape per status.
+-- Both memberships start ACTIVE, because `prepare_bonus_entrant_membership`
+-- refuses an entrant row without one. `active_since` is required for that
+-- status and `left_at` forbidden alongside it:
+-- `game_memberships_state_shape` admits exactly one column shape per status.
 insert into public.game_memberships (
-  tournament_id, game_competition_id, user_id, status, active_since, left_at) values
-  (md5('sh-s26')::uuid, md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'left',
-   null, now() - interval '30 days'),
+  tournament_id, game_competition_id, user_id, status, active_since) values
+  (md5('sh-s26')::uuid, md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'active',
+   now() - interval '400 days'),
   (md5('sh-s27')::uuid, md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active',
-   now() - interval '30 days', null);
+   now() - interval '30 days');
 
 insert into public.bonus_competition_entrants (competition_id, user_id, outcome) values
   (md5('sh-mp26')::uuid, md5('sh-p1')::uuid, 'active'),
   (md5('sh-lms26')::uuid, md5('sh-p1')::uuid, 'eliminated'),
   (md5('sh-lms27')::uuid, md5('sh-p1')::uuid, 'active');
+
+-- ONLY NOW does the 2026/27 Last Man Standing membership become `left`. Leaving
+-- is a thing that happens to an existing entrant, and the trigger above refuses
+-- to create one for a membership that has already gone.
+update public.game_memberships
+   set status = 'left', active_since = null, left_at = now() - interval '30 days'
+ where game_competition_id = md5('sh-lms26')::uuid
+   and user_id = md5('sh-p1')::uuid;
 
 -- Player two played a different season entirely, so the two histories cannot
 -- bleed into one another.

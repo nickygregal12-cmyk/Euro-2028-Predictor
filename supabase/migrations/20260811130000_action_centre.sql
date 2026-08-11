@@ -320,13 +320,30 @@ as $expire$
 declare
   v_closed integer := 0;
 begin
-  update public.player_action_items
+  update public.player_action_items item
      set invalidated_at = p_now,
          updated_at = p_now
-   where completed_at is null
-     and invalidated_at is null
-     and expires_at is not null
-     and expires_at <= p_now;
+   where item.completed_at is null
+     and item.invalidated_at is null
+     and (
+       -- The fast path: the stored expiry has passed.
+       (item.expires_at is not null and item.expires_at <= p_now)
+       -- AND THE AUTHORITY, re-read. `expires_at` is a COPY of the round's lock
+       -- taken when the item was generated, and a lock MOVES: contracts 117 and
+       -- 119 reschedule a fixture and drag the matchweek's lock with it. If it
+       -- moves EARLIER, the copy is stale, the generator no longer selects the
+       -- now-locked round, and nothing would ever close the item — it would ask
+       -- for a pick that can no longer be made, for ever.
+       --
+       -- Found by `211_action_centre.sql`, which locked a round and watched the
+       -- sweep do nothing. A stored deadline is a cache; the window is the fact.
+       or exists (
+         select 1
+           from public.bonus_competition_windows window_row
+          where window_row.id = (item.context ->> 'window_id')::uuid
+            and window_row.locks_at is not null
+            and window_row.locks_at <= p_now)
+     );
 
   get diagnostics v_closed = row_count;
   return v_closed;
