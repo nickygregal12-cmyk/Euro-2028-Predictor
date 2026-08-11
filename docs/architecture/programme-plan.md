@@ -229,6 +229,8 @@ nothing to say.
 | 152–157 | The remaining `MIG-UI` backend, landed as one batch with no frontend consumer and no hosted application. No phase moves, and no gate is closer to passing for it |
 | 158 | Closes the first three items `SEC-001` names: the invite-code keyspace, the confirmation oracle in `get_league_preview`, and probe rate-limiting on a wrong guess. Security hardening; no phase moves. It is **destructive** and takes the guarded rollout lane rather than the additive fast lane |
 
-**This table accounts for every contract up to and including contract 158.** Saying so is
+| 159–168 | The backend-completion batch. 159 closes the last `SEC-001` door; 160 closes `MIG-UI-13`; 161–164 close season history, `MIG-UI-14`, `DFA-012`'s delivery half and LMS social; 165–168 close organiser reads, the multi-group Championship draw and its reader, and the administration inspection `DFA-009` records as absent. **No frontend consumer exists for any of them** |
+
+**This table accounts for every contract up to and including contract 168.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

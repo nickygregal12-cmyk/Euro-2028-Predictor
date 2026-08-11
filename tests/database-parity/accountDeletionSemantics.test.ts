@@ -113,6 +113,21 @@ describe('account deletion — declared foreign-key semantics', () => {
       '20260810230000_player_preferences.sql competition_follows.user_id → cascade',
       '20260810230000_player_preferences.sql pinned_rivals.user_id → cascade',
       '20260810230000_player_preferences.sql pinned_rivals.rival_user_id → cascade',
+      // Contract 160. Both are administrator audit attribution on a competition
+      // decision — who deducted the points, who awarded the fixture — so they
+      // take `set null` like every other audit actor here. The DECISION survives
+      // the account: a nine-point deduction that vanished when the official who
+      // recorded it closed their account would silently restate the table.
+      '20260811110000_domestic_league_table.sql season_table_adjustments.decided_by → set null',
+      '20260811110000_domestic_league_table.sql season_fixture_awards.decided_by → set null',
+      // Contracts 162 and 163. All three CASCADE, unlike contract 160's two,
+      // and the difference is the right one: those are audit attribution on a
+      // competition decision that must outlive the account, while these are the
+      // player's own inbox and their own queued mail. A closed account keeps
+      // neither.
+      '20260811130000_action_centre.sql player_action_items.user_id → cascade',
+      '20260811130000_action_centre.sql player_action_state.user_id → cascade',
+      '20260811140000_reminder_delivery.sql reminder_deliveries.user_id → cascade',
     ])
   })
 
@@ -161,9 +176,12 @@ describe('account deletion — consequences', () => {
       'league_members.user_id',
       'pinned_rivals.rival_user_id',
       'pinned_rivals.user_id',
+      'player_action_items.user_id',
+      'player_action_state.user_id',
       'profiles.id',
       'rank_history.user_id',
       'rate_limit_events.user_id',
+      'reminder_deliveries.user_id',
       'season_wrapped.user_id',
     ])
   })
@@ -178,7 +196,9 @@ describe('account deletion — consequences', () => {
       'game_membership_events.actor_id',
       'match_result_revisions.actor_id',
       'provider_review_acknowledgements.actor_id',
+      'season_fixture_awards.decided_by',
       'season_fixture_result_revisions.actor_id',
+      'season_table_adjustments.decided_by',
     ])
   })
 

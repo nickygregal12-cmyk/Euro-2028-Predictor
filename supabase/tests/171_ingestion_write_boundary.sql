@@ -192,7 +192,15 @@ insert into ingestion_functions (name, permitted_writes) values
   ('provider_mapping_gaps',            'reports unmapped identifiers; writes nothing.'),
   ('resolve_provider_season',          'reads the identity map; writes nothing.'),
   ('resolve_provider_round',           'reads the identity map; writes nothing.'),
-  ('resolve_provider_team',            'reads the identity map; writes nothing.');
+  ('resolve_provider_team',            'reads the identity map; writes nothing.'),
+  -- Contract 168. An administrator's read of the staged calendar, registered
+  -- here because THIS GUARD CAUGHT IT: a new function naming a provider
+  -- relation must say what it may write, or it does not pass. It writes
+  -- nothing — it reads the proposals, joins the identity map to say which club
+  -- each provider id means, and names what would block an approval. The
+  -- decisions stay with contract 132's two writers.
+  ('admin_provider_proposal_detail',
+   'reads staged proposals and the identity map; writes nothing, and returns no raw payload.');
 
 -- ---------------------------------------------------------------------------
 -- 1. Every reviewed function exists.

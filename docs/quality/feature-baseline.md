@@ -267,4 +267,9 @@ same paragraph existed in seven places at once.
 | 140–141 | Contract 141 adds **club football facts, not a league table** — a table carries competition rules this derivation has no authority over |
 | 142 | **Adds no feature and moves no rule** |
 
-*Current to contract 158.*
+| 159 | Closes the last of `SEC-001`: the universal invite resolver charged no limit and returned a member count |
+| 160 | Adds the **domestic league table** — competition rules, deductions and awarded outcomes — which contract 141's form derivation explicitly was not |
+| 161–164 | Season history discovery, the action centre's read state, the provider-neutral reminder ledger, and the Last Man Standing field behind its round's own lock |
+| 165–168 | Organiser reads that disclose no selection; the multi-group Championship draw and its reader; the administration inspection reads |
+
+*Current to contract 168.*

@@ -102,6 +102,15 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'pinned_rivals.rival_user_id -> cascade',
   'pinned_rivals.user_id -> cascade',
   'season_wrapped.user_id -> cascade',
+  // Contract 160. Audit attribution on a competition decision, so the decision
+  // outlives the account that recorded it.
+  'season_table_adjustments.decided_by -> set null',
+  'season_fixture_awards.decided_by -> set null',
+  // Contracts 162 and 163: a player's own inbox and their own queued mail, so
+  // a closed account keeps neither.
+  'player_action_items.user_id -> cascade',
+  'player_action_state.user_id -> cascade',
+  'reminder_deliveries.user_id -> cascade',
   'bonus_cup_fixtures.winner_user_id -> restrict',
   'bonus_knockout_predictions.user_id -> cascade',
   'entries.user_id -> cascade',

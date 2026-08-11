@@ -316,6 +316,10 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 152–157 | The remaining `MIG-UI` backend as one batch, with no frontend consumer and no hosted application. No stage boundary moves |
 | 158 | `SEC-001` hardening across the private-league invite path, which spans **Stage F/H** surfaces without moving either boundary. **Destructive** — `get_league_preview` is dropped and recreated because its return type narrows — so it takes the guarded lane with its backup and rehearsal, never the fast lane |
 
-**This table accounts for every contract up to and including contract 158.** Saying so is
+| 159–160 | Contract 160 serves the **Stage F** competition Matches surface, which shipped Recent form because no table existed |
+| 161–164 | Contract 161 serves **Stage K** season history; 162 and 163 serve the **Stage L** retention surfaces; 164 serves **Stage G** Last Man Standing social |
+| 165–168 | Contracts 165 and 168 serve the **Stage I** organiser and administration surfaces; 166 and 167 serve **Stage G** Championship at large-field scale |
+
+**This table accounts for every contract up to and including contract 168.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

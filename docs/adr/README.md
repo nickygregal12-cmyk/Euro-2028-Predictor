@@ -66,4 +66,11 @@ same paragraph existed in seven places at once.
 | 143 | Implements ADR 0026's `EURO-002`, the server-owned publication lifecycle. **It does not publish Euro 2028 and does not address `EURO-001`**, which stays a recorded defect |
 | 144 | **None.** `provider_entity_map` remains the identity authority, and nothing in the profile store writes a fixture, score, status, lock, settlement or progression |
 
-*Current to contract 158.*
+| 159 | **None.** It enforces an existing decision — `SEC-001`'s — on the one invite door contract 158 recreated without carrying its fixes into |
+| 160 | A competition's table rules become **stored competition data** rather than a derivation's assumption, and an **awarded outcome is a table fact, not a fixture result**: `season_fixtures.home_score` is what predictions settle against, so an award written there would rescore a settled matchweek |
+| 161–164 | **None.** 161 makes contract 156's archive reachable, 162 stores the read state `MIG-UI-14`'s audit found missing, 163 builds the delivery contract without choosing a provider (`SITE-007` blocks that), 164 applies the established round-lock reveal to a new surface |
+| 165 | **None, and one deliberately not taken.** No accepted authority grants an organiser power over another entrant, so the reads land and the command does not |
+| 166–167 | Implements ADR 0014's multi-group shape, which `launch_season_cup` refused by name. The draw is **deterministic and unseeded** — an unseeded draw cannot be re-derived, and seeding on Match Predictor points would import one game's standings into another's structure, which ADR 0011 forbids. Who reaches a bracket stays ADR 0014's rule and is **not** decided here |
+| 168 | **None.** It supplies the inspection `DFA-009` records as absent; the decisions stay with contract 132 |
+
+*Current to contract 168.*

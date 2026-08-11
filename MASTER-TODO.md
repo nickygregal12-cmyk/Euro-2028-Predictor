@@ -417,4 +417,8 @@ same paragraph existed in seven places at once.
 | 134 | Adds no product surface. `public.rate_limit_events` is revoked from both browser roles, and `dataApiExposure.test.ts` now pins every public table a browser role can still reach — so the next unrevoked table fails a test rather than waiting for an audit |
 | 135–136 | Contract 135 carries the owner's ADR 0020 amendment: a measured provider final status writes the official result of a league-season fixture with no human action, auditable through contract 125's writer and stopped by any administrator correction. It also gives contracts 117 and 132 the caller neither had. Contract 136 gives a club a code and colours. **Neither creates a fixture, and neither touches the tournament path** |
 
-*Current to contract 158.*
+| 159–160 | Contract 159 closes the last `SEC-001` door; contract 160 closes `MIG-UI-13` with stored table rules, deductions and table-only awarded outcomes |
+| 161–164 | Season history discovery, `MIG-UI-14`'s action centre and read state, `DFA-012`'s provider-neutral delivery ledger, and Last Man Standing social reads |
+| 165–168 | Organiser reads with **no organiser command**, the multi-group Championship draw and its reader, and the administration inspection `DFA-009` records as absent |
+
+*Current to contract 168.*
