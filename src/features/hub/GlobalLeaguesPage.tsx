@@ -4,6 +4,11 @@ import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
 import { CreatePrivateJourney } from '../leagues/CreatePrivateJourney'
 import { JoinLeagueModal } from '../leagues/JoinLeagueModal'
+import { OrganiserPanel } from '../leagues/OrganiserPanel'
+import {
+  fetchMyOrganisedCompetition,
+  fetchMyOrganisedCompetitions,
+} from '../../services/supabase/organisedCompetitions'
 import {
   createPrivateSeasonCup,
   createPrivateSeasonLms,
@@ -193,6 +198,13 @@ export function GlobalLeaguesPage() {
           </Button>
         </div>
       )}
+
+      {/* Contract 165. Renders nothing at all for a player who organises
+          nothing, which is most of them. */}
+      <OrganiserPanel
+        list={() => fetchMyOrganisedCompetitions()}
+        open={(competitionId) => fetchMyOrganisedCompetition(competitionId)}
+      />
 
       <JoinLeagueModal
         open={joining}
