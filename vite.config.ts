@@ -4,6 +4,13 @@ import type {} from 'vitest/config'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { configDefaults } from 'vitest/config'
+import {
+  applyDocumentHead,
+  robotsTxt,
+  sitemapXml,
+} from './src/app/site/documentMetadata.js'
+import { siteConfiguration } from './src/app/site/siteConfiguration.js'
+import { resolveSiteVariant } from './src/app/site/siteVariant.js'
 
 interface DeploymentContract {
   readonly contractVersion: number
@@ -41,9 +48,38 @@ export default defineConfig(({ command, mode }) => {
 
   const releaseMetadata = createReleaseMetadata(env, command)
 
+  // ADR 0026's two deployments, resolved once per build. Fails closed to the
+  // Hub: an unset or misspelled variable must never build the Euro site, which
+  // `EURO-001` requires stay invisible until an owner publishes it.
+  const site = siteConfiguration(
+    resolveSiteVariant(readEnvironmentValue(env, 'VITE_SITE_VARIANT')),
+    {
+      publicOrigin: readEnvironmentValue(env, 'VITE_PUBLIC_ORIGIN'),
+      siblingOrigin: readEnvironmentValue(env, 'VITE_SIBLING_SITE_ORIGIN'),
+    },
+  )
+
   return {
     plugins: [
       react(),
+      {
+        // The document head, sitemap and robots.txt are per-site facts, so
+        // they are generated from one authority rather than authored three
+        // times. See src/app/site/documentMetadata.ts for why an unconfigured
+        // origin emits nothing rather than a default.
+        name: 'euro28-site-metadata',
+        transformIndexHtml: {
+          order: 'pre' as const,
+          handler: (html: string) => applyDocumentHead(html, site),
+        },
+        generateBundle() {
+          const sitemap = sitemapXml(site)
+          if (sitemap) {
+            this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap })
+          }
+          this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robotsTxt(site) })
+        },
+      },
       {
         name: 'euro28-release-metadata',
         generateBundle() {

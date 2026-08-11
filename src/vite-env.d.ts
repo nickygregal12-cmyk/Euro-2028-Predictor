@@ -25,6 +25,17 @@ interface ImportMetaEnv {
   // Serves the public landing page at `/` to signed-out visitors instead of
   // redirecting them to `/auth/login`.
   readonly VITE_UI_PUBLIC_LANDING?: string
+  // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
+  // including unset, resolves to "hub" — Euro 2028 must never appear because a
+  // variable was mistyped (`EURO-001`).
+  readonly VITE_SITE_VARIANT?: string
+  // This deployment's own absolute origin. Drives the canonical URL, Open Graph
+  // URLs, the generated sitemap and robots.txt. Unset emits none of them rather
+  // than falling back to the other site's domain.
+  readonly VITE_PUBLIC_ORIGIN?: string
+  // The other deployment's absolute origin, so each site can link to its
+  // sibling. Unset omits the link.
+  readonly VITE_SIBLING_SITE_ORIGIN?: string
 }
 
 interface ImportMeta {
