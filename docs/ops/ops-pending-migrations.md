@@ -34,7 +34,7 @@ This is the operational migration inventory. Machine-readable hosted state is au
 | --- | ---: | --- | --- |
 | Repository candidate | **158** | 158 canonical migrations through `20260811000000_invite_code_hardening.sql`. | LEVEL |
 | Development Supabase `iouzoutneyjpugbbtdem` | **158** | Pinned 157→158 rollout run `31473692593` from exact main `4d4b860`, independently confirmed. | LEVEL |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **158** | Rollout run `31475806882` gated on backup `31473742437` and rehearsal `31475471473`, independently confirmed. | LEVEL |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Rollout run `31475806882` gated on backup `31473742437` and rehearsal `31475471473`, independently confirmed. | LEVEL |
 
 ## Superseded — 11 August 2026 (twenty-third entry)
 
