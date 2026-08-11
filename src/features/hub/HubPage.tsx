@@ -17,6 +17,8 @@ import {
 } from './combinedFixturesModel'
 import { presentSinceLastVisit } from './sinceLastVisitModel'
 import { useMatchweekRecap } from './useMatchweekRecap'
+import { useRivalWatch } from './useRivalWatch'
+import { RivalWatchCard } from './RivalWatchCard'
 import { ordinal } from '../league/ordinal'
 import { readLastVisit, writeLastVisit } from './lastVisit'
 import type { InboxAction } from './playInboxModel'
@@ -109,7 +111,7 @@ function FixtureRow({ row, href }: { row: CombinedFixtureRow; href: string | nul
 }
 
 export function HubPage() {
-  const { status: membership, player, reload } = usePlayerCompetitions()
+  const { status: membership, player, preferences, reload } = usePlayerCompetitions()
   const { userId } = useAuth()
   const { inbox } = useGlobalPlayInbox(player)
 
@@ -164,6 +166,10 @@ export function HubPage() {
   // What the results did to the player (contracts 151 and 150). Bounded, and
   // the bound is stated in the section below rather than applied silently.
   const recap = useMatchweekRecap(player, userId)
+  // Contract 157's pinned rival, compared inside a league table the player is
+  // already a member of. It adds no read of its own beyond that table, and
+  // renders nothing at all when there is no rival to watch.
+  const rivalWatch = useRivalWatch(player, preferences, reload)
 
   const since = useMemo(() => {
     if (!sources) return null
@@ -366,6 +372,8 @@ export function HubPage() {
             counts; contract 150 supplies movement inside a private league.
             Nothing is estimated, and a competition with nothing settled
             contributes no card rather than an empty one. */}
+        <RivalWatchCard state={rivalWatch} />
+
         {recap.status === 'ready' && recap.recaps.length > 0 ? (
           <section className={h.section} aria-labelledby="hub-recap">
             <h2 className={h.sectionTitle} id="hub-recap">

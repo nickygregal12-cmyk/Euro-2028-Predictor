@@ -1,0 +1,115 @@
+/* Season history — one card per finished season.
+ *
+ * The stat row is a grid that fills rather than a fixed column count, so three
+ * stats on a phone and four on a desktop both look deliberate. From the tablet
+ * breakpoint the cards themselves sit two across, because a Wrapped is a
+ * self-contained block and desktop has the room for two of them side by side —
+ * which is a real use of the space rather than one stretched card.
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 700;
+  color: var(--tx);
+}
+
+.empty,
+.note {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.note {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+
+@media (min-width: 768px) {
+  .list {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+
+.cardName {
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 700;
+  color: var(--tx);
+  /* A hostile-length competition name wraps instead of widening the card. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cardSeason {
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.stats {
+  display: grid;
+  gap: var(--sp-2);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.detail {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.detailRow dt {
+  min-width: 0;
+}
+
+.detailRow dd {
+  margin: 0;
+  color: var(--tx);
+  font-variant-numeric: tabular-nums;
+}
