@@ -77,6 +77,31 @@ function memberLine(count: number): string {
   return count === 1 ? '1 member' : `${count} members`
 }
 
+/**
+ * Where a container of this game opens, given its competition's Leagues address.
+ *
+ * ONLY THE MATCH PREDICTOR LEAGUE HAS A WORKSPACE. `UI-F12` is delivered for
+ * that game and no other, and the competition's Leagues section IS the Match
+ * Predictor league workspace. Handing the same address to a Last Man Standing
+ * or Championship container sent the player to a list their container was not
+ * in, which reads as the container having been lost rather than as a page that
+ * does not exist yet.
+ *
+ * Null is the honest answer, and the caller states it rather than rendering
+ * nothing: a card with an invite code, a member count and no explanation of why
+ * it alone does not open reads as broken. The missing read and the missing page
+ * are registered together as `MIG-UI-20`.
+ *
+ * It takes the competition href rather than building one, so this stays pure and
+ * the route authority stays in `weeklyRoutes`.
+ */
+export function privatePlayHref(
+  gameKey: PrivatePlayGameKind,
+  competitionLeaguesHref: string | null,
+): string | null {
+  return gameKey === 'main_predictor' ? competitionLeaguesHref : null
+}
+
 export function presentPrivatePlay(
   sources: readonly PrivatePlaySource[],
   unreadable: readonly string[],

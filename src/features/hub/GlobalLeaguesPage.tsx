@@ -20,6 +20,7 @@ import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsPro
 import { competitionSectionRoute, weeklyRoutes } from '../../app/weeklyRoutes'
 import {
   presentPrivatePlay,
+  privatePlayHref,
   PRIVATE_PLAY_GAME_NAME,
   type PrivatePlayFilter,
   type PrivatePlayGameKind,
@@ -95,10 +96,12 @@ export function GlobalLeaguesPage() {
               competitionName: entry.competition.name,
               seasonLabel: entry.competition.seasonLabel,
               gameKey: game.gameKey as PrivatePlayGameKind,
-              // The competition's Leagues section, which is where a container
-              // is actually managed today. A container has no page of its own
-              // in the season tree yet.
-              href: competitionSectionRoute(entry.competition, 'leagues'),
+              // Only the Match Predictor league has a workspace to open; see
+              // `privatePlayHref`, which owns that rule and the reason for it.
+              href: privatePlayHref(
+                game.gameKey as PrivatePlayGameKind,
+                competitionSectionRoute(entry.competition, 'leagues'),
+              ),
             },
           })
         }
@@ -276,7 +279,16 @@ export function GlobalLeaguesPage() {
                   <Link className={styles.open} to={entry.href}>
                     Open in {entry.competitionName}
                   </Link>
-                ) : null}
+                ) : (
+                  // STATED, NOT OMITTED. Rendering nothing left a card with an
+                  // invite code, a member count and no explanation of why it is
+                  // the only one that does not open — which reads as a broken
+                  // card. The player keeps the code, so the container is still
+                  // usable for inviting; what it lacks is a page.
+                  <p className={styles.pending}>
+                    {entry.gameName} has no league page yet — share the code to add players.
+                  </p>
+                )}
               </article>
             </li>
           ))}
