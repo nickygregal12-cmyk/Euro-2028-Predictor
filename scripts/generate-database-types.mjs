@@ -23,11 +23,16 @@
  * against Development is hosted INSPECTION, which `AGENTS.md` permits by
  * default; it is not a hosted mutation and it is not a hosted claim.
  *
- * REQUIRES `SUPABASE_ACCESS_TOKEN` in the environment. Deliberately not wired
- * into CI: making every pull request depend on a hosted service being reachable
- * would fail builds for reasons that have nothing to do with the change under
- * review, and would fail them legitimately whenever Development trails the
- * repository — which ADR 0024 treats as the normal working state.
+ * REQUIRES either `SUPABASE_DEV_DB_URL` (preferred, and already a repository
+ * secret) or `SUPABASE_ACCESS_TOKEN` in the environment. See the branch below
+ * for why there are two and why neither may reach Production.
+ *
+ * Still deliberately not wired into ordinary CI: making every pull request
+ * depend on a hosted service being reachable would fail builds for reasons that
+ * have nothing to do with the change under review, and would fail them
+ * legitimately whenever Development trails the repository — which ADR 0024
+ * treats as the normal working state. `regenerate-database-types.yml` runs it
+ * on demand instead, which is a different thing from running it on every push.
  */
 
 import { execFileSync } from 'node:child_process'
@@ -86,21 +91,66 @@ if (projectRef === production.projectRef) {
   process.exit(1)
 }
 
-if (!process.env.SUPABASE_ACCESS_TOKEN) {
+/*
+ * TWO WAYS TO REACH THE SAME DEVELOPMENT SCHEMA, and the reason there are two.
+ *
+ * `--project-id` needs `SUPABASE_ACCESS_TOKEN`, a Supabase MANAGEMENT token.
+ * That token is held by nobody: it is not in the environment and no workflow
+ * carries it, so on 11 August 2026 the repository could not regenerate its own
+ * types and the staleness guard stayed red at `expected 151 to be 157` with no
+ * route to green. A guard nobody can satisfy stops being a guard and becomes
+ * noise people learn to scroll past.
+ *
+ * `--db-url` needs only a connection string, and `SUPABASE_DEV_DB_URL` already
+ * exists as a repository secret — the development fast lane uses it. Same
+ * hosted Development database, same schema, no new credential to mint.
+ *
+ * The db-url path is preferred when available and the token path is kept, so
+ * an owner with a management token still gets the behaviour the header
+ * describes. What is NOT relaxed is the refusal: whichever path runs, this
+ * script must not read Production, so the connection string is checked for the
+ * Production ref by name exactly as the project ref is above.
+ */
+const devDbUrl = process.env.SUPABASE_DEV_DB_URL?.trim()
+
+if (devDbUrl && production.projectRef && devDbUrl.includes(production.projectRef)) {
   console.error(
-    'SUPABASE_ACCESS_TOKEN is not set, so the Supabase CLI cannot authenticate.\n' +
-      'This script is deliberately not part of CI — see its header.',
+    'Refusing to generate types: SUPABASE_DEV_DB_URL resolves to the Production ' +
+      `project ${production.projectRef}. Nothing in this script may read Production.`,
   )
   process.exit(1)
 }
 
-console.log(`Generating types from Development (${projectRef})…`)
+if (devDbUrl && !devDbUrl.includes(projectRef)) {
+  console.error(
+    `Refusing to generate types: SUPABASE_DEV_DB_URL names neither ${projectRef} ` +
+      'nor any known project. An unrecognised target is not a Development target.',
+  )
+  process.exit(1)
+}
 
-const generated = execFileSync(
-  'npx',
-  ['--yes', 'supabase', 'gen', 'types', 'typescript', '--project-id', projectRef, '--schema', 'public'],
-  { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 },
+if (!devDbUrl && !process.env.SUPABASE_ACCESS_TOKEN) {
+  console.error(
+    'Neither SUPABASE_DEV_DB_URL nor SUPABASE_ACCESS_TOKEN is set, so there is no\n' +
+      'way to read the Development schema. Either works; the connection string is\n' +
+      'the one this repository already holds as a secret.',
+  )
+  process.exit(1)
+}
+
+const generatorArgs = devDbUrl
+  ? ['--yes', 'supabase', 'gen', 'types', 'typescript', '--db-url', devDbUrl, '--schema', 'public']
+  : ['--yes', 'supabase', 'gen', 'types', 'typescript', '--project-id', projectRef, '--schema', 'public']
+
+console.log(
+  `Generating types from Development (${projectRef}) via ` +
+    `${devDbUrl ? 'the database connection' : 'the management API'}…`,
 )
+
+const generated = execFileSync('npx', generatorArgs, {
+  encoding: 'utf8',
+  maxBuffer: 64 * 1024 * 1024,
+})
 
 if (!generated.includes('export type Database')) {
   console.error('Generation produced no Database type. Refusing to overwrite the committed file.')

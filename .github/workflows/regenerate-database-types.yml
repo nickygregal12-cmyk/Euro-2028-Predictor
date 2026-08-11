@@ -1,0 +1,150 @@
+name: Regenerate database types
+
+# Manual. Regenerates `src/services/supabase/database.types.ts` from hosted
+# DEVELOPMENT and pushes the result to a branch for review.
+#
+# WHY THIS EXISTS AT ALL. `databaseTypes.test.ts` fails when a migration lands
+# and the types are not regenerated, and its message says to run
+# `npm run generate:types`. On 11 August 2026 nobody could: the script wanted
+# `SUPABASE_ACCESS_TOKEN`, a Supabase management token this repository does not
+# hold anywhere, so the guard sat red at `expected 151 to be 157` with no route
+# to green. A guard nobody can satisfy is not a guard; it is noise people learn
+# to scroll past, and the next real staleness would have hidden inside it.
+#
+# The script now also accepts `SUPABASE_DEV_DB_URL`, which the development fast
+# lane has always had. Same hosted Development database, no new credential.
+#
+# IT READS DEVELOPMENT AND NEVER PRODUCTION. The script refuses by name if the
+# connection string resolves to the Production project, and this workflow passes
+# only the development secret. Generation issues no DDL and no DML: it is hosted
+# INSPECTION, not a hosted mutation and not a hosted claim.
+#
+# IT PUSHES A BRANCH AND DOES NOT OPEN A PULL REQUEST. This repository forbids
+# GitHub Actions from creating pull requests — `development-hosted-status-
+# followup.yml` records that in its own comments, having died on exactly that.
+# So the branch and the job summary are the deliverable, and a human or an agent
+# opens the pull request. A stranded-but-announced branch is recoverable in a
+# minute; the failure mode being avoided is a job that dies after pushing and
+# tells nobody.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: Type REGENERATE-DATABASE-TYPES to proceed
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regenerate-database-types
+  cancel-in-progress: false
+
+env:
+  FORBIDDEN_PRODUCTION_REF: vkfnsqdyhvtwyqkisxhk
+  CONFIRMATION_PHRASE: REGENERATE-DATABASE-TYPES
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch
+        env:
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || {
+            echo "ERROR: confirmation phrase does not match ${CONFIRMATION_PHRASE}."
+            exit 1
+          }
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prove the secret names Development and not Production
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The script refuses Production by name too. This is the same refusal
+          # made before anything runs, so a misconfigured secret is a one-line
+          # failure rather than something noticed in a diff afterwards.
+          [ -n "${SUPABASE_DEV_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_DEV_DB_URL is not set.'
+            exit 1
+          }
+          case "${SUPABASE_DEV_DB_URL}" in
+            *"${FORBIDDEN_PRODUCTION_REF}"*)
+              echo 'ERROR: the development secret resolves to the Production project.'
+              exit 1
+              ;;
+          esac
+
+      - name: Regenerate
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        run: npm run generate:types
+
+      - name: Push a branch if anything changed, and say so either way
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "$(git status --porcelain=v1 -- src/services/supabase)" ]; then
+            {
+              echo '## Database types were already current'
+              echo
+              echo 'Regeneration produced no change, so nothing was pushed. The types'
+              echo 'already describe hosted Development.'
+            } >> "${GITHUB_STEP_SUMMARY}"
+            exit 0
+          fi
+
+          contract="$(node -p "require('./src/services/supabase/database.types.meta.json').generatedFromContract")"
+          branch="automation/regenerate-database-types-${contract}-${GITHUB_RUN_ID}"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -b "${branch}"
+          git add src/services/supabase/database.types.ts src/services/supabase/database.types.meta.json
+          # Repeated `-m` rather than one multi-line message: a body starting at
+          # column 0 would end the YAML block scalar and make this file
+          # unparseable, and a heredoc would carry this indentation into the
+          # commit message. Each `-m` becomes its own paragraph.
+          git commit \
+            -m "Regenerate database types at contract ${contract}" \
+            -m "Generated from hosted Development by regenerate-database-types.yml run ${GITHUB_RUN_ID}. Generation is read-only inspection: it issues no DDL and no DML, and the script refuses the Production project by name." \
+            -m "This is a generated file. Review the diff for surprises, not for style."
+          git push -u origin "${branch}"
+
+          # The branch existing is the job. Saying where it is, is the rest of
+          # it — see this file's header for the failure this avoids.
+          {
+            echo "## Database types regenerated at contract ${contract}"
+            echo
+            echo "Pushed to \`${branch}\`."
+            echo
+            echo 'GitHub Actions cannot open pull requests in this repository, so open one:'
+            echo
+            echo '```'
+            echo "gh pr create --base main --head ${branch} \\"
+            echo "  --title 'Regenerate database types at contract ${contract}'"
+            echo '```'
+          } >> "${GITHUB_STEP_SUMMARY}"
