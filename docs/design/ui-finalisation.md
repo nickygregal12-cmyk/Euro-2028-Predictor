@@ -292,6 +292,16 @@ document governs:
   however correct contracts 162 and 170 were. Contract 172 schedules them and
   contract 173 adds the settled-matchweek recap, so the Matchweek Recap gains a
   feed item rather than only a page. **Neither is consumed.**
+- **A second administrator queue exists and nothing shows it.** Contract 174
+  stages provider calendar changes — a fixture the provider announced that this
+  season does not hold, one it reports postponed, abandoned or cancelled, and
+  (only against a span an operator declares complete) one it has stopped
+  sending. `admin_provider_change_proposals` returns each with the decoded
+  proposal, what we already hold, named warnings, named blockers and a
+  `decidable` flag; `admin_decide_provider_change_proposal` is the only thing in
+  the repository that can add a fixture to a published season or take one out.
+  `/admin/season` already names the staged-calendar gap for contract 132's
+  queue; this is the second one it will need to show. **Not consumed.**
 - **An administrator can see whether reminders are working.** Contract 172 adds
   `admin_reminder_delivery_health` — counts, instants and the three jobs, and no
   user id, action key, display name or provider error text. `/admin/season`

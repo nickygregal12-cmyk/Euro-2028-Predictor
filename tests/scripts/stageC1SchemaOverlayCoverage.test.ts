@@ -76,7 +76,12 @@ describe('Stage C1 schema overlay coverage', () => {
     // competition-administration writes, and 79 → 80 by contract 164's Last Man
     // Standing field read.
     // competition-administration writes.
-    expect(reviewedFunctions).toHaveLength(81)
+    // Raised 81 → 82 by contract 174's `admin_provider_change_proposals`, the
+    // administrator's view of staged provider calendar changes. Its sibling
+    // `admin_decide_provider_change_proposal` is keyed on a proposal id rather
+    // than on a season, so it is not in the `p_tournament_id` inventory the
+    // overlay manifest tracks.
+    expect(reviewedFunctions).toHaveLength(82)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

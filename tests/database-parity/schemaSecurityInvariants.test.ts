@@ -153,6 +153,10 @@ describe('row-level security', () => {
       // subordinate to the existing provider identity map. No browser surface
       // receives table access, and image references are provenance only.
       { schema: 'predictor_internal', name: 'provider_team_profiles' },
+      // Contract 174. Staged calendar changes: append-only evidence, RLS on,
+      // no grant to any browser role, reached only through the two
+      // administrator functions.
+      { schema: 'predictor_internal', name: 'provider_calendar_change_proposals' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

@@ -959,8 +959,19 @@
  * is `predictor_internal` and granted to nobody. It creates no relation, policy
  * or trigger, and writes only `player_action_items` rows of a type the existing
  * CHECK already permitted, so no seeded read gains a gate.
+ *
+ * Contract 174 creates one relation in `predictor_internal`, with row-level
+ * security on and no grant to any browser role, so no seeded read can reach it
+ * at all. Its two new functions are granted to `authenticated` and both refuse
+ * inside on `require_competition_admin()` — the gate the seeded admin already
+ * passes for `admin_open_season_competition`, and the gate an ordinary seeded
+ * player already fails elsewhere. It redefines
+ * `predictor_internal.consume_provider_responses`, which no browser role may
+ * execute and which the seed never runs. **No existing relation, policy,
+ * trigger or grant moves**, and the one behaviour change reachable from a
+ * seeded session is that an administrator has a second queue to read.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 173
+export const SEED_REVIEWED_AT_CONTRACT = 174
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

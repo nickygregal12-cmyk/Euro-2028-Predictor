@@ -437,5 +437,6 @@ same paragraph existed in seven places at once.
 | 171 | A cap with no ordering is an arbitrary choice presented as a table — contract 149's, found and closed |
 | 172 | The action centre and the reminder ledger acquire a caller. Three contracts built them and every one ended by recording that nothing ran them |
 | 173 | The action centre's third generator, and the sweep-key trap it had to avoid to exist at all |
+| 174 | The provider changes contract 117 counted and threw away, staged for an administrator. Closes `INGEST-002`, `INGEST-003` and `INGEST-005` |
 
-*Current to contract 173.*
+*Current to contract 174.*

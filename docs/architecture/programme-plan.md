@@ -235,7 +235,8 @@ nothing to say.
 | 171 | Deterministic and self-declaring league prediction caps. **No frontend consumer reads the new keys yet** |
 | 172 | The retention machinery starts running. It moves no phase: nothing sends, and `SITE-007` still blocks the sender on the brand decision |
 | 173 | The settled-matchweek recap. **No frontend consumer**, and the AppBar still carries no notification control |
+| 174 | Provider change approval. It moves no phase and adds no provider authority; it closes the gap where a change was counted and discarded. **No frontend consumer** |
 
-**This table accounts for every contract up to and including contract 173.** Saying so is
+**This table accounts for every contract up to and including contract 174.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

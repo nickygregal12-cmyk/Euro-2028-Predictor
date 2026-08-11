@@ -209,5 +209,6 @@ same paragraph existed in seven places at once.
 | 171 | A league prediction list can now say "showing 200 of 205" instead of presenting a truncated list as the whole league |
 | 172 | The action centre's inbox stops being permanently empty, so the AppBar's absent notification control finally has something behind it. It also adds an administrator health panel's data |
 | 173 | The Matchweek Recap gains a feed item of its own, carrying the banked points, the fixtures scored and whether the Joker was played |
+| 174 | `/admin/season` gains a second queue to show: staged calendar changes, each with a decoded proposal, what we hold, named warnings and blockers, and a decidable flag. **Not consumed** |
 
-*Current to contract 173.*
+*Current to contract 174.*

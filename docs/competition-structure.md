@@ -155,5 +155,6 @@ same paragraph existed in seven places at once.
 | 171 | A private league larger than a read's cap keeps its LEADER at the top, because the cap now keeps the top rows rather than an arbitrary set |
 | 172 | **None.** No competition, game, round, lock or settlement rule moves; three existing jobs acquire a schedule |
 | 173 | A settled matchweek is worth telling a player about for **seven days**, which is contract 162's own stated intention made executable rather than a new rule |
+| 174 | A fixture may now be **added to or removed from** a season after its calendar was approved — but only by an administrator, and never over a fixture that already carries a result |
 
-*Current to contract 173.*
+*Current to contract 174.*

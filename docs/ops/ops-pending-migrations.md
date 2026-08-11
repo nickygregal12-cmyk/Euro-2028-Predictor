@@ -6,9 +6,33 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-fifth entry)
+
+**The repository is at contract 174. Development is hosted at 171. Production is hosted at 171.** Contracts 172, 173 and 174 are repository candidates applied to neither, and all three are additive.
+
+| Contract | Migration | What it is |
+| --- | --- | --- |
+| 174 | `20260811234000_provider_calendar_change_proposals.sql` | Provider calendar changes staged for an administrator, and the decision that publishes them |
+
+**It creates one table and writes no row on apply.** `predictor_internal.provider_calendar_change_proposals` is created empty, with row-level security on and no grant to any browser role. Two new functions are granted to `authenticated` and both refuse inside on `require_competition_admin()`.
+
+**`check-migration-additive.mjs` accepts it and reports one structural step**: the append-only trigger it has just created is dropped and re-created immediately, the same idiom contracts 152 and 156 use. No existing relation, policy, grant or rule is altered.
+
+**What changes on a target when it is applied.** `consume_provider_responses` — already scheduled at `2-59/5` since contract 135 — begins calling the detector as well, so staged proposals will start appearing for any real provider response. **No fixture, prediction, score, lock, settlement, progression or standing moves**, and the queue stays pending until an administrator decides. Development currently holds no live poll target with fixtures in flight, so the practical effect on apply is nil.
+
+**The refusal an operator should expect.** A proposal whose fixture already carries a result is marked with a blocker at detection and refused again at decision, under the row lock. That is the case that would rescore a settled matchweek, and it is the only case where the queue will refuse an administrator outright.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **174** | 174 canonical migrations through `20260811234000_provider_calendar_change_proposals.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **171** | Fast-lane run `31499058072`, independently confirmed. Contracts 172 to 174 pending. | THREE BEHIND REPOSITORY |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **171** | Guarded rollout run `31505763706`; see the thirty-third entry. Contracts 172 to 174 pending. | THREE BEHIND REPOSITORY |
+
+`221`, `222` and `223` are executed by Database parity on this change's pull request. All three migrations were additionally applied end to end on a disposable PostgreSQL 16.13 before commit, and contract 174's detection, staging, idempotency, withdrawal-window, approval, refusal and append-only behaviours were each driven there.
+
 ## Current state — 11 August 2026 (thirty-fourth entry)
 
-**The repository is at contract 173. Development is hosted at 171. Production is hosted at 171.** Contracts 172 and 173 are repository candidates applied to neither, and both are additive.
+**The repository stood at contract 173 in this entry. Development is hosted at 171. Production is hosted at 171.** Contracts 172 and 173 were repository candidates applied to neither, and both are additive.
 
 | Contract | Migration | What it is |
 | --- | --- | --- |

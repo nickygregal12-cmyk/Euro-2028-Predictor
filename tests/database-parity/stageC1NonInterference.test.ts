@@ -121,6 +121,11 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'match_result_revisions.actor_id -> set null',
   // Contract 125, the season counterpart of the row above it.
   'season_fixture_result_revisions.actor_id -> set null',
+  // Contract 174. The deciding administrator, on the same terms as contract
+  // 138's acknowledgement actor: the decision and its calendar mutation must
+  // outlive the account that took it, so the reference is nulled rather than
+  // cascading the audit record away with the person.
+  'provider_calendar_change_proposals.decided_by -> set null',
   'provider_review_acknowledgements.actor_id -> set null',
   // Contract 143. Who published Euro 2028, on the state row and on every
   // transition in its history. `set null` for the same reason as the audit and

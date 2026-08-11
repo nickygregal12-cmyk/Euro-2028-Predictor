@@ -275,6 +275,10 @@ response's id as provenance.
 
 - `admin_provider_proposal_detail`
 
+Contract 174 adds one more on the same disposition: `admin_provider_change_proposals` reads that season's own staged calendar CHANGES behind `require_competition_admin`, gated before any row is read. It decides nothing, writes nothing and returns no raw provider payload — the decoded proposal and what we already hold, so a reviewer sees a diff rather than a claim. The decision writer beside it is keyed on a proposal id rather than on a season and so is not in this inventory.
+
+- `admin_provider_change_proposals`
+
 Contracts 129 and 130 add two more with the same season-scoped disposition.
 Both take `p_tournament_id` and a matchweek ordinal, resolve the round through
 contract 114's `season_card_context`, and read only that season's own fixtures,
