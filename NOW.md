@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **157** | latest `20260810230000_player_preferences.sql` |
 | Development hosted | **157** | at `20260810230000_player_preferences.sql`, verified `2026-08-11T00:06:48.797Z`, fast-lane run `31444748121` |
-| Production | **151** | promotion **not authorised** |
+| Production | **157** | promotion **not authorised** |
 
 Production promotion is read from the hosted record. It is never inferred from
 how far the repository or development has come.
