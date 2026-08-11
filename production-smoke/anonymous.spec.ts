@@ -82,7 +82,25 @@ test('anonymous production routes and environment isolation', async ({
   await page.goto('/auth/reset', { waitUntil: 'domcontentloaded' })
   await expect(page).toHaveTitle(`Reset password | ${appName}`)
 
-  await assertSignedOutGate(page, '/')
+  // `/` stood in the signed-out gate below until 11 August 2026, and this is
+  // the same kind of staleness as the retired `/predict` note further down
+  // rather than a gate that was weakened. `SignedOutDestination` serves the
+  // PUBLIC LANDING PAGE at the root when `VITE_UI_PUBLIC_LANDING` is on, which
+  // is the configuration production runs; the flag fails closed, so with it
+  // unset `/` redirects to `/auth/login` exactly as it always did.
+  //
+  // Asserted positively — the landing heading, not merely "did not redirect" —
+  // because a root that renders nothing, errors, or quietly serves the signed-in
+  // Hub would also fail to redirect, and those are the outcomes worth catching.
+  // Every OTHER signed-in route still gates, which `/play` proves immediately
+  // below; that assertion is the one guarding the boundary.
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await expect(page).toHaveURL('/')
+  await expect(page).toHaveTitle(`Home | ${appName}`)
+  await expect(
+    page.getByRole('heading', { name: 'Make every match mean more.', level: 1 }),
+  ).toBeVisible()
+
   // `/predict` stood here until 10 August 2026. It is a retired tournament path
   // that the application no longer declares and netlify.toml deliberately sends
   // to the 404 catch-all, so it never reached the signed-out gate — it rendered

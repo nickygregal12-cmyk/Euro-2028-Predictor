@@ -20,8 +20,17 @@ import { describe, expect, it } from 'vitest'
  *   - the template hard-codes no contract number, so it cannot be right today
  *     and quietly wrong tomorrow;
  *   - production authorisation is READ, never inferred from repository progress;
+ *   - production is read from PRODUCTION'S record, and there is only one of it;
  *   - the requirement register is linked, not copied into a second list;
  *   - it cannot silently remain stale after a contract file changes.
+ *
+ * The fourth of those was added on 10 August 2026, after the page spent a day
+ * reporting production at 145 while production stood at 151. Nobody had typed
+ * the wrong number: production's contract was stated in two files, the
+ * generator read the copy in the *development* record, and `--check`
+ * regenerated from that same copy — so the gate agreed with the error by
+ * construction. A duplicated fact with a one-directional check cannot be caught
+ * by that check. The copy is gone; these tests are what keeps it gone.
  */
 
 const repositoryRoot = process.cwd()
@@ -37,10 +46,14 @@ const deploymentContract = JSON.parse(read('config/deployment-contract.json')) a
 }
 const hostedContract = JSON.parse(read('config/development-hosted-contract.json')) as {
   requiredMigrationCount: number
-  productionContract: number
-  productionPromotionAuthorised: boolean
+  productionContract?: number
+  productionPromotionAuthorised?: boolean
   latestMigrationVersion: string
   latestMigrationName: string
+}
+const productionContract = JSON.parse(read('config/production-hosted-contract.json')) as {
+  requiredMigrationCount: number
+  promotionAuthorised: boolean
 }
 const now = read('NOW.md')
 
@@ -69,6 +82,24 @@ function expectFailure(root: string, args: string[] = ['--stdout']): string {
     return failure.stderr ?? ''
   }
   throw new Error('the generator was expected to fail closed and did not')
+}
+
+/** Production's own record, which is the only place production is stated. */
+function writeProductionFixture(
+  root: string,
+  record: { requiredMigrationCount: number; promotionAuthorised: boolean },
+): void {
+  writeFileSync(
+    resolve(root, 'config/production-hosted-contract.json'),
+    JSON.stringify({
+      projectRef: 'fixture-production',
+      latestMigrationVersion: '20260801000000',
+      latestMigrationName: 'fixture',
+      verifiedAt: '2026-08-01T00:00:00.000Z',
+      evidence: { source: 'fixture', workflowRunId: 2 },
+      ...record,
+    }),
+  )
 }
 
 /**
@@ -120,10 +151,13 @@ function writeFixture(options: {
       latestMigrationName: rest.join('_'),
       verifiedAt: '2026-08-01T00:00:00.000Z',
       evidence: { source: 'fixture', workflowRunId: 1 },
-      productionContract: options.productionContract ?? 1,
-      productionPromotionAuthorised: options.productionPromotionAuthorised ?? false,
     }),
   )
+
+  writeProductionFixture(root, {
+    requiredMigrationCount: options.productionContract ?? 1,
+    promotionAuthorised: options.productionPromotionAuthorised ?? false,
+  })
 
   writeFileSync(
     resolve(root, 'src/app/routeFlags.ts'),
@@ -149,7 +183,7 @@ describe('NOW.md agrees with the machine-readable contracts', () => {
   it('states the repository, development and production contracts it is given', () => {
     expect(now).toContain(`| Repository | **${deploymentContract.requiredMigrationCount}** |`)
     expect(now).toContain(`| Development hosted | **${hostedContract.requiredMigrationCount}** |`)
-    expect(now).toContain(`| Production | **${hostedContract.productionContract}** |`)
+    expect(now).toContain(`| Production | **${productionContract.requiredMigrationCount}** |`)
   })
 
   it('names the migration the hosted record names', () => {
@@ -210,22 +244,62 @@ describe('production authorisation is read, never inferred', () => {
     expect(output).toContain('promotion **AUTHORISED**')
   })
 
-  it('refuses a hosted record whose authorisation flag is not a boolean', () => {
+  it('refuses a production record whose authorisation flag is not a boolean', () => {
     const root = writeFixture({})
-    const hosted = JSON.parse(
-      readFileSync(resolve(root, 'config/development-hosted-contract.json'), 'utf8'),
-    )
-    hosted.productionPromotionAuthorised = 'yes'
-    writeFileSync(
-      resolve(root, 'config/development-hosted-contract.json'),
-      JSON.stringify(hosted),
-    )
+    const path = resolve(root, 'config/production-hosted-contract.json')
+    const record = JSON.parse(readFileSync(path, 'utf8'))
+    record.promotionAuthorised = 'yes'
+    writeFileSync(path, JSON.stringify(record))
 
-    expect(expectFailure(root)).toContain('productionPromotionAuthorised')
+    expect(expectFailure(root)).toContain('promotionAuthorised')
   })
 
   it('states in the page itself that promotion is never inferred', () => {
     expect(now).toContain('never inferred')
+  })
+})
+
+describe('production is stated once, in production’s own record', () => {
+  it('carries no copy of production in the development hosted record', () => {
+    // The copy was refreshed by the DEVELOPMENT follow-up, so a PRODUCTION
+    // rollout left it behind with nothing to move it. Both fields are gone.
+    expect(hostedContract.productionContract).toBeUndefined()
+    expect(hostedContract.productionPromotionAuthorised).toBeUndefined()
+  })
+
+  it('reports the contract production’s own record states', () => {
+    expect(now).toContain(`| Production | **${productionContract.requiredMigrationCount}** |`)
+    expect(now).toContain(
+      productionContract.promotionAuthorised
+        ? 'promotion **AUTHORISED**'
+        : 'promotion **not authorised**',
+    )
+  })
+
+  it('moves the page when production’s record moves, with no other file touched', () => {
+    // This is the property `--check` could not hold while the number was
+    // duplicated: it regenerated from the stale copy and agreed with itself.
+    const root = writeFixture({ repositoryContract: 9, productionContract: 4 })
+    generate(root, [])
+    expect(readFileSync(resolve(root, 'NOW.md'), 'utf8')).toContain('| Production | **4** |')
+
+    writeProductionFixture(root, { requiredMigrationCount: 9, promotionAuthorised: false })
+
+    expect(expectFailure(root, ['--check'])).toContain('out of date')
+    generate(root, [])
+    expect(readFileSync(resolve(root, 'NOW.md'), 'utf8')).toContain('| Production | **9** |')
+  })
+
+  it('fails closed rather than choosing, if a second copy is reintroduced', () => {
+    const root = writeFixture({ productionContract: 2 })
+    const path = resolve(root, 'config/development-hosted-contract.json')
+    const hosted = JSON.parse(readFileSync(path, 'utf8'))
+    hosted.productionContract = 2 // agreeing today, and that is not the point
+    writeFileSync(path, JSON.stringify(hosted))
+
+    const stderr = expectFailure(root)
+    expect(stderr).toContain('restates production')
+    expect(stderr).toContain('config/production-hosted-contract.json')
   })
 })
 

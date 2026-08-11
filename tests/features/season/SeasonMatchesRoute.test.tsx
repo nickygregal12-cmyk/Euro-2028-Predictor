@@ -19,7 +19,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../../src/services/supabase/client', () => ({
-  supabase: { rpc: vi.fn() },
+  db: { rpc: vi.fn() },
 }))
 
 vi.mock('../../../src/services/supabase/seasonFixtureList', () => ({

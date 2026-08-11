@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/services/supabase/client', () => ({
-  supabase: { from: mocks.from },
+  db: { from: mocks.from },
 }))
 
 import { getOrCreateEntry } from '../../src/services/supabase/predictions'

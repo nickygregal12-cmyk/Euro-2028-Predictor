@@ -106,6 +106,20 @@ const BASELINE = new Set([
   'bd904f0ef915', // ×2,  550 chars — contract 144 repository candidate
   '4c66cbc289b1', // ×2,  536 chars — contract 143 repository candidate
   '3d47535a38db', // ×2,  446 chars — Stage C schema object inventory
+
+  // Arrived with contract 158 while this branch was open, which is the
+  // mechanism rather than an exception: its pull request pasted both of these
+  // into the same seven `sweep: true` documents, one paste per contract, exactly
+  // as the rows above were produced. They are baselined rather than fixed
+  // because fixing them is the seven-authority edit deferred below.
+  //
+  // The first is also MISNUMBERED: it is headed "Contract 152 boundary" and
+  // describes contract 158's `SEC-001` work, a leftover from that change being
+  // rebased. Contract 152 is the private container's identity. The freshness
+  // rule cannot see it — 152 exists — and it is left for its own author rather
+  // than rewritten here.
+  '7e5a6c2bd89e', // ×7 — "Contract 152 boundary", describing contract 158
+  'c2fad682127c', // ×7 — contract 158 boundary
 ])
 
 describe('one fact, one home', () => {

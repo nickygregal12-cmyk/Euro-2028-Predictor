@@ -3,7 +3,8 @@
 // derived from the entry's match predictions (see domain/groupGoals.ts) — so
 // only the golden-boot player reference lives here.
 
-import { supabase } from './client'
+import { db } from './client'
+import { preparedInsert } from './preparedInsert'
 import { VersionConflictError, isVersionConflict } from './writeConflict'
 
 export type Player = {
@@ -29,7 +30,7 @@ export async function searchPlayers(
 ): Promise<Player[]> {
   const q = query.trim()
   if (!q) return []
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('players')
     .select('id, name, team_id')
     .eq('tournament_id', tournamentId)
@@ -45,7 +46,7 @@ export async function searchPlayers(
  * row exists yet (the first write INSERTs at 0), so the caller can echo it.
  */
 export async function fetchGoldenBoot(entryId: string): Promise<GoldenBoot> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('bonus_predictions')
     .select('golden_boot_player_id, version')
     .eq('entry_id', entryId)
@@ -64,15 +65,15 @@ export async function upsertGoldenBoot(
   playerId: string | null,
   expectedVersion: number,
 ): Promise<number> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('bonus_predictions')
     .upsert(
-      {
+      preparedInsert('bonus_predictions', {
         entry_id: entryId,
         golden_boot_player_id: playerId,
         version: expectedVersion,
         updated_at: new Date().toISOString(),
-      },
+      }),
       { onConflict: 'entry_id' },
     )
     .select('version')

@@ -314,7 +314,8 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 142 | **Stage D.** No stage scope moves |
 | 143–151 | Bounded reads and backend capability serving the **Stage E/H** season and hub surfaces. No stage boundary moves |
 | 152–157 | The remaining `MIG-UI` backend as one batch, with no frontend consumer and no hosted application. No stage boundary moves |
+| 158 | `SEC-001` hardening across the private-league invite path, which spans **Stage F/H** surfaces without moving either boundary. **Destructive** — `get_league_preview` is dropped and recreated because its return type narrows — so it takes the guarded lane with its backup and rehearsal, never the fast lane |
 
-**This table accounts for every contract up to and including contract 157.** Saying so is
+**This table accounts for every contract up to and including contract 158.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

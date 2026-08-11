@@ -11,11 +11,25 @@ export const RATE_LIMIT_WINDOW_MS = 60_000 // one minute
 //     self-scoped (RLS limits writes to the user's own entry), so the ceiling is
 //     generous by design.
 //   league_membership (5/min): joining/creating leagues is a discrete action a
-//     real user does a handful of times; 5/min stops join-spam and invite-code
-//     probing while never bothering normal use.
+//     real user does a handful of times; 5/min stops join-spam while never
+//     bothering normal use. It used to claim it stopped "invite-code probing"
+//     too, and it did not: it is enforced by a trigger on `league_members`, so
+//     it fires on a SUCCESSFUL join and never on a failed one. An attacker
+//     working through the keyspace was limited only on the one action they were
+//     not attempting. `league_invite_probe` is that gap; the sentence is
+//     corrected here rather than left standing.
+//   league_invite_probe (20/min): charged by contract 152 inside
+//     `get_league_preview` and `join_league`, BEFORE either looks the code up,
+//     so a miss costs exactly what a hit costs. A separate budget rather than a
+//     share of `league_membership`, because being invited to a league and
+//     hunting for one are different activities and a shared ceiling would have
+//     to either throttle real members or fund real probing. Twenty is generous
+//     for someone typing a code they were sent and getting it wrong twice, and
+//     ruinous for anything scripted.
 export const RATE_LIMITS = {
   prediction_save: 60,
   league_membership: 5,
+  league_invite_probe: 20,
 } as const
 
 export type RateLimitedAction = keyof typeof RATE_LIMITS

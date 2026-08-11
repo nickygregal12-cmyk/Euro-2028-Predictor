@@ -23,11 +23,18 @@ export type {
 
 export type CreatedLeague = { id: string; name: string; inviteCode: string }
 
+/**
+ * What a join screen is told about a code before the caller commits to it.
+ *
+ * Deliberately two fields. Contract 152 removed `id`, `memberCount` and
+ * `ownerName`: those are what turned a guessed code into a positively
+ * identified private group, and the owner's display name disclosed a real
+ * person to whoever did the guessing. The name is what an invitee needs in
+ * order to know what they are joining; `isMember` is what decides the button.
+ * The id was returned and never read.
+ */
 export type LeaguePreview = {
-  id: string
   name: string
-  memberCount: number
-  ownerName: string
   isMember: boolean
 }
 
@@ -74,14 +81,23 @@ export async function fetchLeaguePreview(code: string): Promise<LeaguePreview | 
   if (error) throw error
   const row = (data ?? [])[0]
   if (!row) return null
-  return {
-    id: row.id,
-    name: row.name,
-    memberCount: row.member_count,
-    ownerName: row.owner_name,
-    isMember: row.is_member,
-  }
+  return { name: row.name, isMember: row.is_member }
 }
+
+// NO BROWSER CALL FOR `rotate_league_invite_code` YET, AND THAT IS THE TYPED
+// CLIENT WORKING RATHER THAN AN OMISSION.
+//
+// Contract 152 creates the function; hosted Development does not hold contract
+// 152 until its rollout runs, so `database.types.ts` — generated from
+// Development — does not name it, so calling it through the typed client is a
+// compile error today. Since `TYPE-001` closed there is no untyped client
+// to reach for, which means repository code cannot call an RPC the database has
+// not been given.
+//
+// That ordering is worth keeping: a browser control whose function does not
+// exist yet is a button that returns a schema-cache error to a real person. The
+// control belongs in the pull request that follows the rollout, when the
+// regenerated types make it expressible.
 
 /** Join a league by invite code (idempotent). Returns the joined league. */
 export async function joinLeague(code: string): Promise<{ id: string; name: string }> {

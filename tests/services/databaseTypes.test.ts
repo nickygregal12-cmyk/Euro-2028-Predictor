@@ -49,15 +49,55 @@ function migrationCount(): number {
 }
 
 describe('generated database types', () => {
-  it('was generated at the repository’s current contract', () => {
-    // THE ASSERTION THIS FILE EXISTS FOR. When it fails, the message is the
-    // instruction: a migration landed and the types were not regenerated, so
-    // anything typed from them is describing the schema as it was.
+  it('never describes a schema the repository has not written', () => {
+    // CORRECTED 10 August 2026 (AUD-11), AND THE CORRECTION IS THE POINT.
+    //
+    // This assertion read `.toBe(migrationCount())` — the types must have been
+    // generated at the REPOSITORY's contract. That is unsatisfiable for the one
+    // kind of pull request it was written to catch. Generation reads hosted
+    // Development, Development receives a migration only AFTER the pull request
+    // merges, so from the moment a migration file is added until a rollout runs
+    // there is nothing the author can do to make this pass. It went red on the
+    // first migration to follow it (contract 152) and would have gone red on
+    // every migration for ever after.
+    //
+    // That is the circular gate ADR 0024 removed for deploy previews, and
+    // `database-types-baseline.md` argued against for AUD-10-c in as many
+    // words — arriving through AUD-10-a's artifact guard instead.
+    //
+    // THE PROPERTY IS NOT WEAKENED, IT IS RELOCATED, and it was already here.
+    // "The types describe what Development actually has" is asserted below
+    // against the hosted record, and that is the assertion that matters: when
+    // Development moves to 152, it fails until the types are regenerated. What
+    // is dropped is only the demand that regeneration happen BEFORE the rollout
+    // that makes it possible.
+    //
+    // What remains here is the impossible state: types that describe more
+    // migrations than the repository contains cannot have come from a schema
+    // this repository built, so they came from somewhere else.
     expect(
       meta.generatedFromContract,
-      'database.types.ts is stale — a migration has landed since it was generated. ' +
-        'Run `npm run generate:types` (needs SUPABASE_ACCESS_TOKEN) and commit both files.',
-    ).toBe(migrationCount())
+      'database.types.ts describes more migrations than the repository holds. ' +
+        'It was generated from a schema this repository did not build.',
+    ).toBeLessThanOrEqual(migrationCount())
+  })
+
+  it('reports how far the types trail the repository, rather than hiding it', () => {
+    // Not a threshold — a statement of position, in the same shape `NOW.md`
+    // uses for pending development migrations. A trailing artifact is normal
+    // between a migration merging and its rollout; it is only invisible
+    // trailing that is dangerous.
+    //
+    // The compiler is what actually protects the gap. Since `TYPE-001` closed,
+    // every service module is on the typed client, so repository code cannot
+    // call a function the generated types do not know about — a browser read
+    // for a not-yet-applied migration fails `tsc` rather than failing a user.
+    // That ordering is a feature: the RPC has to exist on Development before a
+    // browser can be written against it.
+    const pending = migrationCount() - meta.generatedFromContract
+
+    expect(pending, `The generated types trail the repository by ${pending} migration(s).`)
+      .toBeGreaterThanOrEqual(0)
   })
 
   it('was generated from Development, never from Production', () => {

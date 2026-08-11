@@ -832,7 +832,45 @@
  * 150: a new function name, no table, column, policy, trigger, relation grant
  * or default, and an unauthenticated caller refused.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 157
+/**
+ * Contracts 152 to 157 add function names and four relations no seeded journey
+ * touches: every one is a new name, and none redefines a call a seeded user
+ * already makes. Contract 153 is the exception worth stating — it narrows
+ * `join_competition_game` to refuse a PRIVATE competition — and no seeded
+ * journey joins one, because before contract 152 a private competition could
+ * not be created at all.
+ *
+ * Contract 158 is the first in this list that changes what an EXISTING
+ * authenticated read returns, so it is the first for which the answer is not
+ * "nothing a seeded journey calls has moved".
+ *
+ *   - `gen_invite_code()` now returns TWELVE characters, not six. A journey
+ *     that creates a league and reads its code back has to accept the longer
+ *     form; `private-league-invite.spec.ts` extracted exactly six and now
+ *     accepts `{6,16}` — both, because codes issued before this contract are
+ *     untouched and still six.
+ *   - `get_league_preview` no longer returns `id`, `member_count` or
+ *     `owner_name`, so the join screen no longer renders "1 member" or
+ *     "Owner: …". The same spec asserted both and now asserts their ABSENCE,
+ *     which is the boundary rather than a deletion — both reappear on the
+ *     league page after joining, because a member may see the membership.
+ *   - `get_league_preview` and `join_league` now charge a 20/min
+ *     `league_invite_probe` limit. Neither can gate a seeded journey: a seeded
+ *     user previews and joins a handful of times, and the join path was already
+ *     under the stricter 5/min membership trigger, which is unchanged.
+ *   - `leagues_invite_code_check` WIDENED from `{6}` to `{6,16}`, and the
+ *     private-container constraints and contract 155's resolver widened with
+ *     it. A widened check cannot reject a row that previously inserted, so no
+ *     seeded fixture can start failing on one.
+ *   - `rotate_league_invite_code` is a new name called by nothing.
+ *
+ * THIS MARKER IS RAISED ON CI EVIDENCE, not on local execution. The authoring
+ * environment has no seeded database, so no seeded user was driven here. Exact-
+ * head Browser E2E is what proves it, and it must be green on the pull request
+ * that carries this line — which is the same standard contracts 67, 68 and 69
+ * were held to, stated rather than assumed.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 158
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import type {
   CupPhaseKind,
   CupPhasePage,
@@ -72,7 +72,7 @@ export function createSeasonCupRpcGateway(options: {
 }): SeasonCupGateway {
   return {
     async load(): Promise<CupPhasePage> {
-      const { data, error } = await supabase.rpc('get_season_cup_phase', {
+      const { data, error } = await db.rpc('get_season_cup_phase', {
         p_competition_id: options.competitionId,
       })
       if (error) throw error

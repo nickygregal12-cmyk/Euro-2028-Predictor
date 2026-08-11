@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type { LmsRoundPage, SeasonLmsGateway } from '../../features/season/lmsRoundModel'
 
@@ -73,7 +73,7 @@ export function createSeasonLmsRpcGateway(options: {
 
   return {
     async load(): Promise<LmsRoundPage> {
-      const { data, error } = await supabase.rpc('get_season_lms_round', {
+      const { data, error } = await db.rpc('get_season_lms_round', {
         p_tournament_id: options.tournamentId,
       })
       if (error) throw error
@@ -126,7 +126,7 @@ export function createSeasonLmsRpcGateway(options: {
         // is simply no round loaded to pick in.
         throw new Error('There is no open round to pick in.')
       }
-      const { error } = await supabase.rpc('save_lms_selection', {
+      const { error } = await db.rpc('save_lms_selection', {
         p_window_id: windowId,
         p_team_id: teamId,
         p_expected_version: version,

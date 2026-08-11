@@ -13,16 +13,18 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **157** | latest `20260810230000_player_preferences.sql` |
-| Development hosted | **157** | at `20260810230000_player_preferences.sql`, verified `2026-08-11T00:06:48.797Z`, fast-lane run `31444748121` |
-| Production | **157** | promotion **not authorised** |
+| Repository | **158** | latest `20260811000000_invite_code_hardening.sql` |
+| Development hosted | **158** | at `20260811000000_invite_code_hardening.sql`, verified `2026-08-11T08:36:00.000Z`, fast-lane run `31473692593` |
+| Production | **158** | promotion **not authorised** |
 
-Production promotion is read from the hosted record. It is never inferred from
-how far the repository or development has come.
+Production is read from production's own hosted record, and promotion
+authorisation with it. It is never inferred from how far the repository or
+development has come, and it is never copied into a second file — a copy goes
+stale the moment the other one moves.
 
 **Pending development migrations:** None. Hosted development is level with the repository.
 
-**Next free contract number:** 158. Check open pull requests
+**Next free contract number:** 159. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

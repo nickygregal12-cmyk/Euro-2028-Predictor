@@ -221,6 +221,25 @@ A surface is not complete because it renders. It must be immediately understanda
 
 `MIG-UI-04` remains optional and is explicitly not a blocker.
 
+**Contract 158 narrows what Join with code may show, and lengthens what it must accept.**
+`SEC-001`'s invite-code hardening bears directly on § 7 and `UI-F13`, so it is recorded
+here rather than left to be discovered:
+
+- **Codes are now up to twelve characters.** `JoinLeagueModal` never validated length —
+  it refuses only an empty field — so a long code already works. Its placeholder still
+  reads `ABC234`, which now shows a shorter code than the server issues. Codes issued
+  before the change keep their six characters until an owner rotates them, so the field
+  must go on accepting both.
+- **`get_league_preview` no longer returns the member count or the owner's display name**,
+  because together they turned a guessed code into a positively identified private group
+  with a real person's name attached. The join step can show the league's name and whether
+  the caller is already a member, and nothing else. `fetchLeaguePreview` already reads only
+  those two fields, so nothing is broken — but a future "who else is in here?" line on the
+  join screen is a disclosure decision, not a missing read, and must not be added back
+  from another source.
+- **A leaked code is recoverable** through `rotate_league_invite_code`, owner-only. No
+  browser control calls it yet, so a league owner cannot rotate a code from the interface.
+
 **Three gaps were newly found on 11 August and registered rather than approximated:**
 
 - `MIG-UI-13` — a domestic **league table**. The Matches section's accepted shape is Fixtures · Results · Table · Stats, and Table has no authority: contract 141's derivation is explicitly not a league table, because a table carries competition rules — deductions, tie-break order, promotion boundaries — that belong to the competition, and its read caps at twenty matches. So the section ships **Recent form** from that read, labelled as form, and **no Table control at all**. A dead segment is worse than a missing one.

@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapEntrySubmissionStatus,
   type EntrySubmissionStatus,
@@ -13,7 +13,7 @@ export async function fetchExistingEntrySubmissionStatus(
   userId: string,
   tournamentId: string,
 ): Promise<EntrySubmissionStatus | null> {
-  const entry = await supabase
+  const entry = await db
     .from('entries')
     .select('id')
     .eq('user_id', userId)
@@ -23,7 +23,7 @@ export async function fetchExistingEntrySubmissionStatus(
   if (entry.error) throw entry.error
   if (!entry.data) return null
 
-  const { data, error } = await supabase.rpc('get_entry_submission_status', {
+  const { data, error } = await db.rpc('get_entry_submission_status', {
     p_entry_id: entry.data.id,
   })
   if (error) throw error

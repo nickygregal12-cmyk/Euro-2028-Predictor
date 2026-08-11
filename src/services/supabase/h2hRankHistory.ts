@@ -1,4 +1,4 @@
-import { supabase } from './client'
+import { db } from './client'
 import {
   mapH2HRankHistory,
   type H2HRankHistory,
@@ -11,7 +11,7 @@ export async function fetchH2HRankHistory(
   rivalId: string,
   tournamentId: string,
 ): Promise<H2HRankHistory> {
-  const { data, error } = await supabase.rpc('get_h2h_rank_history', {
+  const { data, error } = await db.rpc('get_h2h_rank_history', {
     p_rival_id: rivalId,
     p_tournament_id: tournamentId,
   })

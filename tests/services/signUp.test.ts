@@ -14,7 +14,7 @@ const { signUpMock, signInMock, fromMock } = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/services/supabase/client', () => ({
-  supabase: {
+  db: {
     auth: { signUp: signUpMock, signInWithPassword: signInMock },
     from: fromMock,
   },

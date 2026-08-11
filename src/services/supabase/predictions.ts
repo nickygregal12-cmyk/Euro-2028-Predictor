@@ -3,7 +3,9 @@
 // tiers — see docs/competition-structure.md). v0.1 covers group match scores
 // and the joker flag.
 
-import { supabase } from './client'
+import { db } from './client'
+import { rpcArgs } from './rpcArguments'
+import { preparedInsert } from './preparedInsert'
 import { VersionConflictError, isVersionConflict } from './writeConflict'
 
 export type {
@@ -67,7 +69,7 @@ export async function fetchMyEntry(
   userId: string,
   tournamentId: string,
 ): Promise<Entry | null> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('entries')
     .select('id, submitted_at')
     .eq('user_id', userId)
@@ -79,7 +81,7 @@ export async function fetchMyEntry(
 }
 
 export async function getOrCreateEntry(userId: string, tournamentId: string): Promise<Entry> {
-  const created = await supabase
+  const created = await db
     .from('entries')
     .upsert(
       { user_id: userId, tournament_id: tournamentId },
@@ -97,7 +99,7 @@ export async function getOrCreateEntry(userId: string, tournamentId: string): Pr
   // A zero-row RETURNING result, or the contract-66 membership-trigger race,
   // means another request won the canonical first-use insert. Read the committed
   // shared entry instead of exposing an expected concurrency outcome to the UI.
-  const existing = await supabase
+  const existing = await db
     .from('entries')
     .select('id, submitted_at')
     .eq('user_id', userId)
@@ -116,13 +118,13 @@ export async function getOrCreateEntry(userId: string, tournamentId: string): Pr
  * entry; predictions stay editable until the real lock.
  */
 export async function submitEntry(entryId: string): Promise<string> {
-  const { data, error } = await supabase.rpc('submit_entry', { p_entry_id: entryId })
+  const { data, error } = await db.rpc('submit_entry', { p_entry_id: entryId })
   if (error) throw error
   return data as string
 }
 
 export async function fetchMatchPredictions(entryId: string): Promise<MatchPrediction[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('match_predictions')
     .select('match_id, home_score, away_score, joker, version')
     .eq('entry_id', entryId)
@@ -153,10 +155,10 @@ export async function upsertMatchPrediction(
   joker: boolean,
   expectedVersion: number,
 ): Promise<number> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('match_predictions')
     .upsert(
-      {
+      preparedInsert('match_predictions', {
         entry_id: entryId,
         match_id: matchId,
         home_score: homeScore,
@@ -164,7 +166,7 @@ export async function upsertMatchPrediction(
         joker,
         version: expectedVersion,
         updated_at: new Date().toISOString(),
-      },
+      }),
       { onConflict: 'entry_id,match_id' },
     )
     .select('version')
@@ -186,11 +188,14 @@ export async function deleteMatchPrediction(
   matchId: string,
   expectedVersion: number | null,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc('delete_match_prediction', {
-    p_entry_id: entryId,
-    p_match_id: matchId,
-    p_expected_version: expectedVersion,
-  })
+  const { data, error } = await db.rpc(
+    'delete_match_prediction',
+    rpcArgs('delete_match_prediction', ['p_expected_version'], {
+      p_entry_id: entryId,
+      p_match_id: matchId,
+      p_expected_version: expectedVersion,
+    }),
+  )
   if (error) {
     if (isVersionConflict(error)) throw new VersionConflictError()
     throw error
@@ -211,7 +216,7 @@ export async function deleteMatchPrediction(
  * scope. The RPC is unchanged and still enforces the lock.
  */
 export async function clearMyPredictions(tournamentId: string): Promise<void> {
-  const { error } = await supabase.rpc('clear_my_predictions', {
+  const { error } = await db.rpc('clear_my_predictions', {
     p_tournament_id: tournamentId,
   })
   if (error) throw error

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({ rpc: vi.fn() }))
 
 vi.mock('../../src/services/supabase/client', () => ({
-  supabase: { rpc: mocks.rpc },
+  db: { rpc: mocks.rpc },
 }))
 
 import { createSeasonLmsRpcGateway } from '../../src/services/supabase/seasonLms'

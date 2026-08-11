@@ -24,6 +24,18 @@
 //                has come, and a page that implied otherwise would be an
 //                argument for promoting production.
 //
+//   AND READ FROM PRODUCTION'S OWN RECORD  production's contract is stated in
+//                `config/production-hosted-contract.json` and nowhere else. It
+//                used to be read from a copy kept in the *development* record,
+//                which the development follow-up refreshed after a development
+//                rollout — so a PRODUCTION rollout left the copy behind, and
+//                `--check` could not catch it because it regenerated from the
+//                same stale copy. On 10 August 2026 this page told every reader
+//                production was at 145 while production stood at 151. A
+//                duplicated fact with a one-directional check fails this way
+//                eventually; the copy is gone, and the generator now refuses a
+//                development record that restates production at all.
+//
 // Usage:
 //   node scripts/generate-now.mjs            # write NOW.md
 //   node scripts/generate-now.mjs --check    # exit 1 if NOW.md is out of date
@@ -141,6 +153,7 @@ function acceptedRequirements(root) {
 export function collect(root) {
   const deployment = readJson(root, 'config/deployment-contract.json')
   const hosted = readJson(root, 'config/development-hosted-contract.json')
+  const production = readJson(root, 'config/production-hosted-contract.json')
   const chain = migrations(root)
   const latest = chain.at(-1)
 
@@ -163,8 +176,25 @@ export function collect(root) {
     )
   }
 
-  if (typeof hosted.productionPromotionAuthorised !== 'boolean') {
-    fail('the hosted record does not state productionPromotionAuthorised as a boolean')
+  if (typeof production.promotionAuthorised !== 'boolean') {
+    fail('the production hosted record does not state promotionAuthorised as a boolean')
+  }
+
+  if (!Number.isInteger(production.requiredMigrationCount)) {
+    fail('the production hosted record does not state requiredMigrationCount as an integer')
+  }
+
+  // One record states production, and it is production's own. A second copy
+  // does not disagree on the day it is written; it disagrees on the day one of
+  // the two moves, and the mover is whichever the writer did not think of.
+  for (const field of ['productionContract', 'productionPromotionAuthorised']) {
+    if (hosted[field] !== undefined) {
+      fail(
+        `the development hosted record restates production as \`${field}\`. ` +
+          'Production is stated in config/production-hosted-contract.json and nowhere else — ' +
+          'delete the field rather than keeping the two in step.',
+      )
+    }
   }
 
   if (hosted.requiredMigrationCount > deployment.requiredMigrationCount) {
@@ -175,9 +205,9 @@ export function collect(root) {
     )
   }
 
-  if (hosted.productionContract > deployment.requiredMigrationCount) {
+  if (production.requiredMigrationCount > deployment.requiredMigrationCount) {
     fail(
-      `production is recorded at ${hosted.productionContract}, ahead of the repository ` +
+      `production is recorded at ${production.requiredMigrationCount}, ahead of the repository ` +
         `at ${deployment.requiredMigrationCount}`,
     )
   }
@@ -196,8 +226,8 @@ export function collect(root) {
     developmentLatest: hostedLatest,
     developmentVerifiedAt: hosted.verifiedAt ?? null,
     developmentRunId: hosted.evidence?.workflowRunId ?? null,
-    productionContract: hosted.productionContract,
-    productionPromotionAuthorised: hosted.productionPromotionAuthorised,
+    productionContract: production.requiredMigrationCount,
+    productionPromotionAuthorised: production.promotionAuthorised,
     pending,
     nextFreeContract: deployment.requiredMigrationCount + 1,
     flags: journeyFlags(root),
@@ -252,8 +282,10 @@ One page of current facts, generated from the machine-readable sources. It is
 | Development hosted | **${f.developmentContract}** | at \`${f.developmentLatest}\`, verified \`${f.developmentVerifiedAt ?? 'unrecorded'}\`${f.developmentRunId ? `, fast-lane run \`${f.developmentRunId}\`` : ''} |
 | Production | **${f.productionContract}** | promotion **${f.productionPromotionAuthorised ? 'AUTHORISED' : 'not authorised'}** |
 
-Production promotion is read from the hosted record. It is never inferred from
-how far the repository or development has come.
+Production is read from production's own hosted record, and promotion
+authorisation with it. It is never inferred from how far the repository or
+development has come, and it is never copied into a second file — a copy goes
+stale the moment the other one moves.
 
 **Pending development migrations:** ${pending}
 

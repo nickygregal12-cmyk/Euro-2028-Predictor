@@ -11,7 +11,7 @@ const cardGateways: { tournamentId: string; competitionName: string }[] = []
 const requestedMatchweeks: number[] = []
 
 vi.mock('../../../src/services/supabase/client', () => ({
-  supabase: { rpc: vi.fn() },
+  db: { rpc: vi.fn() },
 }))
 
 vi.mock('../../../src/services/supabase/seasonMatchPredictor', () => ({

@@ -10,7 +10,7 @@ const { resetMock, updateUserMock } = vi.hoisted(() => ({
 }))
 
 vi.mock('../../src/services/supabase/client', () => ({
-  supabase: {
+  db: {
     auth: { resetPasswordForEmail: resetMock, updateUser: updateUserMock },
   },
 }))

@@ -22,7 +22,7 @@
 //
 // Both are states, not errors. Anything else is an error.
 
-import { supabase } from './client'
+import { db } from './client'
 import {
   HeadToHeadHiddenError,
   OpponentNotEnteredError,
@@ -50,7 +50,7 @@ export async function fetchSeasonHeadToHead(
   opponentId: string,
   matchweek: number,
 ): Promise<SeasonHeadToHead> {
-  const { data, error } = await supabase.rpc('get_season_head_to_head', {
+  const { data, error } = await db.rpc('get_season_head_to_head', {
     p_tournament_id: tournamentId,
     p_opponent_id: opponentId,
     p_matchweek: matchweek,
