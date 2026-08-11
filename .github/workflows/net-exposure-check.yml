@@ -21,6 +21,31 @@ name: Net exposure check (DB-004)
 # any pull request — that is the entire failure mode. Weekly rather than daily:
 # the exposure is latent and contained (DB-004), and a check nobody reads
 # because it runs constantly is worse than one that runs when it matters.
+#
+# NO `pull_request` TRIGGER, AND THAT IS A CORRECTION RATHER THAN A CONCESSION.
+#
+# The first version of this workflow also ran on pull requests that touched its
+# own two files, so a change to the check would be exercised before it landed.
+# It failed on the very pull request that introduced it, and the reason is
+# structural rather than a missing setting: this job needs a database URL to
+# reach its target, and it FAILS rather than skips when it cannot — deliberately,
+# because a check that reports "unknown" as "passed" is worse than no check.
+# A pull-request trigger therefore produces a job that can only be red or
+# meaningless, and a permanently red check is one people learn to scroll past.
+# That is the exact failure `DB-004` is about: a control that stops being read.
+#
+# NOTHING IS LOST BY REMOVING IT. What a pull request can honestly verify about
+# this check is verified — `tests/scripts/netExposureCheck.test.ts` runs in CI on
+# every pull request and proves the properties that would be dangerous to get
+# wrong: that the SQL writes nothing, that it fails closed when it cannot read
+# the exposed-schema list, that it scopes the function check to whatever is
+# actually exposed, and that the workflow covers both environments and does not
+# skip on a missing secret. The only thing the trigger added was running the
+# query itself, which is precisely the part that needs credentials.
+#
+# If `SUPABASE_DEV_DB_URL` and `SUPABASE_PROD_DB_URL` are ever exposed to
+# pull-request runs, adding the trigger back is a two-line change — but it is an
+# owner's decision about secret exposure, not something this file should assume.
 
 on:
   workflow_dispatch:
@@ -28,10 +53,6 @@ on:
     # 07:15 UTC on Mondays. Off the hour so it does not queue behind everything
     # else the platform schedules at :00.
     - cron: '15 7 * * 1'
-  pull_request:
-    paths:
-      - supabase/checks/net-exposure.sql
-      - .github/workflows/net-exposure-check.yml
 
 permissions:
   contents: read

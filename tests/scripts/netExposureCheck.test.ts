@@ -137,6 +137,24 @@ describe('the workflow runs it where DB-004 asks', () => {
     expect(workflow).toMatch(/schedule:\s*\n\s*(?:#[^\n]*\n\s*)*- cron:/)
   })
 
+  it('does NOT run on pull requests, and that is deliberate', () => {
+    // The first version of this workflow did, and it failed on the pull request
+    // that introduced it. The cause is structural rather than a missing setting:
+    // the job needs a database URL and FAILS rather than skips without one, so a
+    // pull-request run can only be red or meaningless. A permanently red check
+    // is one people learn to scroll past, which is the failure `DB-004` is
+    // actually about — a control that stops being read.
+    //
+    // Everything a pull request can honestly verify about this check is verified
+    // by THIS FILE, which does run on every pull request. The trigger only added
+    // the part that needs credentials.
+    //
+    // Restoring it is fine once the secrets are exposed to pull-request runs.
+    // That is an owner's decision about secret exposure, so it has to be made
+    // deliberately — which is what this assertion forces.
+    expect(workflow).not.toMatch(/^\s*pull_request:/m)
+  })
+
   it('takes no write permission', () => {
     expect(workflow).toMatch(/permissions:\s*\n\s*contents:\s*read\s*\n/)
     expect(workflow).not.toMatch(/contents:\s*write/)
