@@ -124,6 +124,47 @@ Authority: [ADR 0023](../adr/0023-hub-information-architecture.md) § Private co
 | `CAP-006` | Raising the public-user cap to 250 is the next recommended controlled test stage | Owner approval | An approved, executed change with hosted evidence | **Recommendation — not approved, not a current production change** |
 | `CAP-007` | The global league ceiling should count active leagues rather than lifetime rows; 1,000 active leagues is a recommendation | Owner approval | Approved figures, an additive migration, pgTAP coverage and hosted verification | **Recommendation — not approved, not implemented** |
 
+## Domestic table configuration
+
+Authority: [ADR 0012](../adr/0012-season-predictor-rules.md) and contract 160, which built
+`season_table_rules`, `season_table_adjustments` and `season_fixture_awards` and left them
+empty by design.
+
+Measured on hosted Development, 11 August 2026: **neither league season holds a
+`season_table_rules` row.** `get_competition_table` therefore falls back to its built-in
+`goal_difference, goals_for, head_to_head_points` ordering and reports **no** promotion,
+playoff or relegation boundary at all, because those have no default and none was invented.
+
+Setting them is an **operator action, not a migration** — the same reasoning contract 127
+used for opening a season: `admin_set_competition_table_rules` exists, is granted, and takes
+the values as arguments precisely so that a competition's published rules are data rather
+than schema. What is missing is the decision about what those values are, and two of the four
+are not this repository's to assume.
+
+| ID | Requirement | Depends on | Acceptance evidence | Status |
+| --- | --- | --- | --- | --- |
+| `TABLE-001` | The Premier League 2026/27 and Scottish Premiership 2026/27 seasons carry their own `season_table_rules`: points values, ordered tie-break keys, and promotion/playoff/relegation boundaries | Contract 160 (delivered); an owner confirmation of the two uncertain values below | Two `admin_set_competition_table_rules` calls executed against a target, and `get_competition_table` returning a boundary-annotated table for each | **Accepted — unimplemented.** Three inputs are not in doubt: 3/1/0 for both, three relegation places and no playoff for the Premier League, and one relegation place with one playoff place for the Scottish Premiership. **Two are, and are deliberately not guessed here**: whether the Premier League's stored order should end after `goal_difference, goals_for` — its published rules resolve a remaining tie by playoff rather than by head-to-head, and contract 160's vocabulary has no key for "same position" — and whether the Scottish Premiership's order should carry `head_to_head_points` as a third key. Both change which club is shown above another, so both are the owner's. **No deduction and no awarded outcome is seeded for either season**, and absence there must stay absence: contract 160 built those tables to hold real sanctions, and a placeholder would be a false fact about a real competition |
+
+## Last Man Standing organiser powers
+
+Authority: [ADR 0013](../adr/0013-last-man-standing-season-rules.md), [ADR 0023](../adr/0023-hub-information-architecture.md)
+and contract 165, audited 11 August 2026.
+
+Contract 165 gave a private organiser the reads they had none of, and deliberately **no
+command**. The audit that supported it is re-run here and reaches the same answer: searched
+across ADR 0013, ADR 0023, `MIG-UI-05`, `MIG-UI-06` and this register, **no accepted authority
+anywhere grants an organiser the power to act for another entrant.** The nearest thing that
+exists is `admin_disqualify_competition_game_entry`, which is a competition-ADMINISTRATOR
+command gated on `require_competition_admin` — a platform role, not a competition's owner.
+
+That gap is not an oversight to be filled by an implementer. In Last Man Standing the power to
+submit or change another entrant's pick is the power to eliminate them, and a schema that
+grants it has decided a product question by writing a function.
+
+| ID | Requirement | Depends on | Acceptance evidence | Status |
+| --- | --- | --- | --- | --- |
+| `LMS-001` | Whether a private Last Man Standing organiser may act for a MANAGED entrant — one who has no account and plays through the organiser — and if so, which actions, before which deadline, and with what audit | An owner decision amending ADR 0013; none exists | The rule, then separate audited commands carrying actor and subject identities, managed-entrant eligibility, deadline enforcement from database time, idempotency, immutable audit evidence, no ability to act for an ordinary self-managed player, and no post-lock mutation | **Accepted as a question — blocked on an owner decision, and deliberately not implemented.** Recorded 11 August 2026 after re-auditing rather than assumed from contract 165's read-only shape. **If the answer is no, this row is closed by marking it rejected**, which is itself worth recording: an organiser having no such power is a decision, not an absence |
+
 ## Predictor Championship season qualification
 
 Authority: [ADR 0014](../adr/0014-predictor-cup-season-formats.md) and [`../predictor-cup-rules.md`](../predictor-cup-rules.md) § 6–7.
