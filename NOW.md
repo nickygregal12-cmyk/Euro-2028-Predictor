@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **160** | latest `20260811110000_domestic_league_table.sql` |
+| Repository | **164** | latest `20260811150000_season_lms_field.sql` |
 | Development hosted | **158** | at `20260811000000_invite_code_hardening.sql`, verified `2026-08-11T08:36:00.000Z`, fast-lane run `31473692593` |
 | Production | **158** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 2 — `20260811100000_invite_resolver_probe_hardening.sql`, `20260811110000_domestic_league_table.sql`
+**Pending development migrations:** 6 — `20260811100000_invite_resolver_probe_hardening.sql`, `20260811110000_domestic_league_table.sql`, `20260811120000_season_history_discovery.sql`, `20260811130000_action_centre.sql`, `20260811140000_reminder_delivery.sql`, `20260811150000_season_lms_field.sql`
 
-**Next free contract number:** 161. Check open pull requests
+**Next free contract number:** 165. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

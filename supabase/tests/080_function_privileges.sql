@@ -176,6 +176,30 @@ insert into expected_authenticated_functions (signature) values
 -- `require_competition_admin`, which is the same shape as every other
 -- administrator write here: the grant admits a signed-in caller and the function
 -- decides. `080` asserts the grant; `209` asserts the refusal.
+-- Contract 161: the caller's own season history. Contract 162's two browser
+-- commands and its read. Contract 164's Last Man Standing field.
+--
+-- Every one is `authenticated` and answers only for `auth.uid()`. None takes a
+-- player argument, which is what stops any of them becoming a directory — the
+-- boundary contract 151 set and this batch keeps.
+insert into expected_authenticated_functions (signature) values
+  ('get_my_season_history(integer,integer)'),
+  ('get_my_actions(integer,boolean)'),
+  ('mark_actions_seen(text[])'),
+  ('dismiss_action(text)'),
+  ('get_season_lms_field(uuid,integer)');
+
+-- Contract 162's driver and all four of contract 163's delivery jobs are
+-- SERVICE-ROLE ONLY and deliberately not listed above. An action item carries a
+-- deadline and a completion verdict, and a reminder job sends mail: a browser
+-- role that could run either could manufacture a deadline or a send.
+insert into expected_service_functions (signature) values
+  ('process_player_action_items()'),
+  ('process_reminder_schedule(interval,boolean)'),
+  ('claim_due_reminders(integer,boolean)'),
+  ('record_reminder_result(uuid,boolean,text,text,text)'),
+  ('reclaim_stalled_reminders(interval)');
+
 insert into expected_authenticated_functions (signature) values
   ('get_competition_table(uuid)'),
   ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),

@@ -6,9 +6,30 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (twenty-sixth entry)
+
+**The repository is at contract 164. Development and Production both remain at 158.** Contracts 159 to 164 are repository candidates and **no rollout is claimed for any of them**.
+
+| Contract | Migration | Additive? |
+| --- | --- | --- |
+| 159 | `20260811100000_invite_resolver_probe_hardening.sql` | yes |
+| 160 | `20260811110000_domestic_league_table.sql` | yes |
+| 161 | `20260811120000_season_history_discovery.sql` | yes |
+| 162 | `20260811130000_action_centre.sql` | yes |
+| 163 | `20260811140000_reminder_delivery.sql` | yes |
+| 164 | `20260811150000_season_lms_field.sql` | yes |
+
+**Contract 159 should still be sequenced first**, for the reason the twenty-fifth entry gives: it is a security fix, and until it is applied both hosted environments hold an unrated invite-probe path that `SEC-001` is otherwise closed on.
+
+**Nothing in 161 to 164 alters an existing relation.** The five new tables are created empty and revoked from every browser role; the one new trigger belongs to contract 160 and binds to a table that migration creates. Contract 163 in particular applies **inert**: it names no provider, holds no credential, makes no outbound call, and `dry_run` defaults to true, so applying it queues nothing and sends nothing until an operator explicitly runs its jobs.
+
+**Two recurring jobs would need scheduling separately** and are deliberately not scheduled by these migrations: `process_player_action_items()` and `process_reminder_schedule(...)`. Applying the contract does not start them, which is why applying it changes no player-visible behaviour.
+
+**All six were executed before commit** against a disposable PostgreSQL 16 cluster carrying stand-ins for the relations they depend on. That is **not** the Database parity job and does not substitute for it: it proves the SQL applies and behaves, not that it composes with the full 164-migration chain. pgTAP suites `208` to `213` have **not** been run — no Docker daemon and no Supabase CLI in the authoring environment.
+
 ## Current state — 11 August 2026 (twenty-fifth entry)
 
-**The repository is at contract 160. Development and Production both remain at 158.** Contracts 159 and 160 are repository candidates and **no rollout is claimed for either**.
+**The repository stands at contract 160 in this entry. Development and Production both remain at 158.** Contracts 159 and 160 are repository candidates and **no rollout is claimed for either**.
 
 | Contract | Migration | Additive? | Lane it would take |
 | --- | --- | --- | --- |

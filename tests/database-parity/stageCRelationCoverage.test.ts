@@ -279,6 +279,19 @@ const PROVIDER_RELATIONS = [
   'table:season_table_rules',
   'table:season_table_adjustments',
   'table:season_fixture_awards',
+  // Contract 162. The action centre, deliberately TWO tables: the item is the
+  // server's statement of what is outstanding and is regenerated, while the
+  // state is the player's and must survive regeneration. One table could only
+  // do one of those. Both browser-revoked — `player_action_items` holds every
+  // player's outstanding actions, and a select on it is a scrape of who is
+  // playing what.
+  'table:player_action_items',
+  'table:player_action_state',
+  // Contract 163. The provider-neutral reminder ledger. Browser-revoked and
+  // holding no address and no message content: the address is read from
+  // `auth.users` at send time so this never becomes a second copy of everyone's
+  // contact details.
+  'table:reminder_deliveries',
 ]
 
 const reviewedRelations = [
@@ -301,7 +314,7 @@ describe('Stage C public-relation coverage after C1b and the season fixtures', (
     // relations. This count is a positive control on the migration parser:
     // if it silently stopped recognising `create table`, every disposition
     // below would be vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(59)
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(62)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

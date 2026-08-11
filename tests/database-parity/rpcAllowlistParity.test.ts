@@ -125,8 +125,17 @@ describe('deployment contract and database privilege allow-list parity', () => {
       'admin_finalise_predictor_cup_groups(uuid)',
       'admin_settle_predictor_cup_round(uuid,uuid)',
       'archive_provider_response(text,text,text,integer,jsonb,text,uuid)',
+      // Contract 163's four delivery jobs. A browser role that could run any of
+      // them could cause mail to be sent, or claim a batch and never resolve it.
+      'claim_due_reminders(integer,boolean)',
       'process_due_entry_submissions(timestampwithtimezone)',
+      // Contract 162's driver. An action item carries a deadline and a
+      // completion verdict, so generating one is a server act by definition.
+      'process_player_action_items()',
+      'process_reminder_schedule(interval,boolean)',
+      'reclaim_stalled_reminders(interval)',
       'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',
+      'record_reminder_result(uuid,boolean,text,text,text)',
       'set_operating_limits(integer,integer)',
     ])
   })

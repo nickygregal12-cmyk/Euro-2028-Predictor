@@ -73,8 +73,10 @@ describe('Stage C1 schema overlay coverage', () => {
     // `get_game_leave_eligibility`, and the two club-football derivations
     // `get_season_club_form` and `get_season_club_head_to_head`.
     // Raised 76 → 79 by contract 160's league-table read and its two
+    // competition-administration writes, and 79 → 80 by contract 164's Last Man
+    // Standing field read.
     // competition-administration writes.
-    expect(reviewedFunctions).toHaveLength(79)
+    expect(reviewedFunctions).toHaveLength(80)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

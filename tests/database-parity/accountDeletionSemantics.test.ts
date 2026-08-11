@@ -120,6 +120,14 @@ describe('account deletion — declared foreign-key semantics', () => {
       // recorded it closed their account would silently restate the table.
       '20260811110000_domestic_league_table.sql season_table_adjustments.decided_by → set null',
       '20260811110000_domestic_league_table.sql season_fixture_awards.decided_by → set null',
+      // Contracts 162 and 163. All three CASCADE, unlike contract 160's two,
+      // and the difference is the right one: those are audit attribution on a
+      // competition decision that must outlive the account, while these are the
+      // player's own inbox and their own queued mail. A closed account keeps
+      // neither.
+      '20260811130000_action_centre.sql player_action_items.user_id → cascade',
+      '20260811130000_action_centre.sql player_action_state.user_id → cascade',
+      '20260811140000_reminder_delivery.sql reminder_deliveries.user_id → cascade',
     ])
   })
 
@@ -168,9 +176,12 @@ describe('account deletion — consequences', () => {
       'league_members.user_id',
       'pinned_rivals.rival_user_id',
       'pinned_rivals.user_id',
+      'player_action_items.user_id',
+      'player_action_state.user_id',
       'profiles.id',
       'rank_history.user_id',
       'rate_limit_events.user_id',
+      'reminder_deliveries.user_id',
       'season_wrapped.user_id',
     ])
   })
