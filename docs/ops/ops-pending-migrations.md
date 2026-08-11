@@ -6,9 +6,36 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-fourth entry)
+
+**The repository is at contract 173. Development is hosted at 171. Production is hosted at 171.** Contracts 172 and 173 are repository candidates applied to neither, and both are additive.
+
+| Contract | Migration | What it is |
+| --- | --- | --- |
+| 172 | `20260811230000_action_centre_and_reminder_drivers.sql` | The `pg_cron` caller the action centre and the reminder ledger never had, and an operational health read |
+| 173 | `20260811233000_matchweek_settled_actions.sql` | The action centre's settled-matchweek recap generator |
+
+**Neither creates a table and neither writes a row on apply.** Contract 172 defines two functions and inserts three `cron.job` rows; contract 173 defines two functions. The first generation happens on the first tick after apply, not during it.
+
+**Contract 172 schedules and does not send.** `process_reminder_schedule` is called with no arguments, so `dry_run` stays true; `claim_due_reminders` is not scheduled and has no caller; no provider is named and no credential exists. A source assertion refuses any scheduled command anywhere in `cron.job` that passes `false` or that names the claim, so the property cannot later be edited out of a cron string.
+
+**Both were confirmed ABSENT from Production by name**, in the same read-only postflight that confirmed the thirty-third entry's boundary: `20260811230000` and `20260811233000` are not in that ledger, so the approved 159-to-171 boundary held exactly and nothing here rode in on it. Production also holds **zero** cron jobs naming an action or reminder entry point, and `player_action_items` and `reminder_deliveries` are both empty there.
+
+**What changes on a target when these are applied.** The generator begins writing `player_action_items` for open Last Man Standing picks, open matchweek cards and matchweeks settled in the previous seven days, and the scheduler begins writing `reminder_deliveries` rows carrying `dry_run = true`. Both are additive player-visible state through `get_my_actions`, which is already granted and already caller-scoped. **No prediction, score, lock, settlement, progression or standing moves, and no email is sent.**
+
+**Database parity refused contract 172 on its first run, correctly, and the reason generalises.** The privacy assertion read `pg_get_functiondef`, which returns comments with the code, and the comment explaining why `last_error` is deliberately *not* returned contains `last_error` — so the check refused the very function it was written to approve, and the migration failed on a database where nothing was wrong. Both migrations now strip `--` comments before any source match, which is the rule `rpcAllowlistParity.test.ts` already states in as many words. Recorded rather than quietly fixed, because the same trap is available to every future source assertion in this repository, and contract 173 needed the same treatment independently: its generator's own comment says `round_id` out loud, in the sentence explaining why that key must never be written.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **173** | 173 canonical migrations through `20260811233000_matchweek_settled_actions.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **171** | Fast-lane run `31499058072`, independently confirmed. Contracts 172 and 173 pending. | TWO BEHIND REPOSITORY |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **171** | Guarded rollout run `31505763706` on a separate owner authorisation; see the thirty-third entry. Contracts 172 and 173 pending. | TWO BEHIND REPOSITORY |
+
+`221` and `222` are executed by Database parity on this change's pull request.
+
 ## Current state — 11 August 2026 (thirty-third entry)
 
-**The repository is at contract 171. Development remains at 171. Production is now hosted at 171. All three are level.**
+**The repository stood at contract 171 in this entry. Development remains at 171. Production is now hosted at 171.** All three were level at the moment this entry was written; the entry above is the current position.
 
 Contracts 159 to 171 were applied to Production as **one boundary**, at the owner's direction, through `production-158-to-171-rollout.yml`, run [31505763706](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31505763706), from exact `main` `0f778ffbde7825228379ea24624cc90a92c2fe0c`.
 
@@ -44,7 +71,7 @@ Contracts 159 to 171 were applied to Production as **one boundary**, at the owne
 
 ## Current state — 11 August 2026 (thirty-second entry)
 
-**The repository is at contract 171. Development is now hosted at 171. Production remains at 158.**
+**The repository stood at contract 171 in this entry. Development was hosted at 171. Production stood at 158.**
 
 Contracts 169 to 171 merged as PR #694 at `dd345ca680dd0841d5832f4de7ad3d42ee1099c8` and were applied to Development through `development-fast-lane-rollout.yml`, run [31499058072](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31499058072).
 
@@ -71,7 +98,7 @@ Worse, and new: a `select count(*), max(version)` against the development ledger
 
 ## Current state — 11 August 2026 (thirty-first entry)
 
-**The repository stood at contract 171 in this entry, with Development at 168. Development is hosted at 168. Production remains at 158.** Contracts 169, 170 and 171 are repository candidates applied to neither, and all three are additive.
+**The repository stood at contract 171 in this entry, with Development at 168 and Production at 158.** Contracts 169, 170 and 171 are repository candidates applied to neither, and all three are additive.
 
 | Contract | Migration | What it is |
 | --- | --- | --- |
@@ -93,7 +120,7 @@ Worse, and new: a `select count(*), max(version)` against the development ledger
 
 ## Current state — 11 August 2026 (thirtieth entry)
 
-**The repository stood at contract 170 in this entry. Development is hosted at 168. Production remains at 158.** Contracts 169 and 170 are repository candidates applied to neither, and both are additive.
+**The repository stood at contract 170 in this entry. Development was hosted at 168. Production stood at 158.** Contracts 169 and 170 are repository candidates applied to neither, and both are additive.
 
 | Contract | Migration | What it is |
 | --- | --- | --- |
@@ -114,7 +141,7 @@ Worse, and new: a `select count(*), max(version)` against the development ledger
 
 ## Current state — 11 August 2026 (twenty-ninth entry)
 
-**The repository stood at contract 169 in this entry. Development is hosted at 168. Production remains at 158.** Contract 169 — `20260811200000_season_cup_initial_group_table.sql` — is a repository candidate applied to neither, and it is additive.
+**The repository stood at contract 169 in this entry. Development was hosted at 168. Production stood at 158.** Contract 169 — `20260811200000_season_cup_initial_group_table.sql` — is a repository candidate applied to neither, and it is additive.
 
 **It is a ranking correction, not a feature.** `predictor_internal.cup_final_group_tables` measures four of its nine ADR 0014 §5.2 keys over `win.sequence between 1 and 3`. Contracts 120 and 167 show that table for a season Predictor Championship whose group stage runs to thirty-eight matchdays. Driven on a disposable PostgreSQL 16 with two players level on table points: **the group winner changes**, and under ADR 0014 the group winner decides qualification and seeding.
 
