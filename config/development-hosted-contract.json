@@ -1,12 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 171,
-  "latestMigrationVersion": "20260811220000",
-  "latestMigrationName": "league_prediction_cap_honesty",
-  "verifiedAt": "2026-08-11T14:26:00.000Z",
+  "requiredMigrationCount": 174,
+  "latestMigrationVersion": "20260811234000",
+  "latestMigrationName": "provider_calendar_change_proposals",
+  "verifiedAt": "2026-08-11T19:12:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout of contracts 169 to 171, confirmed by separate read-only queries against supabase_migrations.schema_migrations (171 rows, latest 20260811220000, with the three new versions named individually) and by counting the batch's four new predictor_internal functions in pg_proc",
-    "workflowRunId": 31499058072,
-    "repositoryHead": "dd345ca680dd0841d5832f4de7ad3d42ee1099c8"
+    "source": "Development fast-lane rollout of contracts 172 to 174, confirmed independently of the workflow by read-only queries that NAME the three new rows in supabase_migrations.schema_migrations (20260811230000 action_centre_and_reminder_drivers, 20260811233000 matchweek_settled_actions, 20260811234000 provider_calendar_change_proposals) rather than counting to 174, and by reading cron.job in full: ten jobs, the seven pre-existing plus player-action-centre-generate, player-reminder-schedule and player-reminder-reclaim-stalled, each with an argument list that is empty, none naming claim_due_reminders and none passing false. player_action_items, reminder_deliveries and provider_calendar_change_proposals all hold zero rows on apply, the new predictor_internal functions are executable by the owner alone and the three new admin reads by authenticated alone, and euro_publication_state() still returns hidden",
+    "workflowRunId": 31525963941,
+    "repositoryHead": "09214df645e916b0043df7e7af7c14eb3f1c9eb3"
   }
 }
