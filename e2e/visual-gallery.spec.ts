@@ -111,15 +111,8 @@ const SECTIONS = [
  * "temporary" exemption from becoming the way new sections are added. The nine
  * UI-finalisation sections passed through it and are gone from it.
  */
-export const AWAITING_BASELINE: readonly string[] = [
-  // Renamed 11 August 2026: the panel's heading became "Club form" so it stops
-  // colliding with the Match Centre's "Recent form" for an opened fixture's two
-  // clubs — the browser suite caught the duplicate as a strict-mode violation,
-  // which is the same defect a screen-reader user meets navigating by heading.
-  // Its images come from the next `visual-contracts.yml` dispatch; the four
-  // rendered under the old name are deleted rather than left orphaned.
-  'competition-club-form',
-]
+export const AWAITING_BASELINE: readonly string[] = []
+
 
 const WIDTHS = ['phone', 'desktop'] as const
 const THEMES = ['dark', 'light'] as const
